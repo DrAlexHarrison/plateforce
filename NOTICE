@@ -1,0 +1,34 @@
+plateforce
+Copyright 2026 Alex Harrison
+
+This product includes software developed by Alex Harrison.
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+================================================================================
+Method registry provenance
+================================================================================
+
+Registry entries cite published methods. A citation records where a rule was
+stated; it does not imply the cited author endorses this implementation, and it
+does not transfer any right in the cited work. Rules are reproduced as short
+factual statements of method, which is what a registry is.
+
+Every entry carries a confidence field. Where an entry rests on an abstract, a
+publisher preview or a secondary source rather than the full primary, the entry
+says so.
+
+================================================================================
+Dependency license posture
+================================================================================
+
+To be recorded as dependencies are added. The intent is a light, permissively
+licensed surface with a runnable core that degrades gracefully when optional
+dependencies are absent.
+
+================================================================================
+Data
+================================================================================
+
+No subject data is included in this repository. The validation corpus referenced
+in the documentation is held separately and is not redistributable in its raw
+form: it is re-identifiable, and consent covers one subject.

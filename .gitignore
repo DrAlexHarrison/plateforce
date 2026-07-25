@@ -1,0 +1,10 @@
+target/
+__pycache__/
+*.pyc
+.venv/
+*.Rcheck/
+.Rhistory
+node_modules/
+dist/
+build/
+.DS_Store
