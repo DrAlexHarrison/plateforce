@@ -115,6 +115,22 @@ reports what it dropped and under which rule. Silent data exclusion is the
 failure mode the registry exists to prevent, and it must not appear in our own
 code.
 
+**No silent inclusion either. A sentinel is not a measurement.** Vendor exports
+encode missing data as `0`, `-1`, `9999` or an empty cell, and reading one as a
+real value is the same defect wearing the opposite costume. Every reader declares
+which sentinel convention it applied and reports what it treated as missing.
+
+```
+// Three sentinel rows in 244 moved a published correlation by 0.16;
+// the commercial export writes 0.00 to height, time and RSI together.
+```
+
+**A method that can fail reports its failure rate, not just its bias.** Two of the
+nine onset rules in this corpus place the movement start more than two seconds
+before takeoff on roughly one trial in seven. A single bias figure for such a rule
+averages working and not working, so bias is reported conditional on not having
+failed, alongside the failure rate and its denominator.
+
 ---
 
 ## 4. Repository files
