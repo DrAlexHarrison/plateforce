@@ -132,8 +132,8 @@ export class TraceChart {
     element.addEventListener('pointerup', release);
     element.addEventListener('pointercancel', release);
 
-    // Keyboard is not a courtesy here. A researcher placing an onset to the sample cannot
-    // do it by dragging, and the arrow keys are the only path that reaches one sample.
+    // Dragging does not reach single-sample precision at any plot width, so the arrow
+    // keys are the only path to placing an onset exactly.
     element.addEventListener('keydown', (event) => {
       const steps = { ArrowLeft: -1, ArrowRight: 1, PageDown: -100, PageUp: 100, Home: null, End: null };
       if (!(event.key in steps)) return;
@@ -291,8 +291,8 @@ export class TraceChart {
     context.fillText('vGRF (N)', 0, 0);
     context.restore();
 
-    // Below the tick row rather than beside it. Beside it, the title collided with the
-    // last tick at any width narrow enough to matter.
+    // Below the tick row. Beside it, the title overlaps the last tick once the plot is
+    // narrow.
     context.textAlign = 'center';
     context.fillText('time (s)', this.plot.left + this.plot.width / 2, this.plot.bottom + 24);
     context.restore();

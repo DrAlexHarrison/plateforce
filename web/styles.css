@@ -122,7 +122,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* A `display` declaration on a component beats the hidden attribute, and both the drawer
-   and the workspace stage carry one. Stating it once removes the whole class of bug. */
+   and the workspace stage carry one. */
 [hidden] { display: none !important; }
 
 body {
@@ -232,8 +232,7 @@ main { padding: var(--space-6); }
 }
 .workspace__main { display: grid; gap: var(--space-6); min-width: 0; }
 /* Grid and flex children default to min-width:auto, which lets a long unbroken string
-   push the whole page sideways. Horizontal overflow is a release blocker, so this is set
-   once at the top rather than chased per component. */
+   push the page sideways. */
 .workspace__rail, .panel, .metric, .metric-grid > *, .column-grid > *, .decision, .spread-controls > * { min-width: 0; }
 .workspace__rail { display: grid; gap: var(--space-6); position: sticky; top: var(--space-6); }
 
@@ -490,16 +489,16 @@ select { cursor: pointer; }
 .metric__note { font-size: var(--text-xs); color: var(--text-secondary); }
 .metric__provenance {
   display: grid;
-  /* An implicit grid column sizes to max-content, which let a long method title push past
-     the card's padding instead of ellipsising inside it. */
+  /* An implicit grid column sizes to max-content, which puts a long method title past the
+     card's padding instead of ellipsising inside it. */
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   padding-top: var(--space-2);
   border-top: 1px dashed var(--border);
 }
 
-/* One line per contributing method. Pills wrapped to three lines each and buried the
-   number they belonged to. */
+/* One line per contributing method, so the provenance stays shorter than the value it
+   sits under. */
 .provenance {
   font: inherit;
   font-size: var(--text-xs);
@@ -711,8 +710,8 @@ table.data td.failed { color: var(--danger); white-space: normal; }
 }
 
 @media (max-width: 640px) {
-  /* A narrow screen is a touch screen often enough that the compact desktop sizes are
-     the wrong default here, whatever the pointer media query reports. */
+  /* A narrow screen is a touch screen often enough that the compact desktop sizes are the
+     wrong default here, whatever the pointer media query reports. */
   .button--small { min-height: 44px; padding: 0 var(--space-3); }
   .provenance { min-height: 44px; }
   .param select, .param input { min-height: 44px; }

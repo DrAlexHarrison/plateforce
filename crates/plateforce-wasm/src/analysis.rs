@@ -4,9 +4,13 @@
 //! module decides which core function a registry id names, what parameters it was given,
 //! and what provenance travels with the answer.
 //!
-//! Where an id below is absent from the registry it is still offered, flagged as not
-//! registry backed. Hiding an executable rule because its paperwork is unfinished is the
-//! silent exclusion this project exists to document.
+//! Where an id below is absent from the registry it is still offered, flagged. Hiding an
+//! executable rule because its paperwork is unfinished is the silent exclusion this
+//! project exists to document.
+//!
+//! Two kinds of absence, and they are not the same claim. A composition is a registry
+//! method bound with an operator, so it inherits that row's citations and needs no row of
+//! its own. An unfiled rule is one the registry files elsewhere or does not carry.
 
 use std::collections::BTreeMap;
 
@@ -39,7 +43,10 @@ pub struct Binding {
     pub slot: &'static str,
     pub construct: &'static str,
     pub title: &'static str,
-    /// What the interface should say when the registry has no entry under this id.
+    /// The registry row this id binds an operator on. Under the per-kind-of-rule grain a
+    /// composition is a method plus bound parameters, so it carries the base row's
+    /// citations and the fingerprint carries the binding.
+    pub composed_from: Option<&'static str>,
     pub note: &'static str,
 }
 
@@ -49,6 +56,7 @@ pub const BINDINGS: &[Binding] = &[
         slot: "weighing",
         construct: WEIGHING_CONSTRUCT,
         title: "Fixed window at the start of the recording",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -56,6 +64,7 @@ pub const BINDINGS: &[Binding] = &[
         slot: "weighing",
         construct: WEIGHING_CONSTRUCT,
         title: "Quietest window in the recording",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -63,6 +72,7 @@ pub const BINDINGS: &[Binding] = &[
         slot: "weighing",
         construct: WEIGHING_CONSTRUCT,
         title: "Window placed by hand",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -70,6 +80,7 @@ pub const BINDINGS: &[Binding] = &[
         slot: "onset",
         construct: ONSET_CONSTRUCT,
         title: "Noise-relative threshold, k SD of the quiet epoch",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -77,6 +88,7 @@ pub const BINDINGS: &[Binding] = &[
         slot: "onset",
         construct: ONSET_CONSTRUCT,
         title: "Fixed fraction below system weight",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -84,6 +96,7 @@ pub const BINDINGS: &[Binding] = &[
         slot: "onset",
         construct: ONSET_CONSTRUCT,
         title: "Absolute departure in newtons",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -91,20 +104,23 @@ pub const BINDINGS: &[Binding] = &[
         slot: "onset",
         construct: ONSET_CONSTRUCT,
         title: "Last sample still inside the noise band",
-        note: "Executable here, and the registry carries no entry under this id yet.",
+        composed_from: Some("onset.threshold.noise_relative"),
+        note: "Composition: onset.op.crossing_selection bound to last.",
     },
     Binding {
         id: "onset.threshold.adaptive_trailing_window",
         slot: "onset",
         construct: ONSET_CONSTRUCT,
         title: "Threshold recomputed from a trailing window",
-        note: "Executable here, and the registry carries no entry under this id yet.",
+        composed_from: None,
+        note: "The registry files this concept as bwepoch.rolling_trailing_window, in group B with the reference-epoch rules.",
     },
     Binding {
         id: "takeoff.threshold.absolute_force",
         slot: "takeoff",
         construct: TAKEOFF_CONSTRUCT,
         title: "First sustained run below a residual threshold",
+        composed_from: None,
         note: "",
     },
     Binding {
@@ -112,21 +128,24 @@ pub const BINDINGS: &[Binding] = &[
         slot: "takeoff",
         construct: TAKEOFF_CONSTRUCT,
         title: "Longest run below the threshold",
-        note: "Executable here, and the registry carries no entry under this id yet.",
+        composed_from: Some("takeoff.threshold.absolute_force"),
+        note: "Composition: onset.op.crossing_selection bound to longest_run at the falling edge.",
     },
     Binding {
         id: "takeoff.threshold.descending_crossing",
         slot: "takeoff",
         construct: TAKEOFF_CONSTRUCT,
         title: "Sample before a confirmed descending crossing",
-        note: "Executable here, and the registry carries no entry under this id yet.",
+        composed_from: Some("takeoff.threshold.absolute_force"),
+        note: "Composition: onset.op.direction bound at the falling edge.",
     },
     Binding {
         id: "takeoff.threshold.flight_noise_k_sd",
         slot: "takeoff",
         construct: TAKEOFF_CONSTRUCT,
         title: "Threshold re-estimated from the flight phase itself",
-        note: "",
+        composed_from: None,
+        note: "plateforce_core reports this rule's failures under takeoff.threshold.reestimated_flight.",
     },
 ];
 

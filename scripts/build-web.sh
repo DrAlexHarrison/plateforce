@@ -57,11 +57,9 @@ wasm-bindgen \
   --out-dir "$output_dir" \
   "${target_dir}/plateforce_wasm.wasm"
 
-# Deliberately no wasm-opt pass. Binaryen 108, which is what Ubuntu ships, rewrites the
-# function table in a way that makes wasm-bindgen's module fail to instantiate with
-# "WebAssembly.Table.grow(): failed to grow table by 4". A post-processing step whose
-# behaviour depends on whichever binaryen the machine happens to have is a worse trade
-# than a larger artifact, and the release profile already carries opt-level 2 and thin LTO.
+# No wasm-opt pass. Binaryen 108, the version Ubuntu ships, rewrites the function table
+# so the module fails to instantiate with "WebAssembly.Table.grow(): failed to grow table
+# by 4". The release profile already carries opt-level 2 and thin LTO.
 
 size="$(du -h "${output_dir}/plateforce_wasm_bg.wasm" | cut -f1)"
 transfer="$(gzip -c "${output_dir}/plateforce_wasm_bg.wasm" | wc -c | awk '{printf "%.0f KB", $1/1024}')"

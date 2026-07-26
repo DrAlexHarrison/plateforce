@@ -8,6 +8,9 @@
  * The union matters in both directions. A registry entry this build cannot run is offered
  * as unavailable rather than omitted, and a rule this build can run that the registry has
  * not documented is offered as not registry backed rather than presented as citable.
+ *
+ * Not registry backed splits two ways. A composition binds an operator on a registry row
+ * and inherits its citations. An unfiled rule has no row anywhere.
  */
 
 export const SLOTS = [
@@ -58,6 +61,7 @@ export function buildDecisionModel(registry, bindings) {
       surfacing: method.gui?.surfacing || null,
       method,
       registryBacked: true,
+      composedFrom: null,
       executable: executableIds.has(method.id),
       note: '',
     }));
@@ -71,8 +75,9 @@ export function buildDecisionModel(registry, bindings) {
         surfacing: null,
         method: null,
         registryBacked: false,
+        composedFrom: binding.composed_from || null,
         executable: true,
-        note: binding.note || 'The registry carries no entry under this id yet.',
+        note: binding.note || 'No registry row carries this id.',
       });
     }
 

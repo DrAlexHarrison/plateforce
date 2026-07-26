@@ -30,7 +30,7 @@
         <path d="M8 1.5 2.5 3.6v4.1c0 3.2 2.3 6 5.5 6.8 3.2-.8 5.5-3.6 5.5-6.8V3.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/>
         <path d="M5.6 8.1 7.3 9.8l3.2-3.4" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span>Your data stays on this device. Nothing is uploaded.</span>
+      <span>Files are read in your browser and are not uploaded.</span>
     </p>
     <button type="button" class="button button--ghost button--icon" id="theme-toggle" aria-label="Switch colour theme">
       <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.2 9.6A5.8 5.8 0 0 1 6.4 2.8 5.8 5.8 0 1 0 13.2 9.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/></svg>
@@ -40,13 +40,13 @@
 
 <div class="banner banner--error" id="registry-banner" hidden>
   <div class="banner__body">
-    <strong id="registry-banner-title">The compiled registry does not pass its own validator.</strong>
+    <strong id="registry-banner-title">The compiled registry fails its own validator.</strong>
     <p id="registry-banner-text"></p>
     <details id="registry-violations-wrap">
       <summary>Show every violation</summary>
       <ul class="violation-list" id="registry-violations"></ul>
     </details>
-    <p class="banner__note">Analysis still runs, and every number is marked as not registry backed until these clear.</p>
+    <p class="banner__note">Analysis still runs. Every number is marked as not registry backed until these clear.</p>
   </div>
 </div>
 
@@ -56,7 +56,7 @@
   <section class="stage" id="stage-loading">
     <div class="loading">
       <div class="loading__bar" aria-hidden="true"><span></span></div>
-      <p>Starting the analysis engine in this tab.</p>
+      <p>Loading plateforce in this tab.</p>
     </div>
   </section>
 
@@ -83,18 +83,18 @@
           <path d="M6 25v4a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3v-4" fill="none" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <h2>Drop a force trace here</h2>
-        <p>Tab or comma separated text from any plate. The file is read inside this tab and is never sent anywhere.</p>
+        <p>Tab or comma separated text from any plate. The file is read in your browser and is not uploaded.</p>
         <div class="dropzone__actions">
           <button type="button" class="button button--primary" id="choose-file">Choose a file</button>
-          <button type="button" class="button button--ghost" id="load-demo">Open a synthetic trial instead</button>
+          <button type="button" class="button button--ghost" id="load-demo">Open a synthetic trial</button>
         </div>
         <input type="file" id="file-input" accept=".txt,.csv,.tsv,.dat,.asc,text/plain" hidden>
       </div>
 
       <ul class="empty__points">
-        <li><strong>No upload, no account, no server.</strong> Subject force data is re-identifiable, so it never leaves your machine.</li>
+        <li><strong>No upload, no account, no server.</strong> Force traces are re-identifiable, and reading the file in the browser keeps it there.</li>
         <li><strong>Every number names its method.</strong> Citation, known bias and failure rate travel with the value.</li>
-        <li><strong>Drag a marker and watch the number move.</strong> That movement is the reason this tool exists.</li>
+        <li><strong>Drag a marker and watch the number move.</strong> Time to takeoff, jump height and every dependent metric recompute as it moves.</li>
       </ul>
     </div>
   </section>
@@ -232,7 +232,7 @@
 
 <footer class="app-footer">
   <p>
-    plateforce runs entirely in your browser. Apache-2.0.
+    plateforce runs in your browser. Apache-2.0.
     <a href="https://github.com/DrAlexHarrison/plateforce">Source and registry</a>.
   </p>
 </footer>

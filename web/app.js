@@ -192,7 +192,7 @@ async function readFile(file) {
     showStage('stage-columns');
   } catch (error) {
     showStage('stage-empty');
-    reportInline(`That file could not be read. ${error.message || error}`);
+    reportInline(String(error.message || error));
   }
 }
 
@@ -336,7 +336,7 @@ function enterWorkspace() {
       },
       onWindowChange: (startIndex, durationSeconds) => {
         // Placing the window by hand is a registry entry in its own right, so the drag
-        // rebinds the method rather than quietly overriding whichever rule was selected.
+        // rebinds the method rather than overriding whichever rule was selected.
         state.weighing = { startIndex, durationSeconds };
         if (candidateFor('weighing', 'bwepoch.manual_placement')) {
           state.selection.weighing = { methodId: 'bwepoch.manual_placement', values: {}, unresolved: [] };
@@ -438,7 +438,11 @@ function renderSlot(slot) {
     select.append(placeholder);
   }
   for (const candidate of rankCandidates(slot.available)) {
-    const suffix = candidate.registryBacked ? ` (${candidate.status})` : ' (no registry entry)';
+    const suffix = candidate.registryBacked
+      ? ` (${candidate.status})`
+      : candidate.composedFrom
+        ? ' (composition)'
+        : ' (unfiled)';
     const option = element('option', null, candidate.title + suffix);
     option.value = candidate.id;
     option.selected = candidate.id === selection.methodId;
@@ -548,8 +552,8 @@ function renderParameters(slot, candidate, selection) {
       });
       row.append(input);
     } else {
-      // The registry records this parameter without a numeric value to bind, so this build
-      // runs its own default. Saying so beats rendering an empty box that does nothing.
+      // The registry records this parameter with no numeric value to bind, so this build
+      // runs its own default.
       row.append(element('span', 'decision__meta', 'build default'));
     }
     host.append(row);
@@ -698,8 +702,8 @@ function renderPendingDecisions(pending) {
     element(
       'p',
       null,
-      'The registry marks each of these as a choice that moves the result, so plateforce will not pick one for you. ' +
-        'Choosing the registry recommendation is fine, and it is recorded as a choice you made.',
+      'The registry marks each of these as a choice that moves the result, so plateforce does not pick one for you. ' +
+        'Choosing the registry recommendation is recorded as a choice you made.',
     ),
   );
   const list = element('ul');
@@ -799,13 +803,17 @@ function provenanceRow(methodIds) {
       badges.append(element('span', 'tag tag--fails', `${(method.failure.rate * 100).toFixed(0)}% fail`));
     }
     if (bound?.manual_override) badges.append(element('span', 'tag tag--decide', 'dragged'));
-    if (!bound?.registry_backed) badges.append(element('span', 'tag tag--advanced', 'unregistered'));
+    const binding = state.build.bindings.find((entry) => entry.id === id);
+    if (!bound?.registry_backed) {
+      badges.append(element('span', 'tag tag--advanced', binding?.composed_from ? 'composed' : 'unfiled'));
+    }
     item.append(badges);
 
     const parameters = (bound?.bound_parameters || []).map(([name, value]) => `${name} ${value}`).join(', ');
-    item.title = [id, parameters, bound?.registry_backed ? '' : 'no registry entry carries this id']
-      .filter(Boolean)
-      .join(' | ');
+    const absence = binding?.composed_from
+      ? `composition of ${binding.composed_from}`
+      : 'no registry row carries this id';
+    item.title = [id, parameters, bound?.registry_backed ? '' : absence].filter(Boolean).join(' | ');
     item.addEventListener('click', () => openDrawer(method, id, bound));
     row.append(item);
   }
@@ -818,16 +826,36 @@ function openDrawer(method, fallbackId, bound) {
   const drawer = $('method-drawer');
   const body = $('drawer-body');
   body.replaceChildren();
-  $('drawer-title').textContent = method ? method.title : fallbackId;
+  $('drawer-title').textContent =
+    method?.title || state.build.bindings.find((entry) => entry.id === fallbackId)?.title || fallbackId;
 
   if (!method) {
-    body.append(
-      notice(
-        'warning',
-        'Not a registry entry',
-        `${fallbackId} is a build default. The registry carries no entry for it, so there is no citation, no recorded bias and no failure rate. Numbers depending on it are marked accordingly.`,
-      ),
-    );
+    const binding = state.build.bindings.find((entry) => entry.id === fallbackId);
+    if (binding?.composed_from) {
+      const base = findMethod(state.registry, binding.composed_from);
+      body.append(
+        notice(
+          'warning',
+          `A composition of ${binding.composed_from}`,
+          `${binding.note} Under the registry's per-kind-of-rule grain a composition is a method plus bound parameters, ` +
+            `so it carries that row's citations rather than a row of its own, and the binding travels in the fingerprint.`,
+        ),
+      );
+      if (base) {
+        const open = element('button', 'button button--ghost button--small', 'Open the entry it composes');
+        open.type = 'button';
+        open.addEventListener('click', () => openDrawer(base));
+        body.append(open);
+      }
+    } else {
+      body.append(
+        notice(
+          'warning',
+          'No registry row carries this id',
+          `${binding?.note || ''} There is no citation, no recorded bias and no failure rate under this id. Numbers depending on it are marked accordingly.`.trim(),
+        ),
+      );
+    }
     drawer.hidden = false;
     return;
   }

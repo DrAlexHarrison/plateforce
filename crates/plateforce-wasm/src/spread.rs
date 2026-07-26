@@ -201,8 +201,8 @@ fn materialise(
         if !axis.method_ids.is_empty() {
             let method_id = axis.method_ids[position].clone();
             settings.push((axis.slot.clone(), method_id.clone()));
-            // A slot being swept cannot also be pinned to a dragged marker, or every
-            // variant returns the same number and the sweep reports a spread of zero.
+            // A swept slot cannot also be pinned to a dragged marker: every variant would
+            // return the pinned index and the sweep would report a spread of zero.
             match axis.slot.as_str() {
                 "onset" => {
                     candidate.onset.method_id = method_id;
