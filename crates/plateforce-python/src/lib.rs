@@ -1,46 +1,49 @@
-//! Spike. Replaced by the real binding once the pyo3 surface is confirmed.
+//! Python surface over `plateforce-core` and `plateforce-registry`.
+//!
+//! The math is not here and must never be. Every number this module returns came out of
+//! the one implementation in the core, and what this layer adds is the record of which
+//! method produced it and what that method was bound to.
 
-use pyo3::buffer::PyBuffer;
+mod analysis;
+mod errors;
+mod registry;
+mod result;
+mod trial;
+
 use pyo3::prelude::*;
 
-pyo3::create_exception!(plateforce, SpikeError, pyo3::exceptions::PyException, "spike");
-
-#[pyclass(frozen)]
-struct Spike {
-    #[pyo3(get)]
-    value: f64,
-}
-
-#[pymethods]
-impl Spike {
-    #[new]
-    #[pyo3(signature = (value = 1.0))]
-    fn new(value: f64) -> Self {
-        Spike { value }
-    }
-
-    #[getter]
-    fn doubled(&self) -> f64 {
-        self.value * 2.0
-    }
-
-    fn __repr__(&self) -> String {
-        format!("Spike(value={})", self.value)
-    }
-}
-
-#[pyfunction]
-fn sum_buffer(py: Python<'_>, values: &Bound<'_, PyAny>) -> PyResult<f64> {
-    let buffer = PyBuffer::<f64>::get(values)?;
-    let mut out = vec![0.0f64; buffer.item_count()];
-    buffer.copy_to_slice(py, &mut out)?;
-    Ok(out.iter().sum())
-}
-
 #[pymodule]
-fn plateforce(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<Spike>()?;
-    m.add_function(wrap_pyfunction!(sum_buffer, m)?)?;
-    m.add("SpikeError", m.py().get_type::<SpikeError>())?;
-    Ok(())
+fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add("__version__", env!("CARGO_PKG_VERSION"))?;
+
+    module.add_class::<trial::Trial>()?;
+    module.add_class::<trial::Acquisition>()?;
+    module.add_class::<trial::Sentinel>()?;
+    module.add_class::<trial::SentinelPartition>()?;
+
+    module.add_class::<registry::Registry>()?;
+    module.add_class::<registry::MethodEntry>()?;
+    module.add_class::<registry::BoundMethod>()?;
+    module.add_class::<registry::Parameter>()?;
+    module.add_class::<registry::Citation>()?;
+    module.add_class::<registry::Bias>()?;
+    module.add_class::<registry::Failure>()?;
+    module.add_class::<registry::Disagreement>()?;
+    module.add_class::<registry::Gui>()?;
+    module.add_class::<registry::Construct>()?;
+    module.add_class::<registry::Census>()?;
+
+    module.add_class::<result::Measured>()?;
+    module.add_class::<result::Provenance>()?;
+    module.add_class::<result::Exclusions>()?;
+    module.add_class::<analysis::CountermovementJump>()?;
+
+    module.add_function(wrap_pyfunction!(
+        analysis::analyse_countermovement_jump,
+        module
+    )?)?;
+    module.add_function(wrap_pyfunction!(analysis::jump_height_from_flight_time, module)?)?;
+    module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
+
+    errors::register(module)
 }

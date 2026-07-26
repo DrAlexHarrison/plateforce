@@ -1,11 +1,12 @@
 //! Landmarks on a countermovement jump trace, and the quantities derived from them.
 //!
-//! The landmark definitions and the three identities asserted in the tests below were
-//! verified against real data before any of this was written. See
-//! `docs/landmarks.md` for the operational rule behind each point.
+//! See `docs/landmarks.md` for the operational rule behind each point.
 
 use crate::signal::{Trial, TrialError};
-use crate::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED as GRAVITY;
+use crate::statistics::{
+    lowest_variance_window, mean_and_standard_deviation, median, DispersionEstimator,
+    VarianceAccumulation,
+};
 
 /// The quiet-standing window that establishes system weight.
 ///
@@ -19,34 +20,108 @@ pub struct WeighingEpoch {
     pub end_index: usize,
     pub system_weight_newtons: f64,
     pub standard_deviation_newtons: f64,
+    /// Number of windows the selection rule could not choose between. One for any
+    /// rule with a fixed window; larger whenever a search rule found exact ties.
+    pub tied_window_count: usize,
+}
+
+/// Which statistic of the weighing window stands for system weight.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CentralTendency {
+    Mean,
+    Median,
 }
 
 impl WeighingEpoch {
     /// Fixed window anchored at the start of the recording.
-    pub fn fixed_window(trial: &Trial, duration_seconds: f64) -> Result<Self, TrialError> {
+    pub fn fixed_window(
+        trial: &Trial,
+        duration_seconds: f64,
+        centre: CentralTendency,
+        dispersion: DispersionEstimator,
+    ) -> Result<Self, TrialError> {
         let samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
+        Self::fixed_sample_window(trial, samples, duration_seconds, centre, dispersion)
+    }
+
+    /// Fixed window stated in samples, which is how one implementation states it and
+    /// is the reason its window means different durations at different sample rates.
+    pub fn fixed_sample_window(
+        trial: &Trial,
+        samples: usize,
+        requested_seconds: f64,
+        centre: CentralTendency,
+        dispersion: DispersionEstimator,
+    ) -> Result<Self, TrialError> {
         if samples < 2 || samples > trial.len() {
             return Err(TrialError::EpochTooLong {
-                requested_seconds: duration_seconds,
+                requested_seconds,
                 available_seconds: trial.duration_seconds(),
             });
         }
         let window = &trial.force()[..samples];
-        let mean = window.iter().sum::<f64>() / samples as f64;
-        // Sample standard deviation, because the threshold rules that consume it are
-        // stated against the sample statistic.
-        let variance =
-            window.iter().map(|f| (f - mean).powi(2)).sum::<f64>() / (samples as f64 - 1.0);
+        let (window_mean, deviation) = mean_and_standard_deviation(window, dispersion)
+            .ok_or(TrialError::EpochTooLong {
+                requested_seconds,
+                available_seconds: trial.duration_seconds(),
+            })?;
+        let centre_newtons = match centre {
+            CentralTendency::Mean => window_mean,
+            CentralTendency::Median => median(window).unwrap_or(window_mean),
+        };
         Ok(Self {
             start_index: 0,
             end_index: samples,
-            system_weight_newtons: mean,
-            standard_deviation_newtons: variance.sqrt(),
+            system_weight_newtons: centre_newtons,
+            standard_deviation_newtons: deviation,
+            tied_window_count: 1,
         })
     }
 
-    pub fn system_mass_kilograms(&self) -> f64 {
-        self.system_weight_newtons / GRAVITY
+    /// Weighing window chosen as the quietest stretch of the recording.
+    ///
+    /// The low force floor keeps the flight phase out of the search, where the plate
+    /// is unloaded and almost noiseless and would otherwise win on variance. The
+    /// upper bound keeps the search before takeoff for the same reason.
+    pub fn lowest_variance(
+        trial: &Trial,
+        window_samples: usize,
+        search_end_index: usize,
+        reject_at_or_below_newtons: Option<f64>,
+        accumulation: VarianceAccumulation,
+        dispersion: DispersionEstimator,
+    ) -> Result<Self, TrialError> {
+        let searchable = &trial.force()[..search_end_index.min(trial.len())];
+        let found = lowest_variance_window(
+            searchable,
+            window_samples,
+            reject_at_or_below_newtons,
+            accumulation,
+        )
+        .ok_or(TrialError::EpochTooLong {
+            requested_seconds: window_samples as f64 / trial.sample_rate_hz(),
+            available_seconds: searchable.len() as f64 / trial.sample_rate_hz(),
+        })?;
+        let window = &trial.force()[found.start_index..found.start_index + window_samples];
+        let deviation = mean_and_standard_deviation(window, dispersion)
+            .map(|(_, deviation)| deviation)
+            .unwrap_or(f64::NAN);
+        Ok(Self {
+            start_index: found.start_index,
+            end_index: found.start_index + window_samples,
+            system_weight_newtons: found.mean_newtons,
+            standard_deviation_newtons: deviation,
+            tied_window_count: found.tied_window_count,
+        })
+    }
+
+    /// System mass under a stated value of gravity.
+    ///
+    /// Gravity is an argument because the tools disagree on it: 9.81 is the common
+    /// choice and 9.80665 is the standard value, and the two move jump height by
+    /// 34 parts per million in the same direction on every trial.
+    pub fn system_mass_kilograms(&self, gravity_meters_per_second_squared: f64) -> f64 {
+        self.system_weight_newtons / gravity_meters_per_second_squared
     }
 }
 
@@ -61,77 +136,6 @@ pub struct Landmarks {
     pub touchdown_index: usize,
 }
 
-/// Onset by a noise-relative threshold: the first departure from the quiet-standing
-/// mean by `k` standard deviations, walked back by a fixed offset.
-///
-/// The offset is not optional and not cosmetic. In the originating lab's own
-/// publications it was 10 ms, then 30 ms, then 50 and 40 ms, so a rule quoting only
-/// `k` does not identify a method.
-pub fn onset_noise_relative(
-    trial: &Trial,
-    epoch: &WeighingEpoch,
-    k_standard_deviations: f64,
-    back_offset_seconds: f64,
-    search_bound_seconds: f64,
-) -> Result<usize, TrialError> {
-    let band = k_standard_deviations * epoch.standard_deviation_newtons;
-    let lower = epoch.system_weight_newtons - band;
-    let upper = epoch.system_weight_newtons + band;
-
-    let search_end = ((search_bound_seconds * trial.sample_rate_hz()).round() as usize)
-        .min(trial.len())
-        .max(epoch.end_index);
-
-    let crossing = trial.force()[epoch.end_index..search_end]
-        .iter()
-        .position(|&f| f < lower || f > upper)
-        .map(|offset| offset + epoch.end_index);
-
-    let crossing = crossing.ok_or_else(|| TrialError::NoCrossing {
-        method_id: "onset.threshold.noise_relative".to_string(),
-        parameter: "k".to_string(),
-        value: k_standard_deviations,
-        search_bound_seconds,
-    })?;
-
-    let back_samples = (back_offset_seconds * trial.sample_rate_hz()).round() as usize;
-    Ok(crossing.saturating_sub(back_samples))
-}
-
-/// Takeoff as the first sustained fall below an absolute residual force.
-///
-/// `minimum_flight_seconds` exists because a threshold alone will fire on any brief
-/// dip. Two open tools omit it and instead assume the recording was trimmed to one
-/// jump; on an untrimmed recording they place takeoff on average 843 ms late, after
-/// the athlete has landed, on 155 of 244 trials, with no warning.
-pub fn takeoff_absolute_threshold(
-    trial: &Trial,
-    threshold_newtons: f64,
-    minimum_flight_seconds: f64,
-    search_from: usize,
-) -> Result<usize, TrialError> {
-    let needed = (minimum_flight_seconds * trial.sample_rate_hz()).round() as usize;
-    let force = trial.force();
-    let mut run_start: Option<usize> = None;
-
-    for index in search_from..force.len() {
-        if force[index] < threshold_newtons {
-            let start = *run_start.get_or_insert(index);
-            if index - start + 1 >= needed {
-                return Ok(start);
-            }
-        } else {
-            run_start = None;
-        }
-    }
-    Err(TrialError::NoCrossing {
-        method_id: "takeoff.threshold.absolute".to_string(),
-        parameter: "threshold_newtons".to_string(),
-        value: threshold_newtons,
-        search_bound_seconds: trial.duration_seconds(),
-    })
-}
-
 /// Takeoff velocity by impulse-momentum, in metres per second.
 ///
 /// Net impulse from onset to takeoff divided by system mass. This is an identity, not
@@ -140,35 +144,62 @@ pub fn takeoff_velocity_meters_per_second(
     trial: &Trial,
     epoch: &WeighingEpoch,
     landmarks: &Landmarks,
+    gravity_meters_per_second_squared: f64,
 ) -> f64 {
-    let gross = trial.integrate_newton_seconds(landmarks.onset_index, landmarks.takeoff_index);
-    // A trapezoid over n samples spans n-1 intervals, so the weight has to be removed
-    // over the same n-1. Using n instead leaves a residual of one sample of bodyweight,
-    // which is 8.2 mm/s at 1200 Hz and biases every jump height in the same direction.
-    let spanned_intervals = landmarks
-        .takeoff_index
-        .saturating_sub(landmarks.onset_index)
-        .saturating_sub(1);
-    let elapsed_seconds = spanned_intervals as f64 * trial.sample_interval_seconds();
-    let net = gross - epoch.system_weight_newtons * elapsed_seconds;
-    net / epoch.system_mass_kilograms()
+    let net = trial.integrate_offset_newton_seconds(
+        landmarks.onset_index,
+        landmarks.takeoff_index,
+        epoch.system_weight_newtons,
+    );
+    net / epoch.system_mass_kilograms(gravity_meters_per_second_squared)
 }
 
 /// Jump height from takeoff velocity, in metres. The takeoff frame.
-pub fn jump_height_from_takeoff_velocity(takeoff_velocity_meters_per_second: f64) -> f64 {
-    takeoff_velocity_meters_per_second.powi(2) / (2.0 * GRAVITY)
+pub fn jump_height_from_takeoff_velocity(
+    takeoff_velocity_meters_per_second: f64,
+    gravity_meters_per_second_squared: f64,
+) -> f64 {
+    takeoff_velocity_meters_per_second.powi(2) / (2.0 * gravity_meters_per_second_squared)
 }
 
 /// Jump height from flight time, in metres. A different construct from the above, not
 /// a different method of computing the same one, and on real trials the two differ by
 /// more than a training intervention moves the number.
-pub fn jump_height_from_flight_time(flight_time_seconds: f64) -> f64 {
-    GRAVITY * flight_time_seconds.powi(2) / 8.0
+pub fn jump_height_from_flight_time(
+    flight_time_seconds: f64,
+    gravity_meters_per_second_squared: f64,
+) -> f64 {
+    gravity_meters_per_second_squared * flight_time_seconds.powi(2) / 8.0
+}
+
+pub fn time_to_takeoff_seconds(landmarks: &Landmarks, sample_interval_seconds: f64) -> f64 {
+    (landmarks.takeoff_index as f64 - landmarks.onset_index as f64) * sample_interval_seconds
+}
+
+pub fn flight_time_seconds(landmarks: &Landmarks, sample_interval_seconds: f64) -> f64 {
+    (landmarks.touchdown_index as f64 - landmarks.takeoff_index as f64) * sample_interval_seconds
+}
+
+/// Reactive strength index, modified: jump height over the time taken to produce it.
+///
+/// Height is in metres here. One commercial export labels this column cm/s while
+/// writing m/s into it, so any dataset that took the header at face value and
+/// converted is wrong by a factor of 100.
+pub fn reactive_strength_index_modified(
+    jump_height_meters: f64,
+    time_to_takeoff_seconds: f64,
+) -> Option<f64> {
+    if time_to_takeoff_seconds <= 0.0 {
+        return None;
+    }
+    Some(jump_height_meters / time_to_takeoff_seconds)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::takeoff::{takeoff_first_sustained_run, ResidualComparison};
+    use crate::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED as GRAVITY;
 
     const MASS_KILOGRAMS: f64 = 60.0;
     const QUIET_SECONDS: f64 = 1.0;
@@ -201,25 +232,44 @@ mod tests {
         )
     }
 
+    fn quiet_epoch(trial: &Trial) -> WeighingEpoch {
+        WeighingEpoch::fixed_window(
+            trial,
+            0.8,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap()
+    }
+
     #[test]
     fn weighing_epoch_recovers_the_system_weight() {
         let (trial, _, _) = synthetic_trial(1200.0, 600.0, 0.3);
-        let epoch = WeighingEpoch::fixed_window(&trial, 0.8).unwrap();
-        assert!((epoch.system_mass_kilograms() - MASS_KILOGRAMS).abs() < 1e-9);
+        let epoch = quiet_epoch(&trial);
+        assert!((epoch.system_mass_kilograms(GRAVITY) - MASS_KILOGRAMS).abs() < 1e-9);
     }
 
     #[test]
     fn takeoff_velocity_equals_net_impulse_over_mass() {
         let sample_rate_hz = 1200.0;
         let (trial, onset, expected) = synthetic_trial(sample_rate_hz, 600.0, 0.3);
-        let epoch = WeighingEpoch::fixed_window(&trial, 0.8).unwrap();
-        let takeoff = takeoff_absolute_threshold(&trial, 20.0, 0.1, epoch.end_index).unwrap();
+        let epoch = quiet_epoch(&trial);
+        let takeoff = takeoff_first_sustained_run(
+            trial.force(),
+            20.0,
+            120,
+            ResidualComparison::SignedValue,
+            epoch.end_index,
+            sample_rate_hz,
+        )
+        .unwrap();
         let landmarks = Landmarks {
             onset_index: onset,
             takeoff_index: takeoff,
             touchdown_index: trial.len() - 1,
         };
-        let velocity = takeoff_velocity_meters_per_second(&trial, &epoch, &landmarks);
+        let velocity =
+            takeoff_velocity_meters_per_second(&trial, &epoch, &landmarks, GRAVITY);
         assert!(
             (velocity - expected).abs() < 1e-9,
             "impulse-momentum identity broken: {velocity} against {expected}"
@@ -232,9 +282,16 @@ mod tests {
     fn the_identity_holds_at_every_sample_rate() {
         for sample_rate_hz in [500.0, 1000.0, 1200.0, 2000.0] {
             let (trial, onset, expected) = synthetic_trial(sample_rate_hz, 600.0, 0.3);
-            let epoch = WeighingEpoch::fixed_window(&trial, 0.8).unwrap();
-            let takeoff =
-                takeoff_absolute_threshold(&trial, 20.0, 0.1, epoch.end_index).unwrap();
+            let epoch = quiet_epoch(&trial);
+            let takeoff = takeoff_first_sustained_run(
+                trial.force(),
+                20.0,
+                (0.1 * sample_rate_hz) as usize,
+                ResidualComparison::SignedValue,
+                epoch.end_index,
+                sample_rate_hz,
+            )
+            .unwrap();
             let velocity = takeoff_velocity_meters_per_second(
                 &trial,
                 &epoch,
@@ -243,6 +300,7 @@ mod tests {
                     takeoff_index: takeoff,
                     touchdown_index: trial.len() - 1,
                 },
+                GRAVITY,
             );
             assert!(
                 (velocity - expected).abs() < 1e-9,
@@ -257,31 +315,25 @@ mod tests {
         // product, so a test asserting they match would be asserting the bug.
         let velocity = 2.83;
         let flight_time = 2.0 * velocity / GRAVITY;
-        let from_velocity = jump_height_from_takeoff_velocity(velocity);
-        let from_flight = jump_height_from_flight_time(flight_time);
+        let from_velocity = jump_height_from_takeoff_velocity(velocity, GRAVITY);
+        let from_flight = jump_height_from_flight_time(flight_time, GRAVITY);
         // In the idealised case with no plate residual they coincide.
         assert!((from_velocity - from_flight).abs() < 1e-9);
     }
 
+    /// Gravity is a bound parameter, so the two published values must be visible in
+    /// the result rather than absorbed by whichever one the library picked.
     #[test]
-    fn onset_reports_which_method_and_parameter_failed() {
-        let trial = Trial::new(vec![600.0; 2400], 1200.0).unwrap();
-        let epoch = WeighingEpoch::fixed_window(&trial, 0.5).unwrap();
-        let error = onset_noise_relative(&trial, &epoch, 5.0, 0.03, 1.5).unwrap_err();
-        let message = error.to_string();
-        assert!(message.contains("onset.threshold.noise_relative"), "{message}");
-        assert!(message.contains("k = 5"), "{message}");
+    fn the_two_published_values_of_gravity_move_jump_height() {
+        let common = jump_height_from_takeoff_velocity(2.83, 9.81);
+        let standard = jump_height_from_takeoff_velocity(2.83, 9.80665);
+        assert!(common != standard);
+        assert!((common / standard - 9.80665 / 9.81).abs() < 1e-12);
     }
 
     #[test]
-    fn takeoff_ignores_a_brief_dip_that_is_not_flight() {
-        let sample_rate_hz = 1000.0;
-        let mut force = vec![600.0; 1000];
-        force.extend(std::iter::repeat(0.0).take(20)); // 20 ms dip, not a flight phase
-        force.extend(std::iter::repeat(600.0).take(200));
-        force.extend(std::iter::repeat(0.0).take(400)); // the real flight phase
-        let trial = Trial::new(force, sample_rate_hz).unwrap();
-        let takeoff = takeoff_absolute_threshold(&trial, 20.0, 0.1, 0).unwrap();
-        assert_eq!(takeoff, 1220, "took the 20 ms dip for a flight phase");
+    fn reactive_strength_index_refuses_a_zero_denominator() {
+        assert_eq!(reactive_strength_index_modified(0.4, 0.0), None);
+        assert_eq!(reactive_strength_index_modified(0.4, 0.8), Some(0.5));
     }
 }

@@ -246,6 +246,12 @@ pub struct Trial {
     exclusions: Exclusions,
 }
 
+impl Trial {
+    pub(crate) fn exclusions_for_result(&self) -> Exclusions {
+        self.exclusions.clone()
+    }
+}
+
 #[pymethods]
 impl Trial {
     /// `force_newtons` accepts any float64 buffer, which covers a numpy array, an

@@ -127,6 +127,10 @@ impl Measured {
     pub fn chain(&self) -> ProvenanceChain {
         ProvenanceChain::with_inputs(self.inner.provenance.clone(), self.depends_on.clone())
     }
+
+    pub fn value_for_display(&self) -> f64 {
+        self.inner.value
+    }
 }
 
 #[pymethods]

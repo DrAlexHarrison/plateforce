@@ -257,21 +257,59 @@ mod tests {
         }
     }
 
+    fn cubic(position: f64) -> f64 {
+        let t = position / 50.0;
+        2.0 + 3.0 * t - 1.5 * t * t + 0.25 * t * t * t
+    }
+
     /// A polynomial of degree at most the filter order passes through unchanged, which
     /// is the defining property and covers the interior and both edge fits at once.
     #[test]
-    fn a_cubic_passes_through_the_cubic_filter_unchanged() {
-        let values: Vec<f64> = (0..500)
-            .map(|i| {
-                let t = i as f64 / 50.0;
-                2.0 + 3.0 * t - 1.5 * t * t + 0.25 * t * t * t
-            })
-            .collect();
-        let smoothed = savitzky_golay_interpolated_edges(&values, 240, 3).unwrap();
+    fn a_cubic_passes_through_an_odd_cubic_filter_unchanged() {
+        let values: Vec<f64> = (0..500).map(|i| cubic(i as f64)).collect();
+        let smoothed = savitzky_golay_interpolated_edges(&values, 241, 3).unwrap();
         for (index, (got, want)) in smoothed.iter().zip(&values).enumerate() {
             assert!(
                 (got - want).abs() < 1e-6,
                 "sample {index}: {got} against {want}"
+            );
+        }
+    }
+
+    /// An even window has no centre sample, so it estimates the value half a sample
+    /// later than the sample it is written to. Every jump tool in this corpus reaches
+    /// this filter with an even window, because a window stated in tenths of a second
+    /// times a sample rate in hundreds is even.
+    #[test]
+    fn an_even_window_shifts_the_signal_half_a_sample_later() {
+        let values: Vec<f64> = (0..500).map(|i| cubic(i as f64)).collect();
+        let smoothed = savitzky_golay_interpolated_edges(&values, 240, 3).unwrap();
+        for index in 120..380 {
+            let shifted = cubic(index as f64 + 0.5);
+            assert!(
+                (smoothed[index] - shifted).abs() < 1e-6,
+                "sample {index}: {} against {shifted}",
+                smoothed[index]
+            );
+            assert!(
+                (smoothed[index] - values[index]).abs() > 1e-9,
+                "sample {index} came back centred"
+            );
+        }
+    }
+
+    /// Reference values from `scipy.signal.savgol_filter(values, 240, 3)`, which is the
+    /// call every Python tool in the registry makes.
+    #[test]
+    fn the_even_window_filter_matches_the_reference_implementation() {
+        let values: Vec<f64> = (0..500).map(|i| cubic(i as f64)).collect();
+        let smoothed = savitzky_golay_interpolated_edges(&values, 240, 3).unwrap();
+        for (index, expected) in [(120usize, 4.017_230_250_008_357), (250, 10.817_725_250_022_502)]
+        {
+            assert!(
+                (smoothed[index] - expected).abs() < 1e-9,
+                "sample {index}: {} against {expected}",
+                smoothed[index]
             );
         }
     }

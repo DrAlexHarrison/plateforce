@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>plateforce</title>
+<meta name="description" content="Force-plate kinetic analysis with a method registry. Runs entirely in your browser; your data is never uploaded.">
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a6a6f'/%3E%3Cpath d='M4 22 L11 22 L14 9 L18 26 L21 17 L28 17' fill='none' stroke='white' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="app-header">
+  <div class="app-header__identity">
+    <svg class="app-header__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect width="32" height="32" rx="6"/>
+      <path d="M4 22 L11 22 L14 9 L18 26 L21 17 L28 17" fill="none" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>plateforce</h1>
+      <p class="app-header__tagline">Force-plate kinetics, with the method attached to every number</p>
+    </div>
+  </div>
+
+  <div class="app-header__status">
+    <p class="privacy-badge" id="privacy-badge">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" class="privacy-badge__icon">
+        <path d="M8 1.5 2.5 3.6v4.1c0 3.2 2.3 6 5.5 6.8 3.2-.8 5.5-3.6 5.5-6.8V3.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M5.6 8.1 7.3 9.8l3.2-3.4" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Your data stays on this device. Nothing is uploaded.</span>
+    </p>
+    <button type="button" class="button button--ghost button--icon" id="theme-toggle" aria-label="Switch colour theme">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.2 9.6A5.8 5.8 0 0 1 6.4 2.8 5.8 5.8 0 1 0 13.2 9.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="banner banner--error" id="registry-banner" hidden>
+  <div class="banner__body">
+    <strong id="registry-banner-title">The compiled registry does not pass its own validator.</strong>
+    <p id="registry-banner-text"></p>
+    <details id="registry-violations-wrap">
+      <summary>Show every violation</summary>
+      <ul class="violation-list" id="registry-violations"></ul>
+    </details>
+    <p class="banner__note">Analysis still runs, and every number is marked as not registry backed until these clear.</p>
+  </div>
+</div>
+
+<main id="main">
+
+  <!-- Loading -->
+  <section class="stage" id="stage-loading">
+    <div class="loading">
+      <div class="loading__bar" aria-hidden="true"><span></span></div>
+      <p>Starting the analysis engine in this tab.</p>
+    </div>
+  </section>
+
+  <!-- Fatal error -->
+  <section class="stage" id="stage-fatal" hidden>
+    <div class="empty empty--error">
+      <h2>plateforce could not start</h2>
+      <p id="fatal-message"></p>
+      <p class="empty__hint">
+        The page needs to be served over http rather than opened from the filesystem, because
+        browsers refuse to load WebAssembly modules from <code>file://</code>.
+        From the repository root run <code>python3 -m http.server -d web 8000</code> and open
+        <code>http://localhost:8000</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- Empty: no trial loaded -->
+  <section class="stage" id="stage-empty" hidden>
+    <div class="empty">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button"
+           aria-label="Drop a force file here, or press Enter to choose one">
+        <svg class="dropzone__icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+          <path d="M20 27V9m0 0-6 6m6-6 6 6" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 25v4a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3v-4" fill="none" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h2>Drop a force trace here</h2>
+        <p>Tab or comma separated text from any plate. The file is read inside this tab and is never sent anywhere.</p>
+        <div class="dropzone__actions">
+          <button type="button" class="button button--primary" id="choose-file">Choose a file</button>
+          <button type="button" class="button button--ghost" id="load-demo">Open a synthetic trial instead</button>
+        </div>
+        <input type="file" id="file-input" accept=".txt,.csv,.tsv,.dat,.asc,text/plain" hidden>
+      </div>
+
+      <ul class="empty__points">
+        <li><strong>No upload, no account, no server.</strong> Subject force data is re-identifiable, so it never leaves your machine.</li>
+        <li><strong>Every number names its method.</strong> Citation, known bias and failure rate travel with the value.</li>
+        <li><strong>Drag a marker and watch the number move.</strong> That movement is the reason this tool exists.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Column binding: which column is the force channel -->
+  <section class="stage" id="stage-columns" hidden>
+    <div class="panel panel--standalone">
+      <div class="panel__head">
+        <h2>Which column is the vertical force?</h2>
+        <button type="button" class="button button--ghost button--small" id="columns-cancel">Start over</button>
+      </div>
+      <p class="panel__lead" id="columns-lead"></p>
+      <div class="column-grid" id="column-grid" role="radiogroup" aria-label="Force column"></div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="sample-rate">Sample rate</label>
+          <div class="field__input-group">
+            <input type="number" id="sample-rate" min="1" step="1" value="1200" inputmode="decimal">
+            <span class="field__suffix">Hz</span>
+          </div>
+          <p class="field__hint" id="sample-rate-hint"></p>
+        </div>
+        <div class="field">
+          <label for="sentinel">Missing-value convention</label>
+          <select id="sentinel">
+            <option value="none">No sentinel, every value is a measurement</option>
+            <option value="zero">0 means missing</option>
+            <option value="negative_one">-1 means missing</option>
+          </select>
+          <p class="field__hint">A sentinel read as a real value moved a published correlation by 0.16 in this project's own corpus.</p>
+        </div>
+      </div>
+
+      <div class="panel__foot">
+        <button type="button" class="button button--primary" id="columns-confirm">Analyse this trial</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loaded -->
+  <section class="stage workspace" id="stage-workspace" hidden>
+
+    <div class="workspace__main">
+
+      <section class="panel panel--trace" aria-labelledby="trace-heading">
+        <div class="panel__head">
+          <div>
+            <h2 id="trace-heading">Vertical ground reaction force</h2>
+            <p class="panel__sub" id="trial-summary"></p>
+          </div>
+          <div class="panel__head-actions">
+            <button type="button" class="button button--ghost button--small" id="reset-markers" disabled>Release dragged markers</button>
+            <button type="button" class="button button--ghost button--small" id="change-file">New file</button>
+          </div>
+        </div>
+
+        <div class="chart" id="chart">
+          <canvas id="chart-canvas"></canvas>
+          <div class="chart__overlay" id="chart-overlay"></div>
+        </div>
+
+        <div class="chart-legend" id="chart-legend"></div>
+
+        <p class="chart-help">
+          Drag any marker, or focus one and use the arrow keys. Every dependent number below
+          recomputes as it moves.
+        </p>
+      </section>
+
+      <section class="panel" aria-labelledby="metrics-heading">
+        <div class="panel__head">
+          <h2 id="metrics-heading">Results</h2>
+          <p class="panel__sub">Each value carries the methods that produced it.</p>
+        </div>
+        <div class="metric-grid" id="metric-grid"></div>
+        <div id="analysis-warnings"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="spread-heading">
+        <div class="panel__head">
+          <div>
+            <h2 id="spread-heading">How much does the method choice move this number?</h2>
+            <p class="panel__sub">Every defensible alternative the registry publishes, run over this trial.</p>
+          </div>
+        </div>
+
+        <div class="spread-controls">
+          <div class="field field--inline">
+            <label for="spread-quantity">Quantity</label>
+            <select id="spread-quantity"></select>
+          </div>
+          <fieldset class="spread-axes">
+            <legend>Vary</legend>
+            <div id="spread-axis-list"></div>
+          </fieldset>
+        </div>
+
+        <div id="spread-result"></div>
+      </section>
+
+    </div>
+
+    <aside class="workspace__rail" aria-labelledby="decisions-heading">
+      <section class="panel panel--rail">
+        <div class="panel__head">
+          <h2 id="decisions-heading">Method decisions</h2>
+          <p class="panel__sub" id="decisions-sub"></p>
+        </div>
+        <div id="decision-list"></div>
+      </section>
+
+      <section class="panel panel--rail">
+        <div class="panel__head"><h2>This build</h2></div>
+        <dl class="kv" id="build-info"></dl>
+      </section>
+    </aside>
+
+  </section>
+</main>
+
+<!-- Method detail -->
+<div class="drawer" id="method-drawer" hidden>
+  <div class="drawer__scrim" data-close-drawer></div>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer__head">
+      <h2 id="drawer-title"></h2>
+      <button type="button" class="button button--ghost button--icon" data-close-drawer aria-label="Close">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="drawer__body" id="drawer-body"></div>
+  </div>
+</div>
+
+<footer class="app-footer">
+  <p>
+    plateforce runs entirely in your browser. Apache-2.0.
+    <a href="https://github.com/DrAlexHarrison/plateforce">Source and registry</a>.
+  </p>
+</footer>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

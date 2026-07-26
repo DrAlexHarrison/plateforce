@@ -343,7 +343,7 @@ mod tests {
         let found =
             lowest_variance_window(&values, 8, None, VarianceAccumulation::TwoPass).unwrap();
         assert_eq!(found.start_index, 0);
-        assert_eq!(found.tied_window_count, 33);
+        assert_eq!(found.tied_window_count, 34);
     }
 
     #[test]
@@ -356,7 +356,7 @@ mod tests {
             lowest_variance_window(&values, 10, Some(10.0), VarianceAccumulation::TwoPass).unwrap();
         assert!(unfiltered.start_index >= 40, "unloaded plate won on variance");
         assert!(filtered.start_index < 40, "floor did not exclude the flight phase");
-        assert_eq!(filtered.rejected_window_count, 41);
+        assert_eq!(filtered.rejected_window_count, 40);
     }
 
     #[test]

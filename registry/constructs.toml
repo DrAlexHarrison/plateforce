@@ -103,3 +103,22 @@ id = "takeoff_velocity"
 title = "Centre of mass velocity at the instant of takeoff"
 unit = "meters_per_second"
 notes = "Takeoff velocity and peak velocity are different instants. Peak generally precedes takeoff."
+
+[[construct]]
+id = "jump_height.landing_frame"
+title = "Centre of mass rise measured from takeoff to the height of touchdown"
+unit = "meters"
+frame = "landing"
+notes = """
+What flight time actually measures whenever takeoff and landing postures differ, which is measured
+and not hypothetical: time down exceeds time up by 0.016 s because subjects land partly crouched.
+"""
+
+[[construct]]
+id = "jump_height.undeclared"
+title = "Centre of mass rise with no declared reference frame"
+unit = "meters"
+notes = """
+A real registry value rather than a gap. An undeclared frame must not compare equal to a declared
+one, and one entry's frame is not merely undeclared but non-constant, changing trial to trial.
+"""

@@ -80,14 +80,27 @@ impl Trial {
     /// Trapezoid rather than rectangle because the registry records the choice as a
     /// named variant with a measured difference, and this is the one it names.
     pub fn integrate_newton_seconds(&self, start: usize, end: usize) -> f64 {
+        self.integrate_offset_newton_seconds(start, end, 0.0)
+    }
+
+    /// Trapezoidal integration of the force less a constant offset.
+    ///
+    /// Subtracting inside the integral rather than afterwards is the whole of it. A
+    /// trapezoid over n samples spans n-1 intervals, so an offset removed afterwards
+    /// over n intervals leaves one sample of weight behind, which is 8.2 mm/s of
+    /// takeoff velocity at 1200 Hz and biases every jump height the same way.
+    pub fn integrate_offset_newton_seconds(&self, start: usize, end: usize, offset: f64) -> f64 {
         let force = &self.vertical_ground_reaction_force_newtons;
         let end = end.min(force.len());
         if start >= end || end - start < 2 {
             return 0.0;
         }
         let dt = self.sample_interval_seconds();
-        let interior: f64 = force[start + 1..end - 1].iter().sum();
-        (force[start] / 2.0 + interior + force[end - 1] / 2.0) * dt
+        let mut accumulated = crate::statistics::CompensatedAccumulator::default();
+        for index in start..end - 1 {
+            accumulated.add((force[index] + force[index + 1]) * 0.5 - offset);
+        }
+        accumulated.total() * dt
     }
 }
 

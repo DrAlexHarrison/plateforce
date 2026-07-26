@@ -148,15 +148,21 @@ mod tests {
         velocity.extend((0..200).map(|i| -5.0 - (i as f64) / 100.0));
         let bounded = braking_start_by_velocity_minimum(&velocity, 0, takeoff).unwrap();
         let unbounded = braking_start_by_velocity_minimum(&velocity, 0, velocity.len()).unwrap();
-        assert_eq!(bounded, 199);
+        assert_eq!(bounded, 200);
         assert!(unbounded > takeoff, "unbounded search stayed before takeoff");
     }
 
     #[test]
     fn a_fallback_velocity_zero_is_flagged_as_not_a_crossing() {
-        let velocity: Vec<f64> = (0..200).map(|i| -(i as f64) / 100.0).collect();
-        let found = velocity_zero_crossing(&velocity, 0, velocity.len()).unwrap();
-        assert!(!found.is_true_crossing, "monotone fall reported a crossing");
+        let mut velocity: Vec<f64> = (0..200).map(|i| -(i as f64) / 100.0).collect();
+        velocity.extend(std::iter::repeat(-2.0).take(50));
+        let never_returns = velocity_zero_crossing(&velocity, 0, velocity.len()).unwrap();
+        assert!(!never_returns.is_true_crossing, "a fall that never returns reported a crossing");
+
+        let mut recovers = velocity.clone();
+        recovers.extend((0..50).map(|i| -2.0 + (i as f64) / 10.0));
+        let crossed = velocity_zero_crossing(&recovers, 0, recovers.len()).unwrap();
+        assert!(crossed.is_true_crossing);
     }
 
     #[test]

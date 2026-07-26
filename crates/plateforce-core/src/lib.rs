@@ -7,12 +7,22 @@
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
 
+pub mod onset;
+pub mod phases;
+pub mod read;
 pub mod signal;
+pub mod smoothing;
+pub mod statistics;
+pub mod takeoff;
 pub mod trial;
 
-pub use signal::{Trial, TrialError};
+pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};
+pub use signal::{Sentinel, Trial, TrialError};
+pub use statistics::{DispersionEstimator, VarianceAccumulation};
 pub use trial::{
-    Landmarks, WeighingEpoch, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
+    flight_time_seconds, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
+    reactive_strength_index_modified, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
+    CentralTendency, Landmarks, WeighingEpoch,
 };
 
 /// Standard gravity. Declared once because the registry records real instances of
