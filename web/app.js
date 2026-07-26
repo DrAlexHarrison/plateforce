@@ -272,9 +272,23 @@ function renderColumnChooser(fileName, summary) {
     grid.append(card);
   });
 
+  // These exports do not carry a rate, and a wrong one scales every time, every velocity
+  // and every impulse. Pre-filling a plausible number here would be the exact failure the
+  // registry documents, so when it cannot be derived the field starts empty and blocks.
   const rate = $('sample-rate');
-  rate.value = summary.suggested_sample_rate_hz ? summary.suggested_sample_rate_hz.toFixed(4).replace(/\.?0+$/, '') : '1200';
-  $('sample-rate-hint').textContent = summary.sample_rate_source + '. A wrong rate scales every time and every impulse.';
+  const derived = summary.suggested_sample_rate_hz;
+  rate.value = derived ? String(Number(derived.toFixed(4))) : '';
+  rate.placeholder = 'state the rate';
+  $('sample-rate-hint').textContent = derived
+    ? `${summary.sample_rate_source}. A wrong rate scales every time and every impulse.`
+    : 'The file carries no time column, so the rate cannot be recovered from it. It scales every time, every velocity and every impulse, so plateforce will not guess it.';
+  rate.addEventListener('input', updateColumnsReady);
+  updateColumnsReady();
+}
+
+function updateColumnsReady() {
+  const rate = Number($('sample-rate').value);
+  $('columns-confirm').disabled = !(rate > 0);
 }
 
 function confirmColumns() {
