@@ -20,4 +20,4 @@ plateforce-registry = { workspace = true }
 # 1.75. 0.28 and 0.29 require 1.83. abi3-py311 rather than a lower floor because
 # Py_buffer entered the stable ABI in 3.11, which is what lets an array be read
 # without a numpy dependency.
-pyo3 = { version = "0.27.2", features = ["abi3-py311"] }
+pyo3 = { version = "0.29.0", features = ["abi3-py311"] }
