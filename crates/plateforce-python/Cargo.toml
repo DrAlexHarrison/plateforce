@@ -1,0 +1,17 @@
+[package]
+name = "plateforce-python"
+description = "Python bindings, built as an abi3 wheel."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+name = "plateforce"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+plateforce-core = { workspace = true }
+plateforce-registry = { workspace = true }

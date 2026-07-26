@@ -41,12 +41,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "plateforce-python"
+version = "0.1.0"
+dependencies = [
+ "plateforce-core",
+ "plateforce-registry",
+]
+
+[[package]]
 name = "plateforce-registry"
 version = "0.1.0"
 dependencies = [
  "serde",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "plateforce-wasm"
+version = "0.1.0"
+dependencies = [
+ "plateforce-core",
+ "plateforce-registry",
 ]
 
 [[package]]

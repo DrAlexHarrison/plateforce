@@ -4,6 +4,8 @@ members = [
     "crates/plateforce-registry",
     "crates/plateforce-core",
     "crates/plateforce-cli",
+    "crates/plateforce-wasm",
+    "crates/plateforce-python",
 ]
 
 # Edition 2021 and a conservative floor on purpose. CRAN's build machines lag, and the
