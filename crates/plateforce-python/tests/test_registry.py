@@ -6,7 +6,21 @@ import pytest
 
 import plateforce as pf
 
-SHIPPED_REGISTRY = pathlib.Path(__file__).resolve().parents[3] / "registry"
+def _find_shipped_registry():
+    """Locate `registry/` by walking up from this file.
+
+    The tests run from the repository, from an extracted source distribution and from a
+    wheel test directory, and the registry is only present in the first. Absent is a skip,
+    never a collection error.
+    """
+    for ancestor in pathlib.Path(__file__).resolve().parents:
+        candidate = ancestor / "registry"
+        if (candidate / "constructs.toml").is_file():
+            return candidate
+    return None
+
+
+SHIPPED_REGISTRY = _find_shipped_registry()
 
 
 def test_the_census_reports_populations_separately(registry):
@@ -139,7 +153,7 @@ def test_the_registry_version_travels_and_defaults_to_saying_it_is_unset(registr
     assert registry.method("bwepoch.fixed_window").bind().parameters == {"duration": 1.0}
 
 
-@pytest.mark.skipif(not SHIPPED_REGISTRY.is_dir(), reason="shipped registry not present")
+@pytest.mark.skipif(SHIPPED_REGISTRY is None, reason="shipped registry not present")
 def test_the_shipped_registry_loads_and_still_carries_the_dispatched_ids():
     shipped = pf.Registry.load(SHIPPED_REGISTRY)
     ids = set(shipped.method_ids())

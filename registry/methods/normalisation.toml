@@ -1,0 +1,254 @@
+# Group J. Normalisation and scaling.
+#
+# The normalisation choice matters enormously for talent identification and not at all for
+# return-to-play on one athlete, so the interface should ask what the user is comparing rather than
+# which exponent they want.
+
+[[method]]
+id = "norm.absolute"
+construct = "normalisation_basis"
+group = "J"
+title = "Report the measured quantity unmodified"
+rule = "Report force in newtons and rate in newtons per second, unmodified."
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, which declines to endorse any scaling function over the base quantity"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "confounded with body size when comparing individuals"
+rationale = """
+Always available and always emitted alongside whatever normalisation is chosen. A registry that lets
+a user emit only a scaled value has destroyed information.
+"""
+
+[[method]]
+id = "norm.ratio_bodymass"
+construct = "normalisation_basis"
+group = "J"
+title = "Divide by body mass"
+rule = "Divide the quantity by body mass. Expressing it in multiples of bodyweight is the same method with g folded in."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, verbatim declining to endorse ratio over allometric scaling and pointing elsewhere"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.33
+unit = "exponent"
+direction = "high"
+criterion = "norm.allometric"
+criterion_kind = "model"
+source = "jaric2002"
+# Ratio scaling only removes the body-size effect if the true relationship is exactly proportional.
+# It is not: geometric similarity predicts force scales with cross-sectional area, hence with mass to
+# the two-thirds, so ratio scaling systematically over-corrects and penalises heavier athletes. The
+# magnitude is the exponent gap.
+
+[[method.disagrees_with]]
+id = "norm.allometric"
+kind = "genuine"
+note = "The field's own consensus review refuses to endorse it over allometric scaling, which is the signature of a live debate rather than a settled convention."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high for between-athlete comparison, zero for within-athlete monitoring at constant mass"
+rationale = "Surface it with the use case named. The interface should ask what the user is comparing, not which exponent they want."
+
+[[method]]
+id = "norm.allometric"
+construct = "normalisation_basis"
+group = "J"
+title = "Divide by body mass raised to a declared exponent"
+rule = """
+Divide the quantity by body mass raised to a declared exponent. The exponent depends on whether the
+instrument measures force or torque: two-thirds for muscle force recorded by a dynamometer, and one
+for muscle torque recorded by an isokinetic apparatus.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "exponent"
+unit = "dimensionless"
+published_values = [0.67, 1.0]
+default = 0.67
+default_source = "jaric2002"
+required = true
+notes = """
+A force plate measures force, so isometric plate tasks take the two-thirds exponent, and an exponent
+of one is ratio scaling, so for torque the ratio-against-allometric debate dissolves. The debate is
+real for force and vacuous for torque.
+"""
+
+[[method.parameter]]
+name = "provenance"
+unit = "enumeration"
+required = true
+notes = """
+assumed or fitted. A fitted exponent makes results sample-dependent, so two labs using allometric
+scaling with fitted exponents have not computed the same thing. This is the sharpest example in the
+registry of a method whose name is insufficient to reproduce it.
+"""
+
+[[method.citation]]
+key = "jaric2002"
+role = "proposes"
+reference = "Jaric S 2002, Sports Med 32(10):615-631; held as the record page, complete abstract plus reference list, not full text"
+doi = "10.2165/00007256-200232100-00002"
+obtained = false
+
+[[method.citation]]
+key = "batterham1997"
+role = "disputes"
+reference = "Batterham and George 1997, J Appl Physiol 83:2158-66, found in the reference list and not obtained; recorded as evidence the exponent is contested"
+obtained = false
+
+[[method.disagrees_with]]
+id = "norm.ratio_bodymass"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high between-athlete"
+rationale = "The exponent must be shown in every label and every export. Never render an allometric value without its exponent."
+
+[[method]]
+id = "norm.pct_peak_force"
+construct = "normalisation_basis"
+group = "J"
+title = "Express early force as a percentage of peak force"
+rule = """
+Divide the force at a time point by peak force, to separate the ability to express force rapidly from
+maximum force capacity, which absolute early-force values conflate.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "comfort2020"
+role = "proposes"
+reference = "Comfort et al. 2020, truncated to 2 of 5 pages; this normalisation is the paper's actual contribution"
+doi = "10.1123/ijspp.2019-0217"
+obtained = false
+
+[[method.disagrees_with]]
+id = "force.peak.gross"
+kind = "genuine"
+note = """
+It requires the net convention and is incompatible with the gross one, because the ratio is
+meaningless if numerator and denominator both carry a bodyweight offset. The two choices are coupled,
+which is a good example of a registry needing to express dependencies between entries rather than
+treating each as free.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+The interface must not allow it to be selected together with the gross convention without a warning.
+A registry-aware interface can enforce that; a spreadsheet cannot.
+"""
+
+[[method]]
+id = "norm.pct_mvc"
+construct = "normalisation_basis"
+group = "J"
+title = "Express force or rate as a fraction of a separately measured maximal contraction"
+rule = "Divide the quantity by the participant's maximal voluntary contraction measured in a separate maximal effort."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+Distinct from percentage of peak force because the denominator comes from a separate contraction
+given a different instruction. Given that a single spoken instruction moves peak rate of force
+development by 20 to 46 percent, that distinction is not academic. It requires a second trial type,
+so the interface must know the session contains one.
+"""
+
+[[method]]
+id = "norm.voluntary_evoked_octet"
+construct = "normalisation_basis"
+group = "J"
+title = "Voluntary force relative to force evoked by a supramaximal pulse train"
+rule = """
+Divide voluntary force at a stated time after onset by force at the same time in a contraction evoked
+by an octet of supramaximal pulses.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, citing de Ruiter 2004, Tillin 2012b, Buckthorpe 2012 and Hannah 2012"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "never_a_user_choice"
+rationale = """
+Registered for boundary drawing rather than for implementation: it requires electrical stimulation
+hardware. It is physiologically the most revealing normalisation available, because it isolates
+neural drive from contractile capacity, and it is how the neurophysiology lineage knows its early
+rate variability is neural rather than methodological, at CV 3.3 to 5.4 percent against 12.8 to 16.6
+percent voluntary. That inference is unavailable to any force-plate-only platform, and the registry
+should say so rather than silently not offering it.
+"""
+
+[[method]]
+id = "norm.dimensionless_hof"
+construct = "normalisation_basis"
+group = "J"
+title = "Hof's dimensionless scaling by mass, gravity and leg length"
+rule = "Divide power by mass times gravity to the three-halves times leg length to the one-half."
+status = "accepted"
+confidence = "low"
+debate = "single_position"
+
+[[method.citation]]
+key = "hof1996"
+role = "proposes"
+reference = "Hof AL 1996, Gait and Posture 4(3):222-223, not obtained"
+doi = "10.1016/0966-6362(95)01057-2"
+obtained = false
+
+[[method.citation]]
+key = "bezodis2010"
+role = "uses"
+reference = "Bezodis, Salo and Trewartha 2010, which contains the actual normalisation equation that the recommending review does not restate; not obtained"
+doi = "10.1080/14763141.2010.538713"
+obtained = false
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+The exact rule is not citation-bound. A normalisation convention is exactly the kind of thing that
+silently breaks cross-study comparison, and the reviewer who recommends the metric declines to
+restate the equation.
+"""

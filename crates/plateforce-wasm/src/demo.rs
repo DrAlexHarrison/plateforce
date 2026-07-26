@@ -156,6 +156,7 @@ pub fn synthetic_countermovement_jump() -> Trial {
 mod tests {
     use plateforce_core::onset::{
         onset_noise_relative, BandSides, CrossingSearch, CrossingSelection,
+        DegenerateBandPolicy,
     };
     use plateforce_core::jump_height_from_takeoff_velocity;
 
@@ -222,6 +223,7 @@ mod tests {
             epoch.standard_deviation_newtons,
             5.0,
             BandSides::BothSides,
+            DegenerateBandPolicy::Refuse,
             &CrossingSearch {
                 start_index: epoch.end_index,
                 end_index: trial.len(),

@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use plateforce_core::onset::{
     backtrack, onset_adaptive_trailing_window, onset_last_sample_within_noise_band,
     onset_noise_relative, onset_relative_to_reference, sustained_excursion, BandSides,
-    CrossingSearch, CrossingSelection, ExcursionBand, PostCrossingRule,
+    CrossingSearch, CrossingSelection, DegenerateBandPolicy, ExcursionBand, PostCrossingRule,
 };
 use plateforce_core::takeoff::{
     takeoff_descending_crossing, takeoff_first_sustained_run, takeoff_longest_run,
@@ -420,6 +420,12 @@ fn resolve_onset(
             match choice.option("direction", "both").as_str() {
                 "below" => BandSides::BelowOnly,
                 _ => BandSides::BothSides,
+            },
+            // Refuse rather than substitute. A collapsed band means the window the rule
+            // assumed was quiet was not, and a silent fallback would hide that.
+            match choice.parameters.get("degenerate_fraction") {
+                Some(fraction) => DegenerateBandPolicy::FractionOfReference(*fraction),
+                None => DegenerateBandPolicy::Refuse,
             },
             &search,
             rate,

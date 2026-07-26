@@ -1,0 +1,825 @@
+# Group I. Power and work.
+#
+# Unlike the rest of the registry, the disagreement here is not tacit. The field has argued in print,
+# by name, with rebuttals, for fifty years, and the argument is not about a threshold. It is about
+# whether the quantity being computed is the right quantity at all.
+
+[[method]]
+id = "power.instantaneous.force_x_velocity"
+construct = "mechanical_power"
+group = "I"
+title = "Instantaneous force multiplied by instantaneous velocity"
+rule = """
+Power at each instant is force multiplied by velocity, with velocity obtained by integrating net
+force over mass from a zero-velocity epoch.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "force_term"
+unit = "enumeration"
+required = true
+notes = """
+total or net. The two differ by system weight times velocity, which at 2.5 m/s and 800 N is 2000 W.
+A mandatory declaration rather than a preference.
+"""
+
+[[method.parameter]]
+name = "sign_convention"
+unit = "enumeration"
+required = true
+notes = """
+One published table defines peak braking power as the peak negative power, reports it negative for
+the countermovement jump and positive for the drop jump in adjacent tables. Sign convention on
+phase-restricted power is unmanaged across the entire field, including inside single papers by
+careful authors.
+"""
+
+[[method.citation]]
+key = "cormie2007"
+role = "evaluates"
+reference = "Cormie, McBride and McCaulley 2007, J Appl Biomech 23:103-118, held as a two-page preview"
+doi = "10.1123/jab.23.2.103"
+obtained = false
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams global.R:676, total force"
+obtained = true
+
+[[method.bias]]
+magnitude = -2.0
+unit = "fraction"
+direction = "either"
+criterion = "power.instantaneous.force_x_velocity"
+criterion_kind = "instrument"
+source = "merrigan2022"
+# Peak braking power differs by -200 percent between two commercial products with an ordinary least
+# products slope of -0.986, which is a pure sign flip with identical magnitudes. It costs nothing to
+# fix in a registry and nothing detects it today.
+
+[[method.disagrees_with]]
+id = "power.lpt_double_differentiation"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "power.combined_method"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "power.barbell_displacement_only"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "very high for the peak, low for the mean"
+rationale = """
+Force the decision on the mass basis for loaded jumps. Never a user choice on the sign convention:
+fix it and normalise on import. Peak power is a peak of a product of two signals, and whichever one
+was differentiated dominates the noise.
+"""
+
+[[method]]
+id = "power.peak.instantaneous"
+construct = "mechanical_power"
+group = "I"
+title = "Maximum instantaneous power over a declared phase"
+rule = "Peak power is the maximum of the instantaneous power series over a declared phase."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+Load-bearing and usually omitted: peak over propulsion, over the whole movement, or over the whole
+trace including landing give different answers.
+"""
+
+[[method.citation]]
+key = "ruddock2016"
+role = "disputes"
+reference = "Ruddock and Winter 2016, J Sports Sci 34:584-585, recovered by direct fetch"
+doi = "10.1080/02640414.2015.1064157"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.62
+unit = "fraction"
+direction = "either"
+criterion = "power.peak.instantaneous"
+criterion_kind = "instrument"
+source = "merrigan2022"
+# Drop-jump peak and mean propulsive power differ by -62.0 and -71.9 percent between the two
+# market-leading products, published and unresolved, with the source's own comment that the reasons
+# for the error are unclear. Peak power is otherwise exonerated as a reliability suspect: ICC 0.98
+# and CV 2.48 percent on 112 athletes, with cross-software agreement of +0.24 percent.
+
+[[method.disagrees_with]]
+id = "impulse.net_vertical.as_performance_determinant"
+kind = "genuine"
+note = """
+The deepest debate in this domain, and a construct-validity objection rather than a bias. Nobody
+claims the product is computed wrong. The dispute is whether the peak of that product is a
+meaningful description of an athlete. Peak power correlates with jump height at about 0.8 to 0.9 and
+that correlation is cited as validation; net vertical impulse relates to jump height analytically. A
+correlation is what you report when you do not have an identity.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "extremely high to sampling rate, filter cutoff and phase-boundary choice"
+rationale = """
+If peak power is displayed it must not sit alone at the top of a report. Display it adjacent to net
+vertical impulse with a one-line note that jump height is determined by the latter. Leading with
+peak power silently resolves a live debate in favour of the side the physics does not support. A
+distinct upward bias nobody in this literature states: the sample maximum of a noisy signal grows
+with the number of independent samples, so peak power is doubly exposed as the peak of a product of
+two noisy signals, and may not be comparable across sampling rates even within a single method.
+"""
+
+[[method]]
+id = "power.mean.phase"
+construct = "mechanical_power"
+group = "I"
+title = "Mean power across a declared phase"
+rule = """
+Mean power is the average of the power series across the samples of a declared phase, equivalently
+the work done over that phase divided by its duration. The two differ in discrete data only by
+quadrature error and are not competing methods.
+"""
+# Prose grants recommended as the power variable to prefer. Rule 6 bars it: cormie2008, the source
+# that evaluates it, is held as a preview.
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "cormie2008"
+role = "evaluates"
+reference = "Cormie, McBride and McCaulley 2008, J Appl Biomech 24:112-120"
+doi = "10.1123/jab.24.2.112"
+obtained = false
+
+[[method.bias]]
+magnitude = -2.88
+unit = "fraction"
+direction = "either"
+criterion = "power.mean.phase"
+criterion_kind = "instrument"
+source = "merrigan2022"
+# Mean braking power differs by -288 percent with an ordinary least products slope of -2.53 between
+# two commercial packages, which is partly a genuine interval mismatch and partly an artefact of the
+# translation table's own inconsistency. On a squat jump, where onset is less ambiguous, it is much
+# more stable.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate, dominated by the phase boundary rather than by the filter"
+rationale = """
+Show the phase boundary alongside. A mean without its interval is meaningless and must never be
+displayed bare. It degrades gracefully with sampling rate where the peak does not, and one
+optimal-load lineage deliberately used mean power for that reason, which changes the reported optimal
+load.
+"""
+
+[[method]]
+id = "power.lpt_double_differentiation"
+construct = "mechanical_power"
+group = "I"
+title = "Power from twice-differentiated displacement"
+rule = """
+Differentiate displacement once for velocity and twice for acceleration, form force as the declared
+mass times acceleration plus g, and multiply by velocity.
+"""
+status = "legacy"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "declared_mass"
+unit = "enumeration"
+required = true
+notes = "Whether system mass is used for the force term is the crux, and conditions differing only in that gave significantly different answers."
+
+[[method.parameter]]
+name = "smoothing_penalty"
+unit = "dimensionless"
+published_values = [0.7]
+default = 0.7
+default_source = "chronojump_r"
+required = true
+notes = """
+A smoothing-spline penalty rather than a cutoff frequency, so it is not convertible to hertz and not
+comparable to any other software's filter setting, and it is exposed as a bare number with no units
+and no guidance. In one mode it is tuned per repetition to make peak concentric power agree between
+two analysis modes, which is a consequential, undocumented, metric-driven filter choice.
+"""
+
+[[method.citation]]
+key = "cormie2007"
+role = "evaluates"
+reference = "Cormie et al. 2007, showing it disagrees with a combined criterion across all loads and lifts"
+doi = "10.1123/jab.23.2.103"
+obtained = false
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump encoder path, from a smoothed position spline with cross-validated selection hardcoded off"
+obtained = true
+
+[[method.disagrees_with]]
+id = "power.instantaneous.force_x_velocity"
+kind = "genuine"
+note = """
+A real measurement-modality difference rather than a formula difference. A displacement transducer
+differentiates twice to get force; a force plate integrates once to get velocity. Differentiation
+amplifies noise and integration suppresses it, which is the physical reason the methods disagree and
+why peak force from a plate is robust while peak power from a transducer is not.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "very high; differentiating twice amplifies high-frequency noise quadratically"
+
+[[method]]
+id = "power.combined_method"
+construct = "mechanical_power"
+group = "I"
+title = "Plate force paired with barbell-derived velocity"
+rule = "Pair force-platform vertical ground reaction force with velocity derived from barbell displacement."
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "mundy2017"
+role = "evaluates"
+reference = "Mundy, Smith, Lauder and Lake 2017, J Sports Sci 35(18):1781-1787, reporting Mundy 2016 which was not obtained"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.2
+unit = "fraction"
+direction = "high"
+criterion = "power.instantaneous.force_x_velocity"
+criterion_kind = "model"
+source = "mundy2017"
+# It artificially inflates both peak and average power output, particularly at lighter barbell loads
+# where bar and system velocity diverge most. The magnitude is not quantified in the held source.
+
+[[method.disagrees_with]]
+id = "power.instantaneous.force_x_velocity"
+kind = "genuine"
+note = "Not a genuine debate: pairing plate force with bar velocity produces a power that is neither the bar's nor the system's."
+
+[[method.disagrees_with]]
+id = "power.barbell_displacement_only"
+kind = "genuine"
+
+[method.gui]
+surfacing = "refuse"
+rationale = "Never offered; a warning on import. Retained because the majority of studies used it."
+
+[[method]]
+id = "power.barbell_displacement_only"
+construct = "mechanical_power"
+group = "I"
+title = "Power from barbell mass and barbell kinematics alone"
+rule = "Compute force as barbell mass times barbell acceleration plus g, and multiply by barbell velocity, ignoring the athlete's own mass and motion."
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "lake2012jscr"
+role = "disputes"
+reference = "Lake, Lauder and Smith 2012, JSCR 26:1302-1307, whose title is the finding"
+doi = "10.1519/jsc.0b013e31822e7b48"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.5
+unit = "fraction"
+direction = "low"
+criterion = "power.instantaneous.force_x_velocity"
+criterion_kind = "model"
+source = "lake2012jscr"
+# Systematically understates system power, with the magnitude scaling as the ratio of body mass to
+# bar mass, so the error is largest at light loads, which is precisely where optimal load is usually
+# found. It distorts the shape of the load-power curve rather than shifting it. Not quantified from
+# a readable source.
+
+[[method.disagrees_with]]
+id = "power.instantaneous.force_x_velocity"
+kind = "genuine"
+note = "Not a genuine debate. In a jump squat the athlete's body mass is accelerated too, so attributing the result to the bar alone is an omitted term rather than a modelling choice."
+
+[[method.disagrees_with]]
+id = "power.combined_method"
+kind = "genuine"
+
+[method.gui]
+surfacing = "refuse"
+sensitivity = "very high and load-dependent"
+rationale = "Surface only as a label when importing historical data known to have been computed this way."
+
+[[method]]
+id = "power.phase_energy.garhammer1993"
+construct = "mechanical_power"
+group = "I"
+title = "Phase power from the barbell's potential plus kinetic energy change"
+rule = """
+Work over a phase is the barbell's change in potential energy plus its change in kinetic energy over
+that phase, and power is that work divided by the phase duration. Vertical component only, with
+relative values divided by barbell mass.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "garhammer1993"
+role = "proposes"
+reference = "Garhammer J 1993, JSCR 7(2):76-89, not obtained; the entire Garhammer primary corpus is closed"
+doi = "10.1519/00124278-199305000-00002"
+obtained = false
+
+[[method.citation]]
+key = "harbili2012"
+role = "uses"
+reference = "Harbili E 2012, J Sports Sci Med 11(1):162-169, from which the rule is captured verbatim and verified"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.04
+unit = "meters"
+direction = "omitted"
+criterion = "power.instantaneous.force_x_velocity"
+criterion_kind = "model"
+source = "harbili2012"
+# It ignores horizontal work, which is non-trivial in the snatch at 2 to 5 cm of horizontal
+# displacement in a toward-away-toward pattern, and it ignores all work done on the lifter's own body
+# mass, which in a snatch is most of it.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "phase-boundary sensitivity is total, sampling-rate sensitivity is low"
+rationale = """
+Gated behind a barbell-kinematics-only input mode, and never offered side by side with a
+plate-derived power without a units-and-object warning. It needs no force plate and is the only
+method that works on competition footage, which is why the entire elite-weightlifting kinetics
+literature is built on it. It is energy-difference based, so it never forms an instantaneous power
+series and peak power does not exist in it: every value is a phase mean by construction.
+"""
+
+[[method]]
+id = "work.integral_power_dt"
+construct = "mechanical_work"
+group = "I"
+title = "Work as the integral of power over time"
+rule = "Work is the integral of instantaneous power over time."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump computes work as the area under the power-time curve"
+obtained = true
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams computes average power times duration, which is algebraically the rectangle-rule integral and is not a third variant"
+obtained = true
+
+[[method.disagrees_with]]
+id = "work.integral_force_ds"
+kind = "naming"
+note = """
+Register both and mark the relationship explicitly so nobody files them as competing schools. This
+route needs only velocity, which is one integration deep, while the force-displacement route needs
+displacement, which is two, so an error in the weighing epoch propagates linearly here and
+quadratically there.
+"""
+
+[[method.disagrees_with]]
+id = "work.single_force_displacement_product"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "low, except through phase boundaries"
+rationale = "Select automatically by whether a measured displacement signal is present. A user should never be asked to choose a quadrature route."
+
+[[method]]
+id = "work.integral_force_ds"
+construct = "mechanical_work"
+group = "I"
+title = "Work as the integral of force over displacement"
+rule = "Work is the integral of force over displacement, with displacement obtained by double integration where no measured displacement signal exists."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "linthorne2001"
+role = "proposes"
+reference = "Standard mechanics, as set out for the jump case in Linthorne 2001"
+doi = "10.1119/1.1397460"
+obtained = true
+
+[[method.disagrees_with]]
+id = "work.integral_power_dt"
+kind = "naming"
+
+[[method.disagrees_with]]
+id = "work.single_force_displacement_product"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "low, except through drift when displacement comes from double integration"
+rationale = "Preferred when a measured displacement signal exists."
+
+[[method]]
+id = "work.single_force_displacement_product"
+construct = "mechanical_work"
+group = "I"
+title = "Work as a single product of a force value and a displacement value"
+rule = """
+Integrate velocity to obtain displacement, then multiply that displacement by a force value to
+determine work for the cycle, taking one peak value per cycle.
+"""
+status = "deprecated"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "amti_accupower_manual"
+role = "proposes"
+reference = "AMTI AccuPower manual, verbatim; the manual's own phrasing is internally muddled"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.3
+unit = "fraction"
+direction = "high"
+criterion = "work.integral_force_ds"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Not simply signed. It depends on the shape of the force-displacement curve and on which force value
+# is taken, and taking a peak per cycle would bias work high. A single product equals the integral
+# only if force is constant over the displacement, which it emphatically is not during a jump.
+
+[[method.disagrees_with]]
+id = "work.integral_power_dt"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "work.integral_force_ds"
+kind = "genuine"
+note = "Not a debate. The registry's job here is to name it, flag it and explain it."
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+Under legacy compatibility only, with the reason inline, never as a selectable method on equal
+footing. This entry covers the vendor construction only: an average power times duration elsewhere
+is a correct rectangle-rule integral and is not deprecated.
+"""
+
+[[method]]
+id = "power.peak_from_height.lewis"
+construct = "mechanical_power"
+group = "I"
+title = "Dimensional estimate of peak power from jump height and mass"
+rule = "Peak power is estimated dimensionally from jump height and the sum of body and external mass."
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/constants.cs, transcribed directly, with a 29-line comment reproducing the formula's own provenance"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.3
+unit = "fraction"
+direction = "low"
+criterion = "power.peak.instantaneous"
+criterion_kind = "model"
+source = "chronojump_constants"
+# Known to substantially underestimate peak power. The original was dimensionally wrong, treating
+# kilograms as force, and the corrected multiplier is a later fix. Not quantified.
+
+[[method.disagrees_with]]
+id = "power.peak_from_height.regression"
+kind = "genuine"
+note = "A dimensional argument rather than a fitted one, which is a different kind of rule."
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+The source's own comment records that the formula was first published in a 1974 interval-training
+book with no reference beyond a courtesy line, and that one author later confirmed by telephone that
+he developed it with a student. A maintainer wrote the provenance paragraph in the source next to
+the constant, which is the behaviour this registry is trying to systematise.
+"""
+
+[[method]]
+id = "power.peak_from_height.regression"
+construct = "mechanical_power"
+group = "I"
+title = "Peak power from a population-calibrated regression on height and mass"
+rule = "Peak power is estimated from a linear regression on jump height and body mass with coefficients calibrated on a stated population."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "population"
+unit = "enumeration"
+required = true
+notes = """
+Eleven published coefficient sets, differing in their calibration sample rather than in what they
+claim power is. Each is unbiased only on its own calibration population and biased by an unknown
+amount off it, which is why the population must be a required parameter rather than a hidden default.
+One further set is disabled in its implementation with the maintainer's note that the two height
+terms could not be disambiguated.
+"""
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/constants.cs:399-560, all eleven sets transcribed directly; the individual papers are not in the library"
+obtained = true
+
+[[method.disagrees_with]]
+id = "power.peak_from_height.lewis"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "large: the sets disagree with each other by hundreds of watts on the same jump"
+rationale = """
+Force the decision on the population; a tool that picks one silently is misleading. The disagreement
+between sets is a feature for the registry, because it is directly demonstrable.
+"""
+
+[[method]]
+id = "power.dropjump_energy_quotient.padulles"
+construct = "mechanical_power"
+group = "I"
+title = "Drop and rebound potential energy divided by contact time"
+rule = "Power is the potential energy of the drop plus the potential energy of the rebound, divided by ground contact time."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/modes/jump.cs:123-144, attributed in source as a new proposal"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "fraction"
+direction = "high"
+criterion = "work.integral_power_dt"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# It sums the drop energy and the rebound energy and divides by contact time, so it credits the
+# athlete with the energy of the fall, which the athlete did not produce. A deliberate modelling
+# choice rather than an error, but it makes the number incomparable with any net-work-based power.
+
+[[method.disagrees_with]]
+id = "power.dropjump_bosco_ratio"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "large with respect to contact time, which is debounce-limited on a contact mat"
+rationale = "Hide it if it is the only drop-jump power offered; force the decision the moment a second is offered."
+
+[[method]]
+id = "power.dropjump_bosco_ratio"
+construct = "mechanical_power"
+group = "I"
+title = "Drop-jump power as a constant times a ratio of times"
+rule = "Power is a bare constant multiplied by the ratio of total time to contact time."
+status = "deprecated"
+confidence = "low"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/modes/jump.cs, the commented-out predecessor, carrying the maintainer's note that the publication could not be found"
+obtained = true
+
+[[method.disagrees_with]]
+id = "power.dropjump_energy_quotient.padulles"
+kind = "genuine"
+note = """
+Dimensionally incoherent: the argument is a pure ratio of times multiplied by a bare constant, so it
+cannot have units of power per unit mass. Retained so results predating the replacement remain
+interpretable, and as a documented example of a formula that circulated for years without a locatable
+source. The maintainer could not find the citation and shipped it anyway.
+"""
+
+[method.gui]
+surfacing = "refuse"
+
+[[method]]
+id = "power.repeated_jump.bosco1983"
+construct = "mechanical_power"
+group = "I"
+title = "Repeated-jump power from total flight time, total duration and jump count"
+rule = """
+Power per unit mass is derived from total flight time, total test duration and the number of jumps,
+with total duration less total flight time taken as total contact time.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "bosco1983"
+role = "proposes"
+reference = "Bosco, Luhtanen and Komi 1983, EJAP 50:273-282; the tool's attribution must be verified against the primary before it enters a citation-bound registry"
+doi = "10.1007/BF00422166"
+obtained = true
+
+[[method.parameter]]
+name = "jump_count"
+unit = "count"
+required = true
+notes = "A missed short contact changes both the count and the total contact time, so the debounce floor propagates twice."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "large with respect to jump count and to the debounce floor"
+rationale = "Required for comparability with the entire repeated-jump protocol literature. It assumes all non-flight time is productive contact and that flight time maps to height without landing-posture error."
+
+[[method]]
+id = "computed_on_object"
+construct = "mechanical_object"
+group = "I"
+title = "Declare which mechanical object a loaded-lift quantity describes"
+rule = """
+Declare whether every force, velocity, power, work and impulse in a loaded lift is computed about the
+barbell, the body, or the system, and use the matching weight as the subtrahend and the matching mass
+as the divisor.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "object"
+unit = "enumeration"
+required = true
+notes = """
+barbell, body, system. The subtrahend is not a constant of the analysis, it is a function of which
+object is being described, and subtracting system weight from a barbell-derived force, or barbell
+weight from a plate-derived force, are both errors and both easy to make.
+"""
+
+[[method.citation]]
+key = "blatnik2014"
+role = "evaluates"
+reference = "Blatnik et al. 2014, J Sports Sci Med 13(3):511-515, verified against its tables"
+obtained = true
+
+[[method.citation]]
+key = "lake2012jscr"
+role = "proposes"
+reference = "Lake et al. 2012, stating the rule the domain turns on"
+doi = "10.1519/jsc.0b013e31822e7b48"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.4
+unit = "fraction_of_one_repetition_maximum"
+direction = "either"
+criterion = "mechanical_object"
+criterion_kind = "model"
+source = "blatnik2014"
+# The headline number of the loaded domain. On one deadlift dataset, eight men, same trials, same
+# session: peak power occurs at 50 percent of one-repetition maximum for the bar, 30 percent for the
+# body and 70 percent for the system. Not a disagreement about data, a threshold or a filter. It is a
+# disagreement about what the number is a number about. Two arithmetic defects were found in that
+# source by checking rather than reading: its stated bar-force formula omits gravity while its table
+# includes it, so the paper cannot be reimplemented from its own words, and the system computation
+# states neither that system weight was subtracted nor which mass was used.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total: different objects give different numbers, different load-power curves and different training prescriptions from identical raw data"
+rationale = """
+Make it the first question asked whenever a load is declared. The axis does not exist for an unloaded
+jump, where the three coincide, and the control must not be shown there. What is deprecated is not
+any one object but using one object's kinematics to claim another object's quantity.
+"""
+
+[[method]]
+id = "normalise.denominator"
+construct = "normalisation_basis"
+group = "I"
+title = "Declare the mass a loaded-lift quantity is expressed relative to"
+rule = "Declare the mass a force, power, work or impulse is expressed relative to."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "denominator"
+unit = "enumeration"
+required = true
+notes = "body mass, system mass or barbell mass. One entry with three values rather than three methods, because no paper argues on principle that another's denominator is wrong."
+
+[[method.citation]]
+key = "suchomel2017"
+role = "uses"
+reference = "Suchomel and Sole 2017, which sets the phase boundary from system weight and normalises the resulting peak power by body mass"
+obtained = true
+
+[[method.citation]]
+key = "harbili2012"
+role = "uses"
+reference = "Harbili 2012 and the weightlifting lineage, normalising to barbell mass"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "a units question that silently breaks cross-study comparison"
+rationale = """
+Show a unit label naming the denominator rather than a bare per-kilogram label. Relative power in the
+weightlifting literature and in strength and conditioning differ by the athlete-to-bar mass ratio,
+which varies across a competition field by a factor of two.
+"""
+
+[[method]]
+id = "power.flywheel_isoinertial"
+construct = "mechanical_power"
+group = "I"
+title = "Power from the moment of inertia and angular velocity of a spinning disc"
+rule = "Power is derived from the moment of inertia and the angular velocity of a spinning disc rather than from a ground reaction force."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "smajla2022"
+role = "evaluates"
+reference = "Smajla et al. 2022, Front Physiol 13:828394, comparing force-velocity profiles from jumps against flywheel squats"
+obtained = true
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "not comparable to a plate-derived power"
+rationale = """
+Registered as a device class rather than as a force-plate variant: there is no ground reaction force
+in it at all. Registering the device class as a provenance attribute, separate from the formula
+field, is the clean design, and the published cross-modality comparison makes it exactly the kind of
+agreement question this registry exists to represent.
+"""
+
+[[method]]
+id = "power.upper_body_ballistic.end_of_concentric.frost2010"
+construct = "propulsion_phase_end"
+group = "I"
+title = "End-of-concentric detection for ballistic upper-body movements"
+rule = "A dedicated phase-boundary detector for ballistic upper-body movements, being the bench-throw analogue of a takeoff threshold."
+status = "accepted"
+confidence = "low"
+debate = "single_position"
+
+[[method.citation]]
+key = "frost2010"
+role = "proposes"
+reference = "Frost, Cronin and Newton 2010, JSCR 24:282-286, not obtained"
+doi = "10.1519/jsc.0b013e31819f1e7e"
+obtained = false
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+The exact rule is not citation-bound and this entry must not be implemented from it. Counted because
+its existence establishes that the upper-body ballistic lineage has its own event-detection
+literature. In a bench throw the system mass is the bar plus the effective mass of the arms and the
+athlete is supported by a bench, so a plate under the bench measures a different system than a plate
+under a jumper.
+"""

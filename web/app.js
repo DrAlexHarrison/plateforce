@@ -138,9 +138,11 @@ function wireGlobalControls() {
 
   const open = () => input.click();
   $('choose-file').addEventListener('click', (event) => { event.stopPropagation(); open(); });
-  dropzone.addEventListener('click', open);
-  dropzone.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
+  // Clicking the whole zone is a convenience on top of the real buttons inside it, not
+  // the only way in, so the zone itself is not a control and does not take focus.
+  dropzone.addEventListener('click', (event) => {
+    if (event.target.closest('button')) return;
+    open();
   });
   input.addEventListener('change', () => { if (input.files[0]) readFile(input.files[0]); });
 
