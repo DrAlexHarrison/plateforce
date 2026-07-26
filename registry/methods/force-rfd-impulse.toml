@@ -46,6 +46,11 @@ the point. Gross peak force is onset-independent; net peak force is onset-depend
 means peak minus force at onset rather than peak minus baseline weight.
 """
 
+[[method.disagrees_with]]
+id = "norm.pct_peak_force"
+kind = "genuine"
+note = "A percentage-of-peak normalisation requires the net convention and is incompatible with this one."
+
 [method.gui]
 surfacing = "force_a_decision"
 sensitivity = "very high on the absolute number and on any correlation involving peak force"
@@ -841,6 +846,11 @@ source = "barefoot2022"
 # within-session smallest worthwhile change of 9.0 N.s. But the reliability of that same robust value
 # collapses from ICC 0.984 to 0.479 on identical data purely from the onset rule. A method can
 # preserve the mean and annihilate the ability to track an individual.
+
+[[method.disagrees_with]]
+id = "power.peak.instantaneous"
+kind = "genuine"
+note = "Net vertical impulse relates to jump height analytically; peak power relates to it statistically."
 
 [method.gui]
 surfacing = "default_and_show"

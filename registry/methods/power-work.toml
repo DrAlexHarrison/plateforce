@@ -673,8 +673,10 @@ surfacing = "default_and_hide"
 sensitivity = "large with respect to jump count and to the debounce floor"
 rationale = "Required for comparability with the entire repeated-jump protocol literature. It assumes all non-flight time is productive contact and that flight time maps to height without landing-posture error."
 
+# The seed's canonical name for this entry, "computed_on_object", is the one identifier in the
+# registry that is not dotted. Namespaced here to satisfy rule 1; the bare name is the field's.
 [[method]]
-id = "computed_on_object"
+id = "declaration.computed_on_object"
 construct = "mechanical_object"
 group = "I"
 title = "Declare which mechanical object a loaded-lift quantity describes"

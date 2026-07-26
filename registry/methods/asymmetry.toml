@@ -1,0 +1,442 @@
+# Group L. Asymmetry and bilateral measures.
+#
+# The four mutually inconsistent formulas the field reports are two normalised-difference algebras
+# plus the symmetry angle plus the clinical ratio, and the sum-against-mean scaling is a unit
+# convention worth a factor of two rather than a method. Verified algebraically: one published
+# spreadsheet form simplifies exactly to the two vendor forms.
+#
+# Every entry carries a mandatory window declaration. Not one published entry specified what interval
+# the per-limb number was integrated over, and on 59 athletes with identical trials and identical
+# algebra one window found a significant asymmetry-to-performance relationship in 2 of 4 cells and
+# another found it in 0 of 4. The window decides whether a relationship exists at all, and it is
+# invisible in every export format this field uses.
+
+[[method]]
+id = "asymmetry.norm_diff_over_total"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "Limb difference normalised by the pair total"
+rule = "The index is the difference between limbs divided by the sum of the two, expressed as a percentage."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "scaling"
+unit = "enumeration"
+required = true
+notes = "sum or mean. Exactly a factor of two and deterministic, so it is a unit convention rather than two methods."
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = """
+Sourced instances are the positive-impulse window and the propulsive window. Two shipped
+implementations declare no window at all and are recorded as undeclared rather than guessed.
+"""
+
+[[method.parameter]]
+name = "underlying_metric"
+unit = "enumeration"
+required = true
+notes = """
+Mandatory rather than a second entry. One algebra on two underlying metrics named a different
+dominant limb in 16 percent of athletes in braking and 13 percent in propulsion, kappa 0.67 and 0.72,
+and the sources concluded the two should not be used interchangeably. A metric whose method choice
+flips a categorical output must force a decision regardless of how small the numerical difference is.
+"""
+
+[[method.citation]]
+key = "painter2022"
+role = "uses"
+reference = "Painter et al. 2022, from which both sourced windows and the first population reference values in these units come"
+doi = "10.3390/jfmk7020031"
+obtained = true
+
+[[method.citation]]
+key = "robinson1987"
+role = "proposes"
+reference = "Robinson, Herzog and Nigg 1987, with Herzog et al. 1989 as companion; neither obtained and the 1987 paper does not reliably match in Crossref"
+obtained = false
+
+[[method.bias]]
+magnitude = -0.5
+unit = "ratio"
+direction = "low"
+criterion = "asymmetry.pct_diff_over_larger.bishop"
+criterion_kind = "model"
+source = "painter2022"
+# Confirmed from a primary rather than derived: the sum-scaled form yields lower scores than forms
+# using a single limb or half the sum in the denominator. Against the mean-scaled form the relation
+# is exactly 0.5 and deterministic; against the other algebra the ratio runs from 2 at perfect
+# symmetry down toward 1 at total asymmetry, so about half is the small-asymmetry limit and is the
+# right characterisation for real data. Reference values, unsigned sum-scaled over the positive
+# impulse window: males 7.10 +/- 5.45 unloaded and 7.06 +/- 4.59 loaded, females 5.96 +/- 5.55 and
+# 5.53 +/- 4.25. The standard deviation is roughly the size of the mean in all four cells, so the
+# distribution is heavily right-skewed and a mean asymmetry score is a poor summary.
+
+[[method.disagrees_with]]
+id = "asymmetry.pct_diff_over_larger.bishop"
+kind = "genuine"
+note = """
+Normalising to the pair total and to the better limb are different claims about what asymmetry means.
+The choice changes the reported percentage by a factor of about 1.7 to 2, so clinical cut-offs such as
+10 percent do not transfer.
+"""
+
+[[method.disagrees_with]]
+id = "asymmetry.symmetry_angle.zifchock2008"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "asymmetry.limb_symmetry_ratio.clinical"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total"
+rationale = """
+The exported column name must carry the formula identifier. A bare column headed asymmetry is not a
+defensible output. The index is undefined when the pair sums to zero, which cannot occur for forces
+or heights but can for signed quantities, and if one limb value is negative the denominator shrinks
+toward zero and the index explodes, so this algebra must never be applied to a signed quantity.
+"""
+
+[[method]]
+id = "asymmetry.pct_diff_over_larger.bishop"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "Percent shortfall of the weaker limb relative to the better"
+rule = """
+The index is the difference between limbs divided by the larger of the two, expressed as a
+percentage, with direction restored by a separate multiplier rather than by a sign on the magnitude.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = "The held source computes jump height and reactive strength index, so its own instance is not integrated."
+
+[[method.parameter]]
+name = "underlying_metric"
+unit = "enumeration"
+required = true
+
+[[method.citation]]
+key = "bishop2019"
+role = "proposes"
+reference = "Bishop, Turner, Maloney, Lake, Loturco, Bromley and Read 2019, Sports 7(1):29, formula quoted verbatim from the statistical analyses section and verified against publisher markup"
+doi = "10.3390/sports7010029"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.67
+unit = "ratio"
+direction = "high"
+criterion = "asymmetry.norm_diff_over_total"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# About 1.67 times the sum-scaled value and 0.83 times the mean-scaled. Undefined only when the
+# better limb is zero, that is, a failed trial. Still ill-defined for signed quantities, because the
+# maximum of a signed pair picks the algebraically larger rather than the larger in magnitude. The
+# ranking of athletes is preserved across both algebras for non-negative inputs, since both are
+# monotone in the ratio of the smaller to the larger: only the number changes, not the order.
+
+[[method.disagrees_with]]
+id = "asymmetry.norm_diff_over_total"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "asymmetry.symmetry_angle.zifchock2008"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "asymmetry.limb_symmetry_ratio.clinical"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "total on the reported percentage, none on athlete ranking"
+rationale = """
+The default, with the identifier in the export header and direction as a separate displayed column
+rather than a sign buried in the magnitude. Separating magnitude from direction is a genuinely better
+design than baking the sign into the index, and the software should copy it.
+"""
+
+[[method]]
+id = "asymmetry.symmetry_angle.zifchock2008"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "Angular deviation of the limb pair from the line of symmetry"
+rule = """
+Treat the limb pair as a point in a plane and measure its angular deviation from the line of
+symmetry, which requires no choice of reference value in the denominator. The exact published form
+was not read and must not be implemented from this entry.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = "Undeclared, and necessarily so, because the rule itself has not been read."
+
+[[method.citation]]
+key = "zifchock2008"
+role = "proposes"
+reference = "Zifchock, Davis, Higginson and Royer 2008, Gait and Posture 27(4):622-627; not obtained through any route"
+doi = "10.1016/j.gaitpost.2007.08.006"
+obtained = false
+
+[[method.disagrees_with]]
+id = "asymmetry.norm_diff_over_total"
+kind = "genuine"
+note = """
+The most intellectually substantive disagreement in this group, because it is about the geometry of
+the measure rather than about a scaling constant: it removes the arbitrary denominator that separates
+the two normalised-difference algebras from each other.
+"""
+
+[[method.disagrees_with]]
+id = "asymmetry.pct_diff_over_larger.bishop"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "A registry entry whose rule has not been verified must not be promoted. This is the single highest-value acquisition gap in the asymmetry domain."
+
+[[method]]
+id = "asymmetry.limb_symmetry_ratio.clinical"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "Involved limb as a percentage of uninvolved, inverted for lower-is-better metrics"
+rule = """
+The index is the involved limb divided by the uninvolved and expressed as a percentage for a metric
+where larger is better, and the reciprocal for a metric where smaller is better. For uninjured
+controls the convention is non-dominant over dominant.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "polarity"
+unit = "enumeration"
+required = true
+notes = "larger_is_better or smaller_is_better. The polarity rule is the dangerous part: the ratio inverts between the two."
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = """
+Not applicable for the hop-test lineage that defines it, since a hop distance and a hop time are not
+integrals over a force-time trace. It becomes live the moment the same ratio is applied to a
+force-plate quantity, and there the window is propulsive.
+"""
+
+[[method.citation]]
+key = "grindem2016"
+role = "uses"
+reference = "Grindem et al. 2016, BJSM 50(13):804-808, polarity rule quoted verbatim and verified"
+doi = "10.1136/bjsports-2016-096031"
+obtained = true
+
+[[method.citation]]
+key = "kotsifaki2022ratio"
+role = "evaluates"
+reference = "Kotsifaki et al. 2022, BJSM 56(9):490-498, ingested and verified"
+obtained = true
+
+[[method.citation]]
+key = "noyes1991"
+role = "proposes"
+reference = "Noyes, Barber and Mangine 1991, AJSM, the original hop-test lineage; not obtained"
+doi = "10.1177/036354659101900518"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.03
+unit = "fraction"
+direction = "high"
+criterion = "joint_energy_absorption"
+criterion_kind = "model"
+source = "kotsifaki2022ratio"
+# Two structural biases. The reference limb is not a constant: the uninvolved limb deteriorates after
+# injury, so the denominator falls and the index flatters the patient. And it is ceiling-insensitive,
+# measured: athletes cleared to return had hop symmetry of 97 +/- 4 percent against controls'
+# 100 +/- 5 while still showing 69 percent symmetry in knee work during propulsion. A 3 percent
+# task-level asymmetry conceals a 31 percent joint-level one, because the athlete redistributes work
+# to the hip and ankle.
+
+[[method.disagrees_with]]
+id = "asymmetry.norm_diff_over_total"
+kind = "genuine"
+note = "A ratio to a designated reference limb answers a different question from a normalised difference between two peers."
+
+[[method.disagrees_with]]
+id = "asymmetry.pct_diff_over_larger.bishop"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "landing.energy_absorption.joint_sum"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high, and the polarity rule is the dangerous part"
+rationale = """
+The software must require the user to declare the metric's polarity before it will compute any
+symmetry index at all. The 90 percent gate this metric is read against is not a number derived from a
+dose-response study of jump asymmetry against reinjury: on the same 50 patients on the same day, four
+hop tests clear the cohort and four do not, with between-test correlations of 0.26 to 0.80. The
+software may compute a threshold flag because clinicians need it, and must refuse to display it
+without the test name bound to it. Never a bare pass.
+"""
+
+[[method]]
+id = "asymmetry.direction_operator"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "How limb dominance is carried alongside the magnitude"
+rule = "Report the index unsigned, signed, or with direction in a separate column."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "setting"
+unit = "enumeration"
+required = true
+notes = "unsigned, signed, separate_direction_column. One operator with three settings rather than three methods; registering sign as a method would triple this group for zero new ideas."
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = "Inherited from the index it modifies rather than set independently, and carried through rather than dropped, because the operator is where the export column name is assembled."
+
+[[method.citation]]
+key = "bishop2019"
+role = "proposes"
+reference = "Bishop et al. 2019, the clearest published statement of the separation"
+doi = "10.3390/sports7010029"
+obtained = true
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump, which instead reassigns good and bad limbs per test day, undocumented"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_show"
+rationale = """
+Direction as a separate column. Reassigning limbs per test day forces the series non-negative and
+hides limb-dominance flips, so an athlete whose dominant limb alternates shows a flat positive trace
+instead of a sign flip: defensible clinically, indefensible for research.
+"""
+
+[[method]]
+id = "asymmetry.bilateral_index"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "Bilateral result compared against the sum of the two unilateral results"
+rule = """
+Compare the bilateral result against the sum of the two unilateral results, either as a normalised
+ratio or as an unnormalised difference in the metric's own units.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "form"
+unit = "enumeration"
+required = true
+notes = "ratio or unnormalised_difference. The ratio form is accepted; the unnormalised difference is legacy, because it is not scale-free."
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = "Not integrated in every implementation held, since the shipped form differences three jump heights."
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/graphs/jumpsAsymmetry.cs:180-182, signed and unnormalised in centimetres"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.01
+unit = "meters"
+direction = "high"
+criterion = "interlimb_asymmetry"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# The unnormalised form scales with absolute jump height, so stronger jumpers show larger deficits
+# for the same proportional deficit, and it cannot be compared between athletes of different ability
+# or across time as an athlete improves.
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "With the units shown, and never as a percentage."
+
+[[method]]
+id = "asymmetry.variability_test.bishop2019"
+construct = "interlimb_asymmetry"
+group = "L"
+title = "Test an individual's asymmetry against the measurement's own noise"
+rule = "Test an individual's asymmetry against the measurement's own noise rather than against a population threshold."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = """
+Inherited from the index under test. The test is only interpretable if the noise and the asymmetry
+were computed over the same interval, and comparing an asymmetry from one window against a noise
+estimate from another is a category error this declaration exists to block.
+"""
+
+[[method.citation]]
+key = "bishop2019"
+role = "proposes"
+reference = "Bishop et al. 2019, verified verbatim"
+doi = "10.3390/sports7010029"
+obtained = true
+
+[[method.bias]]
+magnitude = 2.0
+unit = "ratio"
+direction = "wider"
+criterion = "interlimb_asymmetry"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# An asymmetry index is a difference of two independently measured noisy quantities divided by a
+# function of the same two, so its relative error is larger than either input's and the amplification
+# grows as true asymmetry approaches zero, which is exactly where most athletes sit. That follows
+# from error propagation regardless of what the unobtained primaries say.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "the amplification grows as true asymmetry approaches zero"
+rationale = """
+The only entry in this group that addresses the domain's central empirical problem, which is that
+asymmetry is not a stable athlete property. Its own author reports the tests as reliable and the
+asymmetry scores across tests as mutually unrelated, ranging 0.0 to 22.2 percent on one test and 0.8
+to 6.9 percent on another in the same 16 athletes, and concludes that this precludes using a single
+test to screen for asymmetry. That is the honest state of the construct from its leading proponent
+and belongs on every asymmetry entry as a first-class caveat rather than a footnote.
+"""

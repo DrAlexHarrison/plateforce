@@ -173,6 +173,25 @@ mod tests {
         assert_eq!(dropped, vec![1, 3]);
     }
 
+    /// A sentinel convention matches one value, not a neighbourhood. Reactive strength
+    /// index runs from about 0.2 to 1.5 and flight times from about 0.4 s, so a
+    /// convention that swallowed anything small would drop real measurements as
+    /// missing data, which is the same defect as reading a sentinel as a measurement.
+    #[test]
+    fn a_small_real_measurement_is_not_mistaken_for_the_sentinel() {
+        let (kept, dropped) = partition_sentinels(&[0.51, 0.0, 0.74, 0.001], Sentinel::Zero);
+        assert_eq!(kept, vec![0.51, 0.74, 0.001]);
+        assert_eq!(dropped, vec![1]);
+    }
+
+    #[test]
+    fn a_non_finite_value_is_never_read_as_a_measurement() {
+        let (kept, dropped) =
+            partition_sentinels(&[45.0, f64::NAN, f64::INFINITY], Sentinel::NegativeOne);
+        assert_eq!(kept, vec![45.0]);
+        assert_eq!(dropped, vec![1, 2]);
+    }
+
     #[test]
     fn an_empty_trace_is_rejected_rather_than_returning_a_number() {
         assert!(Trial::new(Vec::new(), 1200.0).is_err());

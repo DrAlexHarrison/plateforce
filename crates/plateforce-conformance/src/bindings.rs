@@ -170,7 +170,6 @@ pub struct TrialAnalysis {
     pub force_minimum_before_takeoff: Option<usize>,
     pub jump_height_centimetres: [f64; 9],
     pub whole_window_jump_height_centimetres: f64,
-    pub backtrack_clamped: bool,
 }
 
 impl TrialAnalysis {
@@ -326,7 +325,6 @@ pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnaly
         force_minimum_before_takeoff,
         jump_height_centimetres: jump_height,
         whole_window_jump_height_centimetres: whole_window,
-        backtrack_clamped: false,
     })
 }
 

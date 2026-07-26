@@ -1,0 +1,676 @@
+# Group K. Reactive strength and ratio metrics.
+#
+# The ratio problem in its purest form. The denominator is ambiguous, the numerator is ambiguous too,
+# and six distinct computable quantities exist of which four are routinely called RSI or RSImod
+# without qualification. The dimensional point is load-bearing: jump height over contact time has
+# units of velocity and flight time over contact time is dimensionless, and they cannot be converted
+# by any constant, because jump height depends on flight time quadratically. Two athletes with
+# identical ratios can rank differently on the index.
+
+[[method]]
+id = "rsi.jh_over_gct.young1995"
+construct = "reactive_strength_index"
+group = "K"
+title = "Jump height divided by ground contact time"
+rule = "Reactive strength is jump height divided by ground contact time on a drop jump."
+# Prose grants recommended for the drop jump. Rule 6 bars it: the originating source is a
+# book-format serial not retrievable through any route.
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "young1995"
+role = "proposes"
+reference = "Young W 1995, New Studies in Athletics 10(1):88-96; not retrievable, definition verified through Louder 2021 Table 1"
+obtained = false
+
+[[method.citation]]
+key = "louder2021"
+role = "evaluates"
+reference = "Louder, Thompson and Bressel 2021, Sports 9(7):97"
+doi = "10.3390/sports9070097"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.535
+unit = "meters_per_second"
+direction = "high"
+criterion = "rsimod.jh_tov_over_ttt"
+criterion_kind = "model"
+source = "louder2021"
+# Systematically larger, with a Bland-Altman bias of 0.50 to 0.57 across three drop heights and
+# shared variance of only 20 to 47 percent. The conclusion is that the two are associative but not
+# interchangeable measures of reactive strength.
+
+[[method.disagrees_with]]
+id = "rsimod.jh_tov_over_ttt"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "rsimod.jh_ft_over_ttt"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "rsi.ft_over_gct.rsr.healy2018"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "ratio.ft_over_ttt.cmj"
+kind = "naming"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "high to the contact-time boundary definition and to drop technique"
+rationale = "Force the decision on drop height and on contact-time instruction, because those move it more than the mathematics does."
+
+[[method]]
+id = "rsi.ft_over_gct.rsr.healy2018"
+construct = "reactive_strength_ratio"
+group = "K"
+title = "Flight time divided by ground contact time"
+rule = "The reactive strength ratio is flight time divided by ground contact time on a drop jump."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "healy2018"
+role = "proposes"
+reference = "Healy, Kenny and Harrison 2018, IJSPP; abstract-only extraction, verify before publishing this entry"
+obtained = false
+
+[[method.disagrees_with]]
+id = "rsi.jh_over_gct.young1995"
+kind = "genuine"
+note = """
+Genuine, and the source's own title is the question of whether the index is a poor indicator of
+reactive strength. The two correlate at 0.91 to 0.97 and still show mixed relationships with
+performance, because jumping higher moves the index more and jumping with a shorter contact time
+moves the ratio more. The source's recommendation is a protocol fix rather than a computational one:
+impose contact-time thresholds so athletes are compared under a matched strategy.
+"""
+
+[[method.disagrees_with]]
+id = "ratio.ft_over_ttt.cmj"
+kind = "naming"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+A companion metric, never silently substituted for the index. Dimensionally cleaner and directly
+computable by every contact mat without a jump-height model, so it removes one method dependency
+entirely.
+"""
+
+[[method]]
+id = "rsimod.jh_tov_over_ttt"
+construct = "reactive_strength_index"
+group = "K"
+title = "Impulse-momentum jump height divided by time to takeoff"
+rule = "Modified reactive strength is impulse-momentum jump height divided by time to takeoff, from onset of the countermovement to takeoff."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "ebben2010"
+role = "proposes"
+reference = "Ebben and Petushek 2010, JSCR 24(8):1983-1987; not obtained, definition verified through two secondary sources"
+obtained = false
+
+[[method.citation]]
+key = "mcmahon2018sports"
+role = "evaluates"
+reference = "McMahon, Lake and Comfort 2018, Sports 6(3):81, ingested and read in full, from which the two-numerator naming comes"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.09
+unit = "coefficient_of_variation"
+direction = "wider"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "model"
+source = "suchomel2015"
+# The denominator is where the fragility lives and it is measured: typical error at CV 7.5 to 9.3
+# percent while jump height alone runs 2 to 3 percent, and contact time and the flight-time ratio
+# were the only variables whose lower confidence bound fell into moderate reliability. Two different
+# labs independently confirm that the time term is the weak link, not the height term.
+
+[[method.disagrees_with]]
+id = "rsi.jh_over_gct.young1995"
+kind = "genuine"
+note = """
+The modified form was introduced because the drop jump was the only plyometric exercise with an
+identifiable ground contact time. The denominator swap was a necessity to extend measurement to other
+movements, not a claim to measure the same construct better, and reading it as a refinement is a
+misreading that the shared name invites.
+"""
+
+[[method.disagrees_with]]
+id = "rsimod.jh_ft_over_ttt"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "the denominator, not the numerator or the takeoff threshold"
+rationale = """
+Force the decision on the numerator if both can be computed, and record which was used in the
+fingerprint regardless. Hide the takeoff threshold, which the literature has measured and found
+trivial at six published values spanning 0.27 to 0.26.
+"""
+
+[[method]]
+id = "rsimod.jh_ft_over_ttt"
+construct = "reactive_strength_index"
+group = "K"
+title = "Flight-time jump height divided by time to takeoff"
+rule = "Modified reactive strength is flight-time jump height divided by time to takeoff."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "mcmahon2018sports"
+role = "evaluates"
+reference = "McMahon, Lake and Comfort 2018, Sports 6(3):81"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.257
+unit = "fraction"
+direction = "low"
+criterion = "rsimod.jh_tov_over_ttt"
+criterion_kind = "instrument"
+source = "merrigan2022"
+# On the countermovement jump the numerator choice is small, with an almost perfect relationship
+# between the two, apparently because dividing by a common time partially cancels the numerator bias.
+# On the drop jump it is not small: the two vendors differ by 25.7 percent, roughly twice the
+# professional forward-against-back difference, while the unmodified index on the same trials agrees
+# to 0.91 percent because neither vendor has to compute a jump height. Removing a computed
+# intermediate removed the disagreement. Nobody has run the equivalent test on the drop jump, where
+# contact time is 5 to 10 times shorter and the flight-time numerator bias is proportionally larger.
+
+[[method.disagrees_with]]
+id = "rsi.jh_over_gct.young1995"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "rsimod.jh_tov_over_ttt"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "small on the countermovement jump, large on the drop jump"
+
+[[method]]
+id = "ratio.ft_over_ttt.cmj"
+construct = "reactive_strength_ratio"
+group = "K"
+title = "Flight time divided by time to takeoff on a countermovement jump"
+rule = "The ratio is flight time divided by time to takeoff on a countermovement jump."
+status = "accepted"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "vendor_name"
+unit = "enumeration"
+required = true
+notes = """
+Mandatory precisely because the vendor label is the only thing that differed between the two rows
+this entry was collapsed from, so dropping it would lose the interoperability those rows existed to
+provide. Shipped under three different names by three different parties.
+"""
+
+[[method.citation]]
+key = "mcmahon2018sports"
+role = "evaluates"
+reference = "McMahon, Lake and Comfort 2018, Sports 6(3):81, concluding there may be no requirement to include both this and the modified index"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.945
+unit = "correlation"
+direction = "none"
+criterion = "rsimod.jh_tov_over_ttt"
+criterion_kind = "model"
+source = "mcmahon2018sports"
+# Correlated at 0.944 to 0.947 with the modified index, with between-day reliability slightly worse,
+# contradicting the authors' own prior hypothesis. A rare case of the literature explicitly
+# recommending against proliferation, and the registry should carry that recommendation.
+
+[[method.disagrees_with]]
+id = "rsi.jh_over_gct.young1995"
+kind = "naming"
+note = """
+A genuine name collision rather than a computational debate, and collapsing two rows into this one
+sharpens it: the classical index is flight time over ground contact time in a drop jump, a
+countermovement jump has no ground contact phase, so the label denotes different quantities in the
+two contexts. That collision now lives on one entry where a reader meets it once.
+"""
+
+[[method.disagrees_with]]
+id = "rsi.ft_over_gct.rsr.healy2018"
+kind = "naming"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "With the test type attached to the label. A bare column of this name across mixed countermovement and drop-jump data is a reporting bug."
+
+[[method]]
+id = "eur.cmj_over_sj"
+construct = "eccentric_utilisation_ratio"
+group = "K"
+title = "Countermovement jump result divided by squat jump result"
+rule = """
+The ratio is a countermovement jump result divided by the corresponding squat jump result, on a
+declared basis. A percent-difference form is the same construct.
+"""
+status = "legacy"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "basis"
+unit = "enumeration"
+required = true
+notes = "jump height, peak force or peak power. The basis choice is unquantified across the three, which is a gap."
+
+[[method.citation]]
+key = "mcguigan2006"
+role = "proposes"
+reference = "McGuigan et al. 2006, not obtained"
+obtained = false
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/constants.cs:141-147, the Bosco battery in percent form"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.34
+unit = "correlation"
+direction = "confounded"
+criterion = "rate_of_force_development"
+criterion_kind = "model"
+source = "chronojump_constants"
+# A high ratio can be produced by a poor squat jump rather than by good elastic utilisation, so the
+# metric is confounded with the very thing it claims to isolate. One study found a significant
+# negative correlation between the ratio and squat-jump rate of force development, at -0.41 and
+# -0.27: the athletes who score best develop force worse.
+
+[[method.disagrees_with]]
+id = "battery_index.normalise_by_best.chronojump"
+kind = "naming"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "With the confound in the tooltip, and show the squat-jump value beside it, because that is where the signal actually is."
+
+[[method]]
+id = "battery_index.normalise_by_best.chronojump"
+construct = "eccentric_utilisation_ratio"
+group = "K"
+title = "Battery indices normalised by the best jump of the battery"
+rule = """
+Divide the battery index numerators by the best jump of the battery rather than by the reference
+jump, and chain the reactive index from a different reference than the standard form.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/graphs/jumpsProfile.cs:88-110"
+obtained = true
+
+[[method.disagrees_with]]
+id = "eur.cmj_over_sj"
+kind = "naming"
+note = """
+A presentation device invented so five components sum comparably on a radar display, not an
+independent claim, but it produces different numbers under overlapping names with no note anywhere
+that it differs from the standard form in the same program.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "compresses every index toward zero for athletes with one dominant jump type"
+rationale = "Force the decision, or rename one of the two."
+
+[[method]]
+id = "dri.dynamic_rebound_index.chronojump"
+construct = "reactive_strength_ratio"
+group = "K"
+title = "Total mechanical height over the free-fall distance in one contact time"
+rule = """
+The index is the sum of fall height and rebound height divided by g times contact time squared,
+guarded to return zero when contact time is not positive.
+"""
+status = "legacy"
+confidence = "low"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/modes/jump.cs:238-253; it appears only as an identifier and a translated label, with no comment, attribution or formula note anywhere in the product"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very large with respect to contact time, which enters squared"
+rationale = """
+Carries a source-unknown marker until someone finds one. Structurally it is a coherent construct that
+nobody appears to have described in print, and it is shipped and surfaced, so users will report it.
+"""
+
+[[method]]
+id = "index.rpem.riosgallardo"
+construct = "reactive_strength_index"
+group = "K"
+title = "Jump height over a push-off time derived from distance and velocity"
+rule = """
+Derive a concentric time as push-off distance divided by velocity, then divide jump height by that
+time.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "riosgallardo"
+role = "proposes"
+reference = "Rios-Gallardo, Universidad de Costa Rica, public repository, in preparation"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+Clearly marked unvalidated, in an extended-metrics section. A genuinely new quantity rather than a
+variant: substituting push-off distance over velocity for ground contact time makes it computable for
+a countermovement jump, where there is no contact time in the drop-jump sense. Recorded because it is
+invisible to English-language search.
+"""
+
+[[method]]
+id = "stiffness.sine_wave_flight_contact.morin2005"
+construct = "lower_limb_stiffness"
+group = "K"
+title = "Stiffness from flight and contact times under a sinusoidal force assumption"
+rule = """
+Estimate stiffness from mass, flight time and contact time under the assumption that force during
+contact is sinusoidal and centre of mass displacement is inferable from flight time. Returns zero if
+mass is zero or either time is non-positive.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "morin2005"
+role = "proposes"
+reference = "Morin, Dalleau, Kyrolainen, Jeulin and Belli 2005, J Appl Biomech 21(2):167-180; this attribution is derived from the algebra and must be verified against the paper before it is used as a citation"
+obtained = false
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/util/util.cs:855-874, no citation in code"
+obtained = true
+
+[[method.bias]]
+magnitude = 6345.0
+unit = "newtons_per_meter"
+direction = "wider"
+criterion = "lower_limb_stiffness"
+criterion_kind = "model"
+source = "merrigan2020"
+# A separate reliability finding that governs whether the number can be used at all: ICC 0.35 with a
+# standard error of measurement of 6345 N/m on a mean of 4971 N/m within a single session, so the
+# minimum detectable change is 3.5 times the mean value. Unusable for tracking an individual.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very large with respect to contact time, which enters squared, and hence to the debounce floor"
+rationale = "The only stiffness estimate obtainable from a contact mat, with strong and well-known assumptions."
+
+[[method]]
+id = "sparta.load_explode_drive"
+construct = "movement_signature_score"
+group = "K"
+title = "A three-component movement signature normalised against a private database"
+rule = """
+Report an average eccentric rate of force development, an average relative concentric peak force, and
+a concentric relative impulse, each normalised to a standard score against a private reference
+database, with signature classification at stated score differences.
+"""
+status = "legacy"
+confidence = "low"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "sparta_patent"
+role = "proposes"
+reference = "US 9,223,855 B2, filed 2013, granted 2015, and the vendor's own training materials"
+obtained = true
+
+[method.gui]
+surfacing = "refuse"
+rationale = """
+If exports are imported they must be flagged as non-reproducible composites and never plotted against
+natively computed eccentric rate or concentric impulse. It is not reproducible even in principle: the
+patent defines the three variables in terms of an eccentric phase and a concentric phase and never
+defines either boundary, and the normalisation depends on a private database, so two labs cannot
+verify they computed the same score. That is a stronger statement than undisclosed, and it is the
+cleanest illustration of the registry's premise found in the vendor domain. No independent published
+agreement study was found anywhere in the sweep.
+"""
+
+[[method]]
+id = "tts.band_and_dwell.hawkin"
+construct = "time_to_stabilisation"
+group = "K"
+title = "Time for force to remain within a band of system weight for a stated dwell"
+rule = """
+Time to stabilisation is the time taken for vertical force applied to the system centre of mass to
+remain within a stated percentage of system weight for a stated dwell duration.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "band_pct"
+unit = "percent_of_system_weight"
+published_values = [5.0]
+default = 5.0
+default_source = "hawkin_glossary"
+required = true
+
+[[method.parameter]]
+name = "dwell_seconds"
+unit = "seconds"
+published_values = [1.0]
+default = 1.0
+default_source = "hawkin_glossary"
+required = true
+
+[[method.citation]]
+key = "hawkin_glossary"
+role = "proposes"
+reference = "Hawkin Dynamics metric database, verbatim"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "seconds"
+direction = "long"
+criterion = "time_to_stabilisation"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# A band-and-dwell rule cannot return a value shorter than the dwell, and it is exquisitely sensitive
+# to the system-weight estimate because the band is defined relative to it.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high: band width and dwell length both change the number by large factors"
+rationale = "Expose both parameters, because no consensus exists to hide behind."
+
+[[method]]
+id = "tts.family.other_published"
+construct = "time_to_stabilisation"
+group = "K"
+title = "The other published time-to-stabilisation families, named and not acquired"
+rule = """
+Sequential estimation, unbounded third-order polynomial fit, range-based, cumulative sum, and the
+dynamic postural stability index, plus a threshold defined from the overall mean range of variation
+plus three standard deviations in both horizontal directions, scaled by system weight.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "tts_literature"
+role = "proposes"
+reference = "The time-to-stabilisation literature, named across the landing domain and unacquired"
+obtained = false
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+Flagged under-resolved. This is the largest single unresolved cluster in the asymmetry and landing
+domain, recorded as four to five entries existing and not acquired, and it is the reason the seed's
+own count carries an add-up-to-four contingency.
+"""
+
+[[method]]
+id = "landing.energy_absorption.joint_sum"
+construct = "joint_energy_absorption"
+group = "K"
+title = "Summed negative joint work at hip, knee and ankle during landing"
+rule = """
+Over the landing phase, compute negative joint work at the hip, knee and ankle by inverse dynamics
+and sum them to give total lower-limb energy absorption. Report per-joint contributions alongside the
+sum, because the sum is what conceals the deficit.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "inverse_dynamics_model"
+unit = "enumeration"
+required = true
+notes = "The model is the method, and it is the unregistered free parameter here exactly as it is for motion-capture jump height."
+
+[[method.parameter]]
+name = "window"
+unit = "enumeration"
+required = true
+notes = "Per the mandatory window declaration on every integrated quantity."
+
+[[method.citation]]
+key = "kotsifaki2022bjsm"
+role = "evaluates"
+reference = "Kotsifaki, Whiteley, Van Rossom et al. 2022, BJSM 56(5):249-256, held at full quality"
+doi = "10.1136/bjsports-2020-103677"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.31
+unit = "fraction"
+direction = "low"
+criterion = "asymmetry.limb_symmetry_ratio.clinical"
+criterion_kind = "model"
+source = "kotsifaki2022bjsm"
+# The finding is the bias. Reconstructed athletes who had met every discharge criterion showed
+# single-leg hop distance symmetry of 97 +/- 4 percent while symmetry in knee work during propulsion
+# was only 69 percent. Athletes compensate by shifting work to the hip and ankle, so the task-level
+# score is measuring the compensation and not the deficit.
+
+[[method.disagrees_with]]
+id = "asymmetry.limb_symmetry_ratio.clinical"
+kind = "genuine"
+note = """
+The sharpest construct-level disagreement in the registry: the two are not two ways of measuring
+return-to-sport readiness, they are a measurement and its own blind spot.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "total; the joint-level number and the task-level number can point in opposite directions on the same trial"
+rationale = """
+Unavailable rather than approximated when no motion capture is present. Approximating a joint-level
+quantity from a force plate would be the single most dangerous thing this platform could ship,
+because the clinical decision it feeds is whether an athlete returns to sport. This entry is landing
+energetics and does not close the landing-detection gap.
+"""
+
+[[method]]
+id = "strength.dynamic_strength_index"
+construct = "dynamic_strength_index"
+group = "K"
+title = "Ballistic peak force divided by isometric peak force in the same movement pattern"
+rule = "The index is ballistic peak force divided by isometric peak force, both measured on a force plate in the same movement pattern."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "task_pair"
+unit = "enumeration"
+required = true
+
+[[method.parameter]]
+name = "ballistic_load"
+unit = "percent_of_one_repetition_maximum"
+published_values = [45.0]
+default = 45.0
+default_source = "young2014"
+required = true
+
+[[method.parameter]]
+name = "isometric_joint_angle"
+unit = "degrees"
+published_values = [60.0, 90.0, 120.0, 150.0]
+default = 90.0
+default_source = "young2014"
+required = true
+notes = "The denominator is strongly angle-dependent, so the index is comparable only within a fixed angle. Thirty degrees of joint-angle change is enough to elicit significantly different force."
+
+[[method.citation]]
+key = "young2014"
+role = "proposes"
+reference = "Young, Haff, Newton and Sheppard 2014, IJSPP 9(5):871-875; abstract, introduction and full methods held, results tables did not extract"
+doi = "10.1123/ijspp.2013-0332"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.035
+unit = "coefficient_of_variation"
+direction = "narrower"
+criterion = "dynamic_strength_index"
+criterion_kind = "model"
+source = "young2014"
+# Reliability rather than validity: ICC 0.93 and CV 3.5 percent for the ratio, built from components
+# that are themselves reliable. Validity is not quantified and no criterion for the ratio exists,
+# which is a gap in the literature rather than in this sweep. One magnitude recovered from the same
+# source belongs to the rate entries: at a 30 ms epoch peak rate was not reliable in either mode
+# while peak force in the same trials was excellent. Same trials, same subjects, same instrument.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high on the isometric joint angle, moderate on the ballistic load"
+rationale = """
+The angle and load must be printed next to the number. Not recommended because its interpretation,
+that a low ratio indicates a trainable ballistic deficit, is offered as potential and not tested. It
+shares a structural tension with any framework classifying athletes on a ratio of two
+configuration-dependent quantities, in weaker form, because its inputs are directly measured rather
+than extrapolated.
+"""
