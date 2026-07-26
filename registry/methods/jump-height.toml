@@ -1,0 +1,1200 @@
+# Group F. Jump height.
+#
+# The structural contrast that runs through the whole registry lives here. The method space for a
+# quantity dominated by a phase boundary is combinatorially large and actively disputed; the method
+# space for jump height is a closed set that has been stable for thirty years.
+#
+# Applying the rule that a bias may be stated only within one construct re-partitions this group's
+# headline numbers: takeoff-velocity-only at -159 mm against a standing-frame criterion is about
+# 144 mm of definitional offset plus a 15 mm residual, and the reported rho of 0.517 between the two
+# families is construct mismatch rather than a statement about method quality.
+
+[[method]]
+id = "jumpheight.frame"
+construct = "jump_height.undeclared"
+group = "F"
+title = "Declare which physical displacement jump height denotes"
+rule = """
+Declare which physical displacement jump height denotes: apex minus centre of mass height at the
+takeoff instant, or apex minus centre of mass height during quiet upright standing. The difference
+is the heel rise, being ankle plantarflexion, foot length, and the degree of hip and knee extension
+at takeoff.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "frame"
+unit = "enumeration"
+required = true
+notes = "takeoff or standing. Both frames are physically valid. What is wrong is not stating which one was computed."
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024, Sports Med 54(11):2771-2791, organised by equation rather than equipment"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Xu, Turner, Comfort, Harry, McMahon, Chavda and Bishop 2023, Sports Med 53(5):1055-1072"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.144
+unit = "meters"
+direction = "high"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "model"
+source = "aragon2000"
+# Standing frame minus takeoff frame is 26 to 45 percent on average and up to about 15 cm absolute.
+# Definitional throughout, never error.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "enormous, larger than any other single choice in this domain"
+rationale = """
+Once, at analysis setup, with a diagram. This is the one jump-height choice a non-technical user
+must not be allowed to default through, because it silently changes the number by more than a
+training year's worth of adaptation. Everything below it can be hidden.
+"""
+
+[[method]]
+id = "jumpheight.takeoff.flight_time"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Height from flight time under the projectile equation"
+rule = """
+Height is g times flight time squared over eight. The derivation assumes ascent time equals descent
+time, that is, that centre of mass height at landing equals centre of mass height at takeoff. The
+takeoff and landing detection rules are separate entries and are not part of this one.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "gravity"
+unit = "meters_per_second_squared"
+published_values = [9.8, 9.806, 9.80665, 9.81]
+default = 9.81
+default_source = "linthorne2001"
+required = true
+
+[[method.citation]]
+key = "linthorne2001"
+role = "proposes"
+reference = "Linthorne NP 2001, Am J Phys 69(11):1198-1204, teaching the derivation"
+doi = "10.1119/1.1397460"
+obtained = true
+
+[[method.citation]]
+key = "bosco1983"
+role = "uses"
+reference = "Bosco, Luhtanen and Komi 1983, EJAP 50:273-282, the Ergojump lineage"
+obtained = true
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024, recommends it over impulse-momentum for loaded jumps"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.021
+unit = "meters"
+direction = "high"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "model"
+source = "nine_study_compilation"
+# Unloaded, against impulse-momentum, across nine studies: +4.1, +2.42, +1.0, +0.9, +2.5, +1.3,
+# +2.6, +1.1 and +0.6 cm. Loaded, the sign reverses and flight time underestimates by 1 to 21
+# percent. A single scalar is the wrong shape for this pair; the bias is conditional on load.
+
+[[method.bias]]
+magnitude = 0.016
+unit = "seconds"
+direction = "long"
+criterion = "jump_height.landing_frame"
+criterion_kind = "model"
+source = "aragon2000"
+# Time down exceeds time up by 0.016 s, p < 0.0001, because subjects land partially crouched. When
+# the equal-posture assumption fails, flight time measures the landing frame and calls it the
+# takeoff frame.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "genuine"
+note = """
+A debate about which to use rather than about which is physically correct. Impulse-momentum is the
+correct estimator of the takeoff frame and flight time is a biased estimator of the same quantity
+that happens to be more reliable and more available.
+"""
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.jump_and_reach"
+kind = "naming"
+
+[[method.disagrees_with]]
+id = "jumpheight.encoder_flight_displacement"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.min_of_ft_and_tov.labanalysis"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.flight_time.vendor_padded"
+kind = "vendor_convention"
+
+[[method.disagrees_with]]
+id = "jumpheight.flight_time.optical_offset"
+kind = "vendor_convention"
+
+[[method.disagrees_with]]
+id = "jumpheight.dropjump.impact_velocity_differencing"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate on jump height, large on anything divided by it, large on loaded jumps where the sign flips"
+rationale = """
+Defaulted by the frame declaration and by whether a force plate is present. If the input is a
+contact mat or a phone video this is the only option and should be stated rather than offered.
+Accepted for within-athlete comparison and for loaded jumps; legacy for between-athlete comparison,
+because the bias depends on the population's takeoff and landing technique.
+"""
+
+[[method]]
+id = "jumpheight.takeoff.impulse_momentum"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Height from takeoff velocity by the impulse-momentum theorem"
+rule = """
+Height is takeoff velocity squared over twice g, with takeoff velocity from the net impulse divided
+by mass and initial velocity zero enforced by starting in true quiet standing. Three separate
+registry entries are hidden inside that line and each is its own row: the weighing epoch, the
+integration start, and the takeoff detection threshold.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "linthorne2001"
+role = "proposes"
+reference = "Linthorne NP 2001, Am J Phys 69(11):1198-1204"
+doi = "10.1119/1.1397460"
+obtained = true
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Xu et al. 2023, which encourages practitioners to use it for the standing-frame quantity"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024, the most recommended equation and the typical reference"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0244
+unit = "meters"
+direction = "either"
+criterion = "jumpheight.takeoff.flight_time"
+criterion_kind = "model"
+source = "vald_ncaa_cohort"
+# On 112 athletes through one system on the same trials, flight-time height had SEM 1.03 cm, ICC
+# 0.97, CV 2.92 percent; impulse-momentum had SEM 2.44 cm, ICC 0.87, CV 3.20 percent. The
+# impulse-momentum estimate is 2.4 times noisier in SEM terms, because it inherits onset-placement
+# error and flight time does not. The physics argument and the reliability argument run opposite ways.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.peak_velocity.chavda2018"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.work_energy"
+kind = "naming"
+
+[[method.disagrees_with]]
+id = "jumpheight.encoder_flight_displacement"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff_velocity.resultant.amti"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.flight_phase_displacement.vald_impdis"
+kind = "naming"
+
+[[method.disagrees_with]]
+id = "jumpheight.min_of_ft_and_tov.labanalysis"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate to the integration start, high to the weighing epoch and the filter cutoff"
+rationale = """
+The default for the takeoff frame, with its three hidden parameters surfaced on demand. A 10 N
+weight error gives 2 to 3 cm, a 0.25 percent mass error gives about 6.5 percent, and misplacing
+takeoff by 2 to 3 ms gives about 2 percent of velocity error, which squares into the height.
+"""
+
+[[method]]
+id = "jumpheight.takeoff.peak_velocity.chavda2018"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Height from the maximum of the velocity column rather than from velocity at takeoff"
+rule = "Height is the maximum of the whole velocity column squared over twice g."
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "chavda2018"
+role = "uses"
+reference = "Chavda et al. 2018 shipped worksheet, the most reproduced countermovement-jump recipe in applied practice"
+doi = "10.1519/ssc.0000000000000353"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.001
+unit = "meters"
+direction = "high"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Peak centre of mass velocity generally precedes takeoff, because force falls below bodyweight in
+# the last tens of milliseconds of propulsion while the foot is still in contact, so the bias is
+# positive by construction. Not quantified in the paper; quantifying it on the 244-trial corpus is
+# cheap and would be publishable on its own.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "genuine"
+note = "Definitional rather than an implementation detail: peak velocity and takeoff velocity are different instants for a real reason."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small but systematic, which is worse than large and random for cross-study comparison"
+rationale = "Available in a reproduce-legacy mode, defaulting to takeoff velocity."
+
+[[method]]
+id = "jumpheight.takeoff.work_energy"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Height from the work-energy integral over the force-displacement curve"
+rule = """
+Integrate net force over displacement to obtain kinetic energy at takeoff, then convert to height.
+The start point may be the beginning of the countermovement or the lowest point where velocity is
+again zero; both are analytically identical because kinetic energy is zero at both, so the start
+point is a parameter rather than a fork.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "linthorne2001"
+role = "proposes"
+reference = "Linthorne NP 2001 section V.C"
+doi = "10.1119/1.1397460"
+obtained = true
+
+[[method.citation]]
+key = "chiu2020"
+role = "evaluates"
+reference = "Chiu and Daehlin 2020, N = 63, against the takeoff-velocity-plus-displacement method"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.005
+unit = "meters"
+direction = "high"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "model"
+source = "linthorne2001"
+# Linthorne's worked jump gives 38.0 cm against 37.5 cm on the same trial. The gap is pure numerics,
+# since the two are analytically identical. Chiu measured the pair at rho = 1.000, SEE below 0.0001 cm.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "naming"
+note = """
+Analytically equivalent and numerically distinct, because the displacement axis it integrates over
+is itself the product of a prior double integration, so it inherits and compounds those errors. It
+can only be worse conditioned than impulse-momentum, never better.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "about 0.5 cm"
+rationale = "Expose only in reproduce-a-published-analysis mode."
+
+[[method]]
+id = "jumpheight.standing.double_integration"
+construct = "jump_height.standing_frame"
+group = "F"
+title = "Double integration of acceleration from quiet standing through flight"
+rule = """
+Height is the maximum of the double integral of vertical acceleration from quiet standing through
+flight, with velocity and displacement zero in quiet standing, plus the drop height where one exists.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Xu et al. 2023, recommending it as the standing-frame method closest to 3D motion capture"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024, agreeing on closeness and warning it is the most drift-prone of the four"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0015
+unit = "meters"
+direction = "high"
+criterion = "motion_capture_marker"
+criterion_kind = "instrument"
+source = "conceicao"
+# +0.15 +/- 0.13 cm at 2000 Hz, not significant; not significantly different at 1000 Hz; and
+# significantly different at 500 Hz, 36.44 +/- 7.15 against 37.92 +/- 7.46 cm. The bias is
+# sampling-rate conditional and the practical floor is about 1000 Hz.
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.tov_plus_displacement"
+kind = "genuine"
+note = """
+Genuine but narrow: the two agree to the centimetre, p = 1.000, and the recommendation between them
+turns on random error rather than on means, because integrating force during flight lets drift
+produce nonzero readings that should be zero.
+"""
+
+[[method.disagrees_with]]
+id = "jumpheight.motion_capture"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high to sampling rate, weight, window length and drift"
+rationale = """
+The squat-jump warning must be forced. Holding a squat for one to two seconds before push-off makes
+the forward window long enough that drift dominates, and within-session CV reaches 27.4 percent on
+the squat jump against 5.1 percent for takeoff velocity on the same jumps.
+"""
+
+[[method]]
+id = "jumpheight.standing.tov_plus_displacement"
+construct = "jump_height.standing_frame"
+group = "F"
+title = "Takeoff velocity plus the centre of mass displacement to takeoff"
+rule = """
+Height is the double integral of acceleration from standing to takeoff, plus takeoff velocity
+squared over twice g.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024 equation 9"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.citation]]
+key = "chiu2020"
+role = "evaluates"
+reference = "Chiu and Daehlin 2020, recommending it over double integration on random-error grounds"
+obtained = true
+
+[[method.citation]]
+key = "wade2022"
+role = "evaluates"
+reference = "Wade et al. 2022, not significantly different from 3D motion capture, 43.20 against 42.90 cm"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.119
+unit = "meters"
+direction = "high"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "model"
+source = "moir2008"
+# Against the takeoff frame: +11.9 cm men and +10.0 cm women, +12.1 cm, +12.2 cm across three
+# further datasets. Definitional, and the displacement term is where all the sensitivity lives.
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.double_integration"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.tov_plus_displacement.from_markers"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "the displacement term is 10 to 12 cm and is where all the sensitivity lives"
+rationale = "Warn on the squat jump, where it reads -1.1 cm with a within-session CV of 27.4 percent."
+
+[[method]]
+id = "jumpheight.standing.tov_plus_displacement.from_markers"
+construct = "jump_height.standing_frame"
+group = "F"
+title = "Takeoff velocity plus a displacement obtained from motion capture"
+rule = """
+As the takeoff-velocity-plus-displacement method, but the displacement term is obtained from a
+motion capture system rather than by double integration.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Xu et al. 2023 Table 3, which distinguishes the two routes to the displacement term"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.tov_plus_displacement"
+kind = "genuine"
+note = "A distinct rule: it changes both the error structure and the equipment requirement while producing the same named metric."
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "Instrument-gated."
+
+[[method]]
+id = "jumpheight.standing.flight_time_anthropometric_correction.wade2020"
+construct = "jump_height.standing_frame"
+group = "F"
+title = "Flight-time height plus an anthropometrically scaled heel-rise constant"
+rule = """
+Add to the flight-time height a constant standing in for the heel rise, computed as 0.88 times foot
+length plus sole thickness minus ankle height. The 0.88 is the sine of the measured takeoff foot
+angle, reported as 61.4 +/- 4.8 degrees, written as a decimal in the source.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "foot_angle_sine"
+unit = "ratio"
+published_values = [0.88]
+default = 0.88
+default_source = "wade2020"
+required = true
+notes = "A single-cohort mean with a 4.8 degree standard deviation, treated by the rule as fixed."
+
+[[method.citation]]
+key = "wade2020"
+role = "proposes"
+reference = "Wade, Lichtwark and Farris 2020, Scand J Med Sci Sports, formula and derivation at lines 153-163"
+doi = "10.1111/sms.13556"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.011
+unit = "meters"
+direction = "wider"
+criterion = "integration.direction.backward"
+criterion_kind = "model"
+source = "wade2022"
+# Wade 2022 measured the cost of the fixed-constant premise at +1.1 cm of extra variability against
+# forward and backward double integration, across maximal and sub-maximal jumps, and concluded the
+# corrected flight-time method should not be used when alternate methods are available.
+
+[[method.disagrees_with]]
+id = "jumpheight.flight_time.ankle_angle_corrected"
+kind = "genuine"
+note = """
+Opposed empirical claims about within-subject landing consistency: a fixed scaled constant on the
+premise that heel lift is stable within a subject, against a per-trial measured angle on the premise
+that it is not. The published evidence cuts both ways and neither is resolved.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "For contact-mat and phone workflows. It fixes the heel rise but not inconsistent landing technique."
+
+[[method]]
+id = "jumpheight.standing.jump_and_reach"
+construct = "jump_height.standing_frame"
+group = "F"
+title = "Highest vane displaced minus standing reach height"
+rule = """
+Height is the highest vane displaced minus standing reach height. Standing reach is conventionally
+flat-footed; a documented variant measures it in plantarflexion, which converts the metric from a
+standing-frame analogue to a takeoff-frame analogue.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "vane_spacing_m"
+unit = "meters"
+published_values = [0.0127]
+default = 0.0127
+default_source = "xu2023"
+required = true
+notes = "The spacing quantises the output upward."
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Xu et al. 2023, stating that jump and reach and flight time measure disparate biomechanical constructs"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.05
+unit = "meters"
+direction = "either"
+criterion = "jumpheight.takeoff.flight_time"
+criterion_kind = "instrument"
+source = "xu2023"
+# Inconsistent in direction, which is the finding. Three groups found flight-time height larger by
+# at least 5 cm; one found the opposite once participants were made to keep head and eyes level;
+# one found no significant difference, but only because the mat was padding flight time by 100 ms.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "naming"
+note = "Not a genuine method fork for jump height. A different quantity sharing the name."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "reliability CV 5.9 to 8.6 percent, ICC 0.80 to 0.90"
+rationale = """
+Force the decision if a user tries to pool it with force-plate data; otherwise a separately named
+metric. It is the metric volleyball and basketball actually care about and it is behind an enormous
+body of combine and normative data, and it should never be presented as interchangeable.
+"""
+
+[[method]]
+id = "jumpheight.motion_capture"
+construct = "jump_height.undeclared"
+group = "F"
+title = "Peak segmental centre of mass height minus standing, for a named marker model"
+rule = """
+Track markers, build a segmental centre of mass model, and take peak centre of mass height minus
+standing centre of mass height. The model is the method and is a mandatory parameter.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "marker_model"
+unit = "enumeration"
+required = true
+notes = """
+At least four incompatible marker sets are in current use: a full-body 47-marker set, trunk plus
+pelvis plus lower extremities, two markers on the femoral condyles, and the pelvic kinematic method.
+A two-marker femoral-condyle proxy and a 47-marker full-body model are not the same rule and cannot
+both be the criterion.
+"""
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Xu et al. 2023, documenting the incompatible marker sets and their error sources"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.citation]]
+key = "kibele1998"
+role = "disputes"
+reference = "Kibele A 1998, J Appl Biomech 14(1):105-117, held as a 2-page publisher preview"
+doi = "10.1123/jab.14.1.105"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.0398
+unit = "meters"
+direction = "low"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "model"
+source = "kibele1998"
+# The rigid-trunk assumption puts the modelled centre of gravity too low, and the trunk is 49
+# percent of body mass: multi-segment against rigid-trunk differs by about 3.98 cm. Kibele's
+# conclusion inverts the usual criterion hierarchy, that Dempster-like models can cause errors
+# disqualifying their use as validation criteria for kinetic parameters while numerical integration
+# of force was a reasonable tool.
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.double_integration"
+kind = "genuine"
+note = """
+If Kibele stands, most of the which-method-is-most-accurate literature, including the studies
+recommending the standing-frame methods, has been validated against a criterion its own
+methodological literature rejects.
+"""
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "unquantified across models, which is a gap"
+rationale = "Out of scope except as an import format, and the model identity must travel with imported criterion data."
+
+[[method]]
+id = "jumpheight.encoder_flight_displacement"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Directly measured rise of the encoder attachment point"
+rule = """
+Height is the position at the end of the concentric curve minus the position at takeoff, that is,
+the directly measured rise of the encoder attachment point.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump encoder/neuromuscularProfile.R:96-98"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.01
+unit = "meters"
+direction = "either"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "instrument"
+source = "plateforce_inference"
+# It measures the attachment point rather than the centre of mass, so it is biased by any change in
+# body configuration during flight and the direction depends on the attachment. Not quantified.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "genuine"
+note = "Valuable because its error mode is orthogonal to theirs: it measures a real displacement rather than inferring one."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "very large with respect to the takeoff instant"
+rationale = """
+The jump height reported by the encoder mode and the jump height reported by the jump mat are
+different methods with the same name inside one program, and that must be visible.
+"""
+
+[[method]]
+id = "jumpheight.takeoff_velocity.resultant.amti"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Height from the resultant rather than the vertical takeoff velocity"
+rule = """
+Height is computed from the resultant takeoff velocity of each jump, with centre of mass velocity
+from an impulse-momentum integration divided by a separately captured body weight.
+"""
+status = "legacy"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "amti_accupower_manual"
+role = "proposes"
+reference = "AMTI AccuPower manual, whose wording is internally ambiguous between resultant and vertical"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.01
+unit = "meters"
+direction = "high"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "instrument"
+source = "plateforce_inference"
+# If the resultant velocity is genuinely used for a vertical jump, height is biased high whenever
+# the athlete has any horizontal takeoff velocity, since the resultant is at least the vertical
+# component. Arm swing and any lateral push inflate it. Unresolved rather than asserted.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "genuine"
+note = "A genuine debate if the resultant reading is correct and a documentation artefact if not."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "potentially a systematic positive offset on every jump height from this device"
+rationale = """
+Under a reproduce-legacy option, never a default. This software produced the 2011 reference values
+the validation corpus rests on, and it writes exactly 0.00 to jump height, time to takeoff and
+reactive strength index simultaneously on 3 of the 244 trials, which are missing values wearing the
+costume of a measurement and must be dropped before any comparison.
+"""
+
+[[method]]
+id = "jumpheight.flight_phase_displacement.vald_impdis"
+construct = "jump_height.undeclared"
+group = "F"
+title = "Peak of the displacement curve continued through the airborne phase"
+rule = """
+Continue the double integration through the airborne phase and report the maximum displacement of
+the centre of mass between takeoff and landing.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "vald_glossary"
+role = "proposes"
+reference = "VALD ForceDecks Technical Glossary V2.0, offered alongside two other estimators with no guidance"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.005
+unit = "meters"
+direction = "either"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "model"
+source = "plateforce_inference"
+# In exact arithmetic on a perfect signal it equals the impulse-momentum value. In practice it
+# accumulates flight-phase drift on top of the drift already accumulated to takeoff and depends on
+# the thresholds at both ends, so it is strictly noisier without inheriting flight time's
+# independence from drift. Not quantified.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "naming"
+note = "Analytically identical and a strictly worse estimator, so it should carry a stated reason rather than equal billing."
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+Note explicitly that it is expected to equal the impulse-momentum value and that a discrepancy
+indicates baseline drift. That reframes it from a competing metric into a diagnostic, which is its
+real value.
+"""
+
+[[method]]
+id = "jumpheight.min_of_ft_and_tov.labanalysis"
+construct = "jump_height.undeclared"
+group = "F"
+title = "Minimum of the flight-time and takeoff-velocity heights"
+rule = """
+Compute both the flight-time and the takeoff-velocity height and return the smaller. Where a sacral
+marker is available, override both with the marker height.
+"""
+status = "deprecated"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "labanalysis"
+role = "uses"
+reference = "lzoffoli-tg/labanalysis, exercises/jumps/single_jump.py, no licence, no paper, actively developed"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.01
+unit = "meters"
+direction = "low"
+criterion = "jumpheight.takeoff.impulse_momentum"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Biased low by construction, since the expectation of a minimum is below the minimum of the
+# expectations whenever the two carry independent error, by roughly the expected gap between the two
+# estimators, which is of the order of a centimetre. It also discards the information that the two
+# disagree, which is the single most useful diagnostic available at that point.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.impulse_momentum"
+kind = "genuine"
+note = """
+Its construct is not merely undeclared but non-constant: it returns the minimum of a takeoff-frame
+and a landing-frame value, so the quantity being reported depends on which method happened to be
+smaller on that trial.
+"""
+
+[method.gui]
+surfacing = "refuse"
+sensitivity = "of the order of a centimetre, and biased in one direction"
+rationale = "Never offered. Force a decision if a user's data was produced with it, because the number is not comparable to anything else."
+
+[[method]]
+id = "jumpheight.flight_time.vendor_padded"
+construct = "jump_height.landing_frame"
+group = "F"
+title = "Flight time padded by a proprietary constant before the projectile equation"
+rule = "The projectile equation applied to a flight time that the device's proprietary algorithm has padded."
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Whitmer et al., reported in Xu 2023; the primary was not ingested and this entry needs verification before publication"
+doi = "10.1007/s40279-023-01828-x"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.2
+unit = "meters"
+direction = "high"
+criterion = "jumpheight.takeoff.flight_time"
+criterion_kind = "instrument"
+source = "xu2023"
+# The mat added about 100 ms to the measured flight time: 0.524 +/- 0.078 s on a force plate against
+# 0.629 +/- 0.077 s on the mat. A 100 ms additive constant on a 520 ms flight time inflates jump
+# height by roughly 40 percent, about 20 cm at typical flight times.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "vendor_convention"
+note = "Not defensible on the physics and not in the genuinely debatable category. Admitted only so historical results can be recognised and flagged."
+
+[method.gui]
+surfacing = "refuse"
+rationale = "Appears only as a warning when importing data known to come from that pipeline."
+
+[[method]]
+id = "jumpheight.flight_time.optical_offset"
+construct = "jump_height.landing_frame"
+group = "F"
+title = "Flight time bounded by beam break at a device-specific beam height"
+rule = """
+The projectile equation applied to a flight time bounded by beam break rather than by force, with
+the beam sitting a stated height above the contact surface so both ascent and descent are truncated.
+The proposed correction adds the device height.
+"""
+status = "legacy"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "beam_height_m"
+unit = "meters"
+published_values = [0.007]
+default = 0.007
+default_source = "xu2023"
+required = true
+
+[[method.citation]]
+key = "xu2023"
+role = "evaluates"
+reference = "Garcia-Lopez et al. and Bui et al. correction equations, read through Xu 2023"
+doi = "10.1007/s40279-023-01828-x"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.013
+unit = "meters"
+direction = "low"
+criterion = "jumpheight.takeoff.flight_time"
+criterion_kind = "instrument"
+source = "xu2023"
+# One device reads -1.3 cm, p < 0.05; another reads -5.8 cm, p < 0.001, with CV 15.94 percent and
+# ICC 0.45 to 0.57. Two devices implementing the same equation differ from each other by 4.5 cm.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "vendor_convention"
+
+[method.gui]
+surfacing = "default_and_hide"
+rationale = "Behind a device selection, with the offset shown as provenance. Never ask a coach to enter a beam height."
+
+[[method]]
+id = "jumpheight.dj.two_plate_touchdown_velocity"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Drop-jump touchdown velocity from a second plate under the box"
+rule = """
+The box sits on a second force plate and touchdown velocity is obtained by impulse-momentum from
+the pre-drop standing period, supplying the nonzero lower boundary condition the drop jump needs.
+"""
+# Prose grants recommended as the field's criterion. Rule 6 bars it: baca1999 was never obtained.
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024 section 4.2"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.citation]]
+key = "baca1999"
+role = "evaluates"
+reference = "Baca A 1999, the drop-jump comparison, never obtained"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.023
+unit = "meters"
+direction = "narrower"
+criterion = "jumpheight.takeoff.flight_time"
+criterion_kind = "instrument"
+source = "baca1999"
+# Drop-jump heights by method: 33.9 +/- 6.8 flight time, 32.6 +/- 2.3 two plate, 32.6 +/- 4.3
+# backward, 33.9 +/- 13.9 touchdown velocity. The methods differ far more in dispersion than in
+# mean, and agreement of means is not agreement. The magnitude here is the dispersion gap.
+
+[[method.disagrees_with]]
+id = "jumpheight.dj.box_height_as_drop_height"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.dj.mcmahon_correction_factor"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "Requires two plates, which is why it cannot be a general default despite being the field's criterion."
+
+[[method]]
+id = "jumpheight.dj.box_height_as_drop_height"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Drop-jump initial velocity computed from box height treated as drop height"
+rule = "Initial velocity is computed from the box height treated as the drop height."
+status = "deprecated"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024, noting commercial software commonly implements exactly this"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.citation]]
+key = "badby2023"
+role = "evaluates"
+reference = "Badby 2023, which also records that one study assumed a single box height for all 24 subjects"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.066
+unit = "meters"
+direction = "either"
+criterion = "jumpheight.dj.two_plate_touchdown_velocity"
+criterion_kind = "instrument"
+source = "eythorsdottir2024"
+# Box height is not drop height: athletes elevate their centre of mass stepping off low boxes and
+# lower it stepping off high ones. Reported discrepancy 0.7 to 12.5 cm, increasing with box height,
+# with 10.6 cm measured at a 40 cm box and 6.3 cm at 20 cm. Every impulse-momentum drop-jump metric
+# inherits it.
+
+[[method.disagrees_with]]
+id = "jumpheight.dj.two_plate_touchdown_velocity"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.dj.mcmahon_correction_factor"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "propagates into every impulse-momentum drop-jump metric"
+rationale = "Deprecated and simultaneously a required vendor entry, because commercial software commonly implements it."
+
+[[method]]
+id = "jumpheight.dj.mcmahon_correction_factor"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Correction factor on the box-height estimate from post-landing velocity"
+rule = """
+Take the discrepancy between the velocity derived from the final second of post-landing recording
+and the box-height-estimated touchdown velocity, and apply it as a correction factor on the
+box-height estimate.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2024 section 4.2, reporting parity with the two-plate method on a single plate"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0
+unit = "meters"
+direction = "none"
+criterion = "jumpheight.dj.two_plate_touchdown_velocity"
+criterion_kind = "instrument"
+source = "eythorsdottir2024"
+# Reported to give drop height and touchdown velocity equally accurate to the two-plate method with
+# a single plate, 28.0 +/- 6.0 cm for both.
+
+[[method.disagrees_with]]
+id = "jumpheight.dj.two_plate_touchdown_velocity"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "jumpheight.dj.box_height_as_drop_height"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "The most practically valuable proposal in the drop-jump literature: it recovers the criterion's accuracy with one plate."
+
+[[method]]
+id = "jumpheight.flight_time.ankle_angle_corrected"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Flight-time height corrected for the measured ankle angle change"
+rule = """
+Correct a flight-time jump height for the centre of mass height difference between takeoff and
+landing caused by ankle position change, from the ankle angle at takeoff, the ankle angle at
+landing, and the ankle-to-toe distance or stature. The height difference is converted to a flight
+time difference and subtracted before the projectile equation is applied.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "foot_length_fraction_of_stature"
+unit = "fraction"
+published_values = [0.152]
+default = 0.152
+default_source = "winter2009"
+required = false
+
+[[method.parameter]]
+name = "malleolus_fraction_of_foot_length"
+unit = "fraction"
+published_values = [0.787]
+default = 0.787
+default_source = "tilley2001"
+required = false
+
+[[method.citation]]
+key = "goncalves2024"
+role = "proposes"
+reference = "Goncalves, Baptista, Tufano, Blazevich and Vieira 2024, PeerJ 12:e17704, held complete"
+doi = "10.7717/peerj.17704"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.184
+unit = "fraction"
+direction = "high"
+criterion = "jumpheight.takeoff.flight_time"
+criterion_kind = "model"
+source = "goncalves2024"
+# The bias it corrects: +18.4 percent at 1.71 m stature and a 30 cm jump with a full flat-foot
+# landing, rising to +59.6 percent at 1.98 m stature and a 10 cm jump. Error grows with stature and
+# shrinks with jump height, so the correction changes between-subject rankings and not merely levels.
+# Validated only against the same four-segment model that generated the data, which is circular by
+# construction, so residual bias against humans is not established.
+
+[[method.disagrees_with]]
+id = "jumpheight.standing.flight_time_anthropometric_correction.wade2020"
+kind = "genuine"
+note = "A per-trial measured angle against a fixed anthropometric constant. Opposed empirical claims, both registered, neither resolved."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "large and non-uniform, most consequential for loaded, rehabilitation and low jumps"
+rationale = """
+Force the decision when the data are flight-time derived and jump height is low, and hide it
+otherwise. For a 40 cm athletic jump the correction is minor; for a 10 cm clinical or loaded jump
+it is up to 60 percent of the number, and silently defaulting there would be indefensible.
+"""
+
+[[method]]
+id = "jumpheight.dropjump.impact_velocity_differencing"
+construct = "jump_height.takeoff_frame"
+group = "F"
+title = "Rebound takeoff velocity by differencing the impact velocity out of the contact impulse"
+rule = """
+Estimate impact velocity from sagittal videography plus body-segment-parameter tables, take the
+change in vertical centre of mass velocity from integrating force over ground contact, and subtract
+the first from the second to obtain rebound takeoff velocity. Explicitly avoids flight time.
+"""
+# Prose grants recommended for laboratory work. Rule 6 bars it: the Baca primary is unacquired and
+# the bias figures below are second-hand through Louder.
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "baca1999"
+role = "proposes"
+reference = "Baca, cited by Louder as reference 10; the full citation is not in the held reference list"
+obtained = false
+
+[[method.citation]]
+key = "louder2019"
+role = "uses"
+reference = "Louder, Thompson, Banks and Bressel 2019, Sports 7(7):157, held complete"
+doi = "10.3390/sports7070157"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.007
+unit = "meters"
+direction = "high"
+criterion = "jumpheight.dj.two_plate_touchdown_velocity"
+criterion_kind = "instrument"
+source = "baca1999"
+conditional_on_success = true
+# 7 +/- 13 mm against a double-force-plate reference. The method it replaces, conventional flight
+# time, overestimates rebound height by as much as 8.4 percent. Both figures are second-hand
+# through Louder until the Baca primary is acquired.
+
+[[method.disagrees_with]]
+id = "jumpheight.takeoff.flight_time"
+kind = "genuine"
+note = """
+Unusually well posed, because the two agree on the mean while disagreeing systematically across the
+range. An analysis of variance found no main effect of computational approach, F = 0.006, p = 0.938,
+and the author then discards his own null result in print because the regressions show the
+conventional form overestimating below a reactive strength index of 1.00 and underestimating above
+it. A sign-reversing bias is exactly invisible to a mean-comparison test, so the statistic behind a
+verdict has to travel with the verdict.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "large for reactive strength index, and it flips sign near 1.00, so it changes athlete rankings"
+rationale = """
+Gated on video availability: unavailable to most users, decisive for those who have the data. It is
+the only rebound-height method in the sweep validated against a double-force-platform reference.
+"""

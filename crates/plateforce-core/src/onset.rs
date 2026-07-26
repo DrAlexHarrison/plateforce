@@ -216,7 +216,7 @@ pub fn onset_last_sample_within_noise_band(
     inverse_lookback_samples: usize,
     post_crossing: PostCrossingRule,
     sample_rate_hz: f64,
-) -> Result<usize, TrialError> {
+) -> Result<BacktrackOutcome, TrialError> {
     let half_width = multiplier * dispersion_newtons;
     let lower_threshold = reference_newtons - half_width;
     let upper_threshold = reference_newtons + half_width;
@@ -252,9 +252,7 @@ pub fn onset_last_sample_within_noise_band(
             PostCrossingRule::ToReferenceCrossing => {
                 (candidate, Acceptance::AtOrAbove(reference_newtons))
             }
-            PostCrossingRule::FixedOffset(offset) => {
-                return Ok(backtrack(candidate, offset).index)
-            }
+            PostCrossingRule::FixedOffset(offset) => return Ok(backtrack(candidate, offset)),
         }
     };
 
@@ -271,8 +269,11 @@ pub fn onset_last_sample_within_noise_band(
         })?;
 
     Ok(match post_crossing {
-        PostCrossingRule::ToReferenceCrossing => resolved,
-        PostCrossingRule::FixedOffset(offset) => backtrack(resolved, offset).index,
+        PostCrossingRule::ToReferenceCrossing => BacktrackOutcome {
+            index: resolved,
+            clamped_at_start: false,
+        },
+        PostCrossingRule::FixedOffset(offset) => backtrack(resolved, offset),
     })
 }
 
