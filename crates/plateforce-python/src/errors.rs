@@ -98,7 +98,7 @@ pub fn map_trial_error(python: Python<'_>, error: CoreTrialError) -> PyErr {
 }
 
 /// Registry violations arrive as one multi-line message listing every rule broken, which
-/// is more useful than the first one and is what the loader already produces.
+/// is what the loader already produces.
 pub fn map_registry_error(error: CoreRegistryError) -> PyErr {
     RegistryError::new_err(error.to_string())
 }

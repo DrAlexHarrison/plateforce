@@ -107,8 +107,8 @@ pub fn standard_deviation(values: &[f64], estimator: DispersionEstimator) -> Opt
     mean_and_standard_deviation(values, estimator).map(|(_, deviation)| deviation)
 }
 
-/// First index attaining the minimum. Ties go to the earliest sample, which matters
-/// because plate output is quantised and exact ties are common rather than rare.
+/// First index attaining the minimum. Ties go to the earliest sample, and plate output
+/// is quantised enough that exact ties are common.
 pub fn index_of_minimum(values: &[f64]) -> Option<usize> {
     let mut best: Option<(usize, f64)> = None;
     for (index, &value) in values.iter().enumerate() {
@@ -141,8 +141,7 @@ pub fn index_of_maximum(values: &[f64]) -> Option<usize> {
 /// How a rolling variance is accumulated.
 ///
 /// The two forms are algebraically identical and select different windows on real
-/// data. See `WeighingWindowSearch::tied_window_count` for why that is not a rounding
-/// footnote.
+/// data. See `WeighingWindowSearch::tied_window_count`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VarianceAccumulation {
     /// Recompute the mean per window. Accurate, and the default for anything whose
@@ -156,10 +155,10 @@ pub enum VarianceAccumulation {
 /// The window a lowest variance rule selected, and how far the rule was from
 /// determining it.
 ///
-/// `tied_window_count` is the load bearing field. A rule that selects the minimum of a
-/// quantity with exact ties does not identify a single window, and on this corpus the
-/// tie runs to 138 windows on the worst trial. Anything downstream that treats the
-/// selection as determined is reading an artefact of the arithmetic.
+/// A rule that selects the minimum of a quantity with exact ties does not identify a
+/// single window. On this corpus the tie runs to 417 windows, 347 ms of equally valid
+/// starts, and anything downstream that treats the selection as determined is reading
+/// an artefact of the arithmetic.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct WeighingWindowSearch {
     pub start_index: usize,
@@ -173,9 +172,9 @@ pub struct WeighingWindowSearch {
 /// Lowest variance window of a fixed length, optionally rejecting any window that
 /// touches a low force floor.
 ///
-/// The floor is not decoration. Without it the global variance minimum is the flight
-/// phase, where the plate is unloaded and almost noiseless, so the rule would weigh
-/// the athlete during the part of the trial where they are in the air.
+/// Without the floor the global variance minimum is the flight phase, where the plate
+/// is unloaded and almost noiseless, so the rule would weigh the athlete during the
+/// part of the trial where they are in the air.
 pub fn lowest_variance_window(
     values: &[f64],
     window_samples: usize,

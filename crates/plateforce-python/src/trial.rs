@@ -17,9 +17,9 @@ const NON_FINITE_ONLY: CoreSentinel = CoreSentinel::Value(f64::NAN);
 ///
 /// `sample_rate_hz` is the sixth member of the fingerprint's acquisition block and is
 /// carried by the `Trial`, so it is not repeated here. A block that cannot be filled
-/// fingerprints as incomplete rather than as matching, which is the intended behaviour:
-/// the most consequential setting in one open tool is a contact debounce living in
-/// firmware, and no reanalysis recovers from not knowing it.
+/// fingerprints as incomplete rather than as matching: the most consequential setting in
+/// one open tool is a contact debounce living in firmware, and no reanalysis recovers
+/// from not knowing it.
 #[pyclass(frozen, module = "plateforce", name = "Acquisition")]
 #[derive(Clone, Default)]
 pub struct Acquisition {

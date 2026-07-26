@@ -57,12 +57,13 @@ wasm-bindgen \
   --out-dir "$output_dir" \
   "${target_dir}/plateforce_wasm.wasm"
 
-# wasm-opt is a convenience rather than a requirement. The module is small either way.
-if command -v wasm-opt >/dev/null 2>&1 && [ "$profile" = "release" ]; then
-  echo "optimising with wasm-opt"
-  wasm-opt -Oz --enable-bulk-memory -o "${output_dir}/plateforce_wasm_bg.wasm" "${output_dir}/plateforce_wasm_bg.wasm"
-fi
+# Deliberately no wasm-opt pass. Binaryen 108, which is what Ubuntu ships, rewrites the
+# function table in a way that makes wasm-bindgen's module fail to instantiate with
+# "WebAssembly.Table.grow(): failed to grow table by 4". A post-processing step whose
+# behaviour depends on whichever binaryen the machine happens to have is a worse trade
+# than a larger artifact, and the release profile already carries opt-level 2 and thin LTO.
 
 size="$(du -h "${output_dir}/plateforce_wasm_bg.wasm" | cut -f1)"
-echo "built ${output_dir}/plateforce_wasm_bg.wasm (${size})"
+transfer="$(gzip -c "${output_dir}/plateforce_wasm_bg.wasm" | wc -c | awk '{printf "%.0f KB", $1/1024}')"
+echo "built ${output_dir}/plateforce_wasm_bg.wasm (${size} on disk, ${transfer} gzipped over the wire)"
 echo "serve with: python3 -m http.server -d web 8000"

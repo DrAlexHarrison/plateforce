@@ -109,8 +109,7 @@ impl Provenance {
     /// This provenance and every one upstream of it, in one list.
     ///
     /// The parameter that moved a downstream number usually sits on an upstream step: the
-    /// k that placed onset is on the onset entry, not on the time to takeoff derived from
-    /// it. Walking the tree by hand to find it is a chore, so this flattens it.
+    /// k that placed onset is on the onset entry, not on the time to takeoff derived from it.
     fn flattened(&self) -> Vec<Provenance> {
         let mut collected = Vec::new();
         collect(&self.chain, &mut collected);

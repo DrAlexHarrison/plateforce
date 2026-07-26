@@ -15,8 +15,7 @@ use crate::analysis::IMPLEMENTED_METHOD_IDS;
 use crate::errors::{map_registry_error, parameter_error, MethodError};
 
 /// Used when a caller does not pin one. The registry is data and changes without a
-/// release, so a result that claims a version nobody set would be worse than one that
-/// says plainly that nobody set it.
+/// release, so claiming a version nobody set would make an unpinned result look pinned.
 pub const UNVERSIONED: &str = "unversioned";
 
 #[pyclass(frozen, module = "plateforce", name = "Construct")]
@@ -538,7 +537,8 @@ impl MethodEntry {
     /// Fix this method's parameter values, checking each against the entry.
     ///
     /// A parameter with a registry default may be omitted and the default is recorded as
-    /// bound. A required parameter with no default has to be supplied.
+    /// bound. A required parameter with no default has to be supplied. A value outside the
+    /// entry's `published_values` binds and is listed in `unpublished_parameters`.
     #[pyo3(signature = (**parameters))]
     fn bind(&self, parameters: Option<&Bound<'_, PyDict>>) -> PyResult<BoundMethod> {
         let known: BTreeMap<&str, &CoreParameter> = self

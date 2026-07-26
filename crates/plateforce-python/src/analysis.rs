@@ -226,9 +226,9 @@ impl CountermovementJump {
 /// Analyse one countermovement jump with the methods named.
 ///
 /// The three method arguments are bound registry entries and appear in the provenance of
-/// every result. The keyword arguments below them are choices the registry states as
-/// enumerations rather than numbers, which is why they are not bound parameters: core's
-/// provenance carries `(name, float)` pairs and cannot hold `population` or `sample`.
+/// every result. The keyword arguments after them are choices the registry states as
+/// enumerations rather than numbers, so they land in `provenance.enumerated_choices`
+/// rather than in `bound_parameters`, which holds only `(name, float)` pairs.
 ///
 /// `onset_search_bound_seconds` defaults to the whole trace. It bounds how far the onset
 /// rule looks before giving up and never moves an onset that was found.

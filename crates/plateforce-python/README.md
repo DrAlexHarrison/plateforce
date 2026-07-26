@@ -1,6 +1,7 @@
 # plateforce
 
-Force-plate analysis for Python, where a result carries the method that produced it.
+Force-plate analysis where a result carries the method that produced it. You pick a
+published method from the registry, and the number you get back remembers which one.
 
 ```
 pip install plateforce
@@ -9,30 +10,7 @@ pip install plateforce
 No compiler and no Rust toolchain needed. One wheel per platform covers Python 3.11 and
 every later version.
 
-## The problem this solves
-
-Two independent open-source implementations of the *same published methods*, run over the
-same 244 countermovement jumps, agree at r = 0.961 on jump height and **r = 0.696 on time
-to takeoff**. Both were tested. Both passed their own tests.
-
-Across those trials, the spread between published methods within a single trial is a
-median 3.51 cm of jump height. The training intervention that dataset was collected to
-measure moved jump height by 1.98 cm. The analyst's choice of method moved the number
-further than the training did.
-
-Almost every tool in this space returns a float. A float cannot tell you which of nine
-published onset rules produced it, so two labs comparing numbers have no way to find out
-they were never measuring the same thing.
-
-## What a method registry is
-
-Every way of computing a quantity is written down as data: its exact rule, who published
-it, what it is biased against and by how much, whether it is known to fail outright, and
-what its parameters are. The software will not compute anything until you have named one.
-
-You pick a method from the registry. The number you get back remembers which one.
-
-## The smallest useful thing
+## Analysing one jump
 
 ```python
 import numpy as np
@@ -64,23 +42,31 @@ print(jump.jump_height_takeoff_frame_meters.describe())
       onset.threshold.noise_relative {'k': 5}
         band_sides = below_only
         crossing_selection = first
+        degenerate_band = refuse
         dispersion_estimator = sample
         bwepoch.fixed_window {'duration': 1}
-          central_tendency = mean
-          dispersion_estimator = sample
       takeoff.threshold.absolute_force {'threshold_n': 20}
         residual_comparison = signed_value
         bwepoch.fixed_window {'duration': 1}
-          central_tendency = mean
-          dispersion_estimator = sample
   acquisition block incomplete, so this result cannot be declared to match another lab's
 ```
 
-That block is the whole product. It is everything a second lab would need to reproduce the
-number, and everything a reviewer would need to say whether two numbers are comparable.
-The quiet-standing window appears three times because it moved the answer three times:
-once as system weight, once as the noise scale that placed onset, and once through the
-impulse that produced the velocity.
+Everything under the number is what a second lab needs to reproduce it. The quiet-standing
+window appears three times because it moved the answer three times: as system weight, as
+the noise scale that placed onset, and through the impulse that produced the velocity.
+
+## Why the number carries all that
+
+Two independent open-source implementations of the same published methods, run over the
+same 244 countermovement jumps, agree at r = 0.961 on jump height and r = 0.696 on time to
+takeoff. Both were tested. Both passed their own tests.
+
+Across those trials, the spread between published methods within a single trial is a median
+3.51 cm of jump height. The training intervention that dataset was collected to measure
+moved jump height by 1.98 cm.
+
+A float cannot tell you which of nine published onset rules produced it, so two labs
+comparing floats have no way to find out they were never measuring the same thing.
 
 ## A result is not a float
 
@@ -92,7 +78,7 @@ Measured(value=0.3419695652891413, unit='meters', method_id='jump_height.from_ta
 TypeError: unsupported operand type(s) for +: 'plateforce.Measured' and 'float'
 ```
 
-The bare number is one attribute away, and asking for it is deliberately a visible act:
+The bare number is one attribute away, and asking for it is a visible act:
 
 ```python
 >>> jump.jump_height_takeoff_frame_meters.value
@@ -109,10 +95,10 @@ downstream number, ask the chain rather than walking it:
 
 ## Look before you choose
 
-Some published rules do not merely disagree, they find the wrong event. Two onset rules in
-this corpus place the start of the movement more than two seconds before takeoff on
-roughly one trial in seven, on a movement lasting under a second, and their median
-behaviour looks ordinary while they do it.
+Some published rules do not disagree, they find the wrong event. Two onset rules in this
+corpus place the start of the movement more than two seconds before takeoff on roughly one
+trial in seven, on a movement lasting under a second, and their median behaviour looks
+ordinary while they do it.
 
 ```python
 >>> for entry in registry.methods_that_can_fail():
@@ -120,13 +106,13 @@ behaviour looks ordinary while they do it.
 MethodEntry('onset.threshold.noise_relative_forward_offset', status='legacy', implemented=False, FAILS on 36 of 241 trials (14.9%, silent))
 ```
 
-`silent` means nothing warns you. A rule like this must never be selected without its
-failure rate in view, so the entry shows it before you can bind it.
+`silent` means nothing warns you, so the entry shows the failure rate before you can bind
+it.
 
 An entry also carries `.rule`, `.citations`, `.biases`, `.parameters` and `.gui.surfacing`,
-which is the registry's own ruling on how hard an interface should push the choice at a
-user. A bias always states the `criterion` it was measured against, because a bias figure
-without one cannot be added to anything safely.
+the registry's own ruling on how hard an interface should push the choice at a user. A bias
+always states the `criterion` it was measured against, because a bias figure without one
+cannot be added to anything safely.
 
 ## Errors name the method and the parameter
 
@@ -144,8 +130,8 @@ sentence:
 ```
 
 The registry describes the literature, which is larger than what any one piece of software
-implements. Selecting an entry this build cannot run fails by name rather than quietly
-resolving to something near it:
+implements. Selecting an entry this build cannot run fails by name rather than resolving to
+something near it:
 
 ```python
 MethodNotImplementedError: 'onset.threshold.noise_relative_forward_offset' was passed as
@@ -199,8 +185,8 @@ result says so. `pf.Acquisition(...).missing` lists what is still needed.
 `array.array('d')`, a memoryview, and non-contiguous views such as `column[::2]`. Lists and
 tuples work too and convert element by element.
 
-A narrower array type is refused rather than widened, because a float32 trace does not
-carry the precision the impulse identity is checked at:
+A narrower array type is refused rather than widened, because a float32 trace does not carry
+the precision the impulse identity is checked at:
 
 ```python
 >>> pf.Trial(force.astype(np.float32), sample_rate_hz=1200.0)
@@ -210,15 +196,14 @@ TrialError: force_newtons has dtype float32 and plateforce reads float64. Conver
 
 numpy is not a dependency of this package and is not installed with it.
 
-## Reading the output honestly
+## Two fields worth reading
 
-`jump.unregistered_methods` lists the steps that ran with no registry entry describing
-them. They are still choices that moved the number, and they are printed rather than left
-to be discovered.
+`jump.unregistered_methods` lists the steps that ran with no registry entry describing them.
+They are choices that moved the number, printed rather than left to be discovered.
 
-`jump.weighing_epoch_tied_window_count` is 1 for a fixed window. Above 1 means a search
-rule found exact ties and did not identify a single window, so anything downstream treating
-the selection as determined is reading an artefact of the arithmetic.
+`jump.weighing_epoch_tied_window_count` is 1 for a fixed window. Above 1 means a search rule
+found exact ties and did not identify a single window, so anything downstream treating the
+selection as determined is reading an artefact of the arithmetic.
 
 ## Licence
 

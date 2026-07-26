@@ -14,7 +14,7 @@ use crate::statistics::{
 /// The band a signal must leave for a crossing to count.
 ///
 /// Absent bounds are open, so a one sided rule and a two sided rule are the same
-/// function with a different band rather than two implementations of one idea.
+/// function with a different band.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ExcursionBand {
     pub lower_newtons: Option<f64>,
@@ -518,8 +518,6 @@ mod tests {
         assert_eq!(both, Some(400));
     }
 
-    /// The plate holds one value for the whole quiet window on 11 trials in 244, and
-    /// the rule that consumes its standard deviation then has no band at all.
     /// The forward rule fires on the first noise excursion; the backward rule cannot,
     /// because a later return to the band overwrites the candidate. Over the measured
     /// corpus the forward rule with no persistence requirement places onset more than
@@ -587,6 +585,9 @@ mod tests {
         assert_eq!(forward, 1000);
     }
 
+    /// The plate holds one bit-identical value for the whole 0.25 s quiet window on 11
+    /// trials in 244, and the rule that consumes its standard deviation then has no
+    /// band at all.
     #[test]
     fn a_quiet_window_with_no_noise_collapses_the_band_and_is_named_as_such() {
         let mut signal = vec![600.0; 1000];

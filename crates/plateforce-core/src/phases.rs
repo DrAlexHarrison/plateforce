@@ -34,9 +34,8 @@ pub fn cumulative_trapezoid(values: &[f64], sample_interval_seconds: f64) -> Vec
 
 /// Braking start as the most negative centre of mass velocity.
 ///
-/// The upper bound is not optional. Searched to the end of an untrimmed recording this
-/// finds the landing, where velocity is far more negative than anything in the
-/// countermovement.
+/// Searched to the end of an untrimmed recording this finds the landing, where velocity
+/// is far more negative than anything in the countermovement.
 pub fn braking_start_by_velocity_minimum(
     velocity_meters_per_second: &[f64],
     onset_index: usize,

@@ -201,9 +201,17 @@ fn materialise(
         if !axis.method_ids.is_empty() {
             let method_id = axis.method_ids[position].clone();
             settings.push((axis.slot.clone(), method_id.clone()));
+            // A slot being swept cannot also be pinned to a dragged marker, or every
+            // variant returns the same number and the sweep reports a spread of zero.
             match axis.slot.as_str() {
-                "onset" => candidate.onset.method_id = method_id,
-                "takeoff" => candidate.takeoff.method_id = method_id,
+                "onset" => {
+                    candidate.onset.method_id = method_id;
+                    candidate.onset.manual_index = None;
+                }
+                "takeoff" => {
+                    candidate.takeoff.method_id = method_id;
+                    candidate.takeoff.manual_index = None;
+                }
                 "weighing" => candidate.weighing.method_id = method_id,
                 _ => {}
             }
@@ -345,6 +353,38 @@ mod tests {
         assert_eq!(response.combinations_requested, 16);
         assert_eq!(response.combinations_run, 16);
         assert!(!response.capped);
+    }
+
+    /// Sweeping a slot whose marker the user dragged has to release that marker, or every
+    /// variant returns the pinned index and the headline figure reads zero.
+    #[test]
+    fn sweeping_a_slot_releases_its_dragged_marker() {
+        let mut base = base();
+        base.onset.manual_index = Some(1300);
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base,
+                axes: vec![Axis {
+                    slot: "onset".into(),
+                    parameter: None,
+                    values: Vec::new(),
+                    method_ids: vec![
+                        "onset.threshold.noise_relative".into(),
+                        "onset.threshold.relative_to_system_weight".into(),
+                        "onset.threshold.absolute_force".into(),
+                    ],
+                }],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 512,
+            },
+        )
+        .unwrap();
+        assert_eq!(response.succeeded, 3);
+        assert!(
+            response.spread_absolute.unwrap() > 0.0,
+            "the dragged marker pinned every variant to the same answer"
+        );
     }
 
     #[test]
