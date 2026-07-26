@@ -3,7 +3,9 @@
 //! Nothing here computes a quantity. Each step calls the one implementation in
 //! `plateforce-core` and wraps what comes back in the choices that produced it.
 
-use plateforce_core::onset::{onset_noise_relative, BandSides, CrossingSearch, CrossingSelection};
+use plateforce_core::onset::{
+    onset_noise_relative, BandSides, CrossingSearch, CrossingSelection, DegenerateBandPolicy,
+};
 use plateforce_core::statistics::{samples_for_duration, DurationRounding};
 use plateforce_core::takeoff::{takeoff_first_sustained_run, ResidualComparison};
 use plateforce_core::{
@@ -243,6 +245,8 @@ impl CountermovementJump {
     onset_crossing_selection = "first",
     onset_persistence_samples = 1,
     onset_search_bound_seconds = None,
+    onset_degenerate_band = "refuse",
+    onset_degenerate_band_fraction = None,
     takeoff_residual_comparison = "signed_value",
     duration_rounding = "nearest",
 ))]
@@ -260,6 +264,8 @@ pub fn analyse_countermovement_jump(
     onset_crossing_selection: &str,
     onset_persistence_samples: usize,
     onset_search_bound_seconds: Option<f64>,
+    onset_degenerate_band: &str,
+    onset_degenerate_band_fraction: Option<f64>,
     takeoff_residual_comparison: &str,
     duration_rounding: &str,
 ) -> PyResult<CountermovementJump> {
@@ -317,6 +323,27 @@ pub fn analyse_countermovement_jump(
         ],
     )?;
 
+    // Carries a number, so it is read here rather than through the table above.
+    let degenerate = match onset_degenerate_band {
+        "refuse" => DegenerateBandPolicy::Refuse,
+        "use_as_stated" => DegenerateBandPolicy::UseAsStated,
+        "fraction_of_reference" => match onset_degenerate_band_fraction {
+            Some(fraction) if fraction.is_finite() => {
+                DegenerateBandPolicy::FractionOfReference(fraction)
+            }
+            _ => {
+                return Err(PyValueError::new_err(
+                    "onset_degenerate_band='fraction_of_reference' needs onset_degenerate_band_fraction set to a finite number",
+                ))
+            }
+        },
+        other => {
+            return Err(PyValueError::new_err(format!(
+                "onset_degenerate_band must be one of [\"refuse\", \"use_as_stated\", \"fraction_of_reference\"], got '{other}'"
+            )))
+        }
+    };
+
     let registry_version = onset.registry_version();
     let acquisition_complete = trial.acquisition_complete();
     let sample_rate_hz = trial.inner.sample_rate_hz();
@@ -354,6 +381,9 @@ pub fn analyse_countermovement_jump(
         epoch.standard_deviation_newtons,
         required_parameter(onset, "k")?,
         band_sides,
+        // Refuses by default. A collapsed band means the window the rule assumed was
+        // quiet was not, and a silent substitution would hide that.
+        degenerate,
         &search,
         sample_rate_hz,
     )
@@ -380,6 +410,7 @@ pub fn analyse_countermovement_jump(
     let onset_choices = vec![
         choice("band_sides", onset_band_sides),
         choice("crossing_selection", onset_crossing_selection),
+        choice("degenerate_band", onset_degenerate_band),
         choice("dispersion_estimator", dispersion_estimator),
     ];
     let onset_provenance = provenance(

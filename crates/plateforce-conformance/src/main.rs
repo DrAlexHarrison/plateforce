@@ -101,8 +101,8 @@ fn main() -> ExitCode {
 
     let show_all = arguments.iter().any(|a| a == "--all-columns");
     println!(
-        "{:<30} {:>5} {:>9} {:>13} {:>13}  {}",
-        "column", "kind", "agreement", "worst abs", "worst rel", "worst trial"
+        "{:<30} {:>5} {:>9} {:>13} {:>13}  worst trial",
+        "column", "kind", "agreement", "worst abs", "worst rel"
     );
     for column in &report.columns {
         if column.is_clean() && !show_all {

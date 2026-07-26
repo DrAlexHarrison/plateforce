@@ -80,6 +80,9 @@ pub fn sustained_excursion(
     let last_startable = signal.len().checked_sub(persistence)?;
     let end = search.end_index.min(last_startable + 1);
     let mut found = None;
+    // Indexing is the operation: each candidate start is tested against the window that
+    // follows it, so there is no single element to iterate over.
+    #[allow(clippy::needless_range_loop)]
     for index in search.start_index..end {
         if !signal[index..index + persistence]
             .iter()
@@ -357,12 +360,10 @@ pub fn onset_adaptive_trailing_window(
         }
     };
 
-    let mut last_crossing = None;
-    for index in trailing_window_samples + 1..extremum {
-        if signal[index] < trailing_limit(index) {
-            last_crossing = Some(index);
-        }
-    }
+    // The threshold is a function of the index, so the loop reads the position and not
+    // an element, and keeping the last crossing rather than the first is the rule.
+    let last_crossing = (trailing_window_samples + 1..extremum)
+        .rfind(|&index| signal[index] < trailing_limit(index));
     let last_crossing = last_crossing.ok_or_else(|| {
         no_crossing(
             "onset.threshold.adaptive_trailing_window",

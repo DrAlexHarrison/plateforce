@@ -25,12 +25,15 @@ pub enum SmoothingError {
     },
 }
 
+/// An orthonormal basis and the upper triangular factor that rebuilds the original.
+type Decomposition = (Vec<Vec<f64>>, Vec<Vec<f64>>);
+
 /// Thin QR by modified Gram-Schmidt with one reorthogonalisation pass, which is what
 /// keeps a Vandermonde design matrix of degree three from losing half its digits.
 ///
 /// `columns` is consumed as the matrix and returned as Q. R is returned separately in
 /// row major order.
-fn thin_qr(mut columns: Vec<Vec<f64>>) -> Option<(Vec<Vec<f64>>, Vec<Vec<f64>>)> {
+fn thin_qr(mut columns: Vec<Vec<f64>>) -> Option<Decomposition> {
     let width = columns.len();
     let mut upper = vec![vec![0.0f64; width]; width];
     for target in 0..width {
@@ -228,15 +231,15 @@ pub fn savitzky_golay_interpolated_edges(
 
     let leading = fit_polynomial(&positions, &values[..window_length], polynomial_order)
         .ok_or_else(rank_deficient)?;
-    for index in 0..half_length {
-        smoothed[index] = evaluate_polynomial(&leading, index as f64 - centre);
+    for (index, slot) in smoothed.iter_mut().enumerate().take(half_length) {
+        *slot = evaluate_polynomial(&leading, index as f64 - centre);
     }
 
     let tail_start = values.len() - window_length;
     let trailing = fit_polynomial(&positions, &values[tail_start..], polynomial_order)
         .ok_or_else(rank_deficient)?;
-    for index in values.len() - half_length..values.len() {
-        smoothed[index] = evaluate_polynomial(&trailing, (index - tail_start) as f64 - centre);
+    for (index, slot) in smoothed.iter_mut().enumerate().skip(values.len() - half_length) {
+        *slot = evaluate_polynomial(&trailing, (index - tail_start) as f64 - centre);
     }
 
     Ok(smoothed)

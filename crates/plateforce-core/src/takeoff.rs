@@ -92,8 +92,8 @@ pub fn takeoff_first_sustained_run(
     sample_rate_hz: f64,
 ) -> Result<usize, TrialError> {
     let mut run_start: Option<usize> = None;
-    for index in search_from..signal.len() {
-        if comparison.is_below(signal[index], threshold_newtons) {
+    for (index, &value) in signal.iter().enumerate().skip(search_from) {
+        if comparison.is_below(value, threshold_newtons) {
             let start = *run_start.get_or_insert(index);
             if index - start + 1 >= minimum_flight_samples {
                 return Ok(start);
@@ -176,6 +176,9 @@ pub fn takeoff_descending_crossing(
     consecutive_samples: usize,
     sample_rate_hz: f64,
 ) -> Result<usize, TrialError> {
+    // The test is on a pair of adjacent samples and then on the window after them, so
+    // the index is the subject of the loop rather than a way of reaching one element.
+    #[allow(clippy::needless_range_loop)]
     for index in 1..signal.len() {
         if !(signal[index - 1] >= threshold_newtons && signal[index] < threshold_newtons) {
             continue;
