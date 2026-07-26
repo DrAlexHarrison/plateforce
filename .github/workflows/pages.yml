@@ -50,9 +50,11 @@ jobs:
         run: ./scripts/build-web.sh release
 
       # A registry that fails its own validator must not be published silently. The site
-      # reports violations in the interface, and this makes them visible in CI too.
+      # reports violations in its own interface; this makes them visible in the build log
+      # too, and does not block the deploy, because a site that explains why the registry
+      # is broken is more useful than no site.
       - name: Report registry validation
-        run: cargo run --quiet --package plateforce-cli -- validate || true
+        run: cargo run --quiet --package plateforce-cli -- registry validate || true
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
