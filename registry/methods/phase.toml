@@ -475,7 +475,7 @@ The positive lifting phase ends when net force on the declared object crosses ze
 negative, where net force is measured force minus the weight of the declared object. Analytically
 identical to the instant of peak velocity of that object.
 """
-# Prose grants recommended. Rule 6 bars it: sanchezmedina2010, which proposes the rule and carries
+# Prose grants recommended. The loader refuses it: sanchezmedina2010, which proposes the rule and carries
 # the argument for it, is behind a publisher that returned nothing to any probe.
 status = "accepted"
 confidence = "high"

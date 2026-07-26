@@ -10,7 +10,7 @@ construct = "net_impulse"
 group = "E"
 title = "Trapezoid quadrature"
 rule = "The net-force integral is evaluated by the trapezoid rule, error order h squared."
-# Prose grants recommended on Street's measurement. Rule 6 bars it: street2001 is 2 of 12 pages.
+# Prose grants recommended on Street's measurement. The loader refuses it: street2001 is 2 of 12 pages.
 status = "accepted"
 confidence = "high"
 debate = "genuine"

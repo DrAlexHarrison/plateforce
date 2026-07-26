@@ -13,7 +13,7 @@ construct = "reactive_strength_index"
 group = "K"
 title = "Jump height divided by ground contact time"
 rule = "Reactive strength is jump height divided by ground contact time on a drop jump."
-# Prose grants recommended for the drop jump. Rule 6 bars it: the originating source is a
+# Prose grants recommended for the drop jump. The loader refuses it: the originating source is a
 # book-format serial not retrievable through any route.
 status = "accepted"
 confidence = "medium"

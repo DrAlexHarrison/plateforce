@@ -153,7 +153,7 @@ Mean power is the average of the power series across the samples of a declared p
 the work done over that phase divided by its duration. The two differ in discrete data only by
 quadrature error and are not competing methods.
 """
-# Prose grants recommended as the power variable to prefer. Rule 6 bars it: cormie2008, the source
+# Prose grants recommended as the power variable to prefer. The loader refuses it: cormie2008, the source
 # that evaluates it, is held as a preview.
 status = "accepted"
 confidence = "high"
@@ -312,7 +312,7 @@ criterion = "power.instantaneous.force_x_velocity"
 criterion_kind = "model"
 source = "lake2012jscr"
 # Systematically understates system power, with the magnitude scaling as the ratio of body mass to
-# bar mass, so the error is largest at light loads, which is precisely where optimal load is usually
+# bar mass, so the error is largest at light loads, which is where optimal load is usually
 # found. It distorts the shape of the load-power curve rather than shifting it. Not quantified from
 # a readable source.
 
@@ -673,8 +673,8 @@ surfacing = "default_and_hide"
 sensitivity = "large with respect to jump count and to the debounce floor"
 rationale = "Required for comparability with the entire repeated-jump protocol literature. It assumes all non-flight time is productive contact and that flight time maps to height without landing-posture error."
 
-# The seed's canonical name for this entry, "computed_on_object", is the one identifier in the
-# registry that is not dotted. Namespaced here to satisfy rule 1; the bare name is the field's.
+# The seed names this entry "computed_on_object", the one identifier in the registry
+# without a dot. Namespaced here because the loader requires a dotted id; the bare name is the field's.
 [[method]]
 id = "declaration.computed_on_object"
 construct = "mechanical_object"

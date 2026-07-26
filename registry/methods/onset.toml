@@ -515,7 +515,7 @@ point of the longest period over which the slope was negative, between the end o
 phase and peak unweighting force. Filter before differentiating, because differentiation amplifies
 high frequencies.
 """
-# Prose grants recommended (provisional). Rule 6 bars it: pinto2023's results table was never
+# Prose grants recommended (provisional). The loader refuses it: pinto2023's results table was never
 # served, so the limits of agreement below are abstract-level.
 status = "accepted"
 confidence = "medium"
@@ -921,7 +921,7 @@ a stated tolerance of the reference. The crossing is used only as a trigger and 
 is where force left baseline.
 """
 # Prose grants recommended. Three parties reached it independently and merrigan2022 is obtained,
-# so rule 6 does not bar it.
+# so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "genuine"
@@ -999,7 +999,7 @@ rule = """
 A threshold crossing counts only if the signal remains past the threshold for a stated span. Onset
 is the first sample of the qualifying run.
 """
-# Prose grants recommended and pedley2023 is obtained, so rule 6 does not bar it.
+# Prose grants recommended and pedley2023 is obtained, so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "genuine"
@@ -1241,7 +1241,7 @@ rule = """
 Bound the onset search above by a downstream landmark, so a last-crossing rule cannot pick up a
 crossing produced by the movement itself.
 """
-# Prose grants recommended; every source is read from source, so rule 6 does not bar it.
+# Prose grants recommended; every source is read from source, so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "single_position"

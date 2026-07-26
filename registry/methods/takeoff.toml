@@ -181,7 +181,7 @@ rule = """
 Compute the mean and standard deviation of force over a stated portion of the provisional flight
 phase and set the threshold at the mean plus k standard deviations.
 """
-# Prose grants recommended; mcmahon2018 is obtained, so rule 6 does not bar it.
+# Prose grants recommended; mcmahon2018 is obtained, so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "genuine"

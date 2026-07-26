@@ -21,7 +21,7 @@ Treat each trial's force-time curve as a one-dimensional continuum, compute the 
 every point, and set the critical threshold from random field theory so the family-wise error rate
 over the whole continuum is controlled. Report suprathreshold clusters with their extent.
 """
-# Prose grants recommended for continuum inference. Rule 6 bars it: pataky2010 was never obtained
+# Prose grants recommended for continuum inference. The loader refuses it: pataky2010 was never obtained
 # and the rule rests on its users.
 status = "accepted"
 confidence = "medium"
@@ -411,7 +411,7 @@ rule = """
 Warp each curve by a monotone function so that a set of designated features land at common normalised
 times.
 """
-# Prose grants recommended as the target. Rule 6 bars it: ramsay2005, which proposes the technique,
+# Prose grants recommended as the target. The loader refuses it: ramsay2005, which proposes the technique,
 # was never obtained, and the property it is recommended for has never been demonstrated on real
 # jump data.
 status = "accepted"

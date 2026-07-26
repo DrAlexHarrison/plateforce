@@ -179,7 +179,7 @@ Start performance is the average horizontal external power over the interval of 
 to participant characteristics. The normalisation equation is not in the recommending source and is
 not stated here.
 """
-# Prose grants recommended. Rule 6 bars it: the paper holding the normalisation equation was never
+# Prose grants recommended. The loader refuses it: the paper holding the normalisation equation was never
 # obtained, and the entry is explicitly not implementable from the recommendation alone.
 status = "accepted"
 confidence = "low"

@@ -17,7 +17,7 @@ Fit a model II linear regression allowing error in both variables. Fixed bias is
 confidence interval for the intercept excludes zero, proportional bias when the interval for the
 slope excludes one, with intervals by bootstrap.
 """
-# Prose grants recommended. Rule 6 bars it: ludbrook was never obtained and the rule is reconstructed
+# Prose grants recommended. The loader refuses it: ludbrook was never obtained and the rule is reconstructed
 # from its two users.
 status = "accepted"
 confidence = "high"
@@ -242,7 +242,7 @@ rule = """
 Report a two-way intraclass correlation under an absolute-agreement definition, declaring the model,
 the definition and the unit, with a confidence interval, and interpret from the lower bound.
 """
-# Prose grants recommended. Rule 6 bars it: the guideline that proposes the taxonomy was not obtained.
+# Prose grants recommended. The loader refuses it: the guideline that proposes the taxonomy was not obtained.
 status = "accepted"
 confidence = "high"
 debate = "genuine"
@@ -345,7 +345,7 @@ Typical error is the standard deviation of the difference scores divided by the 
 expressed as a coefficient of variation by computing on log-transformed data and back-transforming,
 so the result is a percentage of the individual's own score.
 """
-# Prose grants recommended. Rule 6 bars it: the source was never obtained and the rule as stated is
+# Prose grants recommended. The loader refuses it: the source was never obtained and the rule as stated is
 # reconstructed from how its users describe it.
 status = "accepted"
 confidence = "low"
@@ -422,7 +422,7 @@ rule = """
 Report the standard error of measurement in the metric's own units, and the minimum detectable change
 at 95 percent confidence as 2.77 times that error.
 """
-# Prose grants recommended. Rule 6 bars it: the methodological parent was never obtained and the two
+# Prose grants recommended. The loader refuses it: the methodological parent was never obtained and the two
 # routes to the error term could not be ruled between.
 status = "accepted"
 confidence = "high"

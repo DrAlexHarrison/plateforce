@@ -13,7 +13,7 @@ The digitised vertical ground reaction force is used as recorded, with no filter
 event detection or integration.
 """
 # Prose grants recommended for impulse and isometric work and accepted for phase boundaries.
-# Rule 6 bars recommended here: harry2022 and street2001 are both unobtained.
+# The loader refuses it: harry2022 and street2001 are both unobtained.
 status = "accepted"
 confidence = "high"
 debate = "genuine"
@@ -662,7 +662,7 @@ When two signals are multiplied or otherwise combined, filter both at the same c
 the loss of a real force transient, because mismatched cutoffs inject an artefactual spike present
 in neither input.
 """
-# Prose grants recommended. Rule 6 bars it: all three primaries and the letter exchange are unobtained.
+# Prose grants recommended. The loader refuses it: all three primaries and the letter exchange are unobtained.
 status = "accepted"
 confidence = "low"
 debate = "single_position"

@@ -196,7 +196,7 @@ With onset fixed by a declared method, report the force at a stated elapsed time
 mean rate over that interval. Under a net convention the two are numerically the same quantity in
 different units; under a gross convention they are not, because the onset force does not cancel.
 """
-# Prose grants recommended for the scheme. Rule 6 bars it: aagaard2002, which proposes the scheme,
+# Prose grants recommended for the scheme. The loader refuses it: aagaard2002, which proposes the scheme,
 # was never obtained.
 status = "accepted"
 confidence = "high"

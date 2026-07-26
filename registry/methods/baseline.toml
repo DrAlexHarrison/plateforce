@@ -581,7 +581,7 @@ rule = """
 Reject the trial when the force during the weighing period fails a stated stability criterion,
 rather than letting a noisy baseline silently inflate a noise-relative threshold.
 """
-# Prose grants recommended and comfort2019 was recovered in full, so rule 6 does not bar it.
+# Prose grants recommended and comfort2019 was recovered in full, so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "single_position"
@@ -651,7 +651,7 @@ which measures the athlete's postural sway plus the instrument, or from empty-pl
 measures only the instrument.
 """
 # Prose grants recommended for the drop jump specifically and inapplicable elsewhere; pedley2023
-# is obtained, so rule 6 does not bar it.
+# is obtained, so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "genuine"
@@ -700,7 +700,7 @@ rule = """
 Declare what supported the bar during the weighing epoch, and require that the subtrahend used
 afterwards describes the same supported system.
 """
-# Prose grants recommended and soriano2024 is obtained, so rule 6 does not bar it.
+# Prose grants recommended and soriano2024 is obtained, so the loader accepts it.
 status = "recommended"
 confidence = "high"
 debate = "single_position"

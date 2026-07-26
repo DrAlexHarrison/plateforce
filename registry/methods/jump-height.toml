@@ -941,7 +941,7 @@ rule = """
 The box sits on a second force plate and touchdown velocity is obtained by impulse-momentum from
 the pre-drop standing period, supplying the nonzero lower boundary condition the drop jump needs.
 """
-# Prose grants recommended as the field's criterion. Rule 6 bars it: baca1999 was never obtained.
+# Prose grants recommended as the field's criterion. The loader refuses it: baca1999 was never obtained.
 status = "accepted"
 confidence = "medium"
 debate = "genuine"
@@ -1148,7 +1148,7 @@ Estimate impact velocity from sagittal videography plus body-segment-parameter t
 change in vertical centre of mass velocity from integrating force over ground contact, and subtract
 the first from the second to obtain rebound takeoff velocity. Explicitly avoids flight time.
 """
-# Prose grants recommended for laboratory work. Rule 6 bars it: the Baca primary is unacquired and
+# Prose grants recommended for laboratory work. The loader refuses it: the Baca primary is unacquired and
 # the bias figures below are second-hand through Louder.
 status = "accepted"
 confidence = "medium"
