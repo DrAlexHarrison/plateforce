@@ -1,0 +1,18 @@
+[package]
+name = "plateforce-conformance"
+description = "Compares the Rust core against a frozen reference run over real trials."
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+plateforce-core = { workspace = true }
+thiserror = { workspace = true }
+
+[[bin]]
+name = "plateforce-conformance"
+path = "src/main.rs"

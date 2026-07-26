@@ -4,6 +4,7 @@ members = [
     "crates/plateforce-registry",
     "crates/plateforce-core",
     "crates/plateforce-cli",
+    "crates/plateforce-conformance",
     "crates/plateforce-wasm",
     "crates/plateforce-python",
 ]

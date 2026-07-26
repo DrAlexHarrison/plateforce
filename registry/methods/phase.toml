@@ -1,0 +1,1334 @@
+# Group G. Phase model and boundaries.
+#
+# Landmarks: O movement onset, M minimum force, B peak negative velocity which is identically the
+# rising crossing of system weight, Z zero velocity which is identically minimum displacement,
+# V the falling crossing of system weight in late propulsion which is identically peak velocity,
+# T takeoff, L touchdown.
+#
+# Every source partitions the same landmarks. What is disputed is which are promoted to boundaries
+# and what the resulting intervals are called, and the naming collision is worse than the boundary
+# disagreement. On one raw trace two commercial products report mean braking power differing by 288
+# percent with a sign flip, and drop-jump braking duration differing by 59 percent with an
+# association of R squared 0.003, because the word names different intervals in the two products.
+
+[[method]]
+id = "phase.braking_start.zero_net_force"
+construct = "braking_phase_start"
+group = "G"
+title = "Net force crosses zero upward after the minimum"
+rule = """
+Braking begins at the instant net force crosses zero upward after the force minimum. Peak negative
+centre of mass velocity, force returning to system weight, and zero acceleration are the same
+instant, since velocity is stationary exactly where net force is zero.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "search_signal"
+unit = "enumeration"
+notes = """
+velocity_argmin or force_bw_crossing, definitionally equivalent and numerically consequential.
+Default is the velocity form. The intuition that the force crossing is the sturdy one was measured
+on 243 trials and is wrong: disagreement magnitude correlates with raw-force re-crossings at
+r = +0.640 and with velocity flat-band width at r = -0.062. The velocity minimum is uniformly soft,
+about 33 ms wide at the 1 percent level, so it produces no cross-trial error variance. The
+multi-valued force crossing does.
+"""
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon, Suchomel, Lake and Comfort 2018, Strength Cond J 40(4):96-106, a terminology-unification paper"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.citation]]
+key = "sole2018"
+role = "uses"
+reference = "Sole et al. 2018, ETSU, stating the identity independently"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.002
+unit = "seconds"
+direction = "either"
+criterion = "phase.braking_start.zero_net_force"
+criterion_kind = "model"
+source = "plateforce_measurement"
+# The two search signals land one sample apart, 2 ms, on one tool's demo trial, and more than 100 ms
+# apart on 11 of 243 corpus trials. A corpus test should not assume the gap is always large.
+
+[[method.disagrees_with]]
+id = "phase.braking_start.min_force"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate on braking duration and braking rate of force development, zero on jump height"
+rationale = """
+Expose only the search signal, in an advanced panel, and only because it changes the frame under
+noise rather than because it changes the definition. This is the one boundary all three major
+schools agree on.
+"""
+
+[[method]]
+id = "phase.braking_start.min_force"
+construct = "braking_phase_start"
+group = "G"
+title = "The instant of minimum vertical force following onset"
+rule = "Braking begins at the force nadir following onset."
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "vald_glossary"
+role = "proposes"
+reference = "VALD ForceDecks Technical Glossary V2.0, March 2024, verbatim"
+obtained = true
+
+[[method.citation]]
+key = "krzyszkowski2020"
+role = "uses"
+reference = "Krzyszkowski and Harry 2020, as the start of eccentric yielding"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.593
+unit = "fraction"
+direction = "long"
+criterion = "phase.braking_start.zero_net_force"
+criterion_kind = "model"
+source = "merrigan2022"
+# Drop-jump braking duration differs by 59.3 percent between two products on one raw trace, with
+# R squared 0.003, which is zero association. The instant strictly precedes the net-force crossing,
+# because velocity keeps becoming more negative while force stays below system weight, so every
+# braking-phase mean is computed over a longer, earlier window.
+
+[[method.disagrees_with]]
+id = "phase.braking_start.zero_net_force"
+kind = "naming"
+note = """
+Genuine as an interval and spurious as a debate: nobody argues the force minimum is where braking
+begins in the mechanical sense. The instant is a legitimate boundary in one published phase model.
+What is wrong is only the name.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very high on every metric named braking, zero on jump height and on propulsive metrics"
+rationale = """
+Surface it as a name-collision warning rather than as a formula picker. A user importing data from
+two products must be told the two braking columns are not the same measurement. Never a free choice
+on the user's own traces.
+"""
+
+[[method]]
+id = "phase.model.unweighting_single.mcmahon2018"
+construct = "phase_model"
+group = "G"
+title = "One unweighting phase from onset to peak negative velocity"
+rule = """
+The unweighting phase comprises the entire area of the force-time curve before takeoff that is
+below system weight. The minimum-force instant is not a boundary.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon et al. 2018, ingested"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0
+unit = "seconds"
+direction = "none"
+criterion = "phase.model.unloading_yielding_split.harry2020"
+criterion_kind = "model"
+source = "krzyszkowski2020"
+# Not an offset but a loss of information that is measured to be predictive: unloading time and
+# unloading rate of force development predict the reactive strength index modified while yielding
+# time and yielding rate do not, so collapsing them averages a predictive sub-interval with a
+# non-predictive one.
+
+[[method.disagrees_with]]
+id = "phase.model.unloading_yielding_split.harry2020"
+kind = "genuine"
+note = """
+A substantive empirical claim about whether the force minimum marks a change in the underlying
+muscle action, and the opposing evidence is inverse-dynamics joint power, an independent
+measurement channel rather than a rearrangement of the same force trace.
+"""
+
+[[method.disagrees_with]]
+id = "phase.anchor.time_epochs.schmidtbleicher"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total for any phase-resolved metric in the countermovement"
+rationale = """
+Once, at analysis-configuration time, in plain language. This is the one place in this domain where
+a user genuinely must choose, because the two models produce different sets of metrics rather than
+different values for the same metric. Everything else here can be defaulted.
+"""
+
+[[method]]
+id = "phase.model.unloading_yielding_split.harry2020"
+construct = "phase_model"
+group = "G"
+title = "Unloading and eccentric yielding split at the force minimum"
+rule = """
+Unloading runs from onset, taken as force decreasing by more than 2.5 percent of system weight, to
+the local force minimum succeeding onset. Eccentric yielding runs from that minimum to peak negative
+centre of mass velocity. Eccentric braking runs from there to positive velocity, and the concentric
+phase to the takeoff threshold.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "harry2020"
+role = "proposes"
+reference = "Harry, Barker and Paquette 2020, MSSE 52(4):993-1000, not retrievable, no open copy"
+doi = "10.1249/MSS.0000000000002197"
+obtained = false
+
+[[method.citation]]
+key = "krzyszkowski2020"
+role = "uses"
+reference = "Krzyszkowski, Chowning and Harry 2020, JSCR, the rule read verbatim from the ingested text"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.model.unweighting_single.mcmahon2018"
+kind = "genuine"
+note = """
+The unloading phase is strictly shorter than the single unweighting phase, so any comparison of an
+eccentric-phase rate of force development between studies using the two models is invalid without
+restating which interval was used.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total"
+rationale = """
+Paired with the single-phase model as one phase-model choice with two options rather than as
+several independent boundary toggles. Its extra boundary depends on a local minimum, which is
+noise-sensitive on unfiltered traces.
+"""
+
+[[method]]
+id = "phase.propulsion_start.zero_velocity"
+construct = "propulsion_phase_start"
+group = "G"
+title = "Centre of mass velocity crosses zero from below"
+rule = """
+Propulsion begins when centre of mass velocity crosses zero from below. Minimum displacement and
+zero cumulative net impulse are the same instant, since velocity is the derivative of displacement
+and cumulative net impulse is mass times velocity.
+"""
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon et al. 2018, verbatim, coinciding with the deepest part of the squat"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.citation]]
+key = "vald_glossary"
+role = "uses"
+reference = "VALD glossary, writing moment of minimum displacement and moment of zero velocity as one landmark"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.propulsion_start.velocity_threshold"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "phase.propulsion_start.peak_grf"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "phase.propulsive.accel_above_neg_g"
+kind = "naming"
+
+[[method.disagrees_with]]
+id = "phase.window.positive_impulse.net_force_positive"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "low, because the velocity zero crossing is well conditioned where the derivative is largest"
+rationale = "Unanimous across every school found, and the three formulations are analytically identical, which is why they never generated a debate."
+
+[[method]]
+id = "phase.propulsion_start.velocity_threshold"
+construct = "propulsion_phase_start"
+group = "G"
+title = "Centre of mass velocity first exceeds a small positive threshold"
+rule = "Propulsion begins when centre of mass velocity first exceeds a stated small positive threshold."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_mps"
+unit = "meters_per_second"
+published_values = [0.01]
+default = 0.01
+default_source = "mcmahon2018"
+required = true
+notes = "Used with success on full-squad datasets as a noise guard where a bare zero crossing can fire on numerical jitter."
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "uses"
+reference = "McMahon et al. 2018, reporting its use in the authors' own large-squad work"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.citation]]
+key = "chavda2018"
+role = "uses"
+reference = "Chavda et al. 2018, using the threshold explicitly instead of zero"
+doi = "10.1519/ssc.0000000000000353"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.propulsion_start.zero_velocity"
+kind = "genuine"
+note = """
+An acknowledged pragmatic offset rather than a debate about where the phase begins, but not a pure
+implementation detail either, because it creates a nameable amortisation interval the zero-crossing
+rule does not. The source states outright that no study has explored it, which makes it an open and
+directly measurable gap.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "small for fast jumpers, potentially large for slow or fatigued jumpers with a genuine pause at the bottom"
+
+[[method]]
+id = "phase.propulsion_start.peak_grf"
+construct = "propulsion_phase_start"
+group = "G"
+title = "The instant of peak vertical force, or immediately prior"
+rule = "Propulsion begins at the highest vertical force during the jump, or at the instant just prior to it."
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "sahrom2020"
+role = "uses"
+reference = "Sahrom et al. 2020, documenting it as existing practice in a traditional-against-new table, not endorsing it"
+doi = "10.1098/rsos.192093"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.05
+unit = "seconds"
+direction = "either"
+criterion = "phase.propulsion_start.zero_velocity"
+criterion_kind = "model"
+source = "sahrom2020"
+# Sign and magnitude depend on jump profile. In a bimodal-secondary profile the global force maximum
+# occurs in the upward phase entirely, so the error can put the boundary on the wrong side of the
+# transition. Not quantified; the magnitude carries the scale only.
+
+[[method.disagrees_with]]
+id = "phase.propulsion_start.zero_velocity"
+kind = "genuine"
+note = "A genuine divergence and bad mathematics: peak force is not the transition point and there is no mechanical reason it should be."
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "potentially very large, and worst on exactly the athletes whose force-time curves are most interesting"
+rationale = "Surface only as a label on imported legacy data."
+
+[[method]]
+id = "phase.propulsive.accel_above_neg_g"
+construct = "propulsion_phase_start"
+group = "G"
+title = "The portion of the concentric action with acceleration at or above minus g"
+rule = """
+The propulsive phase is the portion of the concentric action during which measured acceleration is
+at or above minus g, the remainder being the braking sub-phase in which the lifter actively
+decelerates the load. Mean propulsive velocity and power are computed over this interval only.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "sanchezmedina2010"
+role = "proposes"
+reference = "Sanchez-Medina, Perez and Gonzalez-Badillo 2010, Int J Sports Med 31(2):123-129, not obtained"
+doi = "10.1055/s-0029-1242815"
+obtained = false
+
+[[method.citation]]
+key = "sanchezmedina2017"
+role = "uses"
+reference = "Sanchez-Medina et al. 2017, Sports Med Int Open 1:E80-E88, from which the definition is captured verbatim"
+doi = "10.1055/s-0043-102933"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.18
+unit = "fraction"
+direction = "short"
+criterion = "phase.lift.end.peak_displacement.lake2012_PD"
+criterion_kind = "model"
+source = "sanchezmedina2017"
+# Load dependent and degenerate at both ends of the range. From 579 data pairs across 80 athletes
+# the propulsive share of concentric duration fits 0.303 times percent 1RM plus 70.3, r = 0.95: at
+# 40 percent 1RM the propulsive phase is about 82 percent of the concentric action, at 100 percent
+# it is all of it, and in an unloaded ballistic jump the distinction vanishes because the athlete
+# leaves the ground rather than decelerating the load.
+
+[[method.disagrees_with]]
+id = "phase.propulsion_start.zero_velocity"
+kind = "naming"
+note = """
+A homonym rather than a competing method: the jump lineage partitions by velocity sign and the
+velocity-based-training lineage by acceleration relative to gravity. Both are correct for their own
+purpose, and a registry that does not namespace them will silently merge two literatures.
+"""
+
+[[method.disagrees_with]]
+id = "phase.lift.end.net_force_zero"
+kind = "naming"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "zero for an unloaded jump, large and load dependent for loaded jumps and bench throws"
+rationale = """
+Only when a bar load is declared. On an unloaded jump the choice is meaningless and must not be
+shown, which is a good example of surfacing that should be conditional on the trial rather than a
+global preference.
+"""
+
+[[method]]
+id = "phase.lift.end.peak_displacement.lake2012_PD"
+construct = "lifting_phase_end"
+group = "G"
+title = "The lifting phase ends at maximum vertical displacement of the tracked object"
+rule = "The positive lifting phase ends when the tracked object reaches maximum vertical displacement, which includes the braking sub-phase."
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "lake2012"
+role = "evaluates"
+reference = "Lake, Lauder, Smith and Shorter 2012, J Appl Biomech 28(4):431-437, verified against the source PDF"
+doi = "10.1123/jab.28.4.431"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.24
+unit = "fraction"
+direction = "low"
+criterion = "phase.lift.end.net_force_zero"
+criterion_kind = "model"
+source = "lake2012"
+# Mean force 24 percent lower and mean power 29 percent lower on the same trials, p < 0.0001, with
+# phase duration correspondingly inflated and mean velocity unaffected. 24 percent on mean force is
+# larger than any training effect the number is used to detect, and it is the loaded-barbell
+# analogue of the onset problem except worse, because the disagreement is at the end of the phase
+# where the signal is large rather than at the start where it is small.
+
+[[method.disagrees_with]]
+id = "phase.lift.end.net_force_zero"
+kind = "genuine"
+note = "The two rules target different instants and the gap between them is the braking phase, whose duration is load dependent."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very high on mean force, mean power and phase duration; zero on peak force and peak velocity"
+rationale = """
+Force the decision whenever a load is declared and a mean-over-phase quantity is requested, and hide
+it entirely for peak-only outputs where it cannot matter. It is not wrong, it answers a different
+question: the whole lift including deceleration.
+"""
+
+[[method]]
+id = "phase.lift.end.net_force_zero"
+construct = "lifting_phase_end"
+group = "G"
+title = "The lifting phase ends when net force on the declared object crosses zero downward"
+rule = """
+The positive lifting phase ends when net force on the declared object crosses zero from positive to
+negative, where net force is measured force minus the weight of the declared object. Analytically
+identical to the instant of peak velocity of that object.
+"""
+# Prose grants recommended. Rule 6 bars it: sanchezmedina2010, which proposes the rule and carries
+# the argument for it, is behind a publisher that returned nothing to any probe.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "deadband_n"
+unit = "newtons"
+published_values = [0.0, 10.0]
+default = 0.0
+default_source = "lake2012"
+required = true
+notes = "A parameter rather than a method: on a smooth trace near a zero crossing, 10 N is a few milliseconds."
+
+[[method.citation]]
+key = "sanchezmedina2010"
+role = "proposes"
+reference = "Sanchez-Medina et al. 2010, as the propulsive phase, not obtained"
+doi = "10.1055/s-0029-1242815"
+obtained = false
+
+[[method.citation]]
+key = "lake2012"
+role = "evaluates"
+reference = "Lake et al. 2012, as positive impulse, verified against the source PDF"
+doi = "10.1123/jab.28.4.431"
+obtained = true
+
+[[method.citation]]
+key = "suchomel2017"
+role = "uses"
+reference = "Suchomel and Sole 2017, J Sports Sci Med 16(3):407-413, verbatim"
+obtained = true
+
+[[method.citation]]
+key = "soriano2024"
+role = "uses"
+reference = "Soriano et al. 2024, ending at peak velocity as a landmark common to three exercises"
+doi = "10.1519/jsc.0000000000004810"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.24
+unit = "fraction"
+direction = "high"
+criterion = "phase.lift.end.peak_displacement.lake2012_PD"
+criterion_kind = "model"
+source = "lake2012"
+# Plus 24 percent mean force and plus 29 percent mean power relative to the peak-displacement rule.
+
+[[method.disagrees_with]]
+id = "phase.lift.end.peak_displacement.lake2012_PD"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "phase.lift.end.absolute_force_zero.frost2008"
+kind = "genuine"
+note = "Not a debate: the absolute-force rule is an error."
+
+[[method.disagrees_with]]
+id = "phase.propulsive.accel_above_neg_g"
+kind = "naming"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "high on all mean-over-phase quantities"
+rationale = """
+The loaded-lift default, with the deadband in an advanced panel. It is the instant after which the
+object's motion is pure momentum, it was independently derived by two schools from opposite
+directions, and it degrades gracefully: at one-repetition maximum it coincides with the
+peak-displacement rule because there is no braking phase.
+"""
+
+[[method]]
+id = "phase.lift.end.absolute_force_zero.frost2008"
+construct = "lifting_phase_end"
+group = "G"
+title = "The lifting phase ends where absolute force decreases to zero"
+rule = "The positive lifting phase ends where absolute force, with system weight not subtracted, decreases to zero."
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "frost2008"
+role = "proposes"
+reference = "Frost, Cronin and Newton 2008, Sports Biomech 7(3):372-385, not obtained"
+doi = "10.1080/14763140802273005"
+obtained = false
+
+[[method.citation]]
+key = "lake2012"
+role = "disputes"
+reference = "Lake et al. 2012, whose Figure 3 caption states the rule and rejects it"
+doi = "10.1123/jab.28.4.431"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.3
+unit = "seconds"
+direction = "late"
+criterion = "phase.lift.end.net_force_zero"
+criterion_kind = "model"
+source = "lake2012"
+# Not quantified as a standalone comparison. Directionally it places the boundary far later, because
+# absolute force reaching zero means the athlete has left the ground or released the bar rather than
+# that acceleration has ceased.
+
+[[method.disagrees_with]]
+id = "phase.lift.end.net_force_zero"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "large, in the same direction as the peak-displacement rule"
+rationale = """
+Expose only in reproduce-a-published-analysis mode with the deprecation reason inline. A registry
+entry that deprecates another author's method on a third party's testimony should be confirmed
+against the original before it ships, and it has not been.
+"""
+
+[[method]]
+id = "phase.lift.start.velocity_zero_crossing"
+construct = "lifting_phase_start"
+group = "G"
+title = "The declared object's velocity changes from negative to positive"
+rule = """
+The lifting phase begins when the declared object's velocity changes from negative to positive.
+Minimum displacement of the declared object and onset of positive barbell displacement are the same
+instant.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "suchomel2017"
+role = "uses"
+reference = "Suchomel and Sole 2017, verbatim on the system velocity sign change"
+obtained = true
+
+[[method.citation]]
+key = "lake2012"
+role = "uses"
+reference = "Lake et al. 2012, as onset of positive barbell displacement"
+doi = "10.1123/jab.28.4.431"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate, and lower than the end boundary because force is near system weight there"
+rationale = """
+It predicts that loaded-lift mean-force disagreement across software is driven mostly by the end
+boundary, which is the opposite of the countermovement-jump situation and is a testable claim.
+"""
+
+[[method]]
+id = "phase.lift.start.visual_inspection.dead_start"
+construct = "lifting_phase_start"
+group = "G"
+title = "Onset of a dead-start lift placed by eye on the force-time curve"
+rule = "The onset of each repetition is determined by visual inspection of the force-time curve. No algorithmic rule is stated."
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "suchomel2018"
+role = "uses"
+reference = "Suchomel, Taber, Sole and Stone 2018, Sports 6(3):79, verbatim"
+doi = "10.3390/sports6030079"
+obtained = true
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "extreme, and worse than anywhere else in the corpus"
+rationale = """
+If a user requests epoch impulses on a dead-start lift, the onset rule must be chosen explicitly
+rather than defaulted, because a fixed-epoch impulse is by construction maximally sensitive to where
+the epoch starts. It is applied to the one signal shape where eyeballing is hardest: a slow monotonic
+ramp with no kinematic event to anchor to, since there is no countermovement and therefore no
+velocity zero crossing. Not quantified anywhere, which is a measurable gap.
+"""
+
+[[method]]
+id = "phase.propulsion_subdivision.by_time"
+construct = "phase_model"
+group = "G"
+title = "Split the propulsion phase at half its duration"
+rule = "The propulsion phase is split at 50 percent of its duration into two named sub-phases."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "vald_glossary"
+role = "uses"
+reference = "VALD glossary, as P1 and P2"
+obtained = true
+
+[[method.citation]]
+key = "sahrom2020"
+role = "uses"
+reference = "Sahrom et al. 2020, as events 6a and 6b"
+doi = "10.1098/rsos.192093"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.propulsion_subdivision.by_force_crossing"
+kind = "genuine"
+note = "Two published, defensible and non-equivalent partitions of the same interval, one arbitrary but reproducible and one event-anchored."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "total for any sub-phase metric"
+
+[[method]]
+id = "phase.propulsion_subdivision.by_force_crossing"
+construct = "phase_model"
+group = "G"
+title = "Split the propulsion phase where force descends through system weight"
+rule = """
+The propulsion phase is split where force descends through system weight, which coincides with peak
+centre of mass velocity and with zero centre of mass displacement, giving acceleration and
+deceleration sub-phases.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "uses"
+reference = "McMahon et al. 2018, attributed to Mizuguchi 2015 and Sole 2018"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.propulsion_subdivision.by_time"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "total for any sub-phase metric"
+
+[[method]]
+id = "phase.landing_subdivision.impact_stabilising"
+construct = "phase_model"
+group = "G"
+title = "Split landing into impact and stabilising"
+rule = "Landing is split into impact, from touchdown to peak force, and stabilising, from peak force to peak negative displacement."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon et al. 2018, the only landing partition found in the jump literature"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "total for landing sub-phase metrics"
+
+[[method]]
+id = "phase.landing_end.zero_com_velocity"
+construct = "landing_phase_end"
+group = "G"
+title = "Landing ends when reconstructed centre of mass velocity reaches zero"
+rule = """
+Landing ends at the first frame where centre of mass velocity, integrated from landing acceleration
+with the negative takeoff velocity as its initial value, reaches zero.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon et al. 2018"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics landing_events.py, which raises an index error when a trial ends soon after touchdown"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.landing_end.peak_knee_flexion"
+kind = "genuine"
+note = """
+Unlike the braking case there is no analytic identity making these coincide: velocity reaching zero
+and the knee reaching maximum flexion are different events whenever the hip or ankle is still moving,
+which during a compliant landing is always.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "total for landing metrics"
+rationale = """
+Short trials produce no landing metrics at all rather than degraded ones in at least one shipped
+implementation, which is a silent gap rather than a wrong number.
+"""
+
+[[method]]
+id = "phase.landing_end.peak_knee_flexion"
+construct = "landing_phase_end"
+group = "G"
+title = "Landing ends at peak knee flexion"
+rule = "Landing ends at the instant of peak knee flexion, with any generation phase running from there to toe-off."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "kotsifaki2022"
+role = "uses"
+reference = "Kotsifaki et al. 2022, BJSM, verbatim on the absorption and generation phases"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.landing_end.zero_com_velocity"
+kind = "genuine"
+note = """
+Instrument-gated, and the gating is itself registry-relevant: one is computable from a force plate
+alone and the other is not, so a force-plate package can implement only one of them and should say
+so rather than silently substituting.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "total for landing metrics"
+rationale = "Offered only when motion capture is present."
+
+[[method]]
+id = "phase.model.squat_jump_distinct"
+construct = "phase_model"
+group = "G"
+title = "The squat jump has no countermovement landmarks at all"
+rule = """
+The squat jump model reduces to static hold, propulsion from onset to takeoff, flight and landing.
+There is no unweighting, no force minimum, no peak negative velocity and no zero-velocity
+transition, because the athlete descends into a semi-squat and holds it before initiating a purely
+upward movement.
+"""
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "vanhooren2017"
+role = "uses"
+reference = "Van Hooren and Zolotarjova 2017, JSCR, ingested, 90 references"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.06
+unit = "meters"
+direction = "high"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "model"
+source = "vanhooren2017"
+# The practical hazard is contamination rather than an offset: small-amplitude countermovements can
+# enhance squat-jump height by up to 6 cm in elite athletes, so a nominal squat-jump trial may
+# contain a real countermovement and needs a detection check, which is itself a method variant.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total: applying a countermovement phase model to a squat jump gives an error or silently meaningless values"
+rationale = """
+Force the decision at import if jump type cannot be auto-detected confidently, otherwise hide it
+with the detected type shown and overridable. Squat-jump onset detection is a different problem
+rather than the same problem with different numbers: there is no downward force dip to trigger on,
+so a dip-seeking rule cannot fire at all.
+"""
+
+[[method]]
+id = "event.onset.split_joint_vs_com.sahrom2020"
+construct = "movement_onset"
+group = "G"
+title = "Two distinct onset events exist and no force threshold can separate them"
+rule = """
+Declare which of two events an onset rule targets: first lower-limb joint flexion, or first
+meaningful centre of mass movement taken as a concave-downward inflection in displacement under
+10 mm of travel.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "sahrom2020"
+role = "proposes"
+reference = "Sahrom et al. 2020, R Soc Open Sci 7(8):192093, ingested at full quality"
+doi = "10.1098/rsos.192093"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.163
+unit = "seconds"
+direction = "late"
+criterion = "motion_capture_marker"
+criterion_kind = "instrument"
+source = "sahrom2020"
+# Existing methods locate the joint-flexion event with an average error of 163 ms, about 20 percent
+# of total jump duration. Joint flexion precedes any detectable force decrease by 75 +/- 88 ms, and
+# centre of mass movement follows the first force decrease by 81 +/- 78 ms. In some subjects centre
+# of mass movement was not detectable until force had already decreased by 34 percent, and in some
+# cases 67 percent.
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "definitional: it reframes rather than shifts"
+rationale = """
+Not a competing threshold but a demonstration that the quantity every threshold claims to measure is
+two quantities. The documentation and the fingerprint must say which event the selected onset rule
+targets.
+"""
+
+[[method]]
+id = "vocab.downward_upward"
+construct = "phase_model"
+group = "G"
+title = "Name the phases downward and upward rather than eccentric and concentric"
+rule = """
+Refer to the countermovement as the downward phase and to propulsion as the upward phase, avoiding
+eccentric and concentric and, by extension, any ratio named after them.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "vanhooren2017"
+role = "proposes"
+reference = "Van Hooren and Zolotarjova 2017, verbatim"
+obtained = true
+
+[[method.citation]]
+key = "sahrom2020"
+role = "proposes"
+reference = "Sahrom et al. 2020, verbatim, independently, and additionally avoiding braking and propulsive"
+doi = "10.1098/rsos.192093"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "zero on numbers, high on whether users draw correct physiological conclusions"
+rationale = """
+The clearest case in the registry for separating computation from presentation: the software should
+render the same computed intervals under either vocabulary. The physiological argument is sound,
+that fascicles usually do not actively lengthen during the countermovement, so eccentric phase is a
+claim about muscle behaviour the force trace cannot support. Adoption is low, which is why switching
+unilaterally would isolate users from the vendor vocabulary they must interoperate with.
+"""
+
+[[method]]
+id = "phase.anchor.time_epochs.schmidtbleicher"
+construct = "phase_model"
+group = "G"
+title = "Fixed time epochs measured from contraction onset rather than kinematic events"
+rule = """
+Phases are fixed intervals measured from the instant of contraction onset rather than from kinematic
+events, commonly 0 to 30, 0 to 50, 0 to 100, 0 to 200 and 0 to 250 ms, with an early-phase against
+late-phase split.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "epoch_ms"
+unit = "milliseconds"
+published_values = [30.0, 50.0, 100.0, 200.0, 250.0]
+default = 200.0
+default_source = "maffiuletti2016"
+required = true
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, EJAP 116:1091-1116, ingested, the canonical methods treatment of these epochs"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.citation]]
+key = "schmidtbleicher"
+role = "proposes"
+reference = "The German strength-diagnostics tradition; no primary German-language source was ingested"
+obtained = false
+
+[[method.disagrees_with]]
+id = "phase.model.unweighting_single.mcmahon2018"
+kind = "genuine"
+note = """
+Structural rather than parametric: not a fork within a quantity but a fork in what kind of object a
+phase is. Time anchoring is strategy-independent and therefore comparable across people who move
+differently, which is a feature for cross-subject comparison and a bug for individual diagnosis.
+The reverse holds for event anchoring.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "it changes what is computed rather than the value of a fixed computation"
+rationale = """
+Most jump users will never want it and isometric users will want nothing else, which is a strong
+argument for the phase model being task-dependent rather than global. Do not cite Schmidtbleicher
+from this record without retrieving a primary.
+"""
+
+[[method]]
+id = "phase.snatch_clean.six_phase_kinematic"
+construct = "phase_model"
+group = "G"
+title = "Six-phase kinematic model of the snatch and clean"
+rule = """
+Six phases with boundaries at first maximum knee extension angle, the knee angle maximum to minimum
+double knee bend, maximum vertical rising velocity of the barbell, maximum vertical height of the
+barbell, maximum vertical falling velocity, and the squat position. Truncated four- and five-phase
+versions are the same model with fewer phases analysed.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "phase_count"
+unit = "count"
+published_values = [4.0, 5.0, 6.0]
+default = 6.0
+default_source = "liu2018heliyon"
+required = true
+
+[[method.citation]]
+key = "liu2018heliyon"
+role = "uses"
+reference = "Liu G et al. 2018, Heliyon 4:e00658, operational rules verbatim, ingested at full quality"
+doi = "10.1016/j.heliyon.2018.e00658"
+obtained = true
+
+[[method.citation]]
+key = "baumann1988"
+role = "proposes"
+reference = "Baumann et al. 1988, with Hakkinen 1984 and Gourgoulis 2000; none obtained"
+obtained = false
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "not applicable for force-plate outputs, because it produces none"
+rationale = """
+Carries a not-implementable-from-force-plate-data flag. Every one of its six boundaries is a knee
+angle or barbell kinematics extremum and a force plate can observe none of them, so the correct
+behaviour on plate-only data is to refuse to emit these labels and say why. The transition phase
+lasts 108 to 115 ms and is defined by a knee flexion of only 7 to 12 degrees, a small kinematic
+event inside a large force signal.
+"""
+
+[[method]]
+id = "sticking.region.velocity_minimum"
+construct = "sticking_region"
+group = "G"
+title = "From the first local maximum of ascent bar velocity to the subsequent local minimum"
+rule = """
+The sticking region runs from the first local maximum of ascent bar velocity to the subsequent local
+minimum, after which velocity increases again.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "madsen1984"
+role = "proposes"
+reference = "Madsen and McLaughlin 1984, MSSE 16:376-381, stated verbatim in van den Tillaar 2014"
+obtained = false
+
+[[method.citation]]
+key = "vandentillaar2014"
+role = "uses"
+reference = "van den Tillaar, Andersen and Saeterbakken 2014, J Hum Kinet 42:63-71, ingested at full quality"
+doi = "10.2478/hukin-2014-0061"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.03
+unit = "meters_per_second"
+direction = "shallow"
+criterion = "sticking.point.failure_location.kompf2016"
+criterion_kind = "model"
+source = "vandentillaar2014"
+# A detectability problem rather than an offset. The squat sticking region lasts 0.2 s against 0.8 s
+# for the bench press and the velocity decreases 0.03 m/s against 0.22 m/s, and 0.03 m/s is at or
+# below the noise floor of a plate-integrated velocity trace. So the one case where a force plate
+# could in principle see it is the case where it is hardest to see. The definition also fails to
+# generalise: on the deadlift the second peak velocity is lower than the first, so the
+# velocity-increases-again clause never fires.
+
+[[method.disagrees_with]]
+id = "sticking.point.failure_location.kompf2016"
+kind = "genuine"
+note = "Two definitions and one word, and the authors wrote a paper about the difference."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high to filter cutoff, because it is a local extremum of a differentiated signal"
+rationale = "The detector must return a none-detected state, because lifters who exhibit no sticking point at all have been reported."
+
+[[method]]
+id = "sticking.point.failure_location.kompf2016"
+construct = "sticking_region"
+group = "G"
+title = "The point at which failure occurs on a maximal attempt"
+rule = "The sticking point is the point at which failure occurs when exercise is taken to momentary muscular failure."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "kompf2016"
+role = "proposes"
+reference = "Kompf and Arandjelovic 2016, Sports Med 46(5):751-762, and 2017, 47(4):631-640, both ingested"
+obtained = true
+
+[[method.disagrees_with]]
+id = "sticking.region.velocity_minimum"
+kind = "genuine"
+
+[method.gui]
+surfacing = "refuse"
+rationale = """
+Do not compute. It is not computable from a successful repetition, which is a hard constraint on any
+software claiming to report it. If a user asks for a sticking point, report the kinematic region
+under its own name and state that this definition requires a failed maximal attempt.
+"""
+
+[[method]]
+id = "window_end.fixed_duration.isometric"
+construct = "analysis_window"
+group = "G"
+title = "The analysis window ends a fixed duration after onset"
+rule = "The analysis window ends at the sample nearest a fixed test length after onset."
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "length_seconds"
+unit = "seconds"
+published_values = [2.0, 3.0, 5.0]
+default = 2.0
+default_source = "chronojump_r"
+required = true
+notes = """
+The 3 to 5 s range is recorded as isometric mainstream with no located primary. It was previously
+attributed to the field's standardisation paper and that attribution is withdrawn: the paper was
+recovered in full and states no maximal-pull duration anywhere in its 45 pages. The only held
+primary stating 3 to 5 s is a unilateral supine single-joint test, which is a different task.
+"""
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R:1070-1076 for the implemented rule"
+obtained = true
+
+[[method.bias]]
+magnitude = -1.0
+unit = "newtons"
+direction = "low"
+criterion = "window_end.force_dropoff_from_running_max"
+criterion_kind = "model"
+source = "plateforce_inference"
+# A 2.0 s window truncates the plateau for slow force developers and biases their peak force down.
+# Not quantified; the magnitude carries the direction only.
+
+[[method.disagrees_with]]
+id = "window_end.force_dropoff_from_running_max"
+kind = "genuine"
+note = "The two answer different questions: the first two seconds, against as long as the effort was maintained."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate on peak force, large on peak and best-window rate of force development"
+rationale = """
+The recommended flag rests on the rule's determinism rather than on the window length, and the
+window length is a parameter of it. Note precisely what happened: a status flag rested on a
+convention statement, the convention statement rested on a citation, and the citation turned out not
+to contain it. That is invisible while the source is an abstract and checkable the moment it is not.
+"""
+
+[[method]]
+id = "window_end.force_dropoff_from_running_max"
+construct = "analysis_window"
+group = "G"
+title = "The analysis window ends when a smoothed force falls a stated percentage below its running maximum"
+rule = """
+Take a centred rectangular moving average, start at the peak rate of force development, track the
+running maximum of the average, and stop at the first sample where the average has fallen more than
+a stated percentage below that running maximum.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "dropoff_pct"
+unit = "percent"
+published_values = [5.0]
+default = 5.0
+default_source = "chronojump_r"
+required = true
+
+[[method.parameter]]
+name = "moving_average_seconds"
+unit = "seconds"
+published_values = [0.1]
+default = 0.1
+default_source = "chronojump_r"
+required = true
+notes = """
+A second hidden smoother cascaded on top of the conditioning filter, so the effective smoothing on
+this decision is not what the filter setting says.
+"""
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R:1077-1108, undisclosed, no citation anywhere in the product"
+obtained = true
+
+[[method.disagrees_with]]
+id = "window_end.fixed_duration.isometric"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate on peak force, large on any rate that searches the window"
+rationale = """
+The percentage must be shown with the result, and the fact that the decision runs on a second
+smoother must be surfaced. The running-maximum update means a single high sample can extend the
+window a long way.
+"""
+
+[[method]]
+id = "phase.window.positive_impulse.net_force_positive"
+construct = "analysis_window"
+group = "G"
+title = "The interval over which vertical force exceeds system weight"
+rule = """
+The positive-impulse window runs from the rising crossing of system weight following the unweighting
+minimum to the falling crossing of system weight during late propulsion. It contains the whole
+braking phase and excludes the sub-system-weight segment before takeoff. On dual plates both
+boundaries are determined from the summated trace and per-limb quantities are integrated within that
+shared window, rather than each limb finding its own crossings.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "painter2022"
+role = "proposes"
+reference = "Painter, Hornsby, Carroll, Mizuguchi and Stone 2022, J Funct Morphol Kinesiol 7(2):31, held complete"
+doi = "10.3390/jfmk7020031"
+obtained = true
+
+[[method.citation]]
+key = "lake2012"
+role = "uses"
+reference = "Lake et al. 2012, the antecedent for the same construct in loaded lifts"
+doi = "10.1123/jab.28.4.431"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.46
+unit = "correlation"
+direction = "higher"
+criterion = "phase.propulsion_start.zero_velocity"
+criterion_kind = "model"
+source = "painter2022"
+# Criterion validity rather than a numerical offset, and recorded as such deliberately. On 59
+# athletes with dual plates the positive-impulse window found a significant asymmetry to jump height
+# correlation in 2 of 4 sex-by-load cells, r = -0.43 and r = -0.49, while the propulsive window found
+# it in 0 of 4, all correlations at or below 0.26 in magnitude with every confidence interval
+# spanning zero. Cross-load stability likewise favours it, 0.84 and 0.87 against 0.51 and 0.57. The
+# magnitude here is the mean of the two significant correlations. The defensible claim is that the
+# choice of window decides whether a relationship is detected at all, not that it flips the sign.
+
+[[method.disagrees_with]]
+id = "phase.propulsion_start.zero_velocity"
+kind = "genuine"
+note = """
+As the window for integrated per-phase quantities the two differ at both ends and are anchored to
+different physical principles, velocity landmarks against net-force sign. The alias positive
+impulse is bound to this interval and not to the propulsive one, on primary evidence including the
+source's own figure read directly.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high on any per-phase integrated quantity, low to nil on jump height"
+rationale = """
+A named window choice on any per-phase or asymmetry metric, with the window identifier carried into
+the export column name. Not forced, because neither window is defensible by default on current
+evidence and forcing a ruling would manufacture false confidence. Not hidden, because the choice is
+outcome-determining and hiding it reproduces the invisible-method-choice failure this platform
+exists to end.
+"""
+
+[[method]]
+id = "phase.propulsion_end.peak_com_velocity"
+construct = "propulsion_phase_end"
+group = "G"
+title = "Propulsion ends at maximum centre of mass velocity rather than at takeoff"
+rule = """
+The propulsion phase ends at the instant of maximum centre of mass vertical velocity, obtained by
+dividing net vertical force by body mass and integrating from the start of the countermovement.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "hoffman2022"
+role = "uses"
+reference = "Hoffman, Raiteri, Connick et al. 2022, Scand J Med Sci Sports 32(10):1464-1476, full text held"
+doi = "10.1111/sms.14211"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.02
+unit = "seconds"
+direction = "early"
+criterion = "takeoff"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Direction determinate, magnitude unmeasured. Peak velocity necessarily precedes takeoff, because
+# velocity peaks when net force crosses zero while takeoff is declared later, so propulsion duration
+# is systematically shorter and mean propulsion force systematically higher under this rule. No study
+# found measures the interval between peak velocity and takeoff, which is trivially closable on the
+# 244-trial corpus.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "small on jump height, potentially large on any per-phase mean or duration"
+rationale = """
+It only matters to users computing phase-resolved quantities, and a user wanting jump height should
+never see it. The two rules encode two defensible definitions, that propulsion ends when the athlete
+stops accelerating upward and that it ends when the athlete leaves the plate, and both appear in the
+literature without either acknowledging the other.
+"""

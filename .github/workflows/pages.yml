@@ -1,0 +1,70 @@
+name: Publish the browser build
+
+# The browser build is the only delivery channel with no certificate, no notarisation, no
+# installer and no store review, so it is the one that ships first.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+
+      - name: Read the pinned wasm-bindgen version
+        id: pin
+        run: |
+          version="$(sed -n 's/^wasm-bindgen = .*version = "=\([0-9.]*\)".*/\1/p' crates/plateforce-wasm/Cargo.toml)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/wasm-bindgen
+            target
+          key: pages-${{ runner.os }}-${{ steps.pin.outputs.version }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Check the workspace
+        run: cargo test --workspace
+
+      - name: Build the browser bundle
+        run: ./scripts/build-web.sh release
+
+      # A registry that fails its own validator must not be published silently. The site
+      # reports violations in the interface, and this makes them visible in CI too.
+      - name: Report registry validation
+        run: cargo run --quiet --package plateforce-cli -- validate || true
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

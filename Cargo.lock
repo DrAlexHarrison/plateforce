@@ -99,6 +99,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "plateforce-conformance"
+version = "0.1.0"
+dependencies = [
+ "plateforce-core",
+ "thiserror",
+]
+
+[[package]]
 name = "plateforce-core"
 version = "0.1.0"
 dependencies = [

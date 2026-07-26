@@ -122,3 +122,59 @@ notes = """
 A real registry value rather than a gap. An undeclared frame must not compare equal to a declared
 one, and one entry's frame is not merely undeclared but non-constant, changing trial to trial.
 """
+
+[[construct]]
+id = "braking_phase_start"
+title = "The instant the braking phase begins"
+unit = "seconds"
+notes = """
+Two published rules name two different instants and one of them, minimum force, occurs while the
+athlete is still accelerating downward. The name and the physics disagree.
+"""
+
+[[construct]]
+id = "propulsion_phase_start"
+title = "The instant the propulsion phase begins"
+unit = "seconds"
+
+[[construct]]
+id = "propulsion_phase_end"
+title = "The instant the propulsion phase ends"
+unit = "seconds"
+notes = "Peak centre of mass velocity and takeoff are different instants, and both appear in the literature."
+
+[[construct]]
+id = "lifting_phase_start"
+title = "The instant the positive lifting phase begins on a loaded lift"
+unit = "seconds"
+
+[[construct]]
+id = "lifting_phase_end"
+title = "The instant the positive lifting phase ends on a loaded lift"
+unit = "seconds"
+notes = "Two rules differ by the braking sub-phase, whose duration is load dependent, and by 24 percent on mean force."
+
+[[construct]]
+id = "landing_phase_end"
+title = "The instant the landing phase ends"
+unit = "seconds"
+
+[[construct]]
+id = "phase_model"
+title = "Which landmarks are promoted to phase boundaries and what the intervals are called"
+unit = "enumeration"
+notes = """
+Nobody disputes where the landmarks are, modulo onset. What is disputed is which are promoted and
+what the intervals are named, and one word denotes different intervals in a vendor product and in
+the literature that product's users cite.
+"""
+
+[[construct]]
+id = "analysis_window"
+title = "The interval a per-phase or per-epoch quantity is integrated or searched over"
+unit = "seconds"
+
+[[construct]]
+id = "sticking_region"
+title = "The interval of reduced bar velocity during a maximal lift"
+unit = "seconds"
