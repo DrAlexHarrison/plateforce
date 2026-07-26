@@ -1,0 +1,286 @@
+//! Savitzky-Golay smoothing, and the small dense least squares it rests on.
+//!
+//! One onset rule in the registry tests a smoothed signal against a threshold built
+//! from the raw one. Reproducing that rule needs the same filter, including its edge
+//! policy, so the filter lives here rather than being approximated at the call site.
+
+use crate::statistics::compensated_sum;
+
+#[derive(Debug, thiserror::Error)]
+pub enum SmoothingError {
+    #[error("savitzky_golay(window_length = {window_length}, polynomial_order = {polynomial_order}) requires the order to be lower than the window")]
+    OrderNotBelowWindow {
+        window_length: usize,
+        polynomial_order: usize,
+    },
+    #[error("savitzky_golay(window_length = {window_length}) does not fit a trace of {sample_count} samples")]
+    WindowLongerThanTrace {
+        window_length: usize,
+        sample_count: usize,
+    },
+    #[error("savitzky_golay(window_length = {window_length}, polynomial_order = {polynomial_order}) design matrix is rank deficient")]
+    RankDeficient {
+        window_length: usize,
+        polynomial_order: usize,
+    },
+}
+
+/// Thin QR by modified Gram-Schmidt with one reorthogonalisation pass, which is what
+/// keeps a Vandermonde design matrix of degree three from losing half its digits.
+///
+/// `columns` is consumed as the matrix and returned as Q. R is returned separately in
+/// row major order.
+fn thin_qr(mut columns: Vec<Vec<f64>>) -> Option<(Vec<Vec<f64>>, Vec<Vec<f64>>)> {
+    let width = columns.len();
+    let mut upper = vec![vec![0.0f64; width]; width];
+    for target in 0..width {
+        for _pass in 0..2 {
+            for earlier in 0..target {
+                let projection = dot(&columns[earlier], &columns[target]);
+                upper[earlier][target] += projection;
+                for row in 0..columns[target].len() {
+                    columns[target][row] -= projection * columns[earlier][row];
+                }
+            }
+        }
+        let norm = dot(&columns[target], &columns[target]).sqrt();
+        if !(norm.is_finite() && norm > 0.0) {
+            return None;
+        }
+        upper[target][target] = norm;
+        for value in columns[target].iter_mut() {
+            *value /= norm;
+        }
+    }
+    Some((columns, upper))
+}
+
+fn dot(left: &[f64], right: &[f64]) -> f64 {
+    let products: Vec<f64> = left.iter().zip(right).map(|(a, b)| a * b).collect();
+    compensated_sum(&products)
+}
+
+fn solve_upper_triangular(upper: &[Vec<f64>], right_hand_side: &[f64]) -> Vec<f64> {
+    let width = right_hand_side.len();
+    let mut solution = vec![0.0f64; width];
+    for row in (0..width).rev() {
+        let mut accumulated = right_hand_side[row];
+        for column in row + 1..width {
+            accumulated -= upper[row][column] * solution[column];
+        }
+        solution[row] = accumulated / upper[row][row];
+    }
+    solution
+}
+
+fn solve_lower_triangular_transposed(upper: &[Vec<f64>], right_hand_side: &[f64]) -> Vec<f64> {
+    let width = right_hand_side.len();
+    let mut solution = vec![0.0f64; width];
+    for row in 0..width {
+        let mut accumulated = right_hand_side[row];
+        for column in 0..row {
+            accumulated -= upper[column][row] * solution[column];
+        }
+        solution[row] = accumulated / upper[row][row];
+    }
+    solution
+}
+
+fn vandermonde_columns(sample_positions: &[f64], polynomial_order: usize) -> Vec<Vec<f64>> {
+    (0..=polynomial_order)
+        .map(|power| {
+            sample_positions
+                .iter()
+                .map(|position| position.powi(power as i32))
+                .collect()
+        })
+        .collect()
+}
+
+/// Least squares polynomial fit, returning coefficients from the highest power down.
+pub fn fit_polynomial(
+    sample_positions: &[f64],
+    observations: &[f64],
+    polynomial_order: usize,
+) -> Option<Vec<f64>> {
+    let (orthonormal, upper) = thin_qr(vandermonde_columns(sample_positions, polynomial_order))?;
+    let projected: Vec<f64> = orthonormal
+        .iter()
+        .map(|column| dot(column, observations))
+        .collect();
+    let mut ascending = solve_upper_triangular(&upper, &projected);
+    ascending.reverse();
+    Some(ascending)
+}
+
+/// Horner evaluation of coefficients ordered from the highest power down.
+pub fn evaluate_polynomial(descending_coefficients: &[f64], position: f64) -> f64 {
+    descending_coefficients
+        .iter()
+        .fold(0.0, |accumulated, coefficient| {
+            accumulated * position + coefficient
+        })
+}
+
+/// Convolution kernel that evaluates the fitted polynomial at the window centre.
+///
+/// An even window has no centre sample, so the evaluation point falls half a sample
+/// short of one. Every jump tool in this corpus reaches this filter with an even
+/// window, because a window stated in seconds times a sample rate in hundreds is even.
+pub fn savitzky_golay_coefficients(
+    window_length: usize,
+    polynomial_order: usize,
+) -> Result<Vec<f64>, SmoothingError> {
+    if polynomial_order >= window_length {
+        return Err(SmoothingError::OrderNotBelowWindow {
+            window_length,
+            polynomial_order,
+        });
+    }
+    let half_length = window_length / 2;
+    let evaluation_position = if window_length % 2 == 0 {
+        half_length as f64 - 0.5
+    } else {
+        half_length as f64
+    };
+    let positions: Vec<f64> = (0..window_length)
+        .rev()
+        .map(|index| index as f64 - evaluation_position)
+        .collect();
+
+    // The design matrix has one row per polynomial power and one column per sample, so
+    // the system is underdetermined and the wanted solution is the minimum norm one.
+    let (orthonormal, upper) =
+        thin_qr(vandermonde_columns(&positions, polynomial_order)).ok_or(
+            SmoothingError::RankDeficient {
+                window_length,
+                polynomial_order,
+            },
+        )?;
+    let mut unit = vec![0.0f64; polynomial_order + 1];
+    unit[0] = 1.0;
+    let intermediate = solve_lower_triangular_transposed(&upper, &unit);
+
+    let mut coefficients = vec![0.0f64; window_length];
+    for (column, weight) in orthonormal.iter().zip(&intermediate) {
+        for (index, value) in column.iter().enumerate() {
+            coefficients[index] += value * weight;
+        }
+    }
+    Ok(coefficients)
+}
+
+/// Savitzky-Golay smoothing with polynomial interpolated edges.
+///
+/// The edge policy is named in the function rather than defaulted, because the
+/// alternatives shift the first and last half window by more than the smoothing
+/// itself does, and no source in this corpus states which one it used.
+pub fn savitzky_golay_interpolated_edges(
+    values: &[f64],
+    window_length: usize,
+    polynomial_order: usize,
+) -> Result<Vec<f64>, SmoothingError> {
+    if window_length > values.len() {
+        return Err(SmoothingError::WindowLongerThanTrace {
+            window_length,
+            sample_count: values.len(),
+        });
+    }
+    let coefficients = savitzky_golay_coefficients(window_length, polynomial_order)?;
+    let half_length = window_length / 2;
+    let lead = window_length - 1 - half_length + usize::from(window_length % 2 == 0);
+
+    let mut smoothed = vec![0.0f64; values.len()];
+    for (output_index, slot) in smoothed.iter_mut().enumerate() {
+        let mut terms = Vec::with_capacity(window_length);
+        for (offset, coefficient) in coefficients.iter().enumerate() {
+            let source = output_index as isize + lead as isize - offset as isize;
+            if source >= 0 && (source as usize) < values.len() {
+                terms.push(coefficient * values[source as usize]);
+            }
+        }
+        *slot = compensated_sum(&terms);
+    }
+
+    let positions: Vec<f64> = (0..window_length).map(|index| index as f64).collect();
+    let leading = fit_polynomial(&positions, &values[..window_length], polynomial_order).ok_or(
+        SmoothingError::RankDeficient {
+            window_length,
+            polynomial_order,
+        },
+    )?;
+    for index in 0..half_length {
+        smoothed[index] = evaluate_polynomial(&leading, index as f64);
+    }
+
+    let tail_start = values.len() - window_length;
+    let trailing = fit_polynomial(&positions, &values[tail_start..], polynomial_order).ok_or(
+        SmoothingError::RankDeficient {
+            window_length,
+            polynomial_order,
+        },
+    )?;
+    for index in values.len() - half_length..values.len() {
+        smoothed[index] = evaluate_polynomial(&trailing, (index - tail_start) as f64);
+    }
+
+    Ok(smoothed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Reference values from `scipy.signal.savgol_coeffs`, which is the implementation
+    /// every Python tool in the registry reaches through.
+    #[test]
+    fn coefficients_match_the_reference_for_an_odd_window() {
+        let coefficients = savitzky_golay_coefficients(5, 2).unwrap();
+        let expected = [
+            -0.085_714_285_714_285_7,
+            0.342_857_142_857_142_8,
+            0.485_714_285_714_285_7,
+            0.342_857_142_857_142_8,
+            -0.085_714_285_714_285_7,
+        ];
+        for (got, want) in coefficients.iter().zip(expected) {
+            assert!((got - want).abs() < 1e-12, "{got} against {want}");
+        }
+    }
+
+    #[test]
+    fn coefficients_match_the_reference_for_an_even_window() {
+        let coefficients = savitzky_golay_coefficients(6, 3).unwrap();
+        let expected = [-0.093_75, 0.218_75, 0.375, 0.375, 0.218_75, -0.093_75];
+        for (got, want) in coefficients.iter().zip(expected) {
+            assert!((got - want).abs() < 1e-12, "{got} against {want}");
+        }
+    }
+
+    /// A polynomial of degree at most the filter order passes through unchanged, which
+    /// is the defining property and covers the interior and both edge fits at once.
+    #[test]
+    fn a_cubic_passes_through_the_cubic_filter_unchanged() {
+        let values: Vec<f64> = (0..500)
+            .map(|i| {
+                let t = i as f64 / 50.0;
+                2.0 + 3.0 * t - 1.5 * t * t + 0.25 * t * t * t
+            })
+            .collect();
+        let smoothed = savitzky_golay_interpolated_edges(&values, 240, 3).unwrap();
+        for (index, (got, want)) in smoothed.iter().zip(&values).enumerate() {
+            assert!(
+                (got - want).abs() < 1e-6,
+                "sample {index}: {got} against {want}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_window_longer_than_the_trace_names_the_window_and_the_trace() {
+        let error = savitzky_golay_interpolated_edges(&[1.0, 2.0, 3.0], 240, 3).unwrap_err();
+        let message = error.to_string();
+        assert!(message.contains("240"), "{message}");
+        assert!(message.contains("3 samples"), "{message}");
+    }
+}

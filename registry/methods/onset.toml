@@ -1,175 +1,1317 @@
-# Movement onset. The group where implementations disagree most, and the group where
-# the disagreement turns out to be a failure rate rather than a bias.
+# Group C. Movement onset. Twelve detectors and eight refinement operators.
+#
+# The group the project's founding result is about. A less disciplined sweep of the same literature
+# reports 35 to 40 onset methods by counting every threshold value separately, and per-tool filing
+# yields over 200. Twelve plus eight is what survives the per-kind-of-rule grain.
+#
+# Every bias in this group is stated automated minus manual: positive means the automated rule fires
+# later than the manual reference, or reads a higher force at onset.
 
 [[method]]
-id = "onset.threshold.noise_relative"
+id = "onset.manual_visual.tillin2010"
 construct = "movement_onset"
 group = "C"
-title = "Noise-relative threshold, k standard deviations of the quiet epoch"
+title = "Last peak or trough before the signal deflects from baseline"
 rule = """
-Onset is the first sample at which vertical ground reaction force departs the
-quiet-standing mean by k standard deviations of that same epoch, then walked back by a
-fixed offset.
+An experienced analyst views the unfiltered trace at a fixed magnification and marks onset as the
+last peak or trough before the signal deflects away from baseline noise. No filtering, no
+threshold, no persistence.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "tillin2010"
+role = "proposes"
+reference = "Tillin, Jimenez-Reyes, Pain and Folland 2010, MSSE 42(4):781-790"
+doi = "10.1249/MSS.0b013e3181be9c7e"
+obtained = true
+
+[[method.citation]]
+key = "guppy2024"
+role = "uses"
+reference = "Guppy et al. 2024, Sports Biomechanics 23(10):1663-1680, force-plate operationalisation"
+doi = "10.1080/14763141.2021.1974532"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.006
+unit = "seconds"
+direction = "either"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "human_visual"
+source = "guppy2024"
+# Zero bias by definition; the number here is its noise. Intra-rater ICC 1.00 with a mean
+# difference of 6 ms across sessions seven days apart. Folland 2014 reports intra- and
+# inter-investigator SD of 0.33 and 0.52 ms on a low-noise dynamometer.
+
+[[method.disagrees_with]]
+id = "onset.manual_visual.continuous_decrease.pinto2023"
+kind = "genuine"
+note = "The reference standard is itself forked, and nobody has compared the two instants."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "defines the scale: a 0.3 to 6 ms human spread against a 22 to 40 ms algorithmic bias"
+rationale = """
+A manual adjust affordance with a magnified trace, defaulting off, with its use recorded in the
+fingerprint. Manual accuracy is conditional on low baseline noise and minimal filtering, so the
+correct framing is that the accuracy ordering of onset methods is a function of the acquisition
+hardware's noise floor.
+"""
+
+[[method]]
+id = "onset.manual_visual.continuous_decrease.pinto2023"
+construct = "movement_onset"
+group = "C"
+title = "First instant of continuous decrease from quiet standing"
+rule = """
+On a plot of stated physical dimensions showing force across three seconds from the middle of a
+two-second weighing phase, with a horizontal line at system weight, onset is the first instant
+where the signal continuously decreased from quiet standing toward the minimum force of the descent.
 """
 status = "accepted"
 confidence = "high"
 debate = "genuine"
 
-[[method.parameter]]
-name = "k"
-unit = "standard_deviations"
-published_values = [2.0, 3.0, 5.0, 10.0]
-default = 5.0
-default_source = "owen2014"
-required = true
-notes = """
-All nine open implementations bind 5.0 and not one of the seven tools exposes this as a
-user parameter, so five of the six published values are unreachable in practice.
-"""
-
-[[method.parameter]]
-name = "back_offset"
-unit = "seconds"
-published_values = [0.010, 0.030, 0.040, 0.050]
-default = 0.030
-default_source = "owen2014"
-required = true
-notes = """
-The offset changed with every publication from the originating lab: 10 ms in 2009,
-30 ms in 2014, 50 and 40 ms in 2019. Same lab, same cohort, cause stated as currently
-unclear. An entry citing only k does not identify a method.
-"""
-
 [[method.citation]]
-key = "owen2014"
+key = "pinto2023"
 role = "proposes"
-reference = "Owen et al. 2014, JSCR 28:1552-1558"
-doi = "10.1519/JSC.0000000000000311"
+reference = "Pinto and Callaghan 2023, J Appl Biomech 39(2):118-123, 2 of 6 pages served"
+doi = "10.1123/jab.2022-0111"
 obtained = false
 
+[[method.disagrees_with]]
+id = "onset.manual_visual.tillin2010"
+kind = "genuine"
+note = """
+Different instants on the same trace, both called manual identification, both used as the criterion
+against which automated methods are validated. Some part of the difference between published
+onset-bias estimates is the criterion rather than the method under test.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "unknown, and it bounds the whole domain's validation literature"
+rationale = "The fork is this operation's observation rather than a citation, because nobody has published it."
+
+[[method]]
+id = "onset.threshold.absolute_force"
+construct = "movement_onset"
+group = "C"
+title = "Fixed newton departure from system weight"
+rule = """
+Onset is the first instant at which vertical ground reaction force departs system weight by a fixed
+number of newtons. Direction is task-dependent.
+"""
+# Prose gives a per-value status: vendor at 20 N, deprecated at 40 N and 75 N. The row carries one
+# status, so the deprecations ride on the parameter and the row is filed as legacy.
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [10.0, 20.0, 25.0, 40.0, 50.0, 75.0, 80.0]
+default = 20.0
+default_source = "vald_glossary"
+required = true
+notes = """
+20 N is retained because a large installed base of published and practitioner data is computed with
+it. 40 N and 75 N are deprecated on evidence: Guppy concludes a 40 N absolute rise overestimates
+force-generating capacity and its use should be avoided, and Dos'Santos found 75 N produced
+unacceptable limits of agreement on all force-time variables. Both deprecations are isometric
+mid-thigh pull findings and neither tested a jump.
+"""
+
 [[method.citation]]
-key = "jones2019"
+key = "guppy2024"
 role = "evaluates"
-reference = "Jones 2019, PhD thesis, Swansea University"
+reference = "Guppy et al. 2024, Sports Biomechanics 23(10):1663-1680, n = 14, IMTP"
+doi = "10.1080/14763141.2021.1974532"
 obtained = true
 
 [[method.citation]]
 key = "dossantos2017"
+role = "evaluates"
+reference = "Dos'Santos et al. 2017, onset thresholds in the isometric mid-thigh pull, read through Ripley 2025"
+doi = "10.1519/JSC.0000000000001765"
+obtained = false
+
+[[method.citation]]
+key = "vald_glossary"
 role = "uses"
-reference = "Dos'Santos et al. 2017"
+reference = "VALD ForceDecks Technical Glossary V2.0, 20 N"
 obtained = true
 
 [[method.bias]]
-magnitude = -0.026
+magnitude = 0.033
 unit = "seconds"
 direction = "late"
-criterion = "onset.manual.tillin2010"
+criterion = "onset.manual_visual.tillin2010"
 criterion_kind = "human_visual"
-source = "guppy2021"
+source = "guppy2024"
 conditional_on_success = true
+# 40 N, 95 percent limits of agreement (+3, +63) ms. The only threshold in Guppy's set showing a
+# significant fixed bias for time at onset.
+
+[[method.bias]]
+magnitude = 60.4
+unit = "newtons"
+direction = "high"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "human_visual"
+source = "guppy2024"
+conditional_on_success = true
+# Force at onset at 40 N, limits of agreement (+19.9, +100.9), roughly 6 percent of a 934 N gross
+# baseline. F50 +332 N, F90 +347 N, F150 +254 N, F200 +174 N, F250 +95 N.
 
 [[method.disagrees_with]]
-id = "onset.threshold.percent_bodyweight"
+id = "onset.threshold.relative_to_system_weight"
 kind = "genuine"
-note = "The two optimise different objective functions and the field has not noticed."
+note = "Genuine at the family level; 10 N and 20 N are the same rule with a different number."
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "Guppy found a fixed bias between 40 N and 5 SD on F50, so the automated rules disagree with each other."
+
+[[method.disagrees_with]]
+id = "onset.threshold.max_composite"
+kind = "genuine"
 
 [method.gui]
-surfacing = "force_a_decision"
-sensitivity = "high"
+surfacing = "surface_on_demand"
+sensitivity = "high on all onset-anchored metrics, and athlete-dependent, which biases group comparisons"
 rationale = """
-The threshold origin traces to an unpublished 2008 Master's thesis that does not exist
-in public, and the rule was tuned as a Gaussian false-alarm rate against noise, never
-against jump-height or power accuracy.
+Present it as matching another system's convention rather than as a free numeric field. An absolute
+newton threshold does not scale with athlete mass or with plate noise, so the same nominal rule is a
+different statistical test for a 55 kg and a 120 kg athlete.
 """
 
 [[method]]
-id = "onset.threshold.percent_bodyweight"
+id = "onset.threshold.relative_to_system_weight"
 construct = "movement_onset"
 group = "C"
 title = "Fixed percentage of system weight"
 rule = """
-Onset is the first sample at which vertical ground reaction force departs system weight
-by a fixed percentage of that weight.
+Onset is the first instant at which vertical ground reaction force departs system weight by a
+stated percentage of that weight. Published in both a drop-below form and a first-departure-in-
+either-direction form.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "pct"
+unit = "percent_of_system_weight"
+published_values = [1.0, 2.5, 5.0, 10.0]
+default = 2.5
+default_source = "meylan2011"
+required = true
+notes = """
+Accepted at 2.5 and 5 percent, deprecated at 10 percent, undeclared at 1 percent. 2.5 has a
+published rationale, that unfiltered signal noise sits slightly below 2.5 percent of bodyweight.
+10 percent produced unacceptable limits of agreement on all force-time variables and differed
+significantly from both lower thresholds on nearly every variable. 1 percent stays undeclared:
+one study found it less reliable, which is a direction and not a ruling.
+"""
+
+[[method.citation]]
+key = "meylan2011"
+role = "evaluates"
+reference = "Meylan, Nosaka, Green and Cronin 2011, JSCR 25(4):1164-1174, n = 10"
+obtained = true
+
+[[method.citation]]
+key = "barefoot2022"
+role = "evaluates"
+reference = "Barefoot, Lamont and Smith 2022, Sports 10(12):193, 21 participants, eight rules"
+obtained = true
+
+[[method.citation]]
+key = "ripley2025"
+role = "evaluates"
+reference = "Ripley, Fahey and Comfort 2025, J Appl Sports Sci 9(1):24-39, 40 limbs, 90:90 knee flexor"
+doi = "10.37393/jass.2025.09.01.3"
+obtained = true
+
+[[method.citation]]
+key = "dossantos2017"
+role = "evaluates"
+reference = "Dos'Santos et al. 2017, reached second-hand through Ripley 2025's discussion"
+doi = "10.1519/JSC.0000000000001765"
+obtained = false
+
+[[method.bias]]
+magnitude = 14.42
+unit = "newtons"
+direction = "low"
+criterion = "onset.threshold.noise_relative"
+criterion_kind = "model"
+source = "ripley2025"
+# 10 percent of system weight against a 5 SD criterion on a single-joint supine test: onset
+# threshold 14.42 N (13.66 to 15.18), F100 45.31 N, F200 49.93 N, which is minus 38 percent of the
+# criterion F100. Single-joint supine figures; C-note-4 is the reason they must not carry to a jump.
+
+[[method.bias]]
+magnitude = 0.505
+unit = "icc"
+direction = "low"
+criterion = "onset.threshold.noise_relative"
+criterion_kind = "model"
+source = "barefoot2022"
+# Net impulse ICC 0.479 at 2.5 percent of system weight against 0.967 at 10 percent and 0.984 at
+# 5 SD, on the same 21 participants and the same code. Tighter is not better, and it is not close.
+
+[[method.disagrees_with]]
+id = "onset.threshold.absolute_force"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.threshold.max_composite"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high"
+rationale = "One entry with a parameter, defaulting to 2.5 percent."
+
+[[method]]
+id = "onset.threshold.noise_relative"
+construct = "movement_onset"
+group = "C"
+title = "Noise-relative threshold, k standard deviations of the reference epoch"
+rule = """
+Onset is the first instant at which force departs the reference epoch's mean by k standard
+deviations of that epoch. The epoch length is not fixed by the method and varies by implementation.
+Some implementations use the downward side only and some are bidirectional.
 """
 status = "accepted"
 confidence = "high"
 debate = "genuine"
 
 [[method.parameter]]
-name = "percent"
-unit = "percent_of_system_weight"
-published_values = [1.0, 2.5, 5.0, 10.0]
+name = "k"
+unit = "standard_deviations"
+published_values = [2.0, 2.5, 3.0, 4.0, 5.0, 8.0]
 default = 5.0
-default_source = "pertusa_consensus"
+default_source = "owen2014"
 required = true
+notes = """
+The justification for 5 is thin and is finally located: the threshold is hypothesised to exceed 99
+percent of the variation present in the weighing phase, which is a normal-theory tail argument
+rather than an empirical derivation. It disagrees with the parent literature, where Hodges and Bui
+1996 tested 1, 2 and 3 SD factorially and found 1 or 3 best. Nobody in the EMG literature proposed 5.
+"""
+
+[[method.parameter]]
+name = "sd_convention"
+unit = "enumeration"
+notes = """
+population or sample. The same author group uses population SD in one paper and sample SD in
+another, which is a real registry distinction rather than a typographic one.
+"""
+
+[[method.parameter]]
+name = "reference_distribution"
+unit = "enumeration"
+notes = "quiet_stance_force or empty_plate, per noise_ref.distribution. 8 SD of empty plate is not 5 SD of stance."
 
 [[method.citation]]
-key = "pertusa_consensus"
+key = "owen2014"
 role = "proposes"
-reference = "Multiple independent evaluations converge near 5 percent"
+reference = "Owen et al. 2014, JSCR 28(6):1552-1558, the criterion pairing"
+doi = "10.1519/JSC.0000000000000311"
+obtained = false
+
+[[method.citation]]
+key = "guppy2024"
+role = "evaluates"
+reference = "Guppy et al. 2024, Table 1, verified against the source PDF"
+doi = "10.1080/14763141.2021.1974532"
+obtained = true
+
+[[method.citation]]
+key = "dotan2016"
+role = "evaluates"
+reference = "Dotan et al. 2016, torque onset determination, unintended consequences of the threshold method"
+obtained = true
+
+[[method.citation]]
+key = "chavda2018"
+role = "uses"
+reference = "Chavda et al. 2018, Strength Cond J 40(2):67-77, population SD located by a descending match"
+doi = "10.1519/ssc.0000000000000353"
 obtained = true
 
 [[method.bias]]
-magnitude = -0.022
+magnitude = 0.026
 unit = "seconds"
 direction = "late"
-criterion = "onset.manual.tillin2010"
+criterion = "onset.manual_visual.tillin2010"
 criterion_kind = "human_visual"
-source = "guppy2021"
+source = "guppy2024"
 conditional_on_success = true
+# 5 SD, 95 percent limits of agreement (-3, +56) ms; 3 SD gives +22 ms with (-5, +49). Bias is
+# monotone in the multiplier across all seven of Guppy's variables without exception.
+
+[[method.bias]]
+magnitude = 44.2
+unit = "newtons"
+direction = "high"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "human_visual"
+source = "guppy2024"
+conditional_on_success = true
+# Force at onset, limits of agreement (+6.3, +82.1). F50 +266 N, F90 +289 N, F150 +214 N,
+# F200 +147 N, F250 +88 N.
+
+[[method.bias]]
+magnitude = -0.106
+unit = "seconds"
+direction = "early"
+criterion = "motion_capture_marker"
+criterion_kind = "instrument"
+source = "sahrom2020"
+conditional_on_success = true
+# SD 1.170 s, the worst dispersion of any method Sahrom tested, against a yank-inflection bias of
+# -0.005 s with SD 0.013 s.
+
+[method.failure]
+rate = 0.1352
+numerator = 33
+denominator = 244
+corpus = "harrison2011_cmj"
+definition = """
+Two-sided with no persistence and no search floor, k = 5: onset placed more than 2.0 s before
+takeoff on a movement whose true duration is under 1 s. 22 of the 33 failures fire inside the very
+0.5 s window from which the rule's own weight and spread were computed, the earliest 2 ms into the
+recording. Two further implementations of this same rule measure 36 of 241 and 2 of 244, which the
+single failure block here cannot hold.
+"""
+detectability = "silent"
+
+[[method.disagrees_with]]
+id = "onset.threshold.absolute_force"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.threshold.relative_to_system_weight"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.threshold.max_composite"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.first_derivative.lowpass_then_differentiate"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.combined_first_second_derivative.liu2018"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.yank_inflection.sahrom2020"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.reverse_scan"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.changepoint_statistical"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.model_fit_error_minimisation.chronojump"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.op.search_floor"
+kind = "genuine"
+note = "The failure rate of this rule is set by the search bound and the persistence, not by k."
+
+[[method.disagrees_with]]
+id = "noise_ref.distribution"
+kind = "units"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "high, and noise-dependent, so the same rule on a quiet and a noisy plate is not the same rule"
+rationale = """
+Surface the epoch length on demand, because it is not fixed by the method and is the thing
+implementations silently disagree on. The threshold is not a constant, it is a random variable
+re-drawn every trial, so it injects random trial-to-trial error on top of the systematic lag.
+"""
+
+[[method]]
+id = "onset.threshold.max_composite"
+construct = "movement_onset"
+group = "C"
+title = "Fire on whichever of several thresholds of different kinds is crossed latest"
+rule = """
+Compute two or more thresholds of different kinds, a fixed noise floor and a mass-scaled one, and
+fire on whichever is crossed latest.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "inertiax"
+role = "uses"
+reference = "InertiaX Pro phase_detector.dart, max of 5 SD and max of 30 N and 2.5 percent bodyweight"
+obtained = true
+
+[[method.citation]]
+key = "jumptest"
+role = "uses"
+reference = "sinnerfilozofiya src/config.py, max of 20 N and 5 percent bodyweight"
+obtained = true
+
+[[method.disagrees_with]]
+id = "onset.threshold.absolute_force"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.threshold.relative_to_system_weight"
+kind = "genuine"
 
 [[method.disagrees_with]]
 id = "onset.threshold.noise_relative"
 kind = "genuine"
-note = "Scales with the athlete rather than with the plate's noise floor."
 
 [method.gui]
-surfacing = "force_a_decision"
+surfacing = "surface_on_demand"
 sensitivity = "high"
+rationale = """
+A distinct kind of rule rather than a parameter of any one family: it guarantees the threshold
+clears both a fixed noise floor and a mass-scaled one, which answers the dimensional objection
+against each family alone. Strictly later than any of its components by construction.
+"""
 
-# The entry that motivated the failure block. Its median is unremarkable and its
-# 95th percentile is three times normal, so a bias figure alone describes the wrong
-# quantity.
 [[method]]
-id = "onset.threshold.noise_relative_forward_offset"
+id = "onset.first_derivative.lowpass_then_differentiate"
 construct = "movement_onset"
 group = "C"
-title = "Noise-relative threshold with the offset applied forward"
+title = "Longest negative-slope run of the low-pass filtered derivative"
 rule = """
-As the noise-relative threshold, but the fixed offset is applied in the direction of
-travel rather than walked back from the crossing.
+Low-pass filter the force signal, differentiate by central difference, and take onset as the first
+point of the longest period over which the slope was negative, between the end of the weighing
+phase and peak unweighting force. Filter before differentiating, because differentiation amplifies
+high frequencies.
 """
-status = "legacy"
-confidence = "high"
-debate = "vendor_or_legacy"
+# Prose grants recommended (provisional). Rule 6 bars it: pinto2023's results table was never
+# served, so the limits of agreement below are abstract-level.
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
 
 [[method.parameter]]
-name = "k"
-unit = "standard_deviations"
-published_values = [5.0]
-default = 5.0
-default_source = "owen2014"
+name = "cutoff_hz"
+unit = "hertz"
+published_values = [5.0, 10.0, 50.0, 100.0]
+default = 10.0
+default_source = "pinto2023"
 required = true
 
 [[method.citation]]
-key = "owen2014"
+key = "pinto2023"
+role = "evaluates"
+reference = "Pinto and Callaghan 2023, J Appl Biomech 39(2):118-123, 2 of 6 pages served"
+doi = "10.1123/jab.2022-0111"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.015
+unit = "seconds"
+direction = "either"
+criterion = "onset.manual_visual.continuous_decrease.pinto2023"
+criterion_kind = "human_visual"
+source = "pinto2023"
+# 95 percent limits of agreement -0.02 to +0.05 s on the countermovement jump and -0.07 to +0.11 s
+# on the squat. The 70 ms countermovement-jump span is still an order of magnitude above the 0.3 to
+# 6 ms human spread: best available is not good.
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "The derivative is less susceptible to variation during the quiet phase than a threshold is."
+
+[[method.disagrees_with]]
+id = "onset.reverse_scan"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "large; it is a different instant rather than a shifted one"
+rationale = """
+Decide at study-design level rather than per trial. If threshold and derivative methods genuinely
+disagree, a user comparing against published data must know which family that data used. Two
+independent groups find derivative methods closer to visual, on different tasks, with no consensus.
+"""
+
+[[method]]
+id = "onset.combined_first_second_derivative.liu2018"
+construct = "movement_onset"
+group = "C"
+title = "Combined first and second derivative criteria selected by baseline condition"
+rule = """
+Apply differential-calculus criteria to the force trace, evaluating first derivative, second
+derivative and curvature separately against visual detection under differing baseline conditions.
+The recommended form combines the first and second derivative, the first being viable for a
+baseline containing a countermovement and the second for all other baseline conditions.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "liu2018"
+role = "proposes"
+reference = "Liu, Junshi 2018, ETSU dissertation ETD 3490, chaired by Satoshi Mizuguchi"
+obtained = true
+
+[[method.citation]]
+key = "liu2020"
+role = "evaluates"
+reference = "Liu, Qu and Stone 2020, Sports Biomechanics, peer-reviewed derivative, not obtained"
+doi = "10.1080/14763141.2020.1800810"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.5
+unit = "effect_size"
+direction = "high"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "human_visual"
+source = "liu2018"
+# Reported as effect sizes rather than milliseconds. The threshold method overestimates
+# instantaneous force and rate of force development against visual, more pronounced for the rate,
+# and often reached a large difference where the derivative combination stayed trivial to moderate.
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "largest effect on rate of force development"
+rationale = """
+Held at accepted only because the exact numeric criteria are in the dissertation body and are not
+yet precise enough to implement from the abstract alone.
+"""
+
+[[method]]
+id = "onset.yank_inflection.sahrom2020"
+construct = "movement_onset"
+group = "C"
+title = "Positive inflection of rectified yank before its first significant local maximum"
+rule = """
+Subtract body weight, differentiate by second-order central difference with second-order accurate
+one-sided differences at the boundaries to obtain yank, rectify, and smooth with a second-order
+Savitzky-Golay filter. Onset is the point of positive inflection leading to the first significant
+local maximum of rectified yank. The yank signal cannot define the start of braking, which the
+authors state explicitly.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "weighing_duration_seconds"
+unit = "seconds"
+published_values = [2.0]
+default = 2.0
+default_source = "sahrom2020"
+required = true
+
+[[method.parameter]]
+name = "gravity"
+unit = "meters_per_second_squared"
+published_values = [9.80665]
+default = 9.80665
+default_source = "sahrom2020"
+required = true
+
+[[method.citation]]
+key = "sahrom2020"
+role = "proposes"
+reference = "Sahrom, Wilkie, Nosaka and Blazevich 2020, R Soc Open Sci 7(8):192093, open access"
+doi = "10.1098/rsos.192093"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.005
+unit = "seconds"
+direction = "early"
+criterion = "motion_capture_marker"
+criterion_kind = "instrument"
+source = "sahrom2020"
+# SD 0.013 s, against 5 SD at -0.106 s with SD 1.170 s, 2 SD at -0.015 s with SD 0.438 s, and the
+# bodyweight-percentage rules at -0.138 s and -0.410 s.
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "Disagreement with evidence, which is rare here, and arguably a resolved debate the field has not absorbed."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very large on everything time-anchored"
+rationale = """
+It must appear in the fingerprint. Defaulting a whole field to a single-study method would be
+premature, and the differentiation-plus-smoothing chain has free parameters the paper does not state.
+"""
+
+[[method]]
+id = "onset.reverse_scan"
+construct = "movement_onset"
+group = "C"
+title = "Scan backwards from a downstream landmark to a baseline-return criterion"
+rule = """
+Locate a well-defined downstream landmark and scan backwards until a baseline-return criterion is
+met. Anchored to a downstream event rather than to the baseline, which makes it immune to baseline
+noise in a way neither the threshold nor the derivative family is.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.parameter]]
+name = "start_point"
+unit = "enumeration"
+notes = """
+Published start points: force decreasing beyond peak residual plus one standard deviation of the
+weighing phase; beyond twice peak residual; peak unweighting force. Prior literature also uses
+1.75 times peak residual.
+"""
+
+[[method.parameter]]
+name = "return_tolerance_n"
+unit = "newtons"
+published_values = [0.5]
+default = 0.5
+default_source = "pinto2023"
+required = true
+
+[[method.citation]]
+key = "pinto2023"
+role = "evaluates"
+reference = "Pinto and Callaghan 2023, per-variant rules in the truncated half of the paper"
+doi = "10.1123/jab.2022-0111"
+obtained = false
+
+[[method.disagrees_with]]
+id = "onset.first_derivative.lowpass_then_differentiate"
+kind = "genuine"
+note = "It underperformed the first-derivative method in the only head-to-head test held."
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+rationale = "The family exists and was tested; the per-variant rules are in the truncated half of the paper."
+
+[[method]]
+id = "onset.changepoint_statistical"
+construct = "movement_onset"
+group = "C"
+title = "Statistical change-point detection on the pre-onset process"
+rule = """
+Model the pre-onset signal as a stationary random process and detect the instant its parameters
+change. Concrete forms are an approximate generalised likelihood ratio test, a cumulative-sum test,
+and a Bayesian change-point posterior.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.parameter]]
+name = "onset_posterior_probability"
+unit = "fraction"
+published_values = [0.6, 0.9]
+default = 0.6
+default_source = "tenan2017"
+required = false
+
+[[method.parameter]]
+name = "assumed_signal_to_noise"
+unit = "ratio"
+published_values = [0.2]
+default = 0.2
+default_source = "tenan2017"
+required = false
+
+[[method.citation]]
+key = "staude1999"
+role = "proposes"
+reference = "Staude G and Wolf W 1999, Med Eng Phys 21(6):449-467"
+doi = "10.1016/S1350-4533(99)00067-3"
+obtained = false
+
+[[method.citation]]
+key = "tenan2017"
+role = "proposes"
+reference = "Tenan, Tweedell and Haynes 2017, PLOS One 12(5):e0177312, ingested"
+obtained = true
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "Structurally the deepest disagreement, because the change-point framing says the threshold framing asks the wrong question."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "unknown on force"
+rationale = """
+Carries a not-validated-for-force marker. EMG baseline is zero-mean stochastic and force baseline
+is a large DC offset plus small noise, with the change in the mean rather than the variance. The
+statistics carry over; the tuning does not.
+"""
+
+[[method]]
+id = "onset.model_fit_error_minimisation.chronojump"
+construct = "movement_onset"
+group = "C"
+title = "Onset at the start sample that minimises a fitted exponential's residual"
+rule = """
+Take the last local force minimum before the peak rate-of-force-development sample, fit a
+mono-exponential rise over the analysis window, then increment the start sample by one and refit
+while the mean absolute percentage residual strictly decreases, stopping on the first increase and
+backing off one. Onset is the sample nearest the final model's fitted time origin.
+"""
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_r"
 role = "uses"
-reference = "Owen et al. 2014, JSCR 28:1552-1558"
+reference = "Chronojump maximumIsometricForce.R:1035-1222, getBestFit, the shipped default"
+obtained = true
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = """
+The only onset rule in the sweep defined by the fit quality of a downstream model rather than by a
+property of the signal. That circularity is the substantive objection and it belongs in the
+registry as a category rather than as a variant.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "large on time to peak force and epoch rate of force development, small on peak force"
+rationale = """
+The highest-leverage hidden choice in that tool's force-sensor path, on by default, and the
+maintainers themselves record in source that no scientific papers use it. Direction is predictable:
+minimising residual on a mono-exponential pushes onset later, which shortens every epoch and
+therefore inflates epoch-anchored rate of force development.
+"""
+
+[[method]]
+id = "onset.op.backward_offset_fixed"
+construct = "movement_onset"
+group = "C"
+title = "Step back a fixed wall-clock offset from the threshold crossing"
+rule = """
+Locate the threshold crossing, step back a fixed wall-clock offset, and start there with velocity
+forced to zero.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "offset_ms"
+unit = "milliseconds"
+published_values = [30.0, 200.0, 250.0, 300.0]
+default = 30.0
+default_source = "owen2014"
+required = true
+notes = """
+A contested parameter. 30 ms is convention and is in extremely wide use through the Chavda
+template; 250 ms is derived by joint optimisation over filter type, order, cutoff, integration
+start and takeoff instant against a kinematic criterion, which is a strictly stronger evidentiary
+basis, but only its abstract has been read. Omitting the offset is not choosing 0 ms, it is failing
+to implement the cited method, and the zero value is flagged in the fingerprint as a deviation.
+"""
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28(6):1552-1558, 30 ms as part of a criterion specification"
 doi = "10.1519/JSC.0000000000000311"
 obtained = false
+
+[[method.citation]]
+key = "pinto2024"
+role = "proposes"
+reference = "Pinto and Callaghan 2024, J Sports Sci 42(11):1022-1029, abstract only"
+doi = "10.1080/02640414.2024.2381288"
+obtained = false
+
+[[method.citation]]
+key = "chavda2018"
+role = "uses"
+reference = "Chavda et al. 2018 Excel template, integration start at onset time minus 0.03"
+doi = "10.1519/ssc.0000000000000353"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.027
+unit = "seconds"
+direction = "early"
+criterion = "onset.threshold.noise_relative"
+criterion_kind = "model"
+source = "convergence_of_six_measurements"
+conditional_on_success = true
+# Six measurements across three threshold families, two tasks with a countermovement and two
+# without, force plates and strain-gauge dynamometers, all between 22 and 33 ms. The correction is
+# a constant to first order and not to second: Guppy's limits of agreement on 5 SD span 59 ms.
 
 [method.failure]
 rate = 0.1494
 numerator = 36
 denominator = 241
 corpus = "harrison2011_cmj"
-definition = "time to takeoff exceeding 2.0 s on a movement whose true duration is under 1 s"
+definition = """
+The composed 5 SD minus 30 ms rule as implemented, one-sided below with no persistence and no
+search floor: onset placed more than 2.0 s before takeoff on a movement whose true duration is
+under 1 s. 16 of the 36 failures fire inside the rule's own 0.25 s reference epoch. The offset is
+innocent and is being tarred by the composition it ships in: the failure follows the missing floor.
+"""
 detectability = "silent"
+
+[[method.disagrees_with]]
+id = "onset.op.backtrack_to_tolerance"
+kind = "genuine"
+note = "A fixed time offset against a signal-derived return to baseline, and 30 against 250 ms against each other."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "small on jump height, large on time to takeoff and reactive strength index modified"
+rationale = "Two published values as named presets, never a free-text millisecond box."
+
+[[method]]
+id = "onset.op.backtrack_to_tolerance"
+construct = "movement_onset"
+group = "C"
+title = "Retreat from the crossing until force returns within a tolerance of the reference"
+rule = """
+Advance until the threshold is crossed, then retreat sample by sample until force returns to within
+a stated tolerance of the reference. The crossing is used only as a trigger and the reported onset
+is where force actually left baseline.
+"""
+# Prose grants recommended. Three parties reached it independently and merrigan2022 is obtained,
+# so rule 6 does not bar it.
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "tolerance"
+unit = "enumeration"
+notes = """
+Published tolerances: exactly at system weight; within 0 to 2 N of it; within one standard
+deviation of it. The last two are the same idea in incomparable units, one scaling with the noise
+and one not, so on a quiet plate they can differ by an order of magnitude in either direction. The
+tolerance unit must be shown in the interface, not just the number.
+"""
+
+[[method.parameter]]
+name = "retreat_cap_samples"
+unit = "count"
+notes = """
+The published MATLAB variant has no floor and no iteration cap, so on a noisy quiet phase it can
+walk arbitrarily far back. A parameter to bound rather than a reason to reject the family.
+"""
+
+[[method.citation]]
+key = "merrigan2022"
+role = "evaluates"
+reference = "Merrigan et al. 2022, JSCR 36(9):2387-2402, Table 1 and the openly downloadable supplementary MATLAB"
+obtained = true
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams global.R:619-666, inverse threshold after a 100 ms lookback"
+obtained = true
+
+[[method.citation]]
+key = "hawkin_glossary"
+role = "uses"
+reference = "Hawkin Dynamics, within 0 to 2 N of bodyweight, documented in Merrigan 2022 Table 1"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.05
+unit = "seconds"
+direction = "early"
+criterion = "onset.threshold.noise_relative"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Places onset earlier than the bare crossing by the entire rise time from baseline to threshold,
+# which is tens to hundreds of milliseconds in a slow unweighting. Not quantified in any source;
+# the magnitude here is a nominal figure carrying the direction only.
+
+[[method.disagrees_with]]
+id = "onset.op.backward_offset_fixed"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.op.crossing_selection"
+kind = "genuine"
+note = "Two-stage detection against single-threshold first-crossing with no refinement."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "maximal on time to takeoff, and in the opposite direction to what most practitioners assume"
+rationale = """
+On by default, with both candidate onsets drawn on the trace and the gap between them displayed as
+a diagnostic of how gradual the athlete's unweighting was.
+"""
+
+[[method]]
+id = "onset.op.persistence"
+construct = "movement_onset"
+group = "C"
+title = "A crossing counts only if the signal stays past the threshold for a stated span"
+rule = """
+A threshold crossing counts only if the signal remains past the threshold for a stated span. Onset
+is the first sample of the qualifying run.
+"""
+# Prose grants recommended and pedley2023 is obtained, so rule 6 does not bar it.
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "span_ms"
+unit = "milliseconds"
+published_values = [20.0, 30.0, 50.0, 100.0, 175.0, 250.0]
+default = 30.0
+default_source = "jumptest"
+required = true
+notes = """
+Consecutive-sample counts are sampling-rate dependent and millisecond spans are not, so the two
+families are not interchangeable. Published sample counts are 2, 4, 10 and 12, which at 500, 1000
+and 2000 Hz are three different spans.
+"""
+
+[[method.citation]]
+key = "pedley2023"
+role = "proposes"
+reference = "Pedley et al. 2023, Strength Cond J, two consecutive samples"
+doi = "10.1519/ssc.0000000000000776"
+obtained = true
+
+[[method.citation]]
+key = "jumptest"
+role = "uses"
+reference = "sinnerfilozofiya jumptest, 30 ms onset and 20 ms landing"
+obtained = true
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics duration_check, 100 ms default, 175 ms at the countermovement-jump call site"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.03
+unit = "seconds"
+direction = "late"
+criterion = "onset.op.crossing_selection"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Bounded by the persistence span, and in the opposite direction to the backtracking operators, so
+# a tool that does both partially cancels them.
+
+[method.failure]
+rate = 0.0082
+numerator = 2
+denominator = 244
+corpus = "harrison2011_cmj"
+definition = """
+One-sided below with a 30 ms persistence span and a hard 0.5 s search floor, k = 5: onset placed
+more than 2.0 s before takeoff. The composed rule fails 18 times less often than its two neighbours
+and differs from them only in having a persistence span and a search floor, so this rate belongs
+jointly to this entry and to onset.op.search_floor and the schema can hold it on only one.
+"""
+detectability = "silent"
+
+[[method.disagrees_with]]
+id = "onset.op.crossing_selection"
+kind = "genuine"
+note = "The well-posed version of the first-against-last question. Composes with backtracking rather than conflicting."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate on time to takeoff"
+rationale = "A user should never be asked how many samples of noise rejection they want. Expose it only in a reproduction mode."
+
+[[method]]
+id = "onset.op.crossing_selection"
+construct = "movement_onset"
+group = "C"
+title = "Which crossing of the threshold is taken"
+rule = "Select the first, the last, or the longest contiguous run among the threshold crossings."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "selection"
+unit = "enumeration"
+published_values = []
+notes = """
+first, last, longest_run. The apparent first-against-last fork between two open tools is
+discretisation rather than a fork: within a search bounded above by the minimum force, a
+countermovement-jump trace crosses once, so last-above equals first-below minus one sample. The
+residual genuine difference is a noise-rejection policy on the same axis as persistence.
+"""
+
+[[method.citation]]
+key = "bilalovski"
+role = "uses"
+reference = "Bilalovski, first crossing, with an argued position stated in source"
+obtained = true
+
+[[method.citation]]
+key = "acu_sprint"
+role = "uses"
+reference = "ACU SPRINT, last crossing before a bound"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.311
+unit = "icc"
+direction = "low"
+criterion = "onset.op.direction"
+criterion_kind = "model"
+source = "barefoot2022"
+# The closely related above-or-below decision at 2.5 percent of system weight moves net impulse
+# ICC from 0.479 either-direction to 0.790 below-only; 4 SD moves 0.822 to 0.886.
+
+[[method.disagrees_with]]
+id = "onset.op.persistence"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.op.backtrack_to_tolerance"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate"
+rationale = "Genuine but narrow, and only when the search is unbounded."
+
+[[method]]
+id = "onset.op.hysteresis"
+construct = "movement_onset"
+group = "C"
+title = "Different thresholds to enter and to exit a state"
+rule = "Use one threshold to enter a state and a different one to leave it, guarding a boundary against chatter."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "enter_threshold_n"
+unit = "newtons"
+published_values = [5.0]
+default = 5.0
+default_source = "acu_sprint"
+required = true
+
+[[method.parameter]]
+name = "exit_threshold_n"
+unit = "newtons"
+published_values = [20.0]
+default = 20.0
+default_source = "acu_sprint"
+required = true
+
+[[method.citation]]
+key = "acu_sprint"
+role = "uses"
+reference = "ACU SPRINT Jump, 5 N to enter flight and 20 N to exit"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = "Lengthens the detected flight phase relative to a symmetric threshold at the higher value and shortens it relative to the lower."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate on flight time"
+rationale = "No other tool in the sweep does it, which makes it worth naming so its absence elsewhere is visible."
+
+[[method]]
+id = "onset.op.search_floor"
+construct = "movement_onset"
+group = "C"
+title = "Never look earlier than a fixed index into the recording"
+rule = """
+Begin the onset search at a fixed elapsed time into the recording and never look earlier,
+regardless of when the athlete moved.
+"""
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "floor_seconds"
+unit = "seconds"
+published_values = [0.5, 1.0]
+default = 0.5
+default_source = "jumpmetrics"
+required = true
+notes = "Three unrelated codebases invented it independently, which makes it a convergent instinct of the quiet-window family rather than a one-off bug."
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics find_unweighting_start begins at quiet_samples"
+obtained = true
+
+[[method.citation]]
+key = "jumptest"
+role = "uses"
+reference = "sinnerfilozofiya, 0.5 s, independently"
+obtained = true
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump SD method, hard 1.0 s search floor"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.5
+unit = "seconds"
+direction = "late"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Onset is placed at or after the floor, so time to takeoff is systematically short by up to the
+# floor minus the true onset time, and the error is unbounded below. Combined with a 2 s
+# pre-takeoff crop it imposes a hard 1.5 s ceiling on reported time to takeoff; 4 of the 244
+# validation trials exceed that and would be truncated at the default.
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "It silently overrides every onset policy it is composed with."
 
 [method.gui]
 surfacing = "force_a_decision"
-sensitivity = "high"
+sensitivity = "very large on time to takeoff and reactive strength index modified, negligible on jump height"
 rationale = """
-Fails on roughly one trial in seven while its median looks ordinary, so it must never
-be selected without the failure rate shown alongside it.
+A warning rather than a settable option. If onset lands exactly on the floor, that is diagnostic of
+a truncated lead-in and the trial is suspect.
+"""
+
+[[method]]
+id = "onset.op.search_upper_bound"
+construct = "movement_onset"
+group = "C"
+title = "Bound the onset search above by a downstream landmark"
+rule = """
+Bound the onset search above by a downstream landmark, so a last-crossing rule cannot pick up a
+crossing produced by the movement itself.
+"""
+# Prose grants recommended; every source is read from source, so rule 6 does not bar it.
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "bound"
+unit = "enumeration"
+notes = "minimum_force, peak_force, takeoff, time_of_minimum_force."
+
+[[method.citation]]
+key = "acu_sprint"
+role = "uses"
+reference = "ACU SPRINT, minimum force for the jump and peak force for the isometric pull"
+obtained = true
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams, the time of minimum force on the countermovement jump"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "zero when it does not bind, total when it does"
+rationale = """
+It is what makes a last-crossing rule safe, it costs nothing, and it is the mechanism by which two
+apparently opposed crossing-selection policies turn out to agree.
+"""
+
+[[method]]
+id = "onset.op.direction"
+construct = "movement_onset"
+group = "C"
+title = "Which sign of departure from the reference counts as onset"
+rule = "Count departures below the reference only, above it only, or in either direction."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "direction"
+unit = "enumeration"
+notes = """
+below_only, above_only, two_sided. An implementation detail for a countermovement jump, which
+always unweights first, and a genuine method fork for a squat jump, an isometric pull or a squat,
+which only rise. The same code is correct for one task and wrong for another.
+"""
+
+[[method.citation]]
+key = "bilalovski"
+role = "uses"
+reference = "Bilalovski, two-sided on the absolute departure from bodyweight"
+obtained = true
+
+[[method.citation]]
+key = "biomex"
+role = "uses"
+reference = "biomex.studio, unweighting-only, which never fires on a correctly executed squat jump"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.311
+unit = "icc"
+direction = "low"
+criterion = "onset.op.crossing_selection"
+criterion_kind = "model"
+source = "barefoot2022"
+# Net impulse ICC 0.479 either-direction against 0.790 below-only at 2.5 percent of system weight,
+# on a countermovement jump where an initial upward excursion from rising onto the toes counts.
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "total for the squat jump and the isometric pull, moderate for the countermovement jump"
+rationale = """
+Bind it to the movement type and refuse to run a one-sided detector on a task that does not have
+that sign. The failure is documented in the wild: a one-sided unweighting detector on a squat jump
+falls through at index zero and contact time silently becomes the entire elapsed recording.
 """

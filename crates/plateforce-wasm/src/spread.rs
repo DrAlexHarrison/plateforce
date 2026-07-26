@@ -1,0 +1,390 @@
+//! Running every defensible alternative for one quantity and reporting how far the
+//! number moves.
+//!
+//! The alternatives are the values the literature actually contains, which the registry
+//! carries per parameter. Nothing here invents a variant, and a variant that fails is
+//! listed with its reason rather than dropped from the denominator.
+
+use serde::{Deserialize, Serialize};
+
+use plateforce_core::Trial;
+
+use crate::analysis::{self, AnalysisRequest};
+
+/// One dimension of the sweep. Either the bound method for a slot changes, or one of its
+/// parameters does.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Axis {
+    pub slot: String,
+    #[serde(default)]
+    pub parameter: Option<String>,
+    #[serde(default)]
+    pub values: Vec<f64>,
+    #[serde(default)]
+    pub method_ids: Vec<String>,
+}
+
+impl Axis {
+    fn len(&self) -> usize {
+        if self.method_ids.is_empty() {
+            self.values.len()
+        } else {
+            self.method_ids.len()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SpreadRequest {
+    pub base: AnalysisRequest,
+    pub axes: Vec<Axis>,
+    pub quantity_key: String,
+    #[serde(default = "default_cap")]
+    pub maximum_combinations: usize,
+}
+
+fn default_cap() -> usize {
+    512
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Variant {
+    pub label: String,
+    pub settings: Vec<(String, String)>,
+    pub value: Option<f64>,
+    pub method_ids: Vec<String>,
+    #[serde(default)]
+    pub failure_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SpreadResponse {
+    pub quantity_key: String,
+    pub unit: String,
+    pub combinations_requested: usize,
+    pub combinations_run: usize,
+    pub capped: bool,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub minimum: Option<f64>,
+    pub maximum: Option<f64>,
+    pub median: Option<f64>,
+    pub spread_absolute: Option<f64>,
+    /// The headline figure. On the 244-trial corpus this reads 38.9 percent for time to
+    /// takeoff, which is the whole argument for the registry in one number.
+    pub spread_percent_of_median: Option<f64>,
+    pub baseline_value: Option<f64>,
+    pub variants: Vec<Variant>,
+}
+
+pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, String> {
+    let combinations_requested: usize = request.axes.iter().map(Axis::len).product::<usize>().max(1);
+    let cap = request.maximum_combinations.max(1);
+    let combinations_run = combinations_requested.min(cap);
+    let capped = combinations_requested > cap;
+
+    let baseline = analysis::run(trial, &request.base)
+        .ok()
+        .and_then(|response| extract(&response, &request.quantity_key).0);
+
+    let unit = analysis::run(trial, &request.base)
+        .ok()
+        .and_then(|response| {
+            response
+                .metrics
+                .iter()
+                .find(|m| m.key == request.quantity_key)
+                .map(|m| m.unit.to_string())
+        })
+        .unwrap_or_default();
+
+    let mut variants = Vec::with_capacity(combinations_run);
+    for index in 0..combinations_run {
+        let (candidate, settings) = materialise(&request.base, &request.axes, index);
+        let method_ids = vec![
+            candidate.weighing.method_id.clone(),
+            candidate.onset.method_id.clone(),
+            candidate.takeoff.method_id.clone(),
+        ];
+        let label = settings
+            .iter()
+            .map(|(name, value)| format!("{name} {value}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        match analysis::run(trial, &candidate) {
+            Ok(response) => {
+                let (value, warning) = extract(&response, &request.quantity_key);
+                variants.push(Variant {
+                    label: if label.is_empty() { "baseline".into() } else { label },
+                    settings,
+                    value,
+                    method_ids,
+                    failure_reason: value.is_none().then(|| {
+                        warning.unwrap_or_else(|| {
+                            "the rule found no crossing, so this quantity has no value".into()
+                        })
+                    }),
+                });
+            }
+            Err(error) => variants.push(Variant {
+                label: if label.is_empty() { "baseline".into() } else { label },
+                settings,
+                value: None,
+                method_ids,
+                failure_reason: Some(error),
+            }),
+        }
+    }
+
+    let mut values: Vec<f64> = variants.iter().filter_map(|v| v.value).collect();
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let median = values.get(values.len() / 2).copied();
+    let minimum = values.first().copied();
+    let maximum = values.last().copied();
+    let spread_absolute = match (minimum, maximum) {
+        (Some(low), Some(high)) => Some(high - low),
+        _ => None,
+    };
+
+    Ok(SpreadResponse {
+        quantity_key: request.quantity_key.clone(),
+        unit,
+        combinations_requested,
+        combinations_run,
+        capped,
+        succeeded: values.len(),
+        failed: variants.len() - values.len(),
+        minimum,
+        maximum,
+        median,
+        spread_absolute,
+        spread_percent_of_median: match (spread_absolute, median) {
+            (Some(spread), Some(mid)) if mid.abs() > f64::EPSILON => {
+                Some(100.0 * spread / mid.abs())
+            }
+            _ => None,
+        },
+        baseline_value: baseline,
+        variants,
+    })
+}
+
+fn extract(
+    response: &analysis::AnalysisResponse,
+    quantity_key: &str,
+) -> (Option<f64>, Option<String>) {
+    let value = response
+        .metrics
+        .iter()
+        .find(|m| m.key == quantity_key)
+        .and_then(|m| m.value)
+        .filter(|v| v.is_finite());
+    (value, response.warnings.first().cloned())
+}
+
+/// Mixed-radix decode of the flat index into one point of the cartesian product.
+fn materialise(
+    base: &AnalysisRequest,
+    axes: &[Axis],
+    flat_index: usize,
+) -> (AnalysisRequest, Vec<(String, String)>) {
+    let mut candidate = base.clone();
+    let mut settings = Vec::new();
+    let mut remainder = flat_index;
+
+    for axis in axes {
+        let width = axis.len().max(1);
+        let position = remainder % width;
+        remainder /= width;
+
+        if !axis.method_ids.is_empty() {
+            let method_id = axis.method_ids[position].clone();
+            settings.push((axis.slot.clone(), method_id.clone()));
+            match axis.slot.as_str() {
+                "onset" => candidate.onset.method_id = method_id,
+                "takeoff" => candidate.takeoff.method_id = method_id,
+                "weighing" => candidate.weighing.method_id = method_id,
+                _ => {}
+            }
+            continue;
+        }
+
+        let Some(parameter) = axis.parameter.as_ref() else {
+            continue;
+        };
+        let value = axis.values[position];
+        settings.push((parameter.clone(), format_value(value)));
+
+        match (axis.slot.as_str(), parameter.as_str()) {
+            ("weighing", "duration_seconds") => candidate.weighing.duration_seconds = value,
+            ("weighing", "start_seconds") => {
+                candidate.weighing.start_index = value.max(0.0) as usize
+            }
+            ("onset", name) => {
+                candidate.onset.parameters.insert(name.to_string(), value);
+                // A swept parameter has to be able to move the answer, so any marker the
+                // user dragged is released for the duration of the sweep.
+                candidate.onset.manual_index = None;
+            }
+            ("takeoff", name) => {
+                candidate.takeoff.parameters.insert(name.to_string(), value);
+                candidate.takeoff.manual_index = None;
+            }
+            _ => {}
+        }
+    }
+
+    (candidate, settings)
+}
+
+fn format_value(value: f64) -> String {
+    if (value.fract()).abs() < 1e-9 {
+        format!("{value:.0}")
+    } else if value.abs() < 0.1 {
+        format!("{value:.3}")
+    } else {
+        format!("{value:.2}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+    use crate::analysis::{MethodChoice, WeighingChoice};
+
+    fn synthetic() -> Trial {
+        let mut force = vec![600.0; 1200];
+        for index in 0..1200 {
+            force[index] += ((index % 17) as f64 - 8.0) * 0.4;
+        }
+        force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
+        force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
+        force.extend(std::iter::repeat(0.0).take(600));
+        force.extend(std::iter::repeat(1400.0).take(240));
+        Trial::new(force, 1200.0).unwrap()
+    }
+
+    fn base() -> AnalysisRequest {
+        AnalysisRequest {
+            weighing: WeighingChoice {
+                method_id: "bwepoch.fixed_window".into(),
+                start_index: 0,
+                duration_seconds: 0.8,
+            },
+            onset: MethodChoice {
+                method_id: "onset.threshold.noise_relative".into(),
+                parameters: BTreeMap::new(),
+                manual_index: None,
+            },
+            takeoff: MethodChoice {
+                method_id: "takeoff.threshold.absolute".into(),
+                parameters: BTreeMap::new(),
+                manual_index: None,
+            },
+            touchdown_index: None,
+            registry_backed_ids: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn the_published_values_of_one_parameter_move_the_number() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base(),
+                axes: vec![Axis {
+                    slot: "onset".into(),
+                    parameter: Some("k".into()),
+                    values: vec![2.0, 3.0, 5.0, 10.0],
+                    method_ids: Vec::new(),
+                }],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 512,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(response.combinations_run, 4);
+        assert_eq!(response.succeeded, 4);
+        assert!(response.spread_absolute.unwrap() > 0.0, "k did not move the answer");
+        assert_eq!(response.unit, "s");
+    }
+
+    #[test]
+    fn two_axes_produce_their_cartesian_product() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base(),
+                axes: vec![
+                    Axis {
+                        slot: "onset".into(),
+                        parameter: Some("k".into()),
+                        values: vec![2.0, 3.0, 5.0, 10.0],
+                        method_ids: Vec::new(),
+                    },
+                    Axis {
+                        slot: "onset".into(),
+                        parameter: Some("back_offset".into()),
+                        values: vec![0.010, 0.030, 0.040, 0.050],
+                        method_ids: Vec::new(),
+                    },
+                ],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 512,
+            },
+        )
+        .unwrap();
+        assert_eq!(response.combinations_requested, 16);
+        assert_eq!(response.combinations_run, 16);
+        assert!(!response.capped);
+    }
+
+    #[test]
+    fn a_capped_sweep_says_it_was_capped_rather_than_reporting_a_short_denominator() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base(),
+                axes: vec![Axis {
+                    slot: "onset".into(),
+                    parameter: Some("k".into()),
+                    values: (1..40).map(f64::from).collect(),
+                    method_ids: Vec::new(),
+                }],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 10,
+            },
+        )
+        .unwrap();
+        assert!(response.capped);
+        assert_eq!(response.combinations_requested, 39);
+        assert_eq!(response.combinations_run, 10);
+    }
+
+    #[test]
+    fn a_variant_that_fails_is_listed_with_a_reason_and_not_dropped() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base(),
+                axes: vec![Axis {
+                    slot: "onset".into(),
+                    parameter: Some("k".into()),
+                    values: vec![5.0, 100_000.0],
+                    method_ids: Vec::new(),
+                }],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 512,
+            },
+        )
+        .unwrap();
+        assert_eq!(response.variants.len(), 2);
+        assert_eq!(response.failed, 1);
+        let failed = response.variants.iter().find(|v| v.value.is_none()).unwrap();
+        assert!(failed.failure_reason.is_some());
+    }
+}

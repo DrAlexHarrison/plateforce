@@ -43,3 +43,63 @@ id = "system_weight"
 title = "Weight of athlete plus any external load during the weighing epoch"
 unit = "newtons"
 notes = "System weight includes the bar. Bodyweight does not. The registry records real conflations."
+
+[[construct]]
+id = "calibrated_force"
+title = "Vertical ground reaction force in newtons as the instrument reports it"
+unit = "newtons"
+notes = "The layer every other construct silently assumes is correct."
+
+[[construct]]
+id = "conditioned_force_signal"
+title = "Vertical ground reaction force after conditioning and before event detection"
+unit = "newtons"
+notes = "Group A is a substrate rather than a sibling group. Every other construct is computed on this."
+
+[[construct]]
+id = "filter_cutoff_frequency"
+title = "The cutoff frequency a conditioning filter is set to"
+unit = "hertz"
+
+[[construct]]
+id = "baseline_offset"
+title = "The plate's zero-load output, estimated separately from the athlete's weight"
+unit = "newtons"
+notes = "Offset and system weight are two separately estimated constants. Most tools estimate one."
+
+[[construct]]
+id = "baseline_noise_scale"
+title = "The spread of the reference distribution a noise-relative threshold is scaled by"
+unit = "newtons"
+notes = """
+Quiet-stance force and empty-plate noise are different distributions, so a comparison of
+8 SD against 5 SD across the two is not a comparison of threshold magnitude.
+"""
+
+[[construct]]
+id = "trial_validity"
+title = "Whether a trial is admitted to analysis"
+unit = "boolean"
+notes = "Every gate that rejects a trial is invisible data loss unless it reports what it rejected."
+
+[[construct]]
+id = "landing"
+title = "The instant the first foot returns to the plate"
+unit = "seconds"
+
+[[construct]]
+id = "flight_time"
+title = "Elapsed time from takeoff to landing"
+unit = "seconds"
+notes = "Both edges are biased in the same direction by a threshold rule, so the errors compound."
+
+[[construct]]
+id = "net_impulse"
+title = "Integral of vertical ground reaction force less system weight over a declared interval"
+unit = "newton_seconds"
+
+[[construct]]
+id = "takeoff_velocity"
+title = "Centre of mass velocity at the instant of takeoff"
+unit = "meters_per_second"
+notes = "Takeoff velocity and peak velocity are different instants. Peak generally precedes takeoff."

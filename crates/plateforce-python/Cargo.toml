@@ -15,3 +15,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
+
+# 0.27 is the newest pyo3 whose MSRV is 1.74 and so fits under the workspace floor of
+# 1.75. 0.28 and 0.29 require 1.83. abi3-py311 rather than a lower floor because
+# Py_buffer entered the stable ABI in 3.11, which is what lets an array be read
+# without a numpy dependency.
+pyo3 = { version = "0.27.2", features = ["abi3-py311"] }

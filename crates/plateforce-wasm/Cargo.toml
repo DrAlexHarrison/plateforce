@@ -14,3 +14,14 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
+toml = { workspace = true }
+
+# Pinned below 0.2.126, which raises the toolchain floor to 1.77 and would breach the
+# workspace MSRV. No feature selected here pulls in threads: the browser build has to
+# stay servable from static hosting with no cross-origin isolation headers.
+wasm-bindgen = { version = "=0.2.117", default-features = false, features = ["std"] }
+
+[package.metadata.docs.rs]
+targets = ["wasm32-unknown-unknown"]

@@ -1,0 +1,1100 @@
+# Group A. Acquisition and signal conditioning.
+#
+# A substrate rather than a sibling group: every variant in every other group is computed on a
+# signal that has been through three to five entries here first, and the interactions multiply.
+
+[[method]]
+id = "filter.none"
+construct = "conditioned_force_signal"
+group = "A"
+title = "No conditioning before event detection or integration"
+rule = """
+The digitised vertical ground reaction force is used as recorded, with no filter applied before
+event detection or integration.
+"""
+# Prose grants recommended for impulse and isometric work and accepted for phase boundaries.
+# Rule 6 bars recommended here: harry2022 and street2001 are both unobtained.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "street2001"
+role = "proposes"
+reference = "Street et al. 2001, JAB 17:43-54"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.citation]]
+key = "harry2022"
+role = "proposes"
+reference = "Harry et al. 2022, JSCR 36:1459-1467"
+doi = "10.1519/jsc.0000000000003611"
+obtained = false
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "proposes"
+reference = "Maffiuletti et al. 2016, EJAP 116:1091-1116"
+obtained = true
+
+[[method.citation]]
+key = "eythorsdottir2026"
+role = "evaluates"
+reference = "Eythorsdottir et al. 2026, Eur J Sport Sci, data processing systematic review"
+doi = "10.1002/ejsc.70114"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.25
+unit = "fraction"
+direction = "wider"
+criterion = "filter.butterworth.dual_pass_zerolag"
+criterion_kind = "instrument"
+source = "dossantos2018"
+# Onset threshold force was 17.2 to 33 percent lower when filtered, on the IMTP; contraction
+# start time showed no significant effect.
+
+[[method.disagrees_with]]
+id = "filter.butterworth.dual_pass_zerolag"
+kind = "genuine"
+note = "Unresolved because the criterion for a true jump height is itself disputed."
+
+[[method.disagrees_with]]
+id = "filter.butterworth.single_pass"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.moving_average.boxcar"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.savitzky_golay"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "small on impulse and flight time, large on peak force and any SD-derived threshold"
+rationale = """
+A tool must state its filter even when the answer is none. An undeclared no-filter is an absence
+rather than a choice.
+"""
+
+[[method]]
+id = "filter.butterworth.dual_pass_zerolag"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Zero-lag dual-pass Butterworth with Winter's correction"
+rule = """
+Two identical passes of the same order, forward then backward, with the dual-pass correction
+C = (2^(1/passes) - 1)^0.25 applied so the effective combined minus 3 dB point equals the nominal
+cutoff, and reflected end padding.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "order"
+unit = "poles"
+published_values = [2.0, 4.0]
+default = 2.0
+default_source = "winter2009"
+required = true
+
+[[method.parameter]]
+name = "cutoff_hz"
+unit = "hertz"
+published_values = [5.0, 6.0, 10.0, 27.0, 50.0, 100.0, 130.0, 580.0, 2290.0]
+default = 50.0
+default_source = "jumpmetrics"
+required = true
+notes = "The cutoff is the open question, not the filter."
+
+[[method.citation]]
+key = "winter2009"
+role = "proposes"
+reference = "Winter, Biomechanics and Motor Control of Human Movement, 4th ed. 2009"
+obtained = false
+
+[[method.citation]]
+key = "smith1989"
+role = "proposes"
+reference = "Smith G 1989, J Biomech 22(8/9):967-971, the reflected padding"
+obtained = false
+
+[[method.citation]]
+key = "kinovea_butterworth"
+role = "uses"
+reference = "Kinovea.Filtering/Butterworth.cs, MIT, as vendored by Chronojump"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.26
+unit = "fraction"
+direction = "low"
+criterion = "filter.none"
+criterion_kind = "instrument"
+source = "street2001"
+# Street measured analogue single-pass filters, which phase lag. A zero-lag filtfilt at the same
+# nominal cutoff does not reproduce the figure; see filter.analogue_pre_digitisation.
+
+[[method.bias]]
+magnitude = 0.019
+unit = "meters"
+direction = "high"
+criterion = "cutoff.fixed_convention"
+criterion_kind = "instrument"
+source = "harry2022"
+
+[[method.disagrees_with]]
+id = "filter.none"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.butterworth.single_pass"
+kind = "genuine"
+note = "A different filter rather than a parameter of this one, and the difference is measured."
+
+[[method.disagrees_with]]
+id = "filter.moving_average.boxcar"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.savitzky_golay"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very high on peak instantaneous rate of force development, small on impulse"
+rationale = "The cutoff belongs in every export and in the fingerprint."
+
+[[method]]
+id = "filter.butterworth.single_pass"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Single-pass Butterworth, order N, with phase lag"
+rule = """
+One pass of an order N Butterworth. Phase lag is proportional to frequency content and the
+effective rolloff is order N rather than order 2N.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "cutoff_hz"
+unit = "hertz"
+published_values = [5.0, 6.0, 14.0, 27.0, 130.0, 580.0, 2290.0]
+notes = "Street measured his own cutoffs by sine sweep rather than trusting the labels."
+
+[[method.citation]]
+key = "street2001"
+role = "evaluates"
+reference = "Street et al. 2001, JAB 17:43-54"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.citation]]
+key = "pinto2021"
+role = "evaluates"
+reference = "Pinto and Callaghan 2021, single against dual pass at matched nominal cutoffs"
+doi = "10.1080/1091367x.2021.1906253"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.0105
+unit = "meters"
+direction = "high"
+criterion = "motion_capture_marker"
+criterion_kind = "instrument"
+source = "pinto2021"
+# 5 Hz single pass sat 1.05 cm from a motion capture criterion against 0.57 cm for 5 Hz dual pass.
+
+[[method.disagrees_with]]
+id = "filter.butterworth.dual_pass_zerolag"
+kind = "genuine"
+note = "Phase lag moves every threshold crossing late in proportion to frequency content."
+
+[[method.disagrees_with]]
+id = "filter.none"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high on all crossings"
+
+[[method]]
+id = "filter.moving_average.boxcar"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Centred rectangular moving average of stated width"
+rule = "A centred rectangular FIR of stated width is convolved with the force signal."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "width_seconds"
+unit = "seconds"
+published_values = [0.01, 0.1]
+notes = """
+A width specified in samples rather than seconds is a fingerprint hazard. Sams' 10 point window
+is 10 ms at 1000 Hz and 8.3 ms at 1200 Hz, and the validation corpus is 1200 Hz.
+"""
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams, shiny-vertical-jump, 10 point option"
+obtained = true
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump R path, 0.1 s hardcoded"
+obtained = true
+
+[[method.disagrees_with]]
+id = "filter.butterworth.dual_pass_zerolag"
+kind = "genuine"
+note = "A sinc response with large sidelobes amplifies certain bands relative to a Butterworth."
+
+[[method.disagrees_with]]
+id = "filter.none"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate"
+rationale = "The width must be stored in seconds."
+
+[[method]]
+id = "filter.savitzky_golay"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Local polynomial least-squares fit of stated window and order"
+rule = """
+A local least-squares polynomial of stated order is fitted over a sliding window and evaluated at
+the window centre. Applied before differentiation, where it preserves peak height and width better
+than a frequency-domain filter.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "window_seconds"
+unit = "seconds"
+published_values = [0.02, 0.2]
+
+[[method.parameter]]
+name = "order"
+unit = "polynomial_order"
+published_values = [2.0, 3.0]
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics cmj_events.py:70, 0.2 s window, order 3, inside onset detection"
+obtained = true
+
+[[method.citation]]
+key = "sahrom2020"
+role = "uses"
+reference = "Sahrom et al. 2020, second order, applied to rectified yank"
+doi = "10.1098/rsos.192093"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.0008
+unit = "seconds"
+direction = "early"
+criterion = "onset.threshold.noise_relative"
+criterion_kind = "instrument"
+source = "plateforce_signal_measurement"
+# Measured on 200 trials of the validation corpus at 1200 Hz. The predicted systematic early bias
+# is absent; what is present is dispersion of SD 22.4 ms, range -87 to +275 ms, because
+# quiet-standing noise is low-frequency postural sway rather than white.
+
+[[method.disagrees_with]]
+id = "filter.butterworth.dual_pass_zerolag"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.none"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "dispersion of 22.4 ms on onset, roughly a fifth of the cross-implementation spread"
+rationale = """
+The filter must be recorded as part of the event definition rather than as a global preprocessing
+setting, because it is applied inside onset detection.
+"""
+
+[[method]]
+id = "cutoff.fixed_convention"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Reuse a published cutoff"
+rule = "The cutoff is taken from a published convention rather than derived from the data."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "cutoff_hz"
+unit = "hertz"
+published_values = [3.0, 4.0, 5.0, 6.0, 15.0, 30.0, 50.0, 100.0]
+default = 50.0
+default_source = "jumpmetrics"
+required = true
+
+[[method.citation]]
+key = "challis1999"
+role = "disputes"
+reference = "Challis 1999, JAB 15:303-317"
+doi = "10.1123/jab.15.3.303"
+obtained = false
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics, Sams and Hawkin at 50 Hz; Chronojump at 15 Hz isometric and 3 Hz elastic"
+obtained = true
+
+[[method.disagrees_with]]
+id = "cutoff.residual_analysis.winter"
+kind = "genuine"
+note = "Fixed against data-derived, and unusually well posed: Chronojump ships both in one binary."
+
+[[method.disagrees_with]]
+id = "cutoff.autocorrelation_whiteness.challis1999"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.gcv_spline.woltring1986"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.regularized_fourier_series.hatze1981"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very large on peak instantaneous rate of force development, small on impulse"
+
+[[method]]
+id = "cutoff.visual_inspection"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Choose the cutoff by eye from the filtered curves"
+rule = "The analyst inspects curves filtered at several cutoffs and selects one."
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "challis1999"
+role = "evaluates"
+reference = "Challis 1999, JAB 15:303-317, which catalogues and rejects it"
+doi = "10.1123/jab.15.3.303"
+obtained = false
+
+[[method.citation]]
+key = "harry2022"
+role = "uses"
+reference = "Harry et al. 2022, two visual-inspection cutoffs"
+doi = "10.1519/jsc.0000000000003611"
+obtained = false
+
+[[method.disagrees_with]]
+id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "never_a_user_choice"
+rationale = """
+Challis' verdict is the rationale: it lacks objectivity and is not likely to be repeatable, which
+makes comparisons between studies problematic. Retained because published results carry it.
+"""
+
+[[method]]
+id = "cutoff.residual_analysis.winter"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Winter's residual analysis"
+rule = """
+Filter at a range of cutoffs, plot the RMS residual between filtered and raw against cutoff, take
+the intercept of the linear noise-dominated portion with the residual axis, and choose the cutoff
+whose residual equals that intercept.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "winter2009"
+role = "proposes"
+reference = "Winter, Biomechanics and Motor Control of Human Movement"
+obtained = false
+
+[[method.citation]]
+key = "harbili2012"
+role = "uses"
+reference = "Harbili 2012 snatch analysis, 4 Hz"
+obtained = true
+
+[[method.disagrees_with]]
+id = "cutoff.fixed_convention"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "refuse"
+sensitivity = "high"
+rationale = """
+Every automatic cutoff rule assumes the movement signal is band-limited to low frequencies. Around
+takeoff and landing the transition from full body weight to zero is a genuine step, and a step is
+broadband, so no cutoff separates signal from noise. Not validated for ground reaction force.
+"""
+
+[[method]]
+id = "cutoff.autocorrelation_whiteness.challis1999"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Cutoff at which the removed component best approximates white noise"
+rule = """
+Vary the cutoff until filtered minus unfiltered best approximates white noise, scored by the
+Durbin-Watson statistic as |2 - DW|/2.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "challis1999"
+role = "proposes"
+reference = "Challis J, JAB 15:303-317, 1999"
+doi = "10.1123/jab.15.3.303"
+obtained = false
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump math.cs:2148, implemented and switched off"
+obtained = true
+
+[[method.bias]]
+magnitude = 13.7
+unit = "hertz"
+direction = "low"
+criterion = "cutoff.fixed_convention"
+criterion_kind = "model"
+source = "open_surrogates"
+# Two open surrogates carry the rule and its 11.0 against 24.7 Hz spread against a fixed cutoff.
+
+[[method.disagrees_with]]
+id = "cutoff.fixed_convention"
+kind = "genuine"
+note = "Per-trial cutoff variation makes trials within a subject non-comparable."
+
+[[method.disagrees_with]]
+id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high"
+rationale = "Not validated for ground reaction force, for the reason in cutoff.residual_analysis.winter."
+
+[[method]]
+id = "cutoff.gcv_spline.woltring1986"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Spline tightness by generalised cross-validation"
+rule = "Fit a smoothing spline and choose its tightness by generalised cross-validation."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "woltring1986"
+role = "proposes"
+reference = "Woltring 1986, after Golub, Heath and Wahba 1979, read through Challis 1999"
+obtained = false
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump encoder path, CROSSVALIDATESMOOTH hardcoded FALSE"
+obtained = true
+
+[[method.disagrees_with]]
+id = "cutoff.fixed_convention"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "Not validated for ground reaction force."
+
+[[method]]
+id = "cutoff.regularized_fourier_series.hatze1981"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Truncated Fourier series with analytic differentiation"
+rule = "Fit a discrete Fourier series, truncate it, and differentiate the truncation analytically."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "hatze1981"
+role = "proposes"
+reference = "Hatze 1981, after Anderssen and Bloomfield 1974, read through Challis 1999"
+obtained = false
+
+[[method.disagrees_with]]
+id = "cutoff.fixed_convention"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "Not validated for ground reaction force."
+
+[[method]]
+id = "cutoff.percent_signal_power.harry2022"
+construct = "filter_cutoff_frequency"
+group = "A"
+title = "Cutoff retaining a stated fraction of signal power"
+rule = "Choose the cutoff that retains a stated fraction of total signal power."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "retained_power_fraction"
+unit = "fraction"
+published_values = [0.99]
+default = 0.99
+default_source = "harry2022"
+required = true
+
+[[method.citation]]
+key = "harry2022"
+role = "evaluates"
+reference = "Harry et al. 2022, JSCR 36(5):1459-1467"
+doi = "10.1519/jsc.0000000000003611"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.019
+unit = "meters"
+direction = "high"
+criterion = "cutoff.fixed_convention"
+criterion_kind = "model"
+source = "harry2022"
+# The largest deviation of anything Harry tested, 1.9 cm from 50 Hz.
+
+[[method.disagrees_with]]
+id = "cutoff.fixed_convention"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.visual_inspection"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.residual_analysis.winter"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.autocorrelation_whiteness.challis1999"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.gcv_spline.woltring1986"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "cutoff.regularized_fourier_series.hatze1981"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "large"
+
+[[method]]
+id = "filter.matched_cutoff_across_signals.bisseling2006"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Filter two signals that will be combined at one cutoff"
+rule = """
+When two signals are multiplied or otherwise combined, filter both at the same cutoff, accepting
+the loss of a real force transient, because mismatched cutoffs inject an artefactual spike present
+in neither input.
+"""
+# Prose grants recommended. Rule 6 bars it: all three primaries and the letter exchange are unobtained.
+status = "accepted"
+confidence = "low"
+debate = "single_position"
+
+[[method.citation]]
+key = "bisseling2006"
+role = "proposes"
+reference = "Bisseling and Hof 2006, J Biomech"
+doi = "10.1016/j.jbiomech.2005.07.021"
+obtained = false
+
+[[method.citation]]
+key = "kristianslund2012"
+role = "evaluates"
+reference = "Kristianslund, Krosshaug and van den Bogert 2012, J Biomech"
+doi = "10.1016/j.jbiomech.2011.12.011"
+obtained = false
+
+[[method.citation]]
+key = "roewer2014"
+role = "evaluates"
+reference = "Roewer, Ford, Myer and Hewett 2014, BJSM"
+doi = "10.1136/bjsports-2012-091398"
+obtained = false
+
+[[method.disagrees_with]]
+id = "cutoff.fixed_convention"
+kind = "genuine"
+note = "Filter settings for two signals that will be combined are not independent choices."
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "total for any joint-moment output, zero for a force-plate-only pipeline"
+rationale = """
+Registered as a principle rather than a computation. Kristianslund showed mismatched cutoffs
+produce artefactual knee valgus moments in sidestep cutting and the field changed its methods,
+which is the only clear instance of that outcome found in the sweep.
+"""
+
+[[method]]
+id = "filter.prewarm_state_to_dc.inertiax"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Initialise filter state to steady-state DC rather than to zeros"
+rule = """
+Initialise the recursive filter's state to the steady-state response of the signal's opening level
+rather than to zeros, for the causal pass and for the zero-phase forward-backward pass alike.
+"""
+# Prose grants recommended. No paper exists, so no obtained source bars it; the rationale is a
+# source comment rather than a measurement, which is where the confidence sits.
+status = "recommended"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "inertiax"
+role = "proposes"
+reference = "InertiaX Pro, lib dsp module, rationale stated in source comments"
+obtained = true
+
+[[method.bias]]
+magnitude = -100.0
+unit = "samples"
+direction = "corrupted"
+criterion = "filter.none"
+criterion_kind = "instrument"
+source = "inertiax"
+# Source states the transient would otherwise corrupt the first ~100 samples and introduce a large
+# negative velocity bias in the impulse integral. Direction is determinate and suppresses jump
+# height; magnitude is a source comment rather than a measurement.
+
+[[method.disagrees_with]]
+id = "filter.butterworth.dual_pass_zerolag"
+kind = "genuine"
+note = """
+Every other implementation zero-initialises implicitly. Not a genuine debate about method, a
+correctness issue, and scipy filtfilt's edge padding partly protects tools that use it.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "potentially large on impulse-momentum jump height in any hand-rolled recursive filter"
+rationale = "Users must never see it. It should simply be right."
+
+[[method]]
+id = "filter.analogue_pre_digitisation"
+construct = "conditioned_force_signal"
+group = "A"
+title = "Filtering applied in hardware before the analogue to digital converter"
+rule = "The signal is filtered in the amplifier before digitisation, and the filter is invisible downstream."
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "street2001"
+role = "uses"
+reference = "Street et al. 2001, six analogue single-pass second-order filters"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.disagrees_with]]
+id = "filter.butterworth.single_pass"
+kind = "genuine"
+note = """
+Street's minus 26 percent was measured with analogue single-pass filters, which phase lag, so
+citing it as a fact about digital zero-lag filtering misreads the source.
+"""
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "large"
+rationale = "A declared field on imported legacy data. The phase lag and attenuation are unrecoverable."
+
+[[method]]
+id = "offset.unloaded_epoch.street2001"
+construct = "baseline_offset"
+group = "A"
+title = "Separate averaging window over the plate's unloaded output"
+rule = """
+Average the plate's output over a window in which it is unloaded, and subtract that offset
+independently of the athlete's weight.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "street2001"
+role = "proposes"
+reference = "Street et al. 2001, JAB 17:43-54, obtained as 2 of 12 pages"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.01
+unit = "fraction"
+direction = "low"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "model"
+source = "street2001"
+# Under 1 percent on jump height, which is small, and it is the one term nobody else models at all.
+
+[[method.disagrees_with]]
+id = "calibration.plate_transfer_model"
+kind = "genuine"
+note = "Single-constant subtraction folds the offset into the weight estimate."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small directly, larger through its effect on noise-relative thresholds"
+
+[[method]]
+id = "drift.aerial_phase_spline.alcantara2019"
+construct = "baseline_offset"
+group = "A"
+title = "Spline through mid-aerial known-zero values"
+rule = """
+Take the force value at the middle of each aerial phase, discarding the first and last few frames
+of each because the plate has not fully unloaded there, interpolate a third-order spline through
+those values at their frame indices, and subtract that spline from the whole signal. Requires a
+prior filtering step.
+"""
+# Prose grants recommended, scoped to trials containing genuine repeated zero-load intervals.
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "spline_order"
+unit = "polynomial_order"
+published_values = [3.0]
+default = 3.0
+default_source = "alcantara2019"
+required = true
+
+[[method.citation]]
+key = "alcantara2019"
+role = "proposes"
+reference = "Alcantara R S, JOSS 4(43):1910, 2019, read from source at dryft/signal.py"
+doi = "10.21105/joss.01910"
+obtained = true
+
+[[method.disagrees_with]]
+id = "drift.linear_ramp_to_impulse"
+kind = "genuine"
+note = "One has an external anchor and the other does not."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "large on any integral over a long trial, small on a single countermovement jump"
+rationale = """
+Scope must be recorded or it will be applied where it does nothing and skipped where it matters.
+A single countermovement jump supplies one known-zero observation, so the analogue degenerates to
+a one-point re-zero and cannot recover a trend.
+"""
+
+[[method]]
+id = "drift.linear_ramp_to_impulse"
+construct = "baseline_offset"
+group = "A"
+title = "Linear velocity ramp from onset to the impulse-implied takeoff velocity"
+rule = """
+Set velocity to zero at onset, integrate to takeoff, compute the expected takeoff velocity as net
+impulse over mass across the same interval, then add a linear ramp from zero at onset to the
+difference between expected and integrated velocity at takeoff.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "jumptest"
+role = "uses"
+reference = "sinnerfilozofiya/jumptest-analysis, src/physics/kinematics.py:44-55"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0
+unit = "meters_per_second"
+direction = "none"
+criterion = "drift.aerial_phase_spline.alcantara2019"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Exactly zero by algebra rather than by smallness: both sides apply the same trapezoid rule over
+# the same interval, so the ramp is floating-point residue, measured between 3.6e-15 and 4.3e-14 m/s.
+
+[[method.disagrees_with]]
+id = "drift.aerial_phase_spline.alcantara2019"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "very small"
+rationale = """
+Kept for recognition value: it is the only artefact in any jump tool presenting itself as a
+velocity-drift policy, and a practitioner who meets it needs to be able to look it up and be told
+it is a no-op.
+"""
+
+[[method]]
+id = "calibration.plate_transfer_model"
+construct = "calibrated_force"
+group = "A"
+title = "Raw-to-newtons transfer model across the working range"
+rule = """
+Map raw plate output to newtons through a declared transfer model. Three published forms: a
+wide-range in-situ calibration, a per-cell offset plus gain, and a legacy polynomial on the summed
+signal.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "model_form"
+unit = "enumeration"
+notes = "wide_range_in_situ, per_cell_offset_and_gain, legacy_polynomial_on_sum. Mandatory."
+
+[[method.citation]]
+key = "poyatos2026"
+role = "proposes"
+reference = "Poyatos-Bakker et al. 2026, Measurement 271:120933"
+doi = "10.1016/j.measurement.2026.120933"
+obtained = false
+
+[[method.citation]]
+key = "inertiax"
+role = "uses"
+reference = "InertiaX, per-cell offset plus gain preferred, legacy polynomial superseded"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.2
+unit = "newtons"
+direction = "either"
+criterion = "static_dead_weight_calibration"
+criterion_kind = "instrument"
+source = "street2001"
+# A lab-grade in-ground plate static-calibrated against six known weights gives r = 0.999997 and
+# SEE 1.2 N, an order of magnitude below the 17 N peak residual measured dynamically on a portable.
+
+[[method.disagrees_with]]
+id = "offset.unloaded_epoch.street2001"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "large and multiplicative on everything"
+rationale = """
+Calibration constants must carry a datetime so staleness is auditable. InertiaX documents a
+shipped bug, missing slave-board calibration offsets, that produced a real left-right asymmetry
+bias in released results.
+"""
+
+[[method]]
+id = "conditioning.tared_plate_reconstruction"
+construct = "calibrated_force"
+group = "A"
+title = "Reconstruct absolute force when the plate was zeroed under the standing athlete"
+rule = """
+When the plate was zeroed with the subject already standing on it, reconstruct absolute vertical
+ground reaction force as measured force plus body weight, with body weight taken from a declared
+mass.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "declared_mass_kg"
+unit = "kilograms"
+notes = "Typed by the user. A scale-against-plate discrepancy becomes a constant force offset."
+
+[[method.citation]]
+key = "biomex"
+role = "uses"
+reference = "biomex.studio jump page, auto-enabled when the BioWare parser fires"
+obtained = true
+
+[[method.bias]]
+magnitude = 3.5
+unit = "ratio"
+direction = "either"
+criterion = "noise_ref.distribution"
+criterion_kind = "instrument"
+source = "biomex"
+# Ticking the tare checkbox silently swaps the tool's noise estimator and therefore its onset
+# threshold, from an effective 2.5 percent-of-bodyweight band to 0.72 percent on the demo trial.
+
+[[method.disagrees_with]]
+id = "calibration.plate_transfer_model"
+kind = "vendor_convention"
+note = "Tools assuming absolute force produce nonsense on a tared export without noticing."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total"
+rationale = "Auto-detected and explicitly flagged. biomex does this well and the pattern is worth copying."
+
+[[method]]
+id = "contact_event.mat_switch_or_optical_beam"
+construct = "takeoff"
+group = "A"
+title = "Contact events from a mechanical switch or a photoelectric beam"
+rule = """
+Takeoff and landing are taken from a mechanical switch opening or a photoelectric beam clearing,
+with a firmware debounce interval as a parameter. There is no force signal and no threshold.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "debounce_ms"
+unit = "milliseconds"
+published_values = [10.0, 50.0]
+default = 50.0
+default_source = "chronopic_firmware"
+required = true
+notes = """
+Compile-time on the assembler build, runtime-settable in 10 ms units on the multitest C firmware.
+It imposes a hard floor on any measurable contact or flight phase; shorter phases merge into their
+neighbours silently, and no reanalysis can recover the value that was in force.
+"""
+
+[[method.citation]]
+key = "chronopic_firmware"
+role = "uses"
+reference = "Chronopic firmware, chronopic-firmware.asm, DEBOUNCE_TIME EQU 0x05"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.013
+unit = "meters"
+direction = "low"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "instrument"
+source = "photocell_mat_comparison"
+# Photocell mats under-read a force plate by 1.3 +/- 0.2 cm and contact mats by 5.9 +/- 5.2 cm.
+# Two photocell devices implementing the identical equation differ from each other by 4.5 cm.
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = "A hardware difference no post-hoc correction can remove."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "high on flight time, therefore on flight-time jump height and reactive strength index"
+rationale = """
+The device must be a first-class field on every imported record, and mat-derived and plate-derived
+heights must never merge into one column.
+"""
+
+[[method]]
+id = "force.resultant_supported_bodyweight_component.chronojump"
+construct = "calibrated_force"
+group = "A"
+title = "Add back the gravitational component of a supported segment for an angled load cell"
+rule = """
+For a load cell in series with the athlete at a non-zero angle, add back the gravitational
+component of the supported body segment as a declared percentage of body mass times the sum of
+acceleration and g times the sine of the exercise angle.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "pct_bodyweight"
+unit = "percent"
+notes = "A per-exercise table value rather than a measurement."
+
+[[method.parameter]]
+name = "angle_degrees"
+unit = "degrees"
+notes = "A per-exercise attribute stored with the exercise definition, so the correction is reproducible."
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R:128-136, undisclosed, no citation anywhere in the product"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0
+unit = "newtons_per_second"
+direction = "none"
+criterion = "rfd.peak_sliding_window"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# A wrong percentage shifts the whole trace by a constant, changing peak force and every impulse
+# and leaving every rate of force development unchanged, because a constant has zero derivative.
+
+[[method.disagrees_with]]
+id = "calibration.plate_transfer_model"
+kind = "genuine"
+note = "Whether an exercise needs the correction is a modelling judgement."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "large on peak force and impulse, zero on rate of force development"
+rationale = """
+Chronojump suppresses its time-constant annotation when the correction is active, because the
+model's zero is no longer the physical zero.
+"""

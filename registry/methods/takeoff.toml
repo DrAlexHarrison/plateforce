@@ -1,0 +1,438 @@
+# Group D. Takeoff, flight and landing detection.
+#
+# Landing and touchdown thresholds add zero entries: the absolute, percent-bodyweight and
+# noise-relative rules at the rising edge are the same three families at the falling edge.
+#
+# The whole group is low-stakes relative to onset, and that is measured rather than assumed. Six
+# published takeoff rules on the same 21 participants and the same code span 1.4 cm of jump height
+# and 5 ms of movement time, with every reliability statistic essentially unchanged. Onset and
+# takeoff are both thresholds in newtons and a designer would give them the same treatment. They
+# must not have it.
+
+[[method]]
+id = "takeoff.threshold.absolute_force"
+construct = "takeoff"
+group = "D"
+title = "First sample past a fixed newton threshold"
+rule = """
+Takeoff is the first sample below a fixed newton threshold, and landing the first sample above it,
+optionally qualified by a persistence span.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [1.0, 5.0, 10.0, 20.0, 25.0, 30.0, 50.0]
+default = 20.0
+default_source = "vald_glossary"
+required = true
+notes = """
+Not adaptive to the actual noise floor. Peak residual force during flight was measured at
+17 +/- 2.4 N on one portable plate, exceeding 20 N on three jumps, so the 10 N, 5 N and sub-1 N
+thresholds were all inside the signal noise. One vendor's documented value drifted from 20 N to
+30 N across software versions, which no citation can fix.
+"""
+
+[[method.parameter]]
+name = "persistence_ms"
+unit = "milliseconds"
+published_values = [15.0, 30.0, 250.0]
+notes = """
+A 250 ms persistence imposes a minimum detectable flight time of 250 ms, so a minimum jump height
+of about 7.7 cm: shorter jumps and hop tests are undetectable at that default.
+"""
+
+[[method.citation]]
+key = "vald_glossary"
+role = "proposes"
+reference = "VALD ForceDecks Technical Glossary V2.0, 20 N"
+obtained = true
+
+[[method.citation]]
+key = "smith2024"
+role = "evaluates"
+reference = "Smith, Lamont and Barefoot 2024, Int J Exerc Sci 17(1), six takeoff rules on 21 participants"
+doi = "10.70252/qbua4521"
+obtained = true
+
+[[method.citation]]
+key = "street2001"
+role = "evaluates"
+reference = "Street et al. 2001, elevated threshold against true zero"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.015
+unit = "fraction"
+direction = "high"
+criterion = "takeoff.threshold.peak_residual_force"
+criterion_kind = "instrument"
+source = "street2001"
+# A threshold 6 N and 10 N above true zero, once the 0.7 to 2 N signal noise is accounted for, gave
+# 1 percent and 1.5 percent overestimation of jump height.
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.percent_bodyweight"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.flight_noise_k_sd"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.system_weight_decrease.pinto2024"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.zero_force_nearest_peak_velocity.chronojump"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "contact_event.mat_switch_or_optical_beam"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "onset.op.hysteresis"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "low on impulse-momentum jump height, moderate on flight time and reactive strength index"
+rationale = """
+Recorded in the fingerprint. Any fixed positive threshold places takeoff late and landing early, so
+both edges bias flight time the same way and compound. Most users should never touch it; anyone
+analysing hop tests or drop jumps must.
+"""
+
+[[method]]
+id = "takeoff.threshold.percent_bodyweight"
+construct = "takeoff"
+group = "D"
+title = "Threshold as a fraction of bodyweight, sometimes with an absolute floor"
+rule = "The threshold is a stated fraction of bodyweight, sometimes floored at an absolute value."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "fraction_pct"
+unit = "percent_of_bodyweight"
+published_values = [5.0, 12.0, 20.0, 30.0]
+default = 5.0
+default_source = "biomex"
+required = true
+notes = "A sixfold spread across published values with no stated basis, and no paper proposes the family at all."
+
+[[method.parameter]]
+name = "absolute_floor_n"
+unit = "newtons"
+published_values = [20.0, 50.0, 200.0]
+
+[[method.citation]]
+key = "biomex"
+role = "uses"
+reference = "biomex.studio, 5 percent default, user-settable 1 to 30"
+obtained = true
+
+[[method.citation]]
+key = "inertiax"
+role = "uses"
+reference = "InertiaX, 12 percent for flight and 30 percent for landing with 20 N and 50 N floors"
+obtained = true
+
+[[method.citation]]
+key = "jumptest"
+role = "uses"
+reference = "sinnerfilozofiya, max of 20 N and 5 percent, and max of 200 N and 5 percent for landing"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.flight_noise_k_sd"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.system_weight_decrease.pinto2024"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate to large on flight-time height, small on impulse-momentum height"
+rationale = """
+Show the disagreement between the two height methods as a quality indicator rather than exposing
+the choice. The two heights have opposite sensitivity profiles to this parameter, which is why they
+cross-check each other.
+"""
+
+[[method]]
+id = "takeoff.threshold.flight_noise_k_sd"
+construct = "takeoff"
+group = "D"
+title = "Threshold derived from the measured flight-phase noise distribution"
+rule = """
+Compute the mean and standard deviation of force over a stated portion of the provisional flight
+phase and set the threshold at the mean plus k standard deviations.
+"""
+# Prose grants recommended; mcmahon2018 is obtained, so rule 6 does not bar it.
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "k"
+unit = "standard_deviations"
+published_values = [5.0]
+default = 5.0
+default_source = "mcmahon2018"
+required = true
+
+[[method.parameter]]
+name = "flight_window"
+unit = "enumeration"
+notes = """
+Published windows: a fixed 300 ms of flight, the middle 50 percent of the provisional flight, and a
+fixed 300-sample trim hard-coded to 1000 Hz with an explicit instruction to halve it at 500 Hz. The
+middle-50-percent form correctly avoids contaminating the estimate with the takeoff and landing
+transients.
+"""
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon et al. 2018, 5 SD over a 300 ms flight window"
+obtained = true
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams, middle 50 percent of the provisional flight"
+obtained = true
+
+[[method.citation]]
+key = "badby2023"
+role = "uses"
+reference = "Badby 2023, 5 SD over the first 300 ms, with the noisier system's threshold applied to both"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.014
+unit = "meters"
+direction = "high"
+criterion = "takeoff.threshold.absolute_force"
+criterion_kind = "instrument"
+source = "smith2024"
+# On the one plate where the flight-force distribution was actually measured, 5 SD fires earliest
+# of six rules and sits at or above 20 N, giving 30.1 cm against 28.7 cm at the sub-1 N threshold.
+# Which side of 10 N the rule lands on is a property of the instrument, not of the rule, which is
+# why this entry most needs the measured noise floor emitted alongside it.
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = "A fixed threshold is reproducible across labs but hardware-blind; a per-trial derived one adapts but is not comparable across trials."
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.percent_bodyweight"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.peak_residual_force"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.system_weight_decrease.pinto2024"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate on flight time"
+rationale = """
+Hide the computation and surface the computed threshold value. The user then sees a number that
+tells them whether their plate is noisy, and that number belongs in the fingerprint.
+"""
+
+[[method]]
+id = "takeoff.threshold.peak_residual_force"
+construct = "takeoff"
+group = "D"
+title = "Threshold at the peak residual force observed during flight, or a multiple of it"
+rule = "The threshold is the extremum of the flight-phase force distribution, or a stated multiple of it."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "multiple"
+unit = "ratio"
+published_values = [1.0, 1.75, 2.0]
+default = 1.0
+default_source = "smith2024"
+required = true
+
+[[method.citation]]
+key = "smith2024"
+role = "evaluates"
+reference = "Smith et al. 2024, one of six rules tested"
+doi = "10.70252/qbua4521"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.001
+unit = "meters"
+direction = "high"
+criterion = "takeoff.threshold.flight_noise_k_sd"
+criterion_kind = "instrument"
+source = "smith2024"
+# Upward-biased with sampling rate by construction, because an extremum estimate is sampling-rate
+# biased and a standard deviation is not. Coincided with 20 N on the same sample in about 58
+# percent of jumps.
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.flight_noise_k_sd"
+kind = "genuine"
+note = "Both are noise-relative, but one is a moment of the distribution and the other its extremum."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small on jump height"
+
+[[method]]
+id = "takeoff.system_weight_decrease.pinto2024"
+construct = "takeoff"
+group = "D"
+title = "First instant the signal decreases by the magnitude of system weight"
+rule = """
+Takeoff is the first instant at which the force-time signal decreases by the magnitude of system
+weight, expressed as a decrease rather than as an absolute floor.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "pinto2024"
+role = "proposes"
+reference = "Pinto and Callaghan 2024, J Sports Sci 42(11):1022-1029, abstract only, full text closed"
+doi = "10.1080/02640414.2024.2381288"
+obtained = false
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.percent_bodyweight"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.flight_noise_k_sd"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate to large on flight-time height"
+rationale = """
+The only takeoff rule in the sweep derived by optimisation against an external criterion rather
+than by convention. Whether the decrease is measured from bodyweight or from a local reference is
+not determinable from the abstract, which is why it is not promoted.
+"""
+
+[[method]]
+id = "takeoff.zero_force_nearest_peak_velocity.chronojump"
+construct = "takeoff"
+group = "D"
+title = "Zero-force sample nearest the peak concentric velocity sample"
+rule = """
+Among all concentric samples where derived force is negative, choose the one whose index is closest
+to the peak concentric velocity sample, breaking ties to the earliest.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump encoder/util.R:408-451, findTakeOff, with two alternatives preserved as comments"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = """
+A first-crossing rule has a documented reproducible failure mode on jumps with an arm counter-swing,
+where an early zero crossing is read as takeoff and the jump is reported very high. Three takeoff
+rules were written down and one chosen, with the rejected one's failure mode documented in source.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "very large on encoder jump height, which is measured from this instant"
+rationale = "Fails in the opposite direction if a post-takeoff oscillation produces a zero crossing nearer peak velocity."
+
+[[method]]
+id = "flight_window.bounding_rule"
+construct = "baseline_noise_scale"
+group = "D"
+title = "The rule that bounds the window a noise-derived threshold is computed from"
+rule = """
+Define the flight window from which the noise estimate is taken, typically as a stated offset after
+the force falls below an absolute threshold to the same offset before it rises above it.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "trim_ms"
+unit = "milliseconds"
+published_values = [30.0]
+default = 30.0
+default_source = "smith2024"
+required = true
+
+[[method.parameter]]
+name = "bounding_threshold_n"
+unit = "newtons"
+published_values = [10.0]
+default = 10.0
+default_source = "smith2024"
+required = true
+notes = """
+Self-reported circularity: because the bounding threshold is below the plate's measured peak
+residual force, it removes higher force values from the noise calculation that could stem from
+noise, so the true derived threshold would be higher than the one used.
+"""
+
+[[method.citation]]
+key = "smith2024"
+role = "proposes"
+reference = "Smith et al. 2024, who flagged the circularity themselves"
+doi = "10.70252/qbua4521"
+obtained = true
+
+[[method.bias]]
+magnitude = -1.0
+unit = "newtons"
+direction = "low"
+criterion = "takeoff.threshold.flight_noise_k_sd"
+criterion_kind = "instrument"
+source = "smith2024"
+# Biases the derived threshold low, and therefore takeoff late and landing early, shortening flight
+# time and under-reporting flight-time jump height. Not quantified; the figure carries direction only.
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small on jump height"
+rationale = """
+The flight phase is simultaneously the only in-trial known-zero reference for drift correction, the
+window noise-derived thresholds are computed from, and the region contaminated by peak residual
+force. One window doing three jobs, and any error in bounding it propagates to all three.
+"""
