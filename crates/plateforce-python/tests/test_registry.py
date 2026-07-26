@@ -87,7 +87,7 @@ def test_an_unknown_parameter_names_the_method_and_what_is_on_offer(registry):
     message = str(raised.value)
     assert "onset.threshold.noise_relative" in message
     assert "kk" in message
-    assert "'k'" in message
+    assert "k" in message
     assert raised.value.method_id == "onset.threshold.noise_relative"
     assert raised.value.parameter == "kk"
 

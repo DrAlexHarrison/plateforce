@@ -106,6 +106,34 @@ impl Provenance {
             .collect()
     }
 
+    /// This provenance and every one upstream of it, in one list.
+    ///
+    /// The parameter that moved a downstream number usually sits on an upstream step: the
+    /// k that placed onset is on the onset entry, not on the time to takeoff derived from
+    /// it. Walking the tree by hand to find it is a chore, so this flattens it.
+    fn flattened(&self) -> Vec<Provenance> {
+        let mut collected = Vec::new();
+        collect(&self.chain, &mut collected);
+        collected
+    }
+
+    /// The parameters bound to a named method anywhere in this chain, or None when the
+    /// chain does not include it.
+    fn parameters_of<'py>(
+        &self,
+        python: Python<'py>,
+        method_id: &str,
+    ) -> PyResult<Option<Bound<'py, PyDict>>> {
+        let mut collected = Vec::new();
+        collect(&self.chain, &mut collected);
+        for provenance in collected {
+            if provenance.chain.provenance.method_id == method_id {
+                return provenance.bound_parameters(python).map(Some);
+            }
+        }
+        Ok(None)
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "Provenance(method_id='{}', bound_parameters={}, registry_version='{}', acquisition_complete={})",
@@ -118,6 +146,15 @@ impl Provenance {
                 "False"
             }
         )
+    }
+}
+
+fn collect(chain: &ProvenanceChain, into: &mut Vec<Provenance>) {
+    into.push(Provenance {
+        chain: chain.clone(),
+    });
+    for input in &chain.depends_on {
+        collect(input, into);
     }
 }
 

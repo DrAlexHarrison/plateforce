@@ -1,0 +1,922 @@
+# Group H. Peak force, rate of force development and impulse.
+#
+# The epoch gradient is the cleanest single demonstration of the registry's thesis and it lives
+# inside one metric family in one table. Two commercial packages on the same isometric traces differ
+# by 138 percent at the 0 to 50 ms epoch, 38.3 percent at 0 to 100, 20.7 percent at 0 to 150,
+# 4.00 percent at 0 to 250, and 0.00 percent on peak force. Nothing changes across those rows except
+# how much of the trace is averaged over: the onset error is a fixed time offset, and dividing it by
+# a longer epoch shrinks its relative effect monotonically.
+
+[[method]]
+id = "force.peak.gross"
+construct = "peak_force"
+group = "H"
+title = "Peak force with the athlete's weight included"
+rule = "Peak force is the maximum of the force series with system weight included in the value."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "guppy2024"
+role = "uses"
+reference = "Guppy et al. 2024, verbatim on body weight being included in force at onset, peak force and all time-dependent characteristics"
+doi = "10.1080/14763141.2021.1974532"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.25
+unit = "fraction"
+direction = "high"
+criterion = "force.peak.net"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Gross exceeds net by exactly one system weight, roughly 20 to 30 percent of a typical 3,000 to
+# 5,000 N isometric peak. It cascades into force at onset, every epoch force, every onset-anchored
+# rate, every impulse and every normalisation denominator. It also interacts with normalisation
+# non-obviously: net force per kg and gross force per kg differ by g rather than by a constant
+# factor, so recording force per kg without recording the convention has not recorded the method.
+
+[[method.disagrees_with]]
+id = "force.peak.net"
+kind = "genuine"
+note = """
+Two respected sources from the same author group take opposite sides and neither cites the other on
+the point. Gross peak force is onset-independent; net peak force is onset-dependent whenever net
+means peak minus force at onset rather than peak minus baseline weight.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very high on the absolute number and on any correlation involving peak force"
+rationale = """
+It must appear in the auto-generated methods paragraph in words, not only in a configuration hash.
+Peak force is otherwise the single most portable metric in the field, agreeing within 1 N across
+three independent packages against a within-session minimum detectable change of 322 N.
+"""
+
+[[method]]
+id = "force.peak.net"
+construct = "peak_force"
+group = "H"
+title = "Peak force with system weight subtracted"
+rule = "Peak force is the maximum of the force series after system weight has been subtracted."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "comfort2020"
+role = "uses"
+reference = "Comfort et al. 2020, IJSPP 15(4):478-482, obtained as a 2-of-5-page preview; the stated rationale is complete in what is held"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.284
+unit = "coefficient_of_variation"
+direction = "wider"
+criterion = "force.peak.gross"
+criterion_kind = "model"
+source = "merrigan2022"
+# Reliability differs sharply on identical trials: absolute force at 50 ms has CV 7.1 percent against
+# 28.4 percent net, and at 200 ms 9.5 against 22.2 percent. Subtracting body weight from a large
+# well-measured number leaves a small difference carrying the error of both, and quadruples the noise.
+
+[[method.disagrees_with]]
+id = "force.peak.gross"
+kind = "genuine"
+note = """
+An explicit statistical argument on principle: because body weight correlates with peak force across
+athletes, the gross convention inflates every between-subject correlation involving peak force.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very high on the absolute number and on any correlation involving peak force"
+
+[[method]]
+id = "force.peak.estimator"
+construct = "peak_force"
+group = "H"
+title = "Peak as a single sample or as the maximum of a moving average"
+rule = "Peak force is the maximum of the raw series, or the maximum of a centred moving average of stated width."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "averaging_window_seconds"
+unit = "seconds"
+published_values = [0.0, 0.1]
+default = 0.0
+default_source = "universal_practice"
+required = true
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump computes a 0.1 s centred moving average peak and never displays or exports it"
+obtained = true
+
+[[method.bias]]
+magnitude = 10.0
+unit = "newtons"
+direction = "high"
+criterion = "force.peak.estimator"
+criterion_kind = "model"
+source = "plateforce_inference"
+# The single-sample peak is upward biased with sampling rate and with filter cutoff, because the
+# sample maximum of a noisy signal grows with the number of independent samples in the peak region.
+# The gap between the two is a direct readout of how peaky the trace is, which makes it a
+# data-quality signal that one shipped tool computes and throws away. Not quantified.
+
+[[method.disagrees_with]]
+id = "force.peak.model_asymptote"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small at typical filter settings, large on impact peaks in a drop jump"
+rationale = "Show the gap between the two as a quality indicator."
+
+[[method]]
+id = "force.peak.model_asymptote"
+construct = "peak_force"
+group = "H"
+title = "The asymptote of a fitted exponential rise"
+rule = """
+Peak force is the asymptote coefficient of a mono-exponential rise fitted by nonlinear least
+squares. It is the value approached as time goes to infinity and is never attained in the trial.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R:120 and 278; no paper located"
+obtained = true
+
+[[method.bias]]
+magnitude = 100.0
+unit = "newtons"
+direction = "high"
+criterion = "force.peak.estimator"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Always at or above the observed peak, with the magnitude depending on how far the trial ran into
+# the plateau, so a short trial gives a large gap. Not quantified.
+
+[[method.disagrees_with]]
+id = "force.peak.estimator"
+kind = "genuine"
+note = "Measured against extrapolated maximum force is a real methodological choice with a real argument on each side."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very large with respect to the analysis window and to onset"
+rationale = """
+Two numbers both labelled as peak force on one graph is a defect. Any tool offering both must name
+them differently in the interface and in the export.
+"""
+
+[[method]]
+id = "rfd.epoch_from_onset.overlapping"
+construct = "rate_of_force_development"
+group = "H"
+title = "Rate over overlapping epochs all starting at onset"
+rule = """
+With onset fixed by a declared method, report the force at a stated elapsed time from onset and the
+mean rate over that interval. Under a net convention the two are numerically the same quantity in
+different units; under a gross convention they are not, because the onset force does not cancel.
+"""
+# Prose grants recommended for the scheme. Rule 6 bars it: aagaard2002, which proposes the scheme,
+# was never obtained.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "epoch_ms"
+unit = "milliseconds"
+published_values = [30.0, 50.0, 90.0, 100.0, 150.0, 200.0, 250.0]
+default = 200.0
+default_source = "maffiuletti2016"
+required = true
+notes = "The recommendation attaches to the scheme rather than to any epoch: quantify at multiple time points rather than at a single instant."
+
+[[method.citation]]
+key = "aagaard2002"
+role = "proposes"
+reference = "Aagaard et al. 2002, J Appl Physiol, originating usage, not obtained"
+doi = "10.1152/japplphysiol.00283.2002"
+obtained = false
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, ingested at full quality"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.citation]]
+key = "guppy2024"
+role = "evaluates"
+reference = "Guppy et al. 2024, measuring the decay of onset bias across epochs"
+doi = "10.1080/14763141.2021.1974532"
+obtained = true
+
+[[method.bias]]
+magnitude = 266.0
+unit = "newtons"
+direction = "high"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "human_visual"
+source = "guppy2024"
+conditional_on_success = true
+# Inherits the full onset bias and the decay is measured: moderate to large effects at the 90 ms
+# epoch, Hedges g -0.487 to -0.692, decaying to trivial to small by 200 and 250 ms. Absolute
+# inflations of +266 N at 50 ms, +289 N at 90 ms and +214 N at 150 ms under a 5 SD onset rule.
+
+[[method.disagrees_with]]
+id = "rfd.epoch_from_onset.sequential"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "rfd.peak_sliding_window"
+kind = "genuine"
+note = "Peak-anywhere against at-a-defined-time."
+
+[[method.disagrees_with]]
+id = "rfd.at_fraction_of_peak_force"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very high at short epochs, low at long ones"
+rationale = """
+Default the epoch set to the long end and hide the dial. Offer 50 ms only behind a warning tied to
+the measured baseline noise of the trace being analysed, because a high automated threshold on a
+noisy portable plate at 50 ms is where every source agrees the number is meaningless.
+"""
+
+[[method]]
+id = "rfd.epoch_from_onset.sequential"
+construct = "rate_of_force_development"
+group = "H"
+title = "Rate over consecutive non-overlapping windows"
+rule = "Rate is the force difference across consecutive non-overlapping windows divided by the window width."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "window_ms"
+unit = "milliseconds"
+published_values = [50.0]
+default = 50.0
+default_source = "maffiuletti2016"
+required = true
+
+[[method.citation]]
+key = "folland2014"
+role = "proposes"
+reference = "Folland, Buckthorpe and Hannah 2014, Scand J Med Sci Sports 24:894-906, not obtained"
+doi = "10.1111/sms.12131"
+obtained = false
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016 Figure 8b, from whose description this rule is transcribed"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0
+unit = "newtons_per_second"
+direction = "none"
+criterion = "onset.manual_visual.tillin2010"
+criterion_kind = "human_visual"
+source = "plateforce_algebra"
+# The first window carries the same onset bias as the overlapping scheme. Every later window is
+# onset-independent, because onset cancels in the difference. That is a non-obvious and genuinely
+# valuable property the overlapping scheme lacks, and it does not appear stated in these terms in
+# the applied literature.
+
+[[method.disagrees_with]]
+id = "rfd.epoch_from_onset.overlapping"
+kind = "genuine"
+note = """
+Defended on an explicit information argument: consecutive windows localise where two force-time
+curves diverge, which overlapping windows cannot do because every overlapping window shares the
+noisy first 50 ms.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "low after the first window"
+rationale = """
+A researcher comparing two groups wants this; a coach monitoring one athlete does not. Two findings
+that look opposed are not in conflict: reliability is better in the middle window within this scheme,
+and worse than the onset-anchored scheme across schemes, because these windows inherit the error of
+two boundaries instead of one. Anchoring matters more than width.
+"""
+
+[[method]]
+id = "rfd.peak_sliding_window"
+construct = "rate_of_force_development"
+group = "H"
+title = "Steepest chord over a sliding window of stated width"
+rule = """
+Slide a window of stated width across the trace and report the maximum force difference divided by
+the width. A two-sample centred difference is the degenerate case at twice the sample interval, not
+a separate method.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "window_width_ms"
+unit = "milliseconds"
+published_values = [1.67, 2.0, 5.0, 19.0, 20.0, 30.0, 50.0]
+default = 20.0
+default_source = "guppy2019"
+required = true
+notes = """
+A contested parameter with four studies reaching four verdicts across a disputed range of 1.67 to
+50 ms: 1.67 ms reliable regardless of posture; 20 ms reliable and all others above a 15 percent
+coefficient of variation; unreliable at every width tested; unreliable at 20 ms. Part of that
+disagreement is not about the traces at all, because one study used a 10 percent acceptance
+criterion and the others 15 percent. When the literature disagrees, check whether it disagrees about
+the measurement or about the acceptance criterion.
+"""
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, which cautions against it as a primary measure"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.citation]]
+key = "haff2015"
+role = "evaluates"
+reference = "Haff et al. 2015, JSCR, the standard comparison of these widths on the isometric pull, not obtained"
+doi = "10.1519/JSC.0000000000000705"
+obtained = false
+
+[[method.citation]]
+key = "guppy2019"
+role = "evaluates"
+reference = "Guppy 2019, ECU thesis, at 20 ms"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.5
+unit = "fraction"
+direction = "high"
+criterion = "rfd.epoch_from_onset.overlapping"
+criterion_kind = "model"
+source = "maffiuletti2016"
+# Strongly increasing as the window narrows, and increasing with sampling rate and filter cutoff,
+# because the maximum of a noisy series grows with the number of independent samples. A 2 ms window
+# on a noisy trace reports the noise: it measures the filter as much as the athlete. Also biased
+# high relative to a fixed-epoch chord of the same width, because it maximises over position.
+
+[[method.disagrees_with]]
+id = "rfd.epoch_from_onset.overlapping"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "rfd.exponential_model.padulles"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "rfd.mean_force_over_duration.lapuente"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "independent of onset, which makes it a natural cross-implementation diagnostic"
+rationale = """
+The rare case where hiding the parameter is indefensible, because the number is meaningless without
+it and the literature spans two orders of magnitude. Show the width in the label, always. Because it
+is onset-independent, two implementations disagreeing on it are disagreeing about filtering or width
+rather than about onset.
+"""
+
+[[method]]
+id = "rfd.phase_endpoint_secant.harry"
+construct = "rate_of_force_development"
+group = "H"
+title = "Secant between the force values at the two ends of a phase"
+rule = """
+Rate is the change in vertical force between the start and the end of a declared phase divided by
+the time between those two values.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "krzyszkowski2020"
+role = "uses"
+reference = "Krzyszkowski, Chowning and Harry 2020, JSCR, verbatim"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.5
+unit = "fraction"
+direction = "low"
+criterion = "rfd.peak_sliding_window"
+criterion_kind = "model"
+source = "plateforce_inference"
+# It is a secant rather than a derivative, so it systematically understates the peak instantaneous
+# rate by an amount that grows with phase duration and with how non-linear the force rise is, and it
+# inherits the phase-boundary disagreement at both ends. Not quantified.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very large"
+rationale = """
+Force the decision on the label rather than on the formula: the software must never print a bare
+rate of force development without its variant, because at least three incompatible things carry that
+name and one vendor alone ships four, including one with a clamping rule that reports zero when the
+force slopes downward.
+"""
+
+[[method]]
+id = "rfd.between_force_levels"
+construct = "rate_of_force_development"
+group = "H"
+title = "Elapsed time between two force levels, and its reciprocal slope"
+rule = """
+Report the elapsed time from one force level to another, where the levels are absolute or relative
+to maximal voluntary contraction. The reciprocal expression gives a slope, and the two are one rule.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, citing Mirkov 2004, Hakkinen and Keskinen 1989 and Hannah and Folland 2015; the primaries were not obtained"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "onset-independent when both endpoints are force levels"
+rationale = """
+It avoids the problem that fixed time windows compare different force ranges in strong and weak
+athletes, and it is relevant where a specific force must be achieved. A specialist measure.
+"""
+
+[[method]]
+id = "rfd.at_fraction_of_peak_force"
+construct = "rate_of_force_development"
+group = "H"
+title = "Rate evaluated where force first reaches a fraction of peak"
+rule = """
+Interpolate the time at which raw force first reaches a stated fraction of peak force, and report
+the centred derivative interpolated at that time.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "fraction_pct"
+unit = "percent_of_peak_force"
+published_values = [50.0, 63.2]
+default = 50.0
+default_source = "chronojump_r"
+required = true
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R:643 and 662-675, no citation in code"
+obtained = true
+
+[[method.disagrees_with]]
+id = "rfd.epoch_from_onset.overlapping"
+kind = "genuine"
+note = """
+Time anchor against force anchor, and the worked example for conditional collapse: under a fitted
+model this variant is an analytic function of the fit parameters and collapses into the model rate,
+while on raw force it does not, because the raw derivative is not a fixed function of force level.
+The same user-facing option is a genuine method in one column and a pure reparameterisation in the
+other.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "small to onset, moderate to the window end through peak force, large to filtering"
+rationale = """
+The only rate variant nearly independent of onset placement, but it substitutes a dependence on peak
+force estimation for the dependence on onset: on a noisy peak, peak force is biased high, which moves
+the evaluation point later and, on a decelerating rise, reports a lower rate.
+"""
+
+[[method]]
+id = "rfd.average_to_peak_force"
+construct = "rate_of_force_development"
+group = "H"
+title = "Peak force divided by the time from onset to peak"
+rule = "Rate is peak force divided by the elapsed time from onset to the instant of peak force."
+status = "deprecated"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "chavda2020"
+role = "uses"
+reference = "Chavda et al. 2020 Appendix 3, equations m, p and q, which also warns against it"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.74
+unit = "icc"
+direction = "low"
+criterion = "rfd.epoch_from_onset.overlapping"
+criterion_kind = "model"
+source = "chavda2020"
+# The lowest reliability of any variable in the isometric domain, and the source singles it out.
+# The mathematics is not wrong; the measure is dominated by a nuisance, because peak force occurs at
+# wildly different times between trials, days and individuals, so the denominator carries variance
+# unrelated to the athlete's rapid-force capability.
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "high, from the denominator"
+rationale = """
+Shown only with its deprecation reason attached. It is a separate method from epoch rate rather than
+a parameter of it, because the epoch family anchors the second point at a fixed time and this anchors
+it at a data-determined event.
+"""
+
+[[method]]
+id = "rfd.exponential_model.padulles"
+construct = "rate_of_force_development"
+group = "H"
+title = "Rate read off a fitted mono-exponential rise"
+rule = """
+Fit a mono-exponential rise by nonlinear least squares and read off the instantaneous rate, the model
+chord, the rate at a stated fraction of the asymptote, the maximum rate, or the best average over a
+stated window. Export the time constant and the mean absolute percentage residual alongside.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump, attributable to Padulles as copyright holder; undisclosed, no paper located"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.05
+unit = "fraction"
+direction = "high"
+criterion = "rfd.peak_sliding_window"
+criterion_kind = "model"
+source = "chronojump_r"
+# Systematic. Real isometric force rise is sigmoidal, with a low-rate foot before the steep phase,
+# while a mono-exponential pinned at onset has its maximum slope at time zero. So the model maximum
+# overestimates true early rate and the model rate at larger times underestimates it. The magnitude
+# is exactly what the exported mean residual measures, which is why the 5 percent red flag is well
+# placed.
+
+[[method.disagrees_with]]
+id = "rfd.peak_sliding_window"
+kind = "genuine"
+note = """
+Model-derived against measured, and the only variant whose value can exceed anything the athlete
+actually produced. Its five internal parameterisations do not disagree: three pairs are algebraically
+identical and filing them separately would be false proliferation.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very large with respect to onset and to the window end, small with respect to filtering"
+rationale = """
+Always show the fit residual beside a fitted number. One shipped tool prints it in red above 5
+percent with a suggested remedy, which is the single best piece of interface design found in the
+sweep and should be copied outright.
+"""
+
+[[method]]
+id = "rfd.scaling_factor.bellumori"
+construct = "rate_of_force_development"
+group = "H"
+title = "Slope of the peak-rate against peak-force relationship across submaximal contractions"
+rule = """
+The scaling factor is the slope of the relationship between peak rate and peak force across many
+submaximal contractions, rather than any measure from a single maximal trial.
+"""
+status = "accepted"
+confidence = "low"
+debate = "single_position"
+
+[[method.citation]]
+key = "bellumori2011"
+role = "proposes"
+reference = "Bellumori et al. 2011, not obtained; counted on its title, journal and a reference list"
+doi = "10.1007/s00221-011-2735-7"
+obtained = false
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = """
+The exact rule is not citation-bound and this entry must not be implemented from it. A distinct
+family with its own literature, living in motor control rather than strength and conditioning, and
+the clearest example of a family the original decomposition did not anticipate.
+"""
+
+[[method]]
+id = "rfd.mean_force_over_duration.lapuente"
+construct = "rate_of_force_development"
+group = "H"
+title = "Mean force over a phase divided by the phase duration"
+rule = "Report the mean force over a phase divided by that phase's duration, optionally per unit body mass."
+status = "deprecated"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump encoder/neuromuscularProfile.R:70-73 and 126-128, with the maintainer's own objection written into the source at both sites"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.5
+unit = "fraction"
+direction = "low"
+criterion = "rfd.peak_sliding_window"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Not a bias but a different quantity, correlated with a true rate only through the shared mean-force
+# term. It rises with mean force and falls with phase duration, so a subject who produces the same
+# force for twice as long scores half the rate.
+
+[[method.disagrees_with]]
+id = "rfd.peak_sliding_window"
+kind = "genuine"
+note = "Not a genuine debate. It is the bad-mathematics case: a rate of force development is a derivative and this is a mean divided by a duration."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total on the reported value"
+rationale = """
+Force the decision carrying the deprecation reason. If a user wants numbers comparable to the
+product that popularised these labels, they must be told what they are getting. Retained because
+years of those numbers exist and need to stay interpretable.
+"""
+
+[[method]]
+id = "impulse.epoch_from_onset"
+construct = "epoch_impulse"
+group = "H"
+title = "Force integrated from onset over a stated epoch"
+rule = "Integrate force from onset over a stated epoch."
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "epoch_ms"
+unit = "milliseconds"
+published_values = [50.0, 90.0, 100.0, 150.0, 200.0, 250.0, 300.0]
+default = 200.0
+default_source = "maffiuletti2016"
+required = true
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, arguing that impulse is arguably the most functionally relevant rising-curve measure and is under-used"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.citation]]
+key = "chavda2020"
+role = "uses"
+reference = "Chavda et al. 2020, trapezoidal per sample and summed"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.087
+unit = "coefficient_of_variation"
+direction = "narrower"
+criterion = "rfd.epoch_from_onset.overlapping"
+criterion_kind = "model"
+source = "maffiuletti2016"
+# It inherits onset bias but integrates it, so sensitivity is lower than for a rate at the same
+# epoch. Applied isometric data agree empirically: impulse across epochs was more reliable than rate,
+# CV 4.3 to 8.7 percent and ICC 0.89 to 0.97, when posture varied. Integrals are robust to boundary
+# placement and derivatives are not, which is the same structure as the jump-height against
+# time-to-takeoff result.
+
+[[method.disagrees_with]]
+id = "impulse.to_fraction_of_peak_force"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "medium, and lower than a rate at matched epochs"
+rationale = """
+Shown alongside the rate. The reliability argument means a practitioner is usually better served by
+impulse than by a rate and the interface should not bury it. Trapezoidal against rectangle-rule
+impulse is not a second entry at the rates universal in this literature; it would become a genuine
+fork only below roughly 200 Hz, which nothing here uses.
+"""
+
+[[method]]
+id = "impulse.to_fraction_of_peak_force"
+construct = "epoch_impulse"
+group = "H"
+title = "Force integrated from onset until a fraction of peak force is reached"
+rule = "Integrate force from onset until force first exceeds a stated fraction of peak force."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "fraction_pct"
+unit = "percent_of_peak_force"
+published_values = [50.0]
+default = 50.0
+default_source = "chronojump_r"
+required = true
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R:386-397; the loop has no upper bound and runs off the array if the threshold is never met"
+obtained = true
+
+[[method.disagrees_with]]
+id = "impulse.epoch_from_onset"
+kind = "genuine"
+note = "The same time-against-force anchoring fork as the rate pair: it trades onset sensitivity for peak-force sensitivity."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate"
+
+[[method]]
+id = "impulse.convention"
+construct = "epoch_impulse"
+group = "H"
+title = "Whether system weight is subtracted before integrating"
+rule = "Declare whether system weight is subtracted before integrating."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "convention"
+unit = "enumeration"
+required = true
+notes = "gross or net. Net is universal for jumps; gross is in wide use for dead-start lifts, where there is no meaningful centre of mass velocity to recover."
+
+[[method.citation]]
+key = "suchomel2018"
+role = "uses"
+reference = "Suchomel et al. 2018, gross epoch impulses for dead-start lifts expressed relative to body mass"
+doi = "10.3390/sports6030079"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "fraction"
+direction = "high"
+criterion = "epoch_impulse"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Over a 50 ms epoch from a static start, gross impulse is dominated by system weight times the
+# epoch, so a large part of what it measures is how heavy the athlete and bar are rather than what
+# the athlete did. The isometric case is structurally cleaner: a load cell in series with the athlete
+# never reads body weight, so the question does not arise there at all.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "total on the reported value"
+
+[[method]]
+id = "impulse.net_vertical.as_performance_determinant"
+construct = "net_impulse"
+group = "H"
+title = "Net vertical impulse from onset to takeoff as the determinant of jump performance"
+rule = """
+Integrate force less system weight from onset to takeoff. Takeoff velocity is that impulse divided
+by body mass, and height follows.
+"""
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "kirby2011"
+role = "proposes"
+reference = "Kirby, McBride, Haines and Dayne 2011, J Appl Biomech 27:207-214"
+doi = "10.1123/jab.27.3.207"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.505
+unit = "icc"
+direction = "low"
+criterion = "onset.threshold.noise_relative"
+criterion_kind = "model"
+source = "barefoot2022"
+# The value itself is robust: cross-software agreement of 0.59 to 0.89 percent against a
+# within-session smallest worthwhile change of 9.0 N.s. But the reliability of that same robust value
+# collapses from ICC 0.984 to 0.479 on identical data purely from the onset rule. A method can
+# preserve the mean and annihilate the ability to track an individual.
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "low to onset, low to filter, high to the weighing epoch"
+rationale = """
+Surfaced by default adjacent to any power variable displayed. It has a different sensitivity profile
+from every power variable, which is why reporting both is informative rather than redundant. An error
+in the weighing epoch integrates linearly with time.
+"""
+
+[[method]]
+id = "rpd.phase_anchored"
+construct = "rate_of_power_development"
+group = "H"
+title = "Rate of power development from a phase start to peak power"
+rule = "Rate of power development is computed from the start of a declared phase to the instant of peak power."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "vald_glossary"
+role = "uses"
+reference = "VALD ForceDecks Technical Glossary V2.0"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.95
+unit = "icc"
+direction = "narrower"
+criterion = "rfd.phase_endpoint_secant.harry"
+criterion_kind = "model"
+source = "merrigan2022"
+# Rate of power development is materially more reliable than rate of force development on the same
+# trials: ICC 0.95 with CV 7.15 percent against ICC 0.57 with CV 76.45 percent, and the source
+# recommends it as the replacement. The mechanism is not stated anywhere; the plausible reason is
+# that power multiplies a filtered-by-integration velocity with force, so it is smoother than a raw
+# first derivative. That mechanism should be established before promoting it.
+
+[[method.disagrees_with]]
+id = "rpd.peak_to_peak_anchored.amti"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "inherits the phase model"
+
+[[method]]
+id = "rpd.peak_to_peak_anchored.amti"
+construct = "rate_of_power_development"
+group = "H"
+title = "Average slope from negative peak power to the subsequent positive peak power"
+rule = """
+Rate of power development is the average slope of the line from the negative peak power to the
+subsequent positive peak power during a jump, giving one discrete value per jump.
+"""
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "amti_accupower_manual"
+role = "proposes"
+reference = "AMTI AccuPower User Manual 2.0, verbatim"
+obtained = true
+
+[[method.disagrees_with]]
+id = "rpd.phase_anchored"
+kind = "genuine"
+note = """
+Peak-to-peak anchoring against phase-boundary anchoring. Different constructs, and the peak-to-peak
+one is deliberately insensitive to the phase model, which makes it unusually robust to onset
+placement: a rare property in this registry.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "low with respect to onset"
+rationale = "Under legacy compatibility. It produced reference values in the validation corpus on a superseded product."

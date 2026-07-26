@@ -178,3 +178,32 @@ unit = "seconds"
 id = "sticking_region"
 title = "The interval of reduced bar velocity during a maximal lift"
 unit = "seconds"
+
+[[construct]]
+id = "peak_force"
+title = "The largest vertical force produced during the effort"
+unit = "newtons"
+notes = """
+Gross and net differ by exactly one system weight, and the choice is not an offset: gross peak force
+is onset-independent and net is onset-dependent, so it decides whether peak force belongs to the
+onset-sensitive family at all.
+"""
+
+[[construct]]
+id = "rate_of_force_development"
+title = "How fast force rises"
+unit = "newtons_per_second"
+notes = """
+At least three incompatible quantities are called this, and one vendor ships four. A bare label is
+never sufficient: the variant and its window must travel with the number.
+"""
+
+[[construct]]
+id = "epoch_impulse"
+title = "Force integrated over a declared epoch from onset"
+unit = "newton_seconds"
+
+[[construct]]
+id = "rate_of_power_development"
+title = "How fast power rises"
+unit = "watts_per_second"
