@@ -134,6 +134,7 @@ def test_every_error_shares_one_base_so_a_caller_can_catch_the_package(registry)
     for error in (
         pf.TrialError,
         pf.NoCrossingError,
+        pf.CollapsedBandError,
         pf.RegistryError,
         pf.MethodError,
         pf.ParameterError,
@@ -141,5 +142,6 @@ def test_every_error_shares_one_base_so_a_caller_can_catch_the_package(registry)
     ):
         assert issubclass(error, pf.PlateforceError)
     assert issubclass(pf.NoCrossingError, pf.TrialError)
+    assert issubclass(pf.CollapsedBandError, pf.TrialError)
     assert issubclass(pf.ParameterError, pf.MethodError)
     assert issubclass(pf.MethodNotImplementedError, pf.MethodError)

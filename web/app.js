@@ -465,13 +465,13 @@ function renderSlot(slot) {
     }
     const failure = candidate.method?.failure;
     if (failure) {
-      wrap.append(
-        element(
-          'p',
-          'undecided',
-          `Fails on ${(failure.rate * 100).toFixed(1)}% of trials (${failure.numerator} of ${failure.denominator}, ${failure.corpus}), detectability ${failure.detectability}: ${failure.definition}`,
-        ),
+      const note = element(
+        'p',
+        'undecided undecided--clamped',
+        `Fails on ${(failure.rate * 100).toFixed(1)}% of trials (${failure.numerator} of ${failure.denominator}, ${failure.corpus}), detectability ${failure.detectability}: ${failure.definition}`,
       );
+      note.title = failure.definition;
+      wrap.append(note);
     }
     wrap.append(renderParameters(slot, candidate, selection));
 
@@ -522,17 +522,21 @@ function renderParameters(slot, candidate, selection) {
         runAnalysis();
       });
       row.append(select);
-    } else {
+    } else if (values.length === 1 || Number.isFinite(parameter.default)) {
       const input = document.createElement('input');
       input.type = 'number';
       input.id = id;
       input.step = 'any';
-      input.value = String(selection.values[parameter.name] ?? parameter.default ?? '');
+      input.value = String(selection.values[parameter.name] ?? parameter.default ?? values[0] ?? '');
       input.addEventListener('change', () => {
         selection.values[parameter.name] = Number(input.value);
         runAnalysis();
       });
       row.append(input);
+    } else {
+      // The registry records this parameter without a numeric value to bind, so this build
+      // runs its own default. Saying so beats rendering an empty box that does nothing.
+      row.append(element('span', 'decision__meta', 'build default'));
     }
     host.append(row);
   }
@@ -638,6 +642,7 @@ function runAnalysis() {
   const pending = unresolvedDecisions();
   if (pending.length) {
     renderPendingDecisions(pending);
+    $('spread-controls-wrap').hidden = true;
     state.analysis = null;
     state.chart.setAnalysis(null);
     state.chart.schedule();
@@ -751,6 +756,14 @@ function renderMetrics() {
   }
 }
 
+function methodTitle(id) {
+  return (
+    findMethod(state.registry, id)?.title ||
+    state.build.bindings.find((binding) => binding.id === id)?.title ||
+    id
+  );
+}
+
 function provenanceRow(methodIds) {
   const row = element('div', 'metric__provenance');
   const seen = new Set();
@@ -759,30 +772,28 @@ function provenanceRow(methodIds) {
     seen.add(id);
     const bound = state.analysis.bound_methods.find((entry) => entry.method_id === id);
     const method = findMethod(state.registry, id);
-    const title = method?.title || state.build.bindings.find((binding) => binding.id === id)?.title || id;
 
-    const chip = element('button', 'chip');
-    chip.type = 'button';
-    if (!bound?.registry_backed) chip.classList.add('chip--unbacked');
-    if (method?.failure) chip.classList.add('chip--failing');
+    const item = element('button', 'provenance');
+    item.type = 'button';
+    if (!bound?.registry_backed) item.classList.add('provenance--unbacked');
 
-    if (method) {
-      const dot = element('span', `status-dot status-dot--${method.status}`);
-      chip.append(dot);
+    item.append(element('span', `status-dot status-dot--${method?.status || 'legacy'}`));
+    item.append(element('span', 'provenance__name', methodTitle(id)));
+
+    const badges = element('span', 'provenance__badges');
+    if (method?.failure) {
+      badges.append(element('span', 'tag tag--fails', `${(method.failure.rate * 100).toFixed(0)}% fail`));
     }
-    chip.append(document.createTextNode(title));
-    if (method?.failure) chip.append(element('span', 'tag tag--fails', `${(method.failure.rate * 100).toFixed(0)}% fail`));
-    if (!bound?.registry_backed) chip.append(element('span', 'tag tag--advanced', 'no registry entry'));
+    if (bound?.manual_override) badges.append(element('span', 'tag tag--decide', 'dragged'));
+    if (!bound?.registry_backed) badges.append(element('span', 'tag tag--advanced', 'unregistered'));
+    item.append(badges);
 
     const parameters = (bound?.bound_parameters || []).map(([name, value]) => `${name} ${value}`).join(', ');
-    chip.title = parameters ? `${id}: ${parameters}` : id;
-    chip.addEventListener('click', () => openDrawer(method, id, bound));
-    row.append(chip);
-
-    if (bound?.manual_override) {
-      const override = element('span', 'chip chip--override', 'dragged by hand');
-      row.append(override);
-    }
+    item.title = [id, parameters, bound?.registry_backed ? '' : 'no registry entry carries this id']
+      .filter(Boolean)
+      .join(' | ');
+    item.addEventListener('click', () => openDrawer(method, id, bound));
+    row.append(item);
   }
   return row;
 }
@@ -919,6 +930,7 @@ function currentAxes() {
 }
 
 function renderSpreadControls() {
+  $('spread-controls-wrap').hidden = false;
   const quantitySelect = $('spread-quantity');
   const previous = state.spread.quantity;
   quantitySelect.replaceChildren();
@@ -1028,6 +1040,7 @@ function spreadAxisPlot(result) {
   const span = high - low || 1;
   const position = (value) => `${(((value - low) / span) * 96 + 2).toFixed(2)}%`;
 
+  wrap.append(element('span', 'spread-axis__legend', 'each tick is one published alternative'));
   wrap.append(element('div', 'spread-axis__line'));
   const bar = element('div', 'spread-axis__span');
   bar.style.left = position(low);
@@ -1038,7 +1051,7 @@ function spreadAxisPlot(result) {
     if (variant.value == null) continue;
     const tick = element('div', 'spread-tick');
     tick.style.left = position(variant.value);
-    tick.title = `${variant.label}: ${formatNumber(variant.value, result.unit)} ${result.unit}`;
+    tick.title = `${readableLabel(variant)}: ${formatNumber(variant.value, result.unit)} ${result.unit}`;
     wrap.append(tick);
   }
   if (result.baseline_value != null) {
@@ -1054,6 +1067,15 @@ function spreadAxisPlot(result) {
   highLabel.style.left = '98%';
   wrap.append(lowLabel, highLabel);
   return wrap;
+}
+
+/* A variant's settings come back as raw ids. The table reads them back as the titles the
+ * picker used, so the same rule is not called two different things in one screen. */
+function readableLabel(variant) {
+  if (!variant.settings.length) return 'your current setting';
+  return variant.settings
+    .map(([name, value]) => (value.includes('.') ? methodTitle(value) : `${name} ${value}`))
+    .join(', ');
 }
 
 function spreadTable(result, label) {
@@ -1078,7 +1100,7 @@ function spreadTable(result, label) {
     const row = element('tr');
     if (variant.value === result.minimum) row.dataset.extreme = 'low';
     if (variant.value === result.maximum) row.dataset.extreme = 'high';
-    row.append(element('td', null, variant.label));
+    row.append(element('td', null, readableLabel(variant)));
     if (variant.value == null) {
       const cell = element('td', 'failed', variant.failure_reason || 'no value');
       cell.colSpan = 2;

@@ -29,6 +29,12 @@ pyo3::create_exception!(
 );
 pyo3::create_exception!(
     plateforce,
+    CollapsedBandError,
+    TrialError,
+    "A noise-relative band collapsed to nothing, so the rule had nothing to search. Carries method_id, parameter, value, dispersion_newtons and threshold_newtons."
+);
+pyo3::create_exception!(
+    plateforce,
     RegistryError,
     PlateforceError,
     "The registry could not be loaded, or failed one of the rules in docs/schema.md."
@@ -71,6 +77,22 @@ pub fn map_trial_error(python: Python<'_>, error: CoreTrialError) -> PyErr {
             let _ = instance.setattr("search_bound_seconds", search_bound_seconds);
             raised
         }
+        CoreTrialError::CollapsedBand {
+            method_id,
+            parameter,
+            value,
+            dispersion_newtons,
+            threshold_newtons,
+        } => {
+            let raised = CollapsedBandError::new_err(message);
+            let instance = raised.value(python);
+            let _ = instance.setattr("method_id", method_id);
+            let _ = instance.setattr("parameter", parameter);
+            let _ = instance.setattr("value", value);
+            let _ = instance.setattr("dispersion_newtons", dispersion_newtons);
+            let _ = instance.setattr("threshold_newtons", threshold_newtons);
+            raised
+        }
         _ => TrialError::new_err(message),
     }
 }
@@ -96,6 +118,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("PlateforceError", python.get_type::<PlateforceError>())?;
     module.add("TrialError", python.get_type::<TrialError>())?;
     module.add("NoCrossingError", python.get_type::<NoCrossingError>())?;
+    module.add("CollapsedBandError", python.get_type::<CollapsedBandError>())?;
     module.add("RegistryError", python.get_type::<RegistryError>())?;
     module.add("MethodError", python.get_type::<MethodError>())?;
     module.add("ParameterError", python.get_type::<ParameterError>())?;

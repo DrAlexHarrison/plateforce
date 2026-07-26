@@ -297,3 +297,86 @@ Not a stable athlete property. In sixteen athletes the same day, individual asym
 22.2 percent on one test and 0.8 to 6.9 percent on another, with no significant relationship between
 tests.
 """
+
+[[construct]]
+id = "waveform_inference"
+title = "The statistical machinery a whole force-time curve is tested with"
+unit = "enumeration"
+
+[[construct]]
+id = "time_treatment"
+title = "What was done to the time axis before a curve was tested"
+unit = "enumeration"
+notes = """
+Not a preprocessing parameter of the inference method. The two axes cross rather than nest, and on
+one published dataset the time treatment alone decided whether an effect was significant.
+"""
+
+[[construct]]
+id = "jump_type"
+title = "Which jump the trial contains"
+unit = "enumeration"
+notes = "Misclassification is categorical, not numeric: a squat-jump pipeline has no unweighting or braking phase to find."
+
+[[construct]]
+id = "aggregated_value"
+title = "The single number reported per athlete per session from several trials"
+unit = "enumeration"
+
+[[construct]]
+id = "method_agreement"
+title = "The rule by which two methods are declared to agree"
+unit = "enumeration"
+notes = "An error here silently launders errors in every other group, because it certifies an interoperability claim."
+
+[[construct]]
+id = "measurement_reliability"
+title = "The rule by which a metric is declared reliable"
+unit = "enumeration"
+
+[[construct]]
+id = "force_velocity_profile"
+title = "The force-velocity line fitted across loads, and the quantities read off it"
+unit = "enumeration"
+notes = """
+Its headline outputs are extrapolations to conditions never measured: a force at a velocity no jump
+visits and a velocity at a force no jump produces.
+"""
+
+[[construct]]
+id = "optimal_load"
+title = "The load at which mechanical power output is maximal"
+unit = "percent_of_one_repetition_maximum"
+notes = "Four published frameworks give four mutually incompatible answers and none of them cites more than one of the others."
+
+[[construct]]
+id = "one_repetition_maximum"
+title = "The heaviest load liftable once, estimated from submaximal velocities"
+unit = "kilograms"
+
+[[construct]]
+id = "false_start"
+title = "Whether an athlete began before the permitted instant"
+unit = "boolean"
+notes = "The governing rule defines the offence kinematically and the certified apparatus detects it kinetically through an undisclosed threshold."
+
+[[construct]]
+id = "sprint_start_performance"
+title = "How well an athlete performed the start"
+unit = "varies"
+notes = "The two published measures carry different units, which is part of the disagreement rather than incidental to it."
+
+[[construct]]
+id = "sprint_velocity_model"
+title = "Modelled velocity over the acceleration phase"
+unit = "meters_per_second"
+
+[[construct]]
+id = "change_of_direction_deficit"
+title = "Turn time isolated from linear sprint speed"
+unit = "seconds"
+
+[[construct]]
+id = "movement_strategy_cluster"
+title = "Which movement strategy an athlete's jump belongs to"
+unit = "enumeration"

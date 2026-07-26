@@ -93,6 +93,50 @@ def test_the_dispersion_estimator_is_a_real_choice(trial, bound_methods):
     )
 
 
+def test_a_collapsed_noise_band_is_refused_rather_than_substituted(registry):
+    """A perfectly still window gives k times zero, which separates nothing.
+
+    Refusing is the default because a silent fallback would hide that the window the rule
+    assumed was quiet was not a real weighing epoch.
+    """
+    force = np.concatenate(
+        [np.full(1200, 600.0), np.linspace(600.0, 0.0, 600), np.zeros(600)]
+    )
+    trial = pf.Trial(force, sample_rate_hz=SAMPLE_RATE_HZ)
+    epoch = registry.method("bwepoch.fixed_window").bind(duration=1.0)
+    onset = registry.method("onset.threshold.noise_relative").bind(k=5.0)
+    takeoff = registry.method("takeoff.threshold.absolute_force").bind(threshold_n=20.0)
+
+    with pytest.raises(pf.CollapsedBandError) as raised:
+        pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
+    assert raised.value.method_id == "onset.threshold.noise_relative"
+    assert raised.value.parameter == "k"
+    assert raised.value.dispersion_newtons == 0.0
+    assert "no band to search" in str(raised.value)
+
+    rescued = pf.analyse_countermovement_jump(
+        trial,
+        epoch,
+        onset,
+        takeoff,
+        onset_degenerate_band="fraction_of_reference",
+        onset_degenerate_band_fraction=0.95,
+    )
+    assert (
+        rescued.onset_time_seconds.provenance.enumerated_choices["degenerate_band"]
+        == "fraction_of_reference"
+    )
+
+
+def test_the_fraction_policy_needs_its_fraction(trial, bound_methods):
+    epoch, onset, takeoff = bound_methods
+    with pytest.raises(ValueError) as raised:
+        pf.analyse_countermovement_jump(
+            trial, epoch, onset, takeoff, onset_degenerate_band="fraction_of_reference"
+        )
+    assert "onset_degenerate_band_fraction" in str(raised.value)
+
+
 def test_the_same_input_and_the_same_choices_give_the_same_answer(trial, bound_methods):
     epoch, onset, takeoff = bound_methods
     first = pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)

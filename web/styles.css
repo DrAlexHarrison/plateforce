@@ -480,11 +480,35 @@ select { cursor: pointer; }
 .metric__value small { font-size: var(--text-md); font-weight: 500; color: var(--text-secondary); margin-left: var(--space-1); }
 .metric__value--absent { font-size: var(--text-md); color: var(--text-tertiary); font-family: var(--font-body); font-weight: 500; }
 .metric__note { font-size: var(--text-xs); color: var(--text-secondary); }
-.metric__provenance { display: flex; flex-wrap: wrap; gap: var(--space-1); padding-top: var(--space-2); border-top: 1px dashed var(--border); }
+.metric__provenance { display: grid; gap: var(--space-1); padding-top: var(--space-2); border-top: 1px dashed var(--border); }
+
+/* One line per contributing method. Pills wrapped to three lines each and buried the
+   number they belonged to. */
+.provenance {
+  font: inherit;
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 26px;
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.provenance:hover { background: var(--surface); border-color: var(--border); color: var(--text); }
+.provenance__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provenance__badges { flex: none; display: flex; gap: var(--space-1); }
+.provenance--unbacked .provenance__name { font-style: italic; }
 
 .chip {
   font: inherit;
   font-size: var(--text-xs);
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -548,6 +572,13 @@ select { cursor: pointer; }
 .tag--advanced { color: var(--text-secondary); background: var(--surface-inset); }
 .tag--fails { color: var(--danger); background: var(--danger-quiet); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); }
 
+.undecided--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .undecided {
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
@@ -608,6 +639,7 @@ select { cursor: pointer; }
 
 .spread-axis { position: relative; height: 96px; margin: var(--space-4) 0 var(--space-6); }
 .spread-axis__line { position: absolute; left: 0; right: 0; top: 44px; height: 2px; background: var(--border-strong); }
+.spread-axis__legend { position: absolute; top: 0; left: 0; font-size: var(--text-xs); color: var(--text-secondary); }
 .spread-axis__span { position: absolute; top: 40px; height: 10px; background: color-mix(in srgb, var(--accent) 30%, transparent); border-radius: var(--radius-pill); }
 .spread-tick { position: absolute; top: 30px; width: 2px; height: 30px; margin-left: -1px; background: var(--text-secondary); opacity: 0.55; }
 .spread-tick--baseline { background: var(--accent); opacity: 1; height: 44px; top: 23px; width: 3px; }
@@ -617,6 +649,7 @@ select { cursor: pointer; }
 .table-scroll { overflow-x: auto; }
 table.data { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
 table.data th, table.data td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+table.data td:first-child { max-width: 42ch; overflow: hidden; text-overflow: ellipsis; }
 table.data th { color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: var(--text-xs); }
 table.data td.numeric { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
 table.data tr[data-extreme="low"] td, table.data tr[data-extreme="high"] td { background: var(--accent-quiet); }
@@ -625,6 +658,8 @@ table.data td.failed { color: var(--danger); white-space: normal; }
 /* ---------------------------------------------------------------- drawer */
 
 .drawer { position: fixed; inset: 0; z-index: 40; display: flex; justify-content: flex-end; }
+/* `display` here would otherwise beat the hidden attribute and leave the panel open. */
+.drawer[hidden] { display: none; }
 .drawer__scrim { position: absolute; inset: 0; background: rgba(10, 15, 20, 0.5); border: 0; }
 .drawer__panel {
   position: relative;

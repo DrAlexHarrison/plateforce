@@ -6,6 +6,7 @@
 use plateforce_conformance::bindings::ReferenceBindings;
 use plateforce_conformance::corpus::{Corpus, CorpusFormat};
 use plateforce_conformance::{compare, parse_reference, Agreement, Tolerance};
+use plateforce_core::statistics::{DispersionEstimator, VarianceAccumulation};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -20,6 +21,14 @@ OPTIONS:
     --absolute-tolerance <F>   default 1e-12
     --sample-rate <HZ>         default 1200
     --all-columns              list every column, not only the ones that disagree
+
+Rebinding one choice and rerunning is how this corpus measures what a choice is
+worth. Each of these moves the Rust away from the reference on purpose:
+
+    --gravity <F>              9.81 as bound, 9.80665 is the standard value
+    --dispersion <WHICH>       population as bound, sample is what R's sd computes
+    --variance-accumulation <WHICH>
+                               cumulative as bound, two-pass does not cancel
 ";
 
 fn main() -> ExitCode {
@@ -44,6 +53,25 @@ fn main() -> ExitCode {
     let mut bindings = ReferenceBindings::default();
     if let Some(rate) = value("--sample-rate").and_then(|v| v.parse().ok()) {
         bindings.sample_rate_hz = rate;
+    }
+    if let Some(gravity) = value("--gravity").and_then(|v| v.parse().ok()) {
+        bindings.gravity_meters_per_second_squared = gravity;
+    }
+    match value("--dispersion").as_deref() {
+        Some("sample") => bindings.dispersion = DispersionEstimator::Sample,
+        Some("population") | None => {}
+        Some(other) => {
+            eprintln!("plateforce-conformance: unknown dispersion estimator '{other}'");
+            return ExitCode::FAILURE;
+        }
+    }
+    match value("--variance-accumulation").as_deref() {
+        Some("two-pass") => bindings.variance_accumulation = VarianceAccumulation::TwoPass,
+        Some("cumulative") | None => {}
+        Some(other) => {
+            eprintln!("plateforce-conformance: unknown variance accumulation '{other}'");
+            return ExitCode::FAILURE;
+        }
     }
     let tolerance = Tolerance {
         relative: value("--relative-tolerance")
@@ -96,6 +124,12 @@ fn main() -> ExitCode {
     println!(
         "tolerance: relative {:e}, absolute {:e}",
         tolerance.relative, tolerance.absolute
+    );
+    println!(
+        "bound: gravity {} m/s2, dispersion {:?}, variance accumulation {:?}",
+        bindings.gravity_meters_per_second_squared,
+        bindings.dispersion,
+        bindings.variance_accumulation
     );
     println!();
 

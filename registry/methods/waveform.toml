@@ -1,0 +1,504 @@
+# Group M. Waveform statistics and time treatment.
+#
+# Two independent axes, and the second is the discovery. The inference machinery and the time
+# treatment cross rather than nest. Time normalisation is not a preprocessing parameter of the test,
+# it is a method with published consequences that determines what the test is capable of detecting.
+#
+# The killer evidence is a clean published instance rather than an argument: the same test run twice
+# on the same trials, differing only in how time was treated, gave a significant interaction under
+# absolute time and a non-significant one, with post-hoc testing impossible, under linear
+# normalisation. The mechanism generalises: the two schemes trade alignment quality between the two
+# ends of the curve, and cluster-based tests need a change to occur at the same curve location across
+# trials. Neither is neutral and there is no raw option.
+
+[[method]]
+id = "waveform.spm1d.pataky"
+construct = "waveform_inference"
+group = "M"
+title = "Continuum inference with a random-field-theory threshold"
+rule = """
+Treat each trial's force-time curve as a one-dimensional continuum, compute the test statistic at
+every point, and set the critical threshold from random field theory so the family-wise error rate
+over the whole continuum is controlled. Report suprathreshold clusters with their extent.
+"""
+# Prose grants recommended for continuum inference. Rule 6 bars it: pataky2010 was never obtained
+# and the rule rests on its users.
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "pataky2010"
+role = "proposes"
+reference = "Pataky TC 2010, J Biomech; not obtained, the rule is stated concordantly by its users"
+doi = "10.1016/j.jbiomech.2010.03.008"
+obtained = false
+
+[[method.citation]]
+key = "hughes2022"
+role = "uses"
+reference = "Hughes, Warmenhoven, Haff, Chapman and Nimphius 2022, JSCR 36(10):2752-2761, ingested and read in full"
+obtained = true
+
+[[method.disagrees_with]]
+id = "waveform.snpm.permutation"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "waveform.fda_fpca.ramsay"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "the inference choice changes little once the competing family is stripped of its distinctive preprocessing"
+rationale = """
+A research workflow, never a practitioner default. The threshold assumes smooth, roughly Gaussian
+residual fields, which an unfiltered trace at 1000 Hz satisfies in practice, but the assumption is
+untested at the sharp transitions where every other registry entry lives.
+"""
+
+[[method]]
+id = "waveform.snpm.permutation"
+construct = "waveform_inference"
+group = "M"
+title = "Continuum inference with a permutation null"
+rule = """
+As continuum inference, but the null distribution of the cluster statistic is built by permutation of
+the labels rather than from random field theory, so no parametric assumption on the residual field is
+required.
+"""
+status = "accepted"
+confidence = "low"
+debate = "single_position"
+
+[[method.citation]]
+key = "warmenhoven2018"
+role = "evaluates"
+reference = "Warmenhoven, Harrison, Robinson et al. 2018, JSAMS 21:1100-1105; the direct three-way head-to-head, not obtained"
+doi = "10.1016/j.jsams.2018.03.009"
+obtained = false
+
+[[method.disagrees_with]]
+id = "waveform.spm1d.pataky"
+kind = "naming"
+note = """
+An implementation detail rather than a genuine debate on the available evidence, since it is reported
+to give almost identical results. Recorded as a distinct method anyway because the assumption it
+drops is a real one, and a user who cannot meet the smoothness assumption needs a named alternative.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "low on the verdict"
+rationale = "Exposed as an assumption-free fallback behind the parametric form. The paper that quantifies the difference exists and could not be obtained."
+
+[[method]]
+id = "waveform.fda_fpca.ramsay"
+construct = "waveform_inference"
+group = "M"
+title = "Basis expansion with inference on functional principal components"
+rule = """
+Expand each curve in a smooth basis, optionally register the curves, then perform inference on the
+basis coefficients or on the functional principal components of the coefficient matrix.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "basis_size"
+unit = "count"
+notes = "The number of basis functions and the smoothing penalty are analyst choices that set how much detail survives into the inference, and they are almost never reported."
+
+[[method.citation]]
+key = "ramsay2005"
+role = "proposes"
+reference = "Ramsay and Silverman, Functional Data Analysis, 2nd ed. 2005, the parent text; not obtained"
+obtained = false
+
+[[method.citation]]
+key = "warmenhoven2019"
+role = "uses"
+reference = "Warmenhoven, Cobley, Draper et al. 2019, Sports Biomech 18:317-341, methods guidance"
+obtained = true
+
+[[method.disagrees_with]]
+id = "waveform.spm1d.pataky"
+kind = "genuine"
+note = """
+The divergence between the schools lives entirely in the preprocessing this family is distinguished
+by: performed without curve fitting, smoothing and registration, it gives comparable results to
+continuum inference. That is the argument for registering the registration ladder separately.
+"""
+
+[[method.disagrees_with]]
+id = "waveform.acp.richter2014"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high through the preprocessing, low through the inference"
+rationale = "The basis size and penalty must be displayed and exported, never defaulted silently."
+
+[[method]]
+id = "waveform.acp.richter2014"
+construct = "waveform_inference"
+group = "M"
+title = "Rotated principal components interpreted as characterising phases"
+rule = """
+Normalise with a b-spline basis chosen to avoid linear time normalisation, compute the force
+variance-covariance matrix rather than the correlation matrix, eigen-decompose and retain components
+to a stated variance share, apply a varimax rotation, and interpret the rotated components as key
+phases analysed in the time, magnitude and combined magnitude-time domains.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.parameter]]
+name = "variance_retained_pct"
+unit = "percent"
+published_values = [99.0]
+default = 99.0
+default_source = "richter2014"
+required = true
+notes = "The retention rule and the rotation are both choices that change which phases are named, and the paper reports sensitivity to neither."
+
+[[method.citation]]
+key = "richter2014"
+role = "proposes"
+reference = "Richter, O'Connor, Marshall and Moran 2014, J Appl Biomech 30(2):316-321; acquired at 2 of 6 pages, results tables not read"
+doi = "10.1123/jab.2012-0218"
+obtained = false
+
+[[method.disagrees_with]]
+id = "waveform.fda_fpca.ramsay"
+kind = "genuine"
+note = """
+An explicit published critique on two grounds: that the competing family does not inherently identify
+key phases and so has the potential to mask performance-related factors, and that it cannot examine
+the combined magnitude-time domain, which matters here precisely because of the impulse-momentum
+relationship. For this project's central quantity, magnitude and time are not separable.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high; it answers a different question and is not a drop-in substitute"
+rationale = """
+Its output, named phases with their variance share, is the most practitioner-legible thing in this
+group and is worth attention as a reporting format even if the method is not adopted. Its own author
+judged two statistically significant discrete variables functionally erroneous because of
+between-subject variability in curve shape.
+"""
+
+[[method]]
+id = "waveform.pca_time_stratified_discrete.wu2019"
+construct = "waveform_inference"
+group = "M"
+title = "Principal components of discrete features extracted at stratified time points"
+rule = """
+Extract discrete features at a stratified set of time points across the movement, run principal
+component analysis on that feature matrix, and interpret the components.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "wu2019"
+role = "proposes"
+reference = "Wu, Sterkenburg, Everett et al. 2019, PLoS One 14:e0219295, on jump force-time signatures"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "medium"
+rationale = """
+The pragmatic bridge between scalar and continuum analysis, producing variables a conventional
+workflow can consume. It inherits the arbitrariness of the strata, which are landmarks by another
+name, so it carries the bimodality problem in a form that is harder to notice because no landmark is
+named.
+"""
+
+[[method]]
+id = "timenorm.none.landmark_aligned"
+construct = "time_treatment"
+group = "M"
+title = "No time normalisation, aligned at one landmark and padded to a common length"
+rule = """
+Apply no time normalisation. Align every trial at one landmark and pad or truncate to a common
+length.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "alignment_landmark"
+unit = "enumeration"
+required = true
+
+[[method.citation]]
+key = "hughes2022"
+role = "evaluates"
+reference = "Hughes et al. 2022, ingested and read in full, which ran this against linear normalisation on the same trials"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "either"
+criterion = "timenorm.linear_length"
+criterion_kind = "model"
+source = "hughes2022"
+# Alignment quality is perfect at the landmark and degrades with distance from it, at a rate set by
+# between-subject timing variance. Padding with weighing-phase samples means the early portion of the
+# averaged curve is a mixture of different numbers of trials, which understates variance there. The
+# only quantification available is categorical: the effect was significant here and not under linear
+# normalisation, on the same data.
+
+[[method.disagrees_with]]
+id = "timenorm.linear_length"
+kind = "genuine"
+note = "The clearest force-a-decision case in this group, and the choice has been shown to flip a significance verdict."
+
+[[method.disagrees_with]]
+id = "registration.landmark"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total: it changes the verdict"
+rationale = """
+With the landmark named and a plot of the aligned ensemble shown before the test is run. It is the
+only scheme that preserves absolute time, so it is the only one under which a duration remains a
+measurable quantity, and it must be chosen with the region of interest in mind.
+"""
+
+[[method]]
+id = "timenorm.linear_length"
+construct = "time_treatment"
+group = "M"
+title = "Linear length normalisation to a percent-of-movement timebase"
+rule = """
+Trim each trial to a defined interval and resample to a common number of points by interpolating
+spline, so the timebase becomes percent of movement.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "hughes2022"
+role = "evaluates"
+reference = "Hughes et al. 2022, under which the same test lost significance"
+obtained = true
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams' R application, and the field default"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "either"
+criterion = "timenorm.none.landmark_aligned"
+criterion_kind = "model"
+source = "hughes2022"
+# Improves alignment early, degrades it near the end of the interval because short trials are
+# stretched, and destroys duration information entirely. Measured consequence: loss of a significant
+# interaction and inability to run post-hoc tests, on data where the same test succeeded under
+# absolute time.
+
+[[method.disagrees_with]]
+id = "timenorm.none.landmark_aligned"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "timenorm.bspline_basis.richter"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "registration.landmark"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "total"
+rationale = """
+It is not neutral and is routinely treated as though it were: time-normalising reads as a
+housekeeping step and is a method choice with a published consequence. It also consumes the interval
+endpoints and inherits their forks from two other groups.
+"""
+
+[[method]]
+id = "timenorm.piecewise_per_phase"
+construct = "time_treatment"
+group = "M"
+title = "Each phase normalised independently to a fixed proportion of the timebase"
+rule = """
+Normalise each phase independently to a fixed proportion of the output timebase, so phase boundaries
+land at the same normalised index in every trial.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.citation]]
+key = "sams_shiny"
+role = "proposes"
+reference = "Sams App/global.R:1182-1303, with a boundary-sample carry-and-discard at each junction and the author's own uncertainty flagged in source and README"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "either"
+criterion = "time_treatment"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Structural and total: it sets every phase-duration metric to a constant by construction. Not a
+# quantifiable bias, a definitional one.
+
+[method.gui]
+surfacing = "refuse"
+sensitivity = "total on durations, moderate on shape"
+rationale = """
+Incompatible with every phase-duration metric. The software must refuse the combination rather than
+warn about it, and the duration metrics must be visibly disabled when it is selected rather than
+silently zeroed. It is the only scheme that guarantees phase correspondence across trials, which is
+what a cluster-based test needs.
+"""
+
+[[method]]
+id = "timenorm.bspline_basis.richter"
+construct = "time_treatment"
+group = "M"
+title = "Normalise by expressing each curve in a b-spline basis"
+rule = "Normalise by expressing each curve in a b-spline basis rather than by resampling onto a common percentage grid."
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "richter2014"
+role = "proposes"
+reference = "Richter et al. 2014, 2 of 6 pages, stating the choice as a deliberate rejection of the field default"
+doi = "10.1123/jab.2012-0218"
+obtained = false
+
+[[method.disagrees_with]]
+id = "timenorm.linear_length"
+kind = "genuine"
+note = """
+Explicitly and by design. Basis size sets the effective smoothing, so the scheme is a normalisation
+and a filter at once, which is an interaction with the acquisition layer that nobody in this
+literature discusses.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "With the basis size shown. It arrives bundled with one inference method and has not been evaluated separately."
+
+[[method]]
+id = "registration.landmark"
+construct = "time_treatment"
+group = "M"
+title = "Monotone warping so designated landmarks land at common normalised times"
+rule = """
+Warp each curve by a monotone function so that a set of designated features land at common normalised
+times.
+"""
+# Prose grants recommended as the target. Rule 6 bars it: ramsay2005, which proposes the technique,
+# was never obtained, and the property it is recommended for has never been demonstrated on real
+# jump data.
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "landmark_set"
+unit = "enumeration"
+required = true
+notes = """
+The published countermovement-jump set is onset of unweighting, minimum of unweighting, end of
+braking, maximum of propulsion, end of propulsion. The set must be selected from registry entries by
+canonical name, never typed by the user.
+"""
+
+[[method.citation]]
+key = "ramsay2005"
+role = "proposes"
+reference = "Ramsay and Silverman 2005 for the technique; not obtained"
+obtained = false
+
+[[method.citation]]
+key = "hughes2022"
+role = "evaluates"
+reference = "Hughes et al. 2022 for the landmark set and the recommendation"
+obtained = true
+
+[[method.disagrees_with]]
+id = "timenorm.none.landmark_aligned"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "timenorm.linear_length"
+kind = "genuine"
+note = "The only scheme that aligns the whole curve rather than trading one end against the other, so it dominates both on the published mechanism."
+
+[[method.disagrees_with]]
+id = "registration.continuous_dtw"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "unmeasured, predicted to be large"
+rationale = """
+Its precondition is a defined and agreed landmark set, which is exactly what this registry is. A
+landmark absent in one athlete's curve cannot be registered, and jump force curves are non-, uni- and
+bimodal across athletes, so the method is undefined for exactly the population heterogeneity that
+motivated it. Nobody has reported what fraction of a normal cohort's curves lack each landmark, which
+is cheap and publishable on the 244-trial corpus.
+"""
+
+[[method]]
+id = "registration.continuous_dtw"
+construct = "time_treatment"
+group = "M"
+title = "Continuous monotone warping estimated from the data without designated landmarks"
+rule = """
+Warp each curve by a continuous monotone function estimated from the data itself, without designated
+landmarks, by minimising a distance to a reference curve.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "helwig2011"
+role = "evaluates"
+reference = "Helwig et al. 2011, J Biomech, the comparative methods paper; not obtained"
+obtained = false
+
+[[method.citation]]
+key = "physiomocap"
+role = "uses"
+reference = "PhysioMoCap, the only surveyed tool implementing it"
+obtained = true
+
+[[method.disagrees_with]]
+id = "registration.landmark"
+kind = "genuine"
+note = """
+The classic constrained-against-unconstrained trade-off. It removes the landmark precondition, which
+is a real advantage given the bimodality problem, at the cost that an unconstrained warp can align
+features that are not homologous, which is a worse failure than a smeared average because it is
+invisible in the output.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "With the warping functions plotted, because a monotone warp that is wild is the only visible symptom of a bad registration."
