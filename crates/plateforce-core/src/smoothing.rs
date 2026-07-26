@@ -167,6 +167,18 @@ pub fn savitzky_golay_coefficients(
             coefficients[index] += value * weight;
         }
     }
+
+    // Smoothing coefficients sum to one exactly, because a constant is a polynomial of
+    // degree zero and the filter fits polynomials. The least squares solve reaches that
+    // only to within its own error, and the reference implementation's residual gain of
+    // one part in 5e11 is enough to decide a threshold crossing on a trial whose quiet
+    // window has no noise at all. Normalising removes that from the answer.
+    let gain = compensated_sum(&coefficients);
+    if gain != 0.0 {
+        for coefficient in coefficients.iter_mut() {
+            *coefficient /= gain;
+        }
+    }
     Ok(coefficients)
 }
 
@@ -202,26 +214,29 @@ pub fn savitzky_golay_interpolated_edges(
         *slot = compensated_sum(&terms);
     }
 
-    let positions: Vec<f64> = (0..window_length).map(|index| index as f64).collect();
-    let leading = fit_polynomial(&positions, &values[..window_length], polynomial_order).ok_or(
-        SmoothingError::RankDeficient {
-            window_length,
-            polynomial_order,
-        },
-    )?;
+    // The edge fit is centred on its own window. Fitting against 0..window_length
+    // instead leaves a cubic Vandermonde spanning seven orders of magnitude, which
+    // costs several digits for nothing: only the evaluated value is ever used.
+    let centre = (window_length - 1) as f64 / 2.0;
+    let positions: Vec<f64> = (0..window_length)
+        .map(|index| index as f64 - centre)
+        .collect();
+    let rank_deficient = || SmoothingError::RankDeficient {
+        window_length,
+        polynomial_order,
+    };
+
+    let leading = fit_polynomial(&positions, &values[..window_length], polynomial_order)
+        .ok_or_else(rank_deficient)?;
     for index in 0..half_length {
-        smoothed[index] = evaluate_polynomial(&leading, index as f64);
+        smoothed[index] = evaluate_polynomial(&leading, index as f64 - centre);
     }
 
     let tail_start = values.len() - window_length;
-    let trailing = fit_polynomial(&positions, &values[tail_start..], polynomial_order).ok_or(
-        SmoothingError::RankDeficient {
-            window_length,
-            polynomial_order,
-        },
-    )?;
+    let trailing = fit_polynomial(&positions, &values[tail_start..], polynomial_order)
+        .ok_or_else(rank_deficient)?;
     for index in values.len() - half_length..values.len() {
-        smoothed[index] = evaluate_polynomial(&trailing, (index - tail_start) as f64);
+        smoothed[index] = evaluate_polynomial(&trailing, (index - tail_start) as f64 - centre);
     }
 
     Ok(smoothed)
@@ -310,6 +325,25 @@ mod tests {
                 (smoothed[index] - expected).abs() < 1e-9,
                 "sample {index}: {} against {expected}",
                 smoothed[index]
+            );
+        }
+    }
+
+    /// A constant is a polynomial of degree zero, so it must come back unchanged. On a
+    /// trial whose quiet window is one repeated value, this property is the entire
+    /// difference between a threshold that fires and one that does not, so the interior
+    /// is held to equality rather than to a tolerance.
+    #[test]
+    fn a_constant_comes_back_as_the_same_constant() {
+        let values = vec![665.430_3f64; 3000];
+        let smoothed = savitzky_golay_interpolated_edges(&values, 240, 3).unwrap();
+        for (index, &got) in smoothed.iter().enumerate().take(2880).skip(120) {
+            assert_eq!(got, 665.430_3, "sample {index} came back as {got}");
+        }
+        for (index, &got) in smoothed.iter().enumerate() {
+            assert!(
+                (got - 665.430_3).abs() < 1e-11,
+                "edge sample {index} came back as {got}"
             );
         }
     }

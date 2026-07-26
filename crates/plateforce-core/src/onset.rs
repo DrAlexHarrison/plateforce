@@ -132,13 +132,30 @@ pub fn onset_noise_relative(
     dispersion_newtons: f64,
     multiplier: f64,
     band_sides: BandSides,
+    degenerate: DegenerateBandPolicy,
     search: &CrossingSearch,
     sample_rate_hz: f64,
 ) -> Result<usize, TrialError> {
     let half_width = multiplier * dispersion_newtons;
-    let band = match band_sides {
-        BandSides::BelowOnly => ExcursionBand::below(reference_newtons - half_width),
-        BandSides::BothSides => ExcursionBand::centred(reference_newtons, half_width),
+    let lower = reference_newtons - half_width;
+    let collapsed = dispersion_newtons <= 0.0 || lower <= 0.0;
+    let band = match (collapsed, degenerate) {
+        (true, DegenerateBandPolicy::Refuse) => {
+            return Err(TrialError::CollapsedBand {
+                method_id: "onset.threshold.noise_relative".to_string(),
+                parameter: "k".to_string(),
+                value: multiplier,
+                dispersion_newtons,
+                threshold_newtons: lower,
+            })
+        }
+        (true, DegenerateBandPolicy::FractionOfReference(fraction)) => {
+            ExcursionBand::below(fraction * reference_newtons)
+        }
+        _ => match band_sides {
+            BandSides::BelowOnly => ExcursionBand::below(lower),
+            BandSides::BothSides => ExcursionBand::centred(reference_newtons, half_width),
+        },
     };
     sustained_excursion(tested_signal, &band, search).ok_or_else(|| {
         no_crossing(
@@ -155,6 +172,23 @@ pub fn onset_noise_relative(
 pub enum BandSides {
     BelowOnly,
     BothSides,
+}
+
+/// What a noise relative rule does when its band collapses.
+///
+/// A band collapses when the quiet window has no measurable spread, which happens on
+/// this corpus whenever the plate held one bit-identical value for the whole window,
+/// and when the resulting threshold falls at or below zero, which happens when the
+/// athlete was still moving during the window the rule assumed was quiet.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DegenerateBandPolicy {
+    /// Refuse. A band of k times zero does not separate movement from noise, and any
+    /// crossing it reports is decided by the last bits of the arithmetic.
+    Refuse,
+    /// Search against the collapsed band as stated.
+    UseAsStated,
+    /// Replace the threshold with a fixed fraction of the standing reference.
+    FractionOfReference(f64),
 }
 
 /// Onset as a fraction below the standing reference, with no reference to noise.
@@ -430,6 +464,47 @@ mod tests {
         assert_eq!(both, Some(400));
     }
 
+    /// The plate holds one value for the whole quiet window on 11 trials in 244, and
+    /// the rule that consumes its standard deviation then has no band at all.
+    #[test]
+    fn a_quiet_window_with_no_noise_collapses_the_band_and_is_named_as_such() {
+        let mut signal = vec![600.0; 1000];
+        signal.extend(std::iter::repeat(400.0).take(500));
+        let search = CrossingSearch {
+            start_index: 0,
+            end_index: signal.len(),
+            persistence_samples: 1,
+            selection: CrossingSelection::First,
+        };
+        let refused = onset_noise_relative(
+            &signal,
+            600.0,
+            0.0,
+            5.0,
+            BandSides::BelowOnly,
+            DegenerateBandPolicy::Refuse,
+            &search,
+            1200.0,
+        )
+        .unwrap_err();
+        let message = refused.to_string();
+        assert!(message.contains("onset.threshold.noise_relative"), "{message}");
+        assert!(message.contains("dispersion"), "{message}");
+
+        let fallen_back = onset_noise_relative(
+            &signal,
+            600.0,
+            0.0,
+            5.0,
+            BandSides::BelowOnly,
+            DegenerateBandPolicy::FractionOfReference(0.95),
+            &search,
+            1200.0,
+        )
+        .unwrap();
+        assert_eq!(fallen_back, 1000);
+    }
+
     #[test]
     fn a_backtrack_that_runs_off_the_front_reports_that_it_clamped() {
         assert_eq!(
@@ -457,6 +532,7 @@ mod tests {
             0.0,
             5.0,
             BandSides::BothSides,
+            DegenerateBandPolicy::UseAsStated,
             &CrossingSearch {
                 start_index: 600,
                 end_index: 1800,

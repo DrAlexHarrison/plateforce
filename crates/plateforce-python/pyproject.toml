@@ -32,3 +32,34 @@ Repository = "https://github.com/DrAlexHarrison/plateforce"
 # One wheel per platform rather than one per interpreter. The extension links the
 # stable ABI, so a single cp311-abi3 wheel serves 3.11 and every later version.
 features = ["pyo3/extension-module"]
+
+[tool.cibuildwheel]
+# Building on the oldest supported interpreter is what collapses the matrix: the wheel
+# this produces is tagged cp311-abi3 and installs on every later version, so the release
+# is five wheels, one per platform, rather than one per platform per Python version.
+build = "cp311-*"
+# musl and 32-bit are off because Rust ships no cargo for 32-bit musl and this audience is
+# not on either. Adding musl back is one edit to this line.
+skip = "*-musllinux_* *_i686 *_ppc64le *_s390x pp*"
+build-frontend = "build"
+test-requires = ["pytest", "numpy"]
+test-command = "pytest {project}/crates/plateforce-python/tests"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]
+# The manylinux images carry no Rust toolchain.
+before-all = "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable"
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+
+[tool.cibuildwheel.macos]
+archs = ["native"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+
+# Rust targets macOS 10.12 at the oldest, above CPython's own floor, so the wheel has to
+# say so or it claims compatibility it does not have. Apple Silicon starts at 11.0 and
+# cibuildwheel sets that itself.
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx_x86_64"
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.13" }

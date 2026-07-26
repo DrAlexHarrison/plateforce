@@ -8,3 +8,6 @@ node_modules/
 dist/
 build/
 .DS_Store
+
+# The browser bundle is a build artifact.
+web/pkg/

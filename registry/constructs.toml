@@ -207,3 +207,93 @@ unit = "newton_seconds"
 id = "rate_of_power_development"
 title = "How fast power rises"
 unit = "watts_per_second"
+
+[[construct]]
+id = "mechanical_power"
+title = "Rate of doing mechanical work"
+unit = "watts"
+notes = """
+Whether this determines jump performance at all has been argued in print, by name, with rebuttals,
+for fifty years. The dispute is not about a threshold, it is about whether the quantity is the right
+quantity.
+"""
+
+[[construct]]
+id = "mechanical_work"
+title = "Mechanical work done over a declared interval"
+unit = "joules"
+
+[[construct]]
+id = "mechanical_object"
+title = "Which mechanical object a loaded-lift quantity describes"
+unit = "enumeration"
+notes = """
+Barbell, body or system. On one deadlift dataset peak power occurs at 50 percent of one-repetition
+maximum for the bar, 30 percent for the body and 70 percent for the system, same trials, same
+session. The axis does not exist for an unloaded jump, where the three coincide.
+"""
+
+[[construct]]
+id = "normalisation_basis"
+title = "What a force, rate, power, work or impulse is expressed relative to"
+unit = "enumeration"
+notes = "Relative power in the weightlifting literature and in strength and conditioning are different quantities with the same name."
+
+[[construct]]
+id = "reactive_strength_index"
+title = "Jump height per unit of ground contact or takeoff time"
+unit = "meters_per_second"
+
+[[construct]]
+id = "reactive_strength_ratio"
+title = "Flight time per unit of ground contact or takeoff time"
+unit = "dimensionless"
+notes = """
+Not convertible to the index form by any constant, because jump height depends on flight time
+quadratically, so two athletes with identical ratios can rank differently on the index.
+"""
+
+[[construct]]
+id = "eccentric_utilisation_ratio"
+title = "Countermovement jump result relative to a squat jump result"
+unit = "dimensionless"
+
+[[construct]]
+id = "lower_limb_stiffness"
+title = "Whole-limb stiffness estimated from flight and contact times"
+unit = "newtons_per_meter"
+
+[[construct]]
+id = "movement_signature_score"
+title = "A composite score describing how a jump was produced rather than how well"
+unit = "dimensionless"
+
+[[construct]]
+id = "time_to_stabilisation"
+title = "Time for force to settle within a band of system weight after landing"
+unit = "seconds"
+
+[[construct]]
+id = "joint_energy_absorption"
+title = "Negative work done at the hip, knee and ankle during landing"
+unit = "joules"
+notes = """
+Joint-level and centre-of-mass-level energy absorption are different quantities and are routinely
+conflated. The joint-level number and the task-level number can point in opposite directions on the
+same trial.
+"""
+
+[[construct]]
+id = "dynamic_strength_index"
+title = "Ballistic peak force relative to isometric peak force in the same movement pattern"
+unit = "dimensionless"
+
+[[construct]]
+id = "interlimb_asymmetry"
+title = "The difference between limbs, expressed on a declared algebra and over a declared window"
+unit = "percent"
+notes = """
+Not a stable athlete property. In sixteen athletes the same day, individual asymmetry ranged 0.0 to
+22.2 percent on one test and 0.8 to 6.9 percent on another, with no significant relationship between
+tests.
+"""

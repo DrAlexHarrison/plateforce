@@ -1,9 +1,13 @@
 /*
  * Turning the registry into the decisions the interface presents.
  *
- * Nothing in here hardcodes a method. The slots below name constructs, the candidates come
- * from whatever the compiled registry contains for that construct, and the surfacing field
- * on each entry decides how hard the choice is pushed at the user.
+ * Nothing here hardcodes a method. The slots name constructs, the candidates are the
+ * union of what the registry documents and what this build can execute, and the surfacing
+ * field on each entry decides how hard the choice is pushed at the user.
+ *
+ * The union matters in both directions. A registry entry this build cannot run is offered
+ * as unavailable rather than omitted, and a rule this build can run that the registry has
+ * not documented is offered as not registry backed rather than presented as citable.
  */
 
 export const SLOTS = [
@@ -11,7 +15,7 @@ export const SLOTS = [
     key: 'weighing',
     construct: 'system_weight',
     title: 'Weighing epoch',
-    why: 'Sets system weight, and therefore the onset band and every impulse below it.',
+    why: 'Sets system weight, and with it the onset band and every impulse below.',
   },
   {
     key: 'onset',
@@ -23,7 +27,7 @@ export const SLOTS = [
     key: 'takeoff',
     construct: 'takeoff',
     title: 'Takeoff',
-    why: 'Moves jump height by about 1.4 cm across six published rules.',
+    why: 'Moves jump height by about 1.4 cm across six published rules, and decides flight time outright.',
   },
 ];
 
@@ -32,8 +36,7 @@ export const SLOTS = [
  * choice nobody thought of. */
 const NOT_A_CHOICE = new Set(['never_a_user_choice', 'refuse']);
 
-export function buildDecisionModel(registry, executableIds) {
-  const executable = new Set(executableIds);
+export function buildDecisionModel(registry, bindings) {
   const byConstruct = new Map();
   for (const method of registry.methods) {
     if (!byConstruct.has(method.construct)) byConstruct.set(method.construct, []);
@@ -41,24 +44,47 @@ export function buildDecisionModel(registry, executableIds) {
   }
 
   return SLOTS.map((slot) => {
-    const all = byConstruct.get(slot.construct) || [];
-    const withheld = all.filter((m) => NOT_A_CHOICE.has(m.gui?.surfacing));
-    const offered = all.filter((m) => !NOT_A_CHOICE.has(m.gui?.surfacing));
-    const available = offered.filter((m) => executable.has(m.id));
-    const unavailable = offered.filter((m) => !executable.has(m.id));
-    const forcesDecision = offered.some((m) => m.gui?.surfacing === 'force_a_decision');
+    const documented = byConstruct.get(slot.construct) || [];
+    const slotBindings = bindings.filter((binding) => binding.slot === slot.key);
+    const executableIds = new Set(slotBindings.map((binding) => binding.id));
+
+    const withheld = documented.filter((method) => NOT_A_CHOICE.has(method.gui?.surfacing));
+    const offered = documented.filter((method) => !NOT_A_CHOICE.has(method.gui?.surfacing));
+
+    const candidates = offered.map((method) => ({
+      id: method.id,
+      title: method.title,
+      status: method.status,
+      surfacing: method.gui?.surfacing || null,
+      method,
+      registryBacked: true,
+      executable: executableIds.has(method.id),
+      note: '',
+    }));
+
+    for (const binding of slotBindings) {
+      if (candidates.some((candidate) => candidate.id === binding.id)) continue;
+      candidates.push({
+        id: binding.id,
+        title: binding.title,
+        status: null,
+        surfacing: null,
+        method: null,
+        registryBacked: false,
+        executable: true,
+        note: binding.note || 'The registry carries no entry under this id yet.',
+      });
+    }
 
     return {
       ...slot,
-      construct: registry.constructs.find((c) => c.id === slot.construct) || null,
-      all,
-      offered,
-      available,
-      unavailable,
+      constructEntry: registry.constructs.find((c) => c.id === slot.construct) || null,
+      candidates,
+      available: candidates.filter((candidate) => candidate.executable),
+      unavailable: candidates.filter((candidate) => !candidate.executable),
       withheld,
-      forcesDecision,
+      forcesDecision: offered.some((method) => method.gui?.surfacing === 'force_a_decision'),
       surfacing: dominantSurfacing(offered),
-      fallbackId: null,
     };
   });
 }
@@ -68,33 +94,37 @@ export function buildDecisionModel(registry, executableIds) {
 function dominantSurfacing(methods) {
   const order = ['force_a_decision', 'default_and_show', 'surface_on_demand', 'default_and_hide'];
   for (const level of order) {
-    if (methods.some((m) => m.gui?.surfacing === level)) return level;
+    if (methods.some((method) => method.gui?.surfacing === level)) return level;
   }
   return 'default_and_show';
 }
 
+const STATUS_ORDER = ['recommended', 'accepted', 'contested', 'legacy', 'deprecated'];
+
+export function rankCandidates(candidates) {
+  return [...candidates].sort((a, b) => {
+    if (a.registryBacked !== b.registryBacked) return a.registryBacked ? -1 : 1;
+    return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+  });
+}
+
 /* Preferred opening selection for a slot that is allowed to have one. A slot that forces a
  * decision returns null and stays unresolved until the user picks. */
-export function preferredMethod(slot) {
+export function preferredCandidate(slot) {
   if (slot.forcesDecision) return null;
-  const byStatus = ['recommended', 'accepted', 'contested', 'legacy', 'deprecated'];
-  const ranked = [...slot.available].sort(
-    (a, b) => byStatus.indexOf(a.status) - byStatus.indexOf(b.status),
-  );
-  return ranked[0] || null;
+  return rankCandidates(slot.available)[0] || null;
 }
 
 /* Parameters start at their published default, and the default names the source that chose
  * it. On a slot that forces a decision, a required parameter carrying more than one
- * published value is left unset too, because picking one silently is the behaviour the
- * registry exists to document. */
-export function initialParameters(method, forcesDecision) {
+ * published value is left unset too, because picking one silently is exactly the behaviour
+ * the registry exists to document. */
+export function initialParameters(candidate, forcesDecision) {
   const values = {};
   const unresolved = [];
-  for (const parameter of method?.parameter || []) {
-    const choices = parameter.published_values || [];
-    const mustChoose = forcesDecision && parameter.required && choices.length > 1;
-    if (mustChoose) {
+  for (const parameter of candidate?.method?.parameter || []) {
+    const choices = (parameter.published_values || []).filter(Number.isFinite);
+    if (forcesDecision && parameter.required && choices.length > 1) {
       unresolved.push(parameter.name);
     } else if (parameter.default != null) {
       values[parameter.name] = parameter.default;
@@ -105,12 +135,26 @@ export function initialParameters(method, forcesDecision) {
   return { values, unresolved };
 }
 
-/* Every axis the spread view can sweep: the published values of each bound parameter, plus
- * the weighing epoch durations the literature uses. Nothing invented. */
-export function availableAxes(slot, method) {
+/* Every axis the spread view can sweep. Parameter axes come from the published values the
+ * registry records; the method axis comes from what this build can execute. Nothing here
+ * is invented. */
+export function availableAxes(slot, candidate) {
   const axes = [];
-  for (const parameter of method?.parameter || []) {
-    const values = (parameter.published_values || []).filter((v) => Number.isFinite(v));
+
+  if (slot.available.length > 1) {
+    axes.push({
+      id: `${slot.key}:__method__`,
+      slot: slot.key,
+      methodIds: slot.available.map((entry) => entry.id),
+      label: `${slot.title}: the rule itself`,
+      unit: '',
+      note: `${slot.available.length} rules this build can run`,
+      display: `${slot.available.length} rules`,
+    });
+  }
+
+  for (const parameter of candidate?.method?.parameter || []) {
+    const values = (parameter.published_values || []).filter(Number.isFinite);
     if (values.length < 2) continue;
     axes.push({
       id: `${slot.key}:${parameter.name}`,
@@ -120,6 +164,7 @@ export function availableAxes(slot, method) {
       label: `${slot.title}: ${parameter.name}`,
       unit: parameter.unit || '',
       note: `${values.length} published values`,
+      display: values.join(', '),
     });
   }
   return axes;
@@ -131,13 +176,21 @@ export const WEIGHING_DURATION_AXIS = {
   parameter: 'duration_seconds',
   values: [0.5, 1.0, 1.5, 2.0],
   label: 'Weighing epoch: duration',
-  unit: 'seconds',
+  unit: 's',
   note: 'threshold width moves +/-72% at 0.5 s and +/-23% at 1.5 s',
+  display: '0.5, 1, 1.5, 2',
 };
 
-export function statusRank(status) {
-  return { recommended: 'ok', accepted: 'accent', contested: 'warning', legacy: 'quiet', deprecated: 'danger' }[status] || 'quiet';
-}
+export const GRAVITY_AXIS = {
+  id: 'global:gravity',
+  slot: 'global',
+  parameter: 'gravity_meters_per_second_squared',
+  values: [9.8, 9.80665, 9.81],
+  label: 'Gravity',
+  unit: 'm/s2',
+  note: 'the tools disagree on this constant',
+  display: '9.8, 9.80665, 9.81',
+};
 
 export function findMethod(registry, id) {
   return registry.methods.find((method) => method.id === id) || null;

@@ -6,7 +6,9 @@
 //! that net impulse over system mass equals the stated takeoff velocity, which keeps the
 //! demonstration internally consistent rather than merely plausible.
 
-use plateforce_core::trial::{takeoff_absolute_threshold, takeoff_velocity_meters_per_second};
+use plateforce_core::takeoff::{takeoff_first_sustained_run, ResidualComparison};
+use plateforce_core::trial::{takeoff_velocity_meters_per_second, CentralTendency};
+use plateforce_core::DispersionEstimator;
 use plateforce_core::Trial;
 use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED as GRAVITY;
 use plateforce_core::{Landmarks, WeighingEpoch};
@@ -108,9 +110,22 @@ pub fn synthetic_countermovement_jump() -> Trial {
 
     let velocity_for = |amplitude: f64| {
         let trial = Trial::new(build(amplitude, flight_seconds), SAMPLE_RATE_HZ).unwrap();
-        let epoch = WeighingEpoch::fixed_window(&trial, 1.0).unwrap();
-        let takeoff_index =
-            takeoff_absolute_threshold(&trial, 10.0, 0.1, epoch.end_index).unwrap_or(trial.len() - 1);
+        let epoch = WeighingEpoch::fixed_window(
+            &trial,
+            1.0,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let takeoff_index = takeoff_first_sustained_run(
+            trial.force(),
+            10.0,
+            (0.1 * SAMPLE_RATE_HZ) as usize,
+            ResidualComparison::SignedValue,
+            epoch.end_index,
+            SAMPLE_RATE_HZ,
+        )
+        .unwrap_or(trial.len() - 1);
         takeoff_velocity_meters_per_second(
             &trial,
             &epoch,
@@ -119,6 +134,7 @@ pub fn synthetic_countermovement_jump() -> Trial {
                 takeoff_index,
                 touchdown_index: trial.len() - 1,
             },
+            GRAVITY,
         )
     };
 
@@ -138,10 +154,10 @@ pub fn synthetic_countermovement_jump() -> Trial {
 
 #[cfg(test)]
 mod tests {
-    use plateforce_core::trial::{
-        onset_noise_relative, takeoff_absolute_threshold, takeoff_velocity_meters_per_second,
+    use plateforce_core::onset::{
+        onset_noise_relative, BandSides, CrossingSearch, CrossingSelection,
     };
-    use plateforce_core::{jump_height_from_takeoff_velocity, Landmarks, WeighingEpoch};
+    use plateforce_core::jump_height_from_takeoff_velocity;
 
     use super::*;
 
@@ -155,8 +171,22 @@ mod tests {
     #[test]
     fn its_impulse_and_its_stated_takeoff_velocity_agree() {
         let trial = synthetic_countermovement_jump();
-        let epoch = WeighingEpoch::fixed_window(&trial, 1.0).unwrap();
-        let takeoff = takeoff_absolute_threshold(&trial, 10.0, 0.1, epoch.end_index).unwrap();
+        let epoch = WeighingEpoch::fixed_window(
+            &trial,
+            1.0,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let takeoff = takeoff_first_sustained_run(
+            trial.force(),
+            10.0,
+            (0.1 * SAMPLE_RATE_HZ) as usize,
+            ResidualComparison::SignedValue,
+            epoch.end_index,
+            SAMPLE_RATE_HZ,
+        )
+        .unwrap();
         let onset = (ONSET_SECONDS * SAMPLE_RATE_HZ) as usize;
         let velocity = takeoff_velocity_meters_per_second(
             &trial,
@@ -166,20 +196,40 @@ mod tests {
                 takeoff_index: takeoff,
                 touchdown_index: trial.len() - 1,
             },
+            GRAVITY,
         );
         assert!(
             (velocity - TARGET_TAKEOFF_VELOCITY_METERS_PER_SECOND).abs() < 0.02,
             "takeoff velocity solved to {velocity}"
         );
-        let height = jump_height_from_takeoff_velocity(velocity);
+        let height = jump_height_from_takeoff_velocity(velocity, GRAVITY);
         assert!((0.30..0.50).contains(&height), "jump height {height} m is not a jump");
     }
 
     #[test]
     fn the_published_onset_rule_finds_an_onset_on_it() {
         let trial = synthetic_countermovement_jump();
-        let epoch = WeighingEpoch::fixed_window(&trial, 1.0).unwrap();
-        let onset = onset_noise_relative(&trial, &epoch, 5.0, 0.030, trial.duration_seconds());
+        let epoch = WeighingEpoch::fixed_window(
+            &trial,
+            1.0,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let onset = onset_noise_relative(
+            trial.force(),
+            epoch.system_weight_newtons,
+            epoch.standard_deviation_newtons,
+            5.0,
+            BandSides::BothSides,
+            &CrossingSearch {
+                start_index: epoch.end_index,
+                end_index: trial.len(),
+                persistence_samples: 1,
+                selection: CrossingSelection::First,
+            },
+            SAMPLE_RATE_HZ,
+        );
         assert!(onset.is_ok(), "{onset:?}");
     }
 }

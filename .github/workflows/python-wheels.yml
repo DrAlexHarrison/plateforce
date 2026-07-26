@@ -1,0 +1,111 @@
+name: python wheels
+
+# Builds the source distribution and one abi3 wheel per platform, then installs each into
+# a clean environment and runs the test suite against it. Nothing here publishes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/plateforce-core/**"
+      - "crates/plateforce-registry/**"
+      - "crates/plateforce-python/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/python-wheels.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  sdist:
+    name: source distribution
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # The crate is a workspace member, so the sdist has to carry the workspace root and
+      # the sibling crates. maturin resolves that; every wheel below is then built from
+      # this one artefact, which is also what proves the sdist is complete.
+      - name: Build the source distribution
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist --manifest-path crates/plateforce-python/Cargo.toml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  wheels:
+    name: ${{ matrix.platform }}
+    needs: sdist
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: manylinux x86_64
+            runner: ubuntu-24.04
+          - platform: manylinux aarch64
+            runner: ubuntu-24.04-arm
+          - platform: macos x86_64
+            runner: macos-13
+          - platform: macos arm64
+            runner: macos-14
+          - platform: windows AMD64
+            runner: windows-2022
+
+    steps:
+      # Checked out for the cibuildwheel config alone. The build itself reads only the
+      # source distribution, so a file missing from the sdist fails here rather than
+      # after release.
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Locate the source distribution
+        shell: bash
+        run: echo "SDIST=$(ls dist/*.tar.gz)" >> "$GITHUB_ENV"
+
+      - name: Build and test the wheel
+        uses: pypa/cibuildwheel@v4.1.1
+        with:
+          package-dir: ${{ env.SDIST }}
+          config-file: crates/plateforce-python/pyproject.toml
+          output-dir: wheelhouse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.runner }}
+          path: wheelhouse/*.whl
+
+  verify:
+    name: one wheel per platform, no compiler needed
+    needs: wheels
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: wheelhouse
+          merge-multiple: true
+
+      # Every wheel must be tagged cp311-abi3. A cp312-cp312 tag in here means abi3 was
+      # switched off and the matrix has quietly gone back to one wheel per version.
+      - name: Check every wheel is abi3
+        run: |
+          ls -1 wheelhouse
+          for wheel in wheelhouse/*.whl; do
+            case "$(basename "$wheel")" in
+              *-cp311-abi3-*) ;;
+              *) echo "not an abi3 wheel: $wheel"; exit 1 ;;
+            esac
+          done

@@ -219,7 +219,10 @@ fn materialise(
         match (axis.slot.as_str(), parameter.as_str()) {
             ("weighing", "duration_seconds") => candidate.weighing.duration_seconds = value,
             ("weighing", "start_seconds") => {
-                candidate.weighing.start_index = value.max(0.0) as usize
+                candidate.weighing.start_index = Some(value.max(0.0) as usize)
+            }
+            ("", "gravity_meters_per_second_squared") | ("global", "gravity_meters_per_second_squared") => {
+                candidate.gravity_meters_per_second_squared = value
             }
             ("onset", name) => {
                 candidate.onset.parameters.insert(name.to_string(), value);
@@ -254,6 +257,7 @@ mod tests {
 
     use super::*;
     use crate::analysis::{MethodChoice, WeighingChoice};
+    use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 
     fn synthetic() -> Trial {
         let mut force = vec![600.0; 1200];
@@ -271,20 +275,20 @@ mod tests {
         AnalysisRequest {
             weighing: WeighingChoice {
                 method_id: "bwepoch.fixed_window".into(),
-                start_index: 0,
+                start_index: None,
                 duration_seconds: 0.8,
+                options: BTreeMap::new(),
             },
             onset: MethodChoice {
                 method_id: "onset.threshold.noise_relative".into(),
-                parameters: BTreeMap::new(),
-                manual_index: None,
+                ..Default::default()
             },
             takeoff: MethodChoice {
-                method_id: "takeoff.threshold.absolute".into(),
-                parameters: BTreeMap::new(),
-                manual_index: None,
+                method_id: "takeoff.threshold.absolute_force".into(),
+                ..Default::default()
             },
             touchdown_index: None,
+            gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
             registry_backed_ids: Vec::new(),
         }
     }

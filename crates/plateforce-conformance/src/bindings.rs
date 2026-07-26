@@ -9,7 +9,7 @@
 use plateforce_core::onset::{
     backtrack, onset_adaptive_trailing_window, onset_last_sample_within_noise_band,
     onset_noise_relative, onset_relative_to_reference, BandSides, CrossingSearch,
-    CrossingSelection, PostCrossingRule,
+    CrossingSelection, DegenerateBandPolicy, PostCrossingRule,
 };
 use plateforce_core::phases::{
     braking_start_by_force_minimum, braking_start_by_force_return,
@@ -68,6 +68,8 @@ pub struct ReferenceBindings {
     pub laboratory_minimum_seconds: f64,
     pub reestimation_trim_fraction: f64,
     pub whole_window_seconds: f64,
+    /// Fraction of standing weight one rule falls back to when its own band collapses.
+    pub collapsed_band_fraction: f64,
     /// The reference reaches numpy for every dispersion, including for the two rules it
     /// reproduces from R sources where the original calls `sd` and divides by n-1.
     pub dispersion: DispersionEstimator,
@@ -106,6 +108,7 @@ impl Default for ReferenceBindings {
             laboratory_minimum_seconds: 0.1,
             reestimation_trim_fraction: 0.25,
             whole_window_seconds: 2.0,
+            collapsed_band_fraction: 0.95,
             dispersion: DispersionEstimator::Population,
             variance_accumulation: VarianceAccumulation::CumulativeSumOfSquares,
             duration_rounding: DurationRounding::Truncate,
@@ -379,6 +382,7 @@ fn onset_family(
         quiet_deviation,
         bindings.noise_multiplier,
         BandSides::BelowOnly,
+        DegenerateBandPolicy::UseAsStated,
         &sustained_search,
         rate,
     )
@@ -389,6 +393,7 @@ fn onset_family(
         quiet_deviation,
         bindings.noise_multiplier,
         BandSides::BelowOnly,
+        DegenerateBandPolicy::UseAsStated,
         &sustained_search,
         rate,
     )
@@ -402,6 +407,7 @@ fn onset_family(
         standard_deviation(&force[..quiet_samples], bindings.dispersion).unwrap_or(f64::NAN),
         bindings.noise_multiplier,
         BandSides::BothSides,
+        DegenerateBandPolicy::UseAsStated,
         &immediate_search(takeoff_jm),
         rate,
     )
@@ -420,6 +426,7 @@ fn onset_family(
         deviation_full_second,
         bindings.noise_multiplier,
         BandSides::BelowOnly,
+        DegenerateBandPolicy::FractionOfReference(bindings.collapsed_band_fraction),
         &CrossingSearch {
             start_index: quiet_samples,
             end_index: takeoff_jm.min(force.len().saturating_sub(sustain_samples)),
@@ -460,6 +467,7 @@ fn onset_family(
         deviation[0],
         bindings.noise_multiplier,
         BandSides::BelowOnly,
+        DegenerateBandPolicy::UseAsStated,
         &immediate_search(takeoff_jm),
         rate,
     )

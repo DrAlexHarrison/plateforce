@@ -9,12 +9,13 @@
 import init, { buildInfoJson, registryJson, ForceFile, Session } from './pkg/plateforce_wasm.js';
 import { TraceChart } from './chart.js';
 import {
-  SLOTS,
   buildDecisionModel,
-  preferredMethod,
+  preferredCandidate,
+  rankCandidates,
   initialParameters,
   availableAxes,
   WEIGHING_DURATION_AXIS,
+  GRAVITY_AXIS,
   findMethod,
 } from './registry.js';
 
@@ -74,7 +75,7 @@ async function start() {
     return;
   }
 
-  state.slots = buildDecisionModel(state.registry, state.build.executable_method_ids);
+  state.slots = buildDecisionModel(state.registry, state.build.bindings);
   renderRegistryBanner();
   renderBuildInfo();
   resetSelections();
@@ -102,7 +103,7 @@ function renderBuildInfo() {
     ['Constructs', String(census.constructs)],
     ['Computation entries', String(census.computation_entries)],
     ['Protocol entries', String(census.protocol_entries)],
-    ['Executable here', `${state.build.executable_method_ids.length} of ${census.computation_entries}`],
+    ['Executable here', `${state.build.bindings.length} rules, ${state.build.bindings.filter((b) => !b.note).length} of them registry backed`],
     ['Threads', state.build.threads ? 'yes' : 'no, so no isolation headers are needed'],
   ];
   const list = $('build-info');
@@ -115,13 +116,18 @@ function renderBuildInfo() {
 function resetSelections() {
   state.selection = {};
   for (const slot of state.slots) {
-    const method = preferredMethod(slot);
-    state.selection[slot.key] = method
-      ? { methodId: method.id, ...initialParameters(method, slot.forcesDecision) }
+    const candidate = preferredCandidate(slot);
+    state.selection[slot.key] = candidate
+      ? { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) }
       : { methodId: null, values: {}, unresolved: [] };
   }
-  const weighingSlot = state.slots.find((s) => s.key === 'weighing');
-  state.weighing = { startIndex: 0, durationSeconds: weighingSlot?.forcesDecision ? null : 1.0 };
+  const weighingSlot = state.slots.find((slot) => slot.key === 'weighing');
+  state.weighing = { startIndex: null, durationSeconds: weighingSlot?.forcesDecision ? null : 1.0 };
+}
+
+function candidateFor(slotKey, id) {
+  const slot = state.slots.find((entry) => entry.key === slotKey);
+  return slot?.candidates.find((candidate) => candidate.id === id) || null;
 }
 
 /* ---------------------------------------------------------------- file input */
@@ -313,7 +319,13 @@ function enterWorkspace() {
         runAnalysis();
       },
       onWindowChange: (startIndex, durationSeconds) => {
+        // Placing the window by hand is a registry entry in its own right, so the drag
+        // rebinds the method rather than quietly overriding whichever rule was selected.
         state.weighing = { startIndex, durationSeconds };
+        if (candidateFor('weighing', 'bwepoch.manual_placement')) {
+          state.selection.weighing = { methodId: 'bwepoch.manual_placement', values: {}, unresolved: [] };
+        }
+        renderDecisions();
         runAnalysis();
       },
     });
@@ -397,14 +409,7 @@ function renderSlot(slot) {
   wrap.append(element('p', 'decision__why', slot.why));
 
   if (!slot.available.length) {
-    const note = element(
-      'p',
-      'decision__meta',
-      slot.offered.length
-        ? `The registry carries ${slot.offered.length} entries for this construct and this build can execute none of them, so a build default is used and marked as not registry backed.`
-        : 'The registry carries no entry for this construct yet, so a build default is used and marked as not registry backed.',
-    );
-    wrap.append(note);
+    wrap.append(element('p', 'decision__meta', 'This build can execute none of the registry entries for this construct.'));
     wrap.append(renderWithheld(slot));
     return wrap;
   }
@@ -416,48 +421,66 @@ function renderSlot(slot) {
     placeholder.value = '';
     select.append(placeholder);
   }
-  for (const method of slot.available) {
-    const option = element('option', null, `${method.title} (${method.status})`);
-    option.value = method.id;
-    option.selected = method.id === selection.methodId;
+  for (const candidate of rankCandidates(slot.available)) {
+    const suffix = candidate.registryBacked ? ` (${candidate.status})` : ' (no registry entry)';
+    const option = element('option', null, candidate.title + suffix);
+    option.value = candidate.id;
+    option.selected = candidate.id === selection.methodId;
     select.append(option);
   }
-  for (const method of slot.unavailable) {
-    const option = element('option', null, `${method.title}, not executable in this build`);
-    option.value = method.id;
+  for (const candidate of slot.unavailable) {
+    const option = element('option', null, `${candidate.title}, not executable in this build`);
+    option.value = candidate.id;
     option.disabled = true;
     select.append(option);
   }
   select.addEventListener('change', () => {
-    const method = findMethod(state.registry, select.value);
-    state.selection[slot.key] = { methodId: method.id, ...initialParameters(method, slot.forcesDecision) };
+    const candidate = candidateFor(slot.key, select.value);
+    state.selection[slot.key] = { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) };
     renderDecisions();
     runAnalysis();
   });
   wrap.append(select);
 
+  if (slot.unavailable.length) {
+    wrap.append(
+      element(
+        'p',
+        'decision__meta',
+        `${slot.available.length} of ${slot.candidates.length} rules for this construct run in this build. The rest are listed disabled rather than hidden.`,
+      ),
+    );
+  }
+
   if (!selection.methodId) {
     wrap.append(element('p', 'undecided', 'Unresolved. The registry flags this as force a decision, so there is no default.'));
   }
 
-  const method = selection.methodId ? findMethod(state.registry, selection.methodId) : null;
-  if (method) {
-    if (method.failure) {
-      const badge = element(
-        'p',
-        'undecided',
-        `Fails on ${(method.failure.rate * 100).toFixed(1)}% of trials (${method.failure.numerator} of ${method.failure.denominator}, ${method.failure.corpus}), detectability ${method.failure.detectability}: ${method.failure.definition}.`,
-      );
-      wrap.append(badge);
+  const candidate = selection.methodId ? candidateFor(slot.key, selection.methodId) : null;
+  if (candidate) {
+    if (!candidate.registryBacked) {
+      wrap.append(element('p', 'undecided', candidate.note));
     }
-    wrap.append(renderParameters(slot, method, selection));
+    const failure = candidate.method?.failure;
+    if (failure) {
+      wrap.append(
+        element(
+          'p',
+          'undecided',
+          `Fails on ${(failure.rate * 100).toFixed(1)}% of trials (${failure.numerator} of ${failure.denominator}, ${failure.corpus}), detectability ${failure.detectability}: ${failure.definition}`,
+        ),
+      );
+    }
+    wrap.append(renderParameters(slot, candidate, selection));
 
-    const inspect = element('button', 'chip', 'Rule, citations and bias');
-    inspect.type = 'button';
-    inspect.addEventListener('click', () => openDrawer(method));
-    const row = element('div', 'metric__provenance');
-    row.append(inspect);
-    wrap.append(row);
+    if (candidate.method) {
+      const inspect = element('button', 'chip', 'Rule, citations and bias');
+      inspect.type = 'button';
+      inspect.addEventListener('click', () => openDrawer(candidate.method));
+      const row = element('div', 'metric__provenance');
+      row.append(inspect);
+      wrap.append(row);
+    }
   }
 
   if (slot.key === 'weighing') wrap.append(renderWeighingDuration(slot));
@@ -465,9 +488,9 @@ function renderSlot(slot) {
   return wrap;
 }
 
-function renderParameters(slot, method, selection) {
+function renderParameters(slot, candidate, selection) {
   const host = element('div', 'decision__params');
-  for (const parameter of method.parameter || []) {
+  for (const parameter of candidate.method?.parameter || []) {
     const values = parameter.published_values || [];
     const row = element('div', 'param');
     const id = `param-${slot.key}-${parameter.name}`;
@@ -569,29 +592,37 @@ function renderWithheld(slot) {
 /* ---------------------------------------------------------------- analysis */
 
 function boundMethodId(slotKey) {
-  const selection = state.selection[slotKey];
-  if (selection.methodId) return selection.methodId;
-  return { weighing: 'bwepoch.fixed_window', onset: 'onset.threshold.noise_relative', takeoff: 'takeoff.threshold.absolute' }[slotKey];
+  return (
+    state.selection[slotKey]?.methodId ||
+    { weighing: 'bwepoch.fixed_window', onset: 'onset.threshold.noise_relative', takeoff: 'takeoff.threshold.absolute_force' }[slotKey]
+  );
 }
 
 function buildRequest() {
+  const weighingId = boundMethodId('weighing');
   return {
     weighing: {
-      method_id: boundMethodId('weighing'),
+      method_id: weighingId,
       start_index: state.weighing.startIndex,
       duration_seconds: state.weighing.durationSeconds ?? 1.0,
+      options: {},
     },
     onset: {
       method_id: boundMethodId('onset'),
       parameters: state.selection.onset?.values || {},
+      options: {},
       manual_index: state.overrides.onset,
     },
     takeoff: {
       method_id: boundMethodId('takeoff'),
       parameters: state.selection.takeoff?.values || {},
+      options: {},
       manual_index: state.overrides.takeoff,
     },
     touchdown_index: state.overrides.touchdown,
+    gravity_meters_per_second_squared: state.gravity ?? 9.80665,
+    // A method is only reported as registry backed when the registry both carries it and
+    // passes its own validator.
     registry_backed_ids: state.build.registry_valid
       ? state.registry.methods.map((method) => method.id)
       : [],
@@ -670,13 +701,12 @@ function acceptRecommended() {
   for (const slot of state.slots) {
     const selection = state.selection[slot.key];
     if (!selection.methodId && slot.available.length) {
-      const byStatus = ['recommended', 'accepted', 'contested', 'legacy', 'deprecated'];
-      const method = [...slot.available].sort((a, b) => byStatus.indexOf(a.status) - byStatus.indexOf(b.status))[0];
-      state.selection[slot.key] = { methodId: method.id, values: {}, unresolved: [] };
+      const candidate = rankCandidates(slot.available)[0];
+      state.selection[slot.key] = { methodId: candidate.id, values: {}, unresolved: [] };
     }
-    const method = findMethod(state.registry, state.selection[slot.key].methodId);
+    const candidate = candidateFor(slot.key, state.selection[slot.key].methodId);
     for (const name of state.selection[slot.key].unresolved || []) {
-      const parameter = (method?.parameter || []).find((p) => p.name === name);
+      const parameter = (candidate?.method?.parameter || []).find((entry) => entry.name === name);
       state.selection[slot.key].values[name] = parameter?.default ?? parameter?.published_values?.[0];
     }
     state.selection[slot.key].unresolved = [];
@@ -725,8 +755,9 @@ function provenanceRow(methodIds) {
   for (const id of methodIds) {
     if (seen.has(id)) continue;
     seen.add(id);
-    const bound = state.analysis.bound_methods.find((method) => method.method_id === id);
+    const bound = state.analysis.bound_methods.find((entry) => entry.method_id === id);
     const method = findMethod(state.registry, id);
+    const title = method?.title || state.build.bindings.find((binding) => binding.id === id)?.title || id;
 
     const chip = element('button', 'chip');
     chip.type = 'button';
@@ -737,7 +768,7 @@ function provenanceRow(methodIds) {
       const dot = element('span', `status-dot status-dot--${method.status}`);
       chip.append(dot);
     }
-    chip.append(document.createTextNode(method ? method.title : id));
+    chip.append(document.createTextNode(title));
     if (method?.failure) chip.append(element('span', 'tag tag--fails', `${(method.failure.rate * 100).toFixed(0)}% fail`));
     if (!bound?.registry_backed) chip.append(element('span', 'tag tag--advanced', 'no registry entry'));
 
@@ -878,10 +909,10 @@ function openDrawer(method, fallbackId, bound) {
 function currentAxes() {
   const axes = [];
   for (const slot of state.slots) {
-    const method = findMethod(state.registry, state.selection[slot.key]?.methodId);
-    if (method) axes.push(...availableAxes(slot, method));
+    const candidate = candidateFor(slot.key, state.selection[slot.key]?.methodId);
+    axes.push(...availableAxes(slot, candidate));
   }
-  axes.push(WEIGHING_DURATION_AXIS);
+  axes.push(WEIGHING_DURATION_AXIS, GRAVITY_AXIS);
   return axes;
 }
 
@@ -904,9 +935,9 @@ function renderSpreadControls() {
 
   const axes = currentAxes();
   if (!state.spread.initialised) {
-    for (const axis of axes) {
-      if (axis.slot === 'onset') state.spread.axes.add(axis.id);
-    }
+    const methodAxis = axes.find((axis) => axis.id === 'onset:__method__');
+    if (methodAxis) state.spread.axes.add(methodAxis.id);
+    else for (const axis of axes) if (axis.slot === 'onset') state.spread.axes.add(axis.id);
     if (!state.spread.axes.size && axes.length) state.spread.axes.add(axes[0].id);
     state.spread.initialised = true;
   }
@@ -924,7 +955,7 @@ function renderSpreadControls() {
       runSpread();
     });
     label.append(box);
-    label.append(document.createTextNode(`${axis.label}: ${axis.values.join(', ')} ${axis.unit}`.trim()));
+    label.append(document.createTextNode(`${axis.label}: ${axis.display} ${axis.unit}`.trim()));
     host.append(label);
   }
 }
@@ -945,7 +976,12 @@ function runSpread() {
       state.session.spread(
         JSON.stringify({
           base: buildRequest(),
-          axes: axes.map((axis) => ({ slot: axis.slot, parameter: axis.parameter, values: axis.values })),
+          axes: axes.map((axis) => ({
+            slot: axis.slot,
+            parameter: axis.parameter ?? null,
+            values: axis.values || [],
+            method_ids: axis.methodIds || [],
+          })),
           quantity_key: state.spread.quantity,
           maximum_combinations: 512,
         }),

@@ -34,7 +34,9 @@ struct BuildInfo {
     registry_file_count: usize,
     registry_valid: bool,
     registry_violations: Vec<String>,
-    executable_method_ids: &'static [&'static str],
+    /// Every rule this build can actually run, with the slot it fills. The interface
+    /// offers a registry entry it cannot execute as unavailable rather than omitting it.
+    bindings: &'static [analysis::Binding],
     threads: bool,
 }
 
@@ -50,7 +52,7 @@ pub fn build_info_json() -> Result<String, JsError> {
         registry_file_count: loaded.file_count,
         registry_valid: loaded.is_valid(),
         registry_violations: loaded.violation_messages(),
-        executable_method_ids: analysis::EXECUTABLE_METHOD_IDS,
+        bindings: analysis::BINDINGS,
         threads: false,
     })
 }

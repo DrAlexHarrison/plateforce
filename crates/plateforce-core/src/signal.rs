@@ -15,6 +15,16 @@ pub enum TrialError {
         value: f64,
         search_bound_seconds: f64,
     },
+    #[error(
+        "{method_id}({parameter} = {value}) has no band to search: dispersion is {dispersion_newtons} N and the threshold falls at {threshold_newtons} N"
+    )]
+    CollapsedBand {
+        method_id: String,
+        parameter: String,
+        value: f64,
+        dispersion_newtons: f64,
+        threshold_newtons: f64,
+    },
     #[error("weighing epoch of {requested_seconds} s does not fit in a trace of {available_seconds} s")]
     EpochTooLong {
         requested_seconds: f64,
