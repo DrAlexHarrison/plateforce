@@ -194,6 +194,59 @@ pub enum DegenerateBandPolicy {
     FractionOfReference(f64),
 }
 
+/// Onset as the start of the last excursion before a bound, found by walking back to
+/// the last sample still inside the band.
+///
+/// The same published rule as `onset_noise_relative` read the other way round, and not
+/// reachable from it by any parameter: a forward search selects the first sample
+/// outside the band, this selects the sample after the last one inside it. Over 244
+/// trials the two land on the same sample on 230 and differ by up to 550 ms on the
+/// rest. Bounding the walk at the unweighting trough is what keeps it off the
+/// propulsion phase, where force re-enters the band on its way up.
+#[allow(clippy::too_many_arguments)]
+pub fn onset_final_departure_from_band(
+    signal: &[f64],
+    reference_newtons: f64,
+    dispersion_newtons: f64,
+    multiplier: f64,
+    band_sides: BandSides,
+    degenerate: DegenerateBandPolicy,
+    search_end_index: usize,
+    sample_rate_hz: f64,
+) -> Result<usize, TrialError> {
+    const METHOD: &str = "onset.threshold.noise_relative_final_departure";
+    let half_width = multiplier * dispersion_newtons;
+    let lower = reference_newtons - half_width;
+    let band = match (dispersion_newtons <= 0.0 || lower <= 0.0, degenerate) {
+        (true, DegenerateBandPolicy::Refuse) => {
+            return Err(TrialError::CollapsedBand {
+                method_id: METHOD.to_string(),
+                parameter: "k".to_string(),
+                value: multiplier,
+                dispersion_newtons,
+                threshold_newtons: lower,
+            })
+        }
+        (true, DegenerateBandPolicy::FractionOfReference(fraction)) => {
+            ExcursionBand::below(fraction * reference_newtons)
+        }
+        _ => match band_sides {
+            BandSides::BelowOnly => ExcursionBand::below(lower),
+            BandSides::BothSides => ExcursionBand::centred(reference_newtons, half_width),
+        },
+    };
+    let bound = (search_end_index + 1).min(signal.len());
+    let last_quiet = last_sample_inside_band(signal, &band, 0, bound).ok_or_else(|| {
+        no_crossing(
+            METHOD,
+            "k",
+            multiplier,
+            bound as f64 / sample_rate_hz,
+        )
+    })?;
+    Ok((last_quiet + 1).min(bound.saturating_sub(1)))
+}
+
 /// Onset as a fraction below the standing reference, with no reference to noise.
 pub fn onset_relative_to_reference(
     signal: &[f64],
@@ -467,6 +520,73 @@ mod tests {
 
     /// The plate holds one value for the whole quiet window on 11 trials in 244, and
     /// the rule that consumes its standard deviation then has no band at all.
+    /// The forward rule fires on the first noise excursion; the backward rule cannot,
+    /// because a later return to the band overwrites the candidate. Over the measured
+    /// corpus the forward rule with no persistence requirement places onset more than
+    /// two seconds before takeoff on 31 trials of 244, and the backward rule on none.
+    #[test]
+    fn the_two_readings_of_one_rule_split_on_a_noise_excursion() {
+        let mut signal = vec![600.0; 1000];
+        signal[300] = 520.0;
+        signal.extend(std::iter::repeat(400.0).take(500));
+        let trough = signal.len() - 1;
+        let forward = onset_noise_relative(
+            &signal,
+            600.0,
+            10.0,
+            5.0,
+            BandSides::BothSides,
+            DegenerateBandPolicy::UseAsStated,
+            &CrossingSearch {
+                start_index: 0,
+                end_index: signal.len(),
+                persistence_samples: 1,
+                selection: CrossingSelection::First,
+            },
+            1200.0,
+        )
+        .unwrap();
+        let backward = onset_final_departure_from_band(
+            &signal,
+            600.0,
+            10.0,
+            5.0,
+            BandSides::BothSides,
+            DegenerateBandPolicy::UseAsStated,
+            trough,
+            1200.0,
+        )
+        .unwrap();
+        assert_eq!(forward, 300, "forward rule missed the noise excursion");
+        assert_eq!(backward, 1000, "backward rule was fooled by the noise excursion");
+    }
+
+    /// A persistence requirement closes most of the gap, which is why the direction is
+    /// not on its own what separates a working rule from a failing one.
+    #[test]
+    fn persistence_brings_the_forward_reading_back_to_the_backward_one() {
+        let mut signal = vec![600.0; 1000];
+        signal[300] = 520.0;
+        signal.extend(std::iter::repeat(400.0).take(500));
+        let forward = onset_noise_relative(
+            &signal,
+            600.0,
+            10.0,
+            5.0,
+            BandSides::BothSides,
+            DegenerateBandPolicy::UseAsStated,
+            &CrossingSearch {
+                start_index: 0,
+                end_index: signal.len(),
+                persistence_samples: 210,
+                selection: CrossingSelection::First,
+            },
+            1200.0,
+        )
+        .unwrap();
+        assert_eq!(forward, 1000);
+    }
+
     #[test]
     fn a_quiet_window_with_no_noise_collapses_the_band_and_is_named_as_such() {
         let mut signal = vec![600.0; 1000];

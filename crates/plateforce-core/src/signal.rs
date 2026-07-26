@@ -25,9 +25,10 @@ pub enum TrialError {
         dispersion_newtons: f64,
         threshold_newtons: f64,
     },
-    #[error("weighing epoch of {requested_seconds} s does not fit in a trace of {available_seconds} s")]
+    #[error("weighing epoch of {requested_seconds} s starting at {start_seconds} s does not fit in a trace of {available_seconds} s")]
     EpochTooLong {
         requested_seconds: f64,
+        start_seconds: f64,
         available_seconds: f64,
     },
 }

@@ -80,7 +80,7 @@ impl Parameter {
         self.inner.unit.as_deref()
     }
 
-    /// Every value the literature actually contains for this parameter.
+    /// Every value the literature contains for this parameter.
     #[getter]
     fn published_values(&self) -> Vec<f64> {
         self.inner.published_values.clone()
@@ -457,7 +457,7 @@ impl MethodEntry {
     }
 
     /// Whether this entry is one side of a live argument, interoperability bookkeeping,
-    /// or simply the only published rule.
+    /// or the only published rule.
     #[getter]
     fn debate(&self) -> Option<&'static str> {
         use plateforce_registry::Debate::*;
@@ -839,7 +839,7 @@ impl Registry {
             .collect()
     }
 
-    /// Entries this build can actually run.
+    /// Entries this build can run.
     fn implemented_methods(&self) -> Vec<MethodEntry> {
         self.methods()
             .into_iter()

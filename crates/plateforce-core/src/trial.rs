@@ -33,19 +33,29 @@ pub enum CentralTendency {
 }
 
 impl WeighingEpoch {
-    /// Fixed window anchored at the start of the recording.
+    /// Window anchored at the start of the recording.
     pub fn fixed_window(
         trial: &Trial,
         duration_seconds: f64,
         centre: CentralTendency,
         dispersion: DispersionEstimator,
     ) -> Result<Self, TrialError> {
-        let samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
-        Self::fixed_sample_window(trial, samples, duration_seconds, centre, dispersion)
+        Self::window(trial, 0, duration_seconds, centre, dispersion)
     }
 
-    /// Fixed window stated in samples, which is how one implementation states it and
-    /// is the reason its window means different durations at different sample rates.
+    /// Window anchored anywhere. A brushable weighing window needs this, and so does
+    /// any protocol where the athlete steps on after recording has started.
+    pub fn window(
+        trial: &Trial,
+        start_index: usize,
+        duration_seconds: f64,
+        centre: CentralTendency,
+        dispersion: DispersionEstimator,
+    ) -> Result<Self, TrialError> {
+        let samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
+        Self::sample_window(trial, start_index, samples, duration_seconds, centre, dispersion)
+    }
+
     pub fn fixed_sample_window(
         trial: &Trial,
         samples: usize,
@@ -53,25 +63,38 @@ impl WeighingEpoch {
         centre: CentralTendency,
         dispersion: DispersionEstimator,
     ) -> Result<Self, TrialError> {
-        if samples < 2 || samples > trial.len() {
-            return Err(TrialError::EpochTooLong {
-                requested_seconds,
-                available_seconds: trial.duration_seconds(),
-            });
+        Self::sample_window(trial, 0, samples, requested_seconds, centre, dispersion)
+    }
+
+    /// Window stated in samples, which is how one implementation states it and is the
+    /// reason its window means different durations at different sample rates.
+    pub fn sample_window(
+        trial: &Trial,
+        start_index: usize,
+        samples: usize,
+        requested_seconds: f64,
+        centre: CentralTendency,
+        dispersion: DispersionEstimator,
+    ) -> Result<Self, TrialError> {
+        let end_index = start_index.saturating_add(samples);
+        let does_not_fit = || TrialError::EpochTooLong {
+            requested_seconds,
+            start_seconds: start_index as f64 / trial.sample_rate_hz(),
+            available_seconds: trial.duration_seconds(),
+        };
+        if samples < 2 || end_index > trial.len() {
+            return Err(does_not_fit());
         }
-        let window = &trial.force()[..samples];
-        let (window_mean, deviation) = mean_and_standard_deviation(window, dispersion)
-            .ok_or(TrialError::EpochTooLong {
-                requested_seconds,
-                available_seconds: trial.duration_seconds(),
-            })?;
+        let window = &trial.force()[start_index..end_index];
+        let (window_mean, deviation) =
+            mean_and_standard_deviation(window, dispersion).ok_or_else(does_not_fit)?;
         let centre_newtons = match centre {
             CentralTendency::Mean => window_mean,
             CentralTendency::Median => median(window).unwrap_or(window_mean),
         };
         Ok(Self {
-            start_index: 0,
-            end_index: samples,
+            start_index,
+            end_index,
             system_weight_newtons: centre_newtons,
             standard_deviation_newtons: deviation,
             tied_window_count: 1,
@@ -100,6 +123,7 @@ impl WeighingEpoch {
         )
         .ok_or(TrialError::EpochTooLong {
             requested_seconds: window_samples as f64 / trial.sample_rate_hz(),
+            start_seconds: 0.0,
             available_seconds: searchable.len() as f64 / trial.sample_rate_hz(),
         })?;
         let window = &trial.force()[found.start_index..found.start_index + window_samples];
@@ -329,6 +353,45 @@ mod tests {
         let standard = jump_height_from_takeoff_velocity(2.83, 9.80665);
         assert!(common != standard);
         assert!((common / standard - 9.80665 / 9.81).abs() < 1e-12);
+    }
+
+    /// A window that runs off the end names where it started, because the same duration
+    /// fits or does not fit depending on where it was anchored.
+    #[test]
+    fn a_window_anchored_late_weighs_the_samples_under_it() {
+        let mut force = vec![600.0; 1200];
+        force.extend(std::iter::repeat(900.0).take(1200));
+        let trial = Trial::new(force, 1200.0).unwrap();
+        let early = WeighingEpoch::window(
+            &trial,
+            0,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let late = WeighingEpoch::window(
+            &trial,
+            1200,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        assert_eq!(early.system_weight_newtons, 600.0);
+        assert_eq!(late.system_weight_newtons, 900.0);
+        assert_eq!((late.start_index, late.end_index), (1200, 1800));
+
+        let overrunning = WeighingEpoch::window(
+            &trial,
+            2200,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap_err();
+        let message = overrunning.to_string();
+        assert!(message.contains("starting at 1.8333"), "{message}");
     }
 
     #[test]

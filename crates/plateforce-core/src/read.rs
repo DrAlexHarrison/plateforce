@@ -32,7 +32,7 @@ pub enum ReadError {
     },
 }
 
-/// What a read actually consumed. Emitted alongside the trace so a mis-set column
+/// What a read consumed. Emitted alongside the trace so a mis-set column
 /// index shows up as a reported number rather than as a plausible looking result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColumnReadReport {

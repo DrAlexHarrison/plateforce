@@ -104,7 +104,7 @@ pub fn takeoff_first_sustained_run(
         }
     }
     Err(TrialError::NoCrossing {
-        method_id: "takeoff.threshold.absolute".to_string(),
+        method_id: "takeoff.threshold.absolute_force".to_string(),
         parameter: "threshold_newtons".to_string(),
         value: threshold_newtons,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,
@@ -171,7 +171,7 @@ pub fn takeoff_longest_run(
 ///
 /// This differs from a sustained run rule in what it returns: the crossing index is
 /// the last sample at or above the threshold, so takeoff is placed one sample before
-/// the force is actually in the flight band.
+/// the force is inside the flight band.
 pub fn takeoff_descending_crossing(
     signal: &[f64],
     threshold_newtons: f64,
@@ -404,7 +404,7 @@ mod tests {
         )
         .unwrap_err();
         let message = error.to_string();
-        assert!(message.contains("takeoff.threshold.absolute"), "{message}");
+        assert!(message.contains("takeoff.threshold.absolute_force"), "{message}");
         assert!(message.contains("threshold_newtons"), "{message}");
     }
 }

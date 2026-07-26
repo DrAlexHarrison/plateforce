@@ -607,7 +607,7 @@ fn jump_height_family(
 }
 
 /// Jump height integrated over a fixed window ending at takeoff rather than from a
-/// detected onset, which is what one tool's headline wrapper actually does.
+/// detected onset, which is what one tool's headline wrapper does.
 fn whole_window_jump_height(
     trial: &Trial,
     bindings: &ReferenceBindings,
