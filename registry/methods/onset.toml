@@ -1,0 +1,175 @@
+# Movement onset. The group where implementations disagree most, and the group where
+# the disagreement turns out to be a failure rate rather than a bias.
+
+[[method]]
+id = "onset.threshold.noise_relative"
+construct = "movement_onset"
+group = "C"
+title = "Noise-relative threshold, k standard deviations of the quiet epoch"
+rule = """
+Onset is the first sample at which vertical ground reaction force departs the
+quiet-standing mean by k standard deviations of that same epoch, then walked back by a
+fixed offset.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "k"
+unit = "standard_deviations"
+published_values = [2.0, 3.0, 5.0, 10.0]
+default = 5.0
+default_source = "owen2014"
+required = true
+notes = """
+All nine open implementations bind 5.0 and not one of the seven tools exposes this as a
+user parameter, so five of the six published values are unreachable in practice.
+"""
+
+[[method.parameter]]
+name = "back_offset"
+unit = "seconds"
+published_values = [0.010, 0.030, 0.040, 0.050]
+default = 0.030
+default_source = "owen2014"
+required = true
+notes = """
+The offset changed with every publication from the originating lab: 10 ms in 2009,
+30 ms in 2014, 50 and 40 ms in 2019. Same lab, same cohort, cause stated as currently
+unclear. An entry citing only k does not identify a method.
+"""
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+doi = "10.1519/JSC.0000000000000311"
+obtained = false
+
+[[method.citation]]
+key = "jones2019"
+role = "evaluates"
+reference = "Jones 2019, PhD thesis, Swansea University"
+obtained = true
+
+[[method.citation]]
+key = "dossantos2017"
+role = "uses"
+reference = "Dos'Santos et al. 2017"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.026
+unit = "seconds"
+direction = "late"
+criterion = "onset.manual.tillin2010"
+criterion_kind = "human_visual"
+source = "guppy2021"
+conditional_on_success = true
+
+[[method.disagrees_with]]
+id = "onset.threshold.percent_bodyweight"
+kind = "genuine"
+note = "The two optimise different objective functions and the field has not noticed."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high"
+rationale = """
+The threshold origin traces to an unpublished 2008 Master's thesis that does not exist
+in public, and the rule was tuned as a Gaussian false-alarm rate against noise, never
+against jump-height or power accuracy.
+"""
+
+[[method]]
+id = "onset.threshold.percent_bodyweight"
+construct = "movement_onset"
+group = "C"
+title = "Fixed percentage of system weight"
+rule = """
+Onset is the first sample at which vertical ground reaction force departs system weight
+by a fixed percentage of that weight.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "percent"
+unit = "percent_of_system_weight"
+published_values = [1.0, 2.5, 5.0, 10.0]
+default = 5.0
+default_source = "pertusa_consensus"
+required = true
+
+[[method.citation]]
+key = "pertusa_consensus"
+role = "proposes"
+reference = "Multiple independent evaluations converge near 5 percent"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.022
+unit = "seconds"
+direction = "late"
+criterion = "onset.manual.tillin2010"
+criterion_kind = "human_visual"
+source = "guppy2021"
+conditional_on_success = true
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "Scales with the athlete rather than with the plate's noise floor."
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high"
+
+# The entry that motivated the failure block. Its median is unremarkable and its
+# 95th percentile is three times normal, so a bias figure alone describes the wrong
+# quantity.
+[[method]]
+id = "onset.threshold.noise_relative_forward_offset"
+construct = "movement_onset"
+group = "C"
+title = "Noise-relative threshold with the offset applied forward"
+rule = """
+As the noise-relative threshold, but the fixed offset is applied in the direction of
+travel rather than walked back from the crossing.
+"""
+status = "legacy"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "k"
+unit = "standard_deviations"
+published_values = [5.0]
+default = 5.0
+default_source = "owen2014"
+required = true
+
+[[method.citation]]
+key = "owen2014"
+role = "uses"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+doi = "10.1519/JSC.0000000000000311"
+obtained = false
+
+[method.failure]
+rate = 0.1494
+numerator = 36
+denominator = 241
+corpus = "harrison2011_cmj"
+definition = "time to takeoff exceeding 2.0 s on a movement whose true duration is under 1 s"
+detectability = "silent"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high"
+rationale = """
+Fails on roughly one trial in seven while its median looks ordinary, so it must never
+be selected without the failure rate shown alongside it.
+"""

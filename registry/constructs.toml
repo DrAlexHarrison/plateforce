@@ -1,0 +1,45 @@
+# What is being measured, above the methods that measure it.
+#
+# The distinction is load-bearing. Standing-frame and takeoff-frame jump height differ
+# by about 144 mm for the same method, so filing them as two methods of one construct
+# would assert that they are the same quantity.
+
+[[construct]]
+id = "movement_onset"
+title = "The instant the movement begins"
+unit = "seconds"
+notes = "Every downstream interval that starts here inherits this choice."
+
+[[construct]]
+id = "takeoff"
+title = "The instant the last foot leaves the plate"
+unit = "seconds"
+
+[[construct]]
+id = "time_to_takeoff"
+title = "Elapsed time from movement onset to takeoff"
+unit = "seconds"
+notes = """
+Across 10 published rules on 244 trials the within-trial spread is 38.9 percent of the
+trial's own value. This is the metric on which open implementations disagree most.
+"""
+
+[[construct]]
+id = "jump_height.takeoff_frame"
+title = "Centre of mass rise measured from the instant of takeoff"
+unit = "meters"
+frame = "takeoff"
+notes = "Not comparable with standing_frame without a declared correction."
+
+[[construct]]
+id = "jump_height.standing_frame"
+title = "Centre of mass rise measured from quiet standing"
+unit = "meters"
+frame = "standing"
+notes = "Differs from the takeoff frame by 26 to 45 percent, which is a different quantity."
+
+[[construct]]
+id = "system_weight"
+title = "Weight of athlete plus any external load during the weighing epoch"
+unit = "newtons"
+notes = "System weight includes the bar. Bodyweight does not. The registry records real conflations."

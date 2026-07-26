@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/plateforce-registry",
+    "crates/plateforce-core",
+    "crates/plateforce-cli",
+]
+
+# Edition 2021 and a conservative floor on purpose. CRAN's build machines lag, and the
+# one Rust package archived from CRAN for a toolchain reason was archived because a
+# transitive dependency required a newer rustc than CRAN's Fedora image had.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "Apache-2.0"
+repository = "https://github.com/DrAlexHarrison/plateforce"
+authors = ["Alex Harrison"]
+
+[workspace.dependencies]
+plateforce-core = { path = "crates/plateforce-core", version = "0.1.0" }
+plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.0" }
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+thiserror = "2"
+
+[profile.release]
+opt-level = 2
+lto = "thin"

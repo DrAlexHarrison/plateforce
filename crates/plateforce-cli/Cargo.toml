@@ -1,0 +1,17 @@
+[package]
+name = "plateforce-cli"
+description = "Command line interface to plateforce."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "plateforce"
+path = "src/main.rs"
+
+[dependencies]
+plateforce-core = { workspace = true }
+plateforce-registry = { workspace = true }
