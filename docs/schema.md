@@ -61,7 +61,7 @@ The row grain is per kind of rule, ratified 2026-07-25. One row is one idea. Eve
 paper-specific and tool-specific setting is a parameter on that row, never a row of its
 own. This is the field that makes that ruling work.
 
-`published_values` is the set the literature actually contains. It exists so the software
+`published_values` is the set the literature contains. It exists so the software
 can answer "how many of the published settings can a user of tool X reach", which measured
 across the seven open tools is one of six.
 
@@ -79,6 +79,7 @@ name = "back_offset"
 unit = "seconds"
 published_values = [0.010, 0.030, 0.040, 0.050]
 default = 0.030
+default_source = "owen2014"
 required = true
 notes = """
 The offset changed with every publication from the originating lab, 10 ms in 2009 to
@@ -87,7 +88,7 @@ citing only the k value does not identify a method.
 """
 ```
 
-### Citations, and what each source actually did
+### Citations, and what each source did
 
 `role` separates who proposed a rule from who merely used it, because a tool implementing
 a published method is an implementation and not a variant.
