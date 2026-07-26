@@ -193,9 +193,23 @@ fn main() -> ExitCode {
         report.trials_compared,
         report.worst_tied_weighing_window_count
     );
+    let mean_lateness = if report.late_takeoff_trials > 0 {
+        report.late_takeoff_total_seconds / report.late_takeoff_trials as f64
+    } else {
+        0.0
+    };
     println!(
-        "longest-run takeoff preferred a later run than the first flight phase on {} of {} trials",
+        "longest-run takeoff preferred a later run than the first flight phase on {} of {} trials,",
         report.late_takeoff_trials, report.trials_compared
+    );
+    println!(
+        "  placing takeoff a mean of {:.0} ms past that first run, worst {:.0} ms on {}",
+        mean_lateness * 1000.0,
+        report.worst_takeoff_lateness_seconds * 1000.0,
+        report
+            .worst_takeoff_lateness_trial
+            .map(|(subject, trial)| format!("subject {subject} trial {trial}"))
+            .unwrap_or_else(|| "no trial".to_string())
     );
 
     if report.is_clean() {

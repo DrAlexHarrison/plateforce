@@ -110,6 +110,9 @@ pub struct ConformanceReport {
     pub tied_weighing_window_trials: usize,
     pub worst_tied_weighing_window_count: usize,
     pub late_takeoff_trials: usize,
+    pub late_takeoff_total_seconds: f64,
+    pub worst_takeoff_lateness_seconds: f64,
+    pub worst_takeoff_lateness_trial: Option<(u32, u32)>,
 }
 
 impl ConformanceReport {
@@ -365,6 +368,11 @@ pub fn compare(
         }
         if !analysis.longest_run_is_first_qualifying {
             report.late_takeoff_trials += 1;
+            report.late_takeoff_total_seconds += analysis.takeoff_lateness_seconds;
+            if analysis.takeoff_lateness_seconds > report.worst_takeoff_lateness_seconds {
+                report.worst_takeoff_lateness_seconds = analysis.takeoff_lateness_seconds;
+                report.worst_takeoff_lateness_trial = Some((row.subject, row.trial));
+            }
         }
 
         for (name, computed, agreement) in computed_columns(&analysis, bindings) {

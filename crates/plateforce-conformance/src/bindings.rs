@@ -164,6 +164,8 @@ pub struct TrialAnalysis {
     pub unweighting_end_index: [Option<usize>; 4],
     pub qualifying_low_force_run_count: usize,
     pub longest_run_is_first_qualifying: bool,
+    /// How far past the first flight phase the longest-run rule placed takeoff.
+    pub takeoff_lateness_seconds: f64,
     pub velocity_zero_index: Option<usize>,
     pub velocity_zero_is_true_crossing: bool,
     pub force_minimum_before_peak: Option<usize>,
@@ -296,15 +298,18 @@ pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnaly
     let jump_height = jump_height_family(trial, bindings, &onset, takeoff_jm, weight[0]);
     let whole_window = whole_window_jump_height(trial, bindings, takeoff_jm);
 
-    let (qualifying_low_force_run_count, longest_run_is_first_qualifying) = flight_fraction
-        .as_ref()
-        .map(|selection| {
-            (
-                selection.qualifying_run_count,
-                selection.selected_is_first_qualifying,
-            )
-        })
-        .unwrap_or((0, false));
+    let (qualifying_low_force_run_count, longest_run_is_first_qualifying, takeoff_lateness_seconds) =
+        flight_fraction
+            .as_ref()
+            .map(|selection| {
+                (
+                    selection.qualifying_run_count,
+                    selection.selected_is_first_qualifying,
+                    (selection.start_index as f64 - selection.first_qualifying_start_index as f64)
+                        * trial.sample_interval_seconds(),
+                )
+            })
+            .unwrap_or((0, false, 0.0));
 
     Ok(TrialAnalysis {
         system_weight_newtons: [weight[0], weight[1], weight[2]],
@@ -317,6 +322,7 @@ pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnaly
         unweighting_end_index: unweighting_end,
         qualifying_low_force_run_count,
         longest_run_is_first_qualifying,
+        takeoff_lateness_seconds,
         velocity_zero_index: velocity_zero.map(|crossing| crossing.index),
         velocity_zero_is_true_crossing: velocity_zero
             .map(|crossing| crossing.is_true_crossing)

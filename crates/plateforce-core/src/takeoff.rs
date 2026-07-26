@@ -52,6 +52,7 @@ pub struct FlightPhaseSelection {
     pub start_index: usize,
     pub end_index: usize,
     pub qualifying_run_count: usize,
+    pub first_qualifying_start_index: usize,
     pub selected_is_first_qualifying: bool,
 }
 
@@ -161,6 +162,7 @@ pub fn takeoff_longest_run(
         start_index: longest.start_index,
         end_index: longest.end_index,
         qualifying_run_count: qualifying.len(),
+        first_qualifying_start_index: first_qualifying.start_index,
         selected_is_first_qualifying: longest.start_index == first_qualifying.start_index,
     })
 }
@@ -334,6 +336,7 @@ mod tests {
         .unwrap();
         assert_eq!(selection.start_index, 1920, "picked the post-landing quiet");
         assert_eq!(selection.qualifying_run_count, 2);
+        assert_eq!(selection.first_qualifying_start_index, 1220);
         assert!(!selection.selected_is_first_qualifying, "silent misplacement");
     }
 
