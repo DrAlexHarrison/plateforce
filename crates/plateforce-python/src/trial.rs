@@ -395,9 +395,9 @@ fn read_float64_values(
                 buffer.dimensions()
             )));
         }
-        let mut samples = vec![0.0f64; buffer.item_count()];
-        buffer.copy_to_slice(python, &mut samples)?;
-        return Ok(samples);
+        // Reads straight into uninitialised capacity, so the trace is walked once rather
+        // than zero-filled and then overwritten.
+        return buffer.to_vec(python);
     }
 
     if values.hasattr("dtype").unwrap_or(false) {

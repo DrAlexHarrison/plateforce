@@ -153,14 +153,30 @@ def test_the_registry_version_travels_and_defaults_to_saying_it_is_unset(registr
     assert registry.method("bwepoch.fixed_window").bind().parameters == {"duration": 1.0}
 
 
-@pytest.mark.skipif(SHIPPED_REGISTRY is None, reason="shipped registry not present")
-def test_the_shipped_registry_loads_and_still_carries_the_dispatched_ids():
-    shipped = pf.Registry.load(SHIPPED_REGISTRY)
-    ids = set(shipped.method_ids())
+@pytest.fixture(scope="session")
+def shipped_registry():
+    """The registry this repository ships, as opposed to the fixture above.
+
+    A failure here is a registry problem, not a binding problem, and the two are worth
+    telling apart at a glance.
+    """
+    if SHIPPED_REGISTRY is None:
+        pytest.skip("shipped registry not present, which is expected outside the repository")
+    try:
+        return pf.Registry.load(SHIPPED_REGISTRY)
+    except pf.RegistryError as error:
+        pytest.fail(
+            f"the registry at {SHIPPED_REGISTRY} does not load, so the package cannot be "
+            f"used against it:\n{error}"
+        )
+
+
+def test_the_shipped_registry_carries_the_ids_the_analysis_dispatches_on(shipped_registry):
+    ids = set(shipped_registry.method_ids())
     for required in (
         "bwepoch.fixed_window",
         "onset.threshold.noise_relative",
         "takeoff.threshold.absolute_force",
     ):
         assert required in ids, f"the analysis dispatches on '{required}' and it is gone"
-        assert shipped.method(required).implemented
+        assert shipped_registry.method(required).implemented
