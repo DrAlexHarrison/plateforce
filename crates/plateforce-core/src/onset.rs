@@ -199,10 +199,11 @@ pub enum DegenerateBandPolicy {
 ///
 /// The same published rule as `onset_noise_relative` read the other way round, and not
 /// reachable from it by any parameter: a forward search selects the first sample
-/// outside the band, this selects the sample after the last one inside it. Over 244
-/// trials the two land on the same sample on 230 and differ by up to 550 ms on the
-/// rest. Bounding the walk at the unweighting trough is what keeps it off the
-/// propulsion phase, where force re-enters the band on its way up.
+/// outside the band, this selects the sample after the last one inside it. Given the
+/// same band and the same trials, the two land on the same sample on 195 of 244 and
+/// differ by up to 678 ms on the rest. Bounding the walk at the unweighting trough is
+/// what keeps it off the propulsion phase, where force re-enters the band on its way
+/// up.
 #[allow(clippy::too_many_arguments)]
 pub fn onset_final_departure_from_band(
     signal: &[f64],
@@ -520,8 +521,9 @@ mod tests {
 
     /// The forward rule fires on the first noise excursion; the backward rule cannot,
     /// because a later return to the band overwrites the candidate. Over the measured
-    /// corpus the forward rule with no persistence requirement places onset more than
-    /// two seconds before takeoff on 31 trials of 244, and the backward rule on none.
+    /// corpus the forward rule places onset more than two seconds before takeoff on 31
+    /// trials of 244 with no persistence requirement and on 2 with one, and the
+    /// backward rule on none.
     #[test]
     fn the_two_readings_of_one_rule_split_on_a_noise_excursion() {
         let mut signal = vec![600.0; 1000];

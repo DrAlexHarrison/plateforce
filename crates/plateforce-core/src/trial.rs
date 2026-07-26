@@ -23,6 +23,10 @@ pub struct WeighingEpoch {
     /// Number of windows the selection rule could not choose between. One for any
     /// rule with a fixed window; larger whenever a search rule found exact ties.
     pub tied_window_count: usize,
+    /// Lightest and heaviest weight the selection rule could have returned. Equal to
+    /// `system_weight_newtons` for any rule whose window is fixed.
+    pub tied_weight_low_newtons: f64,
+    pub tied_weight_high_newtons: f64,
 }
 
 /// Which statistic of the weighing window stands for system weight.
@@ -98,6 +102,8 @@ impl WeighingEpoch {
             system_weight_newtons: centre_newtons,
             standard_deviation_newtons: deviation,
             tied_window_count: 1,
+            tied_weight_low_newtons: centre_newtons,
+            tied_weight_high_newtons: centre_newtons,
         })
     }
 
@@ -136,6 +142,8 @@ impl WeighingEpoch {
             system_weight_newtons: found.mean_newtons,
             standard_deviation_newtons: deviation,
             tied_window_count: found.tied_window_count,
+            tied_weight_low_newtons: found.tied_weight_low_newtons,
+            tied_weight_high_newtons: found.tied_weight_high_newtons,
         })
     }
 

@@ -4,15 +4,24 @@
 //! runs where it is present, which is one machine, because 40 of its 41 subjects may
 //! not be redistributed.
 
-use plateforce_conformance::bindings::ReferenceBindings;
+use plateforce_conformance::bindings::{analyse, ReferenceBindings};
 use plateforce_conformance::corpus::{Corpus, CorpusFormat};
 use plateforce_conformance::{compare, parse_reference, Agreement, Tolerance};
+use plateforce_core::onset::{
+    onset_final_departure_from_band, onset_noise_relative, BandSides, CrossingSearch,
+    CrossingSelection, DegenerateBandPolicy,
+};
+use plateforce_core::statistics::{mean, standard_deviation, DispersionEstimator};
 use plateforce_core::{read_trial_from_path, Trial};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 const CORPUS_VARIABLE: &str = "PLATEFORCE_CONFORMANCE_CORPUS";
 const REFERENCE_VARIABLE: &str = "PLATEFORCE_CONFORMANCE_REFERENCE";
+/// Prefixes every line that states what this run did and did not check. A conformance
+/// run that quietly covered six trials instead of 244 is the failure this project
+/// documents, so the coverage is printed rather than inferred from a green result.
+const COVERAGE_MARKER: &str = "CONFORMANCE COVERAGE:";
 
 fn fixtures() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures")
@@ -72,6 +81,21 @@ fn assert_clean(report: &plateforce_conformance::ConformanceReport, what: &str) 
     assert!(report.trials_compared > 0, "{what}: nothing was compared");
 }
 
+/// Names what this run covered, on every run. A conformance suite that reported
+/// success while checking six trials of 244 would be the defect it exists to catch.
+#[test]
+fn the_coverage_of_this_run_is_stated() {
+    let full = std::env::var(CORPUS_VARIABLE).is_ok() && std::env::var(REFERENCE_VARIABLE).is_ok();
+    if full {
+        println!("{COVERAGE_MARKER} committed fixture (6 trials) AND full corpus (244 trials)");
+    } else {
+        println!("{COVERAGE_MARKER} committed fixture only, 6 trials of 244");
+        println!(
+            "{COVERAGE_MARKER} the other 238 were NOT checked. Set {CORPUS_VARIABLE} and {REFERENCE_VARIABLE} to check them"
+        );
+    }
+}
+
 #[test]
 fn the_committed_fixture_reproduces_the_reference() {
     let text = std::fs::read_to_string(fixtures().join("reference_subject01.csv"))
@@ -90,14 +114,12 @@ fn the_committed_fixture_reproduces_the_reference() {
 
 /// The full run is the evidence. The fixture is the guard that keeps it true.
 #[test]
-fn the_full_corpus_reproduces_the_reference() {
+fn the_full_corpus_reproduces_the_reference_where_the_corpus_is_present() {
     let (Ok(corpus_root), Ok(reference_path)) = (
         std::env::var(CORPUS_VARIABLE),
         std::env::var(REFERENCE_VARIABLE),
     ) else {
-        eprintln!(
-            "skipped: set {CORPUS_VARIABLE} and {REFERENCE_VARIABLE} to run against the full corpus"
-        );
+        println!("{COVERAGE_MARKER} full corpus NOT run, 238 trials unchecked");
         return;
     };
     let text = std::fs::read_to_string(&reference_path).expect("reference output");
@@ -146,6 +168,100 @@ fn index_columns_are_compared_exactly_and_measurements_are_not() {
             );
         }
     }
+}
+
+/// Two readings of one published onset rule, measured on the same trials with the same
+/// band, so the only difference between them is the direction of the search.
+#[test]
+fn the_two_readings_of_the_onset_rule_are_measured_against_each_other() {
+    let (Ok(corpus_root), Ok(reference_path)) = (
+        std::env::var(CORPUS_VARIABLE),
+        std::env::var(REFERENCE_VARIABLE),
+    ) else {
+        println!("{COVERAGE_MARKER} onset-direction comparison NOT run");
+        return;
+    };
+    let text = std::fs::read_to_string(&reference_path).expect("reference output");
+    let reference = parse_reference(&text).expect("reference parses");
+    let corpus =
+        Corpus::open(Path::new(&corpus_root), CorpusFormat::default()).expect("corpus opens");
+    let bindings = ReferenceBindings::default();
+    let rate = bindings.sample_rate_hz;
+    let quiet_samples = (0.5 * rate) as usize;
+    let persistence = (0.175 * rate) as usize;
+
+    let (mut identical, mut compared, mut worst_gap_samples) = (0usize, 0usize, 0usize);
+    let (mut forward_far, mut backward_far) = (0usize, 0usize);
+    for row in &reference {
+        let Some(trial) = corpus.trial(row.subject, row.trial) else {
+            continue;
+        };
+        let Ok(analysis) = analyse(&trial, &bindings) else {
+            continue;
+        };
+        let (Some(takeoff), Some(trough)) =
+            (analysis.takeoff_index[0], analysis.force_minimum_before_peak)
+        else {
+            continue;
+        };
+        let force = trial.force();
+        let reference_newtons = mean(&force[..quiet_samples]).unwrap();
+        let dispersion =
+            standard_deviation(&force[..quiet_samples], DispersionEstimator::Population).unwrap();
+
+        let forward = onset_noise_relative(
+            force,
+            reference_newtons,
+            dispersion,
+            5.0,
+            BandSides::BothSides,
+            DegenerateBandPolicy::UseAsStated,
+            &CrossingSearch {
+                start_index: quiet_samples,
+                end_index: force.len().saturating_sub(persistence),
+                persistence_samples: persistence,
+                selection: CrossingSelection::First,
+            },
+            rate,
+        );
+        let backward = onset_final_departure_from_band(
+            force,
+            reference_newtons,
+            dispersion,
+            5.0,
+            BandSides::BothSides,
+            DegenerateBandPolicy::UseAsStated,
+            trough,
+            rate,
+        );
+        let (Ok(forward), Ok(backward)) = (forward, backward) else {
+            continue;
+        };
+        compared += 1;
+        if forward == backward {
+            identical += 1;
+        }
+        worst_gap_samples = worst_gap_samples.max(forward.abs_diff(backward));
+        let two_seconds = (2.0 * rate) as usize;
+        if takeoff.saturating_sub(forward) > two_seconds {
+            forward_far += 1;
+        }
+        if takeoff.saturating_sub(backward) > two_seconds {
+            backward_far += 1;
+        }
+    }
+    println!(
+        "onset direction over {compared} trials: identical on {identical}, worst gap {worst_gap_samples} samples ({:.0} ms)",
+        worst_gap_samples as f64 / rate * 1000.0
+    );
+    println!(
+        "  onset placed more than 2 s before takeoff: forward {forward_far}, backward {backward_far}"
+    );
+    assert_eq!(compared, 244);
+    assert_eq!(identical, 195);
+    assert_eq!(worst_gap_samples, 813);
+    assert_eq!(forward_far, 2);
+    assert_eq!(backward_far, 0);
 }
 
 /// A commercial export writes 0.00 to jump height, time to takeoff and reactive

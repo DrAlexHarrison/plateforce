@@ -167,6 +167,11 @@ pub struct WeighingWindowSearch {
     pub candidate_window_count: usize,
     pub tied_window_count: usize,
     pub rejected_window_count: usize,
+    /// Lightest and heaviest system weight the rule could have returned. The rule does
+    /// not choose between them, so the difference is the width of the undeclared
+    /// choice, and it is the denominator or offset for most quantities downstream.
+    pub tied_weight_low_newtons: f64,
+    pub tied_weight_high_newtons: f64,
 }
 
 /// Lowest variance window of a fixed length, optionally rejecting any window that
@@ -206,17 +211,20 @@ pub fn lowest_variance_window(
         }
     }
     let (start_index, best_variance) = best?;
-    let tied = (0..window_count)
-        .filter(|&i| admissible[i] && variances[i] == best_variance)
-        .count();
+    let tied: Vec<f64> = (0..window_count)
+        .filter(|&index| admissible[index] && variances[index] == best_variance)
+        .map(|index| means[index])
+        .collect();
 
     Some(WeighingWindowSearch {
         start_index,
         mean_newtons: means[start_index],
         variance_newtons_squared: best_variance,
         candidate_window_count: window_count - rejected,
-        tied_window_count: tied,
+        tied_window_count: tied.len(),
         rejected_window_count: rejected,
+        tied_weight_low_newtons: tied.iter().copied().fold(f64::INFINITY, f64::min),
+        tied_weight_high_newtons: tied.iter().copied().fold(f64::NEG_INFINITY, f64::max),
     })
 }
 
@@ -343,6 +351,21 @@ mod tests {
             lowest_variance_window(&values, 8, None, VarianceAccumulation::TwoPass).unwrap();
         assert_eq!(found.start_index, 0);
         assert_eq!(found.tied_window_count, 34);
+        assert_eq!(found.tied_weight_low_newtons, 600.0);
+        assert_eq!(found.tied_weight_high_newtons, 600.0);
+    }
+
+    /// A tie whose members disagree on the mean is the case that propagates: the rule
+    /// returns one weight and had no grounds to prefer it over the others.
+    #[test]
+    fn a_tie_reports_the_span_of_weights_it_could_have_returned() {
+        let mut values = vec![600.0; 12];
+        values.extend(std::iter::repeat(605.0).take(12));
+        let found =
+            lowest_variance_window(&values, 6, None, VarianceAccumulation::TwoPass).unwrap();
+        assert_eq!(found.tied_weight_low_newtons, 600.0);
+        assert_eq!(found.tied_weight_high_newtons, 605.0);
+        assert!(found.tied_window_count > 1);
     }
 
     #[test]

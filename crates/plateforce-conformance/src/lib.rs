@@ -109,6 +109,10 @@ pub struct ConformanceReport {
     pub missing_from_corpus: Vec<(u32, u32)>,
     pub tied_weighing_window_trials: usize,
     pub worst_tied_weighing_window_count: usize,
+    pub tied_weighing_window_height_span_total_cm: f64,
+    pub worst_tied_weighing_window_height_span_cm: f64,
+    pub worst_tied_weighing_window_weight_span_newtons: f64,
+    pub worst_tied_weighing_window_trial: Option<(u32, u32)>,
     pub late_takeoff_trials: usize,
     pub late_takeoff_total_seconds: f64,
     pub worst_takeoff_lateness_seconds: f64,
@@ -365,6 +369,15 @@ pub fn compare(
             report.worst_tied_weighing_window_count = report
                 .worst_tied_weighing_window_count
                 .max(analysis.lowest_variance_tied_window_count);
+            report.worst_tied_weighing_window_weight_span_newtons = report
+                .worst_tied_weighing_window_weight_span_newtons
+                .max(analysis.lowest_variance_tied_weight_span_newtons);
+            let span = analysis.jump_height_span_across_tied_weighing_windows_cm;
+            report.tied_weighing_window_height_span_total_cm += span;
+            if span > report.worst_tied_weighing_window_height_span_cm {
+                report.worst_tied_weighing_window_height_span_cm = span;
+                report.worst_tied_weighing_window_trial = Some((row.subject, row.trial));
+            }
         }
         if !analysis.longest_run_is_first_qualifying {
             report.late_takeoff_trials += 1;

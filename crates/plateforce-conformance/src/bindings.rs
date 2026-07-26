@@ -158,6 +158,11 @@ pub struct TrialAnalysis {
     pub median_weight_newtons: f64,
     pub lowest_variance_weight_newtons: f64,
     pub lowest_variance_tied_window_count: usize,
+    /// Heaviest minus lightest weight the weighing rule could have returned.
+    pub lowest_variance_tied_weight_span_newtons: f64,
+    /// Jump height computed at the lightest and at the heaviest weight the weighing
+    /// rule could have returned, differenced. Zero when the rule found one window.
+    pub jump_height_span_across_tied_weighing_windows_cm: f64,
     pub standard_deviation_newtons: [f64; 2],
     pub onset_index: [Option<usize>; 9],
     pub takeoff_index: [Option<usize>; 5],
@@ -316,6 +321,15 @@ pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnaly
         median_weight_newtons: median_weight,
         lowest_variance_weight_newtons: lowest_variance.system_weight_newtons,
         lowest_variance_tied_window_count: lowest_variance.tied_window_count,
+        lowest_variance_tied_weight_span_newtons: lowest_variance.tied_weight_high_newtons
+            - lowest_variance.tied_weight_low_newtons,
+        jump_height_span_across_tied_weighing_windows_cm: tied_weighing_window_height_span(
+            trial,
+            bindings,
+            &lowest_variance,
+            onset[4],
+            takeoff_jm,
+        ),
         standard_deviation_newtons: [deviation[0], deviation[1]],
         onset_index: onset,
         takeoff_index: takeoff,
@@ -332,6 +346,40 @@ pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnaly
         jump_height_centimetres: jump_height,
         whole_window_jump_height_centimetres: whole_window,
     })
+}
+
+/// How far jump height moves across the weights the weighing rule could not choose
+/// between, holding the landmarks fixed.
+///
+/// Scoped to the rule that consumes the searched window: its own onset, and the weight
+/// it derived from that window. A pipeline anchored on a fixed window is unaffected.
+fn tied_weighing_window_height_span(
+    trial: &Trial,
+    bindings: &ReferenceBindings,
+    epoch: &WeighingEpoch,
+    onset_index: Option<usize>,
+    takeoff_index: usize,
+) -> f64 {
+    let Some(onset_index) = onset_index.filter(|&index| index > 0) else {
+        return 0.0;
+    };
+    let gravity = bindings.gravity_meters_per_second_squared;
+    let landmarks = Landmarks {
+        onset_index,
+        takeoff_index,
+        touchdown_index: trial.len() - 1,
+    };
+    let height_at = |weight_newtons: f64| {
+        let bound = WeighingEpoch {
+            system_weight_newtons: weight_newtons,
+            ..*epoch
+        };
+        jump_height_from_takeoff_velocity(
+            takeoff_velocity_meters_per_second(trial, &bound, &landmarks, gravity),
+            gravity,
+        ) * 100.0
+    };
+    (height_at(epoch.tied_weight_high_newtons) - height_at(epoch.tied_weight_low_newtons)).abs()
 }
 
 fn lowest_variance_mass(weight_newtons: f64, bindings: &ReferenceBindings) -> f64 {
@@ -579,6 +627,8 @@ fn jump_height_family(
         system_weight_newtons: weight_newtons,
         standard_deviation_newtons: f64::NAN,
         tied_window_count: 1,
+        tied_weight_low_newtons: weight_newtons,
+        tied_weight_high_newtons: weight_newtons,
     };
     let mut heights = [f64::NAN; 9];
     for (slot, index) in heights.iter_mut().zip(onset) {
@@ -625,6 +675,8 @@ fn whole_window_jump_height(
         system_weight_newtons: crop_weight,
         standard_deviation_newtons: f64::NAN,
         tied_window_count: 1,
+        tied_weight_low_newtons: crop_weight,
+        tied_weight_high_newtons: crop_weight,
     };
     let velocity = takeoff_velocity_meters_per_second(
         trial,

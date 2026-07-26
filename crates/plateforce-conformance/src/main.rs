@@ -193,6 +193,24 @@ fn main() -> ExitCode {
         report.trials_compared,
         report.worst_tied_weighing_window_count
     );
+    let mean_span = if report.tied_weighing_window_trials > 0 {
+        report.tied_weighing_window_height_span_total_cm / report.tied_weighing_window_trials as f64
+    } else {
+        0.0
+    };
+    println!(
+        "  weight across the tied windows spans at most {:.3e} N",
+        report.worst_tied_weighing_window_weight_span_newtons
+    );
+    println!(
+        "  jump height across the tied windows spans a mean of {:.3e} cm, worst {:.3e} cm on {}",
+        mean_span,
+        report.worst_tied_weighing_window_height_span_cm,
+        report
+            .worst_tied_weighing_window_trial
+            .map(|(subject, trial)| format!("subject {subject} trial {trial}"))
+            .unwrap_or_else(|| "no trial".to_string())
+    );
     let mean_lateness = if report.late_takeoff_trials > 0 {
         report.late_takeoff_total_seconds / report.late_takeoff_trials as f64
     } else {
