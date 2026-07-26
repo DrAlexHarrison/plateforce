@@ -1,0 +1,450 @@
+# Group E. Integration.
+#
+# The smallest genuine sensitivities in the registry sit next to the largest hidden one: quadrature
+# route moves jump height by 0.3 percent, and where the integral starts is the only channel by which
+# the onset rule reaches jump height at all.
+
+[[method]]
+id = "integration.rule.trapezoid"
+construct = "net_impulse"
+group = "E"
+title = "Trapezoid quadrature"
+rule = "The net-force integral is evaluated by the trapezoid rule, error order h squared."
+# Prose grants recommended on Street's measurement. Rule 6 bars it: street2001 is 2 of 12 pages.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "street2001"
+role = "evaluates"
+reference = "Street et al. 2001, JAB 17:43-54, the only published comparison of quadrature routes on jump data"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "Near-universal: JumpMetrics, Sams, Merrigan's MATLAB, Chavda's appendix, Chronojump's shoelace form"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0002
+unit = "fraction"
+direction = "either"
+criterion = "jump_height.takeoff_frame"
+criterion_kind = "model"
+source = "street2001"
+# Varies by under 0.02 percent across sampling rates, against the rectangle rule's 0.3 percent at
+# 1080 Hz and 0.06 percent at 5400 Hz.
+
+[[method.disagrees_with]]
+id = "integration.rule.simpson"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "integration.rule.rectangle"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small in magnitude, and the smallest genuine sensitivity in the registry"
+rationale = "A user should never be asked to choose a quadrature route."
+
+[[method]]
+id = "integration.rule.simpson"
+construct = "net_impulse"
+group = "E"
+title = "Simpson quadrature"
+rule = "The net-force integral is evaluated by Simpson's rule, error order h to the fourth."
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014 specifies it as an alternative"
+doi = "10.1519/JSC.0000000000000311"
+obtained = false
+
+[[method.citation]]
+key = "chiu2020"
+role = "uses"
+reference = "Chiu and Daehlin 2020, and Perez-Castilla et al. 2019"
+obtained = true
+
+[[method.disagrees_with]]
+id = "integration.rule.trapezoid"
+kind = "genuine"
+note = "Better conditioned in theory and never compared against trapezoid on jump data."
+
+[[method.disagrees_with]]
+id = "integration.rule.rectangle"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "not quantified, ever"
+
+[[method]]
+id = "integration.rule.rectangle"
+construct = "net_impulse"
+group = "E"
+title = "Rectangle or histogram quadrature"
+rule = "The net-force integral is evaluated by the rectangle rule, error order h, which is what a plain cumulative sum computes."
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "street2001"
+role = "evaluates"
+reference = "Street et al. 2001, the comparator against which trapezoid was measured"
+doi = "10.1123/jab.17.1.43"
+obtained = false
+
+[[method.bias]]
+magnitude = -0.003
+unit = "fraction"
+direction = "low"
+criterion = "integration.rule.trapezoid"
+criterion_kind = "model"
+source = "street2001"
+# 0.3 percent at 1080 Hz falling to 0.06 percent at 5400 Hz. The error is localised rather than
+# distributed: Street attributed it to errors just prior to takeoff, where histograms increase the
+# negative impulse while errors elsewhere cancel. Integration-rule error concentrates exactly where
+# the signal has the most curvature, which is the same place every threshold fires.
+
+[[method.disagrees_with]]
+id = "integration.rule.trapezoid"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "integration.rule.simpson"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "small, and a function of sampling rate, so it is not separable from the acquisition layer"
+
+[[method]]
+id = "integration.direction.forward"
+construct = "takeoff_velocity"
+group = "E"
+title = "Integrate forward from quiet standing to takeoff"
+rule = "Integrate net force forward from quiet standing, where velocity is known to be zero, to takeoff."
+# Prose grants forward recommended. Its evidence rests on the same sources as the backward entry,
+# of which the load-bearing one, Wade 2022, is obtained.
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "wade2022"
+role = "evaluates"
+reference = "Wade et al. 2022, backward double integration validity, forward as the comparator"
+obtained = true
+
+[[method.disagrees_with]]
+id = "integration.direction.backward"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "near zero on the countermovement jump"
+
+[[method]]
+id = "integration.direction.backward"
+construct = "takeoff_velocity"
+group = "E"
+title = "Integrate backward from confirmed stillness after landing"
+rule = """
+Integrate net force backward from a period of confirmed stillness after landing, where velocity is
+known to be zero. Requires the athlete to land on the plate and hold still, typically one to two
+seconds, and the resulting height is properly labelled as a landing-frame height.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "stillness_duration_seconds"
+unit = "seconds"
+published_values = [1.0, 2.0]
+default = 1.0
+default_source = "wade2022"
+required = true
+
+[[method.citation]]
+key = "baca1999"
+role = "proposes"
+reference = "Baca A 1999, the drop-jump single-plate case"
+obtained = false
+
+[[method.citation]]
+key = "wade2022"
+role = "evaluates"
+reference = "Wade et al. 2022, backward double integration is a valid method, PMID 35356858"
+obtained = true
+
+[[method.citation]]
+key = "wank2019"
+role = "evaluates"
+reference = "Wank and Coenning 2019, against 3D motion capture"
+doi = "10.1007/s12662-019-00581-6"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.002
+unit = "meters"
+direction = "high"
+criterion = "integration.direction.forward"
+criterion_kind = "model"
+source = "wade2022"
+# Countermovement jump, forward against backward: 30.4 +/- 5.0 against 30.5 +/- 5.2 cm submaximal
+# and 38.7 +/- 6.3 against 38.9 +/- 6.3 cm maximal, both ICC 0.99. Against 3D motion capture the
+# mean difference is 0.3 cm with backward slightly more variable, attributed to landing taking about
+# 0.3 s longer to settle than push-off. On the drop jump backward gave greater intra-individual
+# variability than a two-plate reference.
+
+[[method.disagrees_with]]
+id = "integration.direction.forward"
+kind = "genuine"
+note = """
+Not a physics fork, a numerical-conditioning and protocol fork. On the countermovement jump the two
+agree to 0.2 cm. On the drop jump it is a real debate, because there is no forward alternative
+without a second plate. It also takes its weight epoch from after landing, the more variable state.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "near zero on the countermovement jump, material on the drop jump"
+rationale = """
+Tie it to a protocol declaration that the athlete held still after landing. If that is not
+declared, the method should be unavailable rather than wrong. Every backward-integration study used
+in-ground lab plates; portable plates may saturate on landing forces.
+"""
+
+[[method]]
+id = "integration.start.trial_start"
+construct = "takeoff_velocity"
+group = "E"
+title = "Integrate from index zero of the recording, before onset is known"
+rule = """
+Integrate from index zero of the possibly cropped force series with velocity set to zero there,
+before onset is known.
+"""
+status = "deprecated"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "crop_seconds_before_takeoff"
+unit = "seconds"
+published_values = [2.0]
+default = 2.0
+default_source = "jumpmetrics"
+required = true
+notes = "A cropping parameter that has nothing to do with the athlete sets the length of the integration span."
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics numerical.py:168-197 and processors.py:62-70, with no citation for the choice anywhere"
+obtained = true
+
+[[method.citation]]
+key = "merrigan2022"
+role = "uses"
+reference = "Merrigan's MATLAB, deliberately, stated as introducing variation because software may adjust it"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.012
+unit = "meters_per_second"
+direction = "either"
+criterion = "integration.start.detected_onset"
+criterion_kind = "model"
+source = "biomex"
+# A variance inflator rather than a systematic bias, since the direction depends on the sign of the
+# accumulated pre-onset drift. On clean tared data velocity averaged 4.8e-5 m/s over the first 50
+# samples and reached 0.012 m/s by onset on one tool's demo trial.
+
+[[method.disagrees_with]]
+id = "integration.start.detected_onset"
+kind = "genuine"
+note = """
+The most under-discussed debate in the survey. It is almost never stated in papers, and it is the
+only channel by which the onset rule reaches jump height at all.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "small on the mean of jump height, larger on its trial-to-trial variance"
+rationale = """
+It should be one of the first fields in the method fingerprint. It is invisible in every existing
+tool and it changes a headline number. Deprecated rather than legacy is the most aggressive flag in
+the registry and it is aimed at a published, actively maintained package.
+"""
+
+[[method]]
+id = "integration.start.detected_onset"
+construct = "takeoff_velocity"
+group = "E"
+title = "Integrate from the detected onset with velocity zero there"
+rule = "Subset to the interval from detected onset to takeoff and integrate there with velocity zero at onset."
+# Prose grants recommended; both commercial systems document it and the sources are obtained.
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams global.R:669-683, per-plate impulses using each plate's own quiet-standing mean"
+obtained = true
+
+[[method.citation]]
+key = "merrigan2022"
+role = "evaluates"
+reference = "Merrigan et al. 2022, documenting Hawkin and VALD both starting at movement initiation"
+obtained = true
+
+[[method.disagrees_with]]
+id = "integration.start.trial_start"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "moderate on takeoff velocity through the onset coupling"
+rationale = """
+Its cost is real and must be stated rather than the variant being presented as strictly superior:
+it makes jump height depend on the onset rule, which the trial-start variant does not. It trades a
+bias source for a coupling. Any net impulse before the detected onset is discarded rather than
+integrated, which is near zero with backtracking and not near zero without it.
+"""
+
+[[method]]
+id = "integration.anchor.single_point"
+construct = "takeoff_velocity"
+group = "E"
+title = "Pin velocity and displacement at the start of the trial only"
+rule = "The constants of integration are pinned by setting velocity and displacement to zero at the start of the trial."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "linthorne2001"
+role = "proposes"
+reference = "Linthorne NP 2001, Am J Phys 69(11):1198-1204, and universal practice"
+doi = "10.1119/1.1397460"
+obtained = true
+
+[[method.disagrees_with]]
+id = "integration.anchor.two_point.kistler"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "integration.anchor.per_jump_midflight.kistler"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "grows with trial length"
+
+[[method]]
+id = "integration.anchor.two_point.kistler"
+construct = "takeoff_velocity"
+group = "E"
+title = "Pin the integration constants at both ends of the trial"
+rule = """
+Adjust the initial acceleration and velocity so that velocity and jump height are zero at the
+beginning and at the end of the trial. Requires the subject to stand still and in the same position
+at both ends.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "calame2001"
+role = "proposes"
+reference = "Calame C and Kuster, ISB 2001 long abstract, vendor-authored, ingested"
+obtained = true
+
+[[method.disagrees_with]]
+id = "integration.anchor.single_point"
+kind = "genuine"
+note = """
+A genuinely stronger drift control, because it uses the physical fact that the athlete is stationary
+at both ends of the trial, which a start-only anchor throws away. It is a free accuracy improvement
+for any protocol whose trial ends in quiet stance, which includes the 2011 validation corpus.
+"""
+
+[[method.disagrees_with]]
+id = "integration.anchor.per_jump_midflight.kistler"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "negligible on a one-second window, material on five-second traces"
+rationale = """
+Default it on when a quiet finish is detected, with an explicit warning when it is not, since the
+method silently degrades if the athlete walks off. The residual drift it corrects is itself a
+useful data-quality readout.
+"""
+
+[[method]]
+id = "integration.anchor.per_jump_midflight.kistler"
+construct = "takeoff_velocity"
+group = "E"
+title = "Re-anchor once per jump at mid-flight for continuous jumping"
+rule = """
+For continuous jumping, re-anchor once per jump on two assumptions: that vertical velocity is zero
+at the midpoint of each flight time, and that centre of mass height at takeoff is a constant read
+from a body-height-indexed table.
+"""
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "takeoff_com_height_table"
+unit = "meters"
+notes = """
+Body-height-indexed and not published, so the method is not fully reproducible from its own
+disclosure. The vendor states its own failure modes candidly: the constant depends on jump type,
+has jump-to-jump variability, and varies between and within subjects.
+"""
+
+[[method.citation]]
+key = "calame2001"
+role = "proposes"
+reference = "Calame C and Kuster, ISB 2001, stating the method is implemented in the vendor's software"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.001
+unit = "fraction"
+direction = "high"
+criterion = "rubber_band_goniometer"
+criterion_kind = "instrument"
+source = "calame2001"
+# Continuous jumps, 0.1 percent high on average over 33 jumps. On single jumps the goniometer read
+# 6.3 percent higher on average and the squat position 31.4 percent lower.
+
+[[method.disagrees_with]]
+id = "integration.anchor.single_point"
+kind = "genuine"
+note = "Trades an unbounded drift error for a bounded modelling error."
+
+[[method.disagrees_with]]
+id = "integration.anchor.two_point.kistler"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "dominant on continuous-jump trials, which is the problem it was written to solve"
+rationale = "The vendor's own recommendation is that it be used only for intra-subject comparison and only within one jump type."

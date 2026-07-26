@@ -101,6 +101,14 @@ kind = "genuine"
 id = "bwepoch.separate_weighing_trial"
 kind = "genuine"
 
+[[method.disagrees_with]]
+id = "bwepoch.robust_estimator"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "bwepoch.bar_support_state"
+kind = "genuine"
+
 [method.gui]
 surfacing = "force_a_decision"
 sensitivity = "very high on everything, and the single most load-bearing scalar in the pipeline"
@@ -168,6 +176,14 @@ kind = "genuine"
 id = "bwepoch.adaptive_lowest_mean.hawkin"
 kind = "genuine"
 note = "Minimum-mean and minimum-variance select different windows and one of them is biased."
+
+[[method.disagrees_with]]
+id = "bwepoch.manual_placement"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "bwepoch.rolling_trailing_window"
+kind = "genuine"
 
 [method.gui]
 surfacing = "default_and_hide"
@@ -345,6 +361,10 @@ obtained = true
 id = "bwepoch.fixed_window"
 kind = "genuine"
 note = "The divisor is not recoverable from the saved trace, which breaks reanalysis outright."
+
+[[method.disagrees_with]]
+id = "bwepoch.inherited_from_other_trials"
+kind = "genuine"
 
 [method.gui]
 surfacing = "force_a_decision"

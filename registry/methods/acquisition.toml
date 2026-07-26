@@ -164,6 +164,10 @@ kind = "genuine"
 id = "filter.savitzky_golay"
 kind = "genuine"
 
+[[method.disagrees_with]]
+id = "filter.prewarm_state_to_dc.inertiax"
+kind = "genuine"
+
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "very high on peak instantaneous rate of force development, small on impulse"
@@ -218,6 +222,10 @@ note = "Phase lag moves every threshold crossing late in proportion to frequency
 
 [[method.disagrees_with]]
 id = "filter.none"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.analogue_pre_digitisation"
 kind = "genuine"
 
 [method.gui]
@@ -383,6 +391,10 @@ kind = "genuine"
 
 [[method.disagrees_with]]
 id = "cutoff.percent_signal_power.harry2022"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "filter.matched_cutoff_across_signals.bisseling2006"
 kind = "genuine"
 
 [method.gui]
@@ -935,6 +947,14 @@ source = "street2001"
 
 [[method.disagrees_with]]
 id = "offset.unloaded_epoch.street2001"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "conditioning.tared_plate_reconstruction"
+kind = "vendor_convention"
+
+[[method.disagrees_with]]
+id = "force.resultant_supported_bodyweight_component.chronojump"
 kind = "genuine"
 
 [method.gui]

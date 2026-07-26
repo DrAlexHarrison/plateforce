@@ -32,19 +32,24 @@ struct BuildInfo {
     version: &'static str,
     registry_digest: String,
     registry_file_count: usize,
+    registry_valid: bool,
+    registry_violations: Vec<String>,
     executable_method_ids: &'static [&'static str],
     threads: bool,
 }
 
 /// Everything the interface needs to describe this build, including which registry it
-/// was compiled against. A number is only reproducible alongside this.
+/// was compiled against and whether that registry passes its own validator. A number is
+/// only reproducible alongside this.
 #[wasm_bindgen(js_name = buildInfoJson)]
 pub fn build_info_json() -> Result<String, JsError> {
     let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
     to_json(&BuildInfo {
         version: version(),
-        registry_digest: loaded.digest,
+        registry_digest: loaded.digest.clone(),
         registry_file_count: loaded.file_count,
+        registry_valid: loaded.is_valid(),
+        registry_violations: loaded.violation_messages(),
         executable_method_ids: analysis::EXECUTABLE_METHOD_IDS,
         threads: false,
     })
@@ -60,6 +65,8 @@ struct Census {
 #[derive(Serialize)]
 struct RegistryView<'a> {
     digest: String,
+    valid: bool,
+    violations: Vec<String>,
     constructs: Vec<&'a plateforce_registry::Construct>,
     methods: Vec<&'a plateforce_registry::Method>,
     protocols: Vec<&'a plateforce_registry::Protocol>,
@@ -74,6 +81,8 @@ pub fn registry_json() -> Result<String, JsError> {
     let census = loaded.registry.census();
     to_json(&RegistryView {
         digest: loaded.digest.clone(),
+        valid: loaded.is_valid(),
+        violations: loaded.violation_messages(),
         constructs: loaded.registry.constructs.values().collect(),
         methods: loaded.registry.methods.values().collect(),
         protocols: loaded.registry.protocols.values().collect(),
