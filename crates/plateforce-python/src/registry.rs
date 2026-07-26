@@ -694,7 +694,7 @@ impl BoundMethod {
 #[pymethods]
 impl BoundMethod {
     #[getter]
-    fn method_id(&self) -> &str {
+    pub(crate) fn method_id(&self) -> &str {
         &self.entry.inner.id
     }
 

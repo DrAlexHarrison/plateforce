@@ -17,6 +17,10 @@ use pyo3::types::PyDict;
 #[derive(Clone)]
 pub struct ProvenanceChain {
     pub provenance: CoreProvenance,
+    /// Choices that select between named alternatives rather than between numbers, such
+    /// as population against sample standard deviation. Core's `bound_parameters` is a
+    /// list of `(String, f64)` and cannot hold one, so they are carried here.
+    pub enumerated_choices: Vec<(String, String)>,
     pub depends_on: Vec<ProvenanceChain>,
 }
 
@@ -24,6 +28,7 @@ impl ProvenanceChain {
     pub fn leaf(provenance: CoreProvenance) -> Self {
         Self {
             provenance,
+            enumerated_choices: Vec::new(),
             depends_on: Vec::new(),
         }
     }
@@ -31,8 +36,14 @@ impl ProvenanceChain {
     pub fn with_inputs(provenance: CoreProvenance, depends_on: Vec<ProvenanceChain>) -> Self {
         Self {
             provenance,
+            enumerated_choices: Vec::new(),
             depends_on,
         }
+    }
+
+    pub fn choosing(mut self, choices: Vec<(String, String)>) -> Self {
+        self.enumerated_choices = choices;
+        self
     }
 }
 
@@ -70,6 +81,17 @@ impl Provenance {
     #[getter]
     fn acquisition_complete(&self) -> bool {
         self.chain.provenance.acquisition_complete
+    }
+
+    /// Choices between named alternatives, which move the number as much as the numeric
+    /// parameters do. Population against sample standard deviation is one of them.
+    #[getter]
+    fn enumerated_choices<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let chosen = PyDict::new(python);
+        for (name, value) in &self.chain.enumerated_choices {
+            chosen.set_item(name, value)?;
+        }
+        Ok(chosen)
     }
 
     /// Provenance of each result this one was computed from.
@@ -116,16 +138,29 @@ fn format_parameters(parameters: &[(String, f64)]) -> String {
 #[derive(Clone)]
 pub struct Measured {
     pub(crate) inner: CoreMeasured,
+    pub(crate) enumerated_choices: Vec<(String, String)>,
     pub(crate) depends_on: Vec<ProvenanceChain>,
 }
 
 impl Measured {
-    pub fn new(inner: CoreMeasured, depends_on: Vec<ProvenanceChain>) -> Self {
-        Self { inner, depends_on }
+    pub fn new(
+        inner: CoreMeasured,
+        enumerated_choices: Vec<(String, String)>,
+        depends_on: Vec<ProvenanceChain>,
+    ) -> Self {
+        Self {
+            inner,
+            enumerated_choices,
+            depends_on,
+        }
     }
 
     pub fn chain(&self) -> ProvenanceChain {
-        ProvenanceChain::with_inputs(self.inner.provenance.clone(), self.depends_on.clone())
+        ProvenanceChain {
+            provenance: self.inner.provenance.clone(),
+            enumerated_choices: self.enumerated_choices.clone(),
+            depends_on: self.depends_on.clone(),
+        }
     }
 
     pub fn value_for_display(&self) -> f64 {
@@ -192,6 +227,9 @@ fn describe_chain(chain: &ProvenanceChain, depth: usize, lines: &mut Vec<String>
         chain.provenance.method_id,
         format_parameters(&chain.provenance.bound_parameters)
     ));
+    for (name, value) in &chain.enumerated_choices {
+        lines.push(format!("{indent}  {name} = {value}"));
+    }
     if depth == 0 {
         lines.push(format!(
             "{indent}registry {}",
