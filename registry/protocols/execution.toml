@@ -1,0 +1,55 @@
+# Protocol entries, execution area.
+
+[[protocol]]
+id = "protocol.arm_swing"
+area = "execution"
+title = "What the arms were doing"
+description = """
+Declare arm position and use: akimbo, on the hips, crossed, holding a pole, free swing, or
+undeclared. Arm position accounts for 1.7 cm of centre of mass change.
+"""
+affects = ["jump_height.takeoff_frame", "jump_height.standing_frame"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "yamashita2020"
+role = "evaluates"
+reference = "Yamashita 2020, reported through Goncalves"
+obtained = false
+
+[[protocol]]
+id = "protocol.drop_height.source"
+area = "execution"
+title = "Whether drop height was taken from the box or measured"
+description = """
+Declare whether the drop height is the box height or a measured centre of mass drop height. The two
+differ by the athlete's step-off technique, which is not quantified here.
+"""
+affects = ["jumpheight.dj.box_height_as_drop_height", "jumpheight.dj.mcmahon_correction_factor"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "eythorsdottir2024"
+role = "evaluates"
+reference = "Flagged across the drop-jump literature and summarised in Eythorsdottir et al. 2024"
+doi = "10.1007/s40279-024-02098-x"
+obtained = true
+
+[[protocol]]
+id = "protocol.post_landing_stillness"
+area = "execution"
+title = "Whether the athlete was instructed to hold still after landing"
+description = """
+Declare whether the athlete was instructed to hold still after landing and whether they did. It
+gates backward integration entirely: the method is valid only if the instruction was given, and the
+literature disagrees on whether athletes can comply, with the difference traceable to whether the
+instruction was given at all.
+"""
+affects = ["integration.direction.backward"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "wade2022"
+role = "evaluates"
+reference = "Wade et al. 2022, with Baca 1999 and McMahon reporting opposite compliance"
+obtained = true

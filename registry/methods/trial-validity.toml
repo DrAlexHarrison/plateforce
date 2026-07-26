@@ -1,0 +1,563 @@
+# Group N. Trial validity, aggregation and quality control.
+#
+# Thin, arbitrary and consequential, and the combination is the finding. Every gate here runs before
+# any other registry entry, so it sets the population every downstream number is computed on, and
+# these are the only entries whose failure mode is silence: a rejected candidate produces no number,
+# no message and no row in the export, and a batch analysis inherits it without knowing.
+#
+# Every constant in this group is a round number with no derivation. The single most defensible thing
+# a tool can do here is not to pick better constants, it is to make every gate report what it
+# rejected.
+
+[[method]]
+id = "trial.aggregation"
+construct = "aggregated_value"
+group = "N"
+title = "How several trials are reduced to one number per athlete per session"
+rule = """
+Reduce the session's trials to one reported value by a declared rule, with the trial count travelling
+with the value.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "rule"
+unit = "enumeration"
+required = true
+notes = "best_of_n_by_peak_force, mean_of_best_three_of_at_least_five, mean_of_best_two. Three published and mutually incompatible rules."
+
+[[method.parameter]]
+name = "n"
+unit = "count"
+required = true
+notes = "Mandatory and travels with the value in every export and every label. Best of five and best of three are different numbers."
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "uses"
+reference = "Maffiuletti et al. 2016, mean of the best three of at least five"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[[method.citation]]
+key = "guppy2024"
+role = "uses"
+reference = "Guppy et al. 2024, best of n by peak force, and mean of the best two for its reliability analysis"
+doi = "10.1080/14763141.2021.1974532"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.02
+unit = "fraction"
+direction = "high"
+criterion = "aggregated_value"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# The maximum of n trials is a biased estimator of central tendency and the bias grows with n and
+# with within-subject variability, so an athlete tested with five trials is systematically higher
+# than the same athlete tested with three, purely from trial count. Standard order-statistics
+# reasoning, stated as this registry's analysis because no paper found states it, and the magnitude
+# is unquantified.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "medium on peak force, high on early-epoch rate of force development"
+rationale = """
+No study found anywhere in the sweep examines the aggregation rule as a methodological choice. That
+is an evidence gap rather than a settled question, and it is worse than a contested entry because
+nobody is arguing.
+"""
+
+[[method]]
+id = "trial.gate.between_trial_agreement.kraska2009"
+construct = "trial_validity"
+group = "N"
+title = "Repeat the trial when two peak forces differ by more than a stated amount"
+rule = "Repeat the trial if two trials' peak forces differ by more than a stated absolute amount."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "tolerance_n"
+unit = "newtons"
+published_values = [250.0]
+default = 250.0
+default_source = "kraska2009"
+required = true
+
+[[method.citation]]
+key = "kraska2009"
+role = "proposes"
+reference = "Kraska et al. 2009, reported concordantly by two later sources; the paper itself was not obtained and the justification for the constant was never read"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.065
+unit = "fraction"
+direction = "loose"
+criterion = "trial_validity"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Two structural defects, both this registry's analysis. It is circular across the force convention,
+# being a gross criterion used to decide validity for a net analysis, and it barely bites: the
+# tolerance is roughly 5 to 8 percent of a typical isometric peak, larger than the measurement's own
+# coefficient of variation, so it rejects almost nothing. A gate that rejects almost nothing is not
+# neutral, because it creates the appearance of quality control where there is none.
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "low, by construction and by defect"
+rationale = "Report the count of trials it rejected, which will usually be zero and should be visible when it is not. The absence of a competitor is the finding."
+
+[[method]]
+id = "trial.gate.pretension_ceiling"
+construct = "trial_validity"
+group = "N"
+title = "Exclude the trial when the athlete pre-loads before the effort"
+rule = "Exclude the trial if force departs the baseline by more than a stated criterion in the window before the effort."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "criterion"
+unit = "enumeration"
+required = true
+notes = "absolute_newtons_above_bodyweight or percent_of_bodyweight. The absolute form is stricter for light athletes and more permissive for heavy ones."
+
+[[method.parameter]]
+name = "ceiling"
+unit = "newtons"
+published_values = [100.0]
+default = 100.0
+default_source = "guppy2018"
+required = true
+notes = "Mean pre-tension in a compliant cohort is 51.0 +/- 33.8 N, so a 100 N ceiling sits at roughly 1.4 standard deviations above the observed mean."
+
+[[method.parameter]]
+name = "band_pct_bodyweight"
+unit = "percent"
+published_values = [10.0]
+default = 10.0
+default_source = "chavda2020"
+required = false
+notes = "A live-feedback band, flagged by its own authors as needing further research."
+
+[[method.citation]]
+key = "guppy2018"
+role = "proposes"
+reference = "Guppy et al. 2018, the absolute form, used in the 2024 paper"
+obtained = true
+
+[[method.citation]]
+key = "chavda2020"
+role = "proposes"
+reference = "Chavda et al. 2020, the live-feedback band form"
+doi = "10.1519/ssc.0000000000000507"
+obtained = true
+
+[[method.disagrees_with]]
+id = "onset.threshold.absolute_force"
+kind = "genuine"
+note = """
+The two forms of this gate disagree with each other in the same way an absolute onset threshold
+disagrees with a mass-relative one, which is a family the registry already treats as distinct methods
+on principle.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "medium on peak force, high on early-epoch force and rate, because a pre-loaded baseline moves the onset as well as the zero"
+rationale = "With live feedback during collection. This is a gate that should prevent bad trials rather than reject them afterwards."
+
+[[method]]
+id = "qc.countermovement_contamination.chavda2020"
+construct = "trial_validity"
+group = "N"
+title = "Reject an isometric trial that contains a countermovement"
+rule = """
+Over the baseline window compute the mean less k standard deviations, take the minimum net force
+between the end of the baseline and the detected onset, and exclude the trial if that minimum dips
+below the threshold.
+"""
+status = "recommended"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "k"
+unit = "standard_deviations"
+published_values = [5.0]
+default = 5.0
+default_source = "chavda2020"
+required = true
+
+[[method.citation]]
+key = "chavda2020"
+role = "proposes"
+reference = "Chavda et al. 2020 Appendix 2; the formula is OCR-derived from a repository deposit and carries a provenance warning in the library entry"
+doi = "10.1519/ssc.0000000000000507"
+obtained = true
+
+[[method.citation]]
+key = "acu_sprint"
+role = "uses"
+reference = "ACU SPRINT, independently reimplemented with a fixed rather than a selected window"
+obtained = true
+
+[[method.bias]]
+magnitude = -1.0
+unit = "newtons"
+direction = "tight"
+criterion = "bwepoch.manual_placement"
+criterion_kind = "model"
+source = "plateforce_inference"
+# It inherits the baseline window's spread, so it is tighter on a hand-selected flattest window than
+# on a fixed one, by the same mechanism that makes manual window placement lower a noise-relative
+# threshold. Direction known, magnitude not quantified.
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "categorical; it admits or rejects the trial"
+rationale = """
+Plot the dip on the trace when it fires. A rejection a user cannot see the reason for is worse than
+no rejection. It is the only entry in this group that is published, independently reimplemented by a
+party that did not copy the first, and aimed at a failure that silently inflates both peak force and
+rate.
+"""
+
+[[method]]
+id = "qc.transient_peak_count.pedley2023"
+construct = "trial_validity"
+group = "N"
+title = "Reject a trial with too many transient force peaks in braking"
+rule = """
+Locate transient force peaks in the braking period by sign change of the force derivative and treat
+more than a stated count as a quality failure, with the prescribed remedy of discarding the trial or
+lowering the filter cutoff and re-running. Zero peaks falls back to the greatest force in the period.
+"""
+status = "recommended"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "max_peaks"
+unit = "count"
+published_values = [3.0]
+default = 3.0
+default_source = "pedley2023"
+required = true
+
+[[method.citation]]
+key = "pedley2023"
+role = "proposes"
+reference = "Pedley et al. 2023, read through its implementation; the source paper was not obtained in full"
+doi = "10.1519/ssc.0000000000000776"
+obtained = true
+
+[[method.bias]]
+magnitude = -1.0
+unit = "newtons_per_second"
+direction = "low"
+criterion = "rate_of_force_development"
+criterion_kind = "model"
+source = "plateforce_inference"
+# The remedy is partially circular: offering a lower filter cutoff as an alternative to discarding
+# the trial conflates a data-quality failure with a filter setting, and a user taking that option has
+# changed the signal every other registry entry is computed from in order to pass a gate. Filtering
+# down until the gate passes biases toward smoother traces and therefore toward lower rates and
+# earlier filtered onsets. Not quantified.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "categorical, and the filter-lowering branch makes it continuous in a way the rule does not acknowledge"
+rationale = """
+Present both remedies explicitly with the consequence of the filter branch stated. Never silently
+re-filter. It is the only automated data-quality rule found anywhere in the sweep that inspects the
+shape of the trace rather than a single value, and shape is where impact artefacts and plate ringing
+show up.
+"""
+
+[[method]]
+id = "qc.flight_time_acceptance_window"
+construct = "trial_validity"
+group = "N"
+title = "Accept a candidate flight phase only if its duration falls inside a window"
+rule = "Accept a candidate flight phase only if its duration falls inside a stated window, by a stated selection rule."
+status = "accepted"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "lower_seconds"
+unit = "seconds"
+published_values = [0.1, 0.202]
+default = 0.1
+default_source = "jumptest"
+required = true
+
+[[method.parameter]]
+name = "upper_seconds"
+unit = "seconds"
+published_values = [0.903, 2.0]
+default = 2.0
+default_source = "jumptest"
+required = true
+notes = "One shipped window is a jump-height acceptance window of roughly 5 to 100 cm, which silently discards a genuine 4 cm hop and a 105 cm elite jump."
+
+[[method.parameter]]
+name = "selection"
+unit = "enumeration"
+notes = "first_qualifying or longest_qualifying_batch."
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams, read from source; none of the three implementations documents the choice"
+obtained = true
+
+[[method.citation]]
+key = "jumptest"
+role = "uses"
+reference = "sinnerfilozofiya, read from source"
+obtained = true
+
+[[method.citation]]
+key = "labanalysis"
+role = "uses"
+reference = "labanalysis, minimum flight with longest-qualifying-batch selection, read from source"
+obtained = true
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "categorical and invisible"
+rationale = """
+At absolute minimum a loud report of how many candidates were rejected and why. Silent data exclusion
+is the exact failure mode a provenance registry exists to prevent and this is the clearest instance
+of it in the registry. The direction of the resulting bias depends on the cohort and is therefore
+unpredictable rather than correctable: truncating the low end inflates a squad mean, truncating the
+high end deflates it, and both bounds bite in a mixed cohort.
+"""
+
+[[method]]
+id = "qc.jump_type_autodetection.sams"
+construct = "jump_type"
+group = "N"
+title = "Declare a countermovement jump when unweighting exceeds a fixed newton threshold"
+rule = """
+Declare a countermovement jump when system weight less minimum force exceeds a fixed newton
+threshold, otherwise a squat jump, with manual override available.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [250.0]
+default = 250.0
+default_source = "sams_shiny"
+required = true
+notes = """
+Retained permanently and unmodified at its disclosed-arbitrary value, because reproducing existing
+output from that tool requires the exact constant. The author's own disclosure is that he rather
+arbitrarily chose it, that it worked well for athletes from 65 to 110 kg, and that it may not work as
+well for smaller athletes.
+"""
+
+[[method.citation]]
+key = "sams_shiny"
+role = "proposes"
+reference = "Sams' R application, read from source with the author's own limitation disclosed in the same source"
+obtained = true
+
+[[method.bias]]
+magnitude = 3.3
+unit = "ratio"
+direction = "either"
+criterion = "jump_type"
+criterion_kind = "model"
+source = "plateforce_measurement"
+# A constant newton value is a wildly varying fraction of bodyweight: 56.7 percent for a 45 kg
+# athlete, 29.1 percent at 87.5 kg and 17.0 percent at 150 kg, a 3.3 times spread. A 45 kg athlete
+# has to unweight by more than half their bodyweight before the rule will call their jump a
+# countermovement jump, and a 150 kg athlete by a sixth.
+
+[[method.disagrees_with]]
+id = "qc.jump_type_autodetection.mass_scaled"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "categorical and the largest in this group, because misclassification selects an entirely different event-detection path"
+rationale = """
+Show the detected type with the margin by which it was decided, and make the override one click. A
+classification shown without its margin is a guess presented as a fact. No competitor automates this
+at all, and an automatic rule with a disclosed and honestly flagged limitation is better than no rule
+and better than an undisclosed one.
+"""
+
+[[method]]
+id = "qc.jump_type_autodetection.mass_scaled"
+construct = "jump_type"
+group = "N"
+title = "Mass-scaled unweighting threshold for jump type"
+rule = """
+Scale the unweighting threshold by body mass relative to an anchor mass raised to a stated exponent,
+and declare a countermovement jump when system weight less minimum force exceeds it, otherwise a
+squat jump, with manual override available.
+"""
+# The seed's status for this entry is "proposed, awaiting ratification", explicitly not accepted.
+# The schema has no such value; contested is the nearest floor that does not promote it.
+status = "contested"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "anchor_mass_kg"
+unit = "kilograms"
+published_values = [87.5]
+default = 87.5
+default_source = "plateforce_derivation"
+required = true
+notes = "Anchored to reproduce the incumbent constant exactly at the midpoint of the mass range its author says it works over."
+
+[[method.parameter]]
+name = "exponent"
+unit = "dimensionless"
+published_values = [0.0, 0.667, 1.0]
+default = 0.667
+default_source = "jaric2002"
+required = true
+notes = """
+Principled where the incumbent constant is arbitrary: force capacity scales with muscle
+cross-sectional area, which under geometric similarity scales as mass to the two-thirds, and it is
+the same exponent the allometric normalisation entry already carries. That entry records the exponent
+as contested, so this one inherits the dispute rather than escaping it. Setting it to zero recovers
+the flat incumbent and setting it to one makes the threshold a fixed fraction of bodyweight, so the
+parameter spans the whole published family with two published endpoints rather than inventing a third
+position.
+"""
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry; no publication proposes it, nothing has been measured with it, and it has not been run against the validation corpus"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.5
+unit = "ratio"
+direction = "either"
+criterion = "jump_type"
+criterion_kind = "model"
+source = "plateforce_measurement"
+# It narrows the spread of the threshold as a fraction of bodyweight from 3.3 times to 1.5 times
+# across 45 to 150 kg. It does not make the test invariant and is not claimed to. Full residual bias
+# is unquantified and only the corpus can close it.
+
+[[method.disagrees_with]]
+id = "qc.jump_type_autodetection.sams"
+kind = "genuine"
+note = """
+Genuine at the family level on the registry's own precedent that absolute against mass-relative is a
+family-level argument. The two rules will classify different trials, and a light athlete is exactly
+where they diverge. The cheapest experiment that would settle it is to run both over the 244-trial
+corpus and report the disagreement count and the mass distribution of the disagreeing trials.
+"""
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "categorical, and inherited undiminished from the entry it replaces"
+rationale = """
+Show the detected type, the threshold applied and the margin, with the rule identifier beside it so a
+run compatible with the incumbent is distinguishable from a mass-scaled one at a glance.
+"""
+
+[[method]]
+id = "qc.minimum_effort_threshold"
+construct = "trial_validity"
+group = "N"
+title = "Discard contractions below a stated fraction of maximal voluntary contraction"
+rule = "Discard contractions producing less than a stated fraction of the participant's maximal voluntary contraction."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "fraction"
+unit = "fraction"
+published_values = [0.7, 0.8]
+default = 0.8
+default_source = "maffiuletti2016"
+required = true
+notes = "Two values are parameters of one rule rather than two methods."
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, through which both values are reported; neither primary was obtained"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "medium; it changes which trials enter the aggregation"
+rationale = """
+It must be disabled with an explanation when no maximal trial exists in the session rather than
+silently skipped. It requires a maximal effort from another trial, so it inherits that trial's own
+aggregation rule and validity gates: the gate on one trial depends on the aggregation applied to the
+others, and that dependency is unrecorded in both sources.
+"""
+
+[[method]]
+id = "aggregation.peak_of_average_vs_average_of_peaks"
+construct = "aggregated_value"
+group = "N"
+title = "Whether the peak is taken before or after averaging across trials"
+rule = """
+Given multiple trials of the same task, either take the peak of each trial and average those peaks,
+or build an average force-time profile across trials and take its peak.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.parameter]]
+name = "order"
+unit = "enumeration"
+required = true
+notes = "peak_then_average or average_then_peak. The order must appear in the export header."
+
+[[method.citation]]
+key = "sportsbiomech2018"
+role = "evaluates"
+reference = "Average of trial peaks versus peak of average profile, Sports Biomechanics 2018; flagged open and not obtained, its results are not described here and must not be inferred"
+doi = "10.1080/14763141.2018.1497197"
+obtained = false
+
+[[method.bias]]
+magnitude = -0.02
+unit = "fraction"
+direction = "low"
+criterion = "aggregated_value"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Direction is derivable without the paper: the peak of an averaged profile is systematically smaller
+# than the average of the trial peaks wherever peak timing varies between trials, because averaging
+# misaligned peaks smears them. The two coincide only when peak timing is identical across trials,
+# which is never exactly true. Magnitude unknown, and it scales with between-trial timing variance,
+# which means it is largest for exactly the metrics that are already least reliable.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "medium to high, and unmeasured"
+rationale = """
+Required for any multi-trial workflow. Filed here rather than in the domain where it was found,
+because every multi-trial force-plate protocol in every group faces the same choice, including every
+waveform entry that averages curves before analysing them.
+"""

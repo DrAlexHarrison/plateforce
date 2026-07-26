@@ -1,0 +1,20 @@
+# Protocol entries, familiarisation area.
+
+[[protocol]]
+id = "protocol.familiarisation_sessions"
+area = "familiarisation"
+title = "How many familiarisation sessions preceded the measured one"
+description = """
+Declare the count of familiarisation sessions, or undeclared. Poor early-epoch reliability in one
+cohort is attributed to introducing the test in the warm-up, and the author reporting that ran three
+familiarisation sessions himself.
+"""
+affects = ["measurement_reliability", "rate_of_force_development"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "guppy2024"
+role = "evaluates"
+reference = "Guppy 2024"
+doi = "10.1080/14763141.2021.1974532"
+obtained = true

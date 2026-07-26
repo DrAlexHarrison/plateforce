@@ -1,0 +1,60 @@
+# Protocol entries, instruction area. A separate population with a separate denominator, never added
+# to the computation count.
+#
+# Ranked by published effect size, the largest single effect anywhere in the isometric domain is a
+# sentence spoken to the athlete. A registry that models every analysis decision and cannot express
+# what the athlete was told is modelling the smaller half of the problem.
+
+[[protocol]]
+id = "protocol.verbal_instruction.isometric"
+area = "instruction"
+title = "The words spoken to the athlete before an isometric effort"
+description = """
+Declare the instruction given: fast, hard and fast, another form, or undeclared. Moves peak rate of
+force development by 20 to 46 percent, which dwarfs every analysis parameter in this registry.
+"""
+affects = ["rate_of_force_development", "peak_force"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "sahaly2001"
+role = "evaluates"
+reference = "Sahaly et al. 2001, corroborated in direction by Bemben 1990"
+obtained = false
+
+[[protocol]]
+id = "protocol.contact_time_instruction.dropjump"
+area = "instruction"
+title = "Whether a countermovement is permitted on drop-jump ground contact"
+description = """
+Declare whether the athlete was told to permit a countermovement, to bounce, or nothing at all.
+Technique instruction alone moved reactive strength index from 0.91 to 1.24 at a 30 cm drop, a 36
+percent difference from the instruction and nothing else, while jump height moved the opposite way
+because contact time moved further.
+"""
+affects = ["reactive_strength_index", "jump_height.takeoff_frame"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "struzik2016"
+role = "evaluates"
+reference = "Struzik 2016, drop-jump technique and the reactive strength index"
+obtained = true
+
+[[protocol]]
+id = "protocol.landing_instruction"
+area = "instruction"
+title = "Whether the athlete was told to stick the landing"
+description = """
+Declare whether the athlete was instructed to stick the landing or to land naturally. Time down
+exceeded time up by 0.016 s because subjects land partially crouched, which is the flight-time
+method's broken assumption.
+"""
+affects = ["flight_time", "jump_height.landing_frame"]
+provenance = "published"
+
+[[protocol.citations]]
+key = "aragon2000"
+role = "evaluates"
+reference = "Aragon-Vargas 2000"
+obtained = true

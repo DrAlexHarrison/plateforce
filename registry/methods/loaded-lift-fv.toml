@@ -1,0 +1,812 @@
+# Group P. Loaded-lift and force-velocity profiling.
+#
+# The registry's deepest live dispute and its most commercially consequential one, and they are the
+# same dispute from two directions. Every other genuine debate here changes a number. These change a
+# training prescription that is sold to an athlete.
+#
+# Three of the four debates in this group are about extrapolation rather than about measurement. That
+# is a single structural property, not four independent problems, and a platform addresses all of
+# them at once by refusing to emit an extrapolated quantity without displaying the measured points,
+# the fitted model and the distance extrapolated.
+
+[[method]]
+id = "optimal_load.mdo_bodyweight"
+construct = "optimal_load"
+group = "P"
+title = "The optimum load for jump power is the athlete's own body weight"
+rule = """
+The load maximising jump power output is the athlete's own body weight, invariant across training
+status. Tested by varying system weight with a pulley above and below body weight and locating the
+load at which power is maximal.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "pazin2013"
+role = "evaluates"
+reference = "Pazin, Berjan, Nedeljkovic, Markovic and Jaric 2013, Eur J Appl Physiol 113:577-589, obtained in full"
+doi = "10.1007/s00421-012-2464-z"
+obtained = true
+
+[[method.citation]]
+key = "jaric2009"
+role = "proposes"
+reference = "Jaric and Markovic 2009, MSSE 41:780-787"
+doi = "10.1249/mss.0b013e31818f2bfa"
+obtained = false
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "either"
+criterion = "mechanical_power"
+criterion_kind = "model"
+source = "cormie2007"
+# The located optimum shifts with the power computation used to locate it. These studies use
+# force-plate power, so the result is conditional on that choice, and the magnitude of the shift is a
+# transfer of the optimal load to a number of different intensities, which is categorical rather than
+# numerical.
+
+[[method.disagrees_with]]
+id = "fv.imbalance.samozino2012"
+kind = "genuine"
+note = """
+Two incompatible claims that are rarely cited together, both actively published, with no study
+designed to discriminate between them. The protocol behind this side is unusually clean: a pulley
+varying effective body weight decouples load from bar mass entirely, and all groups peaked at
+approximately their own body weight although that weight represented prominently different
+percentages of their maximum dynamic strength.
+"""
+
+[[method.disagrees_with]]
+id = "optimal_load.exercise_specific"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate; the power-computation method moves the located optimum"
+rationale = """
+Relevant only under a load-sweep protocol, and any optimal-load readout must name which framework it
+is reporting under, because the frameworks give different answers to the same question. The
+negative-loading protocol produces system mass below body mass, and neither open implementation
+surveyed can represent that.
+"""
+
+[[method]]
+id = "fv.samozino_simple.2008"
+construct = "force_velocity_profile"
+group = "P"
+title = "Closed-form mean force, velocity and power from mass, push-off distance and jump height"
+rule = """
+From body mass, push-off distance and jump height alone, compute mean force, mean velocity and mean
+power over the push-off in closed form, repeat across added loads, and fit the force-velocity line.
+Jump height may come from flight time, so no force plate is required.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "push_off_distance_m"
+unit = "meters"
+required = true
+notes = "The hidden parameter that makes two labs disagree: it enters the closed form directly and is measured with a tape rather than read from the trace."
+
+[[method.citation]]
+key = "samozino2008"
+role = "proposes"
+reference = "Samozino, Morin, Hintzy and Belli 2008, J Biomech 41:2940-2945; full text not obtained, the rule is from the abstract and two independent descriptions"
+doi = "10.1016/j.jbiomech.2008.07.028"
+obtained = false
+
+[[method.citation]]
+key = "giroux2014"
+role = "evaluates"
+reference = "Giroux et al. 2014, Int J Sports Med 36:143-149, against a force plate across seven loads; abstract only"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.086
+unit = "coefficient_of_variation"
+direction = "narrower"
+criterion = "fv.acquisition.multi_point"
+criterion_kind = "instrument"
+source = "giroux2014"
+# It was the most reliable of the field methods tested, CV 2.7 to 8.6 percent against 6.4 to 14.5
+# percent for agreement generally, and simultaneously the most indirect. Reliability and validity are
+# dissociated here, partly because the simple method smooths over exactly the trial-to-trial variation
+# a force plate actually measures. An entry must record both facts or it misleads in whichever
+# direction the reader already leans.
+
+[[method.disagrees_with]]
+id = "fv.acquisition.multi_point"
+kind = "genuine"
+note = "Not a debate about correctness but a trade-off between directness and field practicality. Both admissible."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high to the push-off distance"
+rationale = "Force the decision on the push-off measurement protocol. A force plate measures the same quantities directly, which is what this platform will have."
+
+[[method]]
+id = "fv.model.linear"
+construct = "force_velocity_profile"
+group = "P"
+title = "Least-squares straight line through the force-velocity pairs"
+rule = """
+Fit a least-squares straight line through the mean-velocity and mean-force pairs. The axis intercepts
+are extrapolated beyond the measured load range.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "samozino2012"
+role = "proposes"
+reference = "Samozino 2008 and 2012, and near-universal in applied profiling"
+doi = "10.1249/mss.0b013e31822d757a"
+obtained = false
+
+[[method.citation]]
+key = "bobbert2012"
+role = "disputes"
+reference = "Bobbert 2012, J Appl Physiol 112:1975-1983, showing by simulation that task-level quasi-linearity is emergent rather than constitutive"
+obtained = true
+
+[[method.disagrees_with]]
+id = "fv.model.hyperbolic_and_double_hyperbolic"
+kind = "genuine"
+note = """
+A model-selection debate with a real physiological argument on each side. The intercepts carry less
+physiological meaning than their names imply: they are extrapolations of a task-level regression to a
+velocity no jump visits and a force no jump produces, so they are not muscle properties.
+"""
+
+[[method.disagrees_with]]
+id = "fv.point_reduction"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "very high for the intercepts, lower for maximal power, which sits nearer the measured range"
+rationale = """
+With the fitted line and the measured points plotted together so the user can see how far the
+intercepts are being extrapolated. A plot is the honest disclosure here; a number is not. The bias
+cannot carry a magnitude, because it could only be estimated by assuming the alternative model, which
+is the thing in dispute.
+"""
+
+[[method]]
+id = "fv.model.hyperbolic_and_double_hyperbolic"
+construct = "force_velocity_profile"
+group = "P"
+title = "Hill hyperbola, optionally with a second regime near maximal force"
+rule = "Fit Hill's hyperbola to the force-velocity pairs, optionally with a second regime near maximal force."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "form"
+unit = "enumeration"
+required = true
+notes = "hyperbolic or double_hyperbolic. One entry with a parameter: the double form is the same construction with an added regime and no paper argues on principle that the single hyperbola is the wrong kind of object."
+
+[[method.citation]]
+key = "alcazar2019"
+role = "evaluates"
+reference = "Alcazar, Csapo, Ara and Alegre 2019, Front Physiol 10:769, obtained in full"
+doi = "10.3389/fphys.2019.00769"
+obtained = true
+
+[[method.disagrees_with]]
+id = "fv.model.linear"
+kind = "genuine"
+note = """
+Physiologically better motivated at the muscle level, but the emergence argument cuts both ways: if
+task-level linearity is emergent, imposing the muscle-level hyperbola on task-level data is not
+obviously more correct either.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high on the intercepts"
+rationale = "For researchers, with the linear form hidden as the practitioner default, because switching the model changes every downstream number including the imbalance."
+
+[[method]]
+id = "fv.imbalance.samozino2012"
+construct = "force_velocity_profile"
+group = "P"
+title = "Deviation of the measured force-velocity slope from the slope that maximises jump height"
+rule = """
+For a given maximal power and push-off distance, derive the force-velocity slope that maximises jump
+height and express the measured slope relative to it.
+"""
+status = "contested"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "reporting_scale"
+unit = "enumeration"
+required = true
+notes = """
+ratio or absolute_deviation, and they are not the same number. On the ratio scale 100 percent is
+optimal and the value carries direction; on the absolute-deviation scale zero is optimal and
+direction is discarded. Two papers define the quantity on one scale and report their classification
+thresholds on the other in the same document, so a platform reading a threshold from one scale and a
+value from the other will misclassify every athlete, and the two are visually indistinguishable in an
+export column. A mandatory declaration rather than a display preference.
+"""
+
+[[method.parameter]]
+name = "classification_thresholds"
+unit = "percent"
+published_values = [60.0, 90.0, 110.0, 140.0]
+default = 90.0
+default_source = "jimenezreyes2019"
+required = false
+notes = "Only interpretable on the ratio scale. Recorded here rather than left in the papers."
+
+[[method.citation]]
+key = "samozino2012"
+role = "proposes"
+reference = "Samozino, Rejc, di Prampero, Belli and Morin 2012, MSSE 44:313-322; not obtained, the closed forms are read from a tool's transcription of its appendix"
+doi = "10.1249/mss.0b013e31822d757a"
+obtained = false
+
+[[method.citation]]
+key = "lindberg2021"
+role = "disputes"
+reference = "Lindberg et al. 2021, Scand J Med Sci Sports 31:2198-2210, a systematic review finding the individualisation premise unsupported"
+doi = "10.1111/sms.14044"
+obtained = true
+
+[[method.citation]]
+key = "kotani2022"
+role = "disputes"
+reference = "Kotani et al. 2022, JSCR 36:3000-3007, between-day reliability insufficient for the classification the method requires"
+obtained = true
+
+[[method.citation]]
+key = "jimenezreyes2019"
+role = "uses"
+reference = "Jimenez-Reyes et al. 2017 and 2019, both held in full, from whose methods the formula is read"
+obtained = true
+
+[[method.bias]]
+magnitude = 2.0
+unit = "ratio"
+direction = "wider"
+criterion = "force_velocity_profile"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Structural and predicted from the algebra: a ratio of two extrapolated quantities compounds their
+# extrapolation error rather than averaging it out, which predicts poor between-day reliability before
+# anybody measures it. That prediction is borne out, and classification stability is questioned
+# outright in a fourth source. The same error-amplification structure appears in an asymmetry index
+# and in a change-of-direction deficit: three constructs in three unrelated literatures share one
+# failure mode and none of the three literatures notices the other two.
+
+[[method.disagrees_with]]
+id = "optimal_load.mdo_bodyweight"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "optimal_load.exercise_specific"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "extreme, and the instability is the published problem rather than a suspicion"
+rationale = """
+Display the dispute. If the platform emits this quantity it must show the reliability caveat and a
+between-session confidence band. Emitting a single number with a training recommendation attached,
+which is what commercial tools do, is precisely the practice the critical literature objects to.
+"""
+
+[[method]]
+id = "fv.acquisition.multi_point"
+construct = "force_velocity_profile"
+group = "P"
+title = "Measure at three or more loads spanning a declared range"
+rule = "Measure mean force and mean velocity at three or more loads spanning a declared range, and fit the chosen model to all points."
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "n_loads"
+unit = "count"
+required = true
+notes = "Must be shown beside every extrapolated intercept the software emits."
+
+[[method.parameter]]
+name = "load_range_pct_bodymass"
+unit = "percent"
+published_values = [0.0, 100.0]
+default = 100.0
+default_source = "kotani2022"
+required = true
+
+[[method.citation]]
+key = "kotani2022"
+role = "uses"
+reference = "Kotani et al. 2022, with a quasi-randomised block design controlling load order"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.05
+unit = "fraction"
+direction = "low"
+criterion = "force_velocity_profile"
+criterion_kind = "model"
+source = "kotani2022"
+# Fatigue accumulates across a multi-load protocol and biases the later loads, so load order is a
+# confound that block designs exist to control. Direction known, magnitude not quantified in the
+# obtained corpus.
+
+[[method.disagrees_with]]
+id = "fv.acquisition.two_point"
+kind = "genuine"
+note = "A real precision-against-fatigue trade-off rather than an implementation detail."
+
+[[method.disagrees_with]]
+id = "fv.samozino_simple.2008"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "fv.acquisition.bwjump_plus_imvc"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "sjl100.linear_load_velocity_extrapolation.chronojump"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high; the number of loads sets the extrapolation error on the intercepts"
+rationale = "More points constrain the fit, make the residual visible, and are the only way to detect that the relationship is not the shape assumed."
+
+[[method]]
+id = "fv.acquisition.two_point"
+construct = "force_velocity_profile"
+group = "P"
+title = "Measure at two sufficiently separated loads"
+rule = "Measure mean force and velocity at two sufficiently separated loads and take the straight line through them."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "load_separation"
+unit = "percent_of_bodymass"
+required = true
+notes = "A declared parameter rather than a free choice. Narrow separation inflates intercept error as a lever-arm effect, so the inflation grows as the inverse of the separation."
+
+[[method.citation]]
+key = "jaric2016"
+role = "proposes"
+reference = "Jaric S 2016, Sports Med 46:1585-1589, obtained"
+doi = "10.1007/s40279-016-0531-z"
+obtained = true
+
+[[method.citation]]
+key = "perezcastilla2018"
+role = "evaluates"
+reference = "Perez-Castilla et al. 2018, JSCR 32:1245-1253, on load selection, obtained"
+doi = "10.1519/jsc.0000000000001969"
+obtained = true
+
+[[method.disagrees_with]]
+id = "fv.acquisition.multi_point"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "fv.acquisition.bwjump_plus_imvc"
+kind = "genuine"
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high to load selection"
+rationale = """
+The software must refuse to silently compute a two-point profile from a multi-load dataset. It cannot
+be recommended unconditionally because it is valid only because of the linearity that the theoretical
+literature disputes: its validity is conditional on precisely the assumption under attack, and the
+methods literature and the theoretical literature rarely cite each other.
+"""
+
+[[method]]
+id = "fv.acquisition.bwjump_plus_imvc"
+construct = "force_velocity_profile"
+group = "P"
+title = "Draw the line between an isometric maximum and an unloaded jump"
+rule = "Treat the isometric maximal voluntary contraction as the force intercept and the unloaded jump as the high-velocity point, and draw the line between them."
+status = "deprecated"
+confidence = "medium"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "sarabon2020"
+role = "disputes"
+reference = "Sarabon, Kozinc and Markovic 2020, Sci Rep 10:19127, obtained; the title states the finding"
+doi = "10.1038/s41598-020-76262-4"
+obtained = true
+
+[[method.disagrees_with]]
+id = "fv.acquisition.two_point"
+kind = "genuine"
+note = """
+Not a genuine debate but an evaluated and rejected shortcut: the isometric maximum is not the same
+quantity as the extrapolated force intercept of a dynamic multi-joint task, so substituting one for
+the other is a different measurement rather than a modelling simplification.
+"""
+
+[[method.disagrees_with]]
+id = "fv.acquisition.multi_point"
+kind = "genuine"
+
+[method.gui]
+surfacing = "refuse"
+rationale = "Retained flagged rather than excluded because it is an attractive shortcut that practitioners keep reinventing."
+
+[[method]]
+id = "fv.regression_form"
+construct = "force_velocity_profile"
+group = "P"
+title = "Which regression fits the force-velocity line"
+rule = """
+Fit the force-velocity line by ordinary least squares regressing force on velocity, by ordinary least
+squares regressing velocity on force, or by an errors-in-variables method.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "form"
+unit = "enumeration"
+required = true
+notes = "ols_force_on_velocity, ols_velocity_on_force, errors_in_variables. The three give different slopes on the same points, and the slope is what every imbalance score is computed from."
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/graphs/jumpsWeightFVProfile.cs, fitting force on velocity silently and without a stated justification, with the velocity intercept derived from it"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.1
+unit = "fraction"
+direction = "low"
+criterion = "agreement.olp_regression.ludbrook"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Direction known and signed. Regressing force on velocity attenuates the slope toward zero in the
+# presence of velocity error, which inflates the velocity intercept, deflates the slope magnitude and
+# moves the imbalance verdict toward a force deficit. The reverse regression errs the other way and
+# an errors-in-variables fit sits between them. Both variables carry error, which is exactly the
+# condition under which ordinary least squares is the wrong estimator, and the registry already
+# carries that argument in the agreement group. Nobody in this literature appears to have made it.
+
+[[method.disagrees_with]]
+id = "agreement.olp_regression.ludbrook"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high on the slope and therefore total on the imbalance, which is a ratio of slopes"
+rationale = """
+With the fitted line and residuals shown and the form named in every export. A strong candidate for
+the software computing all three and displaying the spread, which costs nothing and would make the
+sensitivity visible for the first time.
+"""
+
+[[method]]
+id = "sjl100.linear_load_velocity_extrapolation.chronojump"
+construct = "force_velocity_profile"
+group = "P"
+title = "Extrapolate a load-velocity line out to an added load equal to body mass"
+rule = """
+Form the load-velocity points across the available loaded and unloaded jumps, fit an ordinary
+least-squares straight line, evaluate it at an added load equal to body mass, and fail with a stated
+message if the predicted velocity is not positive. Otherwise convert back to a flight time and feed
+it into the normal jump-height pipeline.
+"""
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump src/graphs/jumpsProfile.cs:150-234; undisclosed, no citation, with a parabolic fit preserved commented out together with its own convexity check"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.1
+unit = "fraction"
+direction = "high"
+criterion = "fv.acquisition.multi_point"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Direction depends on the true curvature and is therefore conditional but signed: if load-velocity is
+# concave, linear extrapolation overestimates velocity at the extrapolated load and therefore
+# overestimates the derived maximum force. Not quantified, and it could be quantified cheaply by
+# anyone with a multi-load dataset.
+
+[[method.disagrees_with]]
+id = "fv.acquisition.multi_point"
+kind = "genuine"
+note = """
+Extrapolating a straight line fitted to as few as two points at 20 to 40 percent added load out to
+100 percent added load is a large extrapolation well outside the measured range, guarded only by a
+sign check. The tool has held both positions in its own source, a parabolic fit having been tried
+first and shelved, which is the strongest available evidence that this is a genuine fork rather than
+an arbitrary implementation.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "very large: with a single loaded jump the slope is determined by two points"
+rationale = "The number of loads used must be shown. The tool already colours the profile indicator red when jumps are missing, which is the right instinct applied to the wrong variable."
+
+[[method]]
+id = "vbt.minimal_velocity_threshold_1rm"
+construct = "one_repetition_maximum"
+group = "P"
+title = "Extrapolate the load-velocity line to a minimal velocity threshold"
+rule = """
+Fit the load-velocity relationship across submaximal loads and estimate the one-repetition maximum by
+extrapolating to a minimal velocity threshold, being the velocity at which a repetition is the last
+one completable. The relative-load variant inverts it and reads a percentage off a velocity.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.parameter]]
+name = "velocity_statistic"
+unit = "enumeration"
+required = true
+notes = """
+mean_concentric, mean_propulsive or peak. The three are interchangeable for predicting relative load
+and their threshold constants are not, so crossing them is an error rather than a variant.
+"""
+
+[[method.parameter]]
+name = "threshold_mps"
+unit = "meters_per_second"
+published_values = [0.22, 0.23]
+default = 0.23
+default_source = "jidovtseff2011"
+required = true
+notes = """
+Published as a group constant and empirically highly individual: the between-subject standard
+deviation is 39 percent of the mean on n = 112. Only weakly exercise-specific across the two
+exercises measurable here, and two nearly coinciding data points are not a demonstration of
+invariance.
+"""
+
+[[method.citation]]
+key = "sanchezmedina2017"
+role = "proposes"
+reference = "Sanchez-Medina et al. 2017, on disk and still unread"
+obtained = false
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump encoder/graph.R:2523-2624"
+obtained = true
+
+[[method.disagrees_with]]
+id = "vbt.load_at_zero_velocity_1rm"
+kind = "genuine"
+note = """
+This looks like an implementation-detail distinction and is a genuine one in substance: both predict
+a maximum from a load-velocity line, so they are not rival theories, but they differ in what quantity
+is held fixed, a zero-velocity intercept plus a calibration constant against a non-zero velocity
+constant read directly, and therefore in which error dominates and in what the software must ask the
+user for.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "presumed high, unmeasured here"
+rationale = "It is an extrapolation to a load never lifted, so its error grows with distance from the tested range and with any curvature in the load-velocity relationship."
+
+[[method]]
+id = "vbt.load_at_zero_velocity_1rm"
+construct = "one_repetition_maximum"
+group = "P"
+title = "Extrapolate to zero velocity and apply an exercise-specific correction"
+rule = """
+Measure mean concentric velocity over the entire concentric phase at three or four increasing loads
+spanning at least a stated drop in mean velocity, fit a per-individual least-squares regression of
+mean velocity on absolute load, extrapolate to zero velocity, and convert to a one-repetition maximum
+by an exercise-specific correction factor.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "correction_factor"
+unit = "fraction"
+published_values = [0.862, 0.9]
+default = 0.862
+default_source = "jidovtseff2011"
+required = true
+notes = """
+Only two exercises have published values and those two disagree. The bench-press value is an
+arithmetic inversion of the source's stated 116 percent rather than a transcription, and is flagged
+as such.
+"""
+
+[[method.parameter]]
+name = "min_velocity_spread_mps"
+unit = "meters_per_second"
+published_values = [0.5]
+default = 0.5
+default_source = "jidovtseff2011"
+required = true
+
+[[method.citation]]
+key = "jidovtseff2011"
+role = "proposes"
+reference = "Jidovtseff, Harris, Crielaard and Cronin 2011, JSCR 25(1):267-270, held in full via an open repository copy"
+doi = "10.1519/jsc.0b013e3181b62c5f"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.16
+unit = "fraction"
+direction = "high"
+criterion = "one_repetition_maximum"
+criterion_kind = "instrument"
+source = "jidovtseff2011"
+# Quantified: the standard error of the estimate is 4 kg on a mean maximum of 60 kg, still within
+# 5 kg when reduced to two submaximal loads. Directional: the zero-velocity load systematically
+# overestimates the maximum by 16 percent, which is why the correction exists and is physiologically
+# expected, since maximum isometric force exceeds maximum concentric force. The 8 percent standard
+# deviation on that factor is the residual after correction and is the entry's real error floor.
+
+[[method.disagrees_with]]
+id = "vbt.minimal_velocity_threshold_1rm"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate on the predicted maximum, high on what the software must collect"
+rationale = """
+A practitioner asking for a predicted maximum must be shown which exercise's correction factor was
+applied, because none exists for most exercises. The software must collect mean concentric velocity
+rather than peak, and a minimum velocity spread across loads.
+"""
+
+[[method]]
+id = "fv.point_reduction"
+construct = "force_velocity_profile"
+group = "P"
+title = "How the concentric time series is reduced to one force-velocity point"
+rule = """
+Reduce the concentric-phase force and velocity time series to a single value each. The mean form
+takes the arithmetic mean of each over the concentric phase; the peak form takes the maximum of each
+independently, and the instants of peak force and peak velocity do not coincide.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "statistic"
+unit = "enumeration"
+required = true
+notes = """
+mean_concentric or peak, mandatory and not recoverable from the output. The mean form is required
+whenever the result feeds any closed-form derived quantity, because those forms are derived for mean
+values over the push-off: feeding peak values into them is an error rather than a variant and inflates
+maximal power roughly threefold.
+"""
+
+[[method.citation]]
+key = "cuk2014"
+role = "evaluates"
+reference = "Cuk, Markovic, Nedeljkovic, Ugarkovic, Kukolj and Jaric 2014, Eur J Appl Physiol 114(8):1703-1714, held in full including the reliability matrix"
+doi = "10.1007/s00421-014-2901-2"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.54
+unit = "ratio"
+direction = "high"
+criterion = "force_velocity_profile"
+criterion_kind = "model"
+source = "cuk2014"
+# The largest single method-choice magnitude recovered in the loaded-lift domain. Same subjects, same
+# trials: maximal power diverges by +201 percent on the squat jump, +124 percent on the
+# countermovement jump and +137 percent with arms. The divergence originates almost entirely in the
+# velocity intercept, which differs more than twofold, not in the force intercept, which differs
+# modestly. The magnitude here is the mean divergence expressed as a ratio.
+
+[[method.disagrees_with]]
+id = "fv.model.linear"
+kind = "genuine"
+note = """
+A fork the literature took twice without labelling. A genuine debate about which statistic answers
+which question, but not two competing claims, so one entry with a mandatory parameter. Crossing it
+with the closed-form equations is an implementation error rather than a variant and should be blocked
+rather than parameterised.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "extreme on maximal power and the velocity intercept, small on the force intercept"
+rationale = """
+Force the decision on first use, then hide it with the mean form as the default. Emitting a maximal
+power without recording the statistic is how a threefold discrepancy becomes invisible, and any
+cross-study comparison that does not pin it is meaningless.
+"""
+
+[[method]]
+id = "optimal_load.exercise_specific"
+construct = "optimal_load"
+group = "P"
+title = "The optimum load is a property of the exercise"
+rule = """
+The load maximising mean or peak mechanical power is a property of the exercise, not of the
+individual and not universally body weight, with pooled load bands reported per exercise.
+"""
+status = "contested"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "exercise"
+unit = "enumeration"
+required = true
+
+[[method.citation]]
+key = "soriano2017"
+role = "evaluates"
+reference = "Soriano, Suchomel and Marin 2017, Sports Medicine 47(4):757-768, a meta-analysis of 11 studies and 434 subjects; held as abstract, methods, results and reference list, the body behind a paywall"
+doi = "10.1007/s40279-016-0626-6"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.75
+unit = "i_squared"
+direction = "wider"
+criterion = "optimal_load"
+criterion_kind = "model"
+source = "soriano2017"
+# Substantial heterogeneity reported by the authors themselves, so the pooled load bands must be read
+# as wide rather than as point estimates. Structurally it shares the defect of the body-weight
+# framework: the located optimum shifts with the power computation used to locate it, and this
+# meta-analysis pools across studies that did not standardise it.
+
+[[method.disagrees_with]]
+id = "optimal_load.mdo_bodyweight"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "fv.imbalance.samozino2012"
+kind = "genuine"
+note = """
+It converts a recorded two-way dispute into a four-way one, the fourth being a separate prescription
+of load bands by movement class. None of the four cites more than one of the others.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "high; it changes the prescribed training load directly"
+rationale = """
+Sharing a screen with the competing frameworks. Any optimal-load readout must name its framework, and
+this entry makes that requirement harder to satisfy because there are now four. The identity of the
+source is worth recording because the library had it filed under another paper's slug and citation
+block, which means that other paper is absent from the library rather than present.
+"""

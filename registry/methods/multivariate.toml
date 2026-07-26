@@ -1,0 +1,112 @@
+# Group R. Multivariate movement-strategy analysis.
+#
+# This lineage consumes registry quantities rather than defining them, so it is registered narrowly
+# and the count is held to two rather than inflated to the several this literature could
+# superficially support. Its value to the registry is upstream: because the input is a whole metric
+# vector or a whole waveform, every method choice in every other group propagates into the clusters,
+# so two labs running the same clustering with different onset rules will discover different
+# strategies. Nobody in this literature appears to have noticed that.
+
+[[method]]
+id = "analysis.movement_strategy_clustering.bird2022"
+construct = "movement_strategy_cluster"
+group = "R"
+title = "Cluster the whole discrete metric vector into movement strategies"
+rule = """
+Instead of testing single variables against an outcome, cluster the whole kinetic and kinematic
+metric vector into movement strategies, then test the strategies against the outcome.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "k"
+unit = "count"
+required = true
+notes = "The cluster count, the distance metric and the feature scaling are unregistered analyst decisions."
+
+[[method.citation]]
+key = "bird2022"
+role = "proposes"
+reference = "Bird, Mi, Koltun, Lovalekar et al. 2022, Front Physiol 13:868002, obtained at full quality; 668 candidates, dual plates at 1000 Hz"
+doi = "10.3389/fphys.2022.868002"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "either"
+criterion = "movement_strategy_cluster"
+criterion_kind = "model"
+source = "plateforce_inference"
+# Structural and unquantified: clustering on an unscaled or arbitrarily scaled feature vector is
+# dominated by whichever features have the largest numeric range, which in a force-plate vector means
+# peak force in newtons swamps a reactive strength index. The paper's scaling choice was not
+# extracted. More important for this registry: because the input is the whole metric vector, every
+# method choice in every other group propagates into the clusters.
+
+[[method.disagrees_with]]
+id = "analysis.jump_strategy_waveform_clustering.guess2020"
+kind = "genuine"
+note = """
+This does not merge with the waveform form. One clusters the discrete metric vector, which makes
+every method choice in every other group an input; the other clusters the waveform itself after
+dimension reduction, which makes only the time-normalisation and phase-boundary choices inputs.
+Different input object, different failure surface, different registry dependencies.
+"""
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "total and unmeasured"
+rationale = """
+An export requirement rather than an interface choice: the whole metric vector must be exportable per
+trial in a tidy shape with stable column names bound to registry identifiers. It defines no
+computation of its own, which is why it is not promoted.
+"""
+
+[[method]]
+id = "analysis.jump_strategy_waveform_clustering.guess2020"
+construct = "movement_strategy_cluster"
+group = "R"
+title = "Cluster the principal components of the time-normalised force waveform"
+rule = """
+Time-normalise the force waveform over the braking and concentric phases, reduce it by principal
+component analysis, and cluster the component scores to assign each athlete a jump-strategy group.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "k"
+unit = "count"
+published_values = [3.0]
+default = 3.0
+default_source = "guess2020"
+required = true
+notes = "Imposed rather than selected, and cluster stability across other cohorts is unestablished."
+
+[[method.citation]]
+key = "guess2020"
+role = "proposes"
+reference = "Guess, Gray, Willis et al. 2020, Sports 8(12):159, held complete, n = 394"
+doi = "10.3390/sports8120159"
+obtained = true
+
+[[method.disagrees_with]]
+id = "analysis.movement_strategy_clustering.bird2022"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "it carries a warning that reaches outside its own group"
+rationale = """
+The three shapes found are a plateau in 43 percent of athletes, a double peak of roughly equal
+magnitude in 42 percent, and a single hump in 15 percent. Any event-detection or phase rule that
+assumes a single concentric peak, or that locates an instant by peak-finding, behaves differently for
+roughly 42 percent of a population. That is a first-order sensitivity note for the onset and phase
+groups from n = 394, and it is the kind of thing a method registry can carry and a single-method tool
+cannot. Clean separation on every parameter except body mass is the control showing the clusters are
+strategy rather than size.
+"""

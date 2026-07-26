@@ -7,7 +7,7 @@
  * markers keyboard operable and screen-reader legible.
  */
 
-const MARGIN = { left: 58, right: 14, top: 16, bottom: 30 };
+const MARGIN = { left: 58, right: 14, top: 16, bottom: 44 };
 const MARKERS = [
   { key: 'onset', label: 'Onset', className: 'marker--onset' },
   { key: 'takeoff', label: 'Takeoff', className: 'marker--takeoff' },
@@ -284,7 +284,6 @@ export class TraceChart {
     }
 
     context.fillStyle = colours.text;
-    context.textAlign = 'left';
     context.save();
     context.translate(12, this.plot.top + this.plot.height / 2);
     context.rotate(-Math.PI / 2);
@@ -292,8 +291,10 @@ export class TraceChart {
     context.fillText('vGRF (N)', 0, 0);
     context.restore();
 
-    context.textAlign = 'right';
-    context.fillText('time (s)', this.plot.right, this.plot.bottom + 8);
+    // Below the tick row rather than beside it. Beside it, the title collided with the
+    // last tick at any width narrow enough to matter.
+    context.textAlign = 'center';
+    context.fillText('time (s)', this.plot.left + this.plot.width / 2, this.plot.bottom + 24);
     context.restore();
   }
 

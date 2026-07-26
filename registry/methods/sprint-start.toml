@@ -1,0 +1,358 @@
+# Group Q. Sprint start and multidirectional.
+#
+# The registry's single best illustration of vendor opacity, and it decides Olympic medals. The
+# governing rule of a global sport defines the offence kinematically, the certified apparatus detects
+# it kinetically through a proprietary threshold, and the leading peer-reviewed critique of the rule
+# had to assume the parameter's value because the vendor refused to disclose it.
+#
+# Change-of-direction biomechanics is overwhelmingly a joint-moment and inverse-dynamics literature
+# rather than a force-plate-metric one, and its central quantities are not computable from a force
+# plate alone. The three change-of-direction papers obtained contribute zero new computation rules,
+# and saying so plainly is the honest read.
+
+[[method]]
+id = "falsestart.kinematic_loss_of_contact"
+construct = "false_start"
+group = "Q"
+title = "Any motion resulting in loss of contact with the blocks or the ground"
+rule = """
+The commencement of the start is any motion by an athlete that includes or results in one or both
+feet losing contact with the foot plates of the starting blocks or one or both hands losing contact
+with the ground, and for a standing start any motion resulting in one or both feet losing contact
+with the ground. A possible false start is signalled when the reaction time is less than a stated
+limit.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "reaction_time_limit_seconds"
+unit = "seconds"
+published_values = [0.1]
+default = 0.1
+default_source = "world_athletics_tr16"
+required = true
+notes = "The one number the rules specify. The rules contain no force, kilogram, newton or kilogram-force specification of the start apparatus anywhere."
+
+[[method.citation]]
+key = "world_athletics_tr16"
+role = "proposes"
+reference = "World Athletics Technical Rule 16 and 15.3, primary rules document, downloaded and read directly with a full-text search"
+obtained = true
+
+[[method.citation]]
+key = "mero1990"
+role = "uses"
+reference = "Mero and Komi 1990, EJAP 61:73-80, the reaction-time study behind part of the limit's justification"
+doi = "10.1007/BF00236697"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0
+unit = "seconds"
+direction = "none"
+criterion = "falsestart.kinematic_loss_of_contact"
+criterion_kind = "human_visual"
+source = "world_athletics_tr16"
+# Zero by definition, being the definition of record. What is thin is the limit's own provenance, and
+# the critique states it: part of the justification was a study of the auditory reaction times of
+# eight sprinters, none of them Olympic-level, none competing at the Games, and no women included.
+
+[[method.disagrees_with]]
+id = "falsestart.kinetic_vendor_threshold"
+kind = "genuine"
+note = """
+The sharpest genuine disagreement in the registry, because the two parties are a governing body and
+its own certified apparatus, and they are measuring different physical events.
+"""
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "categorical, and it decides competitive outcomes"
+rationale = "The kinematic and kinetic definitions must never share a column heading."
+
+[[method]]
+id = "falsestart.kinetic_vendor_threshold"
+construct = "false_start"
+group = "Q"
+title = "Force threshold crossing on instrumented blocks within the reaction-time limit"
+rule = """
+The certified start information system detects a false start by a force threshold crossing on the
+instrumented blocks within the reaction-time limit. The threshold value is proprietary and has never
+been disclosed.
+"""
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_kgf"
+unit = "kilograms_force"
+published_values = [25.0]
+notes = """
+Undisclosed. The published value is explicitly an assumption made because the vendor refused
+disclosure, recorded in the source's own methods, and it must never be stated as a rule. No default
+is set here for that reason.
+"""
+
+[[method.citation]]
+key = "lipps2011"
+role = "evaluates"
+reference = "Lipps, Galecki and Ashton-Miller 2011, PLoS ONE 6(10):e26141, obtained and verified at full quality"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.021
+unit = "seconds"
+direction = "late"
+criterion = "falsestart.kinematic_loss_of_contact"
+criterion_kind = "instrument"
+source = "lipps2011"
+# A sex bias, quantified. Mean fastest reaction times 166 ms in men against 189 ms in women, with
+# lower bounds of the 99.9 percent interval at 109 and 121 ms, so the women's window of opportunity is
+# 21 ms, twice the men's. The mechanism is that the threshold is a force, and reaching a fixed force
+# takes longer for the sex with lower plantarflexor rate of force development. The proposed fix is a
+# 22 percent lower threshold for women.
+
+[[method.disagrees_with]]
+id = "falsestart.kinematic_loss_of_contact"
+kind = "genuine"
+note = "Genuine and structural: a force threshold is not a loss of contact, and the two events are separated by a variable interval that depends on the athlete."
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "total and categorical"
+rationale = """
+A fact about the instrument, belonging in the software's documentation of what it cannot reproduce.
+It is in force at every certified competition and it is not reproducible by anybody, which is the
+definition of a vendor rule and the reason it cannot be accepted.
+"""
+
+[[method]]
+id = "sprintstart.performance.block_velocity"
+construct = "sprint_start_performance"
+group = "Q"
+title = "Centre of mass velocity at block exit"
+rule = "Start performance is the centre of mass velocity at block exit."
+status = "legacy"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "bezodis2019"
+role = "evaluates"
+reference = "Bezodis, Willwacher and Salo 2019, Sports Med 49(9):1345-1364, obtained and re-extracted; it surveys the literature that uses this and recommends replacing it"
+doi = "10.1007/s40279-019-01138-1"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "high"
+criterion = "sprintstart.performance.normalised_avg_horizontal_external_power"
+criterion_kind = "model"
+source = "bezodis2019"
+# Stated in print and the entry's substance: block velocity is determined by push-phase impulse and
+# can therefore be increased by either greater force or greater time spent producing force, and there
+# comes a point where pushing for longer against the blocks may not be beneficial for overall sprint
+# performance. It rewards a strategy that costs race performance. Magnitude not quantified, which is
+# a gap in the literature.
+
+[[method.disagrees_with]]
+id = "sprintstart.performance.normalised_avg_horizontal_external_power"
+kind = "genuine"
+note = "A genuine debate with a clear published winner, which makes it a settled one."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "it changes the ranking of athletes, which is the reviewing paper's own framing"
+rationale = "Shown only with its deprecation argument attached."
+
+[[method]]
+id = "sprintstart.performance.normalised_avg_horizontal_external_power"
+construct = "sprint_start_performance"
+group = "Q"
+title = "Normalised average horizontal external power over the interval of interest"
+rule = """
+Start performance is the average horizontal external power over the interval of interest, normalised
+to participant characteristics. The normalisation equation is not in the recommending source and is
+not stated here.
+"""
+# Prose grants recommended. Rule 6 bars it: the paper holding the normalisation equation was never
+# obtained, and the entry is explicitly not implementable from the recommendation alone.
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "bezodis2019"
+role = "proposes"
+reference = "Bezodis, Willwacher and Salo 2019, verbatim: average horizontal external power should be used to quantify performance during any discrete part of a sprint start"
+doi = "10.1007/s40279-019-01138-1"
+obtained = true
+
+[[method.citation]]
+key = "bezodis2010"
+role = "proposes"
+reference = "Bezodis, Salo and Trewartha 2010, Sports Biomech 9(4):258-269, which holds the normalisation itself; not obtained"
+doi = "10.1080/14763141.2010.538713"
+obtained = false
+
+[[method.disagrees_with]]
+id = "sprintstart.performance.block_velocity"
+kind = "genuine"
+note = """
+Its argument is structural rather than empirical: it cannot be improved by doing the wrong thing and
+its predecessor can. The reviewers give no bias figure because the claim is about construct validity
+rather than about measurement error.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "it changes the ranking, per the 2010 paper's own title"
+rationale = """
+Not implementable from the recommendation alone. Closing the normalisation gap is the highest-priority
+acquisition in this group. The general form in this literature is dimensionless scaling, already
+registered under normalisation, and this registry does not assert that it is the exact expression
+used, because neither paper was read.
+"""
+
+[[method]]
+id = "sprint.mono_exponential_velocity_model"
+construct = "sprint_velocity_model"
+group = "Q"
+title = "Mono-exponential velocity rise fitted by nonlinear least squares"
+rule = "Fit a mono-exponential velocity rise by nonlinear least squares, with start values and a retry ladder on failure."
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump r-scripts/sprintEncoder.R:295-332, read from source; a biexponential model is present and commented out under a testing comment"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.3
+unit = "seconds"
+direction = "early"
+criterion = "sprint_velocity_model"
+criterion_kind = "model"
+source = "chronojump_constants"
+# Author-implied and mechanistically clear: a mono-exponential cannot represent the first roughly
+# 0.3 s of a block or standing start, where real acceleration rises before it falls. Hence the
+# shelved richer model. Not quantified.
+
+[[method.disagrees_with]]
+id = "sprint.fv_analytic_endpoints_vs_ols"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high near the start, which is where a start measure lives"
+rationale = """
+With the fit and residuals plotted. It is structurally identical to the isometric force model in the
+same codebase, which is one model shape reused across two modalities and is worth recording as a
+lineage signature.
+"""
+
+[[method]]
+id = "sprint.fv_analytic_endpoints_vs_ols"
+construct = "force_velocity_profile"
+group = "Q"
+title = "Force-velocity endpoints computed analytically or by regression over the modelled grid"
+rule = """
+From the fitted velocity model plus an aerodynamic model, compute the force-velocity endpoints either
+analytically from the model coefficients, or by regressing modelled force on modelled velocity over a
+grid and taking the intercepts.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "endpoint_route"
+unit = "enumeration"
+required = true
+notes = "analytic or ols_over_modelled_grid. Both are computed and exported by the same tool, which is the only instance in the sweep of a tool shipping two estimates of the same quantity side by side rather than picking one silently."
+
+[[method.parameter]]
+name = "drag_coefficient"
+unit = "dimensionless"
+published_values = [0.9]
+default = 0.9
+default_source = "chronojump_constants"
+required = true
+
+[[method.citation]]
+key = "chronojump_constants"
+role = "uses"
+reference = "Chronojump r-scripts/sprintEncoder.R, read from source; the attribution of the aerodynamic constants to a published sprint-profiling lineage is this registry's inference from the algebra and is unverified against any paper"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.05
+unit = "fraction"
+direction = "low"
+criterion = "sprint.fv_analytic_endpoints_vs_ols"
+criterion_kind = "model"
+source = "plateforce_inference"
+# The code comments claim the two routes agree. They do not, and the reason is mechanical: the
+# regression runs over a grid uniform in time, so samples bunch at high velocity and the fitted line
+# is weighted toward the top of the range, which flattens the slope. The slope is what any imbalance
+# score is computed from. Magnitude not quantified and computable from the shipped code in an
+# afternoon.
+
+[[method.disagrees_with]]
+id = "sprint.mono_exponential_velocity_model"
+kind = "genuine"
+note = "An unrecognised debate: the code asserts an equivalence that does not hold."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "moderate on the force intercept, larger on the slope and total on anything derived from it"
+rationale = "If both are computed both must be labelled. A column that is sometimes one and sometimes the other is the failure this registry exists to prevent."
+
+[[method]]
+id = "cod.deficit"
+construct = "change_of_direction_deficit"
+group = "Q"
+title = "Change-of-direction test time less straight-sprint time over the same distance"
+rule = """
+The deficit is the difference between the time for a change-of-direction test and the time for a
+straight sprint over the same distance, isolating the turn from the athlete's linear speed.
+"""
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "nimphius2016"
+role = "proposes"
+reference = "Nimphius et al. 2016 and 2018; neither obtained, and the operational definition here is reconstructed from a third party's use of it and is unverified"
+doi = "10.1519/jsc.0000000000001421"
+obtained = false
+
+[[method.bias]]
+magnitude = 2.0
+unit = "ratio"
+direction = "wider"
+criterion = "change_of_direction_deficit"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# The structural point can be stated without the papers: it is a difference of two timed tests, so it
+# inherits both tests' timing-gate errors additively while the signal it isolates is small. That is
+# the same error-amplification structure as an asymmetry index and as force-velocity imbalance, and
+# three constructs in three unrelated literatures share one failure mode.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high, by construction"
+rationale = """
+The software must show both component times beside the deficit, because a deficit without its
+components is uninterpretable. It addresses a real confound, that total test time is dominated by
+linear speed, and it is the same shape of argument as block velocity against horizontal external
+power: an incumbent measure that can be improved by the wrong thing.
+"""

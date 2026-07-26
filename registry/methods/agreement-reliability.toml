@@ -1,0 +1,602 @@
+# Group O. Agreement and reliability statistics.
+#
+# A method registry that cannot report its own uncertainty is half a tool. Everywhere else in the
+# registry the method choice moves a number; here it moves a verdict about whether the numbers can be
+# trusted at all, which means an error in this group silently launders errors in every other group.
+#
+# The measured magnitudes the vendor-agreement literature produced live on the entries they describe,
+# not here. What is a method in this group is the machinery of agreement itself.
+
+[[method]]
+id = "agreement.olp_regression.ludbrook"
+construct = "method_agreement"
+group = "O"
+title = "Ordinary least products regression separating fixed from proportional bias"
+rule = """
+Fit a model II linear regression allowing error in both variables. Fixed bias is inferred when the
+confidence interval for the intercept excludes zero, proportional bias when the interval for the
+slope excludes one, with intervals by bootstrap.
+"""
+# Prose grants recommended. Rule 6 bars it: ludbrook was never obtained and the rule is reconstructed
+# from its two users.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "ludbrook2010"
+role = "proposes"
+reference = "Ludbrook J 2010 and 2012; not obtained, the rule is reconstructed from two users who state it concordantly"
+doi = "10.1111/j.1440-1681.2010.05376.x"
+obtained = false
+
+[[method.citation]]
+key = "badby2023"
+role = "uses"
+reference = "Badby et al. 2023, calling it perhaps the only philosophically correct technique for concurrent validity"
+obtained = true
+
+[[method.citation]]
+key = "merrigan2022"
+role = "uses"
+reference = "Merrigan et al. 2022"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.14
+unit = "meters"
+direction = "wider"
+criterion = "agreement.design.simultaneous_capture"
+criterion_kind = "model"
+source = "badby2023"
+# It changes the published conclusion: one study using correlation plus limits of agreement concluded
+# two systems disagreed by about 7 cm, and this technique on a better design found no bias on the
+# same pairing. It is sensitive to the range of the predictor, so in a homogeneous sample the slope
+# interval widens and proportional bias becomes undetectable, which makes a null result in a narrow
+# cohort weak evidence rather than evidence of agreement.
+
+[[method.disagrees_with]]
+id = "agreement.bland_altman_loa"
+kind = "genuine"
+note = "Complementary rather than exclusive: limits of agreement do not account for fixed and proportional biases interacting."
+
+[[method.disagrees_with]]
+id = "agreement.correlation_or_mean_difference"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "fv.regression_form"
+kind = "genuine"
+note = "The same objection to ordinary least squares when both variables carry error, which the force-velocity literature appears never to have made."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "it changes the published conclusion"
+rationale = """
+In a validation or method-comparison workflow only. A practitioner comparing two of their own devices
+should get plain-language output, that the systems differ by a constant amount against that they
+differ more as the value gets larger, and never the raw slope and intercept. A fixed offset can be
+corrected once and forgotten; a proportional bias cannot, because it is a different error for every
+athlete and largest exactly for the athletes a coach cares most about.
+"""
+
+[[method]]
+id = "agreement.bland_altman_loa"
+construct = "method_agreement"
+group = "O"
+title = "Bias and limits of agreement on paired differences"
+rule = """
+For each subject compute the difference between the two methods, report its mean as the bias and the
+mean plus or minus 1.96 standard deviations as the 95 percent limits of agreement, and plot the
+difference against the pair mean.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "blandaltman1986"
+role = "proposes"
+reference = "Bland and Altman 1986, Lancet 327:307-310; not obtained, the rule is standard and stated identically by three sources that were"
+doi = "10.1016/S0140-6736(86)90837-8"
+obtained = false
+
+[[method.bias]]
+magnitude = 1.0
+unit = "categorical"
+direction = "either"
+criterion = "agreement.olp_regression.ludbrook"
+criterion_kind = "model"
+source = "badby2023"
+# It conflates fixed and proportional bias, and a proportional bias appears only as inflated limits
+# with no indication of the cause: one study found proportional bias in drop-jump peak braking power
+# that a limits-only analysis would have reported as merely wide limits. It also assumes the
+# differences are homoscedastic and normally distributed, which peak braking force and every power
+# metric violate, and the limits are then wrong in both directions at once.
+
+[[method.disagrees_with]]
+id = "agreement.olp_regression.ludbrook"
+kind = "genuine"
+note = "Complementary; report both."
+
+[[method.disagrees_with]]
+id = "agreement.correlation_or_mean_difference"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "reporting limits alone hides proportional bias"
+rationale = "As the plot, for any two-method comparison. It is the one agreement output a non-statistician reads correctly."
+
+[[method]]
+id = "agreement.correlation_or_mean_difference"
+construct = "method_agreement"
+group = "O"
+title = "A correlation or a paired mean-difference test used as an agreement statistic"
+rule = "Report the correlation between paired values, or a paired test on the differences, as if it were an agreement statistic."
+status = "deprecated"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.citation]]
+key = "merrigan2022"
+role = "disputes"
+reference = "Merrigan et al. 2022, verbatim: high correlations may exist while actual agreement is poor"
+obtained = true
+
+[[method.citation]]
+key = "badby2023"
+role = "disputes"
+reference = "Badby et al. 2023, verbatim: a mean-difference test or a correlation between two devices is considered insufficient"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "correlation"
+direction = "high"
+criterion = "agreement.bland_altman_loa"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Two methods differing by a constant 100 N correlate perfectly. It systematically overstates
+# agreement and there is no condition under which it errs the other way.
+
+[[method.disagrees_with]]
+id = "agreement.olp_regression.ludbrook"
+kind = "genuine"
+
+[[method.disagrees_with]]
+id = "agreement.bland_altman_loa"
+kind = "genuine"
+note = "A settled debate rather than a live one, and one of the few places in this registry where the answer to whether the field has settled is that it has."
+
+[[method.disagrees_with]]
+id = "agreement.design.simultaneous_capture"
+kind = "genuine"
+note = "One published comparison reached its conclusion through this statistic on a separate-trial design, and the design is what produced the disagreement."
+
+[method.gui]
+surfacing = "refuse"
+sensitivity = "very high, and this project is the worked example"
+rationale = """
+Never offered as an agreement statistic. If a user asks for a correlation, give it with the limits of
+agreement attached. This project's own headline correlation is reported alongside bias and limits
+precisely because the correlation alone would understate the problem on one metric and overstate
+agreement on the other.
+"""
+
+[[method]]
+id = "agreement.kappa_categorical"
+construct = "method_agreement"
+group = "O"
+title = "Chance-corrected agreement for categorical outputs"
+rule = """
+Report observed agreement corrected for agreement expected by chance, for outputs that are
+categorical rather than continuous.
+"""
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "ranganathan2017"
+role = "proposes"
+reference = "Ranganathan, Pramesh and Aggarwal 2017, Perspect Clin Res 8:187-191, ingested at full quality"
+doi = "10.4103/picr.PICR_123_17"
+obtained = true
+
+[[method.citation]]
+key = "lake2018asym"
+role = "uses"
+reference = "Lake et al., do peak and mean force asymmetry methods agree, ingested at full quality"
+doi = "10.1080/14763141.2018.1465116"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.7
+unit = "kappa"
+direction = "low"
+criterion = "method_agreement"
+criterion_kind = "model"
+source = "lake2018asym"
+# It is the entry that catches the worst class of disagreement: two asymmetry methods named a
+# different dominant limb in 16 percent of athletes in braking and 13 percent in propulsion, kappa
+# 0.67 and 0.72. The statistic is sensitive to marginal prevalence, so a lopsided distribution
+# depresses it even under good agreement.
+
+[method.gui]
+surfacing = "force_a_decision"
+sensitivity = "it reaches disagreements no continuous statistic can express"
+rationale = """
+Required wherever the software emits a categorical judgement. Several force-plate outputs are
+categorical: which limb is dominant, whether a curve is unimodal or bimodal, whether a trial passes
+quality control, whether a detector calls the trial one jump type or another. Any classifier the tool
+ships must declare its method and, where a competing method exists, report the disagreement rate.
+"""
+
+[[method]]
+id = "reliability.icc_absolute_agreement"
+construct = "measurement_reliability"
+group = "O"
+title = "Intraclass correlation under an absolute-agreement definition"
+rule = """
+Report a two-way intraclass correlation under an absolute-agreement definition, declaring the model,
+the definition and the unit, with a confidence interval, and interpret from the lower bound.
+"""
+# Prose grants recommended. Rule 6 bars it: the guideline that proposes the taxonomy was not obtained.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "model"
+unit = "enumeration"
+required = true
+notes = "one_way_random, two_way_random, two_way_mixed."
+
+[[method.parameter]]
+name = "unit"
+unit = "enumeration"
+required = true
+notes = "single_measurement or mean_of_k."
+
+[[method.citation]]
+key = "koo2016"
+role = "proposes"
+reference = "Koo and Li 2016, J Chiropr Med 15:155-163, and behind it Shrout and Fleiss 1979; not obtained"
+doi = "10.1016/j.jcm.2016.02.012"
+obtained = false
+
+[[method.citation]]
+key = "mcmahon2022"
+role = "uses"
+reference = "McMahon 2022, two-way mixed, absolute agreement, average measures, interpreted from the lower bound"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.1
+unit = "icc"
+direction = "high"
+criterion = "measurement_reliability"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Average-measures reliability is systematically higher than single-measure and describes a quantity
+# the practitioner never experiences, because a coach testing one athlete on one occasion gets a
+# single measurement. Reporting the average-measures form and interpreting it as though it applied to
+# a single test is a live and widespread error. Direction known and signed; magnitude not quantified
+# in the sources obtained.
+
+[[method.disagrees_with]]
+id = "reliability.icc_consistency"
+kind = "genuine"
+note = "A genuine fork rather than a parameter: the two answer different questions and diverge substantially under a learning or potentiation effect between trials, which is common in jump testing."
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "very high on classification"
+rationale = """
+The value with its confidence interval and its model declaration, never a bare number. On identical
+data one metric spans 0.479 to 0.984 purely from the onset rule, so a reliability figure reported
+without its method is uninterpretable.
+"""
+
+[[method]]
+id = "reliability.icc_consistency"
+construct = "measurement_reliability"
+group = "O"
+title = "Intraclass correlation under a consistency definition"
+rule = "Report a two-way intraclass correlation under a consistency definition, which excludes the between-measures variance from the denominator."
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "koo2016"
+role = "proposes"
+reference = "Koo and Li 2016; not obtained, the definition is standard"
+doi = "10.1016/j.jcm.2016.02.012"
+obtained = false
+
+[[method.bias]]
+magnitude = 0.05
+unit = "icc"
+direction = "high"
+criterion = "reliability.icc_absolute_agreement"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# Always at or above the absolute-agreement form on the same data, so it is the flattering choice and
+# will be selected by anyone choosing on the number rather than on the question. Direction certain by
+# construction; magnitude not quantified in the acquired corpus and cheap to measure.
+
+[[method.disagrees_with]]
+id = "reliability.icc_absolute_agreement"
+kind = "genuine"
+
+[method.gui]
+surfacing = "surface_on_demand"
+rationale = "Legitimate when the question is rank-order stability rather than absolute reproducibility. Wrong for monitoring, and the registry carries both precisely so a stated figure can be checked for fitness to purpose."
+
+[[method]]
+id = "reliability.cv_typical_error.hopkins"
+construct = "measurement_reliability"
+group = "O"
+title = "Typical error expressed as a coefficient of variation on log-transformed data"
+rule = """
+Typical error is the standard deviation of the difference scores divided by the square root of two,
+expressed as a coefficient of variation by computing on log-transformed data and back-transforming,
+so the result is a percentage of the individual's own score.
+"""
+# Prose grants recommended. Rule 6 bars it: the source was never obtained and the rule as stated is
+# reconstructed from how its users describe it.
+status = "accepted"
+confidence = "low"
+debate = "genuine"
+
+[[method.citation]]
+key = "hopkins2000"
+role = "proposes"
+reference = "Hopkins WG 2000, Sports Med 30:1-15; not obtained, and the rule must be verified against the source before it enters a citation-bound registry"
+doi = "10.2165/00007256-200030010-00001"
+obtained = false
+
+[[method.disagrees_with]]
+id = "reliability.cv_sd_over_mean_of_trials"
+kind = "genuine"
+note = "A genuine fork with a real consequence: the two produce different numbers from the same data and the literature reports both under one label."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "high, and mostly invisible, because the label does not distinguish the two conventions"
+rationale = """
+The fingerprint must record which convention was used and the software must refuse to compare a
+figure from one convention against one from the other. It requires log transformation to be
+meaningful for magnitude-dependent metrics; applied to raw data it inherits the heteroscedasticity.
+"""
+
+[[method]]
+id = "reliability.cv_sd_over_mean_of_trials"
+construct = "measurement_reliability"
+group = "O"
+title = "Per-subject standard deviation over per-subject mean, averaged across subjects"
+rule = """
+For each subject compute the standard deviation of that subject's trials divided by the mean of those
+trials, then average across subjects.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "merrigan2021"
+role = "uses"
+reference = "Merrigan et al. 2021, Sports 9:4, ingested at full quality, stating the rule verbatim"
+doi = "10.3390/sports9010004"
+obtained = true
+
+[[method.bias]]
+magnitude = 1.0
+unit = "degrees_of_freedom"
+direction = "wider"
+criterion = "reliability.cv_typical_error.hopkins"
+criterion_kind = "model"
+source = "plateforce_algebra"
+# With two trials the per-subject standard deviation has one degree of freedom, so the estimate is
+# extremely unstable per subject even when the group mean is stable. Unbiased in expectation, wildly
+# variable in practice, which is a different defect from the one practitioners guard against. Nobody
+# appears to have published the numerical difference between the two conventions on the same
+# force-plate data.
+
+[[method.disagrees_with]]
+id = "reliability.cv_typical_error.hopkins"
+kind = "genuine"
+
+[method.gui]
+surfacing = "default_and_hide"
+rationale = "Fingerprint it and block cross-convention comparison. It is the number behind a large fraction of the published values practitioners rely on, and it is not the same quantity as typical error yet is reported under the same name."
+
+[[method]]
+id = "reliability.sem_mdc"
+construct = "measurement_reliability"
+group = "O"
+title = "Standard error of measurement and the minimum detectable change"
+rule = """
+Report the standard error of measurement in the metric's own units, and the minimum detectable change
+at 95 percent confidence as 2.77 times that error.
+"""
+# Prose grants recommended. Rule 6 bars it: the methodological parent was never obtained and the two
+# routes to the error term could not be ruled between.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "sem_route"
+unit = "enumeration"
+required = true
+notes = """
+from_icc or from_anova_rmse. The two are not algebraically identical and the field does not
+consistently say which was used.
+"""
+
+[[method.citation]]
+key = "weir2005"
+role = "proposes"
+reference = "Weir JP 2005, JSCR 19:231-240; not obtained, so the route question is recorded as open rather than resolved"
+doi = "10.1519/15184.1"
+obtained = false
+
+[[method.citation]]
+key = "merrigan2021"
+role = "uses"
+reference = "Merrigan et al. 2021, using an R package implementation"
+doi = "10.3390/sports9010004"
+obtained = true
+
+[[method.bias]]
+magnitude = -0.5
+unit = "fraction"
+direction = "low"
+criterion = "measurement_reliability"
+criterion_kind = "model"
+source = "plateforce_inference"
+# A minimum detectable change computed from a within-session error understates the between-day
+# figure, which is the one that matters for monitoring, so every published value of this kind is a
+# floor rather than an estimate. Direction certain; magnitude not quantified, because no source
+# obtained reports matched within-session and between-day figures for the same metrics and cohort.
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "it decides whether a metric is usable at all: one common metric has an error larger than its own mean"
+rationale = """
+Prominently, as a band beside every longitudinal chart the software draws. It is the only statistic in
+this group that answers the practitioner's actual question, which is whether this athlete changed, and
+it is the highest-value non-obvious interface element the whole magnitude analysis implies.
+"""
+
+[[method]]
+id = "reliability.swc_0.2sd"
+construct = "measurement_reliability"
+group = "O"
+title = "Smallest worthwhile change as a fraction of the reference population's spread"
+rule = "The smallest worthwhile change is a stated multiplier times the between-subject standard deviation of the reference population."
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.parameter]]
+name = "multiplier"
+unit = "dimensionless"
+published_values = [0.2, 0.5, 0.6]
+default = 0.2
+default_source = "hopkins2000"
+required = true
+notes = "The multiplier is a parameter rather than a separate method."
+
+[[method.citation]]
+key = "hopkins2000"
+role = "proposes"
+reference = "Convention, through Hopkins; source not obtained"
+doi = "10.2165/00007256-200030010-00001"
+obtained = false
+
+[[method.bias]]
+magnitude = -0.3
+unit = "fraction"
+direction = "low"
+criterion = "measurement_reliability"
+criterion_kind = "model"
+source = "plateforce_inference"
+# It shrinks as the reference population becomes more homogeneous, so elite squads get a smaller
+# threshold and therefore a harder standard at exactly the point where measurement noise has not
+# shrunk at all. Direction certain and the mechanism is structural, which is why a signal-to-noise
+# framing is the honest presentation rather than this quantity alone.
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "high; it is the denominator of every judgement about whether a change matters"
+rationale = """
+Never shown without naming which population's spread produced it. The multiplier is a convention
+imported from psychology with no biomechanical justification, and it is population-dependent.
+"""
+
+[[method]]
+id = "agreement.design.simultaneous_capture"
+construct = "method_agreement"
+group = "O"
+title = "Both systems must record the same physical repetition"
+rule = """
+For hardware comparison, stack the test plates on the criterion plates, zero the criterion so it
+excludes the test system's own weight, and time-align the two records on a shared event. For software
+comparison, export one raw trace and feed it to both analyses.
+"""
+status = "recommended"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "badby2023"
+role = "proposes"
+reference = "Badby et al. 2023, Sensors 23:4820, ingested at full quality, arguing it explicitly against a separate-trial contrast case"
+doi = "10.3390/s23104820"
+obtained = true
+
+[[method.bias]]
+magnitude = 0.0736
+unit = "meters"
+direction = "wider"
+criterion = "agreement.design.simultaneous_capture"
+criterion_kind = "simultaneous_capture"
+source = "badby2023"
+# Separate-trial capture produced 95 percent limits of agreement of -7.10 to +7.63 cm on jump height;
+# simultaneous capture produced no detectable bias at all on the same pairing of systems. The entire
+# spread is attributable to the design. The magnitude here is the half-width of those limits.
+
+[[method.disagrees_with]]
+id = "agreement.correlation_or_mean_difference"
+kind = "genuine"
+
+[method.gui]
+surfacing = "never_a_user_choice"
+sensitivity = "it is the difference between two systems disagreeing unacceptably and agreeing perfectly, for the same two systems"
+rationale = """
+It belongs in the validation and import documentation, and any method-comparison workflow should
+refuse to compute agreement statistics across two files that are not the same repetition without a
+warning. This entry is a protocol rather than a computation, and demoting it to the protocol
+namespace was proposed and withdrawn: it changes namespace rather than being dropped, and it costs
+nothing.
+"""
+
+[[method]]
+id = "reliability.interval_declaration"
+construct = "measurement_reliability"
+group = "O"
+title = "Declare which interval a reliability figure describes"
+rule = """
+Every reliability figure must declare whether it describes trials within a session, separate sessions
+close together, or separate days.
+"""
+status = "recommended"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "interval"
+unit = "enumeration"
+required = true
+notes = "within_session, between_session, between_day. The three intervals are deliberately not counted as three entries: the same rule applied to different data is one method."
+
+[[method.citation]]
+key = "merrigan2021"
+role = "uses"
+reference = "Merrigan et al. 2021 is explicitly within-session; other sources in the corpus span sessions 48 hours to a week apart"
+doi = "10.3390/sports9010004"
+obtained = true
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "unquantified, and that is itself the finding"
+rationale = """
+As a label on any reliability figure the software reports. Within-session is always the most
+optimistic, and the magnitude of the inflation could not be quantified because no paper was obtained
+giving matched within-session and between-day figures for the same metrics and cohort. That is an odd
+gap: it is a study anybody could run.
+"""

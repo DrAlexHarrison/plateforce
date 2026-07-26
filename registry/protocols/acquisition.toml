@@ -1,0 +1,13 @@
+# Protocol entries, acquisition area.
+
+[[protocol]]
+id = "protocol.bodyweight_capture_posture"
+area = "acquisition"
+title = "The posture the weighing epoch was captured in"
+description = """
+Declare the posture during the weighing epoch: arms on hips, arms crossed, arms at sides, or
+undeclared. It changes the epoch's mean and spread, which sets every noise-relative threshold
+downstream. Not quantified anywhere; recorded as this registry's inference and flagged as such.
+"""
+affects = ["system_weight", "baseline_noise_scale"]
+provenance = "observed_from_code"

@@ -182,6 +182,11 @@ note = "Guppy found a fixed bias between 40 N and 5 SD on F50, so the automated 
 id = "onset.threshold.max_composite"
 kind = "genuine"
 
+[[method.disagrees_with]]
+id = "trial.gate.pretension_ceiling"
+kind = "genuine"
+note = "The absolute against mass-relative argument, applied to the admission gate rather than to the detector."
+
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "high on all onset-anchored metrics, and athlete-dependent, which biases group comparisons"
