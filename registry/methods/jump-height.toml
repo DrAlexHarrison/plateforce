@@ -595,7 +595,7 @@ surfacing = "force_a_decision"
 sensitivity = "reliability CV 5.9 to 8.6 percent, ICC 0.80 to 0.90"
 rationale = """
 Force the decision if a user tries to pool it with force-plate data; otherwise a separately named
-metric. It is the metric volleyball and basketball actually care about and it is behind an enormous
+metric. It is the metric volleyball and basketball care about and it is behind an enormous
 body of combine and normative data, and it should never be presented as interchangeable.
 """
 
@@ -736,7 +736,7 @@ direction = "high"
 criterion = "jumpheight.takeoff.impulse_momentum"
 criterion_kind = "instrument"
 source = "plateforce_inference"
-# If the resultant velocity is genuinely used for a vertical jump, height is biased high whenever
+# If the resultant velocity is used for a vertical jump, height is biased high whenever
 # the athlete has any horizontal takeoff velocity, since the resultant is at least the vertical
 # component. Arm swing and any lateral push inflate it. Unresolved rather than asserted.
 
@@ -879,7 +879,7 @@ source = "xu2023"
 [[method.disagrees_with]]
 id = "jumpheight.takeoff.flight_time"
 kind = "vendor_convention"
-note = "Not defensible on the physics and not in the genuinely debatable category. Admitted only so historical results can be recognised and flagged."
+note = "Not defensible on the physics and not in the debatable category. Admitted only so historical results can be recognised and flagged."
 
 [method.gui]
 surfacing = "refuse"

@@ -378,7 +378,7 @@ obtained = true
 id = "integration.anchor.single_point"
 kind = "genuine"
 note = """
-A genuinely stronger drift control, because it uses the physical fact that the athlete is stationary
+A stronger drift control, because it uses the physical fact that the athlete is stationary
 at both ends of the trial, which a start-only anchor throws away. It is a free accuracy improvement
 for any protocol whose trial ends in quiet stance, which includes the 2011 validation corpus.
 """

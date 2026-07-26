@@ -476,7 +476,7 @@ direction = "high"
 criterion = "work.integral_force_ds"
 criterion_kind = "model"
 source = "plateforce_algebra"
-# Not simply signed. It depends on the shape of the force-displacement curve and on which force value
+# The sign is not fixed. It depends on the shape of the force-displacement curve and on which force value
 # is taken, and taking a peak per cycle would bias work high. A single product equals the integral
 # only if force is constant over the displacement, which it emphatically is not during a jump.
 

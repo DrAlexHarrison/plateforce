@@ -560,7 +560,7 @@ kind = "genuine"
 surfacing = "force_a_decision"
 sensitivity = "large; it is a different instant rather than a shifted one"
 rationale = """
-Decide at study-design level rather than per trial. If threshold and derivative methods genuinely
+Decide at study-design level rather than per trial. If threshold and derivative methods
 disagree, a user comparing against published data must know which family that data used. Two
 independent groups find derivative methods closer to visual, on different tasks, with no consensus.
 """
@@ -918,7 +918,7 @@ title = "Retreat from the crossing until force returns within a tolerance of the
 rule = """
 Advance until the threshold is crossed, then retreat sample by sample until force returns to within
 a stated tolerance of the reference. The crossing is used only as a trigger and the reported onset
-is where force actually left baseline.
+is where force left baseline.
 """
 # Prose grants recommended. Three parties reached it independently and merrigan2022 is obtained,
 # so rule 6 does not bar it.

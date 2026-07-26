@@ -117,7 +117,7 @@ source = "giroux2014"
 # It was the most reliable of the field methods tested, CV 2.7 to 8.6 percent against 6.4 to 14.5
 # percent for agreement generally, and simultaneously the most indirect. Reliability and validity are
 # dissociated here, partly because the simple method smooths over exactly the trial-to-trial variation
-# a force plate actually measures. An entry must record both facts or it misleads in whichever
+# a force plate measures. An entry must record both facts or it misleads in whichever
 # direction the reader already leans.
 
 [[method.disagrees_with]]

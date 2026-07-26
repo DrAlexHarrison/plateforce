@@ -45,9 +45,13 @@ print(jump.jump_height_takeoff_frame_meters.describe())
         degenerate_band = refuse
         dispersion_estimator = sample
         bwepoch.fixed_window {'duration': 1}
+          central_tendency = mean
+          dispersion_estimator = sample
       takeoff.threshold.absolute_force {'threshold_n': 20}
         residual_comparison = signed_value
         bwepoch.fixed_window {'duration': 1}
+          central_tendency = mean
+          dispersion_estimator = sample
   acquisition block incomplete, so this result cannot be declared to match another lab's
 ```
 

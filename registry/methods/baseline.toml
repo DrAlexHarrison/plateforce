@@ -476,7 +476,7 @@ k-SD threshold and moves onset earlier. Direction known, magnitude unquantified 
 surfacing = "force_a_decision"
 sensitivity = "large, and it is the analyst's sensitivity rather than the algorithm's"
 rationale = """
-Necessary for isometric tasks, where there is genuinely no bodyweight-only epoch, and fully
+Necessary for isometric tasks, where there is no bodyweight-only epoch, and fully
 reproducible if the marker indices are stored. It is a subjective input to a method described as
 automated and it is never reported.
 """

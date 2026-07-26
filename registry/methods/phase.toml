@@ -175,7 +175,7 @@ surfacing = "force_a_decision"
 sensitivity = "total for any phase-resolved metric in the countermovement"
 rationale = """
 Once, at analysis-configuration time, in plain language. This is the one place in this domain where
-a user genuinely must choose, because the two models produce different sets of metrics rather than
+a user must choose, because the two models produce different sets of metrics rather than
 different values for the same metric. Everything else here can be defaulted.
 """
 

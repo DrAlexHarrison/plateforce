@@ -56,18 +56,10 @@ def test_a_takeoff_that_never_happens_names_the_takeoff_rule(registry, force_new
     with pytest.raises(pf.NoCrossingError) as raised:
         pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
 
-    assert raised.value.method_id.startswith("takeoff.threshold.absolute")
+    assert raised.value.method_id == "takeoff.threshold.absolute_force"
     assert raised.value.parameter == "threshold_newtons"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "plateforce-core reports 'takeoff.threshold.absolute' and the registry entry is "
-        "'takeoff.threshold.absolute_force', so the id in the error does not resolve. "
-        "Delete this marker once the two agree."
-    ),
-)
 def test_the_id_in_a_failure_resolves_in_the_registry(registry, force_newtons):
     """An error names a method so the reader can go and look it up.
 

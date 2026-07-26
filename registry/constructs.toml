@@ -110,7 +110,8 @@ title = "Centre of mass rise measured from takeoff to the height of touchdown"
 unit = "meters"
 frame = "landing"
 notes = """
-What flight time actually measures whenever takeoff and landing postures differ, which is measured
+What flight time measures, under the takeoff frame's name, whenever takeoff and landing postures
+differ, which is measured
 and not hypothetical: time down exceeds time up by 0.016 s because subjects land partly crouched.
 """
 

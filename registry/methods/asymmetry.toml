@@ -164,7 +164,7 @@ surfacing = "default_and_show"
 sensitivity = "total on the reported percentage, none on athlete ranking"
 rationale = """
 The default, with the identifier in the export header and direction as a separate displayed column
-rather than a sign buried in the magnitude. Separating magnitude from direction is a genuinely better
+rather than a sign buried in the magnitude. Separating magnitude from direction is a better
 design than baking the sign into the index, and the software should copy it.
 """
 

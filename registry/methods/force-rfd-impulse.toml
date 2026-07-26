@@ -306,8 +306,8 @@ criterion = "onset.manual_visual.tillin2010"
 criterion_kind = "human_visual"
 source = "plateforce_algebra"
 # The first window carries the same onset bias as the overlapping scheme. Every later window is
-# onset-independent, because onset cancels in the difference. That is a non-obvious and genuinely
-# valuable property the overlapping scheme lacks, and it does not appear stated in these terms in
+# onset-independent, because onset cancels in the difference. That is a non-obvious and valuable
+# property the overlapping scheme lacks, and it does not appear stated in these terms in
 # the applied literature.
 
 [[method.disagrees_with]]
@@ -603,7 +603,7 @@ id = "rfd.peak_sliding_window"
 kind = "genuine"
 note = """
 Model-derived against measured, and the only variant whose value can exceed anything the athlete
-actually produced. Its five internal parameterisations do not disagree: three pairs are algebraically
+produced. Its five internal parameterisations do not disagree: three pairs are algebraically
 identical and filing them separately would be false proliferation.
 """
 

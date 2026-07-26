@@ -5,9 +5,8 @@
 # these are the only entries whose failure mode is silence: a rejected candidate produces no number,
 # no message and no row in the export, and a batch analysis inherits it without knowing.
 #
-# Every constant in this group is a round number with no derivation. The single most defensible thing
-# a tool can do here is not to pick better constants, it is to make every gate report what it
-# rejected.
+# Every constant in this group is a round number with no derivation. Better constants are not the
+# useful move here. Making every gate report what it rejected is.
 
 [[method]]
 id = "trial.aggregation"

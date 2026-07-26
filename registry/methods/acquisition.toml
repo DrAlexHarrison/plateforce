@@ -745,7 +745,7 @@ correctness issue, and scipy filtfilt's edge padding partly protects tools that 
 [method.gui]
 surfacing = "default_and_hide"
 sensitivity = "potentially large on impulse-momentum jump height in any hand-rolled recursive filter"
-rationale = "Users must never see it. It should simply be right."
+rationale = "Users must never see it. It should be right."
 
 [[method]]
 id = "filter.analogue_pre_digitisation"

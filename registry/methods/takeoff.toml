@@ -5,7 +5,8 @@
 #
 # The whole group is low-stakes relative to onset, and that is measured rather than assumed. Six
 # published takeoff rules on the same 21 participants and the same code span 1.4 cm of jump height
-# and 5 ms of movement time, with every reliability statistic essentially unchanged. Onset and
+# and 5 ms of movement time, with jump-height ICC spanning 0.965 to 0.976 and movement-time
+# coefficient of variation identical at 6.4 percent across all six. Onset and
 # takeoff are both thresholds in newtons and a designer would give them the same treatment. They
 # must not have it.
 
@@ -228,7 +229,7 @@ direction = "high"
 criterion = "takeoff.threshold.absolute_force"
 criterion_kind = "instrument"
 source = "smith2024"
-# On the one plate where the flight-force distribution was actually measured, 5 SD fires earliest
+# On the one plate where the flight-force distribution was measured, 5 SD fires earliest
 # of six rules and sits at or above 20 N, giving 30.1 cm against 28.7 cm at the sub-1 N threshold.
 # Which side of 10 N the rule lands on is a property of the instrument, not of the rule, which is
 # why this entry most needs the measured noise floor emitted alongside it.

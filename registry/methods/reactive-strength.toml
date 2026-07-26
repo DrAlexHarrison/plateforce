@@ -307,7 +307,7 @@ kind = "naming"
 
 [method.gui]
 surfacing = "surface_on_demand"
-rationale = "With the confound in the tooltip, and show the squat-jump value beside it, because that is where the signal actually is."
+rationale = "With the confound in the tooltip, and show the squat-jump value beside it, because that is where the signal is."
 
 [[method]]
 id = "battery_index.normalise_by_best.chronojump"
@@ -391,7 +391,7 @@ obtained = true
 [method.gui]
 surfacing = "surface_on_demand"
 rationale = """
-Clearly marked unvalidated, in an extended-metrics section. A genuinely new quantity rather than a
+Marked unvalidated, in an extended-metrics section. A new quantity rather than a
 variant: substituting push-off distance over velocity for ground contact time makes it computable for
 a countermovement jump, where there is no contact time in the drop-jump sense. Recorded because it is
 invisible to English-language search.
@@ -607,8 +607,8 @@ surfacing = "surface_on_demand"
 sensitivity = "total; the joint-level number and the task-level number can point in opposite directions on the same trial"
 rationale = """
 Unavailable rather than approximated when no motion capture is present. Approximating a joint-level
-quantity from a force plate would be the single most dangerous thing this platform could ship,
-because the clinical decision it feeds is whether an athlete returns to sport. This entry is landing
+quantity from a force plate would feed a return-to-sport decision with a number that cannot see the
+deficit, which is the failure this entry documents. This entry is landing
 energetics and does not close the landing-detection gap.
 """
 
