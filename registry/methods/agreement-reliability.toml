@@ -426,7 +426,7 @@ at 95 percent confidence as 2.77 times that error.
 # routes to the error term could not be ruled between.
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "sem_route"
@@ -530,7 +530,7 @@ comparison, export one raw trace and feed it to both analyses.
 """
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "badby2023"

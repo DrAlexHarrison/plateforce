@@ -24,7 +24,7 @@ limit.
 """
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "reaction_time_limit_seconds"
@@ -84,7 +84,7 @@ been disclosed.
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "threshold_kgf"
@@ -137,7 +137,7 @@ title = "Centre of mass velocity at block exit"
 rule = "Start performance is the centre of mass velocity at block exit."
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "bezodis2019"
@@ -183,7 +183,7 @@ not stated here.
 # obtained, and the entry is explicitly not implementable from the recommendation alone.
 status = "accepted"
 confidence = "low"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "bezodis2019"
@@ -226,7 +226,7 @@ title = "Mono-exponential velocity rise fitted by nonlinear least squares"
 rule = "Fit a mono-exponential velocity rise by nonlinear least squares, with start values and a retry ladder on failure."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "chronojump_constants"
@@ -270,7 +270,7 @@ grid and taking the intercepts.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "endpoint_route"
@@ -326,7 +326,7 @@ straight sprint over the same distance, isolating the turn from the athlete's li
 """
 status = "accepted"
 confidence = "low"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "nimphius2016"

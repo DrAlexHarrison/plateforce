@@ -448,7 +448,7 @@ whose residual equals that intercept.
 """
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.citation]]
 key = "winter2009"
@@ -490,7 +490,7 @@ Durbin-Watson statistic as |2 - DW|/2.
 """
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.citation]]
 key = "challis1999"
@@ -536,7 +536,7 @@ title = "Spline tightness by generalised cross-validation"
 rule = "Fit a smoothing spline and choose its tightness by generalised cross-validation."
 status = "accepted"
 confidence = "medium"
-debate = "single_position"
+debate = "genuine"
 
 [[method.citation]]
 key = "woltring1986"
@@ -570,7 +570,7 @@ title = "Truncated Fourier series with analytic differentiation"
 rule = "Fit a discrete Fourier series, truncate it, and differentiate the truncation analytically."
 status = "accepted"
 confidence = "medium"
-debate = "single_position"
+debate = "genuine"
 
 [[method.citation]]
 key = "hatze1981"
@@ -1078,7 +1078,7 @@ acceleration and g times the sine of the exercise angle.
 """
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "pct_bodyweight"

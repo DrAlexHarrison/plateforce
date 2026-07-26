@@ -95,7 +95,7 @@ title = "Rectangle or histogram quadrature"
 rule = "The net-force integral is evaluated by the rectangle rule, error order h, which is what a plain cumulative sum computes."
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "street2001"
@@ -237,7 +237,7 @@ before onset is known.
 """
 status = "deprecated"
 confidence = "medium"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "crop_seconds_before_takeoff"
@@ -297,7 +297,7 @@ rule = "Subset to the interval from detected onset to takeoff and integrate ther
 # Prose grants recommended; both commercial systems document it and the sources are obtained.
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "sams_shiny"
@@ -408,7 +408,7 @@ from a body-height-indexed table.
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "takeoff_com_height_table"

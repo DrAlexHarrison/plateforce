@@ -19,7 +19,7 @@ with the value.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "rule"
@@ -119,7 +119,7 @@ title = "Exclude the trial when the athlete pre-loads before the effort"
 rule = "Exclude the trial if force departs the baseline by more than a stated criterion in the window before the effort."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "criterion"
@@ -288,7 +288,7 @@ title = "Accept a candidate flight phase only if its duration falls inside a win
 rule = "Accept a candidate flight phase only if its duration falls inside a stated window, by a stated selection rule."
 status = "accepted"
 confidence = "high"
-debate = "vendor_or_legacy"
+debate = "single_position"
 
 [[method.parameter]]
 name = "lower_seconds"
@@ -414,7 +414,7 @@ squat jump, with manual override available.
 # The schema has no such value; contested is the nearest floor that does not promote it.
 status = "contested"
 confidence = "medium"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "anchor_mass_kg"
@@ -524,7 +524,7 @@ or build an average force-time profile across trials and take its peak.
 """
 status = "accepted"
 confidence = "low"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "order"

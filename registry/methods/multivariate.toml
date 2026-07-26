@@ -18,7 +18,7 @@ metric vector into movement strategies, then test the strategies against the out
 """
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "k"

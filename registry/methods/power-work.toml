@@ -15,7 +15,7 @@ force over mass from a zero-velocity epoch.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "force_term"
@@ -90,7 +90,7 @@ title = "Maximum instantaneous power over a declared phase"
 rule = "Peak power is the maximum of the instantaneous power series over a declared phase."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "phase"
@@ -199,7 +199,7 @@ mass times acceleration plus g, and multiply by velocity.
 """
 status = "legacy"
 confidence = "medium"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "declared_mass"
@@ -545,7 +545,7 @@ title = "Peak power from a population-calibrated regression on height and mass"
 rule = "Peak power is estimated from a linear regression on jump height and body mass with coefficients calibrated on a stated population."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "population"
@@ -687,7 +687,7 @@ as the divisor.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "object"

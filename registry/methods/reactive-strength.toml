@@ -72,7 +72,7 @@ title = "Flight time divided by ground contact time"
 rule = "The reactive strength ratio is flight time divided by ground contact time on a drop jump."
 status = "accepted"
 confidence = "medium"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "healy2018"
@@ -211,7 +211,7 @@ title = "Flight time divided by time to takeoff on a countermovement jump"
 rule = "The ratio is flight time divided by time to takeoff on a countermovement jump."
 status = "accepted"
 confidence = "high"
-debate = "vendor_or_legacy"
+debate = "single_position"
 
 [[method.parameter]]
 name = "vendor_name"
@@ -533,7 +533,7 @@ plus three standard deviations in both horizontal directions, scaled by system w
 """
 status = "accepted"
 confidence = "low"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "tts_literature"
@@ -561,7 +561,7 @@ sum, because the sum is what conceals the deficit.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "inverse_dynamics_model"

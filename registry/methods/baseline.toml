@@ -207,7 +207,7 @@ acceptable second of quiet standing is captured.
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "hawkin_glossary"
@@ -320,7 +320,7 @@ plate zeroed unloaded first and an explicit deviation criterion rejecting the ca
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "sequence_duration_seconds"
@@ -387,7 +387,7 @@ of the trial.
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "source_of_mass"
@@ -536,7 +536,7 @@ title = "Robust location estimator in place of the arithmetic mean"
 rule = "Replace the arithmetic mean over the reference epoch with a robust location estimator."
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "estimator"
@@ -654,7 +654,7 @@ measures only the instrument.
 # is obtained, so the loader accepts it.
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "distribution"
@@ -703,7 +703,7 @@ afterwards describes the same supported system.
 # Prose grants recommended and soriano2024 is obtained, so the loader accepts it.
 status = "recommended"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "bar_support_state"

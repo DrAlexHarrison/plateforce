@@ -23,7 +23,7 @@ instant, since velocity is stationary exactly where net force is zero.
 """
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "search_signal"
@@ -237,7 +237,7 @@ and cumulative net impulse is mass times velocity.
 """
 status = "recommended"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.citation]]
 key = "mcmahon2018"
@@ -370,7 +370,7 @@ decelerates the load. Mean propulsive velocity and power are computed over this 
 """
 status = "accepted"
 confidence = "medium"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "sanchezmedina2010"
@@ -429,7 +429,7 @@ title = "The lifting phase ends at maximum vertical displacement of the tracked 
 rule = "The positive lifting phase ends when the tracked object reaches maximum vertical displacement, which includes the braking sub-phase."
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "lake2012"
@@ -479,7 +479,7 @@ identical to the instant of peak velocity of that object.
 # the argument for it, is behind a publisher that returned nothing to any probe.
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "deadband_n"
@@ -869,7 +869,7 @@ meaningful centre of mass movement taken as a concave-downward inflection in dis
 """
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "sahrom2020"
@@ -911,7 +911,7 @@ eccentric and concentric and, by extension, any ratio named after them.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "vanhooren2017"
@@ -1238,7 +1238,7 @@ shared window, rather than each limb finding its own crossings.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "painter2022"
@@ -1301,7 +1301,7 @@ dividing net vertical force by body mass and integrating from the start of the c
 """
 status = "accepted"
 confidence = "medium"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "hoffman2022"

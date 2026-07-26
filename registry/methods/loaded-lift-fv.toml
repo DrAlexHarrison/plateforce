@@ -227,7 +227,7 @@ height and express the measured slope relative to it.
 """
 status = "contested"
 confidence = "medium"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "reporting_scale"
@@ -464,7 +464,7 @@ squares regressing velocity on force, or by an errors-in-variables method.
 """
 status = "accepted"
 confidence = "medium"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "form"
@@ -518,7 +518,7 @@ it into the normal jump-height pipeline.
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "chronojump_constants"
@@ -566,7 +566,7 @@ one completable. The relative-load variant inverts it and reads a percentage off
 """
 status = "accepted"
 confidence = "low"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "velocity_statistic"
@@ -700,7 +700,7 @@ independently, and the instants of peak force and peak velocity do not coincide.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "statistic"

@@ -107,7 +107,7 @@ title = "Peak as a single sample or as the maximum of a moving average"
 rule = "Peak force is the maximum of the raw series, or the maximum of a centred moving average of stated width."
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "averaging_window_seconds"
@@ -424,7 +424,7 @@ the time between those two values.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "krzyszkowski2020"
@@ -693,7 +693,7 @@ title = "Force integrated from onset over a stated epoch"
 rule = "Integrate force from onset over a stated epoch."
 status = "recommended"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "epoch_ms"
@@ -784,7 +784,7 @@ title = "Whether system weight is subtracted before integrating"
 rule = "Declare whether system weight is subtracted before integrating."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "convention"
@@ -869,7 +869,7 @@ title = "Rate of power development from a phase start to peak power"
 rule = "Rate of power development is computed from the start of a declared phase to the instant of peak power."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.citation]]
 key = "vald_glossary"
@@ -909,7 +909,7 @@ subsequent positive peak power during a jump, giving one discrete value per jump
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "amti_accupower_manual"

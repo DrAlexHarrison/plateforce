@@ -109,7 +109,7 @@ number of newtons. Direction is task-dependent.
 # status, so the deprecations ride on the parameter and the row is filed as legacy.
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.parameter]]
 name = "threshold_n"
@@ -799,7 +799,7 @@ backing off one. Onset is the sample nearest the final model's fitted time origi
 """
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "chronojump_r"
@@ -1133,7 +1133,7 @@ title = "Different thresholds to enter and to exit a state"
 rule = "Use one threshold to enter a state and a different one to leave it, guarding a boundary against chatter."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "enter_threshold_n"
@@ -1279,7 +1279,7 @@ title = "Which sign of departure from the reference counts as onset"
 rule = "Count departures below the reference only, above it only, or in either direction."
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "direction"

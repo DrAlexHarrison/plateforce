@@ -22,7 +22,7 @@ at takeoff.
 """
 status = "recommended"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "frame"
@@ -263,7 +263,7 @@ title = "Height from the maximum of the velocity column rather than from velocit
 rule = "Height is the maximum of the whole velocity column squared over twice g."
 status = "legacy"
 confidence = "high"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "chavda2018"
@@ -472,7 +472,7 @@ motion capture system rather than by double integration.
 """
 status = "accepted"
 confidence = "high"
-debate = "single_position"
+debate = "genuine"
 
 [[method.citation]]
 key = "xu2023"
@@ -502,7 +502,7 @@ angle, reported as 61.4 +/- 4.8 degrees, written as a decimal in the source.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "foot_angle_sine"
@@ -610,7 +610,7 @@ standing centre of mass height. The model is the method and is a mandatory param
 """
 status = "accepted"
 confidence = "medium"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "marker_model"
@@ -721,7 +721,7 @@ from an impulse-momentum integration divided by a separately captured body weigh
 """
 status = "legacy"
 confidence = "medium"
-debate = "genuine"
+debate = "vendor_or_legacy"
 
 [[method.citation]]
 key = "amti_accupower_manual"
@@ -1086,7 +1086,7 @@ time difference and subtracted before the projectile equation is applied.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "foot_length_fraction_of_stature"

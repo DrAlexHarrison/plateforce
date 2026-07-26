@@ -355,7 +355,7 @@ ratio or as an unnormalised difference in the metric's own units.
 """
 status = "accepted"
 confidence = "high"
-debate = "genuine"
+debate = "single_position"
 
 [[method.parameter]]
 name = "form"
