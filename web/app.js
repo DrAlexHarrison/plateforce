@@ -676,7 +676,7 @@ function acceptRecommended() {
     const selection = state.selection[slot.key];
     if (!selection.methodId && slot.available.length) {
       const candidate = rankCandidates(slot.available)[0];
-      state.selection[slot.key] = { methodId: candidate.id, values: {}, unresolved: [] };
+      state.selection[slot.key] = { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) };
     }
     const candidate = candidateFor(slot.key, state.selection[slot.key].methodId);
     for (const name of state.selection[slot.key].unresolved || []) {
