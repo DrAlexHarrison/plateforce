@@ -21,7 +21,8 @@ COMMANDS:
     version              print the version
 
 OPTIONS:
-    --registry <DIR>     path to the registry directory (default: ./registry)
+    --registry <DIR>     path to the registry directory (default: ./registry),
+                         written either as two words or as --registry=<DIR>
 ";
 
 const DEFAULT_REGISTRY_DIRECTORY: &str = "registry";
@@ -63,8 +64,9 @@ fn main() -> ExitCode {
     }
 }
 
-/// Takes `--registry <DIR>` out of the line wherever it appears, so a reader who writes the
-/// flag before the entry id means what a reader who writes it after means.
+/// Takes `--registry <DIR>` and `--registry=<DIR>` out of the line wherever either appears,
+/// so a reader who writes the flag before the entry id means what a reader who writes it
+/// after means.
 ///
 /// A flag whose value went missing must not resolve itself to the default, quietly, in the
 /// tool that exists to document what silent defaults cost. Two of them naming two
@@ -75,19 +77,32 @@ fn split_off_registry_directory(arguments: &[String]) -> Result<(&str, Vec<&str>
     let mut index = 0;
 
     while index < arguments.len() {
-        if arguments[index] != "--registry" {
-            words.push(&arguments[index]);
+        let argument = arguments[index].as_str();
+        let joined = argument.strip_prefix("--registry=");
+        if argument != "--registry" && joined.is_none() {
+            words.push(argument);
             index += 1;
             continue;
         }
         if directory.is_some() {
             return Err("--registry was given more than once".to_string());
         }
-        match arguments.get(index + 1) {
-            Some(value) if !value.starts_with('-') => directory = Some(value),
-            _ => return Err("--registry needs the path to a registry directory".to_string()),
+        match joined {
+            Some(value) if !value.is_empty() => {
+                directory = Some(value);
+                index += 1;
+            }
+            Some(_) => return Err("--registry needs the path to a registry directory".to_string()),
+            None => {
+                match arguments.get(index + 1) {
+                    Some(value) if !value.starts_with('-') => directory = Some(value),
+                    _ => {
+                        return Err("--registry needs the path to a registry directory".to_string())
+                    }
+                }
+                index += 2;
+            }
         }
-        index += 2;
     }
 
     Ok((directory.unwrap_or(DEFAULT_REGISTRY_DIRECTORY), words))
@@ -317,6 +332,20 @@ mod tests {
         assert_eq!(split(&["registry", "show", "--registry", "elsewhere", "an.id"]), expected);
         assert_eq!(split(&["registry", "--registry", "elsewhere", "show", "an.id"]), expected);
         assert_eq!(split(&["--registry", "elsewhere", "registry", "show", "an.id"]), expected);
+    }
+
+    /// The joined spelling is what a user reaching for a long flag tends to type, and
+    /// reading it as a command name would answer a path with "unknown command".
+    #[test]
+    fn the_joined_spelling_names_the_same_directory() {
+        let expected = Ok((
+            "elsewhere".to_string(),
+            vec!["registry".to_string(), "show".to_string(), "an.id".to_string()],
+        ));
+        assert_eq!(split(&["registry", "show", "an.id", "--registry=elsewhere"]), expected);
+        assert_eq!(split(&["--registry=elsewhere", "registry", "show", "an.id"]), expected);
+        assert!(split(&["registry", "census", "--registry="]).is_err());
+        assert!(split(&["--registry=here", "registry", "census", "--registry", "there"]).is_err());
     }
 
     #[test]
