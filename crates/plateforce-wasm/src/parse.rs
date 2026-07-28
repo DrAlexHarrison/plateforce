@@ -240,7 +240,9 @@ fn summarise(index: usize, values: &[f64], header: Option<&Vec<String>>) -> Colu
 
     ColumnSummary {
         index,
-        header: header.and_then(|h| h.get(index).cloned()).filter(|h| !h.is_empty()),
+        header: header
+            .and_then(|h| h.get(index).cloned())
+            .filter(|h| !h.is_empty()),
         minimum: sorted.first().copied().unwrap_or(f64::NAN),
         maximum: sorted.last().copied().unwrap_or(f64::NAN),
         mean,
@@ -319,7 +321,9 @@ pub fn decimate(values: &[f64], buckets: usize) -> Vec<f64> {
     (0..buckets)
         .map(|bucket| {
             let start = (bucket as f64 * width) as usize;
-            let end = (((bucket + 1) as f64 * width) as usize).min(values.len()).max(start + 1);
+            let end = (((bucket + 1) as f64 * width) as usize)
+                .min(values.len())
+                .max(start + 1);
             let slice = &values[start..end];
             let sum: f64 = slice.iter().filter(|v| v.is_finite()).sum();
             sum / slice.len() as f64
@@ -354,7 +358,11 @@ mod tests {
     fn a_time_column_gives_up_the_sample_rate_and_is_not_offered_as_force() {
         let mut text = String::from("t,f\n");
         for index in 0..500 {
-            text.push_str(&format!("{},{}\n", index as f64 / 1200.0, 600.0 + index as f64));
+            text.push_str(&format!(
+                "{},{}\n",
+                index as f64 / 1200.0,
+                600.0 + index as f64
+            ));
         }
         let file = parse(&text).unwrap();
         assert_eq!(file.summary.suggested_time_column, Some(0));

@@ -185,7 +185,10 @@ fn read_directory(
             .path();
         if path.is_dir() {
             read_directory(root, &path, visited, found)?;
-        } else if path.extension().is_some_and(|extension| extension == "toml") {
+        } else if path
+            .extension()
+            .is_some_and(|extension| extension == "toml")
+        {
             let contents = std::fs::read_to_string(&path).map_err(|source| RegistryError::Io {
                 path: path.clone(),
                 source,

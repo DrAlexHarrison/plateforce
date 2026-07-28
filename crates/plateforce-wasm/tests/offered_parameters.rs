@@ -174,15 +174,26 @@ fn every_parameter_a_control_offers_moves_a_number() {
             .iter()
             .map(|value| numbers(&run(&trial, &request_with(&parameter, *value))))
             .collect();
-        let distinct = outcomes.iter().collect::<std::collections::BTreeSet<_>>().len();
+        let distinct = outcomes
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len();
         assert!(
             distinct > 1,
             "'{}' on {} is inert: {} values from {} to {} all return the same numbers",
             parameter.parameter,
             parameter.method_id,
             parameter.probes.len(),
-            parameter.probes.iter().copied().fold(f64::INFINITY, f64::min),
-            parameter.probes.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+            parameter
+                .probes
+                .iter()
+                .copied()
+                .fold(f64::INFINITY, f64::min),
+            parameter
+                .probes
+                .iter()
+                .copied()
+                .fold(f64::NEG_INFINITY, f64::max),
         );
     }
 }

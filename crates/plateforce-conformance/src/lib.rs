@@ -167,7 +167,11 @@ pub enum ConformanceError {
 /// value the reference could not compute is written as `nan`.
 pub fn parse_reference(text: &str) -> Result<Vec<ReferenceRow>, ConformanceError> {
     let mut lines = text.lines().filter(|line| !line.trim().is_empty());
-    let header: Vec<&str> = lines.next().ok_or(ConformanceError::NoHeader)?.split(',').collect();
+    let header: Vec<&str> = lines
+        .next()
+        .ok_or(ConformanceError::NoHeader)?
+        .split(',')
+        .collect();
     let subject_at = header
         .iter()
         .position(|name| *name == "subject")
@@ -209,7 +213,9 @@ fn parse_number(field: &str) -> f64 {
 }
 
 fn index_as_number(index: Option<usize>) -> f64 {
-    index.map(|value| value as f64).unwrap_or(REFERENCE_NOT_FOUND)
+    index
+        .map(|value| value as f64)
+        .unwrap_or(REFERENCE_NOT_FOUND)
 }
 
 fn seconds_or_missing(index: Option<usize>, sample_rate_hz: f64) -> f64 {
@@ -226,13 +232,41 @@ pub fn computed_columns(
 ) -> Vec<(String, f64, Agreement)> {
     let rate = bindings.sample_rate_hz;
     let mut columns: Vec<(String, f64, Agreement)> = vec![
-        ("bw_025".into(), analysis.system_weight_newtons[0], Agreement::Numeric),
-        ("bw_040".into(), analysis.system_weight_newtons[1], Agreement::Numeric),
-        ("bw_100".into(), analysis.system_weight_newtons[2], Agreement::Numeric),
-        ("bw_med".into(), analysis.median_weight_newtons, Agreement::Numeric),
-        ("bw_lowvar".into(), analysis.lowest_variance_weight_newtons, Agreement::Numeric),
-        ("sd_025".into(), analysis.standard_deviation_newtons[0], Agreement::Numeric),
-        ("sd_050".into(), analysis.standard_deviation_newtons[1], Agreement::Numeric),
+        (
+            "bw_025".into(),
+            analysis.system_weight_newtons[0],
+            Agreement::Numeric,
+        ),
+        (
+            "bw_040".into(),
+            analysis.system_weight_newtons[1],
+            Agreement::Numeric,
+        ),
+        (
+            "bw_100".into(),
+            analysis.system_weight_newtons[2],
+            Agreement::Numeric,
+        ),
+        (
+            "bw_med".into(),
+            analysis.median_weight_newtons,
+            Agreement::Numeric,
+        ),
+        (
+            "bw_lowvar".into(),
+            analysis.lowest_variance_weight_newtons,
+            Agreement::Numeric,
+        ),
+        (
+            "sd_025".into(),
+            analysis.standard_deviation_newtons[0],
+            Agreement::Numeric,
+        ),
+        (
+            "sd_050".into(),
+            analysis.standard_deviation_newtons[1],
+            Agreement::Numeric,
+        ),
     ];
 
     for (slot, rule) in ONSET_RULES.iter().enumerate() {
@@ -433,7 +467,8 @@ pub fn compare(
             } else {
                 (expected - computed).abs()
             };
-            if difference > result.worst_absolute_difference || (!agrees && result.worst_trial.is_none())
+            if difference > result.worst_absolute_difference
+                || (!agrees && result.worst_trial.is_none())
             {
                 result.worst_absolute_difference = difference;
                 result.worst_relative_difference =

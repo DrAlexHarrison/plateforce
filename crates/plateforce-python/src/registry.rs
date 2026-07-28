@@ -306,7 +306,12 @@ impl Failure {
     }
 }
 
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Disagreement")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "Disagreement"
+)]
 #[derive(Clone)]
 pub struct Disagreement {
     inner: CoreDisagreement,
@@ -406,7 +411,12 @@ impl Census {
 
 /// One registry entry: the rule, who proposed it, what it is biased against, and whether
 /// it is known to find the wrong event.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "MethodEntry")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "MethodEntry"
+)]
 #[derive(Clone)]
 pub struct MethodEntry {
     pub(crate) inner: CoreMethod,
@@ -591,7 +601,10 @@ impl MethodEntry {
                     return Err(parameter_error(
                         &self.inner.id,
                         &name,
-                        format!("{}({} = {}) is not a finite number", self.inner.id, name, number),
+                        format!(
+                            "{}({} = {}) is not a finite number",
+                            self.inner.id, name, number
+                        ),
                     ));
                 }
                 supplied.insert(name, number);
@@ -670,7 +683,12 @@ impl MethodEntry {
 
 /// A method with its parameter values fixed. This is what an analysis takes, and what
 /// ends up quoted in the provenance of every result it produces.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "BoundMethod")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "BoundMethod"
+)]
 #[derive(Clone)]
 pub struct BoundMethod {
     pub(crate) entry: MethodEntry,

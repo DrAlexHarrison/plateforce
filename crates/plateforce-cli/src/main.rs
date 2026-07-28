@@ -131,8 +131,14 @@ fn registry_command(words: &[&str], directory: &str) -> ExitCode {
             // Populations are reported apart and never summed. Both of this project's
             // headline counts were assertions until somebody recounted them.
             println!("constructs                      {}", census.constructs);
-            println!("computation entries             {}", census.computation_entries);
-            println!("protocol entries                {}", census.protocol_entries);
+            println!(
+                "computation entries             {}",
+                census.computation_entries
+            );
+            println!(
+                "protocol entries                {}",
+                census.protocol_entries
+            );
             println!(
                 "  of which genuine debates      {}",
                 registry.genuine_debates().count()
@@ -298,7 +304,10 @@ fn show_protocol(protocol: &Protocol) {
     println!("{}", protocol.id);
     println!("  title       {}", protocol.title);
     println!("  area        {}", protocol.area);
-    println!("  provenance  {}", provenance_as_registry_spells_it(protocol.provenance));
+    println!(
+        "  provenance  {}",
+        provenance_as_registry_spells_it(protocol.provenance)
+    );
     println!("  description {}", protocol.description.trim());
     for affected in &protocol.affects {
         println!("  affects     {affected}");
@@ -326,12 +335,28 @@ mod tests {
     fn the_flag_means_the_same_thing_wherever_it_sits() {
         let expected = Ok((
             "elsewhere".to_string(),
-            vec!["registry".to_string(), "show".to_string(), "an.id".to_string()],
+            vec![
+                "registry".to_string(),
+                "show".to_string(),
+                "an.id".to_string(),
+            ],
         ));
-        assert_eq!(split(&["registry", "show", "an.id", "--registry", "elsewhere"]), expected);
-        assert_eq!(split(&["registry", "show", "--registry", "elsewhere", "an.id"]), expected);
-        assert_eq!(split(&["registry", "--registry", "elsewhere", "show", "an.id"]), expected);
-        assert_eq!(split(&["--registry", "elsewhere", "registry", "show", "an.id"]), expected);
+        assert_eq!(
+            split(&["registry", "show", "an.id", "--registry", "elsewhere"]),
+            expected
+        );
+        assert_eq!(
+            split(&["registry", "show", "--registry", "elsewhere", "an.id"]),
+            expected
+        );
+        assert_eq!(
+            split(&["registry", "--registry", "elsewhere", "show", "an.id"]),
+            expected
+        );
+        assert_eq!(
+            split(&["--registry", "elsewhere", "registry", "show", "an.id"]),
+            expected
+        );
     }
 
     /// The joined spelling is what a user reaching for a long flag tends to type, and
@@ -340,12 +365,29 @@ mod tests {
     fn the_joined_spelling_names_the_same_directory() {
         let expected = Ok((
             "elsewhere".to_string(),
-            vec!["registry".to_string(), "show".to_string(), "an.id".to_string()],
+            vec![
+                "registry".to_string(),
+                "show".to_string(),
+                "an.id".to_string(),
+            ],
         ));
-        assert_eq!(split(&["registry", "show", "an.id", "--registry=elsewhere"]), expected);
-        assert_eq!(split(&["--registry=elsewhere", "registry", "show", "an.id"]), expected);
+        assert_eq!(
+            split(&["registry", "show", "an.id", "--registry=elsewhere"]),
+            expected
+        );
+        assert_eq!(
+            split(&["--registry=elsewhere", "registry", "show", "an.id"]),
+            expected
+        );
         assert!(split(&["registry", "census", "--registry="]).is_err());
-        assert!(split(&["--registry=here", "registry", "census", "--registry", "there"]).is_err());
+        assert!(split(&[
+            "--registry=here",
+            "registry",
+            "census",
+            "--registry",
+            "there"
+        ])
+        .is_err());
     }
 
     #[test]
@@ -366,7 +408,15 @@ mod tests {
     /// last is the silent choice this tool exists to make visible.
     #[test]
     fn two_registries_on_one_line_are_refused() {
-        assert!(split(&["--registry", "here", "registry", "census", "--registry", "there"]).is_err());
+        assert!(split(&[
+            "--registry",
+            "here",
+            "registry",
+            "census",
+            "--registry",
+            "there"
+        ])
+        .is_err());
         assert!(split(&["--registry", "here", "--registry", "here"]).is_err());
     }
 }

@@ -80,7 +80,8 @@ pub struct SpreadResponse {
 }
 
 pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, String> {
-    let combinations_requested: usize = request.axes.iter().map(Axis::len).product::<usize>().max(1);
+    let combinations_requested: usize =
+        request.axes.iter().map(Axis::len).product::<usize>().max(1);
     let cap = request.maximum_combinations.max(1);
     let combinations_run = combinations_requested.min(cap);
     let capped = combinations_requested > cap;
@@ -118,7 +119,11 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
             Ok(response) => {
                 let (value, warning) = extract(&response, &request.quantity_key);
                 variants.push(Variant {
-                    label: if label.is_empty() { "baseline".into() } else { label },
+                    label: if label.is_empty() {
+                        "baseline".into()
+                    } else {
+                        label
+                    },
                     settings,
                     value,
                     method_ids,
@@ -130,7 +135,11 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
                 });
             }
             Err(error) => variants.push(Variant {
-                label: if label.is_empty() { "baseline".into() } else { label },
+                label: if label.is_empty() {
+                    "baseline".into()
+                } else {
+                    label
+                },
                 settings,
                 value: None,
                 method_ids,
@@ -227,11 +236,15 @@ fn materialise(
         settings.push((parameter.clone(), format_value(value)));
 
         match (axis.slot.as_str(), parameter.as_str()) {
-            ("", "gravity_meters_per_second_squared") | ("global", "gravity_meters_per_second_squared") => {
+            ("", "gravity_meters_per_second_squared")
+            | ("global", "gravity_meters_per_second_squared") => {
                 candidate.gravity_meters_per_second_squared = value
             }
             ("weighing", name) => {
-                candidate.weighing.parameters.insert(name.to_string(), value);
+                candidate
+                    .weighing
+                    .parameters
+                    .insert(name.to_string(), value);
             }
             ("onset", name) => {
                 candidate.onset.parameters.insert(name.to_string(), value);
@@ -322,7 +335,10 @@ mod tests {
 
         assert_eq!(response.combinations_run, 4);
         assert_eq!(response.succeeded, 4);
-        assert!(response.spread_absolute.unwrap() > 0.0, "k did not move the answer");
+        assert!(
+            response.spread_absolute.unwrap() > 0.0,
+            "k did not move the answer"
+        );
         assert_eq!(response.unit, "s");
     }
 
@@ -429,7 +445,11 @@ mod tests {
         .unwrap();
         assert_eq!(response.variants.len(), 2);
         assert_eq!(response.failed, 1);
-        let failed = response.variants.iter().find(|v| v.value.is_none()).unwrap();
+        let failed = response
+            .variants
+            .iter()
+            .find(|v| v.value.is_none())
+            .unwrap();
         assert!(failed.failure_reason.is_some());
     }
 }

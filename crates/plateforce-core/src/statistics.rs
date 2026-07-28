@@ -322,7 +322,10 @@ mod tests {
         let window = [1.0, 2.0, 3.0, 4.0];
         let population = standard_deviation(&window, DispersionEstimator::Population).unwrap();
         let sample = standard_deviation(&window, DispersionEstimator::Sample).unwrap();
-        assert!((population - 1.118_033_988_749_895).abs() < 1e-12, "{population}");
+        assert!(
+            (population - 1.118_033_988_749_895).abs() < 1e-12,
+            "{population}"
+        );
         assert!((sample - 1.290_994_448_735_806).abs() < 1e-12, "{sample}");
     }
 
@@ -376,8 +379,14 @@ mod tests {
             lowest_variance_window(&values, 10, None, VarianceAccumulation::TwoPass).unwrap();
         let filtered =
             lowest_variance_window(&values, 10, Some(10.0), VarianceAccumulation::TwoPass).unwrap();
-        assert!(unfiltered.start_index >= 40, "unloaded plate won on variance");
-        assert!(filtered.start_index < 40, "floor did not exclude the flight phase");
+        assert!(
+            unfiltered.start_index >= 40,
+            "unloaded plate won on variance"
+        );
+        assert!(
+            filtered.start_index < 40,
+            "floor did not exclude the flight phase"
+        );
         assert_eq!(filtered.rejected_window_count, 40);
     }
 

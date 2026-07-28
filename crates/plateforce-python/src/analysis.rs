@@ -119,7 +119,12 @@ fn parse_choice<T: Copy>(name: &str, given: &str, options: &[(&str, T)]) -> PyRe
 }
 
 /// The results of one countermovement jump, each carrying the chain of choices behind it.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "CountermovementJump")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "CountermovementJump"
+)]
 pub struct CountermovementJump {
     system_weight_newtons: Measured,
     system_mass_kilograms: Measured,
@@ -420,8 +425,9 @@ pub fn analyse_countermovement_jump(
         registry_identity,
         acquisition_complete,
     );
-    let onset_chain = ProvenanceChain::with_inputs(onset_provenance.clone(), vec![epoch_chain.clone()])
-        .choosing(onset_choices.clone());
+    let onset_chain =
+        ProvenanceChain::with_inputs(onset_provenance.clone(), vec![epoch_chain.clone()])
+            .choosing(onset_choices.clone());
 
     let takeoff_choices = vec![choice("residual_comparison", takeoff_residual_comparison)];
     let takeoff_provenance = provenance(
@@ -446,7 +452,8 @@ pub fn analyse_countermovement_jump(
         gravity_meters_per_second_squared,
     )];
 
-    let time_to_takeoff = time_to_takeoff_seconds(&landmarks, trial.inner.sample_interval_seconds());
+    let time_to_takeoff =
+        time_to_takeoff_seconds(&landmarks, trial.inner.sample_interval_seconds());
     let time_to_takeoff_measured = measured(
         time_to_takeoff,
         "seconds",
@@ -476,7 +483,11 @@ pub fn analyse_countermovement_jump(
             acquisition_complete,
         ),
         Vec::new(),
-        vec![epoch_chain.clone(), onset_chain.clone(), takeoff_chain.clone()],
+        vec![
+            epoch_chain.clone(),
+            onset_chain.clone(),
+            takeoff_chain.clone(),
+        ],
     );
 
     let jump_height =
@@ -506,7 +517,10 @@ pub fn analyse_countermovement_jump(
                     acquisition_complete,
                 ),
                 Vec::new(),
-                vec![jump_height_measured.chain(), time_to_takeoff_measured.chain()],
+                vec![
+                    jump_height_measured.chain(),
+                    time_to_takeoff_measured.chain(),
+                ],
             )
         });
 

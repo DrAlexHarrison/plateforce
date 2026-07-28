@@ -90,12 +90,17 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
         let entry = method.id.clone();
 
         if !method.id.contains('.') {
-            violations.push(Violation { entry: entry.clone(), kind: ViolationKind::IdNotDotted });
+            violations.push(Violation {
+                entry: entry.clone(),
+                kind: ViolationKind::IdNotDotted,
+            });
         }
         if !registry.constructs.contains_key(&method.construct) {
             violations.push(Violation {
                 entry: entry.clone(),
-                kind: ViolationKind::UnknownConstruct { construct: method.construct.clone() },
+                kind: ViolationKind::UnknownConstruct {
+                    construct: method.construct.clone(),
+                },
             });
         }
 
@@ -103,11 +108,12 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             match registry.methods.get(&disagreement.id) {
                 None => violations.push(Violation {
                     entry: entry.clone(),
-                    kind: ViolationKind::UnknownDisagreement { target: disagreement.id.clone() },
+                    kind: ViolationKind::UnknownDisagreement {
+                        target: disagreement.id.clone(),
+                    },
                 }),
                 Some(other) => {
-                    let reciprocated =
-                        other.disagrees_with.iter().any(|back| back.id == method.id);
+                    let reciprocated = other.disagrees_with.iter().any(|back| back.id == method.id);
                     if !reciprocated {
                         violations.push(Violation {
                             entry: entry.clone(),
@@ -134,7 +140,9 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             if parameter.default.is_some() && parameter.default_source.is_none() {
                 violations.push(Violation {
                     entry: entry.clone(),
-                    kind: ViolationKind::DefaultWithoutSource { parameter: parameter.name.clone() },
+                    kind: ViolationKind::DefaultWithoutSource {
+                        parameter: parameter.name.clone(),
+                    },
                 });
             }
         }
@@ -190,7 +198,9 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             if !known {
                 violations.push(Violation {
                     entry: protocol.id.clone(),
-                    kind: ViolationKind::UnknownConstruct { construct: affected.clone() },
+                    kind: ViolationKind::UnknownConstruct {
+                        construct: affected.clone(),
+                    },
                 });
             }
         }

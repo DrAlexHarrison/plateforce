@@ -199,9 +199,10 @@ fn the_two_readings_of_the_onset_rule_are_measured_against_each_other() {
         let Ok(analysis) = analyse(&trial, &bindings) else {
             continue;
         };
-        let (Some(takeoff), Some(trough)) =
-            (analysis.takeoff_index[0], analysis.force_minimum_before_peak)
-        else {
+        let (Some(takeoff), Some(trough)) = (
+            analysis.takeoff_index[0],
+            analysis.force_minimum_before_peak,
+        ) else {
             continue;
         };
         let force = trial.force();

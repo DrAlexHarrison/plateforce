@@ -118,7 +118,10 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("PlateforceError", python.get_type::<PlateforceError>())?;
     module.add("TrialError", python.get_type::<TrialError>())?;
     module.add("NoCrossingError", python.get_type::<NoCrossingError>())?;
-    module.add("CollapsedBandError", python.get_type::<CollapsedBandError>())?;
+    module.add(
+        "CollapsedBandError",
+        python.get_type::<CollapsedBandError>(),
+    )?;
     module.add("RegistryError", python.get_type::<RegistryError>())?;
     module.add("MethodError", python.get_type::<MethodError>())?;
     module.add("ParameterError", python.get_type::<ParameterError>())?;

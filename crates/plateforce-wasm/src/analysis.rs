@@ -241,8 +241,15 @@ impl<'a> Resolution<'a> {
         value
     }
 
-    fn seconds_as_samples(&mut self, name: &str, fallback_seconds: f64, sample_rate_hz: f64) -> usize {
-        (self.number(name, fallback_seconds) * sample_rate_hz).round().max(0.0) as usize
+    fn seconds_as_samples(
+        &mut self,
+        name: &str,
+        fallback_seconds: f64,
+        sample_rate_hz: f64,
+    ) -> usize {
+        (self.number(name, fallback_seconds) * sample_rate_hz)
+            .round()
+            .max(0.0) as usize
     }
 
     /// The registry states every persistence and offset span in milliseconds while the core
@@ -276,10 +283,12 @@ impl<'a> Resolution<'a> {
         match self.option("direction", "below_only").as_str() {
             "below_only" => Ok(OnsetDirection::BelowOnly),
             "two_sided" => Ok(OnsetDirection::TwoSided),
-            "above_only" => Err("onset.op.direction(above_only) counts departures above the \
+            "above_only" => Err(
+                "onset.op.direction(above_only) counts departures above the \
                  reference, and a countermovement jump unweights first, so its onset is \
                  below_only or two_sided"
-                .to_string()),
+                    .to_string(),
+            ),
             other => Err(format!(
                 "onset.op.direction({other}) is not one of below_only, above_only, two_sided"
             )),
@@ -311,7 +320,11 @@ impl<'a> Resolution<'a> {
             .collect();
         self.read.sort();
         self.assumed.sort();
-        BoundValues { parameters: self.read, assumed: self.assumed, unread }
+        BoundValues {
+            parameters: self.read,
+            assumed: self.assumed,
+            unread,
+        }
     }
 }
 
@@ -450,8 +463,11 @@ pub fn weighing_epoch_at(
             .map_err(|e| e.to_string());
     }
     let start_index = start_index.min(trial.len().saturating_sub(2));
-    let shifted = Trial::new(trial.force()[start_index..].to_vec(), trial.sample_rate_hz())
-        .map_err(|e| e.to_string())?;
+    let shifted = Trial::new(
+        trial.force()[start_index..].to_vec(),
+        trial.sample_rate_hz(),
+    )
+    .map_err(|e| e.to_string())?;
     let mut epoch = WeighingEpoch::fixed_window(&shifted, duration_seconds, centre, dispersion)
         .map_err(|e| e.to_string())?;
     epoch.start_index += start_index;
@@ -549,7 +565,11 @@ fn resolve_weighing(
             ));
         }
         // This rule finds the window in the trace rather than being told where it sits.
-        resolved.record("start_seconds", format!("{:.4}", trial.time_at(epoch.start_index)), false);
+        resolved.record(
+            "start_seconds",
+            format!("{:.4}", trial.time_at(epoch.start_index)),
+            false,
+        );
         apply_variance_floor(&mut epoch, &mut resolved, warnings);
         return Ok(WeighingOutcome {
             epoch,
@@ -593,11 +613,7 @@ fn record_inherited_spread(resolved: &mut Resolution, inherited_spread: (&str, b
     resolved.record("reference_distribution", "quiet_stance_force".into(), true);
 }
 
-fn onset_search(
-    trial: &Trial,
-    epoch: &WeighingEpoch,
-    resolved: &mut Resolution,
-) -> CrossingSearch {
+fn onset_search(trial: &Trial, epoch: &WeighingEpoch, resolved: &mut Resolution) -> CrossingSearch {
     let rate = trial.sample_rate_hz();
     // Unstated, the search starts where the weighing window ended, which the weighing rule
     // decided rather than a constant.
@@ -618,7 +634,9 @@ fn onset_search(
     CrossingSearch {
         start_index,
         end_index: trial.len(),
-        persistence_samples: resolved.milliseconds_as_samples("span_ms", 0.0, rate).max(1),
+        persistence_samples: resolved
+            .milliseconds_as_samples("span_ms", 0.0, rate)
+            .max(1),
         selection: match resolved.option("crossing_selection", "first").as_str() {
             "last" => CrossingSelection::Last,
             _ => CrossingSelection::First,
@@ -699,7 +717,9 @@ fn resolve_onset(
         }
 
         "onset.threshold.adaptive_trailing_window" => {
-            let window_samples = resolved.seconds_as_samples("window_seconds", 1.0, rate).max(2);
+            let window_samples = resolved
+                .seconds_as_samples("window_seconds", 1.0, rate)
+                .max(2);
             let k = resolved.number("k", 5.0);
             let dispersion = resolved.dispersion();
             onset_adaptive_trailing_window(force, window_samples, k, dispersion, rate)
@@ -800,10 +820,14 @@ fn resolve_takeoff(
 
     let index = match choice.method_id.as_str() {
         "takeoff.threshold.longest_run" => {
-            let minimum_flight_samples =
-                resolved.milliseconds_as_samples("persistence_ms", 0.0, rate).max(1);
+            let minimum_flight_samples = resolved
+                .milliseconds_as_samples("persistence_ms", 0.0, rate)
+                .max(1);
             let comparison = resolved.residual_comparison();
-            let handling = match resolved.option("short_run_handling", "rank_then_filter").as_str() {
+            let handling = match resolved
+                .option("short_run_handling", "rank_then_filter")
+                .as_str()
+            {
                 "filter_then_rank" => ShortRunHandling::FilterThenRank,
                 _ => ShortRunHandling::RankThenFilter,
             };
@@ -825,8 +849,9 @@ fn resolve_takeoff(
         "takeoff.threshold.descending_crossing" => {
             // A crossing this rule calls confirmed has to have a span to be confirmed over,
             // so unstated it takes the shortest span the persistence operator publishes.
-            let confirmation_samples =
-                resolved.milliseconds_as_samples("persistence_ms", 20.0, rate).max(1);
+            let confirmation_samples = resolved
+                .milliseconds_as_samples("persistence_ms", 20.0, rate)
+                .max(1);
             takeoff_descending_crossing(force, threshold_newtons, confirmation_samples, rate)
                 .map_err(|e| e.to_string())
         }
@@ -859,8 +884,9 @@ fn resolve_takeoff(
         }
 
         "takeoff.threshold.absolute_force" => {
-            let minimum_flight_samples =
-                resolved.milliseconds_as_samples("persistence_ms", 0.0, rate).max(1);
+            let minimum_flight_samples = resolved
+                .milliseconds_as_samples("persistence_ms", 0.0, rate)
+                .max(1);
             let comparison = resolved.residual_comparison();
             takeoff_first_sustained_run(
                 force,
@@ -878,10 +904,18 @@ fn resolve_takeoff(
 
     let bound = resolved.finish();
     match index {
-        Ok(index) => TakeoffOutcome { index: Some(index), threshold_newtons, bound },
+        Ok(index) => TakeoffOutcome {
+            index: Some(index),
+            threshold_newtons,
+            bound,
+        },
         Err(message) => {
             warnings.push(message);
-            TakeoffOutcome { index: None, threshold_newtons, bound }
+            TakeoffOutcome {
+                index: None,
+                threshold_newtons,
+                bound,
+            }
         }
     }
 }
@@ -914,7 +948,13 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     let (onset_index, onset_bound) = match request.onset.manual_index {
         // A dragged marker stands in for the rule, so no value the rule reads produced it.
         Some(index) => (Some(index.min(trial.len() - 1)), BoundValues::default()),
-        None => resolve_onset(trial, &epoch, &request.onset, inherited_spread, &mut warnings),
+        None => resolve_onset(
+            trial,
+            &epoch,
+            &request.onset,
+            inherited_spread,
+            &mut warnings,
+        ),
     };
     bound_methods.push(bound_method(
         &request.onset.method_id,
@@ -950,14 +990,16 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
 
     if let (Some(onset), Some(takeoff_at)) = (onset_index, takeoff_index) {
         if onset >= takeoff_at {
-            warnings.push("onset is at or after takeoff, so every interval below is meaningless".into());
+            warnings.push(
+                "onset is at or after takeoff, so every interval below is meaningless".into(),
+            );
         }
     }
 
     // The band drawn on the trace is k SD wide whichever onset rule ran, so it is not part
     // of any one rule's binding.
-    let onset_band =
-        request.onset.parameters.get("k").copied().unwrap_or(5.0) * epoch.standard_deviation_newtons;
+    let onset_band = request.onset.parameters.get("k").copied().unwrap_or(5.0)
+        * epoch.standard_deviation_newtons;
     let landmarks = match (onset_index, takeoff_index) {
         (Some(onset), Some(takeoff_at)) if takeoff_at > onset => Some(Landmarks {
             onset_index: onset,
@@ -967,7 +1009,10 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         _ => None,
     };
 
-    let interval = vec![request.onset.method_id.clone(), request.takeoff.method_id.clone()];
+    let interval = vec![
+        request.onset.method_id.clone(),
+        request.takeoff.method_id.clone(),
+    ];
     let weighing_ids = vec![request.weighing.method_id.clone()];
     let takeoff_ids = vec![request.takeoff.method_id.clone()];
     let full = vec![
@@ -1131,7 +1176,11 @@ mod tests {
         Trial::new(force, 1200.0).unwrap()
     }
 
-    fn weighing(method_id: &str, start_index: Option<usize>, duration_seconds: f64) -> WeighingChoice {
+    fn weighing(
+        method_id: &str,
+        start_index: Option<usize>,
+        duration_seconds: f64,
+    ) -> WeighingChoice {
         WeighingChoice {
             method_id: method_id.into(),
             start_index,
@@ -1146,8 +1195,14 @@ mod tests {
     fn request(onset_id: &str, takeoff_id: &str) -> AnalysisRequest {
         AnalysisRequest {
             weighing: weighing("bwepoch.fixed_window", None, 0.8),
-            onset: MethodChoice { method_id: onset_id.into(), ..Default::default() },
-            takeoff: MethodChoice { method_id: takeoff_id.into(), ..Default::default() },
+            onset: MethodChoice {
+                method_id: onset_id.into(),
+                ..Default::default()
+            },
+            takeoff: MethodChoice {
+                method_id: takeoff_id.into(),
+                ..Default::default()
+            },
             touchdown_index: None,
             gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
             registry_backed_ids: vec!["onset.threshold.noise_relative".into()],
@@ -1161,7 +1216,10 @@ mod tests {
             if binding.slot == "weighing" {
                 continue;
             }
-            let mut candidate = request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force");
+            let mut candidate = request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            );
             if binding.slot == "onset" {
                 candidate.onset.method_id = binding.id.to_string();
             } else {
@@ -1181,18 +1239,38 @@ mod tests {
     fn the_weighing_bindings_all_produce_a_window() {
         let trial = synthetic();
         for method_id in ["bwepoch.fixed_window", "bwepoch.adaptive_lowest_variance"] {
-            let mut candidate = request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force");
+            let mut candidate = request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            );
             candidate.weighing.method_id = method_id.to_string();
             let response = run(&trial, &candidate).unwrap();
-            assert!(response.weighing_end_index > response.weighing_start_index, "{method_id}");
+            assert!(
+                response.weighing_end_index > response.weighing_start_index,
+                "{method_id}"
+            );
         }
     }
 
     #[test]
     fn a_moved_weighing_window_keeps_the_weight_and_restates_the_indices() {
         let trial = synthetic();
-        let anchored = weighing_epoch_at(&trial, 0, 0.5, CentralTendency::Mean, DispersionEstimator::Sample).unwrap();
-        let moved = weighing_epoch_at(&trial, 240, 0.5, CentralTendency::Mean, DispersionEstimator::Sample).unwrap();
+        let anchored = weighing_epoch_at(
+            &trial,
+            0,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let moved = weighing_epoch_at(
+            &trial,
+            240,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
         assert_eq!(moved.start_index, 240);
         assert_eq!(moved.end_index, 240 + 600);
         assert!((moved.system_weight_newtons - anchored.system_weight_newtons).abs() < 5.0);
@@ -1200,15 +1278,33 @@ mod tests {
 
     #[test]
     fn every_metric_names_the_methods_that_produced_it() {
-        let response = run(&synthetic(), &request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force")).unwrap();
+        let response = run(
+            &synthetic(),
+            &request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            ),
+        )
+        .unwrap();
         for metric in &response.metrics {
-            assert!(!metric.contributing_method_ids.is_empty(), "{} carries no provenance", metric.key);
+            assert!(
+                !metric.contributing_method_ids.is_empty(),
+                "{} carries no provenance",
+                metric.key
+            );
         }
     }
 
     #[test]
     fn a_method_absent_from_the_registry_is_marked_unbacked_rather_than_hidden() {
-        let response = run(&synthetic(), &request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force")).unwrap();
+        let response = run(
+            &synthetic(),
+            &request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            ),
+        )
+        .unwrap();
         let takeoff = response
             .bound_methods
             .iter()
@@ -1219,7 +1315,10 @@ mod tests {
 
     #[test]
     fn dragging_a_marker_is_recorded_as_an_override() {
-        let mut candidate = request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force");
+        let mut candidate = request(
+            "onset.threshold.noise_relative",
+            "takeoff.threshold.absolute_force",
+        );
         candidate.onset.manual_index = Some(1100);
         let response = run(&synthetic(), &candidate).unwrap();
         assert_eq!(response.onset_index, Some(1100));
@@ -1236,7 +1335,10 @@ mod tests {
             ("onset", "onset.yank_inflection.sahrom2020"),
             ("takeoff", "takeoff.system_weight_decrease.pinto2024"),
         ] {
-            let mut candidate = request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force");
+            let mut candidate = request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            );
             match slot {
                 "weighing" => candidate.weighing.method_id = method_id.to_string(),
                 "onset" => candidate.onset.method_id = method_id.to_string(),
@@ -1253,7 +1355,10 @@ mod tests {
     /// before the override is read.
     #[test]
     fn an_unbound_id_is_refused_even_when_a_marker_was_dragged() {
-        let mut candidate = request("onset.yank_inflection.sahrom2020", "takeoff.threshold.absolute_force");
+        let mut candidate = request(
+            "onset.yank_inflection.sahrom2020",
+            "takeoff.threshold.absolute_force",
+        );
         candidate.onset.manual_index = Some(1100);
         assert!(run(&synthetic(), &candidate).is_err());
     }
@@ -1288,11 +1393,17 @@ mod tests {
     fn the_longest_run_rule_warns_when_it_skips_the_first_flight_phase() {
         let trial = two_flight_phases();
 
-        let mut candidate = request("onset.threshold.noise_relative", "takeoff.threshold.longest_run");
+        let mut candidate = request(
+            "onset.threshold.noise_relative",
+            "takeoff.threshold.longest_run",
+        );
         candidate.weighing = weighing(&candidate.weighing.method_id.clone(), None, 0.5);
         let response = run(&trial, &candidate).unwrap();
         assert!(
-            response.warnings.iter().any(|w| w.contains("qualifying flight phases")),
+            response
+                .warnings
+                .iter()
+                .any(|w| w.contains("qualifying flight phases")),
             "silent misplacement went unreported: {:?}",
             response.warnings
         );
@@ -1311,16 +1422,66 @@ mod tests {
     );
 
     const ONSET_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
-        ("noise_relative bare", "onset.threshold.noise_relative", &[], &[]),
-        ("noise_relative k", "onset.threshold.noise_relative", &[("k", 2.0)], &[]),
-        ("noise_relative direction below_only", "onset.threshold.noise_relative", &[], &[("direction", "below_only")]),
-        ("noise_relative direction two_sided", "onset.threshold.noise_relative", &[], &[("direction", "two_sided")]),
-        ("noise_relative selection last", "onset.threshold.noise_relative", &[], &[("crossing_selection", "last")]),
-        ("noise_relative selection first", "onset.threshold.noise_relative", &[], &[("crossing_selection", "first")]),
-        ("noise_relative persistence", "onset.threshold.noise_relative", &[("span_ms", 10.0)], &[]),
-        ("noise_relative search floor", "onset.threshold.noise_relative", &[("floor_seconds", 0.9)], &[]),
-        ("noise_relative back offset", "onset.threshold.noise_relative", &[("offset_ms", 50.0)], &[]),
-        ("noise_relative degenerate fraction", "onset.threshold.noise_relative", &[("degenerate_fraction", 0.2)], &[]),
+        (
+            "noise_relative bare",
+            "onset.threshold.noise_relative",
+            &[],
+            &[],
+        ),
+        (
+            "noise_relative k",
+            "onset.threshold.noise_relative",
+            &[("k", 2.0)],
+            &[],
+        ),
+        (
+            "noise_relative direction below_only",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "noise_relative direction two_sided",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "noise_relative selection last",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("crossing_selection", "last")],
+        ),
+        (
+            "noise_relative selection first",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("crossing_selection", "first")],
+        ),
+        (
+            "noise_relative persistence",
+            "onset.threshold.noise_relative",
+            &[("span_ms", 10.0)],
+            &[],
+        ),
+        (
+            "noise_relative search floor",
+            "onset.threshold.noise_relative",
+            &[("floor_seconds", 0.9)],
+            &[],
+        ),
+        (
+            "noise_relative back offset",
+            "onset.threshold.noise_relative",
+            &[("offset_ms", 50.0)],
+            &[],
+        ),
+        (
+            "noise_relative degenerate fraction",
+            "onset.threshold.noise_relative",
+            &[("degenerate_fraction", 0.2)],
+            &[],
+        ),
         (
             "noise_relative every value stated",
             "onset.threshold.noise_relative",
@@ -1333,42 +1494,142 @@ mod tests {
             ],
             &[("direction", "below_only"), ("crossing_selection", "last")],
         ),
-        ("noise_relative names another rule carries", "onset.threshold.noise_relative", &[("threshold_n", 50.0), ("pct", 1.0)], &[]),
-        ("relative_to_system_weight bare", "onset.threshold.relative_to_system_weight", &[], &[]),
-        ("relative_to_system_weight pct", "onset.threshold.relative_to_system_weight", &[("pct", 5.0)], &[]),
-        ("relative_to_system_weight superseded spelling", "onset.threshold.relative_to_system_weight", &[("percent", 5.0)], &[]),
+        (
+            "noise_relative names another rule carries",
+            "onset.threshold.noise_relative",
+            &[("threshold_n", 50.0), ("pct", 1.0)],
+            &[],
+        ),
+        (
+            "relative_to_system_weight bare",
+            "onset.threshold.relative_to_system_weight",
+            &[],
+            &[],
+        ),
+        (
+            "relative_to_system_weight pct",
+            "onset.threshold.relative_to_system_weight",
+            &[("pct", 5.0)],
+            &[],
+        ),
+        (
+            "relative_to_system_weight superseded spelling",
+            "onset.threshold.relative_to_system_weight",
+            &[("percent", 5.0)],
+            &[],
+        ),
         (
             "relative_to_system_weight every value stated",
             "onset.threshold.relative_to_system_weight",
-            &[("pct", 10.0), ("floor_seconds", 0.85), ("span_ms", 4.0), ("offset_ms", 10.0)],
+            &[
+                ("pct", 10.0),
+                ("floor_seconds", 0.85),
+                ("span_ms", 4.0),
+                ("offset_ms", 10.0),
+            ],
             &[("crossing_selection", "last")],
         ),
-        ("absolute_force bare", "onset.threshold.absolute_force", &[], &[]),
-        ("absolute_force threshold", "onset.threshold.absolute_force", &[("threshold_n", 50.0)], &[]),
-        ("absolute_force superseded spelling", "onset.threshold.absolute_force", &[("threshold_newtons", 50.0)], &[]),
-        ("absolute_force direction two_sided", "onset.threshold.absolute_force", &[], &[("direction", "two_sided")]),
-        ("absolute_force direction below_only", "onset.threshold.absolute_force", &[], &[("direction", "below_only")]),
+        (
+            "absolute_force bare",
+            "onset.threshold.absolute_force",
+            &[],
+            &[],
+        ),
+        (
+            "absolute_force threshold",
+            "onset.threshold.absolute_force",
+            &[("threshold_n", 50.0)],
+            &[],
+        ),
+        (
+            "absolute_force superseded spelling",
+            "onset.threshold.absolute_force",
+            &[("threshold_newtons", 50.0)],
+            &[],
+        ),
+        (
+            "absolute_force direction two_sided",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "absolute_force direction below_only",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "below_only")],
+        ),
         (
             "absolute_force every value stated",
             "onset.threshold.absolute_force",
-            &[("threshold_n", 40.0), ("floor_seconds", 0.82), ("span_ms", 6.0), ("offset_ms", 40.0)],
+            &[
+                ("threshold_n", 40.0),
+                ("floor_seconds", 0.82),
+                ("span_ms", 6.0),
+                ("offset_ms", 40.0),
+            ],
             &[("direction", "two_sided"), ("crossing_selection", "last")],
         ),
-        ("last_within_band bare", "onset.threshold.last_within_band", &[], &[]),
-        ("last_within_band k", "onset.threshold.last_within_band", &[("k", 3.0)], &[]),
-        ("last_within_band inverse lookback", "onset.threshold.last_within_band", &[("inverse_lookback", 0.25)], &[]),
-        ("last_within_band back offset", "onset.threshold.last_within_band", &[("offset_ms", 50.0)], &[]),
+        (
+            "last_within_band bare",
+            "onset.threshold.last_within_band",
+            &[],
+            &[],
+        ),
+        (
+            "last_within_band k",
+            "onset.threshold.last_within_band",
+            &[("k", 3.0)],
+            &[],
+        ),
+        (
+            "last_within_band inverse lookback",
+            "onset.threshold.last_within_band",
+            &[("inverse_lookback", 0.25)],
+            &[],
+        ),
+        (
+            "last_within_band back offset",
+            "onset.threshold.last_within_band",
+            &[("offset_ms", 50.0)],
+            &[],
+        ),
         (
             "last_within_band every value stated",
             "onset.threshold.last_within_band",
             &[("k", 2.0), ("inverse_lookback", 0.75), ("offset_ms", 10.0)],
             &[("crossing_selection", "last")],
         ),
-        ("adaptive_trailing_window bare", "onset.threshold.adaptive_trailing_window", &[], &[]),
-        ("adaptive_trailing_window window", "onset.threshold.adaptive_trailing_window", &[("window_seconds", 0.25)], &[]),
-        ("adaptive_trailing_window k", "onset.threshold.adaptive_trailing_window", &[("k", 3.0)], &[]),
-        ("adaptive_trailing_window population", "onset.threshold.adaptive_trailing_window", &[], &[("dispersion", "population")]),
-        ("adaptive_trailing_window sample", "onset.threshold.adaptive_trailing_window", &[], &[("dispersion", "sample")]),
+        (
+            "adaptive_trailing_window bare",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window window",
+            "onset.threshold.adaptive_trailing_window",
+            &[("window_seconds", 0.25)],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window k",
+            "onset.threshold.adaptive_trailing_window",
+            &[("k", 3.0)],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window population",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "adaptive_trailing_window sample",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[("dispersion", "sample")],
+        ),
         (
             "adaptive_trailing_window every value stated",
             "onset.threshold.adaptive_trailing_window",
@@ -1378,65 +1639,263 @@ mod tests {
     ];
 
     const BUMP_ONSET_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
-        ("absolute_force bare", "onset.threshold.absolute_force", &[], &[]),
-        ("absolute_force direction below_only", "onset.threshold.absolute_force", &[], &[("direction", "below_only")]),
-        ("absolute_force direction two_sided", "onset.threshold.absolute_force", &[], &[("direction", "two_sided")]),
-        ("absolute_force both and last", "onset.threshold.absolute_force", &[], &[("direction", "two_sided"), ("crossing_selection", "last")]),
-        ("noise_relative bare", "onset.threshold.noise_relative", &[], &[]),
-        ("noise_relative direction below_only", "onset.threshold.noise_relative", &[], &[("direction", "below_only")]),
-        ("noise_relative direction two_sided", "onset.threshold.noise_relative", &[], &[("direction", "two_sided")]),
-        ("noise_relative persistence", "onset.threshold.noise_relative", &[("span_ms", 200.0)], &[("direction", "two_sided")]),
-        ("relative_to_system_weight bare", "onset.threshold.relative_to_system_weight", &[], &[]),
-        ("last_within_band bare", "onset.threshold.last_within_band", &[], &[]),
-        ("adaptive_trailing_window bare", "onset.threshold.adaptive_trailing_window", &[], &[]),
+        (
+            "absolute_force bare",
+            "onset.threshold.absolute_force",
+            &[],
+            &[],
+        ),
+        (
+            "absolute_force direction below_only",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "absolute_force direction two_sided",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "absolute_force both and last",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "two_sided"), ("crossing_selection", "last")],
+        ),
+        (
+            "noise_relative bare",
+            "onset.threshold.noise_relative",
+            &[],
+            &[],
+        ),
+        (
+            "noise_relative direction below_only",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "noise_relative direction two_sided",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "noise_relative persistence",
+            "onset.threshold.noise_relative",
+            &[("span_ms", 200.0)],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "relative_to_system_weight bare",
+            "onset.threshold.relative_to_system_weight",
+            &[],
+            &[],
+        ),
+        (
+            "last_within_band bare",
+            "onset.threshold.last_within_band",
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window bare",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[],
+        ),
     ];
 
     const TAKEOFF_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
-        ("absolute_force bare", "takeoff.threshold.absolute_force", &[], &[]),
-        ("absolute_force threshold", "takeoff.threshold.absolute_force", &[("threshold_n", 25.0)], &[]),
-        ("absolute_force superseded spelling", "takeoff.threshold.absolute_force", &[("threshold_newtons", 30.0), ("minimum_flight", 0.03)], &[]),
-        ("absolute_force persistence", "takeoff.threshold.absolute_force", &[("persistence_ms", 50.0)], &[]),
-        ("absolute_force magnitude", "takeoff.threshold.absolute_force", &[], &[("comparison", "magnitude")]),
-        ("absolute_force signed", "takeoff.threshold.absolute_force", &[], &[("comparison", "signed")]),
+        (
+            "absolute_force bare",
+            "takeoff.threshold.absolute_force",
+            &[],
+            &[],
+        ),
+        (
+            "absolute_force threshold",
+            "takeoff.threshold.absolute_force",
+            &[("threshold_n", 25.0)],
+            &[],
+        ),
+        (
+            "absolute_force superseded spelling",
+            "takeoff.threshold.absolute_force",
+            &[("threshold_newtons", 30.0), ("minimum_flight", 0.03)],
+            &[],
+        ),
+        (
+            "absolute_force persistence",
+            "takeoff.threshold.absolute_force",
+            &[("persistence_ms", 50.0)],
+            &[],
+        ),
+        (
+            "absolute_force magnitude",
+            "takeoff.threshold.absolute_force",
+            &[],
+            &[("comparison", "magnitude")],
+        ),
+        (
+            "absolute_force signed",
+            "takeoff.threshold.absolute_force",
+            &[],
+            &[("comparison", "signed")],
+        ),
         (
             "absolute_force every value stated",
             "takeoff.threshold.absolute_force",
             &[("threshold_n", 30.0), ("persistence_ms", 200.0)],
             &[("comparison", "magnitude")],
         ),
-        ("longest_run bare", "takeoff.threshold.longest_run", &[], &[]),
-        ("longest_run filter then rank", "takeoff.threshold.longest_run", &[], &[("short_run_handling", "filter_then_rank")]),
-        ("longest_run rank then filter", "takeoff.threshold.longest_run", &[], &[("short_run_handling", "rank_then_filter")]),
+        (
+            "longest_run bare",
+            "takeoff.threshold.longest_run",
+            &[],
+            &[],
+        ),
+        (
+            "longest_run filter then rank",
+            "takeoff.threshold.longest_run",
+            &[],
+            &[("short_run_handling", "filter_then_rank")],
+        ),
+        (
+            "longest_run rank then filter",
+            "takeoff.threshold.longest_run",
+            &[],
+            &[("short_run_handling", "rank_then_filter")],
+        ),
         (
             "longest_run every value stated",
             "takeoff.threshold.longest_run",
             &[("threshold_n", 25.0), ("persistence_ms", 50.0)],
-            &[("comparison", "magnitude"), ("short_run_handling", "filter_then_rank")],
+            &[
+                ("comparison", "magnitude"),
+                ("short_run_handling", "filter_then_rank"),
+            ],
         ),
-        ("descending_crossing bare", "takeoff.threshold.descending_crossing", &[], &[]),
-        ("descending_crossing confirmation", "takeoff.threshold.descending_crossing", &[("persistence_ms", 50.0)], &[]),
-        ("descending_crossing threshold", "takeoff.threshold.descending_crossing", &[("threshold_n", 25.0)], &[]),
-        ("flight_noise_k_sd bare", "takeoff.threshold.flight_noise_k_sd", &[], &[]),
-        ("flight_noise_k_sd trim", "takeoff.threshold.flight_noise_k_sd", &[("trim_fraction", 0.4)], &[]),
-        ("flight_noise_k_sd k", "takeoff.threshold.flight_noise_k_sd", &[("k", 3.0)], &[]),
-        ("flight_noise_k_sd population", "takeoff.threshold.flight_noise_k_sd", &[], &[("dispersion", "population")]),
+        (
+            "descending_crossing bare",
+            "takeoff.threshold.descending_crossing",
+            &[],
+            &[],
+        ),
+        (
+            "descending_crossing confirmation",
+            "takeoff.threshold.descending_crossing",
+            &[("persistence_ms", 50.0)],
+            &[],
+        ),
+        (
+            "descending_crossing threshold",
+            "takeoff.threshold.descending_crossing",
+            &[("threshold_n", 25.0)],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd bare",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd trim",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[("trim_fraction", 0.4)],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd k",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[("k", 3.0)],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd population",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[],
+            &[("dispersion", "population")],
+        ),
         (
             "flight_noise_k_sd every value stated",
             "takeoff.threshold.flight_noise_k_sd",
-            &[("trim_fraction", 0.1), ("k", 8.0), ("bounding_threshold_n", 20.0)],
+            &[
+                ("trim_fraction", 0.1),
+                ("k", 8.0),
+                ("bounding_threshold_n", 20.0),
+            ],
             &[("dispersion", "population")],
         ),
     ];
 
     const WEIGHING_CASES: &[WeighingCase] = &[
-        ("fixed_window bare", "bwepoch.fixed_window", None, 0.8, &[], &[]),
-        ("fixed_window half second", "bwepoch.fixed_window", None, 0.5, &[], &[]),
-        ("fixed_window moved", "bwepoch.fixed_window", Some(240), 0.8, &[], &[]),
-        ("fixed_window median", "bwepoch.fixed_window", None, 0.8, &[], &[("centre", "median")]),
-        ("fixed_window mean", "bwepoch.fixed_window", None, 0.8, &[], &[("centre", "mean")]),
-        ("fixed_window population", "bwepoch.fixed_window", None, 0.8, &[], &[("dispersion", "population")]),
-        ("fixed_window sample", "bwepoch.fixed_window", None, 0.8, &[], &[("dispersion", "sample")]),
-        ("fixed_window superseded spelling", "bwepoch.fixed_window", None, 0.8, &[("duration_seconds", 0.2)], &[]),
+        (
+            "fixed_window bare",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[],
+        ),
+        (
+            "fixed_window half second",
+            "bwepoch.fixed_window",
+            None,
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "fixed_window moved",
+            "bwepoch.fixed_window",
+            Some(240),
+            0.8,
+            &[],
+            &[],
+        ),
+        (
+            "fixed_window median",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("centre", "median")],
+        ),
+        (
+            "fixed_window mean",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("centre", "mean")],
+        ),
+        (
+            "fixed_window population",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "fixed_window sample",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("dispersion", "sample")],
+        ),
+        (
+            "fixed_window superseded spelling",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[("duration_seconds", 0.2)],
+            &[],
+        ),
         (
             "fixed_window every value stated",
             "bwepoch.fixed_window",
@@ -1445,9 +1904,30 @@ mod tests {
             &[],
             &[("centre", "median"), ("dispersion", "population")],
         ),
-        ("manual_placement moved", "bwepoch.manual_placement", Some(240), 0.5, &[], &[]),
-        ("manual_placement anchored", "bwepoch.manual_placement", None, 0.5, &[], &[]),
-        ("adaptive_lowest_variance bare", "bwepoch.adaptive_lowest_variance", None, 0.8, &[], &[]),
+        (
+            "manual_placement moved",
+            "bwepoch.manual_placement",
+            Some(240),
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "manual_placement anchored",
+            "bwepoch.manual_placement",
+            None,
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_lowest_variance bare",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[],
+        ),
         (
             "adaptive_lowest_variance cumulative",
             "bwepoch.adaptive_lowest_variance",
@@ -1456,10 +1936,38 @@ mod tests {
             &[],
             &[("accumulation", "cumulative_sum_of_squares")],
         ),
-        ("adaptive_lowest_variance two pass", "bwepoch.adaptive_lowest_variance", None, 0.8, &[], &[("accumulation", "two_pass")]),
-        ("adaptive_lowest_variance population", "bwepoch.adaptive_lowest_variance", None, 0.8, &[], &[("dispersion", "population")]),
-        ("adaptive_lowest_variance moved", "bwepoch.adaptive_lowest_variance", Some(240), 0.8, &[], &[("centre", "median")]),
-        ("adaptive_lowest_variance half second", "bwepoch.adaptive_lowest_variance", None, 0.5, &[], &[]),
+        (
+            "adaptive_lowest_variance two pass",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[("accumulation", "two_pass")],
+        ),
+        (
+            "adaptive_lowest_variance population",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "adaptive_lowest_variance moved",
+            "bwepoch.adaptive_lowest_variance",
+            Some(240),
+            0.8,
+            &[],
+            &[("centre", "median")],
+        ),
+        (
+            "adaptive_lowest_variance half second",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.5,
+            &[],
+            &[],
+        ),
         (
             "adaptive_lowest_variance floor published",
             "bwepoch.adaptive_lowest_variance",
@@ -1485,16 +1993,27 @@ mod tests {
     }
 
     fn case_parameters(pairs: CaseParameters) -> BTreeMap<String, f64> {
-        pairs.iter().map(|(name, value)| ((*name).to_string(), *value)).collect()
+        pairs
+            .iter()
+            .map(|(name, value)| ((*name).to_string(), *value))
+            .collect()
     }
 
     fn case_options(pairs: CaseOptions) -> BTreeMap<String, String> {
-        pairs.iter().map(|(name, value)| ((*name).to_string(), (*value).to_string())).collect()
+        pairs
+            .iter()
+            .map(|(name, value)| ((*name).to_string(), (*value).to_string()))
+            .collect()
     }
 
     fn characterisation_cases() -> Vec<CharacterisationCase> {
         let mut cases = Vec::new();
-        let baseline = || request("onset.threshold.noise_relative", "takeoff.threshold.absolute_force");
+        let baseline = || {
+            request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            )
+        };
 
         for (name, method_id, parameters, options) in ONSET_CASES {
             let mut candidate = baseline();
@@ -1526,10 +2045,14 @@ mod tests {
             });
         }
 
-        for (name, method_id, start_index, duration_seconds, parameters, options) in WEIGHING_CASES {
+        for (name, method_id, start_index, duration_seconds, parameters, options) in WEIGHING_CASES
+        {
             let mut candidate = baseline();
             let mut values = case_parameters(parameters);
-            values.insert(window_length_parameter(method_id).to_string(), *duration_seconds);
+            values.insert(
+                window_length_parameter(method_id).to_string(),
+                *duration_seconds,
+            );
             candidate.weighing = WeighingChoice {
                 method_id: (*method_id).into(),
                 start_index: *start_index,
@@ -1545,42 +2068,77 @@ mod tests {
 
         let mut low_gravity = baseline();
         low_gravity.gravity_meters_per_second_squared = 9.8;
-        cases.push(CharacterisationCase { name: "gravity 9.8".into(), trial: "synthetic", request: low_gravity });
+        cases.push(CharacterisationCase {
+            name: "gravity 9.8".into(),
+            trial: "synthetic",
+            request: low_gravity,
+        });
 
         let mut high_gravity = baseline();
         high_gravity.gravity_meters_per_second_squared = 9.81;
-        cases.push(CharacterisationCase { name: "gravity 9.81".into(), trial: "synthetic", request: high_gravity });
+        cases.push(CharacterisationCase {
+            name: "gravity 9.81".into(),
+            trial: "synthetic",
+            request: high_gravity,
+        });
 
         let mut stated_touchdown = baseline();
         stated_touchdown.touchdown_index = Some(2300);
-        cases.push(CharacterisationCase { name: "touchdown stated".into(), trial: "synthetic", request: stated_touchdown });
+        cases.push(CharacterisationCase {
+            name: "touchdown stated".into(),
+            trial: "synthetic",
+            request: stated_touchdown,
+        });
 
         let mut dragged_onset = baseline();
         dragged_onset.onset.manual_index = Some(1100);
         dragged_onset.onset.parameters = case_parameters(&[("k", 3.0)]);
-        cases.push(CharacterisationCase { name: "onset dragged".into(), trial: "synthetic", request: dragged_onset });
+        cases.push(CharacterisationCase {
+            name: "onset dragged".into(),
+            trial: "synthetic",
+            request: dragged_onset,
+        });
 
         let mut dragged_takeoff = baseline();
         dragged_takeoff.takeoff.manual_index = Some(2100);
         dragged_takeoff.takeoff.parameters = case_parameters(&[("threshold_n", 25.0)]);
-        cases.push(CharacterisationCase { name: "takeoff dragged".into(), trial: "synthetic", request: dragged_takeoff });
+        cases.push(CharacterisationCase {
+            name: "takeoff dragged".into(),
+            trial: "synthetic",
+            request: dragged_takeoff,
+        });
 
         let mut both_dragged = baseline();
         both_dragged.onset.manual_index = Some(1150);
         both_dragged.takeoff.manual_index = Some(2050);
-        cases.push(CharacterisationCase { name: "both dragged".into(), trial: "synthetic", request: both_dragged });
+        cases.push(CharacterisationCase {
+            name: "both dragged".into(),
+            trial: "synthetic",
+            request: both_dragged,
+        });
 
         let mut inverted = baseline();
         inverted.onset.manual_index = Some(2200);
         inverted.takeoff.manual_index = Some(1300);
-        cases.push(CharacterisationCase { name: "onset after takeoff".into(), trial: "synthetic", request: inverted });
+        cases.push(CharacterisationCase {
+            name: "onset after takeoff".into(),
+            trial: "synthetic",
+            request: inverted,
+        });
 
         let mut unbacked = baseline();
         unbacked.registry_backed_ids = Vec::new();
-        cases.push(CharacterisationCase { name: "nothing registry backed".into(), trial: "synthetic", request: unbacked });
+        cases.push(CharacterisationCase {
+            name: "nothing registry backed".into(),
+            trial: "synthetic",
+            request: unbacked,
+        });
 
         let mut everything_backed = baseline();
-        everything_backed.registry_backed_ids = BINDINGS.iter().map(|binding| binding.id.to_string()).collect();
+        everything_backed.registry_backed_ids = BINDINGS
+            .iter()
+            .map(|binding| binding.id.to_string())
+            .collect();
         cases.push(CharacterisationCase {
             name: "everything registry backed".into(),
             trial: "synthetic",
@@ -1605,7 +2163,10 @@ mod tests {
         for (name, takeoff_id) in [
             ("first sustained run", "takeoff.threshold.absolute_force"),
             ("longest run", "takeoff.threshold.longest_run"),
-            ("descending crossing", "takeoff.threshold.descending_crossing"),
+            (
+                "descending crossing",
+                "takeoff.threshold.descending_crossing",
+            ),
             ("flight noise", "takeoff.threshold.flight_noise_k_sd"),
         ] {
             let mut candidate = baseline();
@@ -1678,7 +2239,10 @@ mod tests {
     fn the_baseline_is_rewritten_only_when_asked() {
         if std::env::var("PLATEFORCE_REGENERATE").is_ok() {
             std::fs::write(
-                concat!(env!("CARGO_MANIFEST_DIR"), "/tests/resolved-values-baseline.txt"),
+                concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/tests/resolved-values-baseline.txt"
+                ),
                 characterisation_report(),
             )
             .unwrap();

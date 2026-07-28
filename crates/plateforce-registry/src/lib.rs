@@ -164,10 +164,8 @@ mod tests {
             use std::sync::atomic::{AtomicU32, Ordering};
             static TAKEN: AtomicU32 = AtomicU32::new(0);
             let unique = TAKEN.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!(
-                "plateforce-{name}-{}-{unique}",
-                std::process::id()
-            ));
+            let path = std::env::temp_dir()
+                .join(format!("plateforce-{name}-{}-{unique}", std::process::id()));
             std::fs::remove_dir_all(&path).ok();
             std::fs::create_dir_all(&path).unwrap();
             Self { path }
@@ -228,8 +226,16 @@ mod tests {
     fn two_definitions_of_one_id_are_a_violation_rather_than_a_census_of_one() {
         let root = ScratchDirectory::new("duplicate-registry");
         let methods = root.path.join("methods");
-        write_minimal_registry(&root.path, &methods.join("aaa.toml"), "onset.threshold.twice");
-        write_minimal_registry(&root.path, &methods.join("zzz.toml"), "onset.threshold.twice");
+        write_minimal_registry(
+            &root.path,
+            &methods.join("aaa.toml"),
+            "onset.threshold.twice",
+        );
+        write_minimal_registry(
+            &root.path,
+            &methods.join("zzz.toml"),
+            "onset.threshold.twice",
+        );
         let error = Registry::load(&root.path).unwrap_err();
         assert!(error.to_string().contains("more than one entry"), "{error}");
     }
@@ -318,7 +324,11 @@ mod tests {
     fn a_link_pointing_back_up_the_tree_is_refused_rather_than_walked_forever() {
         let root = ScratchDirectory::new("looping-registry");
         let methods = root.path.join("methods");
-        write_minimal_registry(&root.path, &methods.join("real.toml"), "onset.threshold.real");
+        write_minimal_registry(
+            &root.path,
+            &methods.join("real.toml"),
+            "onset.threshold.real",
+        );
         std::os::unix::fs::symlink(&root.path, methods.join("upwards")).unwrap();
         let error = Registry::load(&root.path).unwrap_err();
         assert!(matches!(error, RegistryError::Cycle { .. }), "{error}");
@@ -359,7 +369,10 @@ mod tests {
             Detectability::Loud,
             Detectability::Guarded,
         ] {
-            assert_eq!(detectability.as_registry_str(), serde_spelling(&detectability));
+            assert_eq!(
+                detectability.as_registry_str(),
+                serde_spelling(&detectability)
+            );
         }
     }
 }

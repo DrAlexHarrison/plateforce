@@ -32,7 +32,10 @@ struct Noise(u64);
 
 impl Noise {
     fn next_unit(&mut self) -> f64 {
-        self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         ((self.0 >> 33) as f64 / (1u64 << 31) as f64) - 1.0
     }
 }
@@ -154,11 +157,10 @@ pub fn synthetic_countermovement_jump() -> Trial {
 
 #[cfg(test)]
 mod tests {
-    use plateforce_core::onset::{
-        onset_noise_relative, BandSides, CrossingSearch, CrossingSelection,
-        DegenerateBandPolicy,
-    };
     use plateforce_core::jump_height_from_takeoff_velocity;
+    use plateforce_core::onset::{
+        onset_noise_relative, BandSides, CrossingSearch, CrossingSelection, DegenerateBandPolicy,
+    };
 
     use super::*;
 
@@ -204,7 +206,10 @@ mod tests {
             "takeoff velocity solved to {velocity}"
         );
         let height = jump_height_from_takeoff_velocity(velocity, GRAVITY);
-        assert!((0.30..0.50).contains(&height), "jump height {height} m is not a jump");
+        assert!(
+            (0.30..0.50).contains(&height),
+            "jump height {height} m is not a jump"
+        );
     }
 
     #[test]

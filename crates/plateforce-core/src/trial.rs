@@ -57,7 +57,14 @@ impl WeighingEpoch {
         dispersion: DispersionEstimator,
     ) -> Result<Self, TrialError> {
         let samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
-        Self::sample_window(trial, start_index, samples, duration_seconds, centre, dispersion)
+        Self::sample_window(
+            trial,
+            start_index,
+            samples,
+            duration_seconds,
+            centre,
+            dispersion,
+        )
     }
 
     pub fn fixed_sample_window(
@@ -251,7 +258,10 @@ mod tests {
         let push_samples = (push_seconds * sample_rate_hz) as usize;
 
         let mut force = vec![weight; quiet_samples];
-        force.extend(std::iter::repeat_n(weight + net_force_newtons, push_samples));
+        force.extend(std::iter::repeat_n(
+            weight + net_force_newtons,
+            push_samples,
+        ));
         force.extend(std::iter::repeat_n(0.0, (0.5 * sample_rate_hz) as usize));
 
         // The trapezoid spans one interval fewer than it has samples.
@@ -300,8 +310,7 @@ mod tests {
             takeoff_index: takeoff,
             touchdown_index: trial.len() - 1,
         };
-        let velocity =
-            takeoff_velocity_meters_per_second(&trial, &epoch, &landmarks, GRAVITY);
+        let velocity = takeoff_velocity_meters_per_second(&trial, &epoch, &landmarks, GRAVITY);
         assert!(
             (velocity - expected).abs() < 1e-9,
             "impulse-momentum identity broken: {velocity} against {expected}"

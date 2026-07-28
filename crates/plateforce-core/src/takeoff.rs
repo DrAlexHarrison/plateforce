@@ -151,7 +151,13 @@ pub fn takeoff_longest_run(
     let longest = pool
         .iter()
         .copied()
-        .reduce(|best, run| if run.length() > best.length() { run } else { best })
+        .reduce(|best, run| {
+            if run.length() > best.length() {
+                run
+            } else {
+                best
+            }
+        })
         .ok_or_else(failure)?;
     if longest.length() < minimum_flight_samples {
         return Err(failure());
@@ -337,7 +343,10 @@ mod tests {
         assert_eq!(selection.start_index, 1920, "picked the post-landing quiet");
         assert_eq!(selection.qualifying_run_count, 2);
         assert_eq!(selection.first_qualifying_start_index, 1220);
-        assert!(!selection.selected_is_first_qualifying, "silent misplacement");
+        assert!(
+            !selection.selected_is_first_qualifying,
+            "silent misplacement"
+        );
     }
 
     #[test]
@@ -404,7 +413,10 @@ mod tests {
         )
         .unwrap_err();
         let message = error.to_string();
-        assert!(message.contains("takeoff.threshold.absolute_force"), "{message}");
+        assert!(
+            message.contains("takeoff.threshold.absolute_force"),
+            "{message}"
+        );
         assert!(message.contains("threshold_newtons"), "{message}");
     }
 }

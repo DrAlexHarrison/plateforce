@@ -23,7 +23,8 @@ use plateforce_core::statistics::{
 };
 use plateforce_core::takeoff::{
     force_minimum_index, takeoff_descending_crossing, takeoff_first_sustained_run,
-    takeoff_longest_run, takeoff_reestimated_flight_threshold, ResidualComparison, ShortRunHandling,
+    takeoff_longest_run, takeoff_reestimated_flight_threshold, ResidualComparison,
+    ShortRunHandling,
 };
 use plateforce_core::trial::{
     jump_height_from_takeoff_velocity, takeoff_velocity_meters_per_second, CentralTendency,
@@ -141,12 +142,8 @@ pub const ONSET_RULES: [&str; 9] = [
 pub const TAKEOFF_RULES: [&str; 5] = ["jm", "bilalovski", "jumptest", "labanalysis", "sams"];
 
 /// The four unweighting-end rules, in the order the reference emits them.
-pub const UNWEIGHTING_END_RULES: [&str; 4] = [
-    "argmin_v",
-    "f_cross_bw",
-    "argmin_f",
-    "argmin_f_to_takeoff",
-];
+pub const UNWEIGHTING_END_RULES: [&str; 4] =
+    ["argmin_v", "f_cross_bw", "argmin_f", "argmin_f_to_takeoff"];
 
 /// One trial run through every bound rule.
 ///
@@ -195,7 +192,10 @@ fn samples(seconds: f64, bindings: &ReferenceBindings) -> usize {
 }
 
 /// Run every bound rule over one trial.
-pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnalysis, TrialRejection> {
+pub fn analyse(
+    trial: &Trial,
+    bindings: &ReferenceBindings,
+) -> Result<TrialAnalysis, TrialRejection> {
     let force = trial.force();
     let minimum_samples = samples(2.0, bindings);
     if force.len() < minimum_samples {
@@ -283,12 +283,7 @@ pub fn analyse(trial: &Trial, bindings: &ReferenceBindings) -> Result<TrialAnaly
 
     let unweighting_end = [
         braking_start_by_velocity_minimum(&velocity, onset_for_phases, takeoff_jm),
-        braking_start_by_force_return(
-            force,
-            onset_for_phases,
-            force[onset_for_phases],
-            peak_index,
-        ),
+        braking_start_by_force_return(force, onset_for_phases, force[onset_for_phases], peak_index),
         braking_start_by_force_minimum(
             force,
             onset_for_phases,
@@ -648,21 +643,16 @@ fn jump_height_family(
             },
             bindings.gravity_meters_per_second_squared,
         );
-        *slot = jump_height_from_takeoff_velocity(
-            velocity,
-            bindings.gravity_meters_per_second_squared,
-        ) * 100.0;
+        *slot =
+            jump_height_from_takeoff_velocity(velocity, bindings.gravity_meters_per_second_squared)
+                * 100.0;
     }
     heights
 }
 
 /// Jump height integrated over a fixed window ending at takeoff rather than from a
 /// detected onset, which is what one tool's headline wrapper does.
-fn whole_window_jump_height(
-    trial: &Trial,
-    bindings: &ReferenceBindings,
-    takeoff_jm: usize,
-) -> f64 {
+fn whole_window_jump_height(trial: &Trial, bindings: &ReferenceBindings, takeoff_jm: usize) -> f64 {
     let window = samples(bindings.whole_window_seconds, bindings);
     let start = takeoff_jm.saturating_sub(window);
     let quiet = samples(bindings.quiet_window_seconds[0], bindings);

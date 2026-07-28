@@ -153,13 +153,12 @@ pub fn savitzky_golay_coefficients(
 
     // The design matrix has one row per polynomial power and one column per sample, so
     // the system is underdetermined and the wanted solution is the minimum norm one.
-    let (orthonormal, upper) =
-        thin_qr(vandermonde_columns(&positions, polynomial_order)).ok_or(
-            SmoothingError::RankDeficient {
-                window_length,
-                polynomial_order,
-            },
-        )?;
+    let (orthonormal, upper) = thin_qr(vandermonde_columns(&positions, polynomial_order)).ok_or(
+        SmoothingError::RankDeficient {
+            window_length,
+            polynomial_order,
+        },
+    )?;
     let mut unit = vec![0.0f64; polynomial_order + 1];
     unit[0] = 1.0;
     let intermediate = solve_lower_triangular_transposed(&upper, &unit);
@@ -238,7 +237,11 @@ pub fn savitzky_golay_interpolated_edges(
     let tail_start = values.len() - window_length;
     let trailing = fit_polynomial(&positions, &values[tail_start..], polynomial_order)
         .ok_or_else(rank_deficient)?;
-    for (index, slot) in smoothed.iter_mut().enumerate().skip(values.len() - half_length) {
+    for (index, slot) in smoothed
+        .iter_mut()
+        .enumerate()
+        .skip(values.len() - half_length)
+    {
         *slot = evaluate_polynomial(&trailing, (index - tail_start) as f64 - centre);
     }
 
@@ -322,8 +325,10 @@ mod tests {
     fn the_even_window_filter_matches_the_reference_implementation() {
         let values: Vec<f64> = (0..500).map(|i| cubic(i as f64)).collect();
         let smoothed = savitzky_golay_interpolated_edges(&values, 240, 3).unwrap();
-        for (index, expected) in [(120usize, 4.017_230_250_008_357), (250, 10.817_725_250_022_502)]
-        {
+        for (index, expected) in [
+            (120usize, 4.017_230_250_008_357),
+            (250, 10.817_725_250_022_502),
+        ] {
             assert!(
                 (smoothed[index] - expected).abs() < 1e-9,
                 "sample {index}: {} against {expected}",

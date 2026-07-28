@@ -45,8 +45,11 @@ impl ExcursionBand {
     }
 
     pub fn is_outside(&self, value_newtons: f64) -> bool {
-        self.lower_newtons.is_some_and(|lower| value_newtons < lower)
-            || self.upper_newtons.is_some_and(|upper| value_newtons > upper)
+        self.lower_newtons
+            .is_some_and(|lower| value_newtons < lower)
+            || self
+                .upper_newtons
+                .is_some_and(|upper| value_newtons > upper)
     }
 }
 
@@ -237,14 +240,8 @@ pub fn onset_final_departure_from_band(
         },
     };
     let bound = (search_end_index + 1).min(signal.len());
-    let last_quiet = last_sample_inside_band(signal, &band, 0, bound).ok_or_else(|| {
-        no_crossing(
-            METHOD,
-            "k",
-            multiplier,
-            bound as f64 / sample_rate_hz,
-        )
-    })?;
+    let last_quiet = last_sample_inside_band(signal, &band, 0, bound)
+        .ok_or_else(|| no_crossing(METHOD, "k", multiplier, bound as f64 / sample_rate_hz))?;
     Ok((last_quiet + 1).min(bound.saturating_sub(1)))
 }
 
@@ -335,7 +332,9 @@ pub fn onset_last_sample_within_noise_band(
         let peak = lookback_start
             + index_of_maximum(&signal[lookback_start..=candidate]).unwrap_or_default();
         match post_crossing {
-            PostCrossingRule::ToReferenceCrossing => (peak, Acceptance::AtOrBelow(reference_newtons)),
+            PostCrossingRule::ToReferenceCrossing => {
+                (peak, Acceptance::AtOrBelow(reference_newtons))
+            }
             PostCrossingRule::FixedOffset(_) => (peak, Acceptance::AtOrBelow(upper_threshold)),
         }
     } else {
@@ -558,7 +557,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(forward, 300, "forward rule missed the noise excursion");
-        assert_eq!(backward, 1000, "backward rule was fooled by the noise excursion");
+        assert_eq!(
+            backward, 1000,
+            "backward rule was fooled by the noise excursion"
+        );
     }
 
     /// A persistence requirement closes most of the gap, which is why the direction is
@@ -612,7 +614,10 @@ mod tests {
         )
         .unwrap_err();
         let message = refused.to_string();
-        assert!(message.contains("onset.threshold.noise_relative"), "{message}");
+        assert!(
+            message.contains("onset.threshold.noise_relative"),
+            "{message}"
+        );
         assert!(message.contains("dispersion"), "{message}");
 
         let fallen_back = onset_noise_relative(
@@ -667,7 +672,10 @@ mod tests {
         )
         .unwrap_err();
         let message = error.to_string();
-        assert!(message.contains("onset.threshold.noise_relative"), "{message}");
+        assert!(
+            message.contains("onset.threshold.noise_relative"),
+            "{message}"
+        );
         assert!(message.contains("k = 5"), "{message}");
     }
 }

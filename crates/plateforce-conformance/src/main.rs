@@ -44,7 +44,8 @@ fn main() -> ExitCode {
             .and_then(|at| arguments.get(at + 1))
             .cloned()
     };
-    let (Some(reference_path), Some(corpus_path)) = (value("--reference"), value("--corpus")) else {
+    let (Some(reference_path), Some(corpus_path)) = (value("--reference"), value("--corpus"))
+    else {
         eprintln!("plateforce-conformance: --reference and --corpus are both required");
         eprint!("{USAGE}");
         return ExitCode::FAILURE;
@@ -166,7 +167,11 @@ fn main() -> ExitCode {
     }
     for column in report.breaches() {
         println!();
-        println!("{} disagreed on {} trial(s):", column.name, column.disagreements.len());
+        println!(
+            "{} disagreed on {} trial(s):",
+            column.name,
+            column.disagreements.len()
+        );
         for item in column.disagreements.iter().take(12) {
             println!(
                 "  subject {:>2} trial {}: reference {:>18} computed {:>18}",
@@ -184,7 +189,10 @@ fn main() -> ExitCode {
         );
     }
     if !report.missing_from_corpus.is_empty() {
-        println!("reference rows with no corpus file: {:?}", report.missing_from_corpus);
+        println!(
+            "reference rows with no corpus file: {:?}",
+            report.missing_from_corpus
+        );
     }
     println!();
     println!(

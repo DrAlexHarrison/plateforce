@@ -81,6 +81,9 @@ fn every_value_the_interface_posts_is_read_by_the_rule_it_was_posted_for() {
 /// dropped and every rule falling back to its own.
 #[test]
 fn a_field_this_module_does_not_carry_is_refused() {
-    let drifted = RECOMMENDED.replace("\"parameters\": { \"k\": 5.0 }", "\"values\": { \"k\": 5.0 }");
+    let drifted = RECOMMENDED.replace(
+        "\"parameters\": { \"k\": 5.0 }",
+        "\"values\": { \"k\": 5.0 }",
+    );
     assert!(serde_json::from_str::<AnalysisRequest>(&drifted).is_err());
 }

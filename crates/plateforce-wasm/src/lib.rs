@@ -267,7 +267,11 @@ fn describe(
         sentinel_convention: sentinel_convention.to_string(),
         sentinel_samples_replaced,
         minimum_newtons: trial.force().iter().copied().fold(f64::INFINITY, f64::min),
-        maximum_newtons: trial.force().iter().copied().fold(f64::NEG_INFINITY, f64::max),
+        maximum_newtons: trial
+            .force()
+            .iter()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max),
         synthetic,
     }
 }

@@ -174,7 +174,12 @@ fn sentinel_name(sentinel: &CoreSentinel) -> String {
 }
 
 /// Real measurements separated from sentinels, with what was dropped reported.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "SentinelPartition")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "SentinelPartition"
+)]
 pub struct SentinelPartition {
     kept: Vec<f64>,
     dropped_indices: Vec<usize>,
@@ -277,7 +282,8 @@ impl Trial {
             .unwrap_or(NON_FINITE_ONLY);
         let (_, dropped_indices) = partition_sentinels(&values, convention);
 
-        let inner = CoreTrial::new(values, sample_rate_hz).map_err(|e| map_trial_error(python, e))?;
+        let inner =
+            CoreTrial::new(values, sample_rate_hz).map_err(|e| map_trial_error(python, e))?;
 
         let reason = if dropped_indices.is_empty() {
             None

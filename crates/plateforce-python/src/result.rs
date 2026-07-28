@@ -4,7 +4,9 @@
 //! without its method attached is the failure this package exists to make impossible, so
 //! reaching the bare value is an explicit `.value`.
 
-use plateforce_core::{Exclusions as CoreExclusions, Measured as CoreMeasured, Provenance as CoreProvenance};
+use plateforce_core::{
+    Exclusions as CoreExclusions, Measured as CoreMeasured, Provenance as CoreProvenance,
+};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
@@ -47,7 +49,12 @@ impl ProvenanceChain {
     }
 }
 
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Provenance")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "Provenance"
+)]
 #[derive(Clone)]
 pub struct Provenance {
     pub(crate) chain: ProvenanceChain,
@@ -236,10 +243,7 @@ impl Measured {
 
     /// Multi-line account of the value and every choice behind it, upstream steps included.
     fn describe(&self) -> String {
-        let mut lines = vec![format!(
-            "{} {}",
-            self.inner.value, self.inner.unit
-        )];
+        let mut lines = vec![format!("{} {}", self.inner.value, self.inner.unit)];
         describe_chain(&self.chain(), 0, &mut lines);
         if !self.inner.provenance.acquisition_complete {
             lines.push(
@@ -300,7 +304,12 @@ fn registry_line(provenance: &CoreProvenance) -> Option<String> {
 }
 
 /// What a step dropped, and under which rule.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Exclusions")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "Exclusions"
+)]
 #[derive(Clone)]
 pub struct Exclusions {
     pub(crate) inner: CoreExclusions,
