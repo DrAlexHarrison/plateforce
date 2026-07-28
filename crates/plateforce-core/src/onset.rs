@@ -440,7 +440,7 @@ mod tests {
 
     fn quiet_then_unload() -> Vec<f64> {
         let mut signal = vec![600.0; 1000];
-        signal.extend(std::iter::repeat(400.0).take(500));
+        signal.extend(std::iter::repeat_n(400.0, 500));
         signal
     }
 
@@ -448,7 +448,7 @@ mod tests {
     fn persistence_rejects_a_single_sample_spike() {
         let mut signal = vec![600.0; 1000];
         signal[300] = 100.0;
-        signal.extend(std::iter::repeat(400.0).take(500));
+        signal.extend(std::iter::repeat_n(400.0, 500));
         let band = ExcursionBand::below(500.0);
         let brief = sustained_excursion(
             &signal,
@@ -506,7 +506,7 @@ mod tests {
     fn a_two_sided_band_catches_a_preload_that_a_one_sided_band_misses() {
         let mut signal = vec![600.0; 1000];
         signal[400] = 700.0;
-        signal.extend(std::iter::repeat(400.0).take(500));
+        signal.extend(std::iter::repeat_n(400.0, 500));
         let search = CrossingSearch {
             start_index: 0,
             end_index: signal.len(),
@@ -528,7 +528,7 @@ mod tests {
     fn the_two_readings_of_one_rule_split_on_a_noise_excursion() {
         let mut signal = vec![600.0; 1000];
         signal[300] = 520.0;
-        signal.extend(std::iter::repeat(400.0).take(500));
+        signal.extend(std::iter::repeat_n(400.0, 500));
         let trough = signal.len() - 1;
         let forward = onset_noise_relative(
             &signal,
@@ -567,7 +567,7 @@ mod tests {
     fn persistence_brings_the_forward_reading_back_to_the_backward_one() {
         let mut signal = vec![600.0; 1000];
         signal[300] = 520.0;
-        signal.extend(std::iter::repeat(400.0).take(500));
+        signal.extend(std::iter::repeat_n(400.0, 500));
         let forward = onset_noise_relative(
             &signal,
             600.0,
@@ -593,7 +593,7 @@ mod tests {
     #[test]
     fn a_quiet_window_with_no_noise_collapses_the_band_and_is_named_as_such() {
         let mut signal = vec![600.0; 1000];
-        signal.extend(std::iter::repeat(400.0).take(500));
+        signal.extend(std::iter::repeat_n(400.0, 500));
         let search = CrossingSearch {
             start_index: 0,
             end_index: signal.len(),

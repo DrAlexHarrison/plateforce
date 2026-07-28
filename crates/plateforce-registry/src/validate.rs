@@ -1,6 +1,5 @@
 //! The eight rules from `docs/schema.md`, enforced rather than documented.
 
-use std::collections::BTreeSet;
 use std::fmt;
 
 use crate::schema::*;

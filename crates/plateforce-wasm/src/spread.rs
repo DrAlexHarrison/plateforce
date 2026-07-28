@@ -274,8 +274,8 @@ mod tests {
         }
         force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
         force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
-        force.extend(std::iter::repeat(0.0).take(600));
-        force.extend(std::iter::repeat(1400.0).take(240));
+        force.extend(std::iter::repeat_n(0.0, 600));
+        force.extend(std::iter::repeat_n(1400.0, 240));
         Trial::new(force, 1200.0).unwrap()
     }
 

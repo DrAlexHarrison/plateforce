@@ -251,8 +251,8 @@ mod tests {
         let push_samples = (push_seconds * sample_rate_hz) as usize;
 
         let mut force = vec![weight; quiet_samples];
-        force.extend(std::iter::repeat(weight + net_force_newtons).take(push_samples));
-        force.extend(std::iter::repeat(0.0).take((0.5 * sample_rate_hz) as usize));
+        force.extend(std::iter::repeat_n(weight + net_force_newtons, push_samples));
+        force.extend(std::iter::repeat_n(0.0, (0.5 * sample_rate_hz) as usize));
 
         // The trapezoid spans one interval fewer than it has samples.
         let spanned_seconds = (push_samples - 1) as f64 / sample_rate_hz;
@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn a_window_anchored_late_weighs_the_samples_under_it() {
         let mut force = vec![600.0; 1200];
-        force.extend(std::iter::repeat(900.0).take(1200));
+        force.extend(std::iter::repeat_n(900.0, 1200));
         let trial = Trial::new(force, 1200.0).unwrap();
         let early = WeighingEpoch::window(
             &trial,

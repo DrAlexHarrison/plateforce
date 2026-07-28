@@ -154,7 +154,7 @@ mod tests {
     #[test]
     fn a_fallback_velocity_zero_is_flagged_as_not_a_crossing() {
         let mut velocity: Vec<f64> = (0..200).map(|i| -(i as f64) / 100.0).collect();
-        velocity.extend(std::iter::repeat(-2.0).take(50));
+        velocity.extend(std::iter::repeat_n(-2.0, 50));
         let never_returns = velocity_zero_crossing(&velocity, 0, velocity.len()).unwrap();
         assert!(!never_returns.is_true_crossing, "a fall that never returns reported a crossing");
 

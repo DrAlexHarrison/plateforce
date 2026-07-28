@@ -299,11 +299,11 @@ mod tests {
     /// a longer unloaded stretch after the athlete steps off.
     fn untrimmed_recording() -> Vec<f64> {
         let mut signal = vec![600.0; 1000];
-        signal.extend(std::iter::repeat(0.0).take(20));
-        signal.extend(std::iter::repeat(600.0).take(200));
-        signal.extend(std::iter::repeat(0.0).take(400));
-        signal.extend(std::iter::repeat(600.0).take(300));
-        signal.extend(std::iter::repeat(0.0).take(900));
+        signal.extend(std::iter::repeat_n(0.0, 20));
+        signal.extend(std::iter::repeat_n(600.0, 200));
+        signal.extend(std::iter::repeat_n(0.0, 400));
+        signal.extend(std::iter::repeat_n(600.0, 300));
+        signal.extend(std::iter::repeat_n(0.0, 900));
         signal
     }
 
@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn a_negative_reading_on_an_unloaded_plate_splits_the_two_comparisons() {
         let mut signal = vec![600.0; 100];
-        signal.extend(std::iter::repeat(-15.0).take(200));
+        signal.extend(std::iter::repeat_n(-15.0, 200));
         let signed = takeoff_first_sustained_run(
             &signal,
             10.0,
@@ -367,10 +367,10 @@ mod tests {
     #[test]
     fn short_run_handling_changes_whether_the_trial_is_usable_at_all() {
         let mut signal = vec![600.0; 100];
-        signal.extend(std::iter::repeat(0.0).take(30));
-        signal.extend(std::iter::repeat(600.0).take(100));
-        signal.extend(std::iter::repeat(0.0).take(25));
-        signal.extend(std::iter::repeat(600.0).take(100));
+        signal.extend(std::iter::repeat_n(0.0, 30));
+        signal.extend(std::iter::repeat_n(600.0, 100));
+        signal.extend(std::iter::repeat_n(0.0, 25));
+        signal.extend(std::iter::repeat_n(600.0, 100));
         let ranked = takeoff_longest_run(
             &signal,
             20.0,

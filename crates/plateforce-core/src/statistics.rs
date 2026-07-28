@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn compensated_summation_beats_the_naive_loop_on_a_hostile_sequence() {
         let mut values = vec![1.0e16, 1.0];
-        values.extend(std::iter::repeat(1.0).take(9));
+        values.extend(std::iter::repeat_n(1.0, 9));
         let naive: f64 = values.iter().sum();
         assert_eq!(naive, 1.0e16);
         assert_eq!(compensated_sum(&values), 1.0e16 + 10.0);
@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn a_tie_reports_the_span_of_weights_it_could_have_returned() {
         let mut values = vec![600.0; 12];
-        values.extend(std::iter::repeat(605.0).take(12));
+        values.extend(std::iter::repeat_n(605.0, 12));
         let found =
             lowest_variance_window(&values, 6, None, VarianceAccumulation::TwoPass).unwrap();
         assert_eq!(found.tied_weight_low_newtons, 600.0);
@@ -371,7 +371,7 @@ mod tests {
     #[test]
     fn the_low_force_floor_keeps_the_flight_phase_out_of_the_weighing_window() {
         let mut values: Vec<f64> = (0..40).map(|i| 600.0 + (i % 3) as f64).collect();
-        values.extend(std::iter::repeat(0.0).take(40));
+        values.extend(std::iter::repeat_n(0.0, 40));
         let unfiltered =
             lowest_variance_window(&values, 10, None, VarianceAccumulation::TwoPass).unwrap();
         let filtered =

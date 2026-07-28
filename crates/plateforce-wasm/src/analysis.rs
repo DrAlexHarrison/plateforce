@@ -957,8 +957,8 @@ mod tests {
         }
         force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
         force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
-        force.extend(std::iter::repeat(0.0).take(600));
-        force.extend(std::iter::repeat(1400.0).take(240));
+        force.extend(std::iter::repeat_n(0.0, 600));
+        force.extend(std::iter::repeat_n(1400.0, 240));
         Trial::new(force, 1200.0).unwrap()
     }
 
@@ -1052,9 +1052,9 @@ mod tests {
 
     fn two_flight_phases() -> Trial {
         let mut force = vec![600.0; 1200];
-        force.extend(std::iter::repeat(0.0).take(400));
-        force.extend(std::iter::repeat(600.0).take(300));
-        force.extend(std::iter::repeat(0.0).take(1200));
+        force.extend(std::iter::repeat_n(0.0, 400));
+        force.extend(std::iter::repeat_n(600.0, 300));
+        force.extend(std::iter::repeat_n(0.0, 1200));
         Trial::new(force, 1200.0).unwrap()
     }
 
