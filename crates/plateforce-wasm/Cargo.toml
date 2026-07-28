@@ -16,12 +16,16 @@ plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 serde = { workspace = true }
 serde_json = "1"
-toml = { workspace = true }
 
 # Exact, because the generated bindings only load against the matching wasm-bindgen CLI,
 # and `pages.yml` reads this line to install it. No feature selected here pulls in threads:
 # the browser build has to stay servable from static hosting with no isolation headers.
 wasm-bindgen = { version = "=0.2.117", default-features = false, features = ["std"] }
+
+# The build script walks and assembles the registry through the same crate the desktop
+# loader uses, so what it embeds cannot drift from what a directory would load.
+[build-dependencies]
+plateforce-registry = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ["wasm32-unknown-unknown"]
