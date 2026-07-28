@@ -6,6 +6,8 @@
 
 use std::process::ExitCode;
 
+use plateforce_registry::{Citation, CitationRole, Method, Protocol, Provenance, Registry};
+
 const USAGE: &str = "\
 plateforce - force-plate analysis with a method registry
 
@@ -15,19 +17,36 @@ USAGE:
 COMMANDS:
     registry census      count the registry, per population, with denominators
     registry validate    load the registry and report every rule violation
-    registry show <ID>   print one entry, its citations, bias and known failures
+    registry show <ID>   print one method or protocol entry in full
     version              print the version
 
 OPTIONS:
     --registry <DIR>     path to the registry directory (default: ./registry)
 ";
 
+const DEFAULT_REGISTRY_DIRECTORY: &str = "registry";
+
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
-    let words: Vec<&str> = arguments.iter().map(String::as_str).collect();
+    let (registry_directory, words) = match split_off_registry_directory(&arguments) {
+        Ok(split) => split,
+        Err(message) => {
+            eprintln!("plateforce: {message}");
+            return ExitCode::FAILURE;
+        }
+    };
 
     match words.as_slice() {
-        [] | ["-h"] | ["--help"] | ["help"] => {
+        [] if arguments.is_empty() => {
+            print!("{USAGE}");
+            ExitCode::SUCCESS
+        }
+        [] => {
+            eprintln!("plateforce: needs a command");
+            eprint!("{USAGE}");
+            ExitCode::FAILURE
+        }
+        ["-h"] | ["--help"] | ["help"] => {
             print!("{USAGE}");
             ExitCode::SUCCESS
         }
@@ -35,13 +54,7 @@ fn main() -> ExitCode {
             println!("plateforce {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
-        ["registry", rest @ ..] => match registry_path(&arguments) {
-            Ok(path) => registry_command(rest, &path),
-            Err(message) => {
-                eprintln!("plateforce: {message}");
-                ExitCode::FAILURE
-            }
-        },
+        ["registry", rest @ ..] => registry_command(rest, registry_directory),
         other => {
             eprintln!("plateforce: unknown command: {}", other.join(" "));
             eprint!("{USAGE}");
@@ -50,31 +63,55 @@ fn main() -> ExitCode {
     }
 }
 
-/// A flag whose value went missing must not resolve itself to the default, quietly, in
-/// the tool that exists to document what silent defaults cost.
-fn registry_path(arguments: &[String]) -> Result<String, String> {
-    let Some(flag) = arguments.iter().position(|argument| argument == "--registry") else {
-        return Ok("registry".to_string());
-    };
-    match arguments.get(flag + 1) {
-        Some(path) if !path.starts_with('-') => Ok(path.clone()),
-        _ => Err("--registry needs the path to a registry directory".to_string()),
+/// Takes `--registry <DIR>` out of the line wherever it appears, so a reader who writes the
+/// flag before the entry id means what a reader who writes it after means.
+///
+/// A flag whose value went missing must not resolve itself to the default, quietly, in the
+/// tool that exists to document what silent defaults cost. Two of them naming two
+/// directories must not resolve to whichever came last either.
+fn split_off_registry_directory(arguments: &[String]) -> Result<(&str, Vec<&str>), String> {
+    let mut directory: Option<&str> = None;
+    let mut words: Vec<&str> = Vec::new();
+    let mut index = 0;
+
+    while index < arguments.len() {
+        if arguments[index] != "--registry" {
+            words.push(&arguments[index]);
+            index += 1;
+            continue;
+        }
+        if directory.is_some() {
+            return Err("--registry was given more than once".to_string());
+        }
+        match arguments.get(index + 1) {
+            Some(value) if !value.starts_with('-') => directory = Some(value),
+            _ => return Err("--registry needs the path to a registry directory".to_string()),
+        }
+        index += 2;
     }
+
+    Ok((directory.unwrap_or(DEFAULT_REGISTRY_DIRECTORY), words))
 }
 
-fn registry_command(words: &[&str], path: &str) -> ExitCode {
-    let loaded = plateforce_registry::Registry::load(path);
+fn registry_command(words: &[&str], directory: &str) -> ExitCode {
+    let registry = match Registry::load(directory) {
+        Ok(registry) => registry,
+        Err(error) => {
+            eprintln!("plateforce: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
 
-    match (words.first(), loaded) {
-        (Some(&"validate"), Ok(registry)) => {
+    match words {
+        ["validate"] => {
             let census = registry.census();
             println!(
-                "registry at {path} is valid: {} computation entries, {} protocol entries, {} constructs",
+                "registry at {directory} is valid: {} computation entries, {} protocol entries, {} constructs",
                 census.computation_entries, census.protocol_entries, census.constructs
             );
             ExitCode::SUCCESS
         }
-        (Some(&"census"), Ok(registry)) => {
+        ["census"] => {
             let census = registry.census();
             // Populations are reported apart and never summed. Both of this project's
             // headline counts were assertions until somebody recounted them.
@@ -91,37 +128,53 @@ fn registry_command(words: &[&str], path: &str) -> ExitCode {
             );
             ExitCode::SUCCESS
         }
-        (Some(&"show"), Ok(registry)) => match words.get(1) {
-            None => {
-                eprintln!("plateforce: registry show needs an entry id");
-                ExitCode::FAILURE
-            }
-            Some(id) => match registry.methods.get(*id) {
-                Some(method) => {
-                    show_method(method);
-                    ExitCode::SUCCESS
-                }
-                None => {
-                    eprintln!("plateforce: no entry with id {id}");
-                    ExitCode::FAILURE
-                }
-            },
-        },
-        (_, Err(error)) => {
-            eprintln!("plateforce: {error}");
+        ["show", id] => show_entry(&registry, id),
+        ["show"] => {
+            eprintln!("plateforce: registry show needs an entry id");
             ExitCode::FAILURE
         }
-        (None, Ok(_)) => {
+        // A word the command has no use for is dropped by a tool that reads only as far as
+        // it needs to, and a second entry id looks exactly like that.
+        ["show", _, extra @ ..] => {
+            eprintln!(
+                "plateforce: registry show takes one entry id, so {} is left over",
+                extra.join(" ")
+            );
+            ExitCode::FAILURE
+        }
+        [command @ ("validate" | "census"), extra @ ..] => {
+            eprintln!(
+                "plateforce: registry {command} takes no entry id, so {} is left over",
+                extra.join(" ")
+            );
+            ExitCode::FAILURE
+        }
+        [] => {
             eprintln!("plateforce: registry needs a command");
             eprint!("{USAGE}");
             ExitCode::FAILURE
         }
-        (Some(command), Ok(_)) => {
+        [command, ..] => {
             eprintln!("plateforce: unknown registry command: {command}");
             eprint!("{USAGE}");
             ExitCode::FAILURE
         }
     }
+}
+
+/// The registry holds two populations, and an id belongs to one of them: the validator
+/// refuses a registry where the same id appears in both.
+fn show_entry(registry: &Registry, id: &str) -> ExitCode {
+    if let Some(method) = registry.methods.get(id) {
+        show_method(method);
+        return ExitCode::SUCCESS;
+    }
+    if let Some(protocol) = registry.protocols.get(id) {
+        show_protocol(protocol);
+        return ExitCode::SUCCESS;
+    }
+    eprintln!("plateforce: no entry with id {id}");
+    ExitCode::FAILURE
 }
 
 /// TOML floats carry a decimal point and `f64`'s Display drops it on a whole number, so
@@ -134,7 +187,46 @@ fn join_numbers(values: &[f64]) -> String {
         .join(", ")
 }
 
-fn show_method(method: &plateforce_registry::Method) {
+fn provenance_as_registry_spells_it(provenance: Provenance) -> &'static str {
+    match provenance {
+        Provenance::Published => "published",
+        Provenance::ObservedFromCode => "observed_from_code",
+        Provenance::VendorDocumented => "vendor_documented",
+    }
+}
+
+fn citation_role_as_registry_spells_it(role: CitationRole) -> &'static str {
+    match role {
+        CitationRole::Proposes => "proposes",
+        CitationRole::Uses => "uses",
+        CitationRole::Evaluates => "evaluates",
+        CitationRole::Disputes => "disputes",
+    }
+}
+
+fn show_citations(citations: &[Citation]) {
+    for citation in citations {
+        let doi = citation
+            .doi
+            .as_ref()
+            .map(|doi| format!(", doi {doi}"))
+            .unwrap_or_default();
+        // An unobtained source bars an entry from `recommended`, so it travels with the row.
+        let obtained = if citation.obtained {
+            ""
+        } else {
+            ", source not obtained"
+        };
+        println!(
+            "  citation    {} ({}) {}{doi}{obtained}",
+            citation.key,
+            citation_role_as_registry_spells_it(citation.role),
+            citation.reference,
+        );
+    }
+}
+
+fn show_method(method: &Method) {
     println!("{}", method.id);
     println!("  title       {}", method.title);
     println!("  construct   {}", method.construct);
@@ -181,5 +273,71 @@ fn show_method(method: &plateforce_registry::Method) {
             failure.corpus
         );
         println!("              {}", failure.definition);
+    }
+    show_citations(&method.citations);
+}
+
+/// A protocol entry carries no rule, no parameters and no bias, so a method-shaped block
+/// with those lines blank would report absent fields as empty ones.
+fn show_protocol(protocol: &Protocol) {
+    println!("{}", protocol.id);
+    println!("  title       {}", protocol.title);
+    println!("  area        {}", protocol.area);
+    println!("  provenance  {}", provenance_as_registry_spells_it(protocol.provenance));
+    println!("  description {}", protocol.description.trim());
+    for affected in &protocol.affects {
+        println!("  affects     {affected}");
+    }
+    show_citations(&protocol.citations);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn split(line: &[&str]) -> Result<(String, Vec<String>), String> {
+        let arguments: Vec<String> = line.iter().map(|word| word.to_string()).collect();
+        split_off_registry_directory(&arguments).map(|(directory, words)| {
+            (
+                directory.to_string(),
+                words.into_iter().map(str::to_string).collect(),
+            )
+        })
+    }
+
+    /// Where the flag sits is the difference between an entry id and a directory path
+    /// being read as the same word, which is the confusing failure this ordering removes.
+    #[test]
+    fn the_flag_means_the_same_thing_wherever_it_sits() {
+        let expected = Ok((
+            "elsewhere".to_string(),
+            vec!["registry".to_string(), "show".to_string(), "an.id".to_string()],
+        ));
+        assert_eq!(split(&["registry", "show", "an.id", "--registry", "elsewhere"]), expected);
+        assert_eq!(split(&["registry", "show", "--registry", "elsewhere", "an.id"]), expected);
+        assert_eq!(split(&["registry", "--registry", "elsewhere", "show", "an.id"]), expected);
+        assert_eq!(split(&["--registry", "elsewhere", "registry", "show", "an.id"]), expected);
+    }
+
+    #[test]
+    fn no_flag_reads_the_default_directory() {
+        let (directory, words) = split(&["registry", "census"]).unwrap();
+        assert_eq!(directory, DEFAULT_REGISTRY_DIRECTORY);
+        assert_eq!(words, vec!["registry".to_string(), "census".to_string()]);
+    }
+
+    #[test]
+    fn a_flag_with_no_value_is_refused_rather_than_resolved_to_the_default() {
+        assert!(split(&["registry", "show", "an.id", "--registry"]).is_err());
+        assert!(split(&["registry", "show", "--registry", "--verbose"]).is_err());
+        assert!(split(&["--registry"]).is_err());
+    }
+
+    /// Two directories on one line is a question, and answering it with whichever came
+    /// last is the silent choice this tool exists to make visible.
+    #[test]
+    fn two_registries_on_one_line_are_refused() {
+        assert!(split(&["--registry", "here", "registry", "census", "--registry", "there"]).is_err());
+        assert!(split(&["--registry", "here", "--registry", "here"]).is_err());
     }
 }
