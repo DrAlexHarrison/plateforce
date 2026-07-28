@@ -268,6 +268,24 @@ impl<'a> Resolution<'a> {
         value
     }
 
+    /// `onset.op.direction`, in the vocabulary the registry publishes for it. A
+    /// countermovement jump always unweights first, and counting a departure in either
+    /// direction lets the upward excursion of rising onto the toes register as onset: net
+    /// impulse ICC 0.479 either-direction against 0.790 below-only.
+    fn direction(&mut self) -> Result<OnsetDirection, String> {
+        match self.option("direction", "below_only").as_str() {
+            "below_only" => Ok(OnsetDirection::BelowOnly),
+            "two_sided" => Ok(OnsetDirection::TwoSided),
+            "above_only" => Err("onset.op.direction(above_only) counts departures above the \
+                 reference, and a countermovement jump unweights first, so its onset is \
+                 below_only or two_sided"
+                .to_string()),
+            other => Err(format!(
+                "onset.op.direction({other}) is not one of below_only, above_only, two_sided"
+            )),
+        }
+    }
+
     fn dispersion(&mut self) -> DispersionEstimator {
         match self.option("dispersion", "sample").as_str() {
             "population" => DispersionEstimator::Population,
@@ -303,6 +321,15 @@ fn format_number(value: f64) -> String {
     } else {
         format!("{value}")
     }
+}
+
+/// Which sign of departure from the reference counts as onset. `above_only` is a genuine
+/// fork for a squat jump or an isometric pull, which only rise, and is refused here rather
+/// than mapped onto a neighbour.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OnsetDirection {
+    BelowOnly,
+    TwoSided,
 }
 
 fn dispersion_label(dispersion: DispersionEstimator) -> &'static str {
@@ -627,14 +654,20 @@ fn resolve_onset(
         "onset.threshold.absolute_force" => {
             let search = onset_search(trial, epoch, &mut resolved);
             let departure_newtons = resolved.number("threshold_n", 20.0);
-            let band = match resolved.option("direction", "below").as_str() {
-                "both" => ExcursionBand::centred(epoch.system_weight_newtons, departure_newtons),
-                _ => ExcursionBand::below(epoch.system_weight_newtons - departure_newtons),
-            };
-            sustained_excursion(force, &band, &search).ok_or_else(|| {
-                format!(
-                    "onset.threshold.absolute_force(threshold_n = {departure_newtons}) found no crossing"
-                )
+            resolved.direction().and_then(|direction| {
+                let band = match direction {
+                    OnsetDirection::TwoSided => {
+                        ExcursionBand::centred(epoch.system_weight_newtons, departure_newtons)
+                    }
+                    OnsetDirection::BelowOnly => {
+                        ExcursionBand::below(epoch.system_weight_newtons - departure_newtons)
+                    }
+                };
+                sustained_excursion(force, &band, &search).ok_or_else(|| {
+                    format!(
+                        "onset.threshold.absolute_force(threshold_n = {departure_newtons}) found no crossing"
+                    )
+                })
             })
         }
 
@@ -677,10 +710,7 @@ fn resolve_onset(
             let search = onset_search(trial, epoch, &mut resolved);
             let k = resolved.number("k", 5.0);
             record_inherited_spread(&mut resolved, inherited_spread);
-            let sides = match resolved.option("direction", "both").as_str() {
-                "below" => BandSides::BelowOnly,
-                _ => BandSides::BothSides,
-            };
+            let direction = resolved.direction();
             // Refuse rather than substitute. A collapsed band means the window the rule
             // assumed was quiet was not, and a silent fallback would hide that.
             let degenerate_band = match resolved.stated("degenerate_fraction") {
@@ -693,17 +723,23 @@ fn resolve_onset(
                     DegenerateBandPolicy::Refuse
                 }
             };
-            onset_noise_relative(
-                force,
-                epoch.system_weight_newtons,
-                epoch.standard_deviation_newtons,
-                k,
-                sides,
-                degenerate_band,
-                &search,
-                rate,
-            )
-            .map_err(|e| e.to_string())
+            direction.and_then(|direction| {
+                let sides = match direction {
+                    OnsetDirection::BelowOnly => BandSides::BelowOnly,
+                    OnsetDirection::TwoSided => BandSides::BothSides,
+                };
+                onset_noise_relative(
+                    force,
+                    epoch.system_weight_newtons,
+                    epoch.standard_deviation_newtons,
+                    k,
+                    sides,
+                    degenerate_band,
+                    &search,
+                    rate,
+                )
+                .map_err(|e| e.to_string())
+            })
         }
 
         other => Err(unbound_method_message(other, "onset")),
@@ -1277,8 +1313,8 @@ mod tests {
     const ONSET_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
         ("noise_relative bare", "onset.threshold.noise_relative", &[], &[]),
         ("noise_relative k", "onset.threshold.noise_relative", &[("k", 2.0)], &[]),
-        ("noise_relative direction below", "onset.threshold.noise_relative", &[], &[("direction", "below")]),
-        ("noise_relative direction both", "onset.threshold.noise_relative", &[], &[("direction", "both")]),
+        ("noise_relative direction below_only", "onset.threshold.noise_relative", &[], &[("direction", "below_only")]),
+        ("noise_relative direction two_sided", "onset.threshold.noise_relative", &[], &[("direction", "two_sided")]),
         ("noise_relative selection last", "onset.threshold.noise_relative", &[], &[("crossing_selection", "last")]),
         ("noise_relative selection first", "onset.threshold.noise_relative", &[], &[("crossing_selection", "first")]),
         ("noise_relative persistence", "onset.threshold.noise_relative", &[("span_ms", 10.0)], &[]),
@@ -1295,7 +1331,7 @@ mod tests {
                 ("offset_ms", 20.0),
                 ("degenerate_fraction", 0.1),
             ],
-            &[("direction", "below"), ("crossing_selection", "last")],
+            &[("direction", "below_only"), ("crossing_selection", "last")],
         ),
         ("noise_relative names another rule carries", "onset.threshold.noise_relative", &[("threshold_n", 50.0), ("pct", 1.0)], &[]),
         ("relative_to_system_weight bare", "onset.threshold.relative_to_system_weight", &[], &[]),
@@ -1310,13 +1346,13 @@ mod tests {
         ("absolute_force bare", "onset.threshold.absolute_force", &[], &[]),
         ("absolute_force threshold", "onset.threshold.absolute_force", &[("threshold_n", 50.0)], &[]),
         ("absolute_force superseded spelling", "onset.threshold.absolute_force", &[("threshold_newtons", 50.0)], &[]),
-        ("absolute_force direction both", "onset.threshold.absolute_force", &[], &[("direction", "both")]),
-        ("absolute_force direction below", "onset.threshold.absolute_force", &[], &[("direction", "below")]),
+        ("absolute_force direction two_sided", "onset.threshold.absolute_force", &[], &[("direction", "two_sided")]),
+        ("absolute_force direction below_only", "onset.threshold.absolute_force", &[], &[("direction", "below_only")]),
         (
             "absolute_force every value stated",
             "onset.threshold.absolute_force",
             &[("threshold_n", 40.0), ("floor_seconds", 0.82), ("span_ms", 6.0), ("offset_ms", 40.0)],
-            &[("direction", "both"), ("crossing_selection", "last")],
+            &[("direction", "two_sided"), ("crossing_selection", "last")],
         ),
         ("last_within_band bare", "onset.threshold.last_within_band", &[], &[]),
         ("last_within_band k", "onset.threshold.last_within_band", &[("k", 3.0)], &[]),
@@ -1343,13 +1379,13 @@ mod tests {
 
     const BUMP_ONSET_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
         ("absolute_force bare", "onset.threshold.absolute_force", &[], &[]),
-        ("absolute_force direction below", "onset.threshold.absolute_force", &[], &[("direction", "below")]),
-        ("absolute_force direction both", "onset.threshold.absolute_force", &[], &[("direction", "both")]),
-        ("absolute_force both and last", "onset.threshold.absolute_force", &[], &[("direction", "both"), ("crossing_selection", "last")]),
+        ("absolute_force direction below_only", "onset.threshold.absolute_force", &[], &[("direction", "below_only")]),
+        ("absolute_force direction two_sided", "onset.threshold.absolute_force", &[], &[("direction", "two_sided")]),
+        ("absolute_force both and last", "onset.threshold.absolute_force", &[], &[("direction", "two_sided"), ("crossing_selection", "last")]),
         ("noise_relative bare", "onset.threshold.noise_relative", &[], &[]),
-        ("noise_relative direction below", "onset.threshold.noise_relative", &[], &[("direction", "below")]),
-        ("noise_relative direction both", "onset.threshold.noise_relative", &[], &[("direction", "both")]),
-        ("noise_relative persistence", "onset.threshold.noise_relative", &[("span_ms", 200.0)], &[("direction", "both")]),
+        ("noise_relative direction below_only", "onset.threshold.noise_relative", &[], &[("direction", "below_only")]),
+        ("noise_relative direction two_sided", "onset.threshold.noise_relative", &[], &[("direction", "two_sided")]),
+        ("noise_relative persistence", "onset.threshold.noise_relative", &[("span_ms", 200.0)], &[("direction", "two_sided")]),
         ("relative_to_system_weight bare", "onset.threshold.relative_to_system_weight", &[], &[]),
         ("last_within_band bare", "onset.threshold.last_within_band", &[], &[]),
         ("adaptive_trailing_window bare", "onset.threshold.adaptive_trailing_window", &[], &[]),

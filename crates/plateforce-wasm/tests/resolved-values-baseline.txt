@@ -38,7 +38,7 @@ case onset noise_relative k on synthetic
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
   method takeoff.threshold.absolute_force backed false override false
-case onset noise_relative direction below on synthetic
+case onset noise_relative direction below_only on synthetic
   window 0..960
   onset Some(1176)
   takeoff Some(1920)
@@ -58,7 +58,7 @@ case onset noise_relative direction below on synthetic
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
   method takeoff.threshold.absolute_force backed false override false
-case onset noise_relative direction both on synthetic
+case onset noise_relative direction two_sided on synthetic
   window 0..960
   onset Some(1176)
   takeoff Some(1920)
@@ -80,13 +80,13 @@ case onset noise_relative direction both on synthetic
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative selection last on synthetic
   window 0..960
-  onset Some(2723)
+  onset Some(2483)
   takeoff Some(1920)
   touchdown Some(2520)
   levels 599.985 1.9610662971704482 Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(2.269166666666667)
+  metric onset_time_seconds Some(2.069166666666667)
   metric takeoff_time_seconds Some(1.6)
   metric time_to_takeoff_seconds None
   metric flight_time_seconds None
@@ -381,7 +381,7 @@ case onset absolute_force superseded spelling on synthetic
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
   method takeoff.threshold.absolute_force backed false override false
-case onset absolute_force direction both on synthetic
+case onset absolute_force direction two_sided on synthetic
   window 0..960
   onset Some(1189)
   takeoff Some(1920)
@@ -401,7 +401,7 @@ case onset absolute_force direction both on synthetic
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
   method takeoff.threshold.absolute_force backed false override false
-case onset absolute_force direction below on synthetic
+case onset absolute_force direction below_only on synthetic
   window 0..960
   onset Some(1189)
   takeoff Some(1920)
@@ -1625,7 +1625,7 @@ case bump onset absolute_force bare on pre_movement_bump
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
   method takeoff.threshold.absolute_force backed false override false
-case bump onset absolute_force direction below on pre_movement_bump
+case bump onset absolute_force direction below_only on pre_movement_bump
   window 0..960
   onset Some(1349)
   takeoff Some(2080)
@@ -1645,7 +1645,7 @@ case bump onset absolute_force direction below on pre_movement_bump
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
   method takeoff.threshold.absolute_force backed false override false
-case bump onset absolute_force direction both on pre_movement_bump
+case bump onset absolute_force direction two_sided on pre_movement_bump
   window 0..960
   onset Some(964)
   takeoff Some(2080)
@@ -1688,25 +1688,25 @@ case bump onset absolute_force both and last on pre_movement_bump
   warning onset is at or after takeoff, so every interval below is meaningless
 case bump onset noise_relative bare on pre_movement_bump
   window 0..960
-  onset Some(964)
+  onset Some(1336)
   takeoff Some(2080)
   touchdown Some(2680)
   levels 599.985 1.9610662971704482 Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(0.8033333333333333)
+  metric onset_time_seconds Some(1.1133333333333335)
   metric takeoff_time_seconds Some(1.7333333333333334)
-  metric time_to_takeoff_seconds Some(0.93)
+  metric time_to_takeoff_seconds Some(0.62)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(0.8543057663357091)
-  metric net_impulse_newton_seconds Some(52.26765972222221)
-  metric jump_height_from_takeoff_meters Some(0.037211399529627515)
+  metric takeoff_velocity_meters_per_second Some(0.7234330226740621)
+  metric net_impulse_newton_seconds Some(44.26067638888888)
+  metric jump_height_from_takeoff_meters Some(0.026683696180414822)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.04001225755873926)
+  metric reactive_strength_index_modified Some(0.04303821964583036)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
   method takeoff.threshold.absolute_force backed false override false
-case bump onset noise_relative direction below on pre_movement_bump
+case bump onset noise_relative direction below_only on pre_movement_bump
   window 0..960
   onset Some(1336)
   takeoff Some(2080)
@@ -1726,7 +1726,7 @@ case bump onset noise_relative direction below on pre_movement_bump
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
   method takeoff.threshold.absolute_force backed false override false
-case bump onset noise_relative direction both on pre_movement_bump
+case bump onset noise_relative direction two_sided on pre_movement_bump
   window 0..960
   onset Some(964)
   takeoff Some(2080)
