@@ -65,7 +65,7 @@ registry/   method definitions as data: rule, citation, status, bias, parameters
 crates/     the Rust workspace: registry, core maths, CLI, conformance, wasm, python
 web/        the browser interface that the wasm build drives
 docs/       method rulings, schema, and the reasoning behind both
-audit/      the script that recomputes every number quoted in this README
+audit/      the script that recomputes the spreads, failure rates and sentinel effects above
 ```
 
 ## Contributing
