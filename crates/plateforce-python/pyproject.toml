@@ -46,7 +46,10 @@ test-requires = ["pytest", "numpy"]
 test-command = "pytest {project}/crates/plateforce-python/tests"
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64", "aarch64"]
+# Native only, as on macOS. Naming both architectures here builds the other one under QEMU
+# on whichever runner picks the file up, which takes tens of minutes to produce a wheel the
+# sibling job already built. The runner matrix names the set that ships.
+archs = ["auto"]
 # The manylinux images carry no Rust toolchain.
 before-all = "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable"
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
