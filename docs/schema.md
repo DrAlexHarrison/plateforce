@@ -15,8 +15,12 @@ registry/
   constructs.toml          what is being measured, above the methods that measure it
   methods/<group>.toml     computation entries, one file per registry group
   protocols/<area>.toml    protocol entries, their own namespace and denominator
-  instruments.toml         devices, their disclosed behaviour, and their biases
 ```
+
+`methods/` and `protocols/` are walked to the bottom, so a group may grow subdirectories
+without a code change. A `.toml` anywhere else under the root belongs to no population and is
+refused by name, because a method file dropped in the wrong place would otherwise contain
+entries that silently do not exist.
 
 ## A construct sits above a method
 
@@ -223,3 +227,18 @@ Validation is not advisory. A registry that fails these does not load.
 7. A `method.failure` with a `rate` must carry both `numerator` and `denominator`.
 8. Counts are reported per population. Computation and protocol totals are never summed
    into a single number.
+
+## What the loader refuses before it validates
+
+A registry has to exist and describe itself before its entries can be judged. These refusals
+are the same code on every surface, so the browser cannot assemble a file set the desktop
+would reject.
+
+1. A root that is absent, or is not a directory. An empty load reports three zeros and no
+   violations, which reads as a registry that passed.
+2. A root holding no methods. A sparse checkout or a `methods/` directory that failed to sync
+   reaches that state.
+3. Two entries carrying one id. Inserting into a map means the second replaces the first, so
+   a census of surviving keys stops being a census of what the files declare.
+4. A `.toml` no population owns.
+5. A symlink under the root that leads back to a directory already being walked.
