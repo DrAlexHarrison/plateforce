@@ -35,7 +35,13 @@ fn main() -> ExitCode {
             println!("plateforce {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
-        ["registry", rest @ ..] => registry_command(rest, &registry_path(&arguments)),
+        ["registry", rest @ ..] => match registry_path(&arguments) {
+            Ok(path) => registry_command(rest, &path),
+            Err(message) => {
+                eprintln!("plateforce: {message}");
+                ExitCode::FAILURE
+            }
+        },
         other => {
             eprintln!("plateforce: unknown command: {}", other.join(" "));
             eprint!("{USAGE}");
@@ -44,13 +50,16 @@ fn main() -> ExitCode {
     }
 }
 
-fn registry_path(arguments: &[String]) -> String {
-    arguments
-        .iter()
-        .position(|a| a == "--registry")
-        .and_then(|i| arguments.get(i + 1))
-        .cloned()
-        .unwrap_or_else(|| "registry".to_string())
+/// A flag whose value went missing must not resolve itself to the default, quietly, in
+/// the tool that exists to document what silent defaults cost.
+fn registry_path(arguments: &[String]) -> Result<String, String> {
+    let Some(flag) = arguments.iter().position(|argument| argument == "--registry") else {
+        return Ok("registry".to_string());
+    };
+    match arguments.get(flag + 1) {
+        Some(path) if !path.starts_with('-') => Ok(path.clone()),
+        _ => Err("--registry needs the path to a registry directory".to_string()),
+    }
 }
 
 fn registry_command(words: &[&str], path: &str) -> ExitCode {
@@ -102,27 +111,40 @@ fn registry_command(words: &[&str], path: &str) -> ExitCode {
             eprintln!("plateforce: {error}");
             ExitCode::FAILURE
         }
-        (other, Ok(_)) => {
-            eprintln!("plateforce: unknown registry command: {other:?}");
+        (None, Ok(_)) => {
+            eprintln!("plateforce: registry needs a command");
+            eprint!("{USAGE}");
+            ExitCode::FAILURE
+        }
+        (Some(command), Ok(_)) => {
+            eprintln!("plateforce: unknown registry command: {command}");
             eprint!("{USAGE}");
             ExitCode::FAILURE
         }
     }
 }
 
+fn join_numbers(values: &[f64]) -> String {
+    values
+        .iter()
+        .map(|value| value.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 fn show_method(method: &plateforce_registry::Method) {
     println!("{}", method.id);
     println!("  title       {}", method.title);
     println!("  construct   {}", method.construct);
-    println!("  status      {:?}", method.status);
-    println!("  confidence  {:?}", method.confidence);
+    println!("  status      {}", method.status);
+    println!("  confidence  {}", method.confidence);
     println!("  rule        {}", method.rule.trim());
 
     for parameter in &method.parameters {
         let published = if parameter.published_values.is_empty() {
             String::new()
         } else {
-            format!("  published: {:?}", parameter.published_values)
+            format!("  published: {}", join_numbers(&parameter.published_values))
         };
         println!(
             "  parameter   {}{}{}",
@@ -149,7 +171,7 @@ fn show_method(method: &plateforce_registry::Method) {
     }
     if let Some(failure) = &method.failure {
         println!(
-            "  FAILS       {} of {} trials ({:.1}%), {:?}, on {}",
+            "  FAILS       {} of {} trials ({:.1}%), {}, on {}",
             failure.numerator,
             failure.denominator,
             failure.rate * 100.0,

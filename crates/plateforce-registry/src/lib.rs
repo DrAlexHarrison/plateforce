@@ -29,6 +29,8 @@ pub enum RegistryError {
     },
     #[error("registry failed validation with {} violation(s):\n{}", .0.len(), format_violations(.0))]
     Invalid(Vec<Violation>),
+    #[error("no registry at {path}: {reason}")]
+    Absent { path: PathBuf, reason: String },
 }
 
 fn format_violations(violations: &[Violation]) -> String {
@@ -64,6 +66,13 @@ impl Registry {
     /// than a partial registry when validation fails.
     pub fn load(root: impl AsRef<Path>) -> Result<Self, RegistryError> {
         let root = root.as_ref();
+        // An absent registry has no violations, so without this it loads empty and passes.
+        if !root.is_dir() {
+            return Err(RegistryError::Absent {
+                path: root.to_path_buf(),
+                reason: "there is no directory there".to_string(),
+            });
+        }
         let mut registry = Registry::default();
 
         for path in toml_files_under(&root.join("constructs.toml"))? {
@@ -83,6 +92,13 @@ impl Registry {
             for protocol in file.protocols {
                 registry.protocols.insert(protocol.id.clone(), protocol);
             }
+        }
+
+        if registry.constructs.is_empty() && registry.methods.is_empty() {
+            return Err(RegistryError::Absent {
+                path: root.to_path_buf(),
+                reason: "the directory holds no constructs.toml and no methods".to_string(),
+            });
         }
 
         let violations = validate::validate(&registry);
@@ -148,4 +164,31 @@ fn toml_files_under(path: &Path) -> Result<Vec<PathBuf>, RegistryError> {
         .collect();
     found.sort();
     Ok(found)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_path_with_no_directory_is_not_an_empty_registry() {
+        let error = Registry::load("/plateforce-no-such-directory").unwrap_err();
+        assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
+    }
+
+    #[test]
+    fn a_directory_holding_no_entries_is_not_a_registry() {
+        let empty = std::env::temp_dir().join("plateforce-empty-registry-test");
+        std::fs::create_dir_all(&empty).unwrap();
+        let error = Registry::load(&empty).unwrap_err();
+        std::fs::remove_dir_all(&empty).ok();
+        assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
+    }
+
+    #[test]
+    fn a_status_prints_the_way_the_registry_spells_it() {
+        assert_eq!(Status::Accepted.to_string(), "accepted");
+        assert_eq!(Confidence::High.to_string(), "high");
+        assert_eq!(Detectability::Silent.to_string(), "silent");
+    }
 }

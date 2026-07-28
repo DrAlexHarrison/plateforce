@@ -245,3 +245,40 @@ pub struct ProtocolFile {
     #[serde(default, rename = "protocol")]
     pub protocols: Vec<Protocol>,
 }
+
+/// The registry spells these in snake_case, and printing them any other way sends a user
+/// looking for a string the files do not contain.
+macro_rules! display_as_registry_spells_it {
+    ($type:ty { $($variant:ident => $spelling:literal),+ $(,)? }) => {
+        impl $type {
+            pub fn as_registry_str(self) -> &'static str {
+                match self { $(<$type>::$variant => $spelling),+ }
+            }
+        }
+        impl std::fmt::Display for $type {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_registry_str())
+            }
+        }
+    };
+}
+
+display_as_registry_spells_it!(Status {
+    Recommended => "recommended",
+    Accepted => "accepted",
+    Contested => "contested",
+    Legacy => "legacy",
+    Deprecated => "deprecated",
+});
+
+display_as_registry_spells_it!(Confidence {
+    High => "high",
+    Medium => "medium",
+    Low => "low",
+});
+
+display_as_registry_spells_it!(Detectability {
+    Silent => "silent",
+    Loud => "loud",
+    Guarded => "guarded",
+});
