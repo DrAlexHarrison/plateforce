@@ -49,9 +49,6 @@ jobs:
       - name: Check the workspace
         run: cargo test --workspace
 
-      - name: Check the declared toolchain floor against the one the tree needs
-        run: ./scripts/check-msrv.sh
-
       - name: Build the browser bundle
         run: ./scripts/build-web.sh release
 
@@ -71,8 +68,48 @@ jobs:
         with:
           path: web
 
+  # Nothing above compiles at the version the workspace tells the world it supports, so a
+  # first-party construct or a dependency feature newer than the declared floor reaches a
+  # user on that toolchain having passed every check. The floor is read from the manifest
+  # rather than written down again here.
+  floor:
+    name: the workspace compiles on the toolchain floor it declares
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the declared floor against the one the dependency tree needs
+        run: ./scripts/check-msrv.sh
+
+      - name: Read the declared floor
+        id: floor
+        run: |
+          version="$(./scripts/check-msrv.sh --print-declared-floor)"
+          test -n "$version"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Install the declared floor toolchain
+        env:
+          FLOOR: ${{ steps.floor.outputs.version }}
+        run: rustup toolchain install "$FLOOR" --profile minimal
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: floor-${{ runner.os }}-${{ steps.floor.outputs.version }}-${{ hashFiles('Cargo.lock') }}
+
+      # Every target, so the test and example code has to compile on the floor as well as
+      # the library. `--locked` because the lockfile is what a user on that toolchain gets.
+      - name: Compile the workspace on the declared floor
+        env:
+          FLOOR: ${{ steps.floor.outputs.version }}
+        run: cargo "+$FLOOR" check --workspace --locked --all-targets
+
   deploy:
-    needs: build
+    needs: [build, floor]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
