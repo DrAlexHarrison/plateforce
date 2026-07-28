@@ -731,6 +731,15 @@ function methodTitle(id) {
   );
 }
 
+/* A value the request did not carry moved the number as far as one it did, so every value
+ * in the fingerprint says which of the two it was. */
+function boundValueText(bound, separator = ' ') {
+  const assumed = new Set(bound?.assumed_parameters || []);
+  return (bound?.bound_parameters || []).map(
+    ([name, value]) => `${name}${separator}${value}${assumed.has(name) ? ' (assumed)' : ''}`,
+  );
+}
+
 function provenanceRow(methodIds) {
   const row = element('div', 'metric__provenance');
   const seen = new Set();
@@ -758,11 +767,16 @@ function provenanceRow(methodIds) {
     }
     item.append(badges);
 
-    const parameters = (bound?.bound_parameters || []).map(([name, value]) => `${name} ${value}`).join(', ');
+    const parameters = boundValueText(bound).join(', ');
+    const unread = bound?.unread_parameters?.length
+      ? `not taken by this rule: ${bound.unread_parameters.join(', ')}`
+      : '';
     const absence = binding?.composed_from
       ? `composition of ${binding.composed_from}`
       : 'no registry row carries this id';
-    item.title = [id, parameters, bound?.registry_backed ? '' : absence].filter(Boolean).join(' | ');
+    item.title = [id, parameters, unread, bound?.registry_backed ? '' : absence]
+      .filter(Boolean)
+      .join(' | ');
     item.addEventListener('click', () => openDrawer(method, id, bound));
     row.append(item);
   }
@@ -824,7 +838,10 @@ function openDrawer(method, fallbackId, bound) {
     ['Debate', method.debate || 'not stated'],
   ];
   if (bound?.bound_parameters?.length) {
-    rows.push(['Bound here', bound.bound_parameters.map(([name, value]) => `${name} = ${value}`).join(', ')]);
+    rows.push(['Bound here', boundValueText(bound, ' = ').join(', ')]);
+  }
+  if (bound?.unread_parameters?.length) {
+    rows.push(['Not taken by this rule', bound.unread_parameters.join(', ')]);
   }
   for (const [term, definition] of rows) identity.append(element('dt', null, term), element('dd', null, definition));
   body.append(section('Entry', identity));
