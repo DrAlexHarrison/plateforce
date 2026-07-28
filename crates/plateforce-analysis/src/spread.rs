@@ -63,6 +63,7 @@ pub struct Variant {
 pub struct SpreadResponse {
     pub quantity_key: String,
     pub unit: String,
+    pub unit_symbol: String,
     pub combinations_requested: usize,
     pub combinations_run: usize,
     pub capped: bool,
@@ -90,14 +91,14 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
         .ok()
         .and_then(|response| extract(&response, &request.quantity_key).0);
 
-    let unit = crate::run(trial, &request.base)
+    let (unit, unit_symbol) = crate::run(trial, &request.base)
         .ok()
         .and_then(|response| {
             response
                 .metrics
                 .iter()
                 .find(|m| m.key == request.quantity_key)
-                .map(|m| m.unit.to_string())
+                .map(|m| (m.unit.to_string(), m.unit_symbol.to_string()))
         })
         .unwrap_or_default();
 
@@ -161,6 +162,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
     Ok(SpreadResponse {
         quantity_key: request.quantity_key.clone(),
         unit,
+        unit_symbol,
         combinations_requested,
         combinations_run,
         capped,
@@ -339,7 +341,7 @@ mod tests {
             response.spread_absolute.unwrap() > 0.0,
             "k did not move the answer"
         );
-        assert_eq!(response.unit, "s");
+        assert_eq!(response.unit, "seconds");
     }
 
     #[test]

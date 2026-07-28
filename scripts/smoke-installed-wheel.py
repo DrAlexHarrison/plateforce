@@ -62,12 +62,12 @@ print(f"time to takeoff {jump.time_to_takeoff_seconds.value:.4f} s")
 # this project exists to measure, so it would pass a result computed in the standing frame,
 # or from a different onset rule, or with a different gravity.
 require(
-    abs(jump_height_centimeters - 5.3533) < 1e-3,
-    f"jump height is {jump_height_centimeters:.4f} cm, expected 5.3533 cm",
+    abs(jump_height_centimeters - 5.3501) < 1e-3,
+    f"jump height is {jump_height_centimeters:.4f} cm, expected 5.3501 cm",
 )
 require(
-    abs(jump.time_to_takeoff_seconds.value - 0.4933) < 1e-3,
-    f"time to takeoff is {jump.time_to_takeoff_seconds.value:.4f} s, expected 0.4933 s",
+    abs(jump.time_to_takeoff_seconds.value - 0.5233) < 1e-3,
+    f"time to takeoff is {jump.time_to_takeoff_seconds.value:.4f} s, expected 0.5233 s",
 )
 
 # The result carrying its method is the whole product, so its absence fails the release.

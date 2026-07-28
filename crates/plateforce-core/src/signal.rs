@@ -1,6 +1,6 @@
 //! The trace itself, and the sentinel handling that must happen before anything reads it.
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum TrialError {
     #[error("trace is empty")]
     Empty,

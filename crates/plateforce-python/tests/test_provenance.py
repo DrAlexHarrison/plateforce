@@ -50,10 +50,14 @@ def test_every_result_names_its_method_and_unit(jump):
 
 
 def test_the_bound_parameters_travel_with_the_number(jump):
+    """Every value the rule read, not only the ones the caller stated. A value a rule
+    chose for itself moved the number exactly as much as one that was asked for."""
     onset = jump.onset_time_seconds.provenance
-    assert onset.bound_parameters == {"k": 5.0}
+    assert onset.bound_parameters["k"] == 5.0
+    assert onset.bound_parameters["offset_ms"] == 30.0
+    assert "offset_ms" in jump.assumed_parameters
     epoch = jump.system_weight_newtons.provenance
-    assert epoch.bound_parameters == {"duration": 1.0}
+    assert epoch.bound_parameters["duration"] == 1.0
 
 
 def test_the_registry_version_travels_with_the_number(jump):
@@ -96,8 +100,8 @@ def test_a_height_computed_without_reading_a_registry_names_no_files():
 
 def test_choices_that_are_not_numbers_travel_too(jump):
     onset = jump.onset_time_seconds.provenance
-    assert onset.enumerated_choices["band_sides"] == "below_only"
-    assert onset.enumerated_choices["dispersion_estimator"] == "sample"
+    assert onset.enumerated_choices["direction"] == "below_only"
+    assert onset.enumerated_choices["sd_convention"] == "sample"
 
 
 def test_jump_height_names_the_upstream_choices_that_moved_it(jump):

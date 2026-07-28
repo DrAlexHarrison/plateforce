@@ -79,18 +79,19 @@ def test_the_weighing_window_moves_the_answer_too(trial, registry):
 def test_the_dispersion_estimator_is_a_real_choice(trial, bound_methods):
     epoch, onset, takeoff = bound_methods
     population = pf.analyse_countermovement_jump(
-        trial, epoch, onset, takeoff, dispersion_estimator="population"
+        trial, epoch, onset, takeoff, weighing_options={"dispersion": "population"}
     )
     sample = pf.analyse_countermovement_jump(
-        trial, epoch, onset, takeoff, dispersion_estimator="sample"
+        trial, epoch, onset, takeoff, weighing_options={"dispersion": "sample"}
     )
     assert (
-        population.onset_time_seconds.provenance.enumerated_choices["dispersion_estimator"]
+        population.system_weight_newtons.provenance.enumerated_choices["dispersion"]
         == "population"
     )
-    assert (
-        sample.onset_time_seconds.provenance.enumerated_choices["dispersion_estimator"] == "sample"
-    )
+    assert sample.system_weight_newtons.provenance.enumerated_choices["dispersion"] == "sample"
+    # The onset threshold is scaled by the weighing window's spread, so the onset row
+    # records the convention that window was computed under rather than one of its own.
+    assert sample.onset_time_seconds.provenance.enumerated_choices["sd_convention"] == "sample"
 
 
 def test_a_collapsed_noise_band_is_refused_rather_than_substituted(registry):
@@ -119,22 +120,22 @@ def test_a_collapsed_noise_band_is_refused_rather_than_substituted(registry):
         epoch,
         onset,
         takeoff,
-        onset_degenerate_band="fraction_of_reference",
-        onset_degenerate_band_fraction=0.95,
+        onset_parameters={"degenerate_fraction": 0.95},
     )
     assert (
-        rescued.onset_time_seconds.provenance.enumerated_choices["degenerate_band"]
-        == "fraction_of_reference"
+        rescued.onset_time_seconds.provenance.bound_parameters["degenerate_fraction"]
+        == 0.95
     )
 
 
-def test_the_fraction_policy_needs_its_fraction(trial, bound_methods):
+def test_the_replacement_band_is_a_fraction_and_not_a_policy_name(trial, bound_methods):
+    """The fraction is the choice. A policy name with no fraction behind it named a
+    behaviour the rule could not carry out."""
     epoch, onset, takeoff = bound_methods
-    with pytest.raises(ValueError) as raised:
-        pf.analyse_countermovement_jump(
-            trial, epoch, onset, takeoff, onset_degenerate_band="fraction_of_reference"
-        )
-    assert "onset_degenerate_band_fraction" in str(raised.value)
+    jump = pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
+    assert (
+        jump.onset_time_seconds.provenance.enumerated_choices["degenerate_band"] == "refuse"
+    )
 
 
 def test_the_same_input_and_the_same_choices_give_the_same_answer(trial, bound_methods):

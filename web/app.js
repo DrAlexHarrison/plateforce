@@ -38,7 +38,14 @@ const state = {
 
 /* ---------------------------------------------------------------- formatting */
 
-const DECIMALS = { s: 4, N: 1, kg: 2, 'm/s': 3, m: 3, 'N.s': 2 };
+const DECIMALS = {
+  seconds: 4,
+  newtons: 1,
+  kilograms: 2,
+  meters_per_second: 3,
+  meters: 3,
+  newton_seconds: 2,
+};
 
 function formatNumber(value, unit) {
   if (value == null || !Number.isFinite(value)) return null;
@@ -46,8 +53,9 @@ function formatNumber(value, unit) {
 }
 
 function secondaryDisplay(metric) {
-  if (metric.unit === 'm' && metric.value != null) return `${(metric.value * 100).toFixed(1)} cm`;
-  if (metric.unit === 's' && metric.value != null) return `${(metric.value * 1000).toFixed(0)} ms`;
+  if (metric.value == null) return null;
+  if (metric.unit === 'meters') return `${(metric.value * 100).toFixed(1)} cm`;
+  if (metric.unit === 'seconds') return `${(metric.value * 1000).toFixed(0)} ms`;
   return null;
 }
 
@@ -680,7 +688,7 @@ function renderMetrics() {
       card.append(element('p', 'metric__value metric__value--absent', 'No value, the rule found no crossing'));
     } else {
       const value = element('p', 'metric__value', formatted);
-      value.append(element('small', null, metric.unit));
+      value.append(element('small', null, metric.unit_symbol));
       const secondary = secondaryDisplay(metric);
       if (secondary) value.append(element('small', null, `= ${secondary}`));
       card.append(value);
@@ -999,7 +1007,7 @@ function runSpread() {
     element(
       'p',
       'spread-headline__text',
-      `${label} spans ${formatNumber(result.spread_absolute, result.unit)} ${result.unit} across ` +
+      `${label} spans ${formatNumber(result.spread_absolute, result.unit)} ${result.unit_symbol} across ` +
         `${result.succeeded} defensible alternatives on this one trial, which is ${percent == null ? 'an undefined fraction' : `${percent.toFixed(1)} percent`} of its own median. ` +
         `Every one of those settings appears in the published literature.` +
         (result.capped ? ` Showing ${result.combinations_run} of ${result.combinations_requested} combinations.` : '') +
@@ -1029,19 +1037,19 @@ function spreadAxisPlot(result) {
     if (variant.value == null) continue;
     const tick = element('div', 'spread-tick');
     tick.style.left = position(variant.value);
-    tick.title = `${readableLabel(variant)}: ${formatNumber(variant.value, result.unit)} ${result.unit}`;
+    tick.title = `${readableLabel(variant)}: ${formatNumber(variant.value, result.unit)} ${result.unit_symbol}`;
     wrap.append(tick);
   }
   if (result.baseline_value != null) {
     const tick = element('div', 'spread-tick spread-tick--baseline');
     tick.style.left = position(result.baseline_value);
-    tick.title = `your current setting: ${formatNumber(result.baseline_value, result.unit)} ${result.unit}`;
+    tick.title = `your current setting: ${formatNumber(result.baseline_value, result.unit)} ${result.unit_symbol}`;
     wrap.append(tick);
   }
 
-  const lowLabel = element('span', 'spread-bound', `${formatNumber(low, result.unit)} ${result.unit}`);
+  const lowLabel = element('span', 'spread-bound', `${formatNumber(low, result.unit)} ${result.unit_symbol}`);
   lowLabel.style.left = '2%';
-  const highLabel = element('span', 'spread-bound spread-bound--max', `${formatNumber(high, result.unit)} ${result.unit}`);
+  const highLabel = element('span', 'spread-bound spread-bound--max', `${formatNumber(high, result.unit)} ${result.unit_symbol}`);
   highLabel.style.left = '98%';
   wrap.append(lowLabel, highLabel);
   return wrap;
@@ -1084,7 +1092,7 @@ function spreadTable(result, label) {
       cell.colSpan = 2;
       row.append(cell);
     } else {
-      row.append(element('td', 'numeric', `${formatNumber(variant.value, result.unit)} ${result.unit}`));
+      row.append(element('td', 'numeric', `${formatNumber(variant.value, result.unit)} ${result.unit_symbol}`));
       const delta = result.baseline_value == null ? null : variant.value - result.baseline_value;
       row.append(element('td', 'numeric', delta == null ? '--' : `${delta >= 0 ? '+' : ''}${formatNumber(delta, result.unit)}`));
     }

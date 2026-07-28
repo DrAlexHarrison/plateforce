@@ -111,13 +111,17 @@ def test_a_method_passed_in_the_wrong_slot_is_refused(registry, trial):
 
 
 def test_an_unknown_enumerated_choice_lists_what_is_accepted(trial, bound_methods):
+    """A value the rule does not take is refused, not mapped onto the nearest one. A
+    substitution would put the word the caller wrote next to a number a different rule
+    produced."""
     epoch, onset, takeoff = bound_methods
-    with pytest.raises(ValueError) as raised:
+    with pytest.raises(pf.PlateforceError) as raised:
         pf.analyse_countermovement_jump(
-            trial, epoch, onset, takeoff, dispersion_estimator="numpy_default"
+            trial, epoch, onset, takeoff, weighing_options={"dispersion": "numpy_default"}
         )
     message = str(raised.value)
-    assert "dispersion_estimator" in message
+    assert "dispersion" in message
+    assert "numpy_default" in message
     assert "population" in message
     assert "sample" in message
 

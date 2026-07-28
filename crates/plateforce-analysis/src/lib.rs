@@ -208,6 +208,10 @@ struct Resolution<'a> {
     read: Vec<(String, String)>,
     assumed: Vec<String>,
     consulted: BTreeSet<String>,
+    /// The value behind each name a rule read as a number, kept as the number. A caller
+    /// that wanted it back would otherwise parse the display text, which is a second
+    /// derivation of a value this already holds.
+    numbers: BTreeMap<String, f64>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -215,6 +219,7 @@ struct BoundValues {
     parameters: Vec<(String, String)>,
     assumed: Vec<String>,
     unread: Vec<String>,
+    numbers: BTreeMap<String, f64>,
 }
 
 impl<'a> Resolution<'a> {
@@ -225,6 +230,7 @@ impl<'a> Resolution<'a> {
             read: Vec::new(),
             assumed: Vec::new(),
             consulted: BTreeSet::new(),
+            numbers: BTreeMap::new(),
         }
     }
 
@@ -233,6 +239,13 @@ impl<'a> Resolution<'a> {
         if assumed {
             self.assumed.push(name.to_string());
         }
+    }
+
+    /// A name whose value is a quantity, recorded both as the text a reader sees and as
+    /// the number the rule ran on.
+    fn record_measured(&mut self, name: &str, value: f64, shown: String, assumed: bool) {
+        self.numbers.insert(name.to_string(), value);
+        self.record(name, shown, assumed);
     }
 
     /// The request's value for this name, and a note that the rule asked either way.
@@ -244,7 +257,7 @@ impl<'a> Resolution<'a> {
     fn number(&mut self, name: &str, fallback: f64) -> f64 {
         let stated = self.stated(name);
         let value = stated.unwrap_or(fallback);
-        self.record(name, format_number(value), stated.is_none());
+        self.record_measured(name, value, format_number(value), stated.is_none());
         value
     }
 
@@ -286,34 +299,65 @@ impl<'a> Resolution<'a> {
     /// countermovement jump always unweights first, and counting a departure in either
     /// direction lets the upward excursion of rising onto the toes register as onset: net
     /// impulse ICC 0.479 either-direction against 0.790 below-only.
-    fn direction(&mut self) -> Result<OnsetDirection, String> {
+    fn direction(&mut self) -> Result<OnsetDirection, RuleRefusal> {
         match self.option("direction", "below_only").as_str() {
             "below_only" => Ok(OnsetDirection::BelowOnly),
             "two_sided" => Ok(OnsetDirection::TwoSided),
-            "above_only" => Err(
+            "above_only" => Err(RuleRefusal::Stated(
                 "onset.op.direction(above_only) counts departures above the \
                  reference, and a countermovement jump unweights first, so its onset is \
                  below_only or two_sided"
                     .to_string(),
-            ),
-            other => Err(format!(
-                "onset.op.direction({other}) is not one of below_only, above_only, two_sided"
             )),
+            other => Err(RuleRefusal::Stated(format!(
+                "onset.op.direction({other}) is not one of below_only, above_only, two_sided"
+            ))),
         }
     }
 
-    fn dispersion(&mut self) -> DispersionEstimator {
-        match self.option("dispersion", "sample").as_str() {
-            "population" => DispersionEstimator::Population,
-            _ => DispersionEstimator::Sample,
-        }
+    /// An enumerated choice, refused rather than mapped onto a default when the value is
+    /// not one this rule takes. Substituting quietly would record the word the caller wrote
+    /// beside a number a different rule produced, which is the defect this project
+    /// documents wearing our own badge.
+    fn enumerated<T: Copy>(
+        &mut self,
+        name: &str,
+        fallback: &'static str,
+        accepted: &[(&'static str, T)],
+    ) -> Result<T, RuleRefusal> {
+        let chosen = self.option(name, fallback);
+        accepted
+            .iter()
+            .find(|(label, _)| *label == chosen)
+            .map(|(_, value)| *value)
+            .ok_or_else(|| {
+                let offered: Vec<&str> = accepted.iter().map(|(label, _)| *label).collect();
+                RuleRefusal::Stated(format!(
+                    "{name} takes one of {offered:?}, and '{chosen}' is not one of them"
+                ))
+            })
     }
 
-    fn residual_comparison(&mut self) -> ResidualComparison {
-        match self.option("comparison", "signed").as_str() {
-            "magnitude" => ResidualComparison::Magnitude,
-            _ => ResidualComparison::SignedValue,
-        }
+    fn dispersion(&mut self) -> Result<DispersionEstimator, RuleRefusal> {
+        self.enumerated(
+            "dispersion",
+            "sample",
+            &[
+                ("population", DispersionEstimator::Population),
+                ("sample", DispersionEstimator::Sample),
+            ],
+        )
+    }
+
+    fn residual_comparison(&mut self) -> Result<ResidualComparison, RuleRefusal> {
+        self.enumerated(
+            "comparison",
+            "signed",
+            &[
+                ("signed", ResidualComparison::SignedValue),
+                ("magnitude", ResidualComparison::Magnitude),
+            ],
+        )
     }
 
     /// Sorted, so the same binding fingerprints the same however the request was ordered.
@@ -331,6 +375,7 @@ impl<'a> Resolution<'a> {
             parameters: self.read,
             assumed: self.assumed,
             unread,
+            numbers: self.numbers,
         }
     }
 }
@@ -340,6 +385,26 @@ fn format_number(value: f64) -> String {
         format!("{value:.0}")
     } else {
         format!("{value}")
+    }
+}
+
+/// Why a landmark rule produced nothing.
+///
+/// The sentence goes to `warnings` for somebody reading the trace. This carries the core's
+/// own error beside it wherever there is one, so a caller can branch on the method and the
+/// parameter that failed rather than parse the sentence back apart.
+#[derive(Debug, Clone)]
+pub enum RuleRefusal {
+    Trial(plateforce_core::TrialError),
+    Stated(String),
+}
+
+impl std::fmt::Display for RuleRefusal {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuleRefusal::Trial(error) => write!(formatter, "{error}"),
+            RuleRefusal::Stated(message) => formatter.write_str(message),
+        }
     }
 }
 
@@ -403,6 +468,33 @@ pub struct BoundMethod {
     pub unread_parameters: Vec<String>,
     pub registry_backed: bool,
     pub manual_override: bool,
+    /// The names in `bound_parameters` the rule read as quantities, with their values.
+    /// Skipped over the wire, where every value is already the text beside its name.
+    #[serde(skip)]
+    pub numeric_values: BTreeMap<String, f64>,
+}
+
+impl BoundMethod {
+    /// What this rule was bound to, split the way a fingerprint carries it: quantities
+    /// against choices between named alternatives.
+    pub fn quantities(&self) -> Vec<(String, f64)> {
+        self.bound_parameters
+            .iter()
+            .filter_map(|(name, _)| {
+                self.numeric_values
+                    .get(name)
+                    .map(|value| (name.clone(), *value))
+            })
+            .collect()
+    }
+
+    pub fn enumerated_choices(&self) -> Vec<(String, String)> {
+        self.bound_parameters
+            .iter()
+            .filter(|(name, _)| !self.numeric_values.contains_key(name))
+            .cloned()
+            .collect()
+    }
 }
 
 fn bound_method(
@@ -418,6 +510,23 @@ fn bound_method(
         unread_parameters: values.unread,
         registry_backed,
         manual_override,
+        numeric_values: values.numbers,
+    }
+}
+
+/// The symbol an interface draws beside a number, for the units this build reports.
+///
+/// The registry spells every unit out and that spelling is what a fingerprint carries, so
+/// the short form is derived from it here and never stored as a second vocabulary.
+fn unit_symbol(unit: &'static str) -> &'static str {
+    match unit {
+        "newtons" => "N",
+        "kilograms" => "kg",
+        "seconds" => "s",
+        "meters" => "m",
+        "meters_per_second" => "m/s",
+        "newton_seconds" => "N.s",
+        other => other,
     }
 }
 
@@ -426,7 +535,10 @@ pub struct Metric {
     pub key: &'static str,
     pub label: &'static str,
     pub value: Option<f64>,
+    /// As the registry spells it. `docs/schema.md` carries the same spelling on every
+    /// construct and every parameter.
     pub unit: &'static str,
+    pub unit_symbol: &'static str,
     pub contributing_method_ids: Vec<String>,
     #[serde(default)]
     pub note: Option<String>,
@@ -451,7 +563,17 @@ pub struct AnalysisResponse {
     pub levels: Levels,
     pub bound_methods: Vec<BoundMethod>,
     pub metrics: Vec<Metric>,
+    /// Windows the weighing rule could not choose between. One for a fixed window, and
+    /// anything above one means the selection is an artefact of the arithmetic. Skipped
+    /// over the wire, where the interface draws it inside the warning that reports it.
+    #[serde(skip)]
+    pub weighing_epoch_tied_window_count: usize,
     pub warnings: Vec<String>,
+    /// The same failures `warnings` describes, kept as the errors they were, keyed by the
+    /// slot whose rule produced nothing. Skipped over the wire, where the sentence is what
+    /// the interface draws.
+    #[serde(skip)]
+    pub refusals: Vec<(&'static str, RuleRefusal)>,
 }
 
 /// A weighing window at an arbitrary start, without a second implementation of the mean
@@ -535,22 +657,34 @@ fn resolve_weighing(
     let mut resolved = Resolution::over(&choice.parameters, &choice.options);
     let duration_seconds = resolved.number(window_length_parameter(&choice.method_id), 1.0);
     let standard_deviation_convention_stated = choice.options.contains_key("dispersion");
-    let dispersion = resolved.dispersion();
+    let dispersion = resolved
+        .dispersion()
+        .map_err(|refused| refused.to_string())?;
     let standard_deviation_convention = dispersion_label(dispersion);
     let window_samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
 
     if choice.method_id == "bwepoch.adaptive_lowest_variance" && choice.start_index.is_none() {
-        let accumulation = match resolved.option("accumulation", "two_pass").as_str() {
-            "cumulative_sum_of_squares" => VarianceAccumulation::CumulativeSumOfSquares,
-            _ => VarianceAccumulation::TwoPass,
-        };
+        let accumulation = resolved
+            .enumerated(
+                "accumulation",
+                "two_pass",
+                &[
+                    (
+                        "cumulative_sum_of_squares",
+                        VarianceAccumulation::CumulativeSumOfSquares,
+                    ),
+                    ("two_pass", VarianceAccumulation::TwoPass),
+                ],
+            )
+            .map_err(|refused| refused.to_string())?;
         // The unloaded plate is the quietest window in any recording, so the gate is taken
         // against the weight the trace carries for most of its length.
         let provisional_weight_newtons = median(trial.force()).unwrap_or_default();
         let reject_at_or_below_newtons =
             provisional_weight_newtons * ADAPTIVE_WINDOW_REJECT_AT_OR_BELOW_FRACTION_OF_WEIGHT;
-        resolved.record(
+        resolved.record_measured(
             "reject_at_or_below_newtons",
+            reject_at_or_below_newtons,
             format!("{reject_at_or_below_newtons:.4}"),
             true,
         );
@@ -572,8 +706,9 @@ fn resolve_weighing(
             ));
         }
         // This rule finds the window in the trace rather than being told where it sits.
-        resolved.record(
+        resolved.record_measured(
             "start_seconds",
+            trial.time_at(epoch.start_index),
             format!("{:.4}", trial.time_at(epoch.start_index)),
             false,
         );
@@ -586,10 +721,16 @@ fn resolve_weighing(
         });
     }
 
-    let centre = match resolved.option("centre", "mean").as_str() {
-        "median" => CentralTendency::Median,
-        _ => CentralTendency::Mean,
-    };
+    let centre = resolved
+        .enumerated(
+            "centre",
+            "mean",
+            &[
+                ("mean", CentralTendency::Mean),
+                ("median", CentralTendency::Median),
+            ],
+        )
+        .map_err(|refused| refused.to_string())?;
     let epoch = weighing_epoch_at(
         trial,
         choice.start_index.unwrap_or(0),
@@ -597,8 +738,9 @@ fn resolve_weighing(
         centre,
         dispersion,
     )?;
-    resolved.record(
+    resolved.record_measured(
         "start_seconds",
+        trial.time_at(epoch.start_index),
         format!("{:.4}", trial.time_at(epoch.start_index)),
         choice.start_index.is_none(),
     );
@@ -620,51 +762,67 @@ fn record_inherited_spread(resolved: &mut Resolution, inherited_spread: (&str, b
     resolved.record("reference_distribution", "quiet_stance_force".into(), true);
 }
 
-fn onset_search(trial: &Trial, epoch: &WeighingEpoch, resolved: &mut Resolution) -> CrossingSearch {
+fn onset_search(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    resolved: &mut Resolution,
+) -> Result<CrossingSearch, RuleRefusal> {
     let rate = trial.sample_rate_hz();
     // Unstated, the search starts where the weighing window ended, which the weighing rule
     // decided rather than a constant.
     let start_index = match resolved.stated("floor_seconds") {
         Some(seconds) => {
-            resolved.record("floor_seconds", format_number(seconds), false);
+            resolved.record_measured("floor_seconds", seconds, format_number(seconds), false);
             (seconds * rate).round() as usize
         }
         None => {
-            resolved.record(
+            resolved.record_measured(
                 "floor_seconds",
+                trial.time_at(epoch.end_index),
                 format!("{:.4}", trial.time_at(epoch.end_index)),
                 true,
             );
             epoch.end_index
         }
     };
-    CrossingSearch {
+    Ok(CrossingSearch {
         start_index,
         end_index: trial.len(),
         persistence_samples: resolved
             .milliseconds_as_samples("span_ms", 0.0, rate)
             .max(1),
-        selection: match resolved.option("crossing_selection", "first").as_str() {
-            "last" => CrossingSelection::Last,
-            _ => CrossingSelection::First,
-        },
-    }
+        selection: resolved.enumerated(
+            "crossing_selection",
+            "first",
+            &[
+                ("first", CrossingSelection::First),
+                ("last", CrossingSelection::Last),
+            ],
+        )?,
+    })
 }
 
-fn resolve_onset(
+struct OnsetOutcome {
+    index: Option<usize>,
+    bound: BoundValues,
+    refusal: Option<RuleRefusal>,
+}
+
+/// Which core function the onset id names, and what it was given.
+fn onset_crossing(
     trial: &Trial,
     epoch: &WeighingEpoch,
     choice: &MethodChoice,
     inherited_spread: (&str, bool),
+    resolved: &mut Resolution,
     warnings: &mut Vec<String>,
-) -> (Option<usize>, BoundValues) {
+) -> Result<usize, RuleRefusal> {
     let force = trial.force();
     let rate = trial.sample_rate_hz();
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options);
 
-    let crossing = match choice.method_id.as_str() {
+    match choice.method_id.as_str() {
         "onset.threshold.relative_to_system_weight" => {
-            let search = onset_search(trial, epoch, &mut resolved);
+            let search = onset_search(trial, epoch, resolved)?;
             let percent_of_system_weight = resolved.number("pct", 2.5);
             onset_relative_to_reference(
                 force,
@@ -673,11 +831,11 @@ fn resolve_onset(
                 &search,
                 rate,
             )
-            .map_err(|e| e.to_string())
+            .map_err(RuleRefusal::Trial)
         }
 
         "onset.threshold.absolute_force" => {
-            let search = onset_search(trial, epoch, &mut resolved);
+            let search = onset_search(trial, epoch, resolved)?;
             let departure_newtons = resolved.number("threshold_n", 20.0);
             resolved.direction().and_then(|direction| {
                 let band = match direction {
@@ -689,16 +847,16 @@ fn resolve_onset(
                     }
                 };
                 sustained_excursion(force, &band, &search).ok_or_else(|| {
-                    format!(
+                    RuleRefusal::Stated(format!(
                         "onset.threshold.absolute_force(threshold_n = {departure_newtons}) found no crossing"
-                    )
+                    ))
                 })
             })
         }
 
         "onset.threshold.last_within_band" => {
             let k = resolved.number("k", 5.0);
-            record_inherited_spread(&mut resolved, inherited_spread);
+            record_inherited_spread(resolved, inherited_spread);
             let lookback_samples = resolved.seconds_as_samples("inverse_lookback", 0.5, rate);
             let back_offset_samples = resolved.milliseconds_as_samples("offset_ms", 30.0, rate);
             onset_last_sample_within_noise_band(
@@ -720,7 +878,7 @@ fn resolve_onset(
                 }
                 outcome.index
             })
-            .map_err(|e| e.to_string())
+            .map_err(RuleRefusal::Trial)
         }
 
         "onset.threshold.adaptive_trailing_window" => {
@@ -728,21 +886,26 @@ fn resolve_onset(
                 .seconds_as_samples("window_seconds", 1.0, rate)
                 .max(2);
             let k = resolved.number("k", 5.0);
-            let dispersion = resolved.dispersion();
+            let dispersion = resolved.dispersion()?;
             onset_adaptive_trailing_window(force, window_samples, k, dispersion, rate)
-                .map_err(|e| e.to_string())
+                .map_err(RuleRefusal::Trial)
         }
 
         "onset.threshold.noise_relative" => {
-            let search = onset_search(trial, epoch, &mut resolved);
+            let search = onset_search(trial, epoch, resolved)?;
             let k = resolved.number("k", 5.0);
-            record_inherited_spread(&mut resolved, inherited_spread);
+            record_inherited_spread(resolved, inherited_spread);
             let direction = resolved.direction();
             // Refuse rather than substitute. A collapsed band means the window the rule
             // assumed was quiet was not, and a silent fallback would hide that.
             let degenerate_band = match resolved.stated("degenerate_fraction") {
                 Some(fraction) => {
-                    resolved.record("degenerate_fraction", format_number(fraction), false);
+                    resolved.record_measured(
+                        "degenerate_fraction",
+                        fraction,
+                        format_number(fraction),
+                        false,
+                    );
                     DegenerateBandPolicy::FractionOfReference(fraction)
                 }
                 None => {
@@ -765,13 +928,33 @@ fn resolve_onset(
                     &search,
                     rate,
                 )
-                .map_err(|e| e.to_string())
+                .map_err(RuleRefusal::Trial)
             })
         }
 
-        other => Err(unbound_method_message(other, "onset")),
-    };
+        other => Err(RuleRefusal::Stated(unbound_method_message(other, "onset"))),
+    }
+}
 
+fn resolve_onset(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    choice: &MethodChoice,
+    inherited_spread: (&str, bool),
+    warnings: &mut Vec<String>,
+) -> OnsetOutcome {
+    let rate = trial.sample_rate_hz();
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options);
+    let crossing = onset_crossing(
+        trial,
+        epoch,
+        choice,
+        inherited_spread,
+        &mut resolved,
+        warnings,
+    );
+
+    let mut refusal = None;
     let index = match crossing {
         Ok(index) => {
             // The trailing-window and last-within-band rules resolve their own backtrack.
@@ -794,51 +977,56 @@ fn resolve_onset(
                 Some(index)
             }
         }
-        Err(message) => {
-            warnings.push(message);
+        Err(rejected) => {
+            warnings.push(rejected.to_string());
+            refusal = Some(rejected);
             None
         }
     };
 
-    (index, resolved.finish())
+    OnsetOutcome {
+        index,
+        bound: resolved.finish(),
+        refusal,
+    }
 }
 
 struct TakeoffOutcome {
     index: Option<usize>,
     threshold_newtons: f64,
     bound: BoundValues,
+    refusal: Option<RuleRefusal>,
 }
 
-fn resolve_takeoff(
+/// Which core function the takeoff id names, and what it was given. The threshold is
+/// carried in and out because the re-estimating rule replaces its own seed with one
+/// measured from the flight phase, and touchdown is found against that one.
+fn takeoff_crossing(
     trial: &Trial,
     epoch: &WeighingEpoch,
     choice: &MethodChoice,
+    resolved: &mut Resolution,
+    threshold_newtons: &mut f64,
     warnings: &mut Vec<String>,
-) -> TakeoffOutcome {
+) -> Result<usize, RuleRefusal> {
     let force = trial.force();
     let rate = trial.sample_rate_hz();
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options);
-    // The re-estimating rule seeds itself from the bounding rule's threshold, which the
-    // registry files separately from the residual threshold the other three compare against.
-    let mut threshold_newtons = match choice.method_id.as_str() {
-        "takeoff.threshold.flight_noise_k_sd" => resolved.number("bounding_threshold_n", 10.0),
-        _ => resolved.number("threshold_n", 20.0),
-    };
 
-    let index = match choice.method_id.as_str() {
+    match choice.method_id.as_str() {
         "takeoff.threshold.longest_run" => {
             let minimum_flight_samples = resolved
                 .milliseconds_as_samples("persistence_ms", 0.0, rate)
                 .max(1);
-            let comparison = resolved.residual_comparison();
-            let handling = match resolved
-                .option("short_run_handling", "rank_then_filter")
-                .as_str()
-            {
-                "filter_then_rank" => ShortRunHandling::FilterThenRank,
-                _ => ShortRunHandling::RankThenFilter,
-            };
-            takeoff_longest_run(force, threshold_newtons, minimum_flight_samples, comparison, handling, rate)
+            let comparison = resolved.residual_comparison()?;
+            let handling = resolved.enumerated(
+                "short_run_handling",
+                "rank_then_filter",
+                &[
+                    ("rank_then_filter", ShortRunHandling::RankThenFilter),
+                    ("filter_then_rank", ShortRunHandling::FilterThenRank),
+                ],
+            )?;
+            takeoff_longest_run(force, *threshold_newtons, minimum_flight_samples, comparison, handling, rate)
                 .map(|selection| {
                     // On an untrimmed recording the longest low-force run is often the
                     // athlete standing off the plate. Two tools report nothing when it is.
@@ -850,7 +1038,7 @@ fn resolve_takeoff(
                     }
                     selection.start_index
                 })
-                .map_err(|e| e.to_string())
+                .map_err(RuleRefusal::Trial)
         }
 
         "takeoff.threshold.descending_crossing" => {
@@ -859,55 +1047,81 @@ fn resolve_takeoff(
             let confirmation_samples = resolved
                 .milliseconds_as_samples("persistence_ms", 20.0, rate)
                 .max(1);
-            takeoff_descending_crossing(force, threshold_newtons, confirmation_samples, rate)
-                .map_err(|e| e.to_string())
+            takeoff_descending_crossing(force, *threshold_newtons, confirmation_samples, rate)
+                .map_err(RuleRefusal::Trial)
         }
 
         "takeoff.threshold.flight_noise_k_sd" => {
             let trim_fraction = resolved.number("trim_fraction", 0.25);
             let k = resolved.number("k", 5.0);
-            let dispersion = resolved.dispersion();
+            let dispersion = resolved.dispersion()?;
             takeoff_reestimated_flight_threshold(
                 force,
                 epoch.end_index,
-                threshold_newtons,
+                *threshold_newtons,
                 trim_fraction,
                 k,
                 dispersion,
                 rate,
             )
             .map(|flight| {
-                threshold_newtons = flight.threshold_newtons;
+                *threshold_newtons = flight.threshold_newtons;
                 // The seed threshold above is replaced by one measured from the flight
                 // phase, and it is that one every later comparison runs against.
-                resolved.record(
+                resolved.record_measured(
                     "reestimated_threshold_newtons",
+                    flight.threshold_newtons,
                     format!("{:.4}", flight.threshold_newtons),
                     false,
                 );
                 flight.takeoff_index
             })
-            .map_err(|e| e.to_string())
+            .map_err(RuleRefusal::Trial)
         }
 
         "takeoff.threshold.absolute_force" => {
             let minimum_flight_samples = resolved
                 .milliseconds_as_samples("persistence_ms", 0.0, rate)
                 .max(1);
-            let comparison = resolved.residual_comparison();
+            let comparison = resolved.residual_comparison()?;
             takeoff_first_sustained_run(
                 force,
-                threshold_newtons,
+                *threshold_newtons,
                 minimum_flight_samples,
                 comparison,
                 epoch.end_index,
                 rate,
             )
-            .map_err(|e| e.to_string())
+            .map_err(RuleRefusal::Trial)
         }
 
-        other => Err(unbound_method_message(other, "takeoff")),
+        other => Err(RuleRefusal::Stated(unbound_method_message(
+            other, "takeoff",
+        ))),
+    }
+}
+
+fn resolve_takeoff(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    choice: &MethodChoice,
+    warnings: &mut Vec<String>,
+) -> TakeoffOutcome {
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options);
+    // The re-estimating rule seeds itself from the bounding rule's threshold, which the
+    // registry files separately from the residual threshold the other three compare against.
+    let mut threshold_newtons = match choice.method_id.as_str() {
+        "takeoff.threshold.flight_noise_k_sd" => resolved.number("bounding_threshold_n", 10.0),
+        _ => resolved.number("threshold_n", 20.0),
     };
+    let index = takeoff_crossing(
+        trial,
+        epoch,
+        choice,
+        &mut resolved,
+        &mut threshold_newtons,
+        warnings,
+    );
 
     let bound = resolved.finish();
     match index {
@@ -915,13 +1129,15 @@ fn resolve_takeoff(
             index: Some(index),
             threshold_newtons,
             bound,
+            refusal: None,
         },
-        Err(message) => {
-            warnings.push(message);
+        Err(rejected) => {
+            warnings.push(rejected.to_string());
             TakeoffOutcome {
                 index: None,
                 threshold_newtons,
                 bound,
+                refusal: Some(rejected),
             }
         }
     }
@@ -952,16 +1168,23 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         request.weighing.start_index.is_some_and(|start| start != 0),
     )];
 
+    let mut refusals: Vec<(&'static str, RuleRefusal)> = Vec::new();
     let (onset_index, onset_bound) = match request.onset.manual_index {
         // A dragged marker stands in for the rule, so no value the rule reads produced it.
         Some(index) => (Some(index.min(trial.len() - 1)), BoundValues::default()),
-        None => resolve_onset(
-            trial,
-            &epoch,
-            &request.onset,
-            inherited_spread,
-            &mut warnings,
-        ),
+        None => {
+            let outcome = resolve_onset(
+                trial,
+                &epoch,
+                &request.onset,
+                inherited_spread,
+                &mut warnings,
+            );
+            if let Some(rejected) = outcome.refusal {
+                refusals.push(("onset", rejected));
+            }
+            (outcome.index, outcome.bound)
+        }
     };
     bound_methods.push(bound_method(
         &request.onset.method_id,
@@ -972,7 +1195,10 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
 
     // The takeoff rule runs even under a dragged marker, because the threshold it resolves
     // is what touchdown is found against.
-    let takeoff = resolve_takeoff(trial, &epoch, &request.takeoff, &mut warnings);
+    let mut takeoff = resolve_takeoff(trial, &epoch, &request.takeoff, &mut warnings);
+    if let Some(rejected) = takeoff.refusal.take() {
+        refusals.push(("takeoff", rejected));
+    }
     let takeoff_index = match request.takeoff.manual_index {
         Some(index) => Some(index.min(trial.len() - 1)),
         None => takeoff.index,
@@ -1044,7 +1270,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "system_weight_newtons",
             label: "System weight",
             value: Some(epoch.system_weight_newtons),
-            unit: "N",
+            unit: "newtons",
+            unit_symbol: unit_symbol("newtons"),
             contributing_method_ids: weighing_ids.clone(),
             note: Some("Includes any external load. System weight is not bodyweight.".into()),
         },
@@ -1052,7 +1279,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "system_mass_kilograms",
             label: "System mass",
             value: Some(epoch.system_mass_kilograms(gravity)),
-            unit: "kg",
+            unit: "kilograms",
+            unit_symbol: unit_symbol("kilograms"),
             contributing_method_ids: weighing_ids,
             note: Some(format!("At g = {gravity} m/s2, which is itself a bound choice.")),
         },
@@ -1060,7 +1288,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "onset_time_seconds",
             label: "Movement onset",
             value: onset_index.map(|index| trial.time_at(index)),
-            unit: "s",
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: vec![request.onset.method_id.clone()],
             note: None,
         },
@@ -1068,7 +1297,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "takeoff_time_seconds",
             label: "Takeoff",
             value: takeoff_index.map(|index| trial.time_at(index)),
-            unit: "s",
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: takeoff_ids.clone(),
             note: None,
         },
@@ -1076,7 +1306,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "time_to_takeoff_seconds",
             label: "Time to takeoff",
             value: interval_seconds,
-            unit: "s",
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: interval.clone(),
             note: Some(
                 "Bounded by two threshold crossings, which is why it is the least reproducible number here."
@@ -1087,7 +1318,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "flight_time_seconds",
             label: "Flight time",
             value: flight,
-            unit: "s",
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: takeoff_ids,
             note: None,
         },
@@ -1095,7 +1327,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "takeoff_velocity_meters_per_second",
             label: "Takeoff velocity",
             value: velocity,
-            unit: "m/s",
+            unit: "meters_per_second",
+            unit_symbol: unit_symbol("meters_per_second"),
             contributing_method_ids: full.clone(),
             note: Some("Net impulse over system mass. An identity, not an estimate.".into()),
         },
@@ -1109,7 +1342,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
                     epoch.system_weight_newtons,
                 )
             }),
-            unit: "N.s",
+            unit: "newton_seconds",
+            unit_symbol: unit_symbol("newton_seconds"),
             contributing_method_ids: full.clone(),
             note: None,
         },
@@ -1117,7 +1351,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "jump_height_from_takeoff_meters",
             label: "Jump height, takeoff frame",
             value: height_takeoff,
-            unit: "m",
+            unit: "meters",
+            unit_symbol: unit_symbol("meters"),
             contributing_method_ids: full.clone(),
             note: Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
@@ -1128,7 +1363,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             key: "jump_height_from_flight_time_meters",
             label: "Jump height, flight time",
             value: flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
-            unit: "m",
+            unit: "meters",
+            unit_symbol: unit_symbol("meters"),
             contributing_method_ids: vec![request.takeoff.method_id.clone()],
             note: Some(
                 "A different construct from the takeoff frame figure above, not a different way of computing it."
@@ -1142,7 +1378,8 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
                 (Some(height), Some(seconds)) => reactive_strength_index_modified(height, seconds),
                 _ => None,
             },
-            unit: "m/s",
+            unit: "meters_per_second",
+            unit_symbol: unit_symbol("meters_per_second"),
             contributing_method_ids: full,
             note: Some("Jump height over time to takeoff, so it inherits both choices.".into()),
         },
@@ -1163,7 +1400,9 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         },
         bound_methods,
         metrics,
+        weighing_epoch_tied_window_count: epoch.tied_window_count,
         warnings,
+        refusals,
     })
 }
 

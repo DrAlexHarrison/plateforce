@@ -11,7 +11,7 @@ use plateforce_registry::{
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
-use crate::analysis::IMPLEMENTED_METHOD_IDS;
+use crate::analysis::implemented_method_ids;
 use crate::errors::{map_registry_error, parameter_error, MethodError};
 
 /// Which registry a result came from: the digest of the files that were read, and the
@@ -549,7 +549,7 @@ impl MethodEntry {
     /// is larger than what any one piece of software implements.
     #[getter]
     fn implemented(&self) -> bool {
-        IMPLEMENTED_METHOD_IDS.contains(&self.inner.id.as_str())
+        implemented_method_ids().contains(&self.inner.id.as_str())
     }
 
     /// Fix this method's parameter values, checking each against the entry.
@@ -700,20 +700,6 @@ pub struct BoundMethod {
 impl BoundMethod {
     pub(crate) fn registry_identity(&self) -> &RegistryIdentity {
         &self.entry.registry_identity
-    }
-
-    pub(crate) fn value_of(&self, name: &str) -> Option<f64> {
-        self.bound_parameters
-            .iter()
-            .find(|(bound, _)| bound == name)
-            .map(|(_, value)| *value)
-    }
-
-    pub(crate) fn parameter_names(&self) -> Vec<&str> {
-        self.bound_parameters
-            .iter()
-            .map(|(name, _)| name.as_str())
-            .collect()
     }
 }
 
@@ -884,7 +870,7 @@ impl Registry {
     fn implemented_methods(&self) -> Vec<MethodEntry> {
         self.methods()
             .into_iter()
-            .filter(|entry| IMPLEMENTED_METHOD_IDS.contains(&entry.inner.id.as_str()))
+            .filter(|entry| implemented_method_ids().contains(&entry.inner.id.as_str()))
             .collect()
     }
 

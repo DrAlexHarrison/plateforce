@@ -38,16 +38,17 @@ print(jump.jump_height_takeoff_frame_meters.describe())
 ```
 0.3419695652891413 meters
   jump_height.from_takeoff_velocity {'gravity_meters_per_second_squared': 9.80665}
-  registry 2026-07-25
+  registry 2026-07-25 (content-a14543984c4ed7d2)
     takeoff_velocity.impulse_momentum {'gravity_meters_per_second_squared': 9.80665}
-      bwepoch.fixed_window {'duration': 1}
-        central_tendency = mean
-        dispersion_estimator = sample
-      onset.threshold.noise_relative {'k': 5}
-        band_sides = below_only
+      bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
+        centre = mean
+        dispersion = sample
+      onset.threshold.noise_relative {'floor_seconds': 1, 'k': 5, 'offset_ms': 30, 'span_ms': 0}
         crossing_selection = first
         degenerate_band = refuse
-        dispersion_estimator = sample
+        direction = below_only
+        reference_distribution = quiet_stance_force
+        sd_convention = sample
         bwepoch.fixed_window {'duration': 1}
           central_tendency = mean
           dispersion_estimator = sample
