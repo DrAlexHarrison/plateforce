@@ -39,8 +39,9 @@ features = ["pyo3/extension-module"]
 # is five wheels, one per platform, rather than one per platform per Python version.
 build = "cp311-*"
 # musl and 32-bit are off because Rust ships no cargo for 32-bit musl and this audience is
-# not on either. Adding musl back is one edit to this line.
-skip = "*-musllinux_* *_i686 *_ppc64le *_s390x pp*"
+# not on either. Adding musl back is one edit to this line. No `pp*`: PyPy is not an enabled
+# group, so naming it here only earns a warning on every wheel job.
+skip = "*-musllinux_* *_i686 *_ppc64le *_s390x"
 build-frontend = "build"
 test-requires = ["pytest", "numpy"]
 test-command = "pytest {project}/crates/plateforce-python/tests"

@@ -67,11 +67,22 @@ impl Registry {
     pub fn load(root: impl AsRef<Path>) -> Result<Self, RegistryError> {
         let root = root.as_ref();
         // An absent registry has no violations, so without this it loads empty and passes.
-        if !root.is_dir() {
-            return Err(RegistryError::Absent {
-                path: root.to_path_buf(),
-                reason: "there is no directory there".to_string(),
-            });
+        // Reading the metadata rather than asking `is_dir`, which answers false for a
+        // directory it could not stat and would report a locked registry as missing.
+        match std::fs::metadata(root) {
+            Ok(found) if found.is_dir() => {}
+            Ok(_) => {
+                return Err(RegistryError::Absent {
+                    path: root.to_path_buf(),
+                    reason: "that path is a file, and a registry is a directory".to_string(),
+                })
+            }
+            Err(source) => {
+                return Err(RegistryError::Absent {
+                    path: root.to_path_buf(),
+                    reason: source.to_string(),
+                })
+            }
         }
         let mut registry = Registry::default();
 
@@ -201,10 +212,42 @@ mod tests {
         assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
     }
 
+    /// Every variant against what serde writes, rather than against a literal, so a
+    /// mistyped spelling fails here instead of sending a user to search the files for a
+    /// string that is not in them.
     #[test]
-    fn a_status_prints_the_way_the_registry_spells_it() {
-        assert_eq!(Status::Accepted.to_string(), "accepted");
-        assert_eq!(Confidence::High.to_string(), "high");
-        assert_eq!(Detectability::Silent.to_string(), "silent");
+    fn every_variant_prints_the_way_the_registry_spells_it() {
+        fn serde_spelling<T: serde::Serialize>(value: &T) -> String {
+            #[derive(serde::Serialize)]
+            struct Wrapper<'a, T> {
+                field: &'a T,
+            }
+            toml::to_string(&Wrapper { field: value })
+                .unwrap()
+                .trim()
+                .trim_start_matches("field = ")
+                .trim_matches('"')
+                .to_string()
+        }
+
+        for status in [
+            Status::Recommended,
+            Status::Accepted,
+            Status::Contested,
+            Status::Legacy,
+            Status::Deprecated,
+        ] {
+            assert_eq!(status.as_registry_str(), serde_spelling(&status));
+        }
+        for confidence in [Confidence::High, Confidence::Medium, Confidence::Low] {
+            assert_eq!(confidence.as_registry_str(), serde_spelling(&confidence));
+        }
+        for detectability in [
+            Detectability::Silent,
+            Detectability::Loud,
+            Detectability::Guarded,
+        ] {
+            assert_eq!(detectability.as_registry_str(), serde_spelling(&detectability));
+        }
     }
 }

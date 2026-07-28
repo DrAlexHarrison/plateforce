@@ -15,14 +15,21 @@ SAMPLE_RATE_HZ = 1200.0
 STANDARD_GRAVITY = 9.80665
 SYSTEM_MASS_KILOGRAMS = 60.0
 
+def require(condition, message):
+    """`assert` disappears under PYTHONOPTIMIZE, and a release gate that an environment
+    variable silently turns off is worse than no gate."""
+    if not condition:
+        raise SystemExit(f"smoke: {message}")
+
+
 registry = pf.Registry.load(sys.argv[1], version="smoke")
 census = registry.census
 print(
     f"{census.constructs} constructs, {census.computation_entries} computation entries, "
     f"{census.protocol_entries} protocol entries"
 )
-assert census.constructs > 0
-assert census.computation_entries > 0
+require(census.constructs > 0, "the registry reported no constructs")
+require(census.computation_entries > 0, "the registry reported no computation entries")
 
 # Quiet standing, an unloading ramp, a push, then flight. Synthetic, so no subject data
 # reaches a public runner.
@@ -48,12 +55,23 @@ jump = pf.analyse_countermovement_jump(
 )
 
 jump_height_centimeters = jump.jump_height_takeoff_frame_meters.value * 100.0
-print(f"jump height {jump_height_centimeters:.2f} cm")
-print(f"time to takeoff {jump.time_to_takeoff_seconds.value:.3f} s")
-assert 1.0 < jump_height_centimeters < 200.0, jump_height_centimeters
+print(f"jump height {jump_height_centimeters:.4f} cm")
+print(f"time to takeoff {jump.time_to_takeoff_seconds.value:.4f} s")
+
+# Pinned rather than bounded. A range wide enough to be safe is wider than every effect
+# this project exists to measure, so it would pass a result computed in the standing frame,
+# or from a different onset rule, or with a different gravity.
+require(
+    abs(jump_height_centimeters - 5.3533) < 1e-3,
+    f"jump height is {jump_height_centimeters:.4f} cm, expected 5.3533 cm",
+)
+require(
+    abs(jump.time_to_takeoff_seconds.value - 0.4933) < 1e-3,
+    f"time to takeoff is {jump.time_to_takeoff_seconds.value:.4f} s, expected 0.4933 s",
+)
 
 # The result carrying its method is the whole product, so its absence fails the release.
 provenance = jump.jump_height_takeoff_frame_meters.provenance
 print(f"provenance {provenance!r}")
-assert provenance is not None
-assert provenance.method_id
+require(provenance is not None, "a result reached a user with no record of what produced it")
+require(bool(provenance.method_id), "the provenance carries no method id")

@@ -124,10 +124,12 @@ fn registry_command(words: &[&str], path: &str) -> ExitCode {
     }
 }
 
+/// TOML floats carry a decimal point and `f64`'s Display drops it on a whole number, so
+/// `20` on screen would not match the `20.0` in the file a reader goes on to search.
 fn join_numbers(values: &[f64]) -> String {
     values
         .iter()
-        .map(|value| value.to_string())
+        .map(|value| format!("{value:?}"))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -151,7 +153,7 @@ fn show_method(method: &plateforce_registry::Method) {
             parameter.name,
             parameter
                 .default
-                .map(|d| format!(" = {d}"))
+                .map(|value| format!(" = {value:?}"))
                 .unwrap_or_default(),
             published
         );
