@@ -85,23 +85,35 @@ impl Registry {
             }
         }
         let mut registry = Registry::default();
+        // Inserting into a map means a second definition replaces the first, so a census of
+        // surviving keys is not a census of what the files declare. Collected and reported.
+        let mut replaced: Vec<String> = Vec::new();
 
         for path in toml_files_under(&root.join("constructs.toml"))? {
             let file: ConstructFile = read_toml(&path)?;
             for construct in file.constructs {
-                registry.constructs.insert(construct.id.clone(), construct);
+                let id = construct.id.clone();
+                if registry.constructs.insert(id.clone(), construct).is_some() {
+                    replaced.push(id);
+                }
             }
         }
         for path in toml_files_under(&root.join("methods"))? {
             let file: MethodFile = read_toml(&path)?;
             for method in file.methods {
-                registry.methods.insert(method.id.clone(), method);
+                let id = method.id.clone();
+                if registry.methods.insert(id.clone(), method).is_some() {
+                    replaced.push(id);
+                }
             }
         }
         for path in toml_files_under(&root.join("protocols"))? {
             let file: ProtocolFile = read_toml(&path)?;
             for protocol in file.protocols {
-                registry.protocols.insert(protocol.id.clone(), protocol);
+                let id = protocol.id.clone();
+                if registry.protocols.insert(id.clone(), protocol).is_some() {
+                    replaced.push(id);
+                }
             }
         }
 
@@ -114,7 +126,14 @@ impl Registry {
             });
         }
 
-        let violations = validate::validate(&registry);
+        let mut violations: Vec<Violation> = replaced
+            .into_iter()
+            .map(|entry| Violation {
+                entry,
+                kind: ViolationKind::DuplicateId,
+            })
+            .collect();
+        violations.extend(validate::validate(&registry));
         if violations.is_empty() {
             Ok(registry)
         } else {
@@ -157,8 +176,9 @@ fn read_toml<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, RegistryE
     })
 }
 
-/// Accepts either a single file or a directory, so the layout can grow a directory
-/// where it currently has one file without a code change.
+/// Accepts either a single file or a directory, so the layout can grow a directory where it
+/// currently has one file without a code change. Walked to the bottom, because the browser
+/// build embeds nested files and a registry the validator cannot see is one nobody checked.
 fn toml_files_under(path: &Path) -> Result<Vec<PathBuf>, RegistryError> {
     if path.is_file() {
         return Ok(vec![path.to_path_buf()]);
@@ -170,11 +190,21 @@ fn toml_files_under(path: &Path) -> Result<Vec<PathBuf>, RegistryError> {
         path: path.to_path_buf(),
         source,
     })?;
-    let mut found: Vec<PathBuf> = entries
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.extension().is_some_and(|x| x == "toml"))
-        .collect();
+    let mut found: Vec<PathBuf> = Vec::new();
+    for entry in entries {
+        // An entry that cannot be read is an error rather than one fewer method.
+        let child = entry
+            .map_err(|source| RegistryError::Io {
+                path: path.to_path_buf(),
+                source,
+            })?
+            .path();
+        if child.is_dir() {
+            found.extend(toml_files_under(&child)?);
+        } else if child.extension().is_some_and(|extension| extension == "toml") {
+            found.push(child);
+        }
+    }
     found.sort();
     Ok(found)
 }
@@ -196,6 +226,64 @@ mod tests {
         let error = Registry::load(&empty).unwrap_err();
         std::fs::remove_dir_all(&empty).ok();
         assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
+    }
+
+    fn write_minimal_registry(root: &Path, method_file: &Path, id: &str) {
+        std::fs::create_dir_all(method_file.parent().unwrap()).unwrap();
+        std::fs::write(
+            root.join("constructs.toml"),
+            "[[construct]]\nid = \"movement_onset\"\ntitle = \"Onset\"\nunit = \"seconds\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            method_file,
+            format!(
+                "[[method]]\nid = \"{id}\"\nconstruct = \"movement_onset\"\n\
+                 title = \"A rule\"\nrule = \"Something.\"\nstatus = \"accepted\"\n\
+                 confidence = \"high\"\n"
+            ),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn a_method_file_in_a_subdirectory_is_loaded_the_way_the_browser_embeds_it() {
+        let root = std::env::temp_dir().join("plateforce-nested-registry-test");
+        std::fs::remove_dir_all(&root).ok();
+        write_minimal_registry(
+            &root,
+            &root.join("methods").join("extras").join("nested.toml"),
+            "onset.threshold.nested",
+        );
+        let registry = Registry::load(&root).unwrap();
+        std::fs::remove_dir_all(&root).ok();
+        assert!(registry.methods.contains_key("onset.threshold.nested"));
+    }
+
+    #[test]
+    fn two_definitions_of_one_id_are_a_violation_rather_than_a_census_of_one() {
+        let root = std::env::temp_dir().join("plateforce-duplicate-registry-test");
+        std::fs::remove_dir_all(&root).ok();
+        let methods = root.join("methods");
+        write_minimal_registry(&root, &methods.join("aaa.toml"), "onset.threshold.twice");
+        write_minimal_registry(&root, &methods.join("zzz.toml"), "onset.threshold.twice");
+        let error = Registry::load(&root).unwrap_err();
+        std::fs::remove_dir_all(&root).ok();
+        assert!(error.to_string().contains("more than one entry"), "{error}");
+    }
+
+    #[test]
+    fn a_misspelt_key_is_refused_rather_than_dropped() {
+        let root = std::env::temp_dir().join("plateforce-typo-registry-test");
+        std::fs::remove_dir_all(&root).ok();
+        let method_file = root.join("methods").join("typo.toml");
+        write_minimal_registry(&root, &method_file, "onset.threshold.typo");
+        let mut text = std::fs::read_to_string(&method_file).unwrap();
+        text.push_str("\n[[method.citaton]]\nkey = \"nobody\"\nrole = \"proposes\"\n");
+        std::fs::write(&method_file, text).unwrap();
+        let error = Registry::load(&root).unwrap_err();
+        std::fs::remove_dir_all(&root).ok();
+        assert!(matches!(error, RegistryError::Parse { .. }), "{error}");
     }
 
     #[test]

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Standing-frame and takeoff-frame jump height differ by about 144 mm for the same
 /// method, so they are separate constructs rather than variants of one.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Construct {
     pub id: String,
     pub title: String,
@@ -55,6 +56,7 @@ pub enum CitationRole {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Citation {
     pub key: String,
     pub role: CitationRole,
@@ -69,6 +71,7 @@ pub struct Citation {
 
 /// The settings the per-kind-of-rule grain deliberately keeps off the entry list.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Parameter {
     pub name: String,
     #[serde(default)]
@@ -101,6 +104,7 @@ pub enum CriterionKind {
 /// height from flight time, which makes their biases additive to flight-time method
 /// bias rather than inclusive of it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Bias {
     pub magnitude: f64,
     pub unit: String,
@@ -129,6 +133,7 @@ pub enum Detectability {
 /// corpus, two published onset rules miss by more than two seconds on roughly one
 /// trial in seven while their medians look ordinary.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Failure {
     pub rate: f64,
     pub numerator: u32,
@@ -148,6 +153,7 @@ pub enum DisagreementKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Disagreement {
     pub id: String,
     pub kind: DisagreementKind,
@@ -169,6 +175,7 @@ pub enum Surfacing {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Gui {
     pub surfacing: Surfacing,
     #[serde(default)]
@@ -178,6 +185,7 @@ pub struct Gui {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Method {
     pub id: String,
     pub construct: String,
@@ -216,6 +224,7 @@ pub enum Provenance {
 
 /// Protocol entries have no rule to evaluate and are counted on their own denominator.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Protocol {
     pub id: String,
     pub area: String,
@@ -229,18 +238,21 @@ pub struct Protocol {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConstructFile {
     #[serde(default, rename = "construct")]
     pub constructs: Vec<Construct>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MethodFile {
     #[serde(default, rename = "method")]
     pub methods: Vec<Method>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProtocolFile {
     #[serde(default, rename = "protocol")]
     pub protocols: Vec<Protocol>,

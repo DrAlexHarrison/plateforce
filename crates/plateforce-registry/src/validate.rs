@@ -17,6 +17,7 @@ pub enum ViolationKind {
     RecommendedOnUnobtainedSource { citation: String },
     FailureWithoutDenominator,
     FailureRateInconsistent { stated: f64, computed: f64 },
+    DuplicateId,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,6 +31,11 @@ impl fmt::Display for Violation {
         use ViolationKind::*;
         match &self.kind {
             IdNotDotted => write!(f, "{}: id is not a dotted canonical name", self.entry),
+            DuplicateId => write!(
+                f,
+                "{}: more than one entry carries this id, so one definition replaced another",
+                self.entry
+            ),
             UnknownConstruct { construct } => write!(
                 f,
                 "{}: names construct '{construct}', which is not in constructs.toml",
@@ -192,12 +198,11 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
     }
 
     // Ids collide across populations even though the populations are counted apart.
-    let mut seen: BTreeSet<&str> = BTreeSet::new();
-    for id in registry.methods.keys().chain(registry.protocols.keys()) {
-        if !seen.insert(id.as_str()) {
+    for id in registry.methods.keys() {
+        if registry.protocols.contains_key(id) {
             violations.push(Violation {
                 entry: id.clone(),
-                kind: ViolationKind::IdNotDotted,
+                kind: ViolationKind::DuplicateId,
             });
         }
     }
