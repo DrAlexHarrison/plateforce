@@ -170,16 +170,11 @@ export function availableAxes(slot, candidate) {
   return axes;
 }
 
-export const WEIGHING_DURATION_AXIS = {
-  id: 'weighing:duration_seconds',
-  slot: 'weighing',
-  parameter: 'duration_seconds',
-  values: [0.5, 1.0, 1.5, 2.0],
-  label: 'Weighing epoch: duration',
-  unit: 's',
-  note: 'threshold width moves +/-72% at 0.5 s and +/-23% at 1.5 s',
-  display: '0.5, 1, 1.5, 2',
-};
+/* The weighing rules each name the window's length on their own registry row, and dragging
+ * the window on the trace sets that same parameter. */
+export function windowLengthParameter(candidate) {
+  return (candidate?.method?.parameter || []).find((parameter) => parameter.unit === 'seconds')?.name || null;
+}
 
 export const GRAVITY_AXIS = {
   id: 'global:gravity',

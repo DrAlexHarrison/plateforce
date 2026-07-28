@@ -14,7 +14,7 @@ import {
   rankCandidates,
   initialParameters,
   availableAxes,
-  WEIGHING_DURATION_AXIS,
+  windowLengthParameter,
   GRAVITY_AXIS,
   findMethod,
 } from './registry.js';
@@ -26,7 +26,7 @@ const state = {
   build: null,
   slots: [],
   selection: {},
-  weighing: { startIndex: 0, durationSeconds: null },
+  weighing: { startIndex: null },
   overrides: { onset: null, takeoff: null, touchdown: null },
   file: null,
   session: null,
@@ -119,8 +119,7 @@ function resetSelections() {
       ? { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) }
       : { methodId: null, values: {}, unresolved: [] };
   }
-  const weighingSlot = state.slots.find((slot) => slot.key === 'weighing');
-  state.weighing = { startIndex: null, durationSeconds: weighingSlot?.forcesDecision ? null : 1.0 };
+  state.weighing = { startIndex: null };
 }
 
 function candidateFor(slotKey, id) {
@@ -335,9 +334,14 @@ function enterWorkspace() {
       onWindowChange: (startIndex, durationSeconds) => {
         // Placing the window by hand is a registry entry in its own right, so the drag
         // rebinds the method rather than overriding whichever rule was selected.
-        state.weighing = { startIndex, durationSeconds };
-        if (candidateFor('weighing', 'bwepoch.manual_placement')) {
-          state.selection.weighing = { methodId: 'bwepoch.manual_placement', values: {}, unresolved: [] };
+        state.weighing = { startIndex };
+        const placed = candidateFor('weighing', 'bwepoch.manual_placement');
+        if (placed) state.selection.weighing = { methodId: placed.id, values: {}, unresolved: [] };
+        const selection = state.selection.weighing;
+        const length = windowLengthParameter(candidateFor('weighing', selection.methodId));
+        if (length) {
+          selection.values[length] = durationSeconds;
+          selection.unresolved = (selection.unresolved || []).filter((name) => name !== length);
         }
         renderDecisions();
         runAnalysis();
@@ -390,9 +394,6 @@ function unresolvedDecisions() {
       pending.push({ slot, what: 'method' });
     }
     for (const name of selection.unresolved || []) pending.push({ slot, what: name });
-  }
-  if (state.weighing.durationSeconds == null) {
-    pending.push({ slot: state.slots.find((s) => s.key === 'weighing'), what: 'duration' });
   }
   return pending;
 }
@@ -473,7 +474,6 @@ function renderSlot(slot) {
     }
   }
 
-  if (slot.key === 'weighing') wrap.append(renderWeighingDuration());
   return wrap;
 }
 
@@ -505,6 +505,15 @@ function renderParameters(slot, candidate, selection) {
         option.selected = !unresolved && selection.values[parameter.name] === value;
         select.append(option);
       }
+      // A window dragged on the trace lands on a span no paper published, and it is the
+      // span the number was computed over, so it belongs in the list.
+      const chosen = selection.values[parameter.name];
+      if (!unresolved && Number.isFinite(chosen) && !values.includes(chosen)) {
+        const option = element('option', null, `${Number(chosen.toFixed(3))} (placed by hand)`);
+        option.value = String(chosen);
+        option.selected = true;
+        select.append(option);
+      }
       select.addEventListener('change', () => {
         selection.values[parameter.name] = Number(select.value);
         selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
@@ -529,39 +538,6 @@ function renderParameters(slot, candidate, selection) {
   return host;
 }
 
-function renderWeighingDuration() {
-  const row = element('div', 'param');
-  const label = element('label', null, 'duration (seconds)');
-  label.htmlFor = 'weighing-duration';
-  const select = document.createElement('select');
-  select.id = 'weighing-duration';
-  if (state.weighing.durationSeconds == null) {
-    const placeholder = element('option', null, 'choose from 4');
-    placeholder.value = '';
-    select.append(placeholder);
-  }
-  for (const value of WEIGHING_DURATION_AXIS.values) {
-    const option = element('option', null, `${value.toFixed(1)} s`);
-    option.value = String(value);
-    option.selected = state.weighing.durationSeconds === value;
-    select.append(option);
-  }
-  const custom = state.weighing.durationSeconds;
-  if (custom != null && !WEIGHING_DURATION_AXIS.values.includes(custom)) {
-    const option = element('option', null, `${custom.toFixed(3)} s (dragged)`);
-    option.value = String(custom);
-    option.selected = true;
-    select.append(option);
-  }
-  select.addEventListener('change', () => {
-    state.weighing = { ...state.weighing, durationSeconds: Number(select.value) };
-    renderDecisions();
-    runAnalysis();
-  });
-  row.append(label, select);
-  return row;
-}
-
 /* ---------------------------------------------------------------- analysis */
 
 function boundMethodId(slotKey) {
@@ -577,7 +553,7 @@ function buildRequest() {
     weighing: {
       method_id: weighingId,
       start_index: state.weighing.startIndex,
-      duration_seconds: state.weighing.durationSeconds ?? 1.0,
+      parameters: state.selection.weighing?.values || {},
       options: {},
     },
     onset: {
@@ -685,7 +661,6 @@ function acceptRecommended() {
     }
     state.selection[slot.key].unresolved = [];
   }
-  if (state.weighing.durationSeconds == null) state.weighing = { ...state.weighing, durationSeconds: 1.0 };
   renderDecisions();
   runAnalysis();
 }
@@ -928,7 +903,7 @@ function currentAxes() {
     const candidate = candidateFor(slot.key, state.selection[slot.key]?.methodId);
     axes.push(...availableAxes(slot, candidate));
   }
-  axes.push(WEIGHING_DURATION_AXIS, GRAVITY_AXIS);
+  axes.push(GRAVITY_AXIS);
   return axes;
 }
 
