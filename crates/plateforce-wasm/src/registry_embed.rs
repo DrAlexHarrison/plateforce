@@ -9,7 +9,7 @@
 //! prints the violations. Here the registry and its violations both reach the interface,
 //! which names every one and refuses to attribute a number until they are fixed.
 
-use plateforce_registry::{assemble, content_digest, AssemblyError, Registry, Violation};
+use plateforce_registry::{assemble, AssemblyError, Registry, Violation};
 
 include!(concat!(env!("OUT_DIR"), "/embedded_registry.rs"));
 
@@ -38,8 +38,8 @@ pub fn load() -> Result<LoadedRegistry, AssemblyError> {
 fn load_files(files: &[(&str, &str)]) -> Result<LoadedRegistry, AssemblyError> {
     let assembled = assemble(files.iter().copied())?;
     Ok(LoadedRegistry {
+        digest: assembled.registry.content_digest.clone(),
         registry: assembled.registry,
-        digest: content_digest(files.iter().copied()),
         file_count: files.len(),
         violations: assembled.violations,
     })

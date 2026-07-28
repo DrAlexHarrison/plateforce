@@ -11,3 +11,6 @@ build/
 
 # The browser bundle is a build artifact.
 web/pkg/
+
+# Agent worktrees.
+.claude/
