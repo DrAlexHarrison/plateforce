@@ -94,10 +94,12 @@ impl Registry {
             }
         }
 
-        if registry.constructs.is_empty() && registry.methods.is_empty() {
+        // Methods rather than either population. A directory holding constructs alone
+        // reports zero entries and no violations, which reads as a registry that passed.
+        if registry.methods.is_empty() {
             return Err(RegistryError::Absent {
                 path: root.to_path_buf(),
-                reason: "the directory holds no constructs.toml and no methods".to_string(),
+                reason: "the directory holds no methods".to_string(),
             });
         }
 
@@ -182,6 +184,20 @@ mod tests {
         std::fs::create_dir_all(&empty).unwrap();
         let error = Registry::load(&empty).unwrap_err();
         std::fs::remove_dir_all(&empty).ok();
+        assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
+    }
+
+    #[test]
+    fn a_directory_holding_constructs_and_no_methods_is_not_a_registry() {
+        let partial = std::env::temp_dir().join("plateforce-constructs-only-test");
+        std::fs::create_dir_all(&partial).unwrap();
+        std::fs::write(
+            partial.join("constructs.toml"),
+            "[[construct]]\nid = \"system_weight\"\ntitle = \"Weight\"\nunit = \"newtons\"\n",
+        )
+        .unwrap();
+        let error = Registry::load(&partial).unwrap_err();
+        std::fs::remove_dir_all(&partial).ok();
         assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
     }
 

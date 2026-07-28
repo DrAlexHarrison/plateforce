@@ -47,6 +47,9 @@ echo "building plateforce-wasm for wasm32-unknown-unknown (${profile})"
 if [ "$profile" = "release" ]; then
   cargo build --package plateforce-wasm --target wasm32-unknown-unknown --release
 else
+  # A debug bundle runs several times slower than the deployed one and is the same
+  # filename, so anything timed against it measures the profile rather than the code.
+  echo "  a debug bundle is not what the site serves; pass 'release' before timing anything"
   cargo build --package plateforce-wasm --target wasm32-unknown-unknown
 fi
 
