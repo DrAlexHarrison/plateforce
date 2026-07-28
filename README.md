@@ -29,11 +29,13 @@ second. Their median behaviour is unremarkable and their 95th percentile is thre
 normal, so a single reported bias figure for those rules averages "agrees reasonably"
 together with "found the wrong event entirely".
 
-Every figure on this page is recomputed by `audit/headline_audit.py` rather than quoted,
-and each one states the query and the denominator that produced it. The underlying trial
-matrix is not yet released: the 2011 corpus it derives from is re-identifiable and the
-consent position for the full cohort is unresolved, so the analysis is open and the data
-release is pending rather than declined.
+The spreads, the failure rates and the sentinel effects on this page are recomputed by
+`audit/headline_audit.py` rather than quoted, and each states the query and the denominator
+that produced it. The two correlations come from a pairwise run over the same matrix, and
+the 1.98 cm intervention effect comes from the source study. The underlying trial matrix is
+not yet released: the 2011 corpus it derives from is re-identifiable and the consent
+position for the full cohort is unresolved, so the analysis is open and the data release is
+pending rather than declined.
 
 ## Status
 
@@ -42,14 +44,19 @@ Early, and the browser build runs: **https://dralexharrison.github.io/plateforce
 Drop a force trace in and nothing is uploaded. The file is read in the tab.
 
 What works: the registry loads and validates as data, 246 computation entries and 8
-protocol entries across 18 method files. The core reproduces a frozen 56-variant
-reference implementation over 244 trials, every column, and a difference fails the build.
+protocol entries across 18 method files. The core reproduces a frozen 56-variant reference
+implementation over 244 trials, every column. Six of those trials ship as a fixture and a
+difference in them fails the build; the other 238 run where the corpus is, which is one
+machine, and every run prints which of the two it checked.
 
-What that does not yet mean: **12 of the registry's rules are executable**, covering the
-weighing epoch, movement onset and takeoff. The rest of the registry is catalogued and
-cited with no running maths behind it, so the interface does not offer those methods at
-all. There is no desktop application, the command line inspects the registry but does not
-analyse a trace, and the R binding does not exist.
+What that does not yet mean: **12 rules run**, covering the weighing epoch, movement onset
+and takeoff. Eight are registry entries, three bind an operator onto a registry entry and
+carry that entry's citations, and one the registry files under a different id. The rest of
+the registry is catalogued and cited with no running maths behind it, so the interface does
+not offer those methods at all. There is no desktop application, the command line inspects
+the registry but does not analyse a trace, and the R binding does not exist. The Python
+package builds as one wheel per platform for Linux, macOS and Windows and installs with no
+compiler; it is not on PyPI, so it is built from this repository.
 
 ## Layout
 

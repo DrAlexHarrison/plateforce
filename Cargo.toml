@@ -9,11 +9,8 @@ members = [
     "crates/plateforce-python",
 ]
 
-# The floor is the one the dependency tree actually imposes, not the one we would prefer.
-# `toml` reaches `toml_parser`, `indexmap` and `hashbrown`, all of which declare 1.85, so
-# a lower number here would be a claim `cargo` disproves on any older toolchain. The one
-# Rust package archived from CRAN for a toolchain reason was archived for exactly that gap
-# between the declared floor and the real one. `scripts/check-msrv.sh` holds this honest.
+# The floor the dependency tree imposes: `toml` reaches `toml_parser`, `indexmap` and
+# `hashbrown`, which declare 1.85. `scripts/check-msrv.sh` holds this honest.
 [workspace.package]
 version = "0.1.0"
 edition = "2021"

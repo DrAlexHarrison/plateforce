@@ -3,12 +3,16 @@
 Force-plate analysis where a result carries the method that produced it. You pick a
 published method from the registry, and the number you get back remembers which one.
 
+Build a wheel from this repository and install it:
+
 ```
-pip install plateforce
+pip install maturin
+maturin build --release --manifest-path crates/plateforce-python/Cargo.toml
+pip install target/wheels/plateforce-*.whl
 ```
 
-No compiler and no Rust toolchain needed. One wheel per platform covers Python 3.11 and
-every later version.
+The machine that installs the wheel needs no compiler and no Rust toolchain. One abi3 wheel
+per platform covers Python 3.11 and every later version.
 
 ## Analysing one jump
 
@@ -133,13 +137,15 @@ sentence:
 ('onset.threshold.noise_relative', 'k', 5.0)
 ```
 
-The registry describes the literature, which is larger than what any one piece of software
-implements. Selecting an entry this build cannot run fails by name rather than resolving to
-something near it:
+The registry describes the literature, which is larger than the set of rules any one piece
+of software runs. Selecting an entry with no rule behind it fails by name rather than
+resolving to something near it:
 
 ```python
 MethodNotImplementedError: 'onset.threshold.noise_relative_forward_offset' was passed as
-the onset method and this build implements 'onset.threshold.noise_relative' for that step.
+the onset method, and 'onset.threshold.noise_relative' is the rule available for that step.
+Available: ["bwepoch.fixed_window", "onset.threshold.noise_relative",
+"takeoff.threshold.absolute_force"]
 ```
 
 Check first with `registry.method(id).implemented`.

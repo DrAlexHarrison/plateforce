@@ -34,8 +34,7 @@ struct BuildInfo {
     registry_file_count: usize,
     registry_valid: bool,
     registry_violations: Vec<String>,
-    /// Every rule this build can actually run, with the slot it fills. The interface
-    /// offers a registry entry it cannot execute as unavailable rather than omitting it.
+    /// Every rule that runs, with the slot it fills.
     bindings: &'static [analysis::Binding],
     threads: bool,
 }
