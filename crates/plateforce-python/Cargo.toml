@@ -3,9 +3,7 @@ name = "plateforce-python"
 description = "Python bindings, built as an abi3 wheel."
 version.workspace = true
 edition.workspace = true
-# Above the workspace floor, which exists for CRAN's build machines. CRAN never builds
-# this crate, so the floor that protects the R path does not have to hold here.
-rust-version = "1.83"
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true

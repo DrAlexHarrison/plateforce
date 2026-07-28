@@ -18,9 +18,9 @@ serde = { workspace = true }
 serde_json = "1"
 toml = { workspace = true }
 
-# Pinned below 0.2.126, which raises the toolchain floor to 1.77 and would breach the
-# workspace MSRV. No feature selected here pulls in threads: the browser build has to
-# stay servable from static hosting with no cross-origin isolation headers.
+# Exact, because the generated bindings only load against the matching wasm-bindgen CLI,
+# and `pages.yml` reads this line to install it. No feature selected here pulls in threads:
+# the browser build has to stay servable from static hosting with no isolation headers.
 wasm-bindgen = { version = "=0.2.117", default-features = false, features = ["std"] }
 
 [package.metadata.docs.rs]

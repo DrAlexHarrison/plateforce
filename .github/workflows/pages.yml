@@ -6,6 +6,9 @@ name: Publish the browser build
 on:
   push:
     branches: [main]
+  # Without this a dependency bump reaches main having run no Rust test at all, which is
+  # how the declared toolchain floor drifted below the one the tree actually needs.
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -46,6 +49,9 @@ jobs:
       - name: Check the workspace
         run: cargo test --workspace
 
+      - name: Check the declared toolchain floor against the one the tree needs
+        run: ./scripts/check-msrv.sh
+
       - name: Build the browser bundle
         run: ./scripts/build-web.sh release
 
@@ -56,13 +62,18 @@ jobs:
       - name: Report registry validation
         run: cargo run --quiet --package plateforce-cli -- registry validate || true
 
+      # A pull request runs every check above and publishes nothing. The Pages token is
+      # not granted to a fork, so asking for it there would fail the checks it came for.
       - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: web
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
