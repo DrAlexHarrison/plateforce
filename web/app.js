@@ -89,7 +89,7 @@ function renderRegistryBanner() {
   banner.hidden = false;
   $('registry-banner-text').textContent =
     `${state.build.registry_violations.length} violations across ${state.build.registry_file_count} registry files. ` +
-    'Until they clear, every method below is reported as not registry backed, so no citation is claimed for a number that does not have one.';
+    'No number below carries a citation until they clear.';
   const list = $('registry-violations');
   list.replaceChildren(...state.build.registry_violations.map((line) => element('li', null, line)));
 }
@@ -103,8 +103,6 @@ function renderBuildInfo() {
     ['Constructs', String(census.constructs)],
     ['Computation entries', String(census.computation_entries)],
     ['Protocol entries', String(census.protocol_entries)],
-    ['Executable here', `${state.build.bindings.length} rules, ${state.build.bindings.filter((b) => !b.note).length} of them registry backed`],
-    ['Threads', state.build.threads ? 'yes' : 'no, so no isolation headers are needed'],
   ];
   const list = $('build-info');
   list.replaceChildren();
@@ -321,7 +319,7 @@ function enterWorkspace() {
   state.info = info;
   $('trial-summary').textContent =
     `${info.sample_count.toLocaleString()} samples at ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
-    (info.synthetic ? '. Synthetic trial, generated in this tab.' : '') +
+    (info.synthetic ? '. Demo trial.' : '') +
     (info.sentinel_samples_replaced ? ` ${info.sentinel_samples_replaced} samples were flagged missing and held at the last reading.` : '');
 
   if (!state.chart) {
@@ -405,10 +403,11 @@ function renderDecisions() {
 
   const pending = unresolvedDecisions();
   $('decisions-sub').textContent = pending.length
-    ? `${pending.length} unresolved. The registry marks these as choices that move the number, so nothing is chosen for you.`
+    ? `${pending.length} unresolved. Each one moves the number, so plateforce does not pick for you.`
     : 'All resolved. Every choice below appears in the provenance of the numbers.';
 
   for (const slot of state.slots) {
+    if (!slot.available.length) continue;
     host.append(renderSlot(slot));
   }
 }
@@ -423,12 +422,6 @@ function renderSlot(slot) {
   else if (slot.surfacing === 'default_and_hide') head.append(element('span', 'tag tag--advanced', 'advanced'));
   wrap.append(head);
   wrap.append(element('p', 'decision__why', slot.why));
-
-  if (!slot.available.length) {
-    wrap.append(element('p', 'decision__meta', 'This build can execute none of the registry entries for this construct.'));
-    wrap.append(renderWithheld(slot));
-    return wrap;
-  }
 
   const select = document.createElement('select');
   select.setAttribute('aria-label', `${slot.title} method`);
@@ -448,12 +441,6 @@ function renderSlot(slot) {
     option.selected = candidate.id === selection.methodId;
     select.append(option);
   }
-  for (const candidate of slot.unavailable) {
-    const option = element('option', null, `${candidate.title}, not executable in this build`);
-    option.value = candidate.id;
-    option.disabled = true;
-    select.append(option);
-  }
   select.addEventListener('change', () => {
     const candidate = candidateFor(slot.key, select.value);
     state.selection[slot.key] = { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) };
@@ -462,25 +449,8 @@ function renderSlot(slot) {
   });
   wrap.append(select);
 
-  if (slot.unavailable.length) {
-    wrap.append(
-      element(
-        'p',
-        'decision__meta',
-        `${slot.available.length} of ${slot.candidates.length} rules for this construct run in this build. The rest are listed disabled rather than hidden.`,
-      ),
-    );
-  }
-
-  if (!selection.methodId) {
-    wrap.append(element('p', 'undecided', 'Unresolved. The registry flags this as force a decision, so there is no default.'));
-  }
-
   const candidate = selection.methodId ? candidateFor(slot.key, selection.methodId) : null;
   if (candidate) {
-    if (!candidate.registryBacked) {
-      wrap.append(element('p', 'undecided', candidate.note));
-    }
     const failure = candidate.method?.failure;
     if (failure) {
       const note = element(
@@ -503,8 +473,7 @@ function renderSlot(slot) {
     }
   }
 
-  if (slot.key === 'weighing') wrap.append(renderWeighingDuration(slot));
-  wrap.append(renderWithheld(slot));
+  if (slot.key === 'weighing') wrap.append(renderWeighingDuration());
   return wrap;
 }
 
@@ -512,6 +481,9 @@ function renderParameters(slot, candidate, selection) {
   const host = element('div', 'decision__params');
   for (const parameter of candidate.method?.parameter || []) {
     const values = parameter.published_values || [];
+    // A parameter with neither a published value nor a default has nothing to bind, so
+    // there is no control to draw.
+    if (!values.length && !Number.isFinite(parameter.default)) continue;
     const row = element('div', 'param');
     const id = `param-${slot.key}-${parameter.name}`;
     const label = element('label', null, `${parameter.name}${parameter.unit ? ` (${parameter.unit})` : ''}`);
@@ -551,17 +523,13 @@ function renderParameters(slot, candidate, selection) {
         runAnalysis();
       });
       row.append(input);
-    } else {
-      // The registry records this parameter with no numeric value to bind, so this build
-      // runs its own default.
-      row.append(element('span', 'decision__meta', 'build default'));
     }
     host.append(row);
   }
   return host;
 }
 
-function renderWeighingDuration(slot) {
+function renderWeighingDuration() {
   const row = element('div', 'param');
   const label = element('label', null, 'duration (seconds)');
   label.htmlFor = 'weighing-duration';
@@ -592,25 +560,6 @@ function renderWeighingDuration(slot) {
   });
   row.append(label, select);
   return row;
-}
-
-function renderWithheld(slot) {
-  if (!slot.withheld.length) return document.createDocumentFragment();
-  const details = element('details', 'not-offered');
-  details.append(element('summary', null, `${slot.withheld.length} entries the registry does not offer as a choice`));
-  const list = element('ul');
-  for (const method of slot.withheld) {
-    const item = element('li');
-    item.append(element('code', null, method.id));
-    item.append(
-      document.createTextNode(
-        ` ${method.gui.surfacing === 'refuse' ? 'refused' : 'never a user choice'}. ${method.gui.rationale || method.title}`,
-      ),
-    );
-    list.append(item);
-  }
-  details.append(list);
-  return details;
 }
 
 /* ---------------------------------------------------------------- analysis */
@@ -702,8 +651,8 @@ function renderPendingDecisions(pending) {
     element(
       'p',
       null,
-      'The registry marks each of these as a choice that moves the result, so plateforce does not pick one for you. ' +
-        'Choosing the registry recommendation is recorded as a choice you made.',
+      'Published methods disagree here, so plateforce does not pick one for you. ' +
+        'Whichever you take travels with the number.',
     ),
   );
   const list = element('ul');
@@ -712,7 +661,7 @@ function renderPendingDecisions(pending) {
   }
   card.append(list);
 
-  const accept = element('button', 'button button--primary', 'Accept the registry recommendation for all of these');
+  const accept = element('button', 'button button--primary', 'Take the recommended method for each');
   accept.type = 'button';
   accept.addEventListener('click', acceptRecommended);
   card.append(accept);
@@ -837,8 +786,7 @@ function openDrawer(method, fallbackId, bound) {
         notice(
           'warning',
           `A composition of ${binding.composed_from}`,
-          `${binding.note} Under the registry's per-kind-of-rule grain a composition is a method plus bound parameters, ` +
-            `so it carries that row's citations rather than a row of its own, and the binding travels in the fingerprint.`,
+          'A method plus bound parameters, so it carries that entry\'s citations rather than its own. The binding travels in the fingerprint.',
         ),
       );
       if (base) {
@@ -851,8 +799,8 @@ function openDrawer(method, fallbackId, bound) {
       body.append(
         notice(
           'warning',
-          'No registry row carries this id',
-          `${binding?.note || ''} There is no citation, no recorded bias and no failure rate under this id. Numbers depending on it are marked accordingly.`.trim(),
+          'Not a registry entry',
+          'No citation, no recorded bias and no failure rate under this id.',
         ),
       );
     }
@@ -874,8 +822,6 @@ function openDrawer(method, fallbackId, bound) {
     ['Status', method.status],
     ['Confidence', method.confidence],
     ['Debate', method.debate || 'not stated'],
-    ['Surfacing', method.gui?.surfacing || 'not stated'],
-    ['Sensitivity', method.gui?.sensitivity || 'not stated'],
   ];
   if (bound?.bound_parameters?.length) {
     rows.push(['Bound here', bound.bound_parameters.map(([name, value]) => `${name} = ${value}`).join(', ')]);
@@ -884,8 +830,6 @@ function openDrawer(method, fallbackId, bound) {
   body.append(section('Entry', identity));
 
   body.append(section('Rule', element('p', 'rule-text', method.rule.trim())));
-
-  if (method.gui?.rationale) body.append(section('Why it is surfaced this way', element('p', null, method.gui.rationale.trim())));
 
   if (method.failure) {
     body.append(

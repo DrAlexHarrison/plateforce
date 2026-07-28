@@ -1,16 +1,15 @@
 /*
  * Turning the registry into the decisions the interface presents.
  *
- * Nothing here hardcodes a method. The slots name constructs, the candidates are the
- * union of what the registry documents and what this build can execute, and the surfacing
- * field on each entry decides how hard the choice is pushed at the user.
+ * Nothing here hardcodes a method. The slots name constructs, the candidates come from
+ * the registry, and the surfacing field on each entry decides how hard the choice is
+ * pushed at the user.
  *
- * The union matters in both directions. A registry entry this build cannot run is offered
- * as unavailable rather than omitted, and a rule this build can run that the registry has
- * not documented is offered as not registry backed rather than presented as citable.
- *
- * Not registry backed splits two ways. A composition binds an operator on a registry row
- * and inherits its citations. An unfiled rule has no row anywhere.
+ * A candidate is offered only when a rule exists to run it. A runnable rule the registry
+ * has not documented still appears, flagged as carrying no citation, because presenting
+ * it as citable would be the misattribution the registry exists to prevent. That splits
+ * two ways: a composition binds parameters on a registry entry and inherits its
+ * citations, while an unfiled rule has no entry anywhere.
  */
 
 export const SLOTS = [
@@ -34,9 +33,8 @@ export const SLOTS = [
   },
 ];
 
-/* Entries the registry rules out as user choices. They are listed with their reason rather
- * than dropped, because a choice removed without explanation is indistinguishable from a
- * choice nobody thought of. */
+/* Entries the registry rules out as user choices. The reasoning lives in the registry and
+ * in the docs, not in the interface. */
 const NOT_A_CHOICE = new Set(['never_a_user_choice', 'refuse']);
 
 export function buildDecisionModel(registry, bindings) {
@@ -51,7 +49,6 @@ export function buildDecisionModel(registry, bindings) {
     const slotBindings = bindings.filter((binding) => binding.slot === slot.key);
     const executableIds = new Set(slotBindings.map((binding) => binding.id));
 
-    const withheld = documented.filter((method) => NOT_A_CHOICE.has(method.gui?.surfacing));
     const offered = documented.filter((method) => !NOT_A_CHOICE.has(method.gui?.surfacing));
 
     const candidates = offered.map((method) => ({
@@ -86,8 +83,6 @@ export function buildDecisionModel(registry, bindings) {
       constructEntry: registry.constructs.find((c) => c.id === slot.construct) || null,
       candidates,
       available: candidates.filter((candidate) => candidate.executable),
-      unavailable: candidates.filter((candidate) => !candidate.executable),
-      withheld,
       forcesDecision: offered.some((method) => method.gui?.surfacing === 'force_a_decision'),
       surfacing: dominantSurfacing(offered),
     };
@@ -141,8 +136,8 @@ export function initialParameters(candidate, forcesDecision) {
 }
 
 /* Every axis the spread view can sweep. Parameter axes come from the published values the
- * registry records; the method axis comes from what this build can execute. Nothing here
- * is invented. */
+ * registry records; the method axis comes from the runnable rules. Nothing here is
+ * invented. */
 export function availableAxes(slot, candidate) {
   const axes = [];
 
@@ -153,7 +148,7 @@ export function availableAxes(slot, candidate) {
       methodIds: slot.available.map((entry) => entry.id),
       label: `${slot.title}: the rule itself`,
       unit: '',
-      note: `${slot.available.length} rules this build can run`,
+      note: `${slot.available.length} rules`,
       display: `${slot.available.length} rules`,
     });
   }

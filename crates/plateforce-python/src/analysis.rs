@@ -99,7 +99,7 @@ fn expect_method(method: &BoundMethod, wanted: &str, role: &str) -> PyResult<()>
         return Ok(());
     }
     Err(MethodNotImplementedError::new_err(format!(
-        "'{}' was passed as the {role} method and this build implements '{}' for that step. Implemented: {:?}",
+        "'{}' was passed as the {role} method, and '{}' is the rule available for that step. Available: {:?}",
         method.method_id(),
         wanted,
         IMPLEMENTED_METHOD_IDS

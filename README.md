@@ -47,9 +47,9 @@ reference implementation over 244 trials, every column, and a difference fails t
 
 What that does not yet mean: **12 of the registry's rules are executable**, covering the
 weighing epoch, movement onset and takeoff. The rest of the registry is catalogued and
-cited but has no running maths behind it yet, and the interface says so per rule rather
-than quietly substituting a default. There is no desktop application, the command line
-inspects the registry but does not analyse a trace, and the R binding does not exist.
+cited with no running maths behind it, so the interface does not offer those methods at
+all. There is no desktop application, the command line inspects the registry but does not
+analyse a trace, and the R binding does not exist.
 
 ## Layout
 

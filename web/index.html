@@ -40,13 +40,12 @@
 
 <div class="banner banner--error" id="registry-banner" hidden>
   <div class="banner__body">
-    <strong id="registry-banner-title">The compiled registry fails its own validator.</strong>
+    <strong id="registry-banner-title">The method registry is invalid.</strong>
     <p id="registry-banner-text"></p>
     <details id="registry-violations-wrap">
       <summary>Show every violation</summary>
       <ul class="violation-list" id="registry-violations"></ul>
     </details>
-    <p class="banner__note">Analysis still runs. Every number is marked as not registry backed until these clear.</p>
   </div>
 </div>
 
@@ -56,7 +55,7 @@
   <section class="stage" id="stage-loading">
     <div class="loading">
       <div class="loading__bar" aria-hidden="true"><span></span></div>
-      <p>Loading plateforce in this tab.</p>
+      <p>Loading plateforce.</p>
     </div>
   </section>
 
@@ -66,9 +65,8 @@
       <h2>plateforce could not start</h2>
       <p id="fatal-message"></p>
       <p class="empty__hint">
-        The page needs to be served over http rather than opened from the filesystem, because
-        browsers refuse to load WebAssembly modules from <code>file://</code>.
-        From the repository root run <code>python3 -m http.server -d web 8000</code> and open
+        plateforce has to be served over http rather than opened from the filesystem. From the
+        repository root run <code>python3 -m http.server -d web 8000</code> and open
         <code>http://localhost:8000</code>.
       </p>
     </div>
@@ -83,10 +81,10 @@
           <path d="M6 25v4a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3v-4" fill="none" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <h2>Drop a force trace here</h2>
-        <p>Tab or comma separated text from any plate. The file is read in your browser and is not uploaded.</p>
+        <p>Tab or comma separated text from any plate.</p>
         <div class="dropzone__actions">
           <button type="button" class="button button--primary" id="choose-file">Choose a file</button>
-          <button type="button" class="button button--ghost" id="load-demo">Open a synthetic trial</button>
+          <button type="button" class="button button--ghost" id="load-demo">Open a demo trial</button>
         </div>
         <input type="file" id="file-input" accept=".txt,.csv,.tsv,.dat,.asc,text/plain" hidden>
       </div>
@@ -208,7 +206,7 @@
       </section>
 
       <section class="panel panel--rail">
-        <div class="panel__head"><h2>This build</h2></div>
+        <div class="panel__head"><h2>Provenance</h2></div>
         <dl class="kv" id="build-info"></dl>
       </section>
     </aside>

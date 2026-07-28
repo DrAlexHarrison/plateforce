@@ -55,7 +55,7 @@ pyo3::create_exception!(
     plateforce,
     MethodNotImplementedError,
     MethodError,
-    "The registry describes this method but this build has no implementation of it."
+    "The registry describes this method and no rule is available to run it."
 );
 
 /// Preserves the core message and re-attaches its fields, so a caller can branch on the

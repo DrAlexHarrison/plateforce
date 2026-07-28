@@ -151,7 +151,31 @@ narrative, no discovery story.
 
 ---
 
-## 5. Enforcement
+## 5. Interface copy
+
+Every string a user reads, in the browser, the command line, an error, or a
+Python exception, describes their data and their choices. It never describes the
+state of this software.
+
+Banned outright: "in this build", "not implemented yet", "coming soon", "build
+default", "N of M rules available here", "listed disabled rather than hidden",
+"generated in this tab", and any panel named after the build.
+
+Absence is not content either. The interface does not enumerate what it cannot
+do, does not offer, or has withheld. A method with a rule behind it is offered;
+one without is absent, and the interface says nothing about it. Coverage limits
+are stated once, in `README.md`, where somebody deciding whether to adopt this
+will look for them.
+
+The distinction that makes this workable: a failure rate, a bias, a missing
+citation and a contested status are facts about the *literature*, and they are
+the product. "We have not written that part yet" is a fact about *us*, and it
+belongs in the README. An error message may say what went wrong and what is
+available instead. It may not apologise for the roadmap.
+
+---
+
+## 6. Enforcement
 
 Run `/uncomment` over any file before it is committed for the first time, and
 `/comment-truth` over any file whose comments were written before this document
