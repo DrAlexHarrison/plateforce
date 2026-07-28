@@ -18,7 +18,7 @@ use crate::errors::{map_registry_error, parameter_error, MethodError};
 /// release, so claiming a version nobody set would make an unpinned result look pinned.
 pub const UNVERSIONED: &str = "unversioned";
 
-#[pyclass(frozen, module = "plateforce", name = "Construct")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Construct")]
 #[derive(Clone)]
 pub struct Construct {
     inner: CoreConstruct,
@@ -61,7 +61,7 @@ impl Construct {
     }
 }
 
-#[pyclass(frozen, module = "plateforce", name = "Parameter")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Parameter")]
 #[derive(Clone)]
 pub struct Parameter {
     inner: CoreParameter,
@@ -119,7 +119,7 @@ impl Parameter {
     }
 }
 
-#[pyclass(frozen, module = "plateforce", name = "Citation")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Citation")]
 #[derive(Clone)]
 pub struct Citation {
     inner: CoreCitation,
@@ -171,7 +171,7 @@ impl Citation {
     }
 }
 
-#[pyclass(frozen, module = "plateforce", name = "Bias")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Bias")]
 #[derive(Clone)]
 pub struct Bias {
     inner: CoreBias,
@@ -241,7 +241,7 @@ impl Bias {
 }
 
 /// A rule that can find the wrong event rather than merely find it late.
-#[pyclass(frozen, module = "plateforce", name = "Failure")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Failure")]
 #[derive(Clone)]
 pub struct Failure {
     inner: CoreFailure,
@@ -298,7 +298,7 @@ impl Failure {
     }
 }
 
-#[pyclass(frozen, module = "plateforce", name = "Disagreement")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Disagreement")]
 #[derive(Clone)]
 pub struct Disagreement {
     inner: CoreDisagreement,
@@ -332,7 +332,7 @@ impl Disagreement {
     }
 }
 
-#[pyclass(frozen, module = "plateforce", name = "Gui")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Gui")]
 #[derive(Clone)]
 pub struct Gui {
     inner: CoreGui,
@@ -375,7 +375,7 @@ impl Gui {
 
 /// Counts, each reported against the population it counts over. Computation and protocol
 /// totals are never summed into one number.
-#[pyclass(frozen, module = "plateforce", name = "Census")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Census")]
 #[derive(Clone)]
 pub struct Census {
     #[pyo3(get)]
@@ -398,7 +398,7 @@ impl Census {
 
 /// One registry entry: the rule, who proposed it, what it is biased against, and whether
 /// it is known to find the wrong event.
-#[pyclass(frozen, module = "plateforce", name = "MethodEntry")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "MethodEntry")]
 #[derive(Clone)]
 pub struct MethodEntry {
     pub(crate) inner: CoreMethod,
@@ -662,7 +662,7 @@ impl MethodEntry {
 
 /// A method with its parameter values fixed. This is what an analysis takes, and what
 /// ends up quoted in the provenance of every result it produces.
-#[pyclass(frozen, module = "plateforce", name = "BoundMethod")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "BoundMethod")]
 #[derive(Clone)]
 pub struct BoundMethod {
     pub(crate) entry: MethodEntry,
@@ -738,7 +738,7 @@ impl BoundMethod {
 
 /// A loaded registry. Loading is strict: an entry that breaks a schema rule stops the
 /// whole file loading rather than producing a partial registry.
-#[pyclass(frozen, module = "plateforce", name = "Registry")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Registry")]
 pub struct Registry {
     inner: CoreRegistry,
     version: String,

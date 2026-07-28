@@ -118,7 +118,7 @@ fn parse_choice<T: Copy>(name: &str, given: &str, options: &[(&str, T)]) -> PyRe
 }
 
 /// The results of one countermovement jump, each carrying the chain of choices behind it.
-#[pyclass(frozen, module = "plateforce", name = "CountermovementJump")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "CountermovementJump")]
 pub struct CountermovementJump {
     system_weight_newtons: Measured,
     system_mass_kilograms: Measured,

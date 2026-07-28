@@ -269,8 +269,8 @@ mod tests {
 
     fn synthetic() -> Trial {
         let mut force = vec![600.0; 1200];
-        for index in 0..1200 {
-            force[index] += ((index % 17) as f64 - 8.0) * 0.4;
+        for (index, sample) in force.iter_mut().enumerate() {
+            *sample += ((index % 17) as f64 - 8.0) * 0.4;
         }
         force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
         force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));

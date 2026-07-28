@@ -20,7 +20,7 @@ const NON_FINITE_ONLY: CoreSentinel = CoreSentinel::Value(f64::NAN);
 /// fingerprints as incomplete rather than as matching: the most consequential setting in
 /// one open tool is a contact debounce living in firmware, and no reanalysis recovers
 /// from not knowing it.
-#[pyclass(frozen, module = "plateforce", name = "Acquisition")]
+#[pyclass(frozen, from_py_object, module = "plateforce", name = "Acquisition")]
 #[derive(Clone, Default)]
 pub struct Acquisition {
     filter_at_capture: Option<String>,
@@ -124,7 +124,7 @@ impl Acquisition {
 }
 
 /// A value a vendor export writes to mean "no measurement".
-#[pyclass(frozen, module = "plateforce", name = "Sentinel")]
+#[pyclass(frozen, from_py_object, module = "plateforce", name = "Sentinel")]
 #[derive(Clone)]
 pub struct Sentinel {
     pub(crate) inner: CoreSentinel,
@@ -174,7 +174,7 @@ fn sentinel_name(sentinel: &CoreSentinel) -> String {
 }
 
 /// Real measurements separated from sentinels, with what was dropped reported.
-#[pyclass(frozen, module = "plateforce", name = "SentinelPartition")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "SentinelPartition")]
 pub struct SentinelPartition {
     kept: Vec<f64>,
     dropped_indices: Vec<usize>,
@@ -239,7 +239,7 @@ pub fn partition_sentinel_values(
 }
 
 /// A single trial: vertical ground reaction force in newtons against a sample rate.
-#[pyclass(frozen, module = "plateforce", name = "Trial")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Trial")]
 pub struct Trial {
     pub(crate) inner: CoreTrial,
     acquisition: Option<Acquisition>,

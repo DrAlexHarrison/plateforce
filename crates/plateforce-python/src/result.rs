@@ -47,7 +47,7 @@ impl ProvenanceChain {
     }
 }
 
-#[pyclass(frozen, module = "plateforce", name = "Provenance")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Provenance")]
 #[derive(Clone)]
 pub struct Provenance {
     pub(crate) chain: ProvenanceChain,
@@ -170,7 +170,7 @@ fn format_parameters(parameters: &[(String, f64)]) -> String {
 }
 
 /// A value, its unit, and the choices that produced it.
-#[pyclass(frozen, module = "plateforce", name = "Measured")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Measured")]
 #[derive(Clone)]
 pub struct Measured {
     pub(crate) inner: CoreMeasured,
@@ -278,7 +278,7 @@ fn describe_chain(chain: &ProvenanceChain, depth: usize, lines: &mut Vec<String>
 }
 
 /// What a step dropped, and under which rule.
-#[pyclass(frozen, module = "plateforce", name = "Exclusions")]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Exclusions")]
 #[derive(Clone)]
 pub struct Exclusions {
     pub(crate) inner: CoreExclusions,
