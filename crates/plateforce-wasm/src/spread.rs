@@ -14,6 +14,7 @@ use crate::analysis::{self, AnalysisRequest};
 /// One dimension of the sweep. Either the bound method for a slot changes, or one of its
 /// parameters does.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Axis {
     pub slot: String,
     #[serde(default)]
@@ -35,6 +36,7 @@ impl Axis {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SpreadRequest {
     pub base: AnalysisRequest,
     pub axes: Vec<Axis>,
@@ -225,12 +227,11 @@ fn materialise(
         settings.push((parameter.clone(), format_value(value)));
 
         match (axis.slot.as_str(), parameter.as_str()) {
-            ("weighing", "duration_seconds") => candidate.weighing.duration_seconds = value,
-            ("weighing", "start_seconds") => {
-                candidate.weighing.start_index = Some(value.max(0.0) as usize)
-            }
             ("", "gravity_meters_per_second_squared") | ("global", "gravity_meters_per_second_squared") => {
                 candidate.gravity_meters_per_second_squared = value
+            }
+            ("weighing", name) => {
+                candidate.weighing.parameters.insert(name.to_string(), value);
             }
             ("onset", name) => {
                 candidate.onset.parameters.insert(name.to_string(), value);
@@ -284,7 +285,7 @@ mod tests {
             weighing: WeighingChoice {
                 method_id: "bwepoch.fixed_window".into(),
                 start_index: None,
-                duration_seconds: 0.8,
+                parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
                 options: BTreeMap::new(),
             },
             onset: MethodChoice {
