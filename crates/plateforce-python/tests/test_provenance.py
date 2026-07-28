@@ -54,7 +54,12 @@ def test_the_bound_parameters_travel_with_the_number(jump):
     chose for itself moved the number exactly as much as one that was asked for."""
     onset = jump.onset_time_seconds.provenance
     assert onset.bound_parameters["k"] == 5.0
-    assert onset.bound_parameters["offset_ms"] == 30.0
+    # The backtrack is a registry entry of its own. Recording its offset against the
+    # threshold rule would put the parameter on a row that does not carry it, so a reader
+    # looking the id up would not find the value that moved the number.
+    assert "offset_ms" not in onset.bound_parameters
+    backtrack = onset.parameters_of("onset.op.backward_offset_fixed")
+    assert backtrack["offset_ms"] == 30.0
     assert "offset_ms" in jump.assumed_parameters
     epoch = jump.system_weight_newtons.provenance
     assert epoch.bound_parameters["duration"] == 1.0
@@ -100,8 +105,10 @@ def test_a_height_computed_without_reading_a_registry_names_no_files():
 
 def test_choices_that_are_not_numbers_travel_too(jump):
     onset = jump.onset_time_seconds.provenance
-    assert onset.enumerated_choices["direction"] == "below_only"
     assert onset.enumerated_choices["sd_convention"] == "sample"
+    composed = {step.method_id: step.enumerated_choices for step in onset.flattened()}
+    assert composed["onset.op.direction"]["direction"] == "below_only"
+    assert composed["onset.op.crossing_selection"]["selection"] == "first"
 
 
 def test_jump_height_names_the_upstream_choices_that_moved_it(jump):

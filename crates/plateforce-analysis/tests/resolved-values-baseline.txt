@@ -17,6 +17,11 @@ case onset noise_relative bare on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative k on synthetic
   window 0..960
@@ -37,6 +42,11 @@ case onset noise_relative k on synthetic
   metric reactive_strength_index_modified Some(0.04262984792447967)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative direction below_only on synthetic
   window 0..960
@@ -57,6 +67,11 @@ case onset noise_relative direction below_only on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative direction two_sided on synthetic
   window 0..960
@@ -77,6 +92,11 @@ case onset noise_relative direction two_sided on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative selection last on synthetic
   window 0..960
@@ -97,6 +117,11 @@ case onset noise_relative selection last on synthetic
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset noise_relative selection first on synthetic
@@ -118,6 +143,11 @@ case onset noise_relative selection first on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative persistence on synthetic
   window 0..960
@@ -138,6 +168,11 @@ case onset noise_relative persistence on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative search floor on synthetic
   window 0..960
@@ -158,6 +193,11 @@ case onset noise_relative search floor on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative back offset on synthetic
   window 0..960
@@ -178,6 +218,11 @@ case onset noise_relative back offset on synthetic
   metric reactive_strength_index_modified Some(0.041686618792607245)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative degenerate fraction on synthetic
   window 0..960
@@ -198,6 +243,11 @@ case onset noise_relative degenerate fraction on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset noise_relative every value stated on synthetic
   window 0..960
@@ -218,6 +268,11 @@ case onset noise_relative every value stated on synthetic
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset noise_relative names another rule carries on synthetic
@@ -239,6 +294,11 @@ case onset noise_relative names another rule carries on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset relative_to_system_weight bare on synthetic
   window 0..960
@@ -259,6 +319,10 @@ case onset relative_to_system_weight bare on synthetic
   metric reactive_strength_index_modified Some(0.043446168948045)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.relative_to_system_weight backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset relative_to_system_weight pct on synthetic
   window 0..960
@@ -279,6 +343,10 @@ case onset relative_to_system_weight pct on synthetic
   metric reactive_strength_index_modified Some(0.044534750564920504)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.relative_to_system_weight backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset relative_to_system_weight superseded spelling on synthetic
   window 0..960
@@ -299,6 +367,10 @@ case onset relative_to_system_weight superseded spelling on synthetic
   metric reactive_strength_index_modified Some(0.043446168948045)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.relative_to_system_weight backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset relative_to_system_weight every value stated on synthetic
   window 0..960
@@ -319,6 +391,10 @@ case onset relative_to_system_weight every value stated on synthetic
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.relative_to_system_weight backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset absolute_force bare on synthetic
@@ -340,6 +416,11 @@ case onset absolute_force bare on synthetic
   metric reactive_strength_index_modified Some(0.04378283279425603)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset absolute_force threshold on synthetic
   window 0..960
@@ -360,6 +441,11 @@ case onset absolute_force threshold on synthetic
   metric reactive_strength_index_modified Some(0.046524190656358565)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset absolute_force superseded spelling on synthetic
   window 0..960
@@ -380,6 +466,11 @@ case onset absolute_force superseded spelling on synthetic
   metric reactive_strength_index_modified Some(0.04378283279425603)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset absolute_force direction two_sided on synthetic
   window 0..960
@@ -400,6 +491,11 @@ case onset absolute_force direction two_sided on synthetic
   metric reactive_strength_index_modified Some(0.04378283279425603)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset absolute_force direction below_only on synthetic
   window 0..960
@@ -420,6 +516,11 @@ case onset absolute_force direction below_only on synthetic
   metric reactive_strength_index_modified Some(0.04378283279425603)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset absolute_force every value stated on synthetic
   window 0..960
@@ -440,6 +541,11 @@ case onset absolute_force every value stated on synthetic
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset last_within_band bare on synthetic
@@ -461,6 +567,7 @@ case onset last_within_band bare on synthetic
   metric reactive_strength_index_modified Some(0.5259044064998151)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
+  method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band k on synthetic
   window 0..960
@@ -481,6 +588,7 @@ case onset last_within_band k on synthetic
   metric reactive_strength_index_modified Some(0.5231648974531952)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
+  method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band inverse lookback on synthetic
   window 0..960
@@ -501,6 +609,7 @@ case onset last_within_band inverse lookback on synthetic
   metric reactive_strength_index_modified Some(0.5259044064998151)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
+  method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band back offset on synthetic
   window 0..960
@@ -521,6 +630,7 @@ case onset last_within_band back offset on synthetic
   metric reactive_strength_index_modified Some(0.4576671778122414)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
+  method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band every value stated on synthetic
   window 0..960
@@ -541,6 +651,7 @@ case onset last_within_band every value stated on synthetic
   metric reactive_strength_index_modified Some(0.5856061123937035)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
+  method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset adaptive_trailing_window bare on synthetic
   window 0..960
@@ -681,6 +792,11 @@ case takeoff absolute_force bare on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff absolute_force threshold on synthetic
   window 0..960
@@ -701,6 +817,11 @@ case takeoff absolute_force threshold on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff absolute_force superseded spelling on synthetic
   window 0..960
@@ -721,6 +842,11 @@ case takeoff absolute_force superseded spelling on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff absolute_force persistence on synthetic
   window 0..960
@@ -741,6 +867,11 @@ case takeoff absolute_force persistence on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff absolute_force magnitude on synthetic
   window 0..960
@@ -761,6 +892,11 @@ case takeoff absolute_force magnitude on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff absolute_force signed on synthetic
   window 0..960
@@ -781,6 +917,11 @@ case takeoff absolute_force signed on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff absolute_force every value stated on synthetic
   window 0..960
@@ -801,6 +942,11 @@ case takeoff absolute_force every value stated on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case takeoff longest_run bare on synthetic
   window 0..960
@@ -821,6 +967,11 @@ case takeoff longest_run bare on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.longest_run backed false override false
 case takeoff longest_run filter then rank on synthetic
   window 0..960
@@ -841,6 +992,11 @@ case takeoff longest_run filter then rank on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.longest_run backed false override false
 case takeoff longest_run rank then filter on synthetic
   window 0..960
@@ -861,6 +1017,11 @@ case takeoff longest_run rank then filter on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.longest_run backed false override false
 case takeoff longest_run every value stated on synthetic
   window 0..960
@@ -881,6 +1042,11 @@ case takeoff longest_run every value stated on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.longest_run backed false override false
 case takeoff descending_crossing bare on synthetic
   window 0..960
@@ -901,6 +1067,11 @@ case takeoff descending_crossing bare on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.descending_crossing backed false override false
 case takeoff descending_crossing confirmation on synthetic
   window 0..960
@@ -921,6 +1092,11 @@ case takeoff descending_crossing confirmation on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.descending_crossing backed false override false
 case takeoff descending_crossing threshold on synthetic
   window 0..960
@@ -941,6 +1117,11 @@ case takeoff descending_crossing threshold on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.descending_crossing backed false override false
 case takeoff flight_noise_k_sd bare on synthetic
   window 0..960
@@ -961,6 +1142,11 @@ case takeoff flight_noise_k_sd bare on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
 case takeoff flight_noise_k_sd trim on synthetic
   window 0..960
@@ -981,6 +1167,11 @@ case takeoff flight_noise_k_sd trim on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
 case takeoff flight_noise_k_sd k on synthetic
   window 0..960
@@ -1001,6 +1192,11 @@ case takeoff flight_noise_k_sd k on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
 case takeoff flight_noise_k_sd population on synthetic
   window 0..960
@@ -1021,6 +1217,11 @@ case takeoff flight_noise_k_sd population on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
 case takeoff flight_noise_k_sd every value stated on synthetic
   window 0..960
@@ -1041,6 +1242,11 @@ case takeoff flight_noise_k_sd every value stated on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
 case weighing fixed_window bare on synthetic
   window 0..960
@@ -1061,6 +1267,11 @@ case weighing fixed_window bare on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window half second on synthetic
   window 0..600
@@ -1081,6 +1292,11 @@ case weighing fixed_window half second on synthetic
   metric reactive_strength_index_modified Some(0.043037502703164136)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window moved on synthetic
   window 240..1200
@@ -1101,6 +1317,11 @@ case weighing fixed_window moved on synthetic
   metric reactive_strength_index_modified Some(0.0430217825106425)
   method bwepoch.fixed_window backed false override true
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window median on synthetic
   window 0..960
@@ -1121,6 +1342,11 @@ case weighing fixed_window median on synthetic
   metric reactive_strength_index_modified Some(0.043010555934004095)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window mean on synthetic
   window 0..960
@@ -1141,6 +1367,11 @@ case weighing fixed_window mean on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window population on synthetic
   window 0..960
@@ -1161,6 +1392,11 @@ case weighing fixed_window population on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window sample on synthetic
   window 0..960
@@ -1181,6 +1417,11 @@ case weighing fixed_window sample on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window superseded spelling on synthetic
   window 0..960
@@ -1201,6 +1442,11 @@ case weighing fixed_window superseded spelling on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing fixed_window every value stated on synthetic
   window 120..840
@@ -1221,6 +1467,11 @@ case weighing fixed_window every value stated on synthetic
   metric reactive_strength_index_modified Some(0.043010555934004095)
   method bwepoch.fixed_window backed false override true
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing manual_placement moved on synthetic
   window 240..840
@@ -1241,6 +1492,11 @@ case weighing manual_placement moved on synthetic
   metric reactive_strength_index_modified Some(0.04302851930953049)
   method bwepoch.manual_placement backed false override true
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing manual_placement anchored on synthetic
   window 0..600
@@ -1261,6 +1517,11 @@ case weighing manual_placement anchored on synthetic
   metric reactive_strength_index_modified Some(0.043037502703164136)
   method bwepoch.manual_placement backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance bare on synthetic
   window 242..1202
@@ -1281,6 +1542,11 @@ case weighing adaptive_lowest_variance bare on synthetic
   metric reactive_strength_index_modified Some(0.043016777109059844)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance cumulative on synthetic
   window 242..1202
@@ -1301,6 +1567,11 @@ case weighing adaptive_lowest_variance cumulative on synthetic
   metric reactive_strength_index_modified Some(0.043016777109059844)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance two pass on synthetic
   window 242..1202
@@ -1321,6 +1592,11 @@ case weighing adaptive_lowest_variance two pass on synthetic
   metric reactive_strength_index_modified Some(0.043016777109059844)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance population on synthetic
   window 242..1202
@@ -1341,6 +1617,11 @@ case weighing adaptive_lowest_variance population on synthetic
   metric reactive_strength_index_modified Some(0.043016777109059844)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance moved on synthetic
   window 240..1200
@@ -1361,6 +1642,11 @@ case weighing adaptive_lowest_variance moved on synthetic
   metric reactive_strength_index_modified Some(0.043010555934004095)
   method bwepoch.adaptive_lowest_variance backed false override true
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance half second on synthetic
   window 601..1201
@@ -1381,6 +1667,11 @@ case weighing adaptive_lowest_variance half second on synthetic
   metric reactive_strength_index_modified Some(0.04301235206686381)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case weighing adaptive_lowest_variance floor published on synthetic
   window 242..1202
@@ -1401,6 +1692,11 @@ case weighing adaptive_lowest_variance floor published on synthetic
   metric reactive_strength_index_modified Some(0.043432165817558224)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning the weighing window's spread is 1.954 N and the floor is 3.000 N, so every noise-relative threshold below is set by the floor and not by this recording
 case weighing adaptive_lowest_variance floor binding on synthetic
@@ -1422,6 +1718,11 @@ case weighing adaptive_lowest_variance floor binding on synthetic
   metric reactive_strength_index_modified Some(0.04787852791251753)
   method bwepoch.adaptive_lowest_variance backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning the weighing window's spread is 1.954 N and the floor is 12.000 N, so every noise-relative threshold below is set by the floor and not by this recording
 case gravity 9.8 on synthetic
@@ -1443,6 +1744,11 @@ case gravity 9.8 on synthetic
   metric reactive_strength_index_modified Some(0.04300158540407866)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case gravity 9.81 on synthetic
   window 0..960
@@ -1463,6 +1769,11 @@ case gravity 9.81 on synthetic
   metric reactive_strength_index_modified Some(0.04304546457285833)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case touchdown stated on synthetic
   window 0..960
@@ -1483,6 +1794,11 @@ case touchdown stated on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset dragged on synthetic
   window 0..960
@@ -1523,6 +1839,11 @@ case takeoff dragged on synthetic
   metric reactive_strength_index_modified Some(0.03600852172304638)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override true
 case both dragged on synthetic
   window 0..960
@@ -1584,6 +1905,11 @@ case nothing registry backed on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case everything registry backed on synthetic
   window 0..960
@@ -1604,6 +1930,11 @@ case everything registry backed on synthetic
   metric reactive_strength_index_modified Some(0.04303076505131714)
   method bwepoch.fixed_window backed true override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed true override false
 case bump onset absolute_force bare on pre_movement_bump
   window 0..960
@@ -1624,6 +1955,11 @@ case bump onset absolute_force bare on pre_movement_bump
   metric reactive_strength_index_modified Some(0.043803283577727746)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset absolute_force direction below_only on pre_movement_bump
   window 0..960
@@ -1644,6 +1980,11 @@ case bump onset absolute_force direction below_only on pre_movement_bump
   metric reactive_strength_index_modified Some(0.043803283577727746)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset absolute_force direction two_sided on pre_movement_bump
   window 0..960
@@ -1664,6 +2005,11 @@ case bump onset absolute_force direction two_sided on pre_movement_bump
   metric reactive_strength_index_modified Some(0.04001225755873926)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset absolute_force both and last on pre_movement_bump
   window 0..960
@@ -1684,6 +2030,11 @@ case bump onset absolute_force both and last on pre_movement_bump
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.absolute_force backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case bump onset noise_relative bare on pre_movement_bump
@@ -1705,6 +2056,11 @@ case bump onset noise_relative bare on pre_movement_bump
   metric reactive_strength_index_modified Some(0.04303821964583036)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset noise_relative direction below_only on pre_movement_bump
   window 0..960
@@ -1725,6 +2081,11 @@ case bump onset noise_relative direction below_only on pre_movement_bump
   metric reactive_strength_index_modified Some(0.04303821964583036)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset noise_relative direction two_sided on pre_movement_bump
   window 0..960
@@ -1745,6 +2106,11 @@ case bump onset noise_relative direction two_sided on pre_movement_bump
   metric reactive_strength_index_modified Some(0.04001225755873926)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset noise_relative persistence on pre_movement_bump
   window 0..960
@@ -1765,6 +2131,11 @@ case bump onset noise_relative persistence on pre_movement_bump
   metric reactive_strength_index_modified Some(0.04303821964583036)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset relative_to_system_weight bare on pre_movement_bump
   window 0..960
@@ -1785,6 +2156,10 @@ case bump onset relative_to_system_weight bare on pre_movement_bump
   metric reactive_strength_index_modified Some(0.043446823355059505)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.relative_to_system_weight backed false override false
+  method onset.op.backward_offset_fixed backed false override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset last_within_band bare on pre_movement_bump
   window 0..960
@@ -1805,6 +2180,7 @@ case bump onset last_within_band bare on pre_movement_bump
   metric reactive_strength_index_modified Some(0.5259044064998151)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
+  method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case bump onset adaptive_trailing_window bare on pre_movement_bump
   window 0..960
@@ -1846,6 +2222,10 @@ case two flight phases first sustained run on two_flight_phases
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.absolute_force backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
 case two flight phases longest run on two_flight_phases
@@ -1867,6 +2247,10 @@ case two flight phases longest run on two_flight_phases
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.longest_run backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
   warning the longest-run rule skipped past the first of 2 qualifying flight phases, which on an untrimmed recording places takeoff after the athlete has already landed
@@ -1889,6 +2273,10 @@ case two flight phases descending crossing on two_flight_phases
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.descending_crossing backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
 case two flight phases flight noise on two_flight_phases
@@ -1910,5 +2298,9 @@ case two flight phases flight noise on two_flight_phases
   metric reactive_strength_index_modified None
   method bwepoch.fixed_window backed false override false
   method onset.threshold.noise_relative backed true override false
+  method onset.op.crossing_selection backed false override false
+  method onset.op.direction backed false override false
+  method onset.op.persistence backed false override false
+  method onset.op.search_floor backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N

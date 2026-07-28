@@ -2,6 +2,7 @@
 //! binding a method to a set of parameter values commits you to.
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use plateforce_registry::{
     Bias as CoreBias, Citation as CoreCitation, Construct as CoreConstruct,
@@ -24,6 +25,10 @@ use crate::errors::{map_registry_error, parameter_error, MethodError};
 pub struct RegistryIdentity {
     pub digest: Option<String>,
     pub version: Option<String>,
+    /// Every id this registry carries. A result reports a method as registry backed only
+    /// when the registry both holds it and passed its own validator, and the rules a
+    /// binding composes onto the one the caller named have to be judged the same way.
+    pub method_ids: Arc<Vec<String>>,
 }
 
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Construct")]
@@ -762,6 +767,7 @@ impl Registry {
         RegistryIdentity {
             digest: Some(self.inner.content_digest.clone()),
             version: self.version.clone(),
+            method_ids: Arc::new(self.inner.methods.keys().cloned().collect()),
         }
     }
 }

@@ -43,12 +43,17 @@ print(jump.jump_height_takeoff_frame_meters.describe())
       bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
         centre = mean
         dispersion = sample
-      onset.threshold.noise_relative {'floor_seconds': 1, 'k': 5, 'offset_ms': 30, 'span_ms': 0}
-        crossing_selection = first
+      onset.threshold.noise_relative {'k': 5}
         degenerate_band = refuse
-        direction = below_only
         reference_distribution = quiet_stance_force
         sd_convention = sample
+        onset.op.backward_offset_fixed {'offset_ms': 30}
+        onset.op.crossing_selection {}
+          selection = first
+        onset.op.direction {}
+          direction = below_only
+        onset.op.persistence {'span_ms': 0}
+        onset.op.search_floor {'floor_seconds': 1}
         bwepoch.fixed_window {'duration': 1}
           central_tendency = mean
           dispersion_estimator = sample

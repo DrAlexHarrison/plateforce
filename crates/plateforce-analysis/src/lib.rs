@@ -792,7 +792,7 @@ fn onset_search(
             .milliseconds_as_samples("span_ms", 0.0, rate)
             .max(1),
         selection: resolved.enumerated(
-            "crossing_selection",
+            "selection",
             "first",
             &[
                 ("first", CrossingSelection::First),
@@ -1147,6 +1147,79 @@ fn is_backed(request: &AnalysisRequest, method_id: &str) -> bool {
     request.registry_backed_ids.iter().any(|id| id == method_id)
 }
 
+/// The entries this build composes onto an onset threshold rule. Each is a registry entry
+/// in its own right, with its own citation, default and published values.
+pub const ONSET_OPERATOR_IDS: &[&str] = &[
+    "onset.op.backward_offset_fixed",
+    "onset.op.crossing_selection",
+    "onset.op.direction",
+    "onset.op.persistence",
+    "onset.op.search_floor",
+];
+
+/// Which registry entry carries each name an onset rule reads.
+///
+/// A threshold rule carries its own threshold and the convention its spread was taken
+/// under. Every other value is an operator the registry files as an entry in its own right,
+/// so recording one against the threshold rule puts a parameter on a row that does not have
+/// it, and a reader who looks the id up does not find the value that moved the number.
+fn onset_operator_for(name: &str) -> Option<&'static str> {
+    match name {
+        "offset_ms" => Some("onset.op.backward_offset_fixed"),
+        "span_ms" => Some("onset.op.persistence"),
+        "floor_seconds" => Some("onset.op.search_floor"),
+        "direction" => Some("onset.op.direction"),
+        "selection" => Some("onset.op.crossing_selection"),
+        _ => None,
+    }
+}
+
+/// The threshold rule, then each operator composed onto it, as separate entries.
+///
+/// `onset.op.backward_offset_fixed` is the one the registry is most explicit about: it is
+/// an entry with its own citation and its own default, its notes say omitting it "is not
+/// choosing 0 ms, it is failing to implement the cited method", and a composition that
+/// hides it inside the threshold rule reports neither.
+fn onset_bound_methods(
+    method_id: &str,
+    values: BoundValues,
+    request: &AnalysisRequest,
+    manual_override: bool,
+) -> Vec<BoundMethod> {
+    let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
+    let mut threshold = BoundValues {
+        unread: values.unread,
+        ..Default::default()
+    };
+
+    for (name, shown) in values.parameters {
+        let carried_by = match onset_operator_for(&name) {
+            Some(operator) => composed.entry(operator).or_default(),
+            None => &mut threshold,
+        };
+        if values.assumed.contains(&name) {
+            carried_by.assumed.push(name.clone());
+        }
+        if let Some(number) = values.numbers.get(&name) {
+            carried_by.numbers.insert(name.clone(), *number);
+        }
+        carried_by.parameters.push((name, shown));
+    }
+
+    let mut bound = vec![bound_method(
+        method_id,
+        threshold,
+        is_backed(request, method_id),
+        manual_override,
+    )];
+    bound.extend(
+        composed.into_iter().map(|(operator, read)| {
+            bound_method(operator, read, is_backed(request, operator), false)
+        }),
+    );
+    bound
+}
+
 pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse, String> {
     expect_bound(&request.weighing.method_id, "weighing")?;
     expect_bound(&request.onset.method_id, "onset")?;
@@ -1186,12 +1259,17 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             (outcome.index, outcome.bound)
         }
     };
-    bound_methods.push(bound_method(
+    let onset_methods = onset_bound_methods(
         &request.onset.method_id,
         onset_bound,
-        is_backed(request, &request.onset.method_id),
+        request,
         request.onset.manual_index.is_some(),
-    ));
+    );
+    let onset_ids: Vec<String> = onset_methods
+        .iter()
+        .map(|bound| bound.method_id.clone())
+        .collect();
+    bound_methods.extend(onset_methods);
 
     // The takeoff rule runs even under a dragged marker, because the threshold it resolves
     // is what touchdown is found against.
@@ -1242,17 +1320,13 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         _ => None,
     };
 
-    let interval = vec![
-        request.onset.method_id.clone(),
-        request.takeoff.method_id.clone(),
-    ];
+    let mut interval = onset_ids.clone();
+    interval.push(request.takeoff.method_id.clone());
     let weighing_ids = vec![request.weighing.method_id.clone()];
     let takeoff_ids = vec![request.takeoff.method_id.clone()];
-    let full = vec![
-        request.weighing.method_id.clone(),
-        request.onset.method_id.clone(),
-        request.takeoff.method_id.clone(),
-    ];
+    let mut full = vec![request.weighing.method_id.clone()];
+    full.extend(onset_ids.clone());
+    full.push(request.takeoff.method_id.clone());
 
     let interval_seconds = landmarks
         .as_ref()
@@ -1290,7 +1364,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             value: onset_index.map(|index| trial.time_at(index)),
             unit: "seconds",
             unit_symbol: unit_symbol("seconds"),
-            contributing_method_ids: vec![request.onset.method_id.clone()],
+            contributing_method_ids: onset_ids.clone(),
             note: None,
         },
         Metric {
@@ -1696,13 +1770,13 @@ mod tests {
             "noise_relative selection last",
             "onset.threshold.noise_relative",
             &[],
-            &[("crossing_selection", "last")],
+            &[("selection", "last")],
         ),
         (
             "noise_relative selection first",
             "onset.threshold.noise_relative",
             &[],
-            &[("crossing_selection", "first")],
+            &[("selection", "first")],
         ),
         (
             "noise_relative persistence",
@@ -1738,7 +1812,7 @@ mod tests {
                 ("offset_ms", 20.0),
                 ("degenerate_fraction", 0.1),
             ],
-            &[("direction", "below_only"), ("crossing_selection", "last")],
+            &[("direction", "below_only"), ("selection", "last")],
         ),
         (
             "noise_relative names another rule carries",
@@ -1773,7 +1847,7 @@ mod tests {
                 ("span_ms", 4.0),
                 ("offset_ms", 10.0),
             ],
-            &[("crossing_selection", "last")],
+            &[("selection", "last")],
         ),
         (
             "absolute_force bare",
@@ -1814,7 +1888,7 @@ mod tests {
                 ("span_ms", 6.0),
                 ("offset_ms", 40.0),
             ],
-            &[("direction", "two_sided"), ("crossing_selection", "last")],
+            &[("direction", "two_sided"), ("selection", "last")],
         ),
         (
             "last_within_band bare",
@@ -1844,7 +1918,7 @@ mod tests {
             "last_within_band every value stated",
             "onset.threshold.last_within_band",
             &[("k", 2.0), ("inverse_lookback", 0.75), ("offset_ms", 10.0)],
-            &[("crossing_selection", "last")],
+            &[("selection", "last")],
         ),
         (
             "adaptive_trailing_window bare",
@@ -1907,7 +1981,7 @@ mod tests {
             "absolute_force both and last",
             "onset.threshold.absolute_force",
             &[],
-            &[("direction", "two_sided"), ("crossing_selection", "last")],
+            &[("direction", "two_sided"), ("selection", "last")],
         ),
         (
             "noise_relative bare",

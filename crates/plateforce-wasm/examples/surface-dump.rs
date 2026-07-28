@@ -83,7 +83,7 @@ const ONSET_CASES: &[Case] = &[
         "selection last",
         "onset.threshold.noise_relative",
         &[],
-        &[("crossing_selection", "last")],
+        &[("selection", "last")],
     ),
     (
         "persistence",
@@ -119,7 +119,7 @@ const ONSET_CASES: &[Case] = &[
             ("offset_ms", 20.0),
             ("degenerate_fraction", 0.1),
         ],
-        &[("direction", "below_only"), ("crossing_selection", "last")],
+        &[("direction", "below_only"), ("selection", "last")],
     ),
     (
         "names another rule carries",

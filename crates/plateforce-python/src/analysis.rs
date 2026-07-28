@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod as ResolvedMethod, MethodChoice,
-    RuleRefusal, WeighingChoice,
+    RuleRefusal, WeighingChoice, ONSET_OPERATOR_IDS,
 };
 use plateforce_core::{
     jump_height_from_flight_time as core_jump_height_from_flight_time, Measured as CoreMeasured,
@@ -436,12 +436,10 @@ pub fn analyse_countermovement_jump(
         },
         touchdown_index,
         gravity_meters_per_second_squared,
-        // Every method here came out of a registry entry, so all three are backed by it.
-        registry_backed_ids: vec![
-            weighing_epoch.method_id().to_string(),
-            onset.method_id().to_string(),
-            takeoff.method_id().to_string(),
-        ],
+        // What this registry carries. The binding composes operators onto the rule the
+        // caller named, and those are entries in their own right that have to be judged
+        // against the same list rather than assumed.
+        registry_backed_ids: registry.method_ids.as_ref().clone(),
     };
 
     let response = plateforce_analysis::run(&trial.inner, &request).map_err(TrialError::new_err)?;
@@ -459,11 +457,21 @@ pub fn analyse_countermovement_jump(
         acquisition_complete,
         Vec::new(),
     );
+    // An operator is a registry entry with its own citation and its own default, so it
+    // stands in the chain beside the epoch the threshold rule rests on rather than folded
+    // into that rule's parameters.
+    let mut onset_inputs: Vec<ProvenanceChain> = response
+        .bound_methods
+        .iter()
+        .filter(|bound| ONSET_OPERATOR_IDS.contains(&bound.method_id.as_str()))
+        .map(|bound| chain_of(bound, &registry, acquisition_complete, Vec::new()))
+        .collect();
+    onset_inputs.push(epoch_chain.clone());
     let onset_chain = chain_of(
         resolved_slot(&response, onset.method_id()),
         &registry,
         acquisition_complete,
-        vec![epoch_chain.clone()],
+        onset_inputs,
     );
     let takeoff_chain = chain_of(
         resolved_slot(&response, takeoff.method_id()),
