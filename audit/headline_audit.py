@@ -1,4 +1,4 @@
-"""Audit of plateforce's three headline numbers against the matrix they come from.
+"""Audit of the numbers on the plateforce front page against the matrix they come from.
 
 Run:
     python audit/headline_audit.py
@@ -7,21 +7,41 @@ Requires rule_matrix.csv alongside this file. That matrix is derived from a
 re-identifiable 2011 corpus whose consent position is unresolved, so it is not
 released with this repository yet.
 
-Reads rule_matrix.csv (244 trials by 56 method variants) and
-recomputes every number the project quotes publicly, plus the ordinary least
-products regression that Dos'Santos, Lake and Comfort 2022 argue for in place of
-a correlation when neither implementation is a gold standard.
+Reads rule_matrix.csv (244 trials by 56 method variants) and recomputes the spreads, the
+failure rates and the sentinel effects the README quotes, plus the ordinary least products
+regression that Dos'Santos, Lake and Comfort 2022 argue for in place of a correlation when
+neither implementation is a gold standard. Section 1 tests the README's time to takeoff
+correlation against every pair the matrix holds. The jump height correlation beside it is
+quoted from a pairwise run over the two open implementations, and the 1.98 cm intervention
+effect from the study the corpus was collected for.
 """
 import itertools
+import re
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 CSV = Path(__file__).parent / "rule_matrix.csv"
+README = Path(__file__).resolve().parent.parent / "README.md"
 RNG = np.random.default_rng(20260725)
 BOOTSTRAP_RESAMPLES = 5000
 BLOWUP_SECONDS = 2.0
+# Wide enough that a pair rounding to the quoted figure counts as reproducing it.
+REPRODUCED_WITHIN = 0.02
+
+
+def claimed_time_to_takeoff_correlation():
+    """The figure the front page states, read off the page rather than copied from it."""
+    matched = re.search(
+        r"r = (\d+\.\d+) on time to takeoff", README.read_text(encoding="utf-8")
+    )
+    if not matched:
+        raise SystemExit(
+            f"{README} states no time to takeoff correlation, so there is nothing to audit"
+        )
+    return float(matched.group(1))
+
 
 df = pd.read_csv(CSV)
 time_to_takeoff_columns = sorted(c for c in df.columns if c.startswith("ttt_"))
@@ -82,16 +102,24 @@ def olp_with_intervals(a, b, unit, extra_mask=None):
           f"{'FIXED offset' if fixed else 'no fixed offset'}")
 
 
-rule("1.  CAN THE HEADLINE r = 0.638 BE REPRODUCED?  all pairs of the 10 ttt columns")
+claimed = claimed_time_to_takeoff_correlation()
+
+rule(f"1.  CAN THE README'S r = {claimed} BE REPRODUCED?  all pairs of the 10 ttt columns")
 pairs = []
 for a, b in itertools.combinations(time_to_takeoff_columns, 2):
     r, n = pearson(a, b)
     pairs.append((r, a, b, n))
 pairs.sort()
+reproducing = 0
 for r, a, b, n in pairs:
-    flag = "   <== nearest to the claimed 0.638" if abs(r - 0.638) < 0.02 else ""
+    within = abs(r - claimed) < REPRODUCED_WITHIN
+    reproducing += within
+    flag = f"   <== within {REPRODUCED_WITHIN} of the README's {claimed}" if within else ""
     print(f"   r = {r:+.4f}  n={n:>3}   {a:<22} vs {b:<22}{flag}")
-print(f"\n   pairs examined: {len(pairs)}.  Exactly 0.638 appears in none of them.")
+print(
+    f"\n   pairs examined: {len(pairs)}.  {reproducing} of them land within "
+    f"{REPRODUCED_WITHIN} of {claimed}."
+)
 
 rule("2.  THE 38 PERCENT AND 3.51 cm SPREADS, WITH THEIR DENOMINATORS")
 for label, cols, unit in (

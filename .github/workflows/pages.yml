@@ -11,10 +11,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Pull request code compiles and runs here, and a build script runs at compile time.
+# Reading the checkout is the whole of what that needs. The token that can publish is
+# granted to the deploy job alone, which runs no repository code.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -49,9 +50,6 @@ jobs:
       - name: Check the workspace
         run: cargo test --workspace
 
-      - name: Check the declared toolchain floor against the one the tree needs
-        run: ./scripts/check-msrv.sh
-
       - name: Build the browser bundle
         run: ./scripts/build-web.sh release
 
@@ -62,22 +60,68 @@ jobs:
       - name: Report registry validation
         run: cargo run --quiet --package plateforce-cli -- registry validate || true
 
-      # A pull request runs every check above and publishes nothing. The Pages token is
-      # not granted to a fork, so asking for it there would fail the checks it came for.
-      - uses: actions/configure-pages@v5
-        if: github.event_name != 'pull_request'
+      # A pull request runs every check above and publishes nothing.
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
           path: web
 
+  # Nothing above compiles at the version the workspace tells the world it supports, so a
+  # first-party construct or a dependency feature newer than the declared floor reaches a
+  # user on that toolchain having passed every check. The floor is read from the manifest
+  # rather than written down again here.
+  floor:
+    name: the workspace compiles on the toolchain floor it declares
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the declared floor against the one the dependency tree needs
+        run: ./scripts/check-msrv.sh
+
+      - name: Read the declared floor
+        id: floor
+        run: |
+          version="$(./scripts/check-msrv.sh --print-declared-floor)"
+          test -n "$version"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Install the declared floor toolchain
+        env:
+          FLOOR: ${{ steps.floor.outputs.version }}
+        run: rustup toolchain install "$FLOOR" --profile minimal
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: floor-${{ runner.os }}-${{ steps.floor.outputs.version }}-${{ hashFiles('Cargo.lock') }}
+
+      # Every target, so the test and example code has to compile on the floor as well as
+      # the library. `--locked` because the lockfile is what a user on that toolchain gets.
+      - name: Compile the workspace on the declared floor
+        env:
+          FLOOR: ${{ steps.floor.outputs.version }}
+        run: cargo "+$FLOOR" check --workspace --locked --all-targets
+
   deploy:
-    needs: build
+    needs: [build, floor]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    # The two tokens that can publish, on the one job that publishes. It checks nothing
+    # out and runs no code from the repository.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Reads the Pages configuration and fails here rather than mid-deploy when the site
+      # is not set to build from a workflow.
+      - uses: actions/configure-pages@v5
+
       - id: deployment
         uses: actions/deploy-pages@v4

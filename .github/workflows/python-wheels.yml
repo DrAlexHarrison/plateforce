@@ -6,17 +6,54 @@ name: python wheels
 on:
   push:
     branches: [main]
+    # Every input this workflow reads, including the gates themselves. A push that edits
+    # only the gate has to meet it.
     paths:
       - "crates/plateforce-core/**"
       - "crates/plateforce-registry/**"
       - "crates/plateforce-python/**"
+      - "registry/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "scripts/check-wheel-set.py"
+      - "scripts/smoke-installed-wheel.py"
       - ".github/workflows/python-wheels.yml"
   pull_request:
   workflow_dispatch:
 
+# Pull request code compiles here, and a build script runs at compile time. Reading the
+# checkout is the whole of what that code needs.
+permissions:
+  contents: read
+
 jobs:
+  targets:
+    name: the platforms that ship
+    runs-on: ubuntu-24.04
+    outputs:
+      platforms: ${{ steps.declare.outputs.platforms }}
+    steps:
+      # Declared once and read twice: the build matrix below builds this list, and the
+      # verify job counts what arrived against it. A leg cannot vanish from the build and
+      # from the expectation in the same edit.
+      #
+      # Intel macOS runs on macos-15-intel; it is the last x86_64 macOS image Actions
+      # offers and it retires in August 2027, after which this target needs
+      # cross-compilation or dropping.
+      - name: Declare the platforms
+        id: declare
+        run: |
+          cat >platforms.json <<'JSON'
+          [
+            {"platform": "manylinux x86_64",  "runner": "ubuntu-24.04",     "wheel_tag": "manylinux*_x86_64*"},
+            {"platform": "manylinux aarch64", "runner": "ubuntu-24.04-arm", "wheel_tag": "manylinux*_aarch64*"},
+            {"platform": "macos x86_64",      "runner": "macos-15-intel",   "wheel_tag": "macosx_*_x86_64"},
+            {"platform": "macos arm64",       "runner": "macos-14",         "wheel_tag": "macosx_*_arm64"},
+            {"platform": "windows AMD64",     "runner": "windows-2022",     "wheel_tag": "win_amd64"}
+          ]
+          JSON
+          echo "platforms=$(jq -c . platforms.json)" >> "$GITHUB_OUTPUT"
+
   sdist:
     name: source distribution
     runs-on: ubuntu-24.04
@@ -36,28 +73,16 @@ jobs:
         with:
           name: sdist
           path: dist/*.tar.gz
+          if-no-files-found: error
 
   wheels:
     name: ${{ matrix.platform }}
-    needs: sdist
+    needs: [targets, sdist]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: manylinux x86_64
-            runner: ubuntu-24.04
-          - platform: manylinux aarch64
-            runner: ubuntu-24.04-arm
-          # Intel macOS runs on macos-15-intel; it is the last x86_64 macOS image Actions
-          # offers and it retires in August 2027, after which this target needs
-          # cross-compilation or dropping.
-          - platform: macos x86_64
-            runner: macos-15-intel
-          - platform: macos arm64
-            runner: macos-14
-          - platform: windows AMD64
-            runner: windows-2022
+        include: ${{ fromJSON(needs.targets.outputs.platforms) }}
 
     steps:
       # No checkout. Every input is the source distribution, so a file missing from it
@@ -89,29 +114,30 @@ jobs:
         with:
           name: wheels-${{ matrix.runner }}
           path: wheelhouse/*.whl
+          if-no-files-found: error
 
   verify:
     name: one wheel per platform, no compiler needed
-    needs: wheels
+    needs: [targets, wheels]
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
           path: wheelhouse
           merge-multiple: true
 
-      # Every wheel must be tagged cp311-abi3. A cp312-cp312 tag in here means abi3 was
-      # switched off and the matrix has quietly gone back to one wheel per version.
-      - name: Check every wheel is abi3
-        run: |
-          ls -1 wheelhouse
-          for wheel in wheelhouse/*.whl; do
-            case "$(basename "$wheel")" in
-              *-cp311-abi3-*) ;;
-              *) echo "not an abi3 wheel: $wheel"; exit 1 ;;
-            esac
-          done
+      # Counted against the declared platforms rather than inspected one by one. A dropped
+      # matrix leg leaves the tags of the wheels that did arrive perfectly valid, so a check
+      # that only reads what is present reports a release that is missing a platform as
+      # sound. A cp312-cp312 tag means the stable ABI was switched off and the matrix has
+      # gone back to one wheel per interpreter.
+      - name: Check one abi3 wheel arrived for every platform
+        env:
+          PLATFORMS: ${{ needs.targets.outputs.platforms }}
+        run: python3 scripts/check-wheel-set.py "$PLATFORMS" wheelhouse
 
   install:
     name: pip install on python ${{ matrix.python }}
