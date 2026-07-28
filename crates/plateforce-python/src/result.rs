@@ -71,9 +71,17 @@ impl Provenance {
         Ok(bound)
     }
 
+    /// The revision the caller pinned, and None when they pinned none.
     #[getter]
-    fn registry_version(&self) -> &str {
-        &self.chain.provenance.registry_version
+    fn registry_version(&self) -> Option<&str> {
+        self.chain.provenance.registry_version.as_deref()
+    }
+
+    /// Identifies the registry files this value was computed against, measured from their
+    /// bytes.
+    #[getter]
+    fn registry_digest(&self) -> Option<&str> {
+        self.chain.provenance.registry_digest.as_deref()
     }
 
     /// False when the acquisition block could not be filled. A result with this false
@@ -135,10 +143,11 @@ impl Provenance {
 
     fn __repr__(&self) -> String {
         format!(
-            "Provenance(method_id='{}', bound_parameters={}, registry_version='{}', acquisition_complete={})",
+            "Provenance(method_id='{}', bound_parameters={}, registry_version={}, registry_digest={}, acquisition_complete={})",
             self.chain.provenance.method_id,
             format_parameters(&self.chain.provenance.bound_parameters),
-            self.chain.provenance.registry_version,
+            optional(self.chain.provenance.registry_version.as_deref()),
+            optional(self.chain.provenance.registry_digest.as_deref()),
             if self.chain.provenance.acquisition_complete {
                 "True"
             } else {
@@ -267,13 +276,26 @@ fn describe_chain(chain: &ProvenanceChain, depth: usize, lines: &mut Vec<String>
         lines.push(format!("{indent}  {name} = {value}"));
     }
     if depth == 0 {
-        lines.push(format!(
-            "{indent}registry {}",
-            chain.provenance.registry_version
-        ));
+        if let Some(named) = registry_line(&chain.provenance) {
+            lines.push(format!("{indent}{named}"));
+        }
     }
     for input in &chain.depends_on {
         describe_chain(input, depth + 1, lines);
+    }
+}
+
+/// Names the registry behind a result: the pinned revision, the measured digest, or both.
+/// None when the result was computed without reading a registry.
+fn registry_line(provenance: &CoreProvenance) -> Option<String> {
+    match (
+        provenance.registry_version.as_deref(),
+        provenance.registry_digest.as_deref(),
+    ) {
+        (Some(version), Some(digest)) => Some(format!("registry {version} ({digest})")),
+        (Some(version), None) => Some(format!("registry {version}")),
+        (None, Some(digest)) => Some(format!("registry {digest}")),
+        (None, None) => None,
     }
 }
 

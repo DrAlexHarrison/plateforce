@@ -14,9 +14,17 @@ use pyo3::types::{PyDict, PyType};
 use crate::analysis::IMPLEMENTED_METHOD_IDS;
 use crate::errors::{map_registry_error, parameter_error, MethodError};
 
-/// Used when a caller does not pin one. The registry is data and changes without a
-/// release, so claiming a version nobody set would make an unpinned result look pinned.
-pub const UNVERSIONED: &str = "unversioned";
+/// Which registry a result came from: the digest of the files that were read, and the
+/// revision the caller pinned when they pinned one.
+///
+/// The registry is data and changes without a release, so a version nobody set is not
+/// invented here. An unpinned result carries no version and is named by its digest, which
+/// is measured from the bytes rather than asserted about them.
+#[derive(Clone)]
+pub struct RegistryIdentity {
+    pub digest: Option<String>,
+    pub version: Option<String>,
+}
 
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Construct")]
 #[derive(Clone)]
@@ -402,7 +410,7 @@ impl Census {
 #[derive(Clone)]
 pub struct MethodEntry {
     pub(crate) inner: CoreMethod,
-    pub(crate) registry_version: String,
+    pub(crate) registry_identity: RegistryIdentity,
 }
 
 #[pymethods]
@@ -672,8 +680,8 @@ pub struct BoundMethod {
 }
 
 impl BoundMethod {
-    pub(crate) fn registry_version(&self) -> &str {
-        &self.entry.registry_version
+    pub(crate) fn registry_identity(&self) -> &RegistryIdentity {
+        &self.entry.registry_identity
     }
 
     pub(crate) fn value_of(&self, name: &str) -> Option<f64> {
@@ -741,14 +749,24 @@ impl BoundMethod {
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Registry")]
 pub struct Registry {
     inner: CoreRegistry,
-    version: String,
+    version: Option<String>,
+}
+
+impl Registry {
+    /// What every entry handed out of this registry stamps on the results it produces.
+    fn identity(&self) -> RegistryIdentity {
+        RegistryIdentity {
+            digest: Some(self.inner.content_digest.clone()),
+            version: self.version.clone(),
+        }
+    }
 }
 
 #[pymethods]
 impl Registry {
-    /// `version` pins which revision of the registry data produced a result. Nothing in
-    /// the registry files declares one, so it defaults to `unversioned` and says so in
-    /// every provenance rather than claiming a version nobody set.
+    /// `version` pins which revision of the registry data produced a result, and a caller
+    /// who pins nothing gets no version rather than a word standing in for one. Either
+    /// way the result carries `digest`, taken from the files this call read.
     #[classmethod]
     #[pyo3(signature = (path, version = None))]
     fn load(
@@ -757,15 +775,20 @@ impl Registry {
         version: Option<String>,
     ) -> PyResult<Self> {
         let inner = CoreRegistry::load(&path).map_err(map_registry_error)?;
-        Ok(Self {
-            inner,
-            version: version.unwrap_or_else(|| UNVERSIONED.to_string()),
-        })
+        Ok(Self { inner, version })
     }
 
+    /// The revision this registry was pinned to, or None when nothing was pinned.
     #[getter]
-    fn version(&self) -> &str {
-        &self.version
+    fn version(&self) -> Option<&str> {
+        self.version.as_deref()
+    }
+
+    /// Identifies the files that were loaded. Two registries differing by one edited rule
+    /// differ here, which is what a declared version cannot promise.
+    #[getter]
+    fn digest(&self) -> &str {
+        &self.inner.content_digest
     }
 
     #[getter]
@@ -788,7 +811,7 @@ impl Registry {
             .values()
             .map(|inner| MethodEntry {
                 inner: inner.clone(),
-                registry_version: self.version.clone(),
+                registry_identity: self.identity(),
             })
             .collect()
     }
@@ -797,7 +820,7 @@ impl Registry {
         match self.inner.methods.get(method_id) {
             Some(inner) => Ok(MethodEntry {
                 inner: inner.clone(),
-                registry_version: self.version.clone(),
+                registry_identity: self.identity(),
             }),
             None => Err(MethodError::new_err(format!(
                 "no entry with id '{method_id}'. This registry holds {} computation entries",
@@ -823,7 +846,7 @@ impl Registry {
             .genuine_debates()
             .map(|inner| MethodEntry {
                 inner: inner.clone(),
-                registry_version: self.version.clone(),
+                registry_identity: self.identity(),
             })
             .collect()
     }
@@ -834,7 +857,7 @@ impl Registry {
             .methods_that_can_fail()
             .map(|inner| MethodEntry {
                 inner: inner.clone(),
-                registry_version: self.version.clone(),
+                registry_identity: self.identity(),
             })
             .collect()
     }
@@ -850,8 +873,12 @@ impl Registry {
     fn __repr__(&self) -> String {
         let census = self.inner.census();
         format!(
-            "Registry(version='{}', constructs={}, computation_entries={}, protocol_entries={})",
-            self.version, census.constructs, census.computation_entries, census.protocol_entries
+            "Registry(version={}, digest='{}', constructs={}, computation_entries={}, protocol_entries={})",
+            optional(self.version.as_deref()),
+            self.inner.content_digest,
+            census.constructs,
+            census.computation_entries,
+            census.protocol_entries
         )
     }
 }

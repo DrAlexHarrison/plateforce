@@ -178,7 +178,7 @@ silently mutable, and no reanalysis can recover from it.
 
 ```toml
 [fingerprint]
-analysis = ["method_id", "bound_parameters", "registry_version"]
+analysis = ["method_id", "bound_parameters", "registry_digest", "registry_version"]
 acquisition = [
     "sample_rate_hz",
     "filter_at_capture",
@@ -189,6 +189,11 @@ acquisition = [
 ]
 incomplete_acquisition_is_never_a_match = true
 ```
+
+The two registry members answer different questions. `registry_digest` is taken over the
+files that were read, so it names them whether or not anybody declared a revision, and two
+registries differing by one edited rule differ in it. `registry_version` is the revision a
+caller pinned, and it is absent when nobody pinned one.
 
 ## A protocol entry
 

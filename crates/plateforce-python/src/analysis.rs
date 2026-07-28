@@ -19,7 +19,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 use crate::errors::{map_trial_error, parameter_error, MethodNotImplementedError};
-use crate::registry::{BoundMethod, UNVERSIONED};
+use crate::registry::{BoundMethod, RegistryIdentity};
 use crate::result::{Exclusions, Measured, ProvenanceChain};
 use crate::trial::Trial;
 
@@ -44,13 +44,14 @@ const RSI_MODIFIED_METHOD_ID: &str = "rsi_modified.height_over_time_to_takeoff";
 fn provenance(
     method_id: &str,
     bound_parameters: Vec<(String, f64)>,
-    registry_version: &str,
+    registry: &RegistryIdentity,
     acquisition_complete: bool,
 ) -> CoreProvenance {
     CoreProvenance {
         method_id: method_id.to_string(),
         bound_parameters,
-        registry_version: registry_version.to_string(),
+        registry_version: registry.version.clone(),
+        registry_digest: registry.digest.clone(),
         acquisition_complete,
     }
 }
@@ -344,7 +345,7 @@ pub fn analyse_countermovement_jump(
         }
     };
 
-    let registry_version = onset.registry_version();
+    let registry_identity = onset.registry_identity();
     let acquisition_complete = trial.acquisition_complete();
     let sample_rate_hz = trial.inner.sample_rate_hz();
 
@@ -360,7 +361,7 @@ pub fn analyse_countermovement_jump(
     let epoch_provenance = provenance(
         weighing_epoch.method_id(),
         weighing_epoch.bound_parameters.clone(),
-        registry_version,
+        registry_identity,
         acquisition_complete,
     );
     let epoch_chain =
@@ -416,7 +417,7 @@ pub fn analyse_countermovement_jump(
     let onset_provenance = provenance(
         onset.method_id(),
         onset.bound_parameters.clone(),
-        registry_version,
+        registry_identity,
         acquisition_complete,
     );
     let onset_chain = ProvenanceChain::with_inputs(onset_provenance.clone(), vec![epoch_chain.clone()])
@@ -426,7 +427,7 @@ pub fn analyse_countermovement_jump(
     let takeoff_provenance = provenance(
         takeoff.method_id(),
         takeoff.bound_parameters.clone(),
-        registry_version,
+        registry_identity,
         acquisition_complete,
     );
     let takeoff_chain =
@@ -452,7 +453,7 @@ pub fn analyse_countermovement_jump(
         provenance(
             TIME_TO_TAKEOFF_METHOD_ID,
             Vec::new(),
-            registry_version,
+            registry_identity,
             acquisition_complete,
         ),
         Vec::new(),
@@ -471,7 +472,7 @@ pub fn analyse_countermovement_jump(
         provenance(
             TAKEOFF_VELOCITY_METHOD_ID,
             gravity_parameter.clone(),
-            registry_version,
+            registry_identity,
             acquisition_complete,
         ),
         Vec::new(),
@@ -486,7 +487,7 @@ pub fn analyse_countermovement_jump(
         provenance(
             JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID,
             gravity_parameter,
-            registry_version,
+            registry_identity,
             acquisition_complete,
         ),
         Vec::new(),
@@ -501,7 +502,7 @@ pub fn analyse_countermovement_jump(
                 provenance(
                     RSI_MODIFIED_METHOD_ID,
                     Vec::new(),
-                    registry_version,
+                    registry_identity,
                     acquisition_complete,
                 ),
                 Vec::new(),
@@ -560,6 +561,9 @@ pub fn analyse_countermovement_jump(
 /// A different construct from the takeoff-frame height an analysis returns, not a
 /// different way of computing the same one. Exposed on its own because nothing in the core
 /// places landing, so a flight time has to come from elsewhere, such as a contact mat.
+///
+/// This route reads no registry, so the result carries no digest and takes whichever
+/// revision the caller names.
 #[pyfunction]
 #[pyo3(signature = (
     flight_time_seconds,
@@ -573,7 +577,10 @@ pub fn jump_height_from_flight_time(
     registry_version: Option<String>,
     acquisition_complete: bool,
 ) -> Measured {
-    let version = registry_version.unwrap_or_else(|| UNVERSIONED.to_string());
+    let registry_identity = RegistryIdentity {
+        digest: None,
+        version: registry_version,
+    };
     measured(
         core_jump_height_from_flight_time(flight_time_seconds, gravity_meters_per_second_squared),
         "meters",
@@ -586,7 +593,7 @@ pub fn jump_height_from_flight_time(
                     gravity_meters_per_second_squared,
                 ),
             ],
-            &version,
+            &registry_identity,
             acquisition_complete,
         ),
         Vec::new(),

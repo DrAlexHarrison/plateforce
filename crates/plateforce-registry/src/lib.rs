@@ -47,7 +47,8 @@ pub(crate) fn format_violations(violations: &[Violation]) -> String {
         .join("\n")
 }
 
-/// A loaded registry, indexed by canonical dotted id.
+/// A loaded registry, indexed by canonical dotted id, carrying the digest of the files
+/// it was assembled from.
 ///
 /// The two populations are held separately and are never summed into one total.
 /// Both of this project's headline counts turned out to be assertions rather than
@@ -57,6 +58,9 @@ pub struct Registry {
     pub constructs: BTreeMap<String, Construct>,
     pub methods: BTreeMap<String, Method>,
     pub protocols: BTreeMap<String, Protocol>,
+    /// Which registry this is, measured from the bytes that were assembled rather than
+    /// declared alongside them, so it never disagrees with what was loaded.
+    pub content_digest: String,
 }
 
 /// Counts, each carrying the population it counts over.
@@ -73,6 +77,9 @@ impl Registry {
     ///
     /// The filesystem and the errors it raises are this function's business; what makes a
     /// set of files a registry belongs to `assemble`, which every other surface calls.
+    ///
+    /// The registry names itself by the bytes read here, so a caller never re-reads the
+    /// tree to say what it holds and never names a tree that changed in between.
     pub fn load(root: impl AsRef<Path>) -> Result<Self, RegistryError> {
         let root = root.as_ref();
         // An absent registry has no violations, so without this it loads empty and passes.
@@ -266,6 +273,44 @@ mod tests {
         .unwrap();
         let error = Registry::load(&root.path).unwrap_err();
         assert!(matches!(error, RegistryError::Unplaced { .. }), "{error}");
+    }
+
+    /// The whole claim behind the digest: it moves when the registry's content moves and
+    /// stays put when it does not. A declared version can promise neither.
+    #[test]
+    fn the_digest_follows_the_content_and_nothing_else() {
+        let root = ScratchDirectory::new("digest-follows-content");
+        let method_file = root.path.join("methods").join("rule.toml");
+        write_minimal_registry(&root.path, &method_file, "onset.threshold.measured");
+
+        let first = Registry::load(&root.path).unwrap().content_digest;
+        assert_eq!(first, Registry::load(&root.path).unwrap().content_digest);
+
+        let text = std::fs::read_to_string(&method_file).unwrap();
+        std::fs::write(&method_file, text.replace("Something.", "Something else.")).unwrap();
+        let after_the_edit = Registry::load(&root.path).unwrap().content_digest;
+        assert_ne!(
+            first, after_the_edit,
+            "an edited rule left the registry naming itself the same"
+        );
+    }
+
+    /// `load` walks the files, so it is the one place that can name what was read. A
+    /// caller re-reading the tree to ask gets an answer about whatever is there now.
+    #[test]
+    fn a_loaded_registry_names_the_files_the_loader_read() {
+        let root = ScratchDirectory::new("digest-names-sources");
+        write_minimal_registry(
+            &root.path,
+            &root.path.join("methods").join("rule.toml"),
+            "onset.threshold.read",
+        );
+        let registry = Registry::load(&root.path).unwrap();
+        let sources = read_sources(&root.path).unwrap();
+        assert_eq!(
+            registry.content_digest,
+            content_digest(sources.iter().map(Source::pair))
+        );
     }
 
     #[cfg(unix)]
