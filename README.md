@@ -37,12 +37,26 @@ release is pending rather than declined.
 
 ## Status
 
-Pre-implementation. The registry is drafted and the software is not written.
+Early, and the browser build runs: **https://dralexharrison.github.io/plateforce/**
+
+Drop a force trace in and nothing is uploaded. The file is read in the tab.
+
+What works: the registry loads and validates as data, 246 computation entries and 8
+protocol entries across 18 method files. The core reproduces a frozen 56-variant
+reference implementation over 244 trials, every column, and a difference fails the build.
+
+What that does not yet mean: **12 of the registry's rules are executable**, covering the
+weighing epoch, movement onset and takeoff. The rest of the registry is catalogued and
+cited but has no running maths behind it yet, and the interface says so per rule rather
+than quietly substituting a default. There is no desktop application, the command line
+inspects the registry but does not analyse a trace, and the R binding does not exist.
 
 ## Layout
 
 ```
 registry/   method definitions as data: rule, citation, status, bias, parameters
+crates/     the Rust workspace: registry, core maths, CLI, conformance, wasm, python
+web/        the browser interface that the wasm build drives
 docs/       method rulings, schema, and the reasoning behind both
 audit/      the script that recomputes every number quoted in this README
 ```
