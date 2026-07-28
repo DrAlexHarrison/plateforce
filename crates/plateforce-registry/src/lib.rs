@@ -4,12 +4,14 @@
 //! all. The failure mode this whole project exists to document is a number whose
 //! provenance nobody checked, so an unvalidated registry is worse than no registry.
 
+pub mod assembly;
 pub mod schema;
 pub mod validate;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+pub use assembly::{assemble, content_digest, read_sources, Assembled, AssemblyError, Source};
 pub use schema::*;
 pub use validate::{Violation, ViolationKind};
 
@@ -31,9 +33,13 @@ pub enum RegistryError {
     Invalid(Vec<Violation>),
     #[error("no registry at {path}: {reason}")]
     Absent { path: PathBuf, reason: String },
+    #[error("no population owns {path}: entries live in constructs.toml, methods/ or protocols/")]
+    Unplaced { path: PathBuf },
+    #[error("a link under the registry root leads back to {path}")]
+    Cycle { path: PathBuf },
 }
 
-fn format_violations(violations: &[Violation]) -> String {
+pub(crate) fn format_violations(violations: &[Violation]) -> String {
     violations
         .iter()
         .map(|v| format!("  {v}"))
@@ -62,8 +68,11 @@ pub struct Census {
 }
 
 impl Registry {
-    /// Load every TOML file under `root`, then validate. Returns the violations rather
+    /// Read every TOML file under `root` and assemble it. Returns the violations rather
     /// than a partial registry when validation fails.
+    ///
+    /// The filesystem and the errors it raises are this function's business; what makes a
+    /// set of files a registry belongs to `assemble`, which every other surface calls.
     pub fn load(root: impl AsRef<Path>) -> Result<Self, RegistryError> {
         let root = root.as_ref();
         // An absent registry has no violations, so without this it loads empty and passes.
@@ -84,60 +93,28 @@ impl Registry {
                 })
             }
         }
-        let mut registry = Registry::default();
-        // Inserting into a map means a second definition replaces the first, so a census of
-        // surviving keys is not a census of what the files declare. Collected and reported.
-        let mut replaced: Vec<String> = Vec::new();
 
-        for path in toml_files_under(&root.join("constructs.toml"))? {
-            let file: ConstructFile = read_toml(&path)?;
-            for construct in file.constructs {
-                let id = construct.id.clone();
-                if registry.constructs.insert(id.clone(), construct).is_some() {
-                    replaced.push(id);
-                }
-            }
-        }
-        for path in toml_files_under(&root.join("methods"))? {
-            let file: MethodFile = read_toml(&path)?;
-            for method in file.methods {
-                let id = method.id.clone();
-                if registry.methods.insert(id.clone(), method).is_some() {
-                    replaced.push(id);
-                }
-            }
-        }
-        for path in toml_files_under(&root.join("protocols"))? {
-            let file: ProtocolFile = read_toml(&path)?;
-            for protocol in file.protocols {
-                let id = protocol.id.clone();
-                if registry.protocols.insert(id.clone(), protocol).is_some() {
-                    replaced.push(id);
-                }
-            }
-        }
+        let sources = read_sources(root)?;
+        let assembled =
+            assemble(sources.iter().map(Source::pair)).map_err(|error| match error {
+                AssemblyError::Parse { path, source } => RegistryError::Parse {
+                    path: root.join(path),
+                    source,
+                },
+                AssemblyError::Unplaced { path } => RegistryError::Unplaced {
+                    path: root.join(path),
+                },
+                AssemblyError::NoMethods => RegistryError::Absent {
+                    path: root.to_path_buf(),
+                    reason: "the directory holds no methods".to_string(),
+                },
+                AssemblyError::Duplicated(violations) => RegistryError::Invalid(violations),
+            })?;
 
-        // Methods rather than either population. A directory holding constructs alone
-        // reports zero entries and no violations, which reads as a registry that passed.
-        if registry.methods.is_empty() {
-            return Err(RegistryError::Absent {
-                path: root.to_path_buf(),
-                reason: "the directory holds no methods".to_string(),
-            });
-        }
-
-        let mut violations: Vec<Violation> = replaced
-            .into_iter()
-            .map(|entry| Violation {
-                entry,
-                kind: ViolationKind::DuplicateId,
-            })
-            .collect();
-        violations.extend(validate::validate(&registry));
-        if violations.is_empty() {
-            Ok(registry)
+        if assembled.violations.is_empty() {
+            Ok(assembled.registry)
         } else {
-            Err(RegistryError::Invalid(violations))
+            Err(RegistryError::Invalid(assembled.violations))
         }
     }
 
@@ -165,53 +142,37 @@ impl Registry {
     }
 }
 
-fn read_toml<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, RegistryError> {
-    let text = std::fs::read_to_string(path).map_err(|source| RegistryError::Io {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    toml::from_str(&text).map_err(|source| RegistryError::Parse {
-        path: path.to_path_buf(),
-        source,
-    })
-}
-
-/// Accepts either a single file or a directory, so the layout can grow a directory where it
-/// currently has one file without a code change. Walked to the bottom, because the browser
-/// build embeds nested files and a registry the validator cannot see is one nobody checked.
-fn toml_files_under(path: &Path) -> Result<Vec<PathBuf>, RegistryError> {
-    if path.is_file() {
-        return Ok(vec![path.to_path_buf()]);
-    }
-    if !path.is_dir() {
-        return Ok(Vec::new());
-    }
-    let entries = std::fs::read_dir(path).map_err(|source| RegistryError::Io {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    let mut found: Vec<PathBuf> = Vec::new();
-    for entry in entries {
-        // An entry that cannot be read is an error rather than one fewer method.
-        let child = entry
-            .map_err(|source| RegistryError::Io {
-                path: path.to_path_buf(),
-                source,
-            })?
-            .path();
-        if child.is_dir() {
-            found.extend(toml_files_under(&child)?);
-        } else if child.extension().is_some_and(|extension| extension == "toml") {
-            found.push(child);
-        }
-    }
-    found.sort();
-    Ok(found)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A directory of this test's own. A fixed path under the system temporary directory
+    /// gets deleted out from under one run by another whenever two builds overlap.
+    struct ScratchDirectory {
+        path: PathBuf,
+    }
+
+    impl ScratchDirectory {
+        fn new(name: &str) -> Self {
+            use std::sync::atomic::{AtomicU32, Ordering};
+            static TAKEN: AtomicU32 = AtomicU32::new(0);
+            let unique = TAKEN.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "plateforce-{name}-{}-{unique}",
+                std::process::id()
+            ));
+            std::fs::remove_dir_all(&path).ok();
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    /// Cleanup on the failing path too, where a line at the end of the test never runs.
+    impl Drop for ScratchDirectory {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.path).ok();
+        }
+    }
 
     #[test]
     fn a_path_with_no_directory_is_not_an_empty_registry() {
@@ -221,10 +182,8 @@ mod tests {
 
     #[test]
     fn a_directory_holding_no_entries_is_not_a_registry() {
-        let empty = std::env::temp_dir().join("plateforce-empty-registry-test");
-        std::fs::create_dir_all(&empty).unwrap();
-        let error = Registry::load(&empty).unwrap_err();
-        std::fs::remove_dir_all(&empty).ok();
+        let empty = ScratchDirectory::new("empty-registry");
+        let error = Registry::load(&empty.path).unwrap_err();
         assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
     }
 
@@ -248,56 +207,76 @@ mod tests {
 
     #[test]
     fn a_method_file_in_a_subdirectory_is_loaded_the_way_the_browser_embeds_it() {
-        let root = std::env::temp_dir().join("plateforce-nested-registry-test");
-        std::fs::remove_dir_all(&root).ok();
+        let root = ScratchDirectory::new("nested-registry");
         write_minimal_registry(
-            &root,
-            &root.join("methods").join("extras").join("nested.toml"),
+            &root.path,
+            &root.path.join("methods").join("extras").join("nested.toml"),
             "onset.threshold.nested",
         );
-        let registry = Registry::load(&root).unwrap();
-        std::fs::remove_dir_all(&root).ok();
+        let registry = Registry::load(&root.path).unwrap();
         assert!(registry.methods.contains_key("onset.threshold.nested"));
     }
 
     #[test]
     fn two_definitions_of_one_id_are_a_violation_rather_than_a_census_of_one() {
-        let root = std::env::temp_dir().join("plateforce-duplicate-registry-test");
-        std::fs::remove_dir_all(&root).ok();
-        let methods = root.join("methods");
-        write_minimal_registry(&root, &methods.join("aaa.toml"), "onset.threshold.twice");
-        write_minimal_registry(&root, &methods.join("zzz.toml"), "onset.threshold.twice");
-        let error = Registry::load(&root).unwrap_err();
-        std::fs::remove_dir_all(&root).ok();
+        let root = ScratchDirectory::new("duplicate-registry");
+        let methods = root.path.join("methods");
+        write_minimal_registry(&root.path, &methods.join("aaa.toml"), "onset.threshold.twice");
+        write_minimal_registry(&root.path, &methods.join("zzz.toml"), "onset.threshold.twice");
+        let error = Registry::load(&root.path).unwrap_err();
         assert!(error.to_string().contains("more than one entry"), "{error}");
     }
 
     #[test]
     fn a_misspelt_key_is_refused_rather_than_dropped() {
-        let root = std::env::temp_dir().join("plateforce-typo-registry-test");
-        std::fs::remove_dir_all(&root).ok();
-        let method_file = root.join("methods").join("typo.toml");
-        write_minimal_registry(&root, &method_file, "onset.threshold.typo");
+        let root = ScratchDirectory::new("typo-registry");
+        let method_file = root.path.join("methods").join("typo.toml");
+        write_minimal_registry(&root.path, &method_file, "onset.threshold.typo");
         let mut text = std::fs::read_to_string(&method_file).unwrap();
         text.push_str("\n[[method.citaton]]\nkey = \"nobody\"\nrole = \"proposes\"\n");
         std::fs::write(&method_file, text).unwrap();
-        let error = Registry::load(&root).unwrap_err();
-        std::fs::remove_dir_all(&root).ok();
+        let error = Registry::load(&root.path).unwrap_err();
         assert!(matches!(error, RegistryError::Parse { .. }), "{error}");
     }
 
     #[test]
     fn a_directory_holding_constructs_and_no_methods_is_not_a_registry() {
-        let partial = std::env::temp_dir().join("plateforce-constructs-only-test");
-        std::fs::create_dir_all(&partial).unwrap();
+        let partial = ScratchDirectory::new("constructs-only");
         std::fs::write(
-            partial.join("constructs.toml"),
+            partial.path.join("constructs.toml"),
             "[[construct]]\nid = \"system_weight\"\ntitle = \"Weight\"\nunit = \"newtons\"\n",
         )
         .unwrap();
-        let error = Registry::load(&partial).unwrap_err();
-        std::fs::remove_dir_all(&partial).ok();
+        let error = Registry::load(&partial.path).unwrap_err();
         assert!(matches!(error, RegistryError::Absent { .. }), "{error}");
+    }
+
+    #[test]
+    fn a_file_belonging_to_no_population_is_refused_rather_than_walked_past() {
+        let root = ScratchDirectory::new("unplaced-file");
+        write_minimal_registry(
+            &root.path,
+            &root.path.join("methods").join("real.toml"),
+            "onset.threshold.real",
+        );
+        std::fs::write(
+            root.path.join("draft.toml"),
+            "[[method]]\nid = \"onset.threshold.draft\"\n",
+        )
+        .unwrap();
+        let error = Registry::load(&root.path).unwrap_err();
+        assert!(matches!(error, RegistryError::Unplaced { .. }), "{error}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_pointing_back_up_the_tree_is_refused_rather_than_walked_forever() {
+        let root = ScratchDirectory::new("looping-registry");
+        let methods = root.path.join("methods");
+        write_minimal_registry(&root.path, &methods.join("real.toml"), "onset.threshold.real");
+        std::os::unix::fs::symlink(&root.path, methods.join("upwards")).unwrap();
+        let error = Registry::load(&root.path).unwrap_err();
+        assert!(matches!(error, RegistryError::Cycle { .. }), "{error}");
     }
 
     /// Every variant against what serde writes, rather than against a literal, so a
