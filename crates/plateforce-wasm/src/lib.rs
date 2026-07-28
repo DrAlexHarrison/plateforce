@@ -1,8 +1,8 @@
 //! WebAssembly surface.
 //!
 //! The browser build runs the same compiled logic as the desktop, so nothing in this
-//! crate computes a quantity. It reads files, holds a trial, forwards to
-//! `plateforce_core`, and hands back JSON.
+//! crate computes a quantity and nothing here decides a method. It reads files, holds a
+//! trial, forwards to `plateforce_analysis`, and hands back JSON.
 //!
 //! The boundary is JSON strings rather than a structural bridge. That holds the
 //! dependency tree at wasm-bindgen and serde, and no payload in this project is large
@@ -11,15 +11,14 @@
 //! No threads. Threads would require `SharedArrayBuffer`, which would require
 //! cross-origin isolation headers, which static hosting does not serve.
 
-pub mod analysis;
 pub mod demo;
 pub mod parse;
 pub mod registry_embed;
-pub mod spread;
 
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+use plateforce_analysis::{spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::signal::{partition_sentinels, Sentinel};
 use plateforce_core::Trial;
 
@@ -35,7 +34,7 @@ struct BuildInfo {
     registry_valid: bool,
     registry_violations: Vec<String>,
     /// Every rule that runs, with the slot it fills.
-    bindings: &'static [analysis::Binding],
+    bindings: &'static [Binding],
     threads: bool,
 }
 
@@ -51,7 +50,7 @@ pub fn build_info_json() -> Result<String, JsError> {
         registry_file_count: loaded.file_count,
         registry_valid: loaded.is_valid(),
         registry_violations: loaded.violation_messages(),
-        bindings: analysis::BINDINGS,
+        bindings: BINDINGS,
         threads: false,
     })
 }
@@ -236,9 +235,10 @@ impl Session {
     /// One analysis. Every number in the response names the methods that produced it.
     #[wasm_bindgen(js_name = analyze)]
     pub fn analyze(&self, request_json: &str) -> Result<String, JsError> {
-        let request: analysis::AnalysisRequest =
+        let request: AnalysisRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
-        let response = analysis::run(&self.trial, &request).map_err(|e| JsError::new(&e))?;
+        let response =
+            plateforce_analysis::run(&self.trial, &request).map_err(|e| JsError::new(&e))?;
         to_json(&response)
     }
 

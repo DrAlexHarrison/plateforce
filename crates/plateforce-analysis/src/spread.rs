@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use plateforce_core::Trial;
 
-use crate::analysis::{self, AnalysisRequest};
+use crate::AnalysisRequest;
 
 /// One dimension of the sweep. Either the bound method for a slot changes, or one of its
 /// parameters does.
@@ -86,11 +86,11 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
     let combinations_run = combinations_requested.min(cap);
     let capped = combinations_requested > cap;
 
-    let baseline = analysis::run(trial, &request.base)
+    let baseline = crate::run(trial, &request.base)
         .ok()
         .and_then(|response| extract(&response, &request.quantity_key).0);
 
-    let unit = analysis::run(trial, &request.base)
+    let unit = crate::run(trial, &request.base)
         .ok()
         .and_then(|response| {
             response
@@ -115,7 +115,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
             .collect::<Vec<_>>()
             .join(", ");
 
-        match analysis::run(trial, &candidate) {
+        match crate::run(trial, &candidate) {
             Ok(response) => {
                 let (value, warning) = extract(&response, &request.quantity_key);
                 variants.push(Variant {
@@ -182,7 +182,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
 }
 
 fn extract(
-    response: &analysis::AnalysisResponse,
+    response: &crate::AnalysisResponse,
     quantity_key: &str,
 ) -> (Option<f64>, Option<String>) {
     let value = response
@@ -278,7 +278,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::analysis::{MethodChoice, WeighingChoice};
+    use crate::{MethodChoice, WeighingChoice};
     use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 
     fn synthetic() -> Trial {

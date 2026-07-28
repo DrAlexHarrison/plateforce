@@ -8,10 +8,10 @@
 
 use std::collections::BTreeMap;
 
-use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
-use plateforce_wasm::analysis::{
+use plateforce_analysis::{
     run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice, BINDINGS,
 };
+use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 use plateforce_wasm::registry_embed;
 

@@ -1,0 +1,15 @@
+[package]
+name = "plateforce-analysis"
+description = "Binding registry entries to the core, and running one analysis. Every surface links this."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# Nothing here knows which surface asked. A dependency on a browser, a Python
+# interpreter or a terminal in this crate would put a second binding layer back.
+[dependencies]
+plateforce-core = { workspace = true }
+serde = { workspace = true }

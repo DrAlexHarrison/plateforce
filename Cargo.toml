@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/plateforce-registry",
     "crates/plateforce-core",
+    "crates/plateforce-analysis",
     "crates/plateforce-cli",
     "crates/plateforce-conformance",
     "crates/plateforce-wasm",
@@ -20,6 +21,7 @@ repository = "https://github.com/DrAlexHarrison/plateforce"
 authors = ["Alex Harrison"]
 
 [workspace.dependencies]
+plateforce-analysis = { path = "crates/plateforce-analysis", version = "0.1.0" }
 plateforce-core = { path = "crates/plateforce-core", version = "0.1.0" }
 plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.0" }
 serde = { version = "1", features = ["derive"] }

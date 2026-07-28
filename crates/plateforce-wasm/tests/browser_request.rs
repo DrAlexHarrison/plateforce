@@ -5,7 +5,7 @@
 //! the answer still comes back looking reasonable. So the shape is stated here in the same
 //! form it crosses the boundary in, and each rule is asked what it did not read.
 
-use plateforce_wasm::analysis::{run, AnalysisRequest};
+use plateforce_analysis::{run, AnalysisRequest};
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 
 /// The recommended opening selection, with each rule's parameters under the names the
