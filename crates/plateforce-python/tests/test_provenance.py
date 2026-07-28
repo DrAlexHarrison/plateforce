@@ -60,6 +60,40 @@ def test_the_registry_version_travels_with_the_number(jump):
     assert jump.jump_height_takeoff_frame_meters.provenance.registry_version == "fixture-1"
 
 
+def test_the_registry_digest_travels_with_the_number(jump, registry):
+    provenance = jump.jump_height_takeoff_frame_meters.provenance
+    assert provenance.registry_digest == registry.digest
+    assert provenance.registry_digest.startswith("content-")
+
+
+def test_an_unpinned_registry_leaves_the_version_unset_and_still_names_the_files(
+    trial, registry_path
+):
+    unpinned = pf.Registry.load(registry_path)
+    height = pf.analyse_countermovement_jump(
+        trial,
+        unpinned.method("bwepoch.fixed_window").bind(duration=1.0),
+        unpinned.method("onset.threshold.noise_relative").bind(k=5.0),
+        unpinned.method("takeoff.threshold.absolute_force").bind(
+            threshold_n=20.0, persistence_ms=30.0
+        ),
+    ).jump_height_takeoff_frame_meters
+
+    assert height.provenance.registry_version is None
+    assert height.provenance.registry_digest == unpinned.digest
+    assert f"registry {unpinned.digest}" in height.describe()
+
+
+def test_a_height_computed_without_reading_a_registry_names_no_files():
+    height = pf.jump_height_from_flight_time(0.5)
+    assert height.provenance.registry_digest is None
+    assert height.provenance.registry_version is None
+
+    pinned = pf.jump_height_from_flight_time(0.5, registry_version="my-lab-2026-03")
+    assert pinned.provenance.registry_version == "my-lab-2026-03"
+    assert pinned.provenance.registry_digest is None
+
+
 def test_choices_that_are_not_numbers_travel_too(jump):
     onset = jump.onset_time_seconds.provenance
     assert onset.enumerated_choices["band_sides"] == "below_only"
@@ -81,13 +115,13 @@ def test_jump_height_names_the_upstream_choices_that_moved_it(jump):
     assert "bwepoch.fixed_window" in reached, "the weighing epoch moves jump height too"
 
 
-def test_describe_shows_the_value_and_the_whole_chain(jump):
+def test_describe_shows_the_value_and_the_whole_chain(jump, registry):
     described = jump.jump_height_takeoff_frame_meters.describe()
     assert "meters" in described
     assert "jump_height.from_takeoff_velocity" in described
     assert "onset.threshold.noise_relative" in described
     assert "bwepoch.fixed_window" in described
-    assert "registry fixture-1" in described
+    assert f"registry fixture-1 ({registry.digest})" in described
 
 
 def test_an_incomplete_acquisition_block_is_stated_on_every_result(jump):

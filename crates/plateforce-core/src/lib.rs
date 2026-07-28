@@ -36,7 +36,11 @@ pub const STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED: f64 = 9.80665;
 pub struct Provenance {
     pub method_id: String,
     pub bound_parameters: Vec<(String, f64)>,
-    pub registry_version: String,
+    /// The revision a caller pinned, and None when they pinned none.
+    pub registry_version: Option<String>,
+    /// Digest of the registry files that were read, measured rather than declared, so it
+    /// identifies them without resting on a caller's word. None when no registry was read.
+    pub registry_digest: Option<String>,
     /// False when the acquisition block could not be filled, in which case this result
     /// must never be declared to match another lab's.
     pub acquisition_complete: bool,

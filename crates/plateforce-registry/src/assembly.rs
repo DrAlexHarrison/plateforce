@@ -52,10 +52,17 @@ pub enum AssemblyError {
 ///
 /// A second definition of an id would replace the first, leaving a map that counts fewer
 /// entries than the files declare, so it is refused rather than counted.
+///
+/// The digest is taken over the same bytes rather than left to the caller, so a registry
+/// cannot reach a result under the identity of a set of files it was not assembled from.
 pub fn assemble<'a>(
     files: impl IntoIterator<Item = (&'a str, &'a str)>,
 ) -> Result<Assembled, AssemblyError> {
-    let mut registry = Registry::default();
+    let files: Vec<(&str, &str)> = files.into_iter().collect();
+    let mut registry = Registry {
+        content_digest: content_digest(files.iter().copied()),
+        ..Registry::default()
+    };
     let mut duplicated: Vec<String> = Vec::new();
 
     for (path, contents) in files {

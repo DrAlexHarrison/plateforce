@@ -1,6 +1,7 @@
 """Selecting a method, and what the entry has to show before you can."""
 
 import pathlib
+import shutil
 
 import pytest
 
@@ -148,9 +149,34 @@ def test_a_registry_that_fails_validation_does_not_load_at_all(tmp_path):
     assert "no_such_construct" in str(raised.value)
 
 
-def test_the_registry_version_travels_and_defaults_to_saying_it_is_unset(registry, tmp_path):
+def test_a_pinned_registry_reports_the_pin_and_an_unpinned_one_reports_nothing(
+    registry, registry_path
+):
     assert registry.version == "fixture-1"
-    assert registry.method("bwepoch.fixed_window").bind().parameters == {"duration": 1.0}
+    assert pf.Registry.load(registry_path).version is None
+
+
+def test_a_registry_names_itself_by_its_files_whether_or_not_it_was_pinned(
+    registry, registry_path
+):
+    unpinned = pf.Registry.load(registry_path)
+    assert unpinned.digest.startswith("content-")
+    assert unpinned.digest == registry.digest, "the pin must not change what was loaded"
+    assert unpinned.digest in repr(unpinned)
+
+
+def test_the_digest_changes_with_the_registry_content_and_not_otherwise(
+    tmp_path, registry_path
+):
+    copied = tmp_path / "registry"
+    shutil.copytree(registry_path, copied)
+
+    first = pf.Registry.load(copied).digest
+    assert pf.Registry.load(copied).digest == first
+
+    seed = copied / "methods" / "seed.toml"
+    seed.write_text(seed.read_text().replace("first sample departing", "first sample leaving"))
+    assert pf.Registry.load(copied).digest != first
 
 
 @pytest.fixture(scope="session")
@@ -169,6 +195,25 @@ def shipped_registry():
             f"the registry at {SHIPPED_REGISTRY} does not load, so the package cannot be "
             f"used against it:\n{error}"
         )
+
+
+def _digest_computed_here(root):
+    """FNV-1a over path and contents, in path order, written out rather than called.
+
+    Reading a digest back from the package it came from proves nothing about it. This
+    walks the same files and does the same arithmetic independently, so agreement between
+    the two is evidence and not an echo.
+    """
+    digest = 0xCBF29CE484222325
+    for relative in sorted(path.relative_to(root).as_posix() for path in root.rglob("*.toml")):
+        for byte in relative.encode() + (root / relative).read_bytes():
+            digest ^= byte
+            digest = (digest * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return f"content-{digest:016x}"
+
+
+def test_the_shipped_registry_names_itself_by_its_own_bytes(shipped_registry):
+    assert shipped_registry.digest == _digest_computed_here(SHIPPED_REGISTRY)
 
 
 def test_the_shipped_registry_carries_the_ids_the_analysis_dispatches_on(shipped_registry):
