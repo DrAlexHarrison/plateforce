@@ -128,8 +128,6 @@ export function initialParameters(candidate, forcesDecision) {
       unresolved.push(parameter.name);
     } else if (parameter.default != null) {
       values[parameter.name] = parameter.default;
-    } else if (choices.length) {
-      values[parameter.name] = choices[0];
     }
   }
   return { values, unresolved };

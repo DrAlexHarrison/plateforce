@@ -789,7 +789,7 @@ fn onset_search(
         start_index,
         end_index: trial.len(),
         persistence_samples: resolved
-            .milliseconds_as_samples("span_ms", 0.0, rate)
+            .milliseconds_as_samples("span_ms", 30.0, rate)
             .max(1),
         selection: resolved.enumerated(
             "selection",
