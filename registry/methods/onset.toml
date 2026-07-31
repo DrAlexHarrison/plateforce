@@ -1224,12 +1224,71 @@ id = "onset.threshold.noise_relative"
 kind = "genuine"
 note = "It silently overrides every onset policy it is composed with."
 
+[[method.disagrees_with]]
+id = "onset.op.search_floor_at_weighing_epoch_end"
+kind = "genuine"
+note = "This one states the floor as a time. The other derives it from whichever window weighed the athlete, so a change of weighing rule moves it."
+
 [method.gui]
 surfacing = "force_a_decision"
 sensitivity = "very large on time to takeoff and reactive strength index modified, negligible on jump height"
 rationale = """
 A warning rather than a settable option. If onset lands exactly on the floor, that is diagnostic of
 a truncated lead-in and the trial is suspect.
+"""
+
+[[method]]
+id = "onset.op.search_floor_at_weighing_epoch_end"
+construct = "movement_onset"
+group = "C"
+title = "Begin the onset search where the weighing window ended"
+rule = """
+Begin the onset search at the end of the window that defined bodyweight, wherever that window fell,
+and never look earlier.
+"""
+# Split out of onset.op.search_floor, which files three tools under one entry while one of them
+# derives the floor and the other two state it. The two behave the same only when the weighing
+# window is fixed and anchored at sample zero, which is one of the weighing rules this build runs.
+# Proposed by this registry rather than by a publication, so it takes the same floor as the other
+# entry proposed here rather than being promoted to accepted.
+status = "contested"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "weighing_epoch_end_seconds"
+unit = "seconds"
+published_values = []
+required = false
+notes = """
+Measured, not chosen: it is an outcome of the weighing rule, and it is recorded because a floor that
+moves with the weighing window is otherwise invisible in the result. An adaptive weighing rule puts
+it at a different time on every trial.
+"""
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics find_unweighting_start begins at quiet_samples, which is the end of its quiet window rather than a stated time"
+obtained = true
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Split from onset.op.search_floor in this registry; no publication distinguishes the two, and the distinction was found by running them"
+obtained = true
+
+[[method.disagrees_with]]
+id = "onset.op.search_floor"
+kind = "genuine"
+note = "The same operator with a derived bound rather than a stated one, so it cannot be reported as a time the caller chose."
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "very large on time to takeoff and reactive strength index modified, negligible on jump height"
+rationale = """
+Show where the search began and which rule put it there. It runs whenever no floor is stated, so
+hiding it would make the most commonly applied bound on onset the least visible one.
 """
 
 [[method]]

@@ -768,8 +768,10 @@ fn onset_search(
     resolved: &mut Resolution,
 ) -> Result<CrossingSearch, RuleRefusal> {
     let rate = trial.sample_rate_hz();
-    // Unstated, the search starts where the weighing window ended, which the weighing rule
-    // decided rather than a constant.
+    // Two different operators, and which one ran decides what the record may call it. A
+    // stated time is the deprecated fixed floor. Unstated, the search starts where the
+    // weighing window ended, which the weighing rule decided and no caller chose, so it is
+    // recorded as the derived bound it is rather than as a time nobody stated.
     let start_index = match resolved.stated("floor_seconds") {
         Some(seconds) => {
             resolved.record_measured("floor_seconds", seconds, format_number(seconds), false);
@@ -777,7 +779,7 @@ fn onset_search(
         }
         None => {
             resolved.record_measured(
-                "floor_seconds",
+                "weighing_epoch_end_seconds",
                 trial.time_at(epoch.end_index),
                 format!("{:.4}", trial.time_at(epoch.end_index)),
                 true,
@@ -1155,6 +1157,7 @@ pub const ONSET_OPERATOR_IDS: &[&str] = &[
     "onset.op.direction",
     "onset.op.persistence",
     "onset.op.search_floor",
+    "onset.op.search_floor_at_weighing_epoch_end",
 ];
 
 /// Which registry entry carries each name an onset rule reads.
@@ -1168,6 +1171,7 @@ fn onset_operator_for(name: &str) -> Option<&'static str> {
         "offset_ms" => Some("onset.op.backward_offset_fixed"),
         "span_ms" => Some("onset.op.persistence"),
         "floor_seconds" => Some("onset.op.search_floor"),
+        "weighing_epoch_end_seconds" => Some("onset.op.search_floor_at_weighing_epoch_end"),
         "direction" => Some("onset.op.direction"),
         "selection" => Some("onset.op.crossing_selection"),
         _ => None,
