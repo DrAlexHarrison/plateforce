@@ -1379,3 +1379,71 @@ Bind it to the movement type and refuse to run a one-sided detector on a task th
 that sign. The failure is documented in the wild: a one-sided unweighting detector on a squat jump
 falls through at index zero and contact time silently becomes the entire elapsed recording.
 """
+
+[[method]]
+id = "onset.threshold.adaptive_trailing_window"
+construct = "movement_onset"
+group = "C"
+title = "Onset against a threshold recomputed from a trailing window at every sample"
+rule = """
+Recompute the reference mean and spread from a trailing window at every sample and compare that
+sample against the window's mean less k spreads, keep the last crossing before the force extremum,
+then walk back to the first sample of that final run of crossings.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "window_seconds"
+unit = "seconds"
+published_values = [1.0]
+default = 1.0
+default_source = "chronojump_r"
+required = true
+notes = "The same window the reference-epoch entry carries, since it is the same trailing window doing the work."
+
+[[method.parameter]]
+name = "k"
+unit = "standard_deviations"
+published_values = [1.0, 2.0, 2.5, 3.0, 4.0, 5.0]
+default = 5.0
+default_source = "chronojump_r"
+required = true
+
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+published_values = []
+notes = "population, sample. The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
+
+[[method.citation]]
+key = "chronojump_r"
+role = "uses"
+reference = "Chronojump maximumIsometricForce.R, getStartSampleBySDMethod"
+obtained = true
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Filed here as a movement_onset entry. The registry already carried the trailing-window mechanism under bwepoch.rolling_trailing_window, which computes a reference rather than placing a landmark"
+obtained = true
+
+[[method.disagrees_with]]
+id = "bwepoch.rolling_trailing_window"
+kind = "naming"
+note = "The same trailing window. That entry computes a reference under the system_weight construct, this one places a landmark under movement_onset, and reporting one against the other puts a value on a row that does not have it."
+
+[[method.disagrees_with]]
+id = "onset.threshold.noise_relative"
+kind = "genuine"
+note = "A reference that tracks the signal against one fixed over a quiet epoch. A gradually rising baseline never trips the tracking threshold at all."
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "large, and in the opposite direction to the fixed-epoch rules on a drifting baseline"
+rationale = """
+The walk back to the first sample of the final cluster is the only part that makes this an onset
+rule rather than a detector of the steepest part of the descent, and it is invisible in the output.
+Show the cluster it walked back through.
+"""

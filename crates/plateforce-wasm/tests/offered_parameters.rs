@@ -11,9 +11,28 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{
     run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice, BINDINGS,
 };
-use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
+use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 use plateforce_wasm::registry_embed;
+
+/// The demonstration jump with a brief brush against the plate's floor during the
+/// countermovement, before the athlete actually leaves.
+///
+/// One clean trace cannot exercise every parameter. A rule that asks how long a crossing must
+/// hold has nothing to decide on a trace that crosses once and stays across, so the parameter
+/// reads as inert when it is wired correctly. This is the trace where it decides something,
+/// and it is the shape of the real failure: an athlete who unloads the plate without leaving it.
+fn jump_with_a_brief_dip_before_takeoff() -> Trial {
+    let demonstration = synthetic_countermovement_jump();
+    let rate = demonstration.sample_rate_hz();
+    let mut force = demonstration.force().to_vec();
+    let dip_start = (3.58 * rate) as usize;
+    let dip_samples = (0.010 * rate) as usize;
+    for sample in force.iter_mut().skip(dip_start).take(dip_samples) {
+        *sample = 5.0;
+    }
+    Trial::new(force, rate).expect("the modified trace is still a trial")
+}
 
 /// One control the interface draws, and the values this file drives it through.
 struct OfferedParameter {
@@ -166,21 +185,32 @@ fn every_parameter_a_control_offers_reaches_the_rule_it_belongs_to() {
 
 #[test]
 fn every_parameter_a_control_offers_moves_a_number() {
-    let trial = synthetic_countermovement_jump();
+    let traces = [
+        ("the demonstration jump", synthetic_countermovement_jump()),
+        (
+            "a jump with a brief dip",
+            jump_with_a_brief_dip_before_takeoff(),
+        ),
+    ];
 
     for parameter in offered_parameters() {
-        let outcomes: Vec<String> = parameter
-            .probes
-            .iter()
-            .map(|value| numbers(&run(&trial, &request_with(&parameter, *value))))
-            .collect();
-        let distinct = outcomes
-            .iter()
-            .collect::<std::collections::BTreeSet<_>>()
-            .len();
+        // Moving a number on one trace is enough. Requiring it on every trace would demand
+        // that a parameter matter even where the recording gives it nothing to decide.
+        let moved_on = traces.iter().find(|(_, trial)| {
+            let outcomes: Vec<String> = parameter
+                .probes
+                .iter()
+                .map(|value| numbers(&run(trial, &request_with(&parameter, *value))))
+                .collect();
+            outcomes
+                .iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                > 1
+        });
         assert!(
-            distinct > 1,
-            "'{}' on {} is inert: {} values from {} to {} all return the same numbers",
+            moved_on.is_some(),
+            "'{}' on {} is inert: {} values from {} to {} return the same numbers on all {} traces",
             parameter.parameter,
             parameter.method_id,
             parameter.probes.len(),
@@ -194,6 +224,7 @@ fn every_parameter_a_control_offers_moves_a_number() {
                 .iter()
                 .copied()
                 .fold(f64::NEG_INFINITY, f64::max),
+            traces.len(),
         );
     }
 }

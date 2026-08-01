@@ -519,6 +519,11 @@ note = "The reference tracks the signal rather than being fixed, which is a diff
 id = "bwepoch.adaptive_lowest_variance"
 kind = "genuine"
 
+[[method.disagrees_with]]
+id = "onset.threshold.adaptive_trailing_window"
+kind = "naming"
+note = "The same trailing window put to the other use. This entry computes a reference, that one places a landmark with it."
+
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "large"

@@ -100,6 +100,11 @@ kind = "genuine"
 id = "onset.op.hysteresis"
 kind = "genuine"
 
+[[method.disagrees_with]]
+id = "takeoff.threshold.descending_crossing"
+kind = "genuine"
+note = "The confirmed-crossing reading of the same threshold. Identical wherever the first sample below the threshold is also the start of a sustained run."
+
 [method.gui]
 surfacing = "default_and_hide"
 sensitivity = "low on impulse-momentum jump height, moderate on flight time and reactive strength index"
@@ -436,4 +441,170 @@ rationale = """
 The flight phase is simultaneously the only in-trial known-zero reference for drift correction, the
 window noise-derived thresholds are computed from, and the region contaminated by peak residual
 force. One window doing three jobs, and any error in bounding it propagates to all three.
+"""
+
+# The operator family below is the takeoff counterpart of onset.op.*, which has existed since the
+# registry was first written while takeoff had none. Until it did, a takeoff rule that composed a
+# selection or a direction had to borrow the onset operator of that name, so a parameter that moved
+# a takeoff number was recorded against a row whose construct is movement_onset.
+
+[[method]]
+id = "takeoff.threshold.descending_crossing"
+construct = "takeoff"
+group = "D"
+title = "First descending crossing of the threshold, confirmed over a span"
+rule = """
+Take the first sample at which force crosses below the threshold on a falling edge and stays below
+it for a stated confirmation span, rather than the first sample below the threshold however brief.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [1.0, 5.0, 10.0, 20.0, 25.0, 30.0, 50.0]
+default = 20.0
+default_source = "vald_glossary"
+required = true
+notes = "The same residual threshold the rest of the family compares against."
+
+[[method.parameter]]
+name = "persistence_ms"
+unit = "milliseconds"
+published_values = [15.0, 20.0, 30.0]
+default = 20.0
+default_source = "plateforce_derivation"
+required = true
+notes = """
+No publication states a confirmation span for this rule. The implementation takes the shortest span
+the persistence family publishes, on the grounds that a crossing called confirmed needs some span to
+be confirmed over and the shortest one changes the answer least. Recorded as this registry's choice
+rather than as a published value, because that is what it is.
+"""
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Named in this registry. The confirmed-crossing shape is common in implementations and the confirmation span is stated by none of them"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = "One takes the first sample below the threshold, the other the first crossing that holds. They separate whenever the signal dips briefly before the athlete actually leaves."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate on flight time, small on impulse-momentum jump height"
+rationale = """
+The confirmation span is the whole rule: at zero it is the fixed-threshold rule, and long enough it
+cannot detect a short flight at all. Surface it wherever hop tests or drop jumps are in scope.
+"""
+
+[[method]]
+id = "takeoff.op.crossing_selection"
+construct = "takeoff"
+group = "D"
+title = "Which low-force run is taken as the flight phase"
+rule = """
+Among the runs of force below the threshold, select the first, or the longest, as the flight phase.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "selection"
+unit = "enumeration"
+published_values = []
+required = true
+notes = """
+first, longest_run. The choice is only visible on a recording that holds more than one qualifying
+run, and then it decides the answer completely: measured on 244 trials, the longest-run reading
+places takeoff 843 ms later than the first-run reading on 155 of them, because the athlete standing
+off the plate after the jump outlasts the flight. The first-run reading fails in the opposite
+population, where an athlete unloads the plate without leaving it.
+"""
+
+[[method.disagrees_with]]
+id = "takeoff.op.short_run_handling"
+kind = "genuine"
+note = "Ranking and filtering compose in both orders and the orders disagree, so neither operator is complete without the other."
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "categorical on any recording holding more than one low-force run, none on a trimmed single jump"
+rationale = """
+Show which run was taken and how many qualified. A selection reported without the number of
+candidates is a choice presented as an observation.
+"""
+
+[[method]]
+id = "takeoff.op.short_run_handling"
+construct = "takeoff"
+group = "D"
+title = "Whether runs shorter than the minimum flight time are discarded before or after ranking"
+rule = """
+Either compare every run by length and then test the winner against the minimum flight time, or
+discard the runs below the minimum first and rank what is left.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "short_run_handling"
+unit = "enumeration"
+published_values = []
+required = true
+notes = """
+rank_then_filter, filter_then_rank. Under rank_then_filter a run too short to be a flight can win
+the comparison and then disqualify the trial, so a valid flight phase present in the recording is
+never examined. The two agree whenever the longest run is already long enough.
+"""
+
+[[method.disagrees_with]]
+id = "takeoff.op.crossing_selection"
+kind = "genuine"
+note = "The order of ranking against filtering is only a question because a selection rule exists to be ordered against."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "categorical where it binds, and it binds rarely"
+rationale = """
+It changes an answer into a refusal rather than into a different number, so it belongs with the
+diagnostics rather than in front of a user choosing a method.
+"""
+
+[[method]]
+id = "takeoff.op.residual_comparison"
+construct = "takeoff"
+group = "D"
+title = "Whether the residual threshold is applied to the signed force or its magnitude"
+rule = """
+Compare force against the residual threshold either as a signed value or as a magnitude.
+"""
+status = "accepted"
+confidence = "high"
+debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "comparison"
+unit = "enumeration"
+published_values = []
+required = true
+notes = """
+signed, magnitude. An unloaded plate can read negative. Under the signed comparison such a sample
+is below any positive threshold and counts as flight; under the magnitude comparison it does not,
+so a plate whose zero has drifted low reports a different flight phase under each.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "none on a plate whose zero is clean, large on one whose zero has drifted negative"
+rationale = """
+It is a property of the device rather than a methodological choice, so it belongs beside the
+calibration rather than in the method list.
 """
