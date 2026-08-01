@@ -1426,7 +1426,9 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "meters_per_second",
             unit_symbol: unit_symbol("meters_per_second"),
             contributing_method_ids: full.clone(),
-            computed_by: None,
+            // One entry covers both this and the impulse below: its rule is the integration and
+            // the division by mass in one sentence.
+            computed_by: Some("impulse.net_vertical.as_performance_determinant"),
             note: Some("Net impulse over system mass. An identity, not an estimate.".into()),
         },
         Metric {
@@ -1442,7 +1444,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "newton_seconds",
             unit_symbol: unit_symbol("newton_seconds"),
             contributing_method_ids: full.clone(),
-            computed_by: None,
+            computed_by: Some("impulse.net_vertical.as_performance_determinant"),
             note: None,
         },
         Metric {
