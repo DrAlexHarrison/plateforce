@@ -413,6 +413,11 @@ id = "onset.threshold.relative_to_system_weight"
 kind = "genuine"
 
 [[method.disagrees_with]]
+id = "onset.threshold.adaptive_trailing_window"
+kind = "genuine"
+note = "A reference fixed over a quiet epoch against one that tracks the signal. On a drifting baseline the tracking rule never trips at all, and this one trips on the drift."
+
+[[method.disagrees_with]]
 id = "onset.threshold.max_composite"
 kind = "genuine"
 
