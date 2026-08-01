@@ -539,7 +539,19 @@ pub struct Metric {
     /// construct and every parameter.
     pub unit: &'static str,
     pub unit_symbol: &'static str,
+    /// The landmark rules whose answers this number rests on.
     pub contributing_method_ids: Vec<String>,
+    /// The registry entry for the arithmetic that turned those landmarks into this number,
+    /// which is a different question from which landmarks fed it.
+    ///
+    /// Both jump-height figures and modified reactive strength are registry entries with
+    /// citations, published parameters and, in one case, a `force_a_decision` surfacing
+    /// verdict. Reporting only the landmark chain leaves the reader unable to tell which of
+    /// two numerators produced a reactive-strength number, or which of the registry's 22
+    /// jump-height methods was run. `None` means no entry describes this arithmetic, which
+    /// is itself worth seeing.
+    #[serde(default)]
+    pub computed_by: Option<&'static str>,
     #[serde(default)]
     pub note: Option<String>,
 }
@@ -1351,6 +1363,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "newtons",
             unit_symbol: unit_symbol("newtons"),
             contributing_method_ids: weighing_ids.clone(),
+            computed_by: None,
             note: Some("Includes any external load. System weight is not bodyweight.".into()),
         },
         Metric {
@@ -1360,6 +1373,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "kilograms",
             unit_symbol: unit_symbol("kilograms"),
             contributing_method_ids: weighing_ids,
+            computed_by: None,
             note: Some(format!("At g = {gravity} m/s2, which is itself a bound choice.")),
         },
         Metric {
@@ -1369,6 +1383,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "seconds",
             unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: onset_ids.clone(),
+            computed_by: None,
             note: None,
         },
         Metric {
@@ -1378,6 +1393,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "seconds",
             unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: takeoff_ids.clone(),
+            computed_by: None,
             note: None,
         },
         Metric {
@@ -1387,6 +1403,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "seconds",
             unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: interval.clone(),
+            computed_by: None,
             note: Some(
                 "Bounded by two threshold crossings, which is why it is the least reproducible number here."
                     .into(),
@@ -1399,6 +1416,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "seconds",
             unit_symbol: unit_symbol("seconds"),
             contributing_method_ids: takeoff_ids,
+            computed_by: None,
             note: None,
         },
         Metric {
@@ -1408,6 +1426,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "meters_per_second",
             unit_symbol: unit_symbol("meters_per_second"),
             contributing_method_ids: full.clone(),
+            computed_by: None,
             note: Some("Net impulse over system mass. An identity, not an estimate.".into()),
         },
         Metric {
@@ -1423,6 +1442,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "newton_seconds",
             unit_symbol: unit_symbol("newton_seconds"),
             contributing_method_ids: full.clone(),
+            computed_by: None,
             note: None,
         },
         Metric {
@@ -1432,6 +1452,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "meters",
             unit_symbol: unit_symbol("meters"),
             contributing_method_ids: full.clone(),
+            computed_by: Some("jumpheight.takeoff.impulse_momentum"),
             note: Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
                     .into(),
@@ -1444,6 +1465,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "meters",
             unit_symbol: unit_symbol("meters"),
             contributing_method_ids: vec![request.takeoff.method_id.clone()],
+            computed_by: Some("jumpheight.takeoff.flight_time"),
             note: Some(
                 "A different construct from the takeoff frame figure above, not a different way of computing it."
                     .into(),
@@ -1459,7 +1481,14 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             unit: "meters_per_second",
             unit_symbol: unit_symbol("meters_per_second"),
             contributing_method_ids: full,
-            note: Some("Jump height over time to takeoff, so it inherits both choices.".into()),
+            // The registry carries two numerators for this quantity and marks the choice
+            // force_a_decision. This build runs the impulse-momentum one, and naming it is the
+            // difference between a reader knowing which of the two they are holding and not.
+            computed_by: Some("rsimod.jh_tov_over_ttt"),
+            note: Some(
+                "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number."
+                    .into(),
+            ),
         },
     ];
 
