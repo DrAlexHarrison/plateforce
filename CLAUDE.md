@@ -2,6 +2,13 @@
 
 Force-plate analysis where every result carries the method that produced it.
 
+## Before anything else
+
+Read `/home/alex/force-plate-lab/ORIENTATION.md` in full. It is short, and it is the only file
+that says which of thirty documents to believe, what Alex has already ruled, what has already
+been measured, and how this project characteristically goes wrong. Sessions that skip it
+propose research finished in July and re-decide questions Alex settled in his own words.
+
 ## The one principle
 
 Published methods for the same jump metric disagree enough that the choice of method moves
@@ -18,9 +25,10 @@ time.
 A robust, easy-to-use tool for one jump trace or a batch, computing every variable the
 industry uses, on any operating system, through a GUI or a terminal, operator's choice.
 
-The registry already enumerates the scope: 58 constructs, 246 computation entries, 8 protocol
-entries. Done is measurable against it. Full definition and the route there:
-`/home/alex/force-plate-lab/MISSION.md`, then `/home/alex/force-plate-lab/phase2/ROADMAP.md`.
+The registry enumerates the scope, and the count is a query rather than a line in this file:
+`cargo run -q -p plateforce-cli -- registry census`. Done is measurable against it. Full
+definition and the route there: `/home/alex/force-plate-lab/MISSION.md`, then
+`/home/alex/force-plate-lab/phase2/ROADMAP.md`.
 
 ## Binding on every file and every agent
 
