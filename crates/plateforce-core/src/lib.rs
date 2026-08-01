@@ -7,6 +7,7 @@
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
 
+pub mod gravity;
 pub mod onset;
 pub mod phases;
 pub mod read;
@@ -25,9 +26,10 @@ pub use trial::{
     CentralTendency, Landmarks, WeighingEpoch,
 };
 
-/// Standard gravity. Declared once because the registry records real instances of
-/// implementations disagreeing on it.
-pub const STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED: f64 = 9.80665;
+/// Standard gravity, re-exported from `gravity`, which also carries the location-dependent
+/// value. Declared once because the registry records real instances of implementations
+/// disagreeing on it.
+pub use gravity::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 
 /// Reported alongside every computed quantity so a number never travels without the
 /// choices that produced it. The absence of anything like this across the seven open
