@@ -158,7 +158,7 @@ impl WeighingEpoch {
     ///
     /// Gravity is an argument because the tools disagree on it: 9.81 is the common
     /// choice and 9.80665 is the standard value, and the two move jump height by
-    /// 34 parts per million in the same direction on every trial.
+    /// 342 parts per million in the same direction on every trial, by both routes.
     pub fn system_mass_kilograms(&self, gravity_meters_per_second_squared: f64) -> f64 {
         self.system_weight_newtons / gravity_meters_per_second_squared
     }

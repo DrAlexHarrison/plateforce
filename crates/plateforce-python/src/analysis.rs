@@ -25,23 +25,24 @@ use crate::trial::Trial;
 /// Steps the software performs that no registry entry describes, reported on every result
 /// rather than left to be discovered. Gravity rides on them because the core takes it as an
 /// argument, tools disagree on 9.81 against 9.80665, and no entry covers the choice.
-const TAKEOFF_VELOCITY_METHOD_ID: &str = "takeoff_velocity.impulse_momentum";
-const JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID: &str = "jump_height.from_takeoff_velocity";
-const JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID: &str = "jump_height.from_flight_time";
-const TIME_TO_TAKEOFF_METHOD_ID: &str = "time_to_takeoff.onset_to_takeoff";
-const NET_IMPULSE_METHOD_ID: &str = "net_impulse.onset_to_takeoff";
-const FLIGHT_TIME_METHOD_ID: &str = "flight_time.takeoff_to_touchdown";
-const RSI_MODIFIED_METHOD_ID: &str = "rsi_modified.height_over_time_to_takeoff";
+// Five of these are registry entries and were being reported as unregistered on this surface
+// alone. The rule was always the registry's; only the name this crate used for it was not, so
+// the same number arrived carrying a resolvable id through the browser and an unresolvable one
+// through Python. That is a parity break on the exact property the product exists to guarantee,
+// and it is worse than either surface being uniformly wrong.
+const TAKEOFF_VELOCITY_METHOD_ID: &str = "impulse.net_vertical.as_performance_determinant";
+const NET_IMPULSE_METHOD_ID: &str = "impulse.net_vertical.as_performance_determinant";
+const JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID: &str = "jumpheight.takeoff.impulse_momentum";
+const JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID: &str = "jumpheight.takeoff.flight_time";
+const RSI_MODIFIED_METHOD_ID: &str = "rsimod.jh_tov_over_ttt";
 
-const UNREGISTERED_METHOD_IDS: &[&str] = &[
-    TIME_TO_TAKEOFF_METHOD_ID,
-    NET_IMPULSE_METHOD_ID,
-    FLIGHT_TIME_METHOD_ID,
-    TAKEOFF_VELOCITY_METHOD_ID,
-    JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID,
-    JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID,
-    RSI_MODIFIED_METHOD_ID,
-];
+// These two are genuinely unfiled: no entry describes turning two landmark indices into an
+// elapsed time. They stay declared as unregistered rather than being given a plausible-looking
+// id, because an id that resolves to nothing is worse than an honest absence.
+const TIME_TO_TAKEOFF_METHOD_ID: &str = "time_to_takeoff.onset_to_takeoff";
+const FLIGHT_TIME_METHOD_ID: &str = "flight_time.takeoff_to_touchdown";
+
+const UNREGISTERED_METHOD_IDS: &[&str] = &[TIME_TO_TAKEOFF_METHOD_ID, FLIGHT_TIME_METHOD_ID];
 
 /// Registry entries this build can run, taken from the one list every surface reads. An
 /// entry the registry describes and no rule implements has to fail rather than quietly
