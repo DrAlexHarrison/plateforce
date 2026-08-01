@@ -94,6 +94,35 @@ status = "accepted"
 confidence = "high"
 debate = "genuine"
 
+[[method.parameter]]
+name = "unit_of_analysis"
+unit = "enumeration"
+published_values = []
+required = true
+notes = """
+subject, trial. The rule says subject and the obvious implementation uses trials, which is not the
+same test: this project's own corpus is 244 trials from 41 subjects, so taking trials inflates the
+count almost sixfold, narrows the limits of agreement by roughly the square root of that, and
+reports a tighter agreement than the data supports. Repeated trials from one athlete are not
+independent observations of the between-method difference. Carried as a required parameter with no
+default so it cannot be defaulted through silently, which is the failure this entry would otherwise
+have shipped.
+"""
+
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+published_values = []
+required = true
+notes = """
+population, sample. The limits are 1.96 standard deviations wide and the divisor is not
+interchangeable: they differ by the square root of n over n minus one, which is 5.4 percent at
+n = 10 and 2.6 percent at n = 20. Negligible on a large corpus and material on the size of study a
+practitioner actually runs, which is the population this entry exists to serve. No entry in this
+group carried a dispersion estimator while the software has carried one since the beginning
+precisely because the choice is not free.
+"""
+
 [[method.citation]]
 key = "blandaltman1986"
 role = "proposes"
