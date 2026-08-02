@@ -3,7 +3,9 @@
 use std::fmt::Write as _;
 use std::path::Path;
 
-use plateforce_registry::{Citation, CitationRole, Method, Protocol, Provenance, Registry, Status};
+use plateforce_registry::{
+    Census, Citation, CitationRole, Method, Protocol, Provenance, Registry, Status,
+};
 use serde_json::json;
 
 use crate::exit::{Fault, Outcome};
@@ -38,27 +40,35 @@ pub fn run(command: &Command, directory: &Path, format: Format, renderer: &Rende
 }
 
 fn census(registry: &Registry, format: Format) -> Outcome {
-    let census = registry.census();
-    let computation = census.computation_entries;
+    // Destructured without `..`, so a population added to the registry is a compile error
+    // here rather than a row this command quietly stops printing.
+    let Census {
+        constructs,
+        computation_entries: computation,
+        protocol_entries,
+        preset_entries,
+    } = registry.census();
     let debates = registry.genuine_debates().count();
     let can_fail = registry.methods_that_can_fail().count();
 
     if format == Format::Json {
         return Outcome::complete(canonical(&json!({
-            "constructs": census.constructs,
+            "constructs": constructs,
             "computation_entries": computation,
             "genuine_debates_of_computation_entries": debates,
             "can_find_the_wrong_event_of_computation_entries": can_fail,
-            "protocol_entries": census.protocol_entries,
+            "protocol_entries": protocol_entries,
+            "preset_entries": preset_entries,
         })));
     }
 
-    // Populations are reported apart and never summed. Both derived counts are taken over
+    // Every population is reported apart and none is summed with another. Both derived
+    // counts are taken over
     // the computation entries and say so, because indentation under the wrong line is how a
     // count loses its denominator. Both of this project's headline counts were assertions
     // until somebody recounted them.
     let mut document = String::new();
-    let _ = writeln!(document, "{:<36}{}", "constructs", census.constructs);
+    let _ = writeln!(document, "{:<36}{}", "constructs", constructs);
     let _ = writeln!(document, "{:<36}{computation}", "computation entries");
     let _ = writeln!(
         document,
@@ -70,11 +80,8 @@ fn census(registry: &Registry, format: Format) -> Outcome {
         "{:<36}{can_fail} of {computation}",
         "  of which can find the wrong event"
     );
-    let _ = write!(
-        document,
-        "{:<36}{}",
-        "protocol entries", census.protocol_entries
-    );
+    let _ = writeln!(document, "{:<36}{}", "protocol entries", protocol_entries);
+    let _ = write!(document, "{:<36}{}", "preset entries", preset_entries);
     Outcome::complete(document)
 }
 
