@@ -1,0 +1,124 @@
+//! A folder run under one request.
+//!
+//! The founding measurement behind this project varies an onset rule and its `k` and the
+//! weighing start, so a run that cannot state those is a run that cannot reproduce the
+//! thing the registry exists to record. A folder is also the run a class or a squad
+//! actually does, which is why the flag matters more here than on one trial.
+
+use std::process::Output;
+
+fn batch(out_dir: &std::path::Path, extra: &[&str]) -> Output {
+    let named = out_dir.display().to_string();
+    let mut arguments: Vec<&str> = vec![
+        "--registry",
+        "../../registry",
+        "batch",
+        "../plateforce-conformance/fixtures",
+        "--out-dir",
+        &named,
+        "--trial-suffix",
+        ".force.txt",
+        "--column",
+        "0",
+        "--sample-rate-hz",
+        "1200",
+        "--weighing",
+        "bwepoch.fixed_window",
+        "--onset",
+        "onset.threshold.noise_relative",
+        "--takeoff",
+        "takeoff.threshold.absolute_force",
+    ];
+    arguments.extend(extra.iter().copied());
+    std::process::Command::new(env!("CARGO_BIN_EXE_plateforce"))
+        .args(&arguments)
+        .env("NO_COLOR", "1")
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .expect("the built binary runs")
+}
+
+fn sources(out_dir: &std::path::Path) -> std::collections::BTreeMap<String, usize> {
+    let text = std::fs::read_to_string(out_dir.join("provenance.csv")).expect("a record");
+    let mut lines = text.lines();
+    let header: Vec<&str> = lines.next().expect("a header").split(',').collect();
+    let column = header
+        .iter()
+        .position(|name| *name == "source")
+        .expect("the record says where each value came from");
+    let mut counted = std::collections::BTreeMap::new();
+    for line in lines {
+        let fields: Vec<&str> = line.split(',').collect();
+        if let Some(source) = fields.get(column) {
+            *counted.entry((*source).to_string()).or_insert(0) += 1;
+        }
+    }
+    counted
+}
+
+fn scratch(name: &str) -> std::path::PathBuf {
+    let path = std::env::temp_dir().join(format!("plateforce-batch-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&path);
+    std::fs::create_dir_all(&path).expect("a scratch directory");
+    path
+}
+
+/// Without the flag every value is the rule's own, and the record says so honestly. The
+/// defect was that there was no way to make it say anything else.
+#[test]
+fn a_value_stated_for_a_folder_is_recorded_as_stated() {
+    let without = scratch("plain");
+    assert_eq!(batch(&without, &[]).status.code(), Some(0));
+    let before = sources(&without);
+
+    let with = scratch("stated");
+    let output = batch(
+        &with,
+        &[
+            "--set",
+            "weighing.duration=1.0",
+            "--set",
+            "onset.k=5",
+            "--set",
+            "takeoff.threshold_n=20",
+        ],
+    );
+    assert_eq!(output.status.code(), Some(0));
+    let after = sources(&with);
+
+    println!("without --set {before:?}");
+    println!("with --set    {after:?}");
+    assert_eq!(
+        before.get("stated"),
+        None,
+        "nothing was stated, so nothing reads stated"
+    );
+    assert!(
+        after.get("stated").copied().unwrap_or(0) > 0,
+        "a value the operator stated reads stated"
+    );
+    assert!(
+        after.get("assumed").copied().unwrap_or(0) < before.get("assumed").copied().unwrap_or(0),
+        "and it is no longer counted as the rule's own"
+    );
+
+    let _ = std::fs::remove_dir_all(&without);
+    let _ = std::fs::remove_dir_all(&with);
+}
+
+/// The same spelling `analyse` takes, so a reader who wrote `--set onset.k` on one trial
+/// writes it on a folder.
+#[test]
+fn an_assignment_this_command_cannot_read_is_refused_before_a_trial_is() {
+    let out = scratch("refused");
+    let output = batch(&out, &["--set", "onset-k-5"]);
+    let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
+    println!("{}", said.lines().next().unwrap_or_default());
+    assert_eq!(output.status.code(), Some(64));
+    assert!(said.contains("--set takes"), "{said}");
+    assert!(
+        !out.join("results.csv").exists(),
+        "no trial was read before the refusal"
+    );
+    let _ = std::fs::remove_dir_all(&out);
+}
