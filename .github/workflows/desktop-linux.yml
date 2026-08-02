@@ -124,11 +124,29 @@ jobs:
     runs-on: ubuntu-24.04
     container: debian:12
     steps:
+      # xauth is a Recommends of xvfb rather than a dependency, so --no-install-recommends
+      # drops it and xvfb-run exits 3 before the application starts.
       - name: Install what the AppImage needs to be read and run
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-0 libgtk-3-0 xvfb ca-certificates file strace
+            libwebkit2gtk-4.1-0 libgtk-3-0 xvfb xauth ca-certificates file strace
+
+      # An absent harness and a failed property leave this job by the same door, and the
+      # honest reading of the second sends someone hunting inside the application for
+      # something that was never there. Every command the checks below invoke is asserted
+      # here, by name, so a missing package says so.
+      - name: Everything the checks below run with
+        run: |
+          absent=""
+          for command in xvfb-run xauth strace file; do
+            command -v "$command" >/dev/null 2>&1 || absent="$absent $command"
+          done
+          if [ -n "$absent" ]; then
+            echo "the harness is incomplete, so nothing below was measured:$absent" >&2
+            exit 1
+          fi
+          echo "harness: xvfb-run, xauth, strace and file are all here"
 
       - uses: actions/checkout@v4
 
