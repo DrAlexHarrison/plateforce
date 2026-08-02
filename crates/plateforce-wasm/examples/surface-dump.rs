@@ -594,13 +594,13 @@ fn main() {
     }
 
     for (trace, trial) in &loaded {
-        report(&format!("session {trace} info"), trial.info_json());
+        report(&format!("loaded trial {trace} info"), trial.info_json());
         report(
-            &format!("session {trace} envelope"),
+            &format!("loaded trial {trace} envelope"),
             trial.envelope_json(64),
         );
         for (name, payload) in requests() {
-            report(&format!("analyze {trace} {name}"), trial.analyse(&payload));
+            report(&format!("analyse {trace} {name}"), trial.analyse(&payload));
         }
         for (name, payload) in sweeps() {
             report(&format!("spread {trace} {name}"), trial.spread(&payload));
