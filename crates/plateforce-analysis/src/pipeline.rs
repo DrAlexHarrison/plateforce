@@ -10,7 +10,7 @@ use plateforce_core::{
 use crate::binding::expect_bound;
 use crate::request::AnalysisRequest;
 use crate::resolution::{bound_method, RuleRefusal};
-use crate::response::{unit_symbol, AnalysisResponse, Levels, Metric};
+use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
 
 pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse, String> {
@@ -135,143 +135,92 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         .map(|marks| takeoff_velocity_meters_per_second(trial, &epoch, marks, gravity));
     let height_takeoff = velocity.map(|v| jump_height_from_takeoff_velocity(v, gravity));
 
+    // Every quantity's key, label, unit and computed-by come from the one declaration in
+    // `response.rs`. What varies per analysis is the value, the chain behind it, and the
+    // sentence beside it.
     let metrics = vec![
-        Metric {
-            key: "system_weight_newtons",
-            label: "System weight",
-            value: Some(epoch.system_weight_newtons),
-            unit: "newtons",
-            unit_symbol: unit_symbol("newtons"),
-            contributing_method_ids: weighing_ids.clone(),
-            computed_by: None,
-            note: Some("Includes any external load. System weight is not bodyweight.".into()),
-        },
-        Metric {
-            key: "system_mass_kilograms",
-            label: "System mass",
-            value: Some(epoch.system_mass_kilograms(gravity)),
-            unit: "kilograms",
-            unit_symbol: unit_symbol("kilograms"),
-            contributing_method_ids: weighing_ids,
-            computed_by: None,
-            note: Some(format!("At g = {gravity} m/s2, which is itself a bound choice.")),
-        },
-        Metric {
-            key: "onset_time_seconds",
-            label: "Movement onset",
-            value: onset_index.map(|index| trial.time_at(index)),
-            unit: "seconds",
-            unit_symbol: unit_symbol("seconds"),
-            contributing_method_ids: onset_ids.clone(),
-            computed_by: None,
-            note: None,
-        },
-        Metric {
-            key: "takeoff_time_seconds",
-            label: "Takeoff",
-            value: takeoff_index.map(|index| trial.time_at(index)),
-            unit: "seconds",
-            unit_symbol: unit_symbol("seconds"),
-            contributing_method_ids: takeoff_ids.clone(),
-            computed_by: None,
-            note: None,
-        },
-        Metric {
-            key: "time_to_takeoff_seconds",
-            label: "Time to takeoff",
-            value: interval_seconds,
-            unit: "seconds",
-            unit_symbol: unit_symbol("seconds"),
-            contributing_method_ids: interval.clone(),
-            computed_by: None,
-            note: Some(
+        Metric::declared(
+            "system_weight_newtons",
+            Some(epoch.system_weight_newtons),
+            weighing_ids.clone(),
+            Some("Includes any external load. System weight is not bodyweight.".into()),
+        ),
+        Metric::declared(
+            "system_mass_kilograms",
+            Some(epoch.system_mass_kilograms(gravity)),
+            weighing_ids,
+            Some(format!("At g = {gravity} m/s2, which is itself a bound choice.")),
+        ),
+        Metric::declared(
+            "onset_time_seconds",
+            onset_index.map(|index| trial.time_at(index)),
+            onset_ids.clone(),
+            None,
+        ),
+        Metric::declared(
+            "takeoff_time_seconds",
+            takeoff_index.map(|index| trial.time_at(index)),
+            takeoff_ids.clone(),
+            None,
+        ),
+        Metric::declared(
+            "time_to_takeoff_seconds",
+            interval_seconds,
+            interval.clone(),
+            Some(
                 "Bounded by two threshold crossings, which is why it is the least reproducible number here."
                     .into(),
             ),
-        },
-        Metric {
-            key: "flight_time_seconds",
-            label: "Flight time",
-            value: flight,
-            unit: "seconds",
-            unit_symbol: unit_symbol("seconds"),
-            contributing_method_ids: takeoff_ids,
-            computed_by: None,
-            note: None,
-        },
-        Metric {
-            key: "takeoff_velocity_meters_per_second",
-            label: "Takeoff velocity",
-            value: velocity,
-            unit: "meters_per_second",
-            unit_symbol: unit_symbol("meters_per_second"),
-            contributing_method_ids: full.clone(),
-            // One entry covers both this and the impulse below: its rule is the integration and
-            // the division by mass in one sentence.
-            computed_by: Some("impulse.net_vertical.as_performance_determinant"),
-            note: Some("Net impulse over system mass. An identity, not an estimate.".into()),
-        },
-        Metric {
-            key: "net_impulse_newton_seconds",
-            label: "Net impulse",
-            value: landmarks.as_ref().map(|marks| {
+        ),
+        Metric::declared("flight_time_seconds", flight, takeoff_ids, None),
+        Metric::declared(
+            "takeoff_velocity_meters_per_second",
+            velocity,
+            full.clone(),
+            Some("Net impulse over system mass. An identity, not an estimate.".into()),
+        ),
+        Metric::declared(
+            "net_impulse_newton_seconds",
+            landmarks.as_ref().map(|marks| {
                 trial.integrate_offset_newton_seconds(
                     marks.onset_index,
                     marks.takeoff_index,
                     epoch.system_weight_newtons,
                 )
             }),
-            unit: "newton_seconds",
-            unit_symbol: unit_symbol("newton_seconds"),
-            contributing_method_ids: full.clone(),
-            computed_by: Some("impulse.net_vertical.as_performance_determinant"),
-            note: None,
-        },
-        Metric {
-            key: "jump_height_from_takeoff_meters",
-            label: "Jump height, takeoff frame",
-            value: height_takeoff,
-            unit: "meters",
-            unit_symbol: unit_symbol("meters"),
-            contributing_method_ids: full.clone(),
-            computed_by: Some("jumpheight.takeoff.impulse_momentum"),
-            note: Some(
+            full.clone(),
+            None,
+        ),
+        Metric::declared(
+            "jump_height_from_takeoff_meters",
+            height_takeoff,
+            full.clone(),
+            Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
                     .into(),
             ),
-        },
-        Metric {
-            key: "jump_height_from_flight_time_meters",
-            label: "Jump height, flight time",
-            value: flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
-            unit: "meters",
-            unit_symbol: unit_symbol("meters"),
-            contributing_method_ids: vec![request.takeoff.method_id.clone()],
-            computed_by: Some("jumpheight.takeoff.flight_time"),
-            note: Some(
+        ),
+        Metric::declared(
+            "jump_height_from_flight_time_meters",
+            flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
+            vec![request.takeoff.method_id.clone()],
+            Some(
                 "A different construct from the takeoff frame figure above, not a different way of computing it."
                     .into(),
             ),
-        },
-        Metric {
-            key: "reactive_strength_index_modified",
-            label: "RSI modified",
-            value: match (height_takeoff, interval_seconds) {
+        ),
+        Metric::declared(
+            "reactive_strength_index_modified",
+            match (height_takeoff, interval_seconds) {
                 (Some(height), Some(seconds)) => reactive_strength_index_modified(height, seconds),
                 _ => None,
             },
-            unit: "meters_per_second",
-            unit_symbol: unit_symbol("meters_per_second"),
-            contributing_method_ids: full,
-            // The registry carries two numerators for this quantity and marks the choice
-            // force_a_decision. This build runs the impulse-momentum one, and naming it is the
-            // difference between a reader knowing which of the two they are holding and not.
-            computed_by: Some("rsimod.jh_tov_over_ttt"),
-            note: Some(
+            full,
+            Some(
                 "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number."
                     .into(),
             ),
-        },
+        ),
     ];
 
     Ok(AnalysisResponse {

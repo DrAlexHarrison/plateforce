@@ -127,6 +127,29 @@ pub fn bindings_for(slot: &str) -> impl Iterator<Item = &'static Binding> + '_ {
     BINDINGS.iter().filter(move |binding| binding.slot == slot)
 }
 
+/// Every rule filed under a construct.
+///
+/// The three shipped bindings carry a short slot name beside their construct id, and those
+/// names cover three constructs of the fifty-eight the registry declares. A rule for any
+/// other construct has no slot name to be found by, so a lookup keyed on the construct is
+/// the one that reaches all of them.
+pub fn bindings_for_construct(construct: &str) -> impl Iterator<Item = &'static Binding> + '_ {
+    BINDINGS
+        .iter()
+        .filter(move |binding| binding.construct == construct)
+}
+
+/// Every construct a rule in this build can fill, in declaration order without repeats.
+pub fn executable_constructs() -> Vec<&'static str> {
+    let mut seen: Vec<&'static str> = Vec::new();
+    for binding in BINDINGS {
+        if !seen.contains(&binding.construct) {
+            seen.push(binding.construct);
+        }
+    }
+    seen
+}
+
 pub(crate) fn unbound_method_message(method_id: &str, slot: &str) -> String {
     let available: Vec<&str> = bindings_for(slot).map(|binding| binding.id).collect();
     format!(

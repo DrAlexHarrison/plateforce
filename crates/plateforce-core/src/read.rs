@@ -432,10 +432,10 @@ fn even_spacing(values: &[f64]) -> Option<f64> {
 /// Columns that look like a vertical force channel: a positive baseline in the newton range
 /// that varies. This is the reader's existing judgement rather than a second inference, and
 /// it is what both the suggestion and the dual-plate refusal are taken over.
-fn force_like_columns<'a>(
-    summaries: &'a [ColumnSummary],
+fn force_like_columns(
+    summaries: &[ColumnSummary],
     time_column: Option<usize>,
-) -> Vec<&'a ColumnSummary> {
+) -> Vec<&ColumnSummary> {
     summaries
         .iter()
         .filter(|c| Some(c.index) != time_column)
@@ -583,7 +583,7 @@ impl ForceFile {
     pub fn check_system_quantity_is_readable(
         &self,
         declaration: PlateDeclaration,
-    ) -> Result<(), crate::refusal::Refusal> {
+    ) -> Result<(), Box<crate::refusal::Refusal>> {
         if declaration == PlateDeclaration::SinglePlate {
             return Ok(());
         }
@@ -604,10 +604,10 @@ impl ForceFile {
                 None => format!("column {} at {:.0} N", column.index + 1, column.median),
             })
             .collect();
-        Err(crate::refusal::Refusal::ambiguous_force_channels(
+        Err(Box::new(crate::refusal::Refusal::ambiguous_force_channels(
             self.summary.force_like_column_count,
             named,
-        ))
+        )))
     }
 }
 

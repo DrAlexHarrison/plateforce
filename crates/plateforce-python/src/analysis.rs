@@ -149,12 +149,11 @@ impl Derived<'_> {
             .and_then(|metric| metric.value)
     }
 
+    /// From the quantity declaration rather than from the result, so a key that produced no
+    /// value on this trial still reports the unit it would have been in.
     fn unit(&self, key: &str) -> &'static str {
-        self.response
-            .metrics
-            .iter()
-            .find(|metric| metric.key == key)
-            .map(|metric| metric.unit)
+        plateforce_analysis::response::quantity(key)
+            .map(|declared| declared.unit)
             .unwrap_or_default()
     }
 

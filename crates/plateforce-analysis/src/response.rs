@@ -9,7 +9,7 @@ use crate::resolution::{BoundMethod, RuleRefusal};
 ///
 /// The registry spells every unit out and that spelling is what a fingerprint carries, so
 /// the short form is derived from it here and never stored as a second vocabulary.
-pub(crate) fn unit_symbol(unit: &'static str) -> &'static str {
+pub fn unit_symbol(unit: &'static str) -> &'static str {
     match unit {
         "newtons" => "N",
         "kilograms" => "kg",
@@ -19,6 +19,98 @@ pub(crate) fn unit_symbol(unit: &'static str) -> &'static str {
         "newton_seconds" => "N.s",
         other => other,
     }
+}
+
+/// One quantity this build can report, declared once.
+///
+/// The eleven keys used to be string literals at eleven construction sites, so a manifest
+/// listing them transcribed them and went stale the first time a twelfth arrived. A rule
+/// that produces a new quantity adds a row here and the manifest, the Python getters and
+/// the browser all see it without an edit of their own.
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct Quantity {
+    pub key: &'static str,
+    pub label: &'static str,
+    /// As the registry spells it. `docs/schema.md` carries the same spelling on every
+    /// construct and every parameter.
+    pub unit: &'static str,
+    /// The registry entry for the arithmetic that turns landmarks into this number. `None`
+    /// means no entry describes it, which is itself worth seeing.
+    pub computed_by: Option<&'static str>,
+}
+
+pub const QUANTITIES: &[Quantity] = &[
+    Quantity {
+        key: "system_weight_newtons",
+        label: "System weight",
+        unit: "newtons",
+        computed_by: None,
+    },
+    Quantity {
+        key: "system_mass_kilograms",
+        label: "System mass",
+        unit: "kilograms",
+        computed_by: None,
+    },
+    Quantity {
+        key: "onset_time_seconds",
+        label: "Movement onset",
+        unit: "seconds",
+        computed_by: None,
+    },
+    Quantity {
+        key: "takeoff_time_seconds",
+        label: "Takeoff",
+        unit: "seconds",
+        computed_by: None,
+    },
+    Quantity {
+        key: "time_to_takeoff_seconds",
+        label: "Time to takeoff",
+        unit: "seconds",
+        computed_by: Some("time_to_takeoff.onset_to_takeoff"),
+    },
+    Quantity {
+        key: "flight_time_seconds",
+        label: "Flight time",
+        unit: "seconds",
+        computed_by: Some("flight_time.takeoff_to_touchdown"),
+    },
+    Quantity {
+        key: "takeoff_velocity_meters_per_second",
+        label: "Takeoff velocity",
+        unit: "meters_per_second",
+        computed_by: Some("impulse.net_vertical.as_performance_determinant"),
+    },
+    Quantity {
+        key: "net_impulse_newton_seconds",
+        label: "Net impulse",
+        unit: "newton_seconds",
+        computed_by: Some("impulse.net_vertical.as_performance_determinant"),
+    },
+    Quantity {
+        key: "jump_height_from_takeoff_meters",
+        label: "Jump height, takeoff frame",
+        unit: "meters",
+        computed_by: Some("jumpheight.takeoff.impulse_momentum"),
+    },
+    Quantity {
+        key: "jump_height_from_flight_time_meters",
+        label: "Jump height, flight time",
+        unit: "meters",
+        computed_by: Some("jumpheight.takeoff.flight_time"),
+    },
+    Quantity {
+        key: "reactive_strength_index_modified",
+        label: "RSI modified",
+        unit: "meters_per_second",
+        computed_by: Some("rsimod.jh_tov_over_ttt"),
+    },
+];
+
+/// The declaration for a key, or nothing when no quantity carries it.
+pub fn quantity(key: &str) -> Option<&'static Quantity> {
+    QUANTITIES.iter().find(|quantity| quantity.key == key)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -45,6 +137,29 @@ pub struct Metric {
     pub computed_by: Option<&'static str>,
     #[serde(default)]
     pub note: Option<String>,
+}
+
+impl Metric {
+    /// A reported number, taking its key, label, unit and computed-by from the one
+    /// declaration rather than from a literal at the call site.
+    pub fn declared(
+        key: &str,
+        value: Option<f64>,
+        contributing_method_ids: Vec<String>,
+        note: Option<String>,
+    ) -> Self {
+        let declared = quantity(key).unwrap_or_else(|| panic!("{key} is not a declared quantity"));
+        Self {
+            key: declared.key,
+            label: declared.label,
+            value,
+            unit: declared.unit,
+            unit_symbol: unit_symbol(declared.unit),
+            contributing_method_ids,
+            computed_by: declared.computed_by,
+            note,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]

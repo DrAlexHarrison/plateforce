@@ -670,7 +670,11 @@ mod tests {
             vec!["onset.threshold.noise_relative".to_string()],
         );
         assert_eq!(refused.slot.as_deref(), Some("movement_onset"));
-        assert!(refused.message().contains("movement_onset"), "{}", refused.message());
+        assert!(
+            refused.message().contains("movement_onset"),
+            "{}",
+            refused.message()
+        );
     }
 
     #[test]
@@ -685,8 +689,16 @@ mod tests {
         );
         assert_eq!(refused.code, RefusalCode::MethodNotImplemented);
         assert_eq!(refused.exit_code(), 64);
-        assert!(refused.message().contains("braking_phase_start"), "{}", refused.message());
-        assert!(refused.message().contains("system_weight"), "{}", refused.message());
+        assert!(
+            refused.message().contains("braking_phase_start"),
+            "{}",
+            refused.message()
+        );
+        assert!(
+            refused.message().contains("system_weight"),
+            "{}",
+            refused.message()
+        );
         // The slotted reading of this code names a step; this one has none to name.
         assert!(refused.slot.is_none());
     }
