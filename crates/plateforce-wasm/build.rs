@@ -41,9 +41,9 @@ fn main() {
         .map(|named| named.trim().to_string())
         .filter(|named| !named.is_empty());
     generated.push_str(&match declared {
-        Some(version) => format!(
-            "pub static EMBEDDED_REGISTRY_VERSION: Option<&str> = Some({version:?});\n"
-        ),
+        Some(version) => {
+            format!("pub static EMBEDDED_REGISTRY_VERSION: Option<&str> = Some({version:?});\n")
+        }
         None => "pub static EMBEDDED_REGISTRY_VERSION: Option<&str> = None;\n".to_string(),
     });
 

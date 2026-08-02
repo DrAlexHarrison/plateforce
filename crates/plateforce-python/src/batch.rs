@@ -130,30 +130,45 @@ impl BatchResult {
     /// One row per trial, one column per quantity.
     #[getter]
     fn results<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, serde_json::to_value(&self.inner.results).unwrap_or_default())
+        rows(
+            python,
+            serde_json::to_value(&self.inner.results).unwrap_or_default(),
+        )
     }
 
     /// One row per distinct chain per method per parameter.
     #[getter]
     fn provenance<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, serde_json::to_value(&self.inner.provenance).unwrap_or_default())
+        rows(
+            python,
+            serde_json::to_value(&self.inner.provenance).unwrap_or_default(),
+        )
     }
 
     /// One row per refusal, keyed by trial and ordinal, because a trial can decline one
     /// landmark and compute the rest at once.
     #[getter]
     fn refusals<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, serde_json::to_value(&self.inner.refusals).unwrap_or_default())
+        rows(
+            python,
+            serde_json::to_value(&self.inner.refusals).unwrap_or_default(),
+        )
     }
 
     #[getter]
     fn warnings<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, serde_json::to_value(&self.inner.warnings).unwrap_or_default())
+        rows(
+            python,
+            serde_json::to_value(&self.inner.warnings).unwrap_or_default(),
+        )
     }
 
     #[getter]
     fn aggregates<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, serde_json::to_value(&self.inner.aggregates).unwrap_or_default())
+        rows(
+            python,
+            serde_json::to_value(&self.inner.aggregates).unwrap_or_default(),
+        )
     }
 
     #[getter]
@@ -170,7 +185,10 @@ impl BatchResult {
     }
 
     fn to_pylist<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, serde_json::to_value(&self.inner.results).unwrap_or_default())
+        rows(
+            python,
+            serde_json::to_value(&self.inner.results).unwrap_or_default(),
+        )
     }
 
     /// The same string the browser and the library produce for the same input.
@@ -270,8 +288,8 @@ pub fn batch(
 
     let set = TrialSet::walk(&directory, &format, &identity)
         .map_err(|error| PyValueError::new_err(error.to_string()))?;
-    let loaded = Registry::load(&registry)
-        .map_err(|error| PyValueError::new_err(error.to_string()))?;
+    let loaded =
+        Registry::load(&registry).map_err(|error| PyValueError::new_err(error.to_string()))?;
 
     let analysis = plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {

@@ -63,9 +63,7 @@ fn half_power_frequency_hz(per_pass_cutoff_hz: f64, order: usize) -> f64 {
 #[test]
 fn the_correction_that_carries_the_order_and_the_one_that_does_not() {
     let winter_factor = dual_pass_cutoff_correction(2, 2);
-    println!(
-        "nominal cutoff {NOMINAL_CUTOFF_HZ} Hz, sample rate {SAMPLE_RATE_HZ} Hz, two passes"
-    );
+    println!("nominal cutoff {NOMINAL_CUTOFF_HZ} Hz, sample rate {SAMPLE_RATE_HZ} Hz, two passes");
     for order in [2usize, 4] {
         let carried = NOMINAL_CUTOFF_HZ / dual_pass_cutoff_correction(order, 2);
         println!(

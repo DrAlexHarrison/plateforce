@@ -243,7 +243,9 @@ mod tests {
             narrow.total_cost,
             wide.total_cost
         );
-        assert!(narrow.greatest_departure_from_no_warping < wide.greatest_departure_from_no_warping);
+        assert!(
+            narrow.greatest_departure_from_no_warping < wide.greatest_departure_from_no_warping
+        );
     }
 
     #[test]

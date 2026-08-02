@@ -178,12 +178,14 @@ pub fn flight_time_acceptance_window(
 ) -> Option<FlightWindowReport> {
     let candidates: Vec<FlightCandidate> = durations_seconds
         .iter()
-        .map(|&(start_index, end_index, duration_seconds)| FlightCandidate {
-            start_index,
-            end_index,
-            duration_seconds,
-            accepted: (lower_seconds..=upper_seconds).contains(&duration_seconds),
-        })
+        .map(
+            |&(start_index, end_index, duration_seconds)| FlightCandidate {
+                start_index,
+                end_index,
+                duration_seconds,
+                accepted: (lower_seconds..=upper_seconds).contains(&duration_seconds),
+            },
+        )
         .collect();
 
     let qualifying: Vec<usize> = candidates
@@ -414,7 +416,10 @@ mod tests {
     fn the_anchor_mass_is_where_the_two_rules_meet() {
         for exponent in [0.0f64, 0.667, 1.0] {
             let scaled = jump_type_mass_scaled(700.0, 400.0, 87.5, 87.5, exponent, 250.0);
-            assert!((scaled.threshold_newtons - 250.0).abs() < 1e-9, "{exponent}");
+            assert!(
+                (scaled.threshold_newtons - 250.0).abs() < 1e-9,
+                "{exponent}"
+            );
         }
     }
 

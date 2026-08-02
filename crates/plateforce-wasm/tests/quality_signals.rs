@@ -16,9 +16,7 @@
 use std::collections::BTreeMap;
 
 use plateforce_analysis::quality::{signals, QualityStatus};
-use plateforce_analysis::{
-    run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice,
-};
+use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 
@@ -104,7 +102,10 @@ fn two_onset_rules_produce_two_jump_heights_and_only_one_is_flagged() {
     );
 
     let offset = broken.onset_index.unwrap() - clean.onset_index.unwrap();
-    assert_eq!(offset, 354, "the broken rule places the start 354 samples later");
+    assert_eq!(
+        offset, 354,
+        "the broken rule places the start 354 samples later"
+    );
 
     assert!(
         signals(&clean).is_empty(),
@@ -126,7 +127,9 @@ fn a_trace_that_never_lands_says_the_check_could_not_run() {
     // ends at the plate's floor. Silence there reads exactly like a check that ran.
     let full = synthetic_countermovement_jump();
     let response = analyse(&full, "onset.threshold.noise_relative");
-    let takeoff = response.takeoff_index.expect("the demonstration trial takes off");
+    let takeoff = response
+        .takeoff_index
+        .expect("the demonstration trial takes off");
     let truncated = Trial::new(full.force()[..takeoff + 20].to_vec(), full.sample_rate_hz())
         .expect("a trace cut just after takeoff is still a trial");
 
@@ -136,7 +139,10 @@ fn a_trace_that_never_lands_says_the_check_could_not_run() {
         "truncated at sample {}: {} signals, flight-time height {:?}",
         takeoff + 20,
         fired.len(),
-        cut.metrics.iter().find(|m| m.key == FROM_FLIGHT).and_then(|m| m.value)
+        cut.metrics
+            .iter()
+            .find(|m| m.key == FROM_FLIGHT)
+            .and_then(|m| m.value)
     );
     assert_eq!(fired.len(), 1);
     assert_eq!(fired[0].status, QualityStatus::Incomparable);

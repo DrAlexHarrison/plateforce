@@ -346,10 +346,7 @@ impl Refusal {
     ///
     /// `available` carries the schema this build does implement, which is the one fact that
     /// tells a reader whether to upgrade plateforce or to have written a different file.
-    pub fn schema_unsupported(
-        declared: impl Into<String>,
-        implemented: impl Into<String>,
-    ) -> Self {
+    pub fn schema_unsupported(declared: impl Into<String>, implemented: impl Into<String>) -> Self {
         Self::build(
             RefusalCode::SchemaUnsupported,
             "",

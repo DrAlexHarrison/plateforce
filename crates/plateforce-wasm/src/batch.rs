@@ -64,8 +64,8 @@ pub fn batch_json(request_json: &str) -> Result<String, JsError> {
 #[wasm_bindgen(js_name = batchCoverage)]
 pub fn batch_coverage(request_json: &str) -> Result<String, JsError> {
     let envelope = batch_json(request_json)?;
-    let value: serde_json::Value = serde_json::from_str(&envelope)
-        .map_err(|error| JsError::new(&error.to_string()))?;
+    let value: serde_json::Value =
+        serde_json::from_str(&envelope).map_err(|error| JsError::new(&error.to_string()))?;
     let run = value
         .get("ok")
         .and_then(|ok| ok.get("run"))
