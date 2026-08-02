@@ -37,9 +37,9 @@ print(jump.jump_height_takeoff_frame_meters.describe())
 
 ```
 0.3419695652891413 meters
-  jump_height.from_takeoff_velocity {'gravity_meters_per_second_squared': 9.80665}
+  jumpheight.takeoff.impulse_momentum {'gravity_meters_per_second_squared': 9.80665}
   registry 2026-07-25 (content-a14543984c4ed7d2)
-    takeoff_velocity.impulse_momentum {'gravity_meters_per_second_squared': 9.80665}
+    impulse.net_vertical.as_performance_determinant {'gravity_meters_per_second_squared': 9.80665}
       bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
         centre = mean
         dispersion = sample
@@ -53,7 +53,7 @@ print(jump.jump_height_takeoff_frame_meters.describe())
         onset.op.direction {}
           direction = below_only
         onset.op.persistence {'span_ms': 0}
-        onset.op.search_floor {'floor_seconds': 1}
+        onset.op.search_floor_at_weighing_epoch_end {'floor_seconds': 1}
         bwepoch.fixed_window {'duration': 1}
           central_tendency = mean
           dispersion_estimator = sample
@@ -86,7 +86,7 @@ comparing floats have no way to find out they were never measuring the same thin
 
 ```python
 >>> jump.jump_height_takeoff_frame_meters
-Measured(value=0.3419695652891413, unit='meters', method_id='jump_height.from_takeoff_velocity')
+Measured(value=0.3419695652891413, unit='meters', method_id='jumpheight.takeoff.impulse_momentum')
 
 >>> jump.jump_height_takeoff_frame_meters + 0.01
 TypeError: unsupported operand type(s) for +: 'plateforce.Measured' and 'float'
@@ -117,7 +117,7 @@ ordinary while they do it.
 ```python
 >>> for entry in registry.methods_that_can_fail():
 ...     print(entry)
-MethodEntry('onset.threshold.noise_relative_forward_offset', status='legacy', implemented=False, FAILS on 36 of 241 trials (14.9%, silent))
+MethodEntry('onset.op.backward_offset_fixed', status='accepted', implemented=False, FAILS on 36 of 241 trials (14.9%, silent))
 ```
 
 `silent` means nothing warns you, so the entry shows the failure rate before you can bind
@@ -148,7 +148,7 @@ of software runs. Selecting an entry with no rule behind it fails by name rather
 resolving to something near it:
 
 ```python
-MethodNotImplementedError: 'onset.threshold.noise_relative_forward_offset' was passed as
+MethodNotImplementedError: 'onset.op.backward_offset_fixed' was passed as
 the onset method, and 'onset.threshold.noise_relative' is the rule available for that step.
 Available: ["bwepoch.fixed_window", "onset.threshold.noise_relative",
 "takeoff.threshold.absolute_force"]
