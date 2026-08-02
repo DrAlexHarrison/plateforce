@@ -1,3 +1,6 @@
+#' @include request.R rust.R
+NULL
+
 #' Refusals
 #'
 #' A rule that declines raises a condition rather than returning a sentinel. The condition

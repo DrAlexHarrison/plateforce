@@ -1,0 +1,5 @@
+weighing_start_index 1
+weighing_end_index 1201
+onset_index 4092
+takeoff_index 5015
+touchdown_index 5734

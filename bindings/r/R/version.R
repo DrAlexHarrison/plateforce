@@ -1,3 +1,6 @@
+#' @include refusal.R rust.R
+NULL
+
 #' The version of this package
 #'
 #' @return A single string, the package version.

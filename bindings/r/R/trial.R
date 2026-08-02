@@ -1,0 +1,102 @@
+#' @include refusal.R
+NULL
+
+#' One force trace
+#'
+#' `@read_report` records what the reader did: the sentinel convention it applied, how many
+#' samples that convention treated as missing, and for a file, the delimiter, the force
+#' column and the rows it read.
+#'
+#' @export
+trial <- S7::new_class(
+  "trial",
+  package = "plateforce",
+  properties = list(
+    sample_count = S7::class_integer,
+    sample_rate_hz = S7::class_double,
+    duration_seconds = S7::class_double,
+    read_report = S7::class_list,
+    handle = S7::class_any
+  )
+)
+
+#' @export
+`print.plateforce::trial` <- function(x, ...) {
+  cat(sprintf(
+    "%d samples at %g Hz, %g s\n",
+    x@sample_count, x@sample_rate_hz, x@duration_seconds
+  ))
+  missing_samples <- x@read_report[["samples_treated_as_missing"]]
+  cat(sprintf(
+    "sentinel convention %s, %d samples held at the last reading\n",
+    x@read_report[["sentinel_convention"]], missing_samples
+  ))
+  invisible(x)
+}
+
+#' Build a trial from a force vector
+#'
+#' @param force_newtons Vertical ground reaction force, in newtons, as a `double` vector.
+#' @param sample_rate_hz The rate the trace was recorded at. A rate that is guessed scales
+#'   every velocity, displacement, impulse and rate of force development with it, so this
+#'   has no default.
+#' @param sentinel_convention How this export writes a missing sample: `"none"`, `"zero"`
+#'   or `"negative_one"`. A sample matching the convention is held at the last real
+#'   reading and counted, and the count is reported rather than folded into the trace.
+#' @return A `trial`.
+#' @export
+#' @examples
+#' quiet <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
+#' quiet@sample_count
+#' quiet@duration_seconds
+pf_trial <- function(force_newtons, sample_rate_hz = NULL, sentinel_convention = "none") {
+  if (is.integer(force_newtons)) {
+    refuse_here(
+      "force_not_double",
+      paste(
+        "a force trace is a double vector. Widen it with as.double(), so the widening",
+        "is an act this record can carry."
+      ),
+      parameter = "force_newtons"
+    )
+  }
+  if (!is.double(force_newtons)) {
+    refuse_here(
+      "force_not_double",
+      "a force trace is a double vector",
+      parameter = "force_newtons",
+      value = class(force_newtons)[1]
+    )
+  }
+  carried <- rust_trial_from_force(
+    force_newtons,
+    request_of(
+      sample_rate_hz = sample_rate_hz,
+      sentinel_convention = sentinel_convention
+    )
+  )
+  trial_from_carried(carried)
+}
+
+trial_from_carried <- function(carried) {
+  report <- unwrap(decode(carried[["envelope"]]))
+  trial(
+    sample_count = as.integer(report[["sample_count"]]),
+    sample_rate_hz = as.double(report[["sample_rate_hz"]]),
+    duration_seconds = as.double(report[["duration_seconds"]]),
+    read_report = report,
+    handle = carried[["handle"]]
+  )
+}
+
+#' The force trace a trial holds
+#'
+#' @param x A `trial`.
+#' @return A `double` vector of vertical ground reaction force in newtons.
+#' @export
+#' @examples
+#' quiet <- pf_trial(rep(700, 12), sample_rate_hz = 12)
+#' length(pf_force(quiet))
+pf_force <- function(x) {
+  rust_trial_force(x@handle)
+}

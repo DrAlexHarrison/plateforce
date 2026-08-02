@@ -1,0 +1,10 @@
+sample_count 6000
+sample_rate_hz 1200
+duration_seconds 5
+delimiter 	
+force_column 0
+rows_read 6000
+columns_per_row 1
+blank_lines_skipped 0
+sentinel_convention none
+samples_treated_as_missing 0

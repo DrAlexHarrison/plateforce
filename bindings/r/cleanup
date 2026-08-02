@@ -1,0 +1,19 @@
+#!/bin/sh
+# Run by `R CMD build`, so a built source package always carries a current vendor bundle
+# and a current AUTHORS list. Nothing it writes is committed and every step regenerates,
+# so a stale bundle cannot ship.
+#
+# It runs against a copy of the package rather than against the repository, so the engine
+# sources have to be in place already. `tools/sync-engine.sh` puts them there and
+# `configure` runs it when a source checkout is installed directly.
+set -eu
+
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+if [ ! -d "$here/src/rust/crates/plateforce-core" ]; then
+    echo "no engine sources under src/rust/crates: run tools/sync-engine.sh first" >&2
+    exit 1
+fi
+
+sh "$here/tools/vendor.sh"
+Rscript "$here/tools/authors.R"
