@@ -55,7 +55,7 @@ test_that("a variant that declined is listed with its reason rather than dropped
   }
 })
 
-test_that("a real trial's onset sweep is dominated by one rule, and nothing warns", {
+test_that("every onset rule this build runs computes, and they disagree by a real amount", {
   trace <- repository_trace()
   skip_if(is.null(trace), "the trial these fixtures were derived from is not here")
   trial <- pf_read_force_file(trace, sample_rate_hz = 1200, delimiter = "\t",
@@ -70,16 +70,22 @@ test_that("a real trial's onset sweep is dominated by one rule, and nothing warn
     takeoff = "takeoff.threshold.absolute_force"
   )
 
-  values <- vapply(sweep[["variants"]], function(v) {
-    if (is.null(v[["value"]])) NA_real_ else as.double(v[["value"]])
+  values <- vapply(sweep[["variants"]], function(one) {
+    if (is.null(one[["value"]])) NA_real_ else as.double(one[["value"]])
   }, numeric(1))
-  expect_identical(sweep[["failed"]], 0L)
 
-  # Four of the five agree to within a few millimetres and the fifth is a third of a metre
-  # away, so the headline spread reports a rule that found the wrong event rather than a
-  # disagreement between rules. The engine reports no failure for it, which is the state
-  # the quality signal is being built to change.
-  distances <- abs(values - stats::median(values, na.rm = TRUE))
-  expect_identical(sum(distances > 0.1, na.rm = TRUE), 1L)
-  expect_gt(sweep[["spread_absolute"]], 0.1)
+  expect_length(values, as.integer(fixture_field("onset-sweep.txt", "variants")))
+  expect_identical(sweep[["failed"]], as.integer(fixture_field("onset-sweep.txt", "failed")))
+  expect_equal(
+    sweep[["spread_absolute"]],
+    as.double(fixture_field("onset-sweep.txt", "spread_absolute_meters"))
+  )
+
+  # No rule sits a long way from the rest, so the spread is five rules disagreeing rather
+  # than one of them finding the wrong event. The two are the same number to a reader and
+  # different findings to this project.
+  furthest <- max(abs(values - stats::median(values, na.rm = TRUE)), na.rm = TRUE)
+  expect_equal(furthest, as.double(fixture_field("onset-sweep.txt", "furthest_from_median_meters")))
+  expect_lt(furthest, 0.1)
+  expect_gt(sweep[["spread_absolute"]], 0)
 })

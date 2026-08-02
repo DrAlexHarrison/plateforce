@@ -67,9 +67,9 @@ write_lines("landmarks.txt", c(
   paste("touchdown_index", result@touchdown_index)
 ))
 
-# The same trial under an onset rule whose two routes to a height disagree, so the suite
-# holds the signal to the numbers that raise it rather than to the fact that it fired.
-disagreeing <- analyse_countermovement_jump(
+# The same trial under a second onset rule, so the suite holds the comparison the quality
+# signal is taken over to the numbers rather than to a description of them.
+second <- analyse_countermovement_jump(
   trial,
   weighing = "bwepoch.fixed_window",
   onset = "onset.threshold.last_within_band",
@@ -77,20 +77,48 @@ disagreeing <- analyse_countermovement_jump(
   registry = file.path(repository, "registry")
 )
 
-raised <- disagreeing@signals[[1]]
+routes <- function(analysed) {
+  takeoff <- analysed@values[["jump_height_from_takeoff_meters"]]@value
+  flight <- analysed@values[["jump_height_from_flight_time_meters"]]@value
+  c(takeoff = takeoff, flight = flight, percent = 100 * abs(takeoff - flight) / flight)
+}
+
+first_routes <- routes(result)
+second_routes <- routes(second)
 write_lines("disagreement.txt", c(
-  paste("agreeing_signal_count", length(result@signals)),
-  paste("signal_count", length(disagreeing@signals)),
-  paste("status", raised@status),
-  paste("value", format(raised@value, digits = 17)),
-  paste("threshold", format(raised@threshold, digits = 17)),
-  paste("unit", raised@unit),
-  paste("remedy_construct", raised@remedy_construct),
-  paste("qualifies", paste(raised@qualifies, collapse = " ")),
-  paste("jump_height_from_takeoff_meters",
-        format(disagreeing@values[["jump_height_from_takeoff_meters"]]@value, digits = 17)),
-  paste("jump_height_from_flight_time_meters",
-        format(disagreeing@values[["jump_height_from_flight_time_meters"]]@value, digits = 17))
+  paste("first_rule", "onset.threshold.noise_relative"),
+  paste("first_signal_count", length(result@signals)),
+  paste("first_takeoff_meters", format(first_routes[["takeoff"]], digits = 17)),
+  paste("first_flight_meters", format(first_routes[["flight"]], digits = 17)),
+  paste("first_percent", format(first_routes[["percent"]], digits = 17)),
+  paste("second_rule", "onset.threshold.last_within_band"),
+  paste("second_signal_count", length(second@signals)),
+  paste("second_takeoff_meters", format(second_routes[["takeoff"]], digits = 17)),
+  paste("second_flight_meters", format(second_routes[["flight"]], digits = 17)),
+  paste("second_percent", format(second_routes[["percent"]], digits = 17))
+))
+
+# The sweep over the onset rules the build runs, on the one trial. The founding claim is
+# that the choice of rule moves the number, so the size of that movement is recorded rather
+# than described.
+sweep <- pf_spread(
+  trial,
+  quantity = "jump_height_from_takeoff_meters",
+  slot = "onset",
+  weighing = "bwepoch.fixed_window",
+  onset = "onset.threshold.noise_relative",
+  takeoff = "takeoff.threshold.absolute_force",
+  registry = file.path(repository, "registry")
+)
+swept <- vapply(sweep[["variants"]], function(one) {
+  if (is.null(one[["value"]])) NA_real_ else as.double(one[["value"]])
+}, numeric(1))
+write_lines("onset-sweep.txt", c(
+  paste("variants", length(swept)),
+  paste("failed", sweep[["failed"]]),
+  paste("spread_absolute_meters", format(sweep[["spread_absolute"]], digits = 17)),
+  paste("furthest_from_median_meters",
+        format(max(abs(swept - stats::median(swept, na.rm = TRUE)), na.rm = TRUE), digits = 17))
 ))
 
 chain <- result@values[["jump_height_from_takeoff_meters"]]@provenance@depends_on

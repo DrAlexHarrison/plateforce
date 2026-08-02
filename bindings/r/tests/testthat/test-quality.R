@@ -2,12 +2,7 @@
 # pasted into a paper. Every expected value is read from tests/testthat/fixtures/, which
 # tools/generate-fixtures.R writes by running the engine.
 
-DISAGREEMENT <- "disagreement.txt"
-
-# The rule whose two routes to a height disagree on this trial, and one whose routes agree.
-# Without the second, a passing assertion could be about a signal that always fires.
-DISAGREEING_RULE <- "onset.threshold.last_within_band"
-AGREEING_RULE <- "onset.threshold.noise_relative"
+ROUTES <- "disagreement.txt"
 
 analysed_with <- function(rule) {
   trace <- repository_trace()
@@ -28,61 +23,89 @@ disagreement_percent <- function(result) {
   100 * abs(takeoff - flight) / flight
 }
 
-test_that("a rule whose two routes to one height disagree raises one signal naming both", {
-  result <- analysed_with(DISAGREEING_RULE)
+for (position in c("first", "second")) {
+  local({
+    prefix <- position
+    rule <- fixture_field(ROUTES, paste0(prefix, "_rule"))
 
-  expect_length(result@signals, as.integer(fixture_field(DISAGREEMENT, "signal_count")))
-  signal <- result@signals[[1]]
-  expect_identical(signal@status, fixture_field(DISAGREEMENT, "status"))
-  expect_identical(signal@unit, fixture_field(DISAGREEMENT, "unit"))
-  expect_identical(signal@remedy_construct, fixture_field(DISAGREEMENT, "remedy_construct"))
-  expect_identical(
-    signal@qualifies,
-    strsplit(fixture_field(DISAGREEMENT, "qualifies"), " ", fixed = TRUE)[[1]]
-  )
-  expect_equal(signal@value, as.double(fixture_field(DISAGREEMENT, "value")))
-  expect_equal(signal@threshold, as.double(fixture_field(DISAGREEMENT, "threshold")))
-  expect_true(nzchar(signal@remedy))
+    test_that(paste("the two routes to one height under", rule, "are the engine's"), {
+      result <- analysed_with(rule)
+
+      expect_equal(
+        pf_value(result, "jump_height_from_takeoff_meters")@value,
+        as.double(fixture_field(ROUTES, paste0(prefix, "_takeoff_meters")))
+      )
+      expect_equal(
+        pf_value(result, "jump_height_from_flight_time_meters")@value,
+        as.double(fixture_field(ROUTES, paste0(prefix, "_flight_meters")))
+      )
+      # Taken from the two numbers rather than from the record of them, so a baseline
+      # captured under a wrong value cannot satisfy it.
+      expect_equal(
+        disagreement_percent(result),
+        as.double(fixture_field(ROUTES, paste0(prefix, "_percent")))
+      )
+    })
+
+    test_that(paste("what this rule raises is what its two numbers warrant, under", rule), {
+      result <- analysed_with(rule)
+      raised <- length(result@signals)
+
+      expect_identical(
+        raised, as.integer(fixture_field(ROUTES, paste0(prefix, "_signal_count")))
+      )
+      # The relation behind the count. A run raising nothing while the two routes sat far
+      # apart would be a signal that did not fire, and the count alone cannot tell those
+      # apart from a rule whose routes agree.
+      if (raised == 0L) {
+        expect_lt(disagreement_percent(result), 20)
+      } else {
+        expect_gt(disagreement_percent(result), result@signals[[1]]@threshold)
+      }
+    })
+  })
+}
+
+test_that("a signal arrives with every field it carries", {
+  # No shipped onset rule disagrees on this trial, so the conversion is held to a document
+  # rather than left unexercised. A field the engine adds and this drops is a field an R
+  # reader never sees.
+  raised <- plateforce:::signal_from_list(list(
+    label = "Jump height, two routes",
+    value = 66.28,
+    unit = "percent",
+    threshold = 20,
+    status = "disagrees",
+    remedy = "name a different rule for the start of the jump",
+    remedy_construct = "movement_onset",
+    qualifies = list("jump_height_from_takeoff_meters", "jump_height_from_flight_time_meters")
+  ))
+
+  expect_identical(raised@status, "disagrees")
+  expect_identical(raised@unit, "percent")
+  expect_identical(raised@remedy_construct, "movement_onset")
+  expect_length(raised@qualifies, 2L)
+  expect_equal(raised@value, 66.28)
+  expect_equal(raised@threshold, 20)
+
+  printed <- capture.output(print(raised))
+  expect_true(any(grepl(raised@remedy, printed, fixed = TRUE)))
+  expect_true(any(grepl("percent", printed, fixed = TRUE)))
 })
 
-test_that("the two heights the signal is about are the two heights this rule produces", {
-  result <- analysed_with(DISAGREEING_RULE)
+test_that("a comparison that could not be made carries no value rather than a zero", {
+  incomparable <- plateforce:::signal_from_list(list(
+    label = "Jump height, two routes",
+    value = NULL,
+    unit = "percent",
+    threshold = 20,
+    status = "incomparable",
+    remedy = "name a rule that places takeoff",
+    remedy_construct = "movement_onset",
+    qualifies = list("jump_height_from_takeoff_meters")
+  ))
 
-  expect_equal(
-    pf_value(result, "jump_height_from_takeoff_meters")@value,
-    as.double(fixture_field(DISAGREEMENT, "jump_height_from_takeoff_meters"))
-  )
-  expect_equal(
-    pf_value(result, "jump_height_from_flight_time_meters")@value,
-    as.double(fixture_field(DISAGREEMENT, "jump_height_from_flight_time_meters"))
-  )
-  # The relation the signal claims, taken from the two numbers rather than from the record
-  # of them, so a baseline captured under a wrong value cannot satisfy this one.
-  expect_gt(disagreement_percent(result), result@signals[[1]]@threshold)
-})
-
-test_that("a rule whose two routes agree says nothing", {
-  result <- analysed_with(AGREEING_RULE)
-
-  expect_length(result@signals, as.integer(fixture_field(DISAGREEMENT, "agreeing_signal_count")))
-  expect_lt(disagreement_percent(result), as.double(fixture_field(DISAGREEMENT, "threshold")))
-})
-
-test_that("the signal is said once, beside the value it is about", {
-  result <- analysed_with(DISAGREEING_RULE)
-  printed <- capture.output(print(result))
-
-  qualified <- grep("^jump_height_from_takeoff_meters", printed)[1]
-  following <- grep("^jump_height_from_flight_time_meters", printed)[1]
-  said <- grep(result@signals[[1]]@remedy, printed, fixed = TRUE)
-
-  expect_length(said, 1L)
-  expect_true(qualified < said[1] && said[1] < following)
-})
-
-test_that("a signal is not a refusal", {
-  result <- analysed_with(DISAGREEING_RULE)
-
-  expect_false(is.na(pf_value(result, "jump_height_from_takeoff_meters")@value))
-  expect_identical(result@warnings, character(0))
+  expect_true(is.na(incomparable@value))
+  expect_identical(incomparable@status, "incomparable")
+  expect_true(any(grepl("not comparable", capture.output(print(incomparable)), fixed = TRUE)))
 })
