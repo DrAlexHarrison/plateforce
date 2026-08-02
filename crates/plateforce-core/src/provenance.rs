@@ -76,6 +76,72 @@ pub struct ChoiceRecord {
     pub source: ParameterSource,
 }
 
+/// Which part of a step is waiting on a decision, so a refusal can name it the way the
+/// reader met it rather than calling every open question a parameter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProvisionalKind {
+    /// No rule was picked for the slot.
+    Method,
+    Parameter,
+    Choice,
+}
+
+/// One open decision, named by the step it sits on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProvisionalSource {
+    pub method_id: String,
+    pub name: String,
+    pub kind: ProvisionalKind,
+}
+
+/// Every decision still open anywhere upstream of this result, deduplicated and ordered so
+/// a refusal reads the same on every run.
+///
+/// The parameter holding a result back usually sits on an upstream step, so a check that
+/// read only the top of the chain would clear a result whose onset rule nobody chose.
+pub fn provisional_sources(provenance: &Provenance) -> Vec<ProvisionalSource> {
+    let mut found: Vec<ProvisionalSource> = Vec::new();
+    for step in provenance.flattened() {
+        let method_id = step.method_id.clone();
+        if step.method_source.taints_the_record() {
+            found.push(ProvisionalSource {
+                method_id: method_id.clone(),
+                name: method_id.clone(),
+                kind: ProvisionalKind::Method,
+            });
+        }
+        for parameter in &step.parameters {
+            if parameter.source.taints_the_record() {
+                found.push(ProvisionalSource {
+                    method_id: method_id.clone(),
+                    name: parameter.name.clone(),
+                    kind: ProvisionalKind::Parameter,
+                });
+            }
+        }
+        for choice in &step.choices {
+            if choice.source.taints_the_record() {
+                found.push(ProvisionalSource {
+                    method_id: method_id.clone(),
+                    name: choice.name.clone(),
+                    kind: ProvisionalKind::Choice,
+                });
+            }
+        }
+    }
+    found
+        .sort_by(|left, right| (&left.method_id, &left.name).cmp(&(&right.method_id, &right.name)));
+    found.dedup_by(|left, right| left.method_id == right.method_id && left.name == right.name);
+    found
+}
+
+/// Whether this result rests on a decision nobody has made, and therefore cannot be
+/// exported, fingerprinted or cited.
+pub fn is_provisional(provenance: &Provenance) -> bool {
+    !provisional_sources(provenance).is_empty()
+}
+
 /// A provenance and the provenances of the results it was computed from.
 ///
 /// Jump height moves with the onset rule and the weighing epoch as well as with the
@@ -148,6 +214,83 @@ mod tests {
             acquisition_complete: true,
             ..Provenance::of(method_id)
         }
+    }
+
+    /// A three-step chain, jump height over onset over the weighing epoch, with every value
+    /// on the deepest step carrying `source`.
+    fn chain_with_leaf_values(source: ParameterSource) -> Provenance {
+        let mut leaf = step("bwepoch.fixed_window");
+        leaf.parameters.push(ParameterRecord {
+            name: "duration_seconds".to_string(),
+            value: 1.0,
+            source,
+        });
+        leaf.choices.push(ChoiceRecord {
+            name: "sd_convention".to_string(),
+            value: "population".to_string(),
+            source,
+        });
+        let mut middle = step("onset.threshold.noise_relative");
+        middle.depends_on.push(leaf);
+        let mut root = step("jumpheight.takeoff.impulse_momentum");
+        root.depends_on.push(middle);
+        root
+    }
+
+    #[test]
+    fn a_decision_three_deep_still_holds_the_result_back() {
+        let open = provisional_sources(&chain_with_leaf_values(ParameterSource::Provisional));
+        let named: Vec<&str> = open.iter().map(|source| source.name.as_str()).collect();
+        assert_eq!(named, ["duration_seconds", "sd_convention"]);
+        assert!(open
+            .iter()
+            .all(|source| source.method_id == "bwepoch.fixed_window"));
+        assert!(is_provisional(&chain_with_leaf_values(
+            ParameterSource::Provisional
+        )));
+    }
+
+    #[test]
+    fn a_choice_the_reader_made_does_not_hold_the_result_back() {
+        for made in [
+            ParameterSource::Stated,
+            ParameterSource::Assumed,
+            ParameterSource::Measured,
+            ParameterSource::Recommended,
+            ParameterSource::Cited,
+        ] {
+            let chain = chain_with_leaf_values(made);
+            assert!(
+                provisional_sources(&chain).is_empty(),
+                "{made:?} held the result back"
+            );
+            assert!(!is_provisional(&chain), "{made:?}");
+        }
+    }
+
+    #[test]
+    fn a_slot_running_under_no_chosen_rule_is_named_by_its_method() {
+        let mut root = step("jumpheight.takeoff.impulse_momentum");
+        let mut onset = step("onset.threshold.noise_relative");
+        onset.method_source = ParameterSource::Provisional;
+        root.depends_on.push(onset);
+
+        let open = provisional_sources(&root);
+        assert_eq!(open.len(), 1);
+        assert_eq!(open[0].kind, ProvisionalKind::Method);
+        assert_eq!(open[0].method_id, "onset.threshold.noise_relative");
+    }
+
+    #[test]
+    fn one_open_decision_reached_twice_is_reported_once() {
+        let shared = chain_with_leaf_values(ParameterSource::Provisional)
+            .depends_on
+            .remove(0);
+        let mut root = step("jumpheight.takeoff.impulse_momentum");
+        root.depends_on.push(shared.clone());
+        root.depends_on.push(shared);
+
+        assert_eq!(provisional_sources(&root).len(), 2);
     }
 
     #[test]
