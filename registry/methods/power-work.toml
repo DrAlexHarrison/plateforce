@@ -552,17 +552,38 @@ name = "population"
 unit = "enumeration"
 required = true
 notes = """
-Eleven published coefficient sets, differing in their calibration sample rather than in what they
-claim power is. Each is unbiased only on its own calibration population and biased by an unknown
-amount off it, which is why the population must be a required parameter rather than a hidden default.
-One further set is disabled in its implementation with the maintainer's note that the two height
-terms could not be disambiguated.
+Ten coefficient sets, differing in their calibration sample rather than in what they claim power is.
+Each is unbiased only on its own calibration sample and biased by an unknown amount off it, which is
+why the population is required rather than defaulted. Peak power in watts, jump height and mass as
+each line states them:
+
+  harman1991                  61.9 * height_cm  + 36.0 * mass_kg - 1822
+  sayers1999_squat_jump       60.7 * height_cm  + 45.3 * mass_kg - 2055
+  sayers1999_countermovement  51.9 * height_cm  + 48.9 * mass_kg - 2007
+  shetty2002                1925.72 * height_m  + 14.74 * mass_kg - 666.3
+  canavan2004                 65.1 * height_cm  + 25.8 * mass_kg - 1413.1
+  lara2006_male_sport_science 62.5 * height_cm  + 50.3 * mass_kg - 2184.7
+  lara2006_female_elite_volleyball  83.1 * height_cm + 42.0 * mass_kg - 2488
+  lara2006_female_medium_volleyball 53.6 * height_cm + 67.5 * mass_kg - 2624.1
+  lara2006_female_sport_science     56.7 * height_cm + 47.2 * mass_kg - 1772.6
+  lara2006_female_university        68.2 * height_cm + 40.8 * mass_kg - 1731.1
+
+Read the height unit off the line. Shetty's height term is per metre and every other set's is per
+centimetre, so a set read under the wrong unit is wrong by a factor of a hundred.
+
+The mass term in the implementation these were read from is body mass plus any external load, and
+the papers themselves were not obtained, so what each set was calibrated on rests on the
+implementation rather than on a primary.
+
+Two further sets sit in the same implementation and are not among the ten. Lewis is a different
+functional form, mass times the square root of height, and carries its own entry. Bahamonde is
+disabled there, with the maintainer's note that its two height terms could not be disambiguated.
 """
 
 [[method.citation]]
 key = "chronojump_constants"
 role = "uses"
-reference = "Chronojump src/constants.cs:399-560, all eleven sets transcribed directly; the individual papers are not in the library"
+reference = "Chronojump src/constants.cs:399-560 read directly; eleven formulas are offered at src/gui/stats.cs:202-213 and ten of them are this family, Lewis being a different form; the individual papers are not in the library"
 obtained = true
 
 [[method.disagrees_with]]
