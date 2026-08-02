@@ -35,32 +35,10 @@ jobs:
     # on OpenSSL cross-compilation, and this tree links no OpenSSL.
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install the Rust toolchain and both architectures
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin/cargo-tauri
-            ~/.cargo/bin/wasm-bindgen
-            target
-            src-tauri/target
-          key: desktop-macos-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
-          restore-keys: |
-            desktop-macos-${{ env.TAURI_CLI_VERSION }}-
-
-      - name: Install the Tauri CLI
-        run: |
-          if [ ! -x "$HOME/.cargo/bin/cargo-tauri" ]; then
-            cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
-          fi
-
+      # First, because it needs nothing but the secrets and it can end the run. Behind the
+      # toolchain it costs a cold `cargo install tauri-cli` before saying what it could have
+      # said in two seconds.
+      #
       # A contributor's pull request is not given the signing secrets, and failing them at
       # the signing step would report a problem that has nothing to do with their change.
       # Which path ran is logged, so a release that quietly went out unsigned is visible.
@@ -102,6 +80,32 @@ jobs:
               exit 1
               ;;
           esac
+
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain and both architectures
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tauri
+            ~/.cargo/bin/wasm-bindgen
+            target
+            src-tauri/target
+          key: desktop-macos-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+          restore-keys: |
+            desktop-macos-${{ env.TAURI_CLI_VERSION }}-
+
+      - name: Install the Tauri CLI
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/cargo-tauri" ]; then
+            cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
+          fi
 
       - name: Write the App Store Connect key
         if: steps.signing.outputs.able == 'yes'
