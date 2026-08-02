@@ -187,6 +187,13 @@ pub struct AnalysisResponse {
     #[serde(skip)]
     pub weighing_epoch_tied_window_count: usize,
     pub warnings: Vec<String>,
+    /// Quality signals computed over this result: a comparison, a threshold, and an action.
+    ///
+    /// On the response rather than behind an entry point of their own, so a signal cannot be
+    /// fetched for one request and drawn beside the numbers of another. Every surface reads
+    /// this response, so the browser, the terminal, Python and R receive them together.
+    #[serde(default)]
+    pub signals: Vec<crate::quality::QualitySignal>,
     /// The same failures `warnings` describes, kept as the errors they were, keyed by the
     /// slot whose rule produced nothing. Skipped over the wire, where the sentence is what
     /// the interface draws.

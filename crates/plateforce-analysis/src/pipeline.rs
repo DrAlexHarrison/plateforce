@@ -223,7 +223,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         ),
     ];
 
-    Ok(AnalysisResponse {
+    let mut response = AnalysisResponse {
         weighing_start_index: epoch.start_index,
         weighing_end_index: epoch.end_index,
         onset_index,
@@ -241,7 +241,12 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         weighing_epoch_tied_window_count: epoch.tied_window_count,
         warnings,
         refusals,
-    })
+        signals: Vec::new(),
+    };
+    // Last, because a signal reads the finished result: it compares two numbers this
+    // analysis produced against each other.
+    response.signals = crate::quality::signals(&response);
+    Ok(response)
 }
 
 #[cfg(test)]

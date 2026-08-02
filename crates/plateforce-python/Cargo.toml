@@ -14,6 +14,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 plateforce-analysis = { workspace = true }
+plateforce-batch = { workspace = true, default-features = false }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 

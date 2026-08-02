@@ -10,6 +10,7 @@
 pub mod agreement;
 pub mod bspline;
 pub mod butterworth;
+pub mod cutoff;
 pub mod gravity;
 pub mod method_ids;
 pub mod onset;
