@@ -18,7 +18,7 @@ export function enterWorkspace() {
   state.info = info;
   $('trial-summary').textContent =
     `${info.sample_count.toLocaleString()} samples at ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
-    (info.synthetic ? '. Demo trial.' : '') +
+    (info.synthetic ? '. Drawn rather than recorded.' : '') +
     (info.sentinel_samples_replaced ? ` ${info.sentinel_samples_replaced} samples were flagged missing and held at the last reading.` : '');
 
   if (!state.chart) {

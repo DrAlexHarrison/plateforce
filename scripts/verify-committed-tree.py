@@ -14,6 +14,7 @@ than after one. `--compile` extracts the ref and builds it, which catches everyt
 static check cannot but costs a cold build.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -27,6 +28,14 @@ DECLARES_A_MODULE = re.compile(
     re.M,
 )
 COMMENTS = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+
+# `include!` splices a file's tokens in, so the file is compiled while no `mod` names it.
+# `include_str!` and `include_bytes!` embed rather than compile, and are followed too: the
+# question worth asking is whether anything references the file, because that is what makes
+# the remedy safe. Telling somebody to delete a file another file embeds breaks the build.
+# The path resolves against the directory of the file doing the including, not against where
+# that file's child modules would live.
+INCLUDES_A_FILE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(\s*\"(?P<path>[^\"]+)\"")
 OPENS_A_MACRO_BODY = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*!\s*[{(\[]")
 
 # A file named for the module it opens holds its children beside it; any other file holds
@@ -109,28 +118,58 @@ def unresolved_modules(ref: str) -> list[str]:
     return missing
 
 
-def declared_and_root_paths(ref: str) -> tuple[set[str], set[str]]:
-    """Every path some declaration names, and every path cargo reaches without one."""
-    paths = committed_paths(ref)
+def names_of(ref: str, path: str) -> set[str]:
+    """The paths this one file's declarations name."""
+    directory = where_children_live(PurePosixPath(path))
+    uncommented = COMMENTS.sub("", contents(ref, path))
+    readable = without_macro_bodies(uncommented)
     named: set[str] = set()
+    for declaration in DECLARES_A_MODULE.finditer(readable):
+        given = declaration.group("path")
+        if given:
+            named.add(str(directory / given))
+        else:
+            child = declaration.group("name")
+            named.add(str(directory / f"{child}.rs"))
+            named.add(str(directory / child / "mod.rs"))
+    # An included file is compiled without any `mod` naming it, so a walk that follows only
+    # declarations reports it as unreachable and then tells a reader to declare it, which
+    # would define it twice, or delete it, which would delete compiled code.
+    for inclusion in INCLUDES_A_FILE.finditer(uncommented):
+        here = PurePosixPath(path).parent
+        named.add(str(PurePosixPath(os.path.normpath(str(here / inclusion.group("path"))))))
+    return named
+
+
+def crate_roots(paths: set[str]) -> set[str]:
+    """Every path cargo compiles without anything naming it."""
     roots: set[str] = set()
-    for path in sorted(p for p in paths if p.endswith(".rs")):
+    for path in (p for p in paths if p.endswith(".rs")):
         source = PurePosixPath(path)
         if source.name in {"lib.rs", "main.rs", "build.rs"}:
             roots.add(path)
         elif source.parent.name in DIRECTORIES_OF_CRATE_ROOTS or source.parent.name == "bin":
             roots.add(path)
-        directory = where_children_live(source)
-        readable = without_macro_bodies(COMMENTS.sub("", contents(ref, path)))
-        for declaration in DECLARES_A_MODULE.finditer(readable):
-            given = declaration.group("path")
-            if given:
-                named.add(str(directory / given))
-            else:
-                child = declaration.group("name")
-                named.add(str(directory / f"{child}.rs"))
-                named.add(str(directory / child / "mod.rs"))
-    return named, roots
+    return roots
+
+
+def reachable_from_roots(ref: str, paths: set[str]) -> set[str]:
+    """Walk out from the crate roots, so an orphan cannot vouch for its own children.
+
+    A single pass collecting every path any file names says only "somebody names this",
+    which an unreachable file satisfies for the modules beneath it. Those two questions
+    agree exactly while an orphan is one file, and `preset.rs` was one file, so the first
+    version of this check answered the easier one and looked correct.
+    """
+    reached = crate_roots(paths)
+    frontier = list(reached)
+    while frontier:
+        path = frontier.pop()
+        for candidate in names_of(ref, path):
+            if candidate in paths and candidate not in reached:
+                reached.add(candidate)
+                frontier.append(candidate)
+    return reached
 
 
 def unreachable_modules(ref: str) -> list[str]:
@@ -144,10 +183,10 @@ def unreachable_modules(ref: str) -> list[str]:
     reviewer had seen.
     """
     paths = committed_paths(ref)
-    named, roots = declared_and_root_paths(ref)
+    reached = reachable_from_roots(ref, paths)
     orphans = []
     for path in sorted(p for p in paths if p.endswith(".rs")):
-        if path in roots or path in named:
+        if path in reached:
             continue
         orphans.append(f"{path} is committed and no crate root reaches it, so it is never compiled")
     return orphans

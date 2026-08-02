@@ -173,3 +173,63 @@ fn every_operation_owed_is_one_this_surface_reaches() {
     assert!(!required.is_empty(), "an empty obligation asserts nothing");
     assert!(unmet.is_empty(), "unmet: {unmet:?}");
 }
+
+/// The one array that cannot be derived from a table, held against the calls that produce
+/// it rather than against a list kept beside it.
+///
+/// A container this binary writes and does not declare is invisible to a comparison against
+/// a committed file, because both sides of that comparison come from the declaration. The
+/// only thing outside it is the call.
+#[test]
+fn every_container_this_binary_writes_is_one_it_declares() {
+    let source_directory = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+    let mut source = String::new();
+    for entry in std::fs::read_dir(source_directory).expect("the crate has sources") {
+        let path = entry.expect("a readable entry").path();
+        if path.extension().is_some_and(|kind| kind == "rs") {
+            source.push_str(&std::fs::read_to_string(&path).expect("a readable source"));
+        }
+    }
+
+    // A control first: a pattern that finds nothing reports every container as undeclared
+    // and a pattern that finds everything reports none, and the two read the same here.
+    assert!(
+        source.contains("write_csv("),
+        "the scan read no source, so its verdict means nothing"
+    );
+
+    let calls = [
+        ("csv", source.contains("write_csv(")),
+        ("parquet", source.contains("write_parquet(")),
+        (
+            "json",
+            source.contains("write_json(") || source.contains("Format::Json"),
+        ),
+    ];
+    let declared: Vec<String> = committed()["output_formats"]
+        .as_array()
+        .expect("output_formats is an array")
+        .iter()
+        .map(|name| name.as_str().expect("a container").to_string())
+        .collect();
+
+    let mut faults = Vec::new();
+    for (container, called) in calls {
+        let named = declared.iter().any(|name| name == container);
+        if called && !named {
+            faults.push(format!("{container} is written and not declared"));
+        }
+        if named && !called {
+            faults.push(format!("{container} is declared and never written"));
+        }
+    }
+    println!(
+        "containers declared: {declared:?}; writers found: {:?}",
+        calls
+            .iter()
+            .filter(|(_, called)| *called)
+            .map(|(name, _)| *name)
+            .collect::<Vec<&str>>()
+    );
+    assert!(faults.is_empty(), "{faults:?}");
+}

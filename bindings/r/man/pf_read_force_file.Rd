@@ -9,7 +9,8 @@ pf_read_force_file(
   sample_rate_hz = NULL,
   delimiter = NULL,
   force_column = NULL,
-  sentinel_convention = "none"
+  sentinel_convention = "none",
+  acquisition = NULL
 )
 }
 \arguments{
@@ -24,6 +25,8 @@ force.}
 
 \item{sentinel_convention}{How this export writes a missing sample: `"none"`, `"zero"`
 or `"negative_one"`.}
+
+\item{acquisition}{What the plate and its settings were, from [pf_acquisition()].}
 }
 \value{
 A `trial` whose `@read_report` names the delimiter, the column, the rows read,

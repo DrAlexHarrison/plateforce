@@ -18,6 +18,7 @@ NULL
 #'   force.
 #' @param sentinel_convention How this export writes a missing sample: `"none"`, `"zero"`
 #'   or `"negative_one"`.
+#' @param acquisition What the plate and its settings were, from [pf_acquisition()].
 #' @return A `trial` whose `@read_report` names the delimiter, the column, the rows read,
 #'   the columns per row, the blank lines skipped, and the samples the sentinel convention
 #'   treated as missing.
@@ -26,13 +27,15 @@ pf_read_force_file <- function(path,
                                sample_rate_hz = NULL,
                                delimiter = NULL,
                                force_column = NULL,
-                               sentinel_convention = "none") {
+                               sentinel_convention = "none",
+                               acquisition = NULL) {
   carried <- rust_trial_from_file(request_of(
     path = path,
     sample_rate_hz = sample_rate_hz,
     delimiter = delimiter,
     force_column = if (is.null(force_column)) NULL else as.integer(force_column),
-    sentinel_convention = sentinel_convention
+    sentinel_convention = sentinel_convention,
+    acquisition = acquisition
   ))
   trial_from_carried(carried)
 }

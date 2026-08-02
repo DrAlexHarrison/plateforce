@@ -29,7 +29,10 @@ const FIXTURE: &str = "synthetic_untrimmed_step_off.force.txt";
 /// An athlete standing still, stepping off the plate and back on, and then jumping. The
 /// step-off is the low-force run the shipped rules mistake for flight.
 fn untrimmed_trial() -> (Trial, WeighingEpoch, usize) {
-    let path = format!("{}/fixtures/{FIXTURE}", env!("CARGO_MANIFEST_DIR"));
+    let path = plateforce_conformance::fixtures_directory()
+        .join(FIXTURE)
+        .display()
+        .to_string();
     let (trial, _report) =
         read_trial_from_path(&path, ',', 0, SAMPLE_RATE_HZ).expect("the committed fixture");
     let epoch = WeighingEpoch::fixed_window(

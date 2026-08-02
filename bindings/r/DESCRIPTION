@@ -24,6 +24,7 @@ Encoding: UTF-8
 VignetteBuilder: knitr
 RoxygenNote: 8.0.0
 Collate: 
+    'acquisition.R'
     'rust.R'
     'request.R'
     'refusal.R'
@@ -34,6 +35,7 @@ Collate:
     'capability.R'
     'coercion.R'
     'describe.R'
+    'quality.R'
     'read.R'
     'zzz.R'
     'registry.R'

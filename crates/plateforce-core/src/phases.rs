@@ -464,6 +464,58 @@ pub fn propulsion_subdivision_by_force_crossing(
     )
 }
 
+/// Where the landing ended, or why it did not.
+#[derive(Debug, Clone, PartialEq)]
+pub enum LandingEnd {
+    /// The first frame at which the centre of mass had stopped descending.
+    Settled { index: usize },
+    /// The recording ran out while the centre of mass was still moving. One shipped
+    /// implementation returns no landing metrics at all in this case rather than degraded
+    /// ones, which is a gap a reader cannot see; this names it instead.
+    RecordingEndsWhileStillMoving {
+        last_index: usize,
+        velocity_meters_per_second: f64,
+    },
+    /// The series handed in was not the one this rule describes. Its initial value has to be
+    /// pinned at touchdown, because a landing velocity integrated from anywhere else is a
+    /// different quantity that happens to share a unit.
+    NotAnchoredAtTouchdown { touchdown_index: usize },
+}
+
+/// Landing ends where the centre of mass stops descending, read off a series pinned to the
+/// negative takeoff velocity at touchdown.
+///
+/// The anchor is checked rather than assumed. Nothing here decides how the series was made,
+/// but this rule is only meaningful on one kind of series, and accepting any other would
+/// return a number under this rule's name that this rule did not produce.
+pub fn landing_end_by_zero_com_velocity(
+    velocity: &crate::series::VelocitySeries,
+    touchdown_index: usize,
+) -> LandingEnd {
+    let anchored_here = matches!(
+        velocity.spec().anchor,
+        crate::series::IntegrationAnchor::SinglePointAtValue { index, .. } if index == touchdown_index
+    );
+    if !anchored_here {
+        return LandingEnd::NotAnchoredAtTouchdown { touchdown_index };
+    }
+    let samples = velocity.meters_per_second();
+    if touchdown_index >= samples.len() {
+        return LandingEnd::NotAnchoredAtTouchdown { touchdown_index };
+    }
+    for (offset, value) in samples[touchdown_index..].iter().enumerate() {
+        if *value >= 0.0 {
+            return LandingEnd::Settled {
+                index: touchdown_index + offset,
+            };
+        }
+    }
+    LandingEnd::RecordingEndsWhileStillMoving {
+        last_index: samples.len() - 1,
+        velocity_meters_per_second: samples[samples.len() - 1],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -851,5 +903,138 @@ mod tests {
         assert_eq!(placed.index, 812);
         assert_eq!(placed.method_id, "phase.braking_start.zero_net_force");
         assert!(landmarks.propulsion_end.is_none());
+    }
+
+    mod landing {
+        use super::*;
+        use crate::series::{
+            centre_of_mass_velocity_meters_per_second, IntegrationAnchor, IntegrationDirection,
+            IntegrationSpec, IntegrationStart, QuadratureRule, VelocitySeries,
+        };
+        use crate::trial::WeighingEpoch;
+        use crate::Trial;
+
+        const WEIGHT: f64 = 700.0;
+        const RATE_HZ: f64 = 1000.0;
+
+        fn epoch() -> WeighingEpoch {
+            WeighingEpoch {
+                start_index: 0,
+                end_index: 100,
+                system_weight_newtons: WEIGHT,
+                standard_deviation_newtons: 1.0,
+                tied_window_count: 1,
+                tied_weight_low_newtons: WEIGHT,
+                tied_weight_high_newtons: WEIGHT,
+            }
+        }
+
+        /// Quiet standing, then flight, then a landing that pushes back hard enough to stop
+        /// the descent inside the recording.
+        fn landing_trace(landing_samples: usize, landing_force: f64) -> (Vec<f64>, usize) {
+            let mut force = vec![WEIGHT; 200];
+            force.extend(vec![0.0; 300]);
+            let touchdown = force.len();
+            force.extend(vec![landing_force; landing_samples]);
+            (force, touchdown)
+        }
+
+        fn series_anchored_at(force: &[f64], touchdown: usize, value: f64) -> VelocitySeries {
+            let trial = Trial::new(force.to_vec(), RATE_HZ).unwrap();
+            // The integral runs from the trial start and the constant is pinned at touchdown,
+            // which is the same curve after touchdown as integrating the landing alone.
+            let spec = IntegrationSpec {
+                quadrature: QuadratureRule::Trapezoid,
+                direction: IntegrationDirection::Forward,
+                start: IntegrationStart::TrialStart,
+                anchor: IntegrationAnchor::SinglePointAtValue {
+                    index: touchdown,
+                    value,
+                    stated_by_method_id: "phase.landing_end.zero_com_velocity".to_string(),
+                },
+            };
+            centre_of_mass_velocity_meters_per_second(&trial, &epoch(), &spec, 9.81)
+        }
+
+        #[test]
+        fn the_landing_ends_where_the_descent_stops() {
+            let (force, touchdown) = landing_trace(600, WEIGHT * 3.0);
+            let velocity = series_anchored_at(&force, touchdown, -2.0);
+            let LandingEnd::Settled { index } =
+                landing_end_by_zero_com_velocity(&velocity, touchdown)
+            else {
+                panic!("the descent did not stop inside the recording")
+            };
+            assert!(index > touchdown, "the landing ended before it began");
+            assert!(velocity.at(index).unwrap() >= 0.0);
+            assert!(velocity.at(index - 1).unwrap() < 0.0, "not the first frame");
+        }
+
+        #[test]
+        fn a_recording_that_ends_mid_descent_is_named_rather_than_left_empty() {
+            // The same landing cut short. One shipped implementation returns no landing
+            // metrics here and says nothing about why.
+            let (force, touchdown) = landing_trace(40, WEIGHT * 3.0);
+            let velocity = series_anchored_at(&force, touchdown, -2.0);
+            let outcome = landing_end_by_zero_com_velocity(&velocity, touchdown);
+            let LandingEnd::RecordingEndsWhileStillMoving {
+                velocity_meters_per_second,
+                ..
+            } = outcome
+            else {
+                panic!("a truncated landing was reported as settled: {outcome:?}")
+            };
+            assert!(velocity_meters_per_second < 0.0);
+        }
+
+        #[test]
+        fn a_series_pinned_somewhere_else_is_refused_rather_than_read() {
+            // Without this the rule would accept any velocity series and return an index
+            // under its own name that its own arithmetic never produced.
+            let (force, touchdown) = landing_trace(600, WEIGHT * 3.0);
+            let trial = Trial::new(force.clone(), RATE_HZ).unwrap();
+            let spec = IntegrationSpec {
+                quadrature: QuadratureRule::Trapezoid,
+                direction: IntegrationDirection::Forward,
+                start: IntegrationStart::TrialStart,
+                anchor: IntegrationAnchor::SinglePoint { index: 0 },
+            };
+            let elsewhere =
+                centre_of_mass_velocity_meters_per_second(&trial, &epoch(), &spec, 9.81);
+            assert_eq!(
+                landing_end_by_zero_com_velocity(&elsewhere, touchdown),
+                LandingEnd::NotAnchoredAtTouchdown {
+                    touchdown_index: touchdown
+                }
+            );
+
+            // And pinned at the right value but the wrong instant is the same refusal.
+            let wrong_instant = series_anchored_at(&force, touchdown - 50, -2.0);
+            assert_eq!(
+                landing_end_by_zero_com_velocity(&wrong_instant, touchdown),
+                LandingEnd::NotAnchoredAtTouchdown {
+                    touchdown_index: touchdown
+                }
+            );
+        }
+
+        #[test]
+        fn a_harder_landing_stops_the_descent_sooner() {
+            let (soft, touchdown) = landing_trace(600, WEIGHT * 2.0);
+            let (hard, _) = landing_trace(600, WEIGHT * 5.0);
+            let stop = |force: &[f64]| match landing_end_by_zero_com_velocity(
+                &series_anchored_at(force, touchdown, -2.0),
+                touchdown,
+            ) {
+                LandingEnd::Settled { index } => index,
+                other => panic!("{other:?}"),
+            };
+            assert!(
+                stop(&hard) < stop(&soft),
+                "the landing force changed nothing: {} against {}",
+                stop(&hard),
+                stop(&soft)
+            );
+        }
     }
 }

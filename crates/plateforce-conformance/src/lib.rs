@@ -18,6 +18,32 @@ use bindings::{
 use plateforce_core::signal::{partition_sentinels, Sentinel};
 use plateforce_core::Trial;
 use std::collections::HashMap;
+use std::path::PathBuf;
+
+/// The committed fixtures this crate compares against, located when the run happens rather
+/// than when the binary was compiled.
+///
+/// A path taken with `env!` is the directory that last compiled the binary, and a test binary
+/// can outlive the tree it was compiled in. Reused from another checkout it then reads that
+/// checkout's fixtures, or a directory that has since been deleted, and the second reading is
+/// the dangerous one: a run against fixtures nobody is looking at can pass. Cargo sets this
+/// variable for the process it launches, so it names the tree actually under test.
+pub fn fixtures_directory() -> PathBuf {
+    let stated = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| {
+        panic!(
+            "CARGO_MANIFEST_DIR is unset, so the fixtures this run compares against cannot be \
+             located and nothing below was measured. Run through cargo, or set it to the \
+             plateforce-conformance directory."
+        )
+    });
+    let fixtures = PathBuf::from(stated).join("fixtures");
+    assert!(
+        fixtures.is_dir(),
+        "no fixtures directory at {}, so this run compared against nothing",
+        fixtures.display()
+    );
+    fixtures
+}
 
 /// How close two numbers have to be to count as the same number.
 ///

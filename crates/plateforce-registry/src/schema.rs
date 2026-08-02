@@ -75,7 +75,46 @@ pub struct Citation {
     pub obtained: bool,
 }
 
+/// One number a source states for a named option, in the unit that source states it in.
+///
+/// The unit is not optional. A regression coefficient without it is the unit confusion
+/// this registry records real instances of, and a coefficient set mixes units within one
+/// option: watts per centimetre beside watts per kilogram beside watts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NamedNumber {
+    pub name: String,
+    pub value: f64,
+    pub unit: String,
+}
+
+/// One option of a parameter whose options are names rather than numbers.
+///
+/// `published_values` carries a parameter the literature varies by number. This carries one
+/// it varies by name, from a two-way choice of search signal up to ten regression
+/// coefficient sets, where a single option is several numbers in different units.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NamedValue {
+    pub key: String,
+    /// The field's spoken words for this option, for surfaces that show a name beside the
+    /// key a result records.
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default, rename = "number")]
+    pub numbers: Vec<NamedNumber>,
+    /// The citation key this option comes from, where one source states it alone.
+    #[serde(default)]
+    pub source: Option<String>,
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
 /// The settings the per-kind-of-rule grain deliberately keeps off the entry list.
+///
+/// A parameter varies by number or by name, never both, so it carries `published_values`
+/// with `default`, or `named_values` with `default_key`. Either default names the source
+/// that chose it and the validator refuses a parameter that declares both.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Parameter {
@@ -86,14 +125,26 @@ pub struct Parameter {
     /// report that a tool exposes one of six.
     #[serde(default)]
     pub published_values: Vec<f64>,
+    #[serde(default, rename = "value")]
+    pub named_values: Vec<NamedValue>,
     #[serde(default)]
     pub default: Option<f64>,
+    /// The `named_values` key the software binds when the user states none.
+    #[serde(default)]
+    pub default_key: Option<String>,
     #[serde(default)]
     pub default_source: Option<String>,
     #[serde(default)]
     pub required: bool,
     #[serde(default)]
     pub notes: Option<String>,
+}
+
+impl Parameter {
+    /// Whether a default was declared at all, whichever of the two shapes carries it.
+    pub fn has_default(&self) -> bool {
+        self.default.is_some() || self.default_key.is_some()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -190,6 +241,35 @@ pub struct Gui {
     pub rationale: Option<String>,
 }
 
+/// What stands between an entry and a recording it could be computed on.
+///
+/// Closed, because the classification these are written from fixes exactly these five and
+/// a sixth spelling would reach a surface that has no arm for it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Boundary {
+    /// A different movement on the plate the operator already owns.
+    Protocol,
+    /// An instrument the lab does not have. The movement is not the barrier.
+    Equipment,
+    Both,
+    /// No acquisition unblocks it: the rule text, constant or equation is not obtainable.
+    Source,
+    Undetermined,
+}
+
+/// Why an entry is out of reach, beside the entry rather than in a table kept in step by
+/// hand.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Reach {
+    pub boundary: Boundary,
+    /// What would settle an undetermined boundary. Beside a settled one it would read as
+    /// doubt about a classification that was made, so the validator refuses it there.
+    #[serde(default)]
+    pub query: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Method {
@@ -215,6 +295,8 @@ pub struct Method {
     pub disagrees_with: Vec<Disagreement>,
     #[serde(default)]
     pub gui: Option<Gui>,
+    #[serde(default)]
+    pub reach: Option<Reach>,
 }
 
 /// Where a protocol requirement came from. `ObservedFromCode` covers requirements no
@@ -299,4 +381,12 @@ display_as_registry_spells_it!(Detectability {
     Silent => "silent",
     Loud => "loud",
     Guarded => "guarded",
+});
+
+display_as_registry_spells_it!(Boundary {
+    Protocol => "protocol",
+    Equipment => "equipment",
+    Both => "both",
+    Source => "source",
+    Undetermined => "undetermined",
 });

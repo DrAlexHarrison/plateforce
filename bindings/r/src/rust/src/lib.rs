@@ -16,6 +16,7 @@ use std::collections::BTreeMap;
 use plateforce_analysis::capability::{capability, Operation, OutputFormat};
 use plateforce_analysis::spread::{self, SpreadRequest, SpreadResponse};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, Binding, BINDINGS};
+use plateforce_core::acquisition::Acquisition;
 use plateforce_core::read::read_delimited_column;
 use plateforce_core::reporting::describe;
 use plateforce_core::signal::partition_sentinels;
@@ -188,6 +189,12 @@ pub fn registry_entry_json(root: &str, id: &str) -> String {
     }
 }
 
+/// The members of the acquisition block, named by the block itself, so a member added
+/// upstream is one an R caller can be held to rather than one R silently never asks for.
+pub fn acquisition_members_json() -> String {
+    ok(Acquisition::MEMBERS)
+}
+
 /// Every rule this build can run, straight off the binding table, so a caller lists the
 /// alternatives from the engine rather than from a list written a second time in R.
 pub fn bindings_json() -> String {
@@ -198,6 +205,7 @@ pub fn bindings_json() -> String {
 pub struct TrialHandle {
     trial: Trial,
     report: TrialReport,
+    acquisition: Acquisition,
 }
 
 /// What the reader did, rather than what it assumed. Both silent exclusion and silent
@@ -215,6 +223,11 @@ pub struct TrialReport {
     rows_read: Option<usize>,
     columns_per_row: Option<usize>,
     blank_lines_skipped: Option<usize>,
+    /// False when any member of the acquisition block is absent, in which case results from
+    /// this trial can never be declared to match another lab's.
+    acquisition_complete: bool,
+    /// The members still to find, named by the block itself.
+    acquisition_missing: Vec<&'static str>,
 }
 
 #[derive(Deserialize)]
@@ -223,6 +236,10 @@ struct TrialRequest {
     sample_rate_hz: Option<f64>,
     #[serde(default)]
     sentinel_convention: Option<String>,
+    /// Deserialised into the block core declares, so a member added there arrives here
+    /// without an edit.
+    #[serde(default)]
+    acquisition: Acquisition,
 }
 
 #[derive(Deserialize)]
@@ -234,6 +251,8 @@ struct ReadRequest {
     force_column: Option<usize>,
     #[serde(default)]
     sentinel_convention: Option<String>,
+    #[serde(default)]
+    acquisition: Acquisition,
 }
 
 fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Box<Refusal>> {
@@ -283,6 +302,7 @@ fn build_trial(
     sample_rate_hz: Option<f64>,
     convention: Option<String>,
     source: String,
+    acquisition: Acquisition,
 ) -> Result<TrialHandle, Box<Refusal>> {
     let sample_rate_hz = sample_rate_hz.ok_or_else(|| {
         Box::new(Refusal::naming_parameter(
@@ -308,8 +328,14 @@ fn build_trial(
         rows_read: None,
         columns_per_row: None,
         blank_lines_skipped: None,
+        acquisition_complete: acquisition.is_complete(),
+        acquisition_missing: acquisition.missing(),
     };
-    Ok(TrialHandle { trial, report })
+    Ok(TrialHandle {
+        trial,
+        report,
+        acquisition,
+    })
 }
 
 pub fn trial_from_force(
@@ -325,6 +351,7 @@ pub fn trial_from_force(
         request.sample_rate_hz,
         request.sentinel_convention,
         "vector".to_string(),
+        request.acquisition,
     ) {
         Ok(handle) => (ok(handle.report.clone()), Some(handle)),
         Err(refusal) => (refuse::<TrialReport>(*refusal), None),
@@ -385,6 +412,7 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
         request.sample_rate_hz,
         request.sentinel_convention,
         request.path.clone(),
+        request.acquisition,
     ) {
         Ok(mut handle) => {
             handle.report.delimiter = Some(delimiter.to_string());
@@ -465,14 +493,13 @@ pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
         Err(refusal) => return refuse::<AnalysisReport>(*refusal),
     };
 
+    let complete = handle.acquisition.is_complete();
     match run(&handle.trial, &request.analysis) {
         Ok(response) => ok(AnalysisReport {
-            descriptions: descriptions_of(&response, &request.registry_digest),
+            descriptions: descriptions_of(&response, &request.registry_digest, complete),
             response,
             registry_digest: request.registry_digest,
-            // No acquisition block reaches this binding yet, and a dataset that cannot
-            // fill one fingerprints as incomplete rather than as matching.
-            acquisition_complete: false,
+            acquisition_complete: complete,
         }),
         Err(message) => refuse::<AnalysisReport>(Refusal::of("analysis_declined", message)),
     }
@@ -530,6 +557,7 @@ pub fn double_probe_json(count: usize) -> String {
 fn descriptions_of(
     response: &AnalysisResponse,
     registry_digest: &Option<String>,
+    acquisition_complete: bool,
 ) -> BTreeMap<String, String> {
     let bound: BTreeMap<&str, &plateforce_analysis::BoundMethod> = response
         .bound_methods
@@ -545,19 +573,20 @@ fn descriptions_of(
             .iter()
             .filter_map(|id| bound.get(id.as_str()))
             .map(|method| {
-                ProvenanceChain::leaf(provenance_of(method, registry_digest))
-                    .choosing(method.enumerated_choices())
+                let record = method.into_provenance(
+                    None,
+                    registry_digest.clone(),
+                    acquisition_complete,
+                    Vec::new(),
+                );
+                ProvenanceChain::leaf(record).choosing(method.enumerated_choices())
             })
             .collect();
 
         let own = Provenance {
-            method_id: metric.computed_by.clone().unwrap_or_default(),
-            bound_parameters: Vec::new(),
-            registry_version: None,
             registry_digest: registry_digest.clone(),
-            // No acquisition block reaches this binding yet, and a dataset that cannot
-            // fill one fingerprints as incomplete rather than as matching.
-            acquisition_complete: false,
+            acquisition_complete,
+            ..Provenance::of(metric.computed_by.clone().unwrap_or_default())
         };
         let Some(unit) = declared_unit(metric) else {
             continue;
@@ -583,19 +612,6 @@ fn descriptions_of(
 fn declared_unit(metric: &plateforce_analysis::Metric) -> Option<&'static str> {
     let declared = plateforce_analysis::response::quantity(&metric.key)?;
     (declared.unit == metric.unit).then_some(declared.unit)
-}
-
-fn provenance_of(
-    method: &plateforce_analysis::BoundMethod,
-    registry_digest: &Option<String>,
-) -> Provenance {
-    Provenance {
-        method_id: method.method_id.clone(),
-        bound_parameters: method.quantities(),
-        registry_version: None,
-        registry_digest: registry_digest.clone(),
-        acquisition_complete: false,
-    }
 }
 
 /// What this surface can be asked to do, reported by naming the entry points it dispatches

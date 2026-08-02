@@ -136,6 +136,35 @@ mod tests {
         );
     }
 
+    /// How far the reported instant sits past the settling it describes, at every dwell
+    /// rather than at one. The overstatement is the dwell itself, so a reader who changes
+    /// the dwell changes the overstatement by the same amount.
+    #[test]
+    fn the_overstatement_is_the_dwell_and_moves_with_it() {
+        let force = landing_then_settled(4000);
+        let mut measured = Vec::new();
+        for dwell_samples in [120usize, 600, 1200, 2400] {
+            let StabilisationOutcome::Stabilised(found) =
+                first_sustained_band_entry(&force, 200, WEIGHT_NEWTONS, BAND_PCT, dwell_samples)
+            else {
+                panic!("a settled trace did not stabilise at a dwell of {dwell_samples}");
+            };
+            let overstatement = found.dwell_completed_index - found.entered_band_index + 1;
+            measured.push((dwell_samples, overstatement));
+            assert_eq!(
+                overstatement, dwell_samples,
+                "at a dwell of {dwell_samples} samples the reported instant is {overstatement} past \
+                 the band entry"
+            );
+        }
+        println!("dwell against overstatement, in samples: {measured:?}");
+        assert_eq!(
+            measured.len(),
+            4,
+            "the check read fewer dwells than it names"
+        );
+    }
+
     /// A trace that ends inside the dwell gets its own answer, never a number clipped to
     /// the last sample.
     #[test]

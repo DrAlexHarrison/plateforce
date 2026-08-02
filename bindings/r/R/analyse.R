@@ -23,6 +23,7 @@ countermovement_jump <- S7::new_class(
     touchdown_index = S7::class_any,
     levels = S7::class_list,
     bound_methods = S7::class_list,
+    signals = S7::class_list,
     warnings = S7::class_character,
     registry_digest = S7::class_character
   )
@@ -30,6 +31,9 @@ countermovement_jump <- S7::new_class(
 
 #' @export
 `print.plateforce::countermovement_jump` <- function(x, ...) {
+  # A signal is said once, under the first value it qualifies, because a reader scanning
+  # the values does not reach a block at the end.
+  said_under <- vapply(x@signals, function(signal) signal@qualifies[1], character(1))
   for (name in names(x@values)) {
     value <- x@values[[name]]
     cat(sprintf(
@@ -38,6 +42,9 @@ countermovement_jump <- S7::new_class(
       format(value@value, digits = 15),
       value@unit_symbol
     ))
+    for (signal in x@signals[said_under == name]) {
+      print(signal)
+    }
   }
   for (warning_text in x@warnings) {
     cat(warning_text, "\n", sep = "")
@@ -197,6 +204,7 @@ jump_from_response <- function(response) {
     touchdown_index = one_based(response[["touchdown_index"]]),
     levels = response[["levels"]],
     bound_methods = by_method,
+    signals = lapply(response[["signals"]], signal_from_list),
     warnings = as.character(unlist(response[["warnings"]])),
     registry_digest = digest
   )

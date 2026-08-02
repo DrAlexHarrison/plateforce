@@ -1,4 +1,4 @@
-//! The eight rules from `docs/schema.md`, enforced rather than documented.
+//! The rules from `docs/schema.md`, enforced rather than documented.
 
 use std::fmt;
 
@@ -8,16 +8,60 @@ use crate::Registry;
 #[derive(Debug, Clone, PartialEq)]
 pub enum ViolationKind {
     IdNotDotted,
-    UnknownConstruct { construct: String },
-    UnknownDisagreement { target: String },
-    AsymmetricDisagreement { target: String },
+    UnknownConstruct {
+        construct: String,
+    },
+    UnknownDisagreement {
+        target: String,
+    },
+    AsymmetricDisagreement {
+        target: String,
+    },
     BiasWithoutCriterion,
-    DefaultWithoutSource { parameter: String },
-    RecommendedOnUnobtainedSource { citation: String },
+    DefaultWithoutSource {
+        parameter: String,
+    },
+    RecommendedOnUnobtainedSource {
+        citation: String,
+    },
     RefuseWithoutRationale,
     FailureWithoutDenominator,
-    FailureRateInconsistent { stated: f64, computed: f64 },
+    FailureRateInconsistent {
+        stated: f64,
+        computed: f64,
+    },
     DuplicateId,
+    DefaultDeclaredTwice {
+        parameter: String,
+    },
+    DefaultNamesUnknownValue {
+        parameter: String,
+        key: String,
+    },
+    NamedValueDeclaredTwice {
+        parameter: String,
+        key: String,
+    },
+    ReachQueryOnSettledBoundary {
+        boundary: Boundary,
+    },
+    PresetBindsUnknownMethod {
+        preset: String,
+        method_id: String,
+    },
+    PresetBindingConstructMismatch {
+        preset: String,
+        method_id: String,
+        declared: String,
+        actual: String,
+    },
+    PresetWithoutCitation {
+        preset: String,
+    },
+    PresetBindsOneConstructTwice {
+        preset: String,
+        construct: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -61,6 +105,26 @@ impl fmt::Display for Violation {
                 "{}: parameter '{parameter}' has a default with no default_source naming who chose it",
                 self.entry
             ),
+            DefaultDeclaredTwice { parameter } => write!(
+                f,
+                "{}: parameter '{parameter}' declares both default and default_key, so two values claim to be the one the software binds",
+                self.entry
+            ),
+            DefaultNamesUnknownValue { parameter, key } => write!(
+                f,
+                "{}: parameter '{parameter}' defaults to '{key}', which is not among the values it lists",
+                self.entry
+            ),
+            NamedValueDeclaredTwice { parameter, key } => write!(
+                f,
+                "{}: parameter '{parameter}' lists '{key}' more than once, so one option replaced another",
+                self.entry
+            ),
+            ReachQueryOnSettledBoundary { boundary } => write!(
+                f,
+                "{}: reach is '{boundary}' and carries a query, which reads as doubt about a boundary that was settled",
+                self.entry
+            ),
             RecommendedOnUnobtainedSource { citation } => write!(
                 f,
                 "{}: status is recommended but rests on '{citation}', which was never obtained",
@@ -80,6 +144,26 @@ impl fmt::Display for Violation {
                 f,
                 "{}: failure rate {stated:.4} does not match numerator over denominator, {computed:.4}",
                 self.entry
+            ),
+            PresetBindsUnknownMethod { preset, method_id } => write!(
+                f,
+                "{preset}: binds '{method_id}', which the registry does not carry"
+            ),
+            PresetBindingConstructMismatch {
+                preset,
+                method_id,
+                declared,
+                actual,
+            } => write!(
+                f,
+                "{preset}: binds '{method_id}' under construct '{declared}', and that entry's construct is '{actual}'"
+            ),
+            PresetWithoutCitation { preset } => {
+                write!(f, "{preset}: states a pipeline and cites no source for it")
+            }
+            PresetBindsOneConstructTwice { preset, construct } => write!(
+                f,
+                "{preset}: binds construct '{construct}' more than once, so one binding replaced another"
             ),
         }
     }
@@ -143,11 +227,62 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
         }
 
         for parameter in &method.parameters {
-            if parameter.default.is_some() && parameter.default_source.is_none() {
+            if parameter.has_default() && parameter.default_source.is_none() {
                 violations.push(Violation {
                     entry: entry.clone(),
                     kind: ViolationKind::DefaultWithoutSource {
                         parameter: parameter.name.clone(),
+                    },
+                });
+            }
+            if parameter.default.is_some() && parameter.default_key.is_some() {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::DefaultDeclaredTwice {
+                        parameter: parameter.name.clone(),
+                    },
+                });
+            }
+
+            let mut listed: Vec<&str> = Vec::new();
+            for value in &parameter.named_values {
+                if listed.contains(&value.key.as_str()) {
+                    violations.push(Violation {
+                        entry: entry.clone(),
+                        kind: ViolationKind::NamedValueDeclaredTwice {
+                            parameter: parameter.name.clone(),
+                            key: value.key.clone(),
+                        },
+                    });
+                }
+                listed.push(&value.key);
+            }
+
+            if let Some(key) = &parameter.default_key {
+                if !listed.contains(&key.as_str()) {
+                    violations.push(Violation {
+                        entry: entry.clone(),
+                        kind: ViolationKind::DefaultNamesUnknownValue {
+                            parameter: parameter.name.clone(),
+                            key: key.clone(),
+                        },
+                    });
+                }
+            }
+        }
+
+        // A query beside a settled boundary is the classification arguing with itself.
+        if let Some(reach) = &method.reach {
+            let settled = reach.boundary != Boundary::Undetermined;
+            let asked = reach
+                .query
+                .as_ref()
+                .is_some_and(|query| !query.trim().is_empty());
+            if settled && asked {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::ReachQueryOnSettledBoundary {
+                        boundary: reach.boundary,
                     },
                 });
             }
@@ -236,6 +371,10 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             });
         }
     }
+
+    // The preset population's own rules, run here so the registry's validator is one
+    // question rather than one per population.
+    violations.extend(crate::preset::validate(registry));
 
     violations
 }

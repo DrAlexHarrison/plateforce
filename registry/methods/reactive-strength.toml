@@ -513,8 +513,12 @@ direction = "long"
 criterion = "time_to_stabilisation"
 criterion_kind = "model"
 source = "plateforce_algebra"
-# A band-and-dwell rule cannot return a value shorter than the dwell, and it is exquisitely sensitive
-# to the system-weight estimate because the band is defined relative to it.
+# The rule reports the instant the dwell completed rather than the instant force entered the band, so
+# it overstates the settling by one whole dwell. The magnitude is therefore not a constant: it equals
+# dwell_seconds, and 1.0 is its value at that parameter's published value. Measured across dwells of
+# 120, 600, 1200 and 2400 samples, the overstatement was 120, 600, 1200 and 2400 samples.
+# A band-and-dwell rule also cannot return a value shorter than the dwell, and it is exquisitely
+# sensitive to the system-weight estimate because the band is defined relative to it.
 
 [method.gui]
 surfacing = "surface_on_demand"

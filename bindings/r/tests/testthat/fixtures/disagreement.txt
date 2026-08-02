@@ -1,0 +1,10 @@
+agreeing_signal_count 0
+signal_count 1
+status disagrees
+value 66.287837687299444
+threshold 20
+unit percent
+remedy_construct movement_onset
+qualifies jump_height_from_takeoff_meters jump_height_from_flight_time_meters
+jump_height_from_takeoff_meters 0.7317899878372548
+jump_height_from_flight_time_meters 0.44007427002170146

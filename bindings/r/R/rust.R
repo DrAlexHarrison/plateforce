@@ -17,6 +17,8 @@ rust_registry_entry_json <- function(root, id) {
 
 rust_bindings_json <- function() .Call(wrap__pf_bindings_json)
 
+rust_acquisition_members_json <- function() .Call(wrap__pf_acquisition_members_json)
+
 rust_trial_from_force <- function(force_newtons, request_json) {
   .Call(wrap__pf_trial_from_force, force_newtons, request_json)
 }

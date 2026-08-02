@@ -66,16 +66,23 @@ pub fn every_operation() -> Vec<Operation> {
         .collect()
 }
 
-/// What this binary can write a result into, read off `--format` so a container added there
-/// appears here without a second edit.
+/// What this binary writes a result into, taken from what it writes rather than from one
+/// flag.
+///
+/// `--format` answers for the rendered document alone. A folder run writes its tables
+/// whatever that flag says, so a manifest built from the flag reports fewer containers than
+/// the surface produces, which is the direction a comparison against a committed file cannot
+/// see. `tests/capability.rs` holds this against the writer calls themselves.
 pub fn every_output_format() -> Vec<OutputFormat> {
-    Format::value_variants()
+    let mut written: Vec<OutputFormat> = Format::value_variants()
         .iter()
         .map(|format| match format {
             Format::Text => OutputFormat::Text,
             Format::Json => OutputFormat::Json,
         })
-        .collect()
+        .collect();
+    written.push(OutputFormat::Csv);
+    written
 }
 
 pub fn manifest() -> Capability {
