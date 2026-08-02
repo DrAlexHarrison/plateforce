@@ -279,6 +279,14 @@ The most under-discussed debate in the survey. It is almost never stated in pape
 only channel by which the onset rule reaches jump height at all.
 """
 
+[[method.disagrees_with]]
+id = "integration.start.detected_touchdown"
+kind = "genuine"
+note = """
+Against a landing series the two are not near neighbours: starting at index zero carries the whole
+jump into touchdown, where the landing rule needs the velocity the athlete arrived with.
+"""
+
 [method.gui]
 surfacing = "force_a_decision"
 sensitivity = "small on the mean of jump height, larger on its trial-to-trial variance"
@@ -323,6 +331,45 @@ Its cost is real and must be stated rather than the variant being presented as s
 it makes jump height depend on the onset rule, which the trial-start variant does not. It trades a
 bias source for a coupling. Any net impulse before the detected onset is discarded rather than
 integrated, which is near zero with backtracking and not near zero without it.
+"""
+
+[[method]]
+id = "integration.start.detected_touchdown"
+construct = "landing_phase_end"
+group = "E"
+title = "Integrate from the detected touchdown, carrying the velocity the athlete arrived with"
+rule = """
+Integrate forward from the sample the bound touchdown rule placed. Velocity there is not zero: the
+athlete is falling, and the value carried in is the one the jump ended with, negated. The span runs
+from touchdown to wherever the rule consuming the series decides the landing ends.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "uses"
+reference = "McMahon et al. 2018, whose landing-end rule integrates from landing acceleration, which is this instant"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.disagrees_with]]
+id = "integration.start.trial_start"
+kind = "genuine"
+note = """
+A landing integration begun at index zero accumulates the whole jump before the athlete has landed,
+so the velocity it carries into touchdown is the accumulated drift of the recording rather than the
+velocity the athlete arrived with.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "total for landing metrics, which are undefined without a starting velocity"
+rationale = """
+A landing series and a jump series are anchored differently and the record has to say which was
+which. Naming the jump's start on a series that began at touchdown would report an instant the
+integration did not use.
 """
 
 [[method]]
