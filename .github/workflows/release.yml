@@ -77,6 +77,10 @@ jobs:
   draft:
     name: draft the release
     needs: gather
+    # A tag, and nothing else, creates a release object. Everything above this runs on a
+    # manual dispatch too, so the whole route can be exercised, artefacts and checks
+    # included, without putting anything on the releases page that a person did not ask for.
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     # The one job that can write, and it checks nothing out and runs no repository code.
     permissions:
