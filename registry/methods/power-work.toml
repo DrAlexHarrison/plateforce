@@ -22,9 +22,17 @@ name = "force_term"
 unit = "enumeration"
 required = true
 notes = """
-total or net. The two differ by system weight times velocity, which at 2.5 m/s and 800 N is 2000 W.
-A mandatory declaration rather than a preference.
+The two differ by system weight times velocity, which at 2.5 m/s and 800 N is 2000 W. A mandatory
+declaration rather than a preference.
 """
+
+[[method.parameter.value]]
+key = "total"
+label = "The force the plate measured"
+
+[[method.parameter.value]]
+key = "net"
+label = "Measured force less system weight"
 
 [[method.parameter]]
 name = "sign_convention"
@@ -34,8 +42,16 @@ notes = """
 One published table defines peak braking power as the peak negative power, reports it negative for
 the countermovement jump and positive for the drop jump in adjacent tables. Sign convention on
 phase-restricted power is unmanaged across the entire field, including inside single papers by
-careful authors.
+careful authors, so the two options below are the exhaustive pair rather than a published set.
 """
+
+[[method.parameter.value]]
+key = "upward_positive"
+label = "Power is positive while the centre of mass rises"
+
+[[method.parameter.value]]
+key = "downward_positive"
+label = "Power is positive while the centre of mass descends"
 
 [[method.citation]]
 key = "cormie2007"
