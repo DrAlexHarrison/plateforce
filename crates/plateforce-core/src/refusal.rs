@@ -607,6 +607,24 @@ mod tests {
     }
 
     #[test]
+    fn a_construct_off_the_path_names_the_steps_the_build_does_run() {
+        let refused = Refusal::construct_not_on_the_path(
+            "braking_phase_start",
+            vec![
+                "system_weight".to_string(),
+                "movement_onset".to_string(),
+                "takeoff".to_string(),
+            ],
+        );
+        assert_eq!(refused.code, RefusalCode::MethodNotImplemented);
+        assert_eq!(refused.exit_code(), 64);
+        assert!(refused.message().contains("braking_phase_start"), "{}", refused.message());
+        assert!(refused.message().contains("system_weight"), "{}", refused.message());
+        // The slotted reading of this code names a step; this one has none to name.
+        assert!(refused.slot.is_none());
+    }
+
+    #[test]
     fn a_decision_left_open_names_what_is_outstanding() {
         let refused = Refusal::decision_not_made(
             "A methods paragraph",

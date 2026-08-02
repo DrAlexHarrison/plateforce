@@ -16,7 +16,10 @@ plateforce-analysis = { workspace = true }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 serde = { workspace = true }
-serde_json = "1"
+# The workspace entry carries `float_roundtrip`. This crate parses the browser's request,
+# so the bare version would read back a different double from the one the tab wrote on
+# roughly one value in ten, and only for callers whose build happened not to enable it.
+serde_json = { workspace = true }
 
 # Exact, because the generated bindings only load against the matching wasm-bindgen CLI,
 # and `pages.yml` reads this line to install it. No feature selected here pulls in threads:

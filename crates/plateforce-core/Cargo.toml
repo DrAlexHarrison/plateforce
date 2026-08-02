@@ -13,4 +13,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-serde_json = "1"
+# The workspace entry carries `float_roundtrip`. Naming it here rather than taking the bare
+# version means the round-trip tests below measure the parser the product ships, instead of
+# whichever parser feature unification happened to hand this crate.
+serde_json = { workspace = true }
