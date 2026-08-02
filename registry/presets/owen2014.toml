@@ -1,0 +1,32 @@
+[[preset]]
+id = "owen2014"
+title = "Owen et al. 2014"
+description = """
+The criterion specification Owen et al. paired: system weight over a one-second window, movement
+onset five standard deviations of that window's noise, and the crossing stepped back thirty
+milliseconds.
+"""
+states_nothing_about = ["takeoff"]
+
+[[preset.binding]]
+construct = "system_weight"
+method_id = "bwepoch.fixed_window"
+parameters = { duration = 1.0 }
+
+[[preset.binding]]
+construct = "movement_onset"
+method_id = "onset.threshold.noise_relative"
+parameters = { k = 5.0, offset_ms = 30.0 }
+note = """
+The thirty-millisecond step back is a registry entry of its own, onset.op.backward_offset_fixed,
+composed onto the threshold rule. The source states it, so the preset states it: that entry's own
+notes record that omitting the offset is not choosing zero milliseconds, it is failing to implement
+the cited method.
+"""
+
+[[preset.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28(6):1552-1558, the criterion pairing and 30 ms"
+doi = "10.1519/JSC.0000000000000311"
+obtained = false
