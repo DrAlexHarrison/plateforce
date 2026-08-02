@@ -26,6 +26,9 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
             // Performed on the way to a result rather than under a name of its own, declared
             // here beside the command that exercises it.
             Operation::ParseForceFile,
+            // The spread rides in every result rather than behind a flag, so the surface
+            // does it on every run and the manifest says so.
+            Operation::Spread,
         ]),
         // Both entry points, because batch has two: one loops the analysis and returns
         // results, the other loops the sweep and returns paired variants. A surface reaching
