@@ -12,4 +12,5 @@ authors.workspace = true
 # interpreter or a terminal in this crate would put a second binding layer back.
 [dependencies]
 plateforce-core = { workspace = true }
+plateforce-registry = { workspace = true }
 serde = { workspace = true }
