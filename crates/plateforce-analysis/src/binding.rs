@@ -121,6 +121,14 @@ pub const BINDINGS: &[Binding] = &[
         composed_from: None,
         note: "",
     },
+    Binding {
+        id: "takeoff.threshold.landing_shape",
+        slot: "takeoff",
+        construct: TAKEOFF_CONSTRUCT,
+        title: "First low-force run the recording closes with a landing",
+        composed_from: None,
+        note: "",
+    },
 ];
 
 pub fn bindings_for(slot: &str) -> impl Iterator<Item = &'static Binding> + '_ {
