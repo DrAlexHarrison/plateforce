@@ -105,6 +105,16 @@ scaling with fitted exponents have not computed the same thing. This is the shar
 registry of a method whose name is insufficient to reproduce it.
 """
 
+
+[[method.parameter.value]]
+key = "assumed"
+label = "Assumed"
+notes = "The exponent is taken from the literature."
+
+[[method.parameter.value]]
+key = "fitted"
+label = "Fitted"
+notes = "The exponent is estimated from the sample at hand, which makes the result sample-dependent."
 [[method.citation]]
 key = "jaric2002"
 role = "proposes"
