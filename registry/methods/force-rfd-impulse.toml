@@ -302,17 +302,11 @@ reference = "Maffiuletti et al. 2016 Figure 8b, from whose description this rule
 doi = "10.1007/s00421-016-3346-6"
 obtained = true
 
-[[method.bias]]
-magnitude = 0.0
-unit = "newtons_per_second"
-direction = "none"
-criterion = "onset.manual_visual.tillin2010"
-criterion_kind = "human_visual"
-source = "plateforce_algebra"
-# The first window carries the same onset bias as the overlapping scheme. Every later window is
-# onset-independent, because onset cancels in the difference. That is a non-obvious and valuable
-# property the overlapping scheme lacks, and it does not appear stated in these terms in
-# the applied literature.
+# How far this rule sits from a manually placed onset is unmeasured: no trial held here carries a
+# human rater's onset beside it, and trials that do would settle it. What is measured is that the
+# rule moves with onset. A constant force offset cancels in a difference; a shift in onset does
+# not, because it slides every window along the trace and each one then spans a different part of
+# the rise.
 
 [[method.disagrees_with]]
 id = "rfd.epoch_from_onset.overlapping"
@@ -325,7 +319,10 @@ noisy first 50 ms.
 
 [method.gui]
 surfacing = "surface_on_demand"
-sensitivity = "low after the first window"
+sensitivity = """
+High to onset, in every window rather than only the first. Moving onset by 5 to 20 ms moved a
+window past the first by up to 11,855 N/s across the six trials held here.
+"""
 rationale = """
 A researcher comparing two groups wants this; a coach monitoring one athlete does not. Two findings
 that look opposed are not in conflict: reliability is better in the middle window within this scheme,
