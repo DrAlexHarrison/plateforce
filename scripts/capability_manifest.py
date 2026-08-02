@@ -22,6 +22,9 @@ SHARED_KEYS = ("methods", "plateforce_version", "refusal_codes", "schema")
 
 PER_SURFACE_KEYS = ("operations", "output_formats")
 
+# Two, because that is the smallest number of surfaces a disagreement can exist between.
+WITNESSES_A_COMPARISON_NEEDS = 2
+
 
 def canonical(value):
     """One writer for both sides of every comparison, so a difference is about capability."""
@@ -95,8 +98,24 @@ def check(manifest_path, answers):
                 + differences(committed[name], answers[name])
             )
 
+    # A comparison's denominator is its witnesses. With one surface every assertion below
+    # holds vacuously, because a set of one value has no second value to differ from and the
+    # summary line reads exactly like a full pass. Dropping a row from the surfaces file is a
+    # one-line edit, so the floor is asserted rather than assumed.
+    if len(answers) < WITNESSES_A_COMPARISON_NEEDS:
+        faults.append(
+            f"{len(answers)} surface answered, and a claim about surfaces agreeing needs "
+            f"{WITNESSES_A_COMPARISON_NEEDS}: one surface agrees with itself whatever it says"
+        )
+
     for key in SHARED_KEYS:
-        spellings = {name: canonical(answer.get(key)) for name, answer in answers.items()}
+        # Presence before agreement. `dict.get` returns None on both sides of a key nobody
+        # carries, the two agree, and the check passes having compared two absences.
+        absent = sorted(name for name, answer in answers.items() if key not in answer)
+        if absent:
+            faults.append(f"{absent} report no {key} at all, which every surface links")
+            continue
+        spellings = {name: canonical(answer[key]) for name, answer in answers.items()}
         if len(set(spellings.values())) > 1:
             grouped = sorted({value: name for name, value in spellings.items()}.values())
             faults.append(f"surfaces disagree on {key}, which every one of them links: {grouped}")
@@ -113,7 +132,8 @@ def check(manifest_path, answers):
 
     print(
         f"{len(answers)} of {len(committed)} surfaces reported and matched "
-        f"{manifest_path}, each owing {len(required)} operations"
+        f"{manifest_path}, each owing {len(required)} operations, "
+        f"agreeing across {len(answers)} surfaces on {len(SHARED_KEYS)} shared facts"
     )
 
 
