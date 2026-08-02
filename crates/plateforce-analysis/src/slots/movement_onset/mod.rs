@@ -127,6 +127,7 @@ pub(crate) struct OnsetOutcome {
 fn crossing(
     trial: &Trial,
     epoch: &WeighingEpoch,
+    takeoff_index: Option<usize>,
     choice: &MethodChoice,
     inherited_spread: (&str, bool),
     resolved: &mut Resolution,
@@ -137,9 +138,14 @@ fn crossing(
             relative_to_system_weight::crossing(trial, epoch, resolved)
         }
         "onset.threshold.absolute_force" => absolute_force::crossing(trial, epoch, resolved),
-        "onset.threshold.last_within_band" => {
-            last_within_band::crossing(trial, epoch, inherited_spread, resolved, warnings)
-        }
+        "onset.threshold.last_within_band" => last_within_band::crossing(
+            trial,
+            epoch,
+            takeoff_index,
+            inherited_spread,
+            resolved,
+            warnings,
+        ),
         "onset.threshold.adaptive_trailing_window" => {
             adaptive_trailing_window::crossing(trial, resolved)
         }
@@ -163,9 +169,12 @@ fn applies_backtrack(method_id: &str) -> bool {
     }
 }
 
+/// `takeoff_index` is what the takeoff slot settled, because one onset rule searches back
+/// from a landmark that only exists once the jump's end is known.
 pub(crate) fn resolve(
     trial: &Trial,
     epoch: &WeighingEpoch,
+    takeoff_index: Option<usize>,
     choice: &MethodChoice,
     inherited_spread: (&str, bool),
     warnings: &mut Vec<String>,
@@ -180,6 +189,7 @@ pub(crate) fn resolve(
     let found = crossing(
         trial,
         epoch,
+        takeoff_index,
         choice,
         inherited_spread,
         &mut resolved,

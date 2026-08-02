@@ -550,105 +550,105 @@ case onset absolute_force every value stated on synthetic
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset last_within_band bare on synthetic
   window 0..960
-  onset Some(1616)
+  onset Some(1175)
   takeoff Some(1920)
   touchdown Some(2520)
   levels 599.985 1.9610662971704482 Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(1.3466666666666667)
+  metric onset_time_seconds Some(0.9791666666666667)
   metric takeoff_time_seconds Some(1.6)
-  metric time_to_takeoff_seconds Some(0.25333333333333335)
+  metric time_to_takeoff_seconds Some(0.6208333333333333)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(1.6164970235009342)
-  metric net_impulse_newton_seconds Some(98.89962083333334)
-  metric jump_height_from_takeoff_meters Some(0.13322911631328638)
+  metric takeoff_velocity_meters_per_second Some(0.7233406063077482)
+  metric net_impulse_newton_seconds Some(44.255022222222216)
+  metric jump_height_from_takeoff_meters Some(0.026676879093964854)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.5259044064998146)
+  metric reactive_strength_index_modified Some(0.04296946968155413)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
   method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band k on synthetic
   window 0..960
-  onset Some(1615)
+  onset Some(1171)
   takeoff Some(1920)
   touchdown Some(2520)
   levels 599.985 1.9610662971704482 Some(594.1018011084886) Some(605.8681988915114) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(1.3458333333333334)
+  metric onset_time_seconds Some(0.9758333333333334)
   metric takeoff_time_seconds Some(1.6)
-  metric time_to_takeoff_seconds Some(0.2541666666666667)
+  metric time_to_takeoff_seconds Some(0.6241666666666668)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(1.6149308487212175)
-  metric net_impulse_newton_seconds Some(98.80380000000001)
-  metric jump_height_from_takeoff_meters Some(0.13297107810268705)
+  metric takeoff_velocity_meters_per_second Some(0.7233060097608901)
+  metric net_impulse_newton_seconds Some(44.25290555555555)
+  metric jump_height_from_takeoff_meters Some(0.026674327306277928)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.5231648974531948)
+  metric reactive_strength_index_modified Some(0.042735904896573446)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
   method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band inverse lookback on synthetic
   window 0..960
-  onset Some(1616)
+  onset Some(1175)
   takeoff Some(1920)
   touchdown Some(2520)
   levels 599.985 1.9610662971704482 Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(1.3466666666666667)
+  metric onset_time_seconds Some(0.9791666666666667)
   metric takeoff_time_seconds Some(1.6)
-  metric time_to_takeoff_seconds Some(0.25333333333333335)
+  metric time_to_takeoff_seconds Some(0.6208333333333333)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(1.6164970235009342)
-  metric net_impulse_newton_seconds Some(98.89962083333334)
-  metric jump_height_from_takeoff_meters Some(0.13322911631328638)
+  metric takeoff_velocity_meters_per_second Some(0.7233406063077482)
+  metric net_impulse_newton_seconds Some(44.255022222222216)
+  metric jump_height_from_takeoff_meters Some(0.026676879093964854)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.5259044064998146)
+  metric reactive_strength_index_modified Some(0.04296946968155413)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
   method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band back offset on synthetic
   window 0..960
-  onset Some(1592)
+  onset Some(1151)
   takeoff Some(1920)
   touchdown Some(2520)
   levels 599.985 1.9610662971704482 Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(1.3266666666666667)
+  metric onset_time_seconds Some(0.9591666666666667)
   metric takeoff_time_seconds Some(1.6)
-  metric time_to_takeoff_seconds Some(0.2733333333333334)
+  metric time_to_takeoff_seconds Some(0.6408333333333334)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(1.566377796067471)
-  metric net_impulse_newton_seconds Some(95.83325416666668)
-  metric jump_height_from_takeoff_meters Some(0.1250956952686793)
+  metric takeoff_velocity_meters_per_second Some(0.7233999925062921)
+  metric net_impulse_newton_seconds Some(44.25865555555555)
+  metric jump_height_from_takeoff_meters Some(0.026681259612513112)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.4576671778122413)
+  metric reactive_strength_index_modified Some(0.04163525557219211)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
   method onset.op.backward_offset_fixed backed false override false
   method takeoff.threshold.absolute_force backed false override false
 case onset last_within_band every value stated on synthetic
   window 0..960
-  onset Some(1639)
+  onset Some(1192)
   takeoff Some(1920)
   touchdown Some(2520)
   levels 599.985 1.9610662971704482 Some(596.0628674056591) Some(603.907132594341) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(1.3658333333333335)
+  metric onset_time_seconds Some(0.9933333333333334)
   metric takeoff_time_seconds Some(1.6)
-  metric time_to_takeoff_seconds Some(0.2341666666666667)
+  metric time_to_takeoff_seconds Some(0.6066666666666667)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(1.6399880107141562)
-  metric net_impulse_newton_seconds Some(100.33683333333333)
-  metric jump_height_from_takeoff_meters Some(0.13712943131885894)
+  metric takeoff_velocity_meters_per_second Some(0.7233371330323747)
+  metric net_impulse_newton_seconds Some(44.25480972222221)
+  metric jump_height_from_takeoff_meters Some(0.02667662290504379)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.5856061123937035)
+  metric reactive_strength_index_modified Some(0.043972455337984266)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
   method onset.op.backward_offset_fixed backed false override false
@@ -2163,21 +2163,21 @@ case bump onset relative_to_system_weight bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
 case bump onset last_within_band bare on pre_movement_bump
   window 0..960
-  onset Some(1776)
+  onset Some(963)
   takeoff Some(2080)
   touchdown Some(2680)
   levels 599.985 1.9610662971704482 Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
-  metric onset_time_seconds Some(1.4800000000000002)
+  metric onset_time_seconds Some(0.8025000000000001)
   metric takeoff_time_seconds Some(1.7333333333333334)
-  metric time_to_takeoff_seconds Some(0.25333333333333335)
+  metric time_to_takeoff_seconds Some(0.9308333333333334)
   metric flight_time_seconds Some(0.5)
-  metric takeoff_velocity_meters_per_second Some(1.6164970235009342)
-  metric net_impulse_newton_seconds Some(98.89962083333334)
-  metric jump_height_from_takeoff_meters Some(0.13322911631328638)
+  metric takeoff_velocity_meters_per_second Some(0.8543250396088566)
+  metric net_impulse_newton_seconds Some(52.26883888888888)
+  metric jump_height_from_takeoff_meters Some(0.037213078538679084)
   metric jump_height_from_flight_time_meters Some(0.3064578125)
-  metric reactive_strength_index_modified Some(0.5259044064998146)
+  metric reactive_strength_index_modified Some(0.039978240148983796)
   method bwepoch.fixed_window backed false override false
   method onset.threshold.last_within_band backed false override false
   method onset.op.backward_offset_fixed backed false override false
