@@ -508,3 +508,54 @@ fn the_dispersion_the_request_states_is_the_one_the_limits_use() {
     assert_ne!(sample.upper, population.upper);
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// A variant that failed is listed with its reason and stays in the denominator. A sweep that
+/// dropped it would report agreement between the methods that happened to work, over a count
+/// nobody could check, which is the failure this workstream exists to prevent one level down.
+#[test]
+fn a_variant_that_could_not_run_stays_in_the_denominator_with_its_reason() {
+    let directory = tempdir("compare-failed-variant");
+    // A trace that stands on the plate and never leaves it, so an onset rule looking for a
+    // departure finds none and its variant fails while the run continues.
+    let standing: String = (0..3600)
+        .map(|sample| format!("{}\n", 700.0 + ((sample % 7) as f64) * 0.05))
+        .collect();
+    std::fs::write(directory.join("standing.force.txt"), standing).unwrap();
+    let copied = copy_committed_fixtures(&directory);
+
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = compare(&set, &compare_request());
+
+    let trials = copied + 1;
+    let failed: Vec<&str> = result
+        .paired
+        .iter()
+        .filter(|row| !row.failure_reason.is_empty())
+        .map(|row| row.trial_id.as_str())
+        .collect();
+    println!(
+        "{} paired rows over {} trials x {} methods, {} carrying a reason",
+        result.paired.len(),
+        trials,
+        TWO_ONSET_RULES.len(),
+        failed.len()
+    );
+
+    assert_eq!(
+        result.paired.len(),
+        trials * TWO_ONSET_RULES.len(),
+        "every trial contributes a row per method, whether or not the method ran"
+    );
+    assert!(
+        !failed.is_empty(),
+        "the standing trace gives at least one variant nothing to find, or this check is \
+         watching a run where nothing failed"
+    );
+    for row in result.paired.iter().filter(|r| r.trial_id == "standing") {
+        assert!(
+            row.value.is_none() || !row.failure_reason.is_empty(),
+            "a row either carries a value or says why it does not: {row:?}"
+        );
+    }
+    std::fs::remove_dir_all(&directory).ok();
+}
