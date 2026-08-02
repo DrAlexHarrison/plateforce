@@ -3,6 +3,7 @@
     "bound_methods",
     "levels",
     "metrics",
+    "signals",
     "warnings"
   ],
   "result": {
@@ -345,6 +346,7 @@
         "value": 0.5337174348070586
       }
     ],
+    "signals": [],
     "warnings": []
   }
 }

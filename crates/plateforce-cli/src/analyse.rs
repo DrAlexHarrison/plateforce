@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+use plateforce_analysis::quality::QualitySignal;
 use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, Metric,
     WeighingChoice, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
@@ -349,6 +350,9 @@ fn render(
         .iter()
         .map(|(slot, refusal)| format!("{slot}: {refusal}"))
         .collect();
+    // What the software already knows about a number it is about to print. A value the
+    // browser flags and the pipe does not is a confident wrong number reaching a paper.
+    let signals = plateforce_analysis::quality::signals(response);
 
     let document = match format {
         Format::Json => canonical(&json!({
@@ -361,6 +365,7 @@ fn render(
             "levels": response.levels,
             "warnings": response.warnings,
             "refusals": refusals,
+            "signals": signals,
             "spread": spread,
         })),
         Format::Text => text_body(
@@ -370,6 +375,7 @@ fn render(
             args,
             renderer,
             &refusals,
+            &signals,
         ),
     };
 
@@ -381,6 +387,22 @@ fn render(
     }
 }
 
+/// What the software knows about a number, said where the reader is already looking.
+///
+/// A value, the threshold it passed, and an action naming the construct whose rule the
+/// reader would change. Never a verdict, and never a block at the end of the document,
+/// where a reader scanning the values does not go.
+fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
+    let head = match signal.value {
+        Some(value) => format!(
+            "{}: {:.1} {}, past {:.0} {}.",
+            signal.label, value, signal.unit, signal.threshold, signal.unit
+        ),
+        None => format!("{}: not comparable.", signal.label),
+    };
+    renderer.wrap(&format!("{head} {}", signal.remedy), 6)
+}
+
 fn text_body(
     response: &AnalysisResponse,
     spread: Option<&plateforce_analysis::spread::SpreadResponse>,
@@ -388,6 +410,7 @@ fn text_body(
     args: &Args,
     renderer: &Renderer,
     refusals: &[String],
+    signals: &[QualitySignal],
 ) -> String {
     let mut document = String::new();
     let widest = response
@@ -397,6 +420,7 @@ fn text_body(
         .max()
         .unwrap_or(0);
 
+    let mut said: Vec<usize> = Vec::new();
     for metric in &response.metrics {
         match metric.value {
             Some(value) => {
@@ -414,6 +438,16 @@ fn text_body(
                     "  {:<widest$}  {:>12} {}",
                     metric.label, "no value", metric.unit_symbol
                 );
+            }
+        }
+        // A signal qualifying several metrics is said once, under the first of them to
+        // appear, rather than repeated under each.
+        for (index, signal) in signals.iter().enumerate() {
+            if signal.qualifies.iter().any(|key| *key == metric.key) && !said.contains(&index) {
+                said.push(index);
+                for line in describe_signal(signal, renderer) {
+                    let _ = writeln!(document, "{line}");
+                }
             }
         }
     }

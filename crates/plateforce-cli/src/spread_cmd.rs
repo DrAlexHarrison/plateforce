@@ -144,7 +144,7 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
     // over the ones that worked is a spread over a set nobody chose.
     for variant in response.variants.iter().filter(|v| v.value.is_none()) {
         let reason = variant.failure_reason.as_deref().unwrap_or("no value");
-        let _ = write!(block, "\n");
+        block.push('\n');
         let lines = renderer.wrap(&format!("{}: {reason}", variant.label), 4);
         let _ = write!(block, "{}", lines.join("\n"));
     }
