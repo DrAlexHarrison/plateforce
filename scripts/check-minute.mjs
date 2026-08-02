@@ -468,6 +468,72 @@ check('no number animates to its new value',
   animated.length === 0,
   animated.length ? animated.map(([what, property]) => `${what} transitions ${property}`).join(', ') : 'every numeric surface repaints in one frame');
 
+// The one large figure on the page is the disagreement, not the measurement. Leading with
+// a measurement silently resolves a live debate in favour of the side that reads loudest.
+const hierarchy = await evaluate(`(() => {
+  const size = (selector) => Math.max(0, ...[...document.querySelectorAll(selector)]
+    .map((node) => parseFloat(getComputedStyle(node).fontSize)));
+  return { spread: size('.spread-headline__figure'), metric: size('.metric__value') };
+})()`);
+check('the spread is the largest figure on the page',
+  hierarchy.spread > hierarchy.metric,
+  `spread headline ${hierarchy.spread} px against the largest metric ${hierarchy.metric} px`);
+
+// Five states of a value, and a reader has to be able to tell them apart without reading
+// the words. Compared as rendered, in both themes, because a token that collapses two of
+// them in dark mode alone would be invisible in a light-mode screenshot.
+const states = await evaluate(`(async () => {
+  // A freshly opened trial, so the provisional state is actually on screen. Read after
+  // everything has been resolved, this check would be comparing three states and calling
+  // it four.
+  (await import('./workspace.js')).enterWorkspace();
+  // Owen's onset rule, which runs a sub-rule the registry says to display unasked. The
+  // weighing choice is left open, so the provisional state is on screen at the same time
+  // and all four states can be compared in one paint.
+  const onset = document.querySelector('#decision-list select[data-construct="movement_onset"]');
+  if (onset) {
+    onset.value = 'onset.threshold.noise_relative';
+    onset.dispatchEvent(new Event('change'));
+  }
+  const seen = {};
+  for (const theme of ['light', 'dark']) {
+    document.documentElement.dataset.theme = theme;
+    const paint = (node) => {
+      if (!node) return null;
+      const style = getComputedStyle(node);
+      return [style.backgroundColor, style.borderStyle, style.borderColor, style.color].join(' ');
+    };
+    // Both cards are non-headline, so the only thing that differs between them is the
+    // state under test. A headline card carries its own paint and would read as a
+    // difference this check did not make.
+    seen[theme] = {
+      provisional: paint(document.querySelector('.metric:not(.metric--headline).metric--provisional')),
+      resolved: paint(document.querySelector('.metric:not(.metric--headline):not(.metric--provisional)')),
+      warned: paint(document.querySelector('.metric__signal')),
+      absent: paint(document.querySelector('.metric__value--absent')) ?? 'no absent value on this trial',
+      displayed: paint(document.querySelector('.ran-beside__row--default-and-show')),
+    };
+  }
+  document.documentElement.dataset.theme = 'auto';
+  return seen;
+})()`);
+const collapsed = [];
+for (const [theme, painted] of Object.entries(states)) {
+  const drawn = Object.entries(painted).filter(([, value]) => value && value !== 'no absent value on this trial');
+  for (let i = 0; i < drawn.length; i += 1) {
+    for (let j = i + 1; j < drawn.length; j += 1) {
+      if (drawn[i][1] === drawn[j][1]) collapsed.push(`${theme}: ${drawn[i][0]} and ${drawn[j][0]}`);
+    }
+  }
+}
+const read = Object.values(states).flatMap((painted) =>
+  Object.entries(painted).filter(([, value]) => value && value !== 'no absent value on this trial'));
+check('provisional, resolved, warned and displayed-unasked are told apart without reading',
+  collapsed.length === 0 && read.length >= 8,
+  collapsed.length
+    ? `render identically, ${collapsed.join('; ')}`
+    : `${read.length} states read across two themes, all distinct`);
+
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
 const failed = results.filter((result) => !result.passed);

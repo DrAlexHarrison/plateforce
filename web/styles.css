@@ -485,12 +485,15 @@ select { cursor: pointer; }
 .metric__value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: 600;
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
-.metric--headline .metric__value { font-size: var(--text-2xl); }
+/* One step under the spread, and one step over the rest. The one large figure on the page
+   is the disagreement rather than any measurement: leading with a measurement settles a
+   live debate in favour of whichever side reads loudest. */
+.metric--headline .metric__value { font-size: var(--text-xl); }
 .metric__value small { font-size: var(--text-md); font-weight: 500; color: var(--text-secondary); margin-left: var(--space-1); }
 .metric__value--absent { font-size: var(--text-md); color: var(--text-tertiary); font-family: var(--font-body); font-weight: 500; }
 .metric__note { font-size: var(--text-xs); color: var(--text-secondary); }
@@ -790,8 +793,8 @@ table.data td.failed { color: var(--danger); white-space: normal; }
   .dropzone__actions .button { flex: 1 1 auto; }
   .chart { height: 300px; }
   .metric-grid { grid-template-columns: minmax(0, 1fr); }
-  .metric__value { font-size: var(--text-lg); }
-  .metric--headline .metric__value { font-size: var(--text-xl); }
+  .metric__value { font-size: var(--text-md); }
+  .metric--headline .metric__value { font-size: var(--text-lg); }
   .spread-headline__figure { font-size: var(--text-xl); }
   .privacy-badge span { display: none; }
   .privacy-badge { padding: var(--space-2); }
