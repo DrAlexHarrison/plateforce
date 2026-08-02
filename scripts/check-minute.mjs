@@ -335,6 +335,80 @@ check('every control carries a name a screen reader can read',
   narrow.unlabelled.length === 0,
   narrow.unlabelled.join(', ') || `${narrow.counted} controls checked`);
 
+// Where each bound value came from. The severest defect this build can carry is a
+// fingerprint claiming the reader chose a value they were never shown, so the record is
+// read back off the running page after each of the three acts that write it.
+const provenance = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const workspace = await import('./workspace.js');
+  const names = (set) => [...(set ?? [])].sort();
+
+  // Back to a trial just opened, through the path a reader takes rather than by resetting
+  // the state directly, so what is read back is what a reader would have.
+  workspace.enterWorkspace();
+  const beforeAnyAct = Object.fromEntries(state.slots.map((slot) => [slot.construct, {
+    method: state.selection[slot.key].methodId,
+    fromDefault: names(state.selection[slot.key].fromDefault),
+    recommended: names(state.selection[slot.key].recommended),
+  }]));
+
+  analysis.acceptRecommended();
+  const afterTakingTheRecommendation = Object.fromEntries(state.slots.map((slot) => [slot.construct, {
+    fromDefault: names(state.selection[slot.key].fromDefault),
+    recommended: names(state.selection[slot.key].recommended),
+    methodFromRecommendation: state.selection[slot.key].methodFromRecommendation === true,
+  }]));
+
+  const select = [...document.querySelectorAll('#decision-list .decision')]
+    .find((row) => row.querySelector('select[data-construct="movement_onset"]'))
+    ?.querySelector('.param select');
+  let afterPickingByHand = null;
+  if (select) {
+    const picked = select.id.replace(/^param-[a-z_]+-/, '');
+    select.value = select.options[select.options.length - 1].value;
+    select.dispatchEvent(new Event('change'));
+    const onset = state.slots.find((slot) => slot.construct === 'movement_onset');
+    afterPickingByHand = {
+      picked,
+      fromDefault: names(state.selection[onset.key].fromDefault),
+      recommended: names(state.selection[onset.key].recommended),
+      untouched: Object.keys(state.selection[onset.key].values).filter((name) => name !== picked),
+    };
+  }
+  return { beforeAnyAct, afterTakingTheRecommendation, afterPickingByHand };
+})()`);
+
+const onsetBefore = provenance.beforeAnyAct.movement_onset;
+const onsetAfter = provenance.afterTakingTheRecommendation.movement_onset;
+check('before any act, a forced slot claims no rule and no value',
+  onsetBefore.method === null && onsetBefore.fromDefault.length === 0 && onsetBefore.recommended.length === 0,
+  `movement_onset: rule ${onsetBefore.method}, from a default ${JSON.stringify(onsetBefore.fromDefault)}, recommended ${JSON.stringify(onsetBefore.recommended)}`);
+
+check('taking the recommendation records it as the one act it is',
+  onsetAfter.recommended.length > 0 && onsetAfter.methodFromRecommendation,
+  `movement_onset: recommended ${JSON.stringify(onsetAfter.recommended)}, the rule too ${onsetAfter.methodFromRecommendation}`);
+
+// The trap: a parameter already sitting on a slot nobody was asked about was not accepted
+// by that click, so it stays a default rather than borrowing the reader's signature. A slot
+// that never forced a decision is opened with its rule already bound, which is where most
+// of these values are.
+const takeoffAfter = provenance.afterTakingTheRecommendation.takeoff;
+check('a value nobody was asked about is recorded as a default rather than as a choice',
+  takeoffAfter.fromDefault.length > 0 && takeoffAfter.recommended.length === 0,
+  `takeoff: from a default ${JSON.stringify(takeoffAfter.fromDefault)}, recommended ` +
+  `${JSON.stringify(takeoffAfter.recommended)}. An empty pair here means the opening selection ` +
+  `claims the reader stated it`);
+
+const picked = provenance.afterPickingByHand;
+check('a value picked by hand belongs to no other source, and its neighbours keep theirs',
+  picked !== null && !picked.fromDefault.includes(picked.picked) && !picked.recommended.includes(picked.picked) &&
+    picked.untouched.every((name) => picked.fromDefault.includes(name) || picked.recommended.includes(name)),
+  picked
+    ? `picked ${picked.picked}; from a default ${JSON.stringify(picked.fromDefault)}, recommended ` +
+      `${JSON.stringify(picked.recommended)}, untouched ${JSON.stringify(picked.untouched)}`
+    : 'no parameter control to pick from');
+
 // The engine computes this signal and has no way to hand it to a browser yet, so the
 // transport is what is missing rather than the maths. This checks the drawing half only,
 // against a signal shaped exactly as the engine serialises one, and says so.

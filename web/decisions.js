@@ -2,9 +2,9 @@
 
 import { $, state } from './state.js';
 import { element } from './format.js';
-import { rankCandidates, initialParameters, findMethod } from './registry.js';
+import { rankCandidates, findMethod } from './registry.js';
 import { candidateFor } from './startup.js';
-import { runAnalysis, acceptRecommended } from './analysis.js';
+import { runAnalysis, acceptRecommended, recordStated, selectionFromChosenRule } from './analysis.js';
 import { openDrawer } from './drawer.js';
 
 /*
@@ -100,7 +100,7 @@ function renderSlot(slot) {
   }
   select.addEventListener('change', () => {
     const candidate = candidateFor(slot.key, select.value);
-    state.selection[slot.key] = { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) };
+    state.selection[slot.key] = selectionFromChosenRule(candidate, slot.forcesDecision);
     renderDecisions();
     runAnalysis();
   });
@@ -221,6 +221,7 @@ function renderParameters(slot, candidate, selection) {
       select.addEventListener('change', () => {
         selection.values[parameter.name] = Number(select.value);
         selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
+        recordStated(selection, parameter.name);
         renderDecisions();
         runAnalysis();
       });
@@ -233,6 +234,7 @@ function renderParameters(slot, candidate, selection) {
       input.value = String(selection.values[parameter.name] ?? parameter.default ?? values[0] ?? '');
       input.addEventListener('change', () => {
         selection.values[parameter.name] = Number(input.value);
+        recordStated(selection, parameter.name);
         runAnalysis();
       });
       row.append(input);

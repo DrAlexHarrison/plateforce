@@ -24,6 +24,44 @@ export function boundMethodId(slotKey) {
   return rankCandidates(slot?.available || [])[0]?.id || null;
 }
 
+/*
+ * Where each bound value came from, tracked as the reader acts rather than inferred after.
+ *
+ * Two sets per slot, both naming entries in the slot's parameters. A name in `fromDefault`
+ * is a registry default nobody was asked about. A name in `recommended` was filled by the
+ * one act of taking the recommendation. A name in neither was stated by the reader.
+ *
+ * The clearing is the load-bearing half. A name left in `fromDefault` after the reader
+ * typed over it under-claims an act that did happen; a name left in `recommended` after
+ * they hand-picked claims one that did not, which forges a signature. Without this the
+ * browser sends a registry default the reader never saw as a value they stated.
+ */
+export function withSources(selection) {
+  selection.fromDefault ??= new Set();
+  selection.recommended ??= new Set();
+  return selection;
+}
+
+/* The reader supplied this value themselves, so it belongs to no other source. */
+export function recordStated(selection, name) {
+  withSources(selection);
+  selection.fromDefault.delete(name);
+  selection.recommended.delete(name);
+}
+
+/* A rule the reader picked, with every parameter the registry filled in behind it. They
+ * chose the rule and were not asked about any of those values. */
+export function selectionFromChosenRule(candidate, forcesDecision) {
+  const filled = initialParameters(candidate, forcesDecision);
+  return {
+    methodId: candidate.id,
+    ...filled,
+    fromDefault: new Set(Object.keys(filled.values)),
+    recommended: new Set(),
+    methodFromRecommendation: false,
+  };
+}
+
 /* The slots running under a rule nobody picked, and therefore the values that carry the
  * provisional state and the exports that refuse. */
 export function provisionallyBoundSlots() {
@@ -118,17 +156,26 @@ export function notice(kind, title, body) {
  * one. It is not the same as never having been asked. */
 export function acceptRecommended() {
   for (const slot of state.slots) {
-    const selection = state.selection[slot.key];
-    if (!selection.methodId && slot.available.length) {
+    const before = withSources(state.selection[slot.key]);
+    const pickedTheRule = !before.methodId && slot.available.length > 0;
+    if (pickedTheRule) {
       const candidate = rankCandidates(slot.available)[0];
-      state.selection[slot.key] = { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) };
+      state.selection[slot.key] = selectionFromChosenRule(candidate, slot.forcesDecision);
+      state.selection[slot.key].methodFromRecommendation = true;
     }
-    const candidate = candidateFor(slot.key, state.selection[slot.key].methodId);
-    for (const name of state.selection[slot.key].unresolved || []) {
+
+    const selection = withSources(state.selection[slot.key]);
+    const candidate = candidateFor(slot.key, selection.methodId);
+    // Only the names this click fills. A parameter that was already sitting there came
+    // from the registry with nobody asked, and the reader accepted the rule rather than
+    // that value, so marking it recommended would be a silent default wearing a signature.
+    for (const name of selection.unresolved || []) {
       const parameter = (candidate?.method?.parameter || []).find((entry) => entry.name === name);
-      state.selection[slot.key].values[name] = parameter?.default ?? parameter?.published_values?.[0];
+      selection.values[name] = parameter?.default ?? parameter?.published_values?.[0];
+      selection.recommended.add(name);
+      selection.fromDefault.delete(name);
     }
-    state.selection[slot.key].unresolved = [];
+    selection.unresolved = [];
   }
   renderDecisions();
   runAnalysis();

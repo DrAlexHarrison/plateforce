@@ -6,11 +6,12 @@ import { element, showStage } from './format.js';
 import { windowLengthParameter } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
-import { runAnalysis } from './analysis.js';
+import { runAnalysis, recordStated, withSources } from './analysis.js';
 
 export function enterWorkspace() {
   state.overrides = { onset: null, takeoff: null, touchdown: null };
   resetSelections();
+  recordTheOpeningSelection();
   showStage('stage-workspace');
 
   const info = JSON.parse(state.loadedTrial.infoJson());
@@ -35,12 +36,20 @@ export function enterWorkspace() {
         // rebinds the method rather than overriding whichever rule was selected.
         state.weighing = { startIndex };
         const placed = candidateFor('weighing', 'bwepoch.manual_placement');
-        if (placed) state.selection.weighing = { methodId: placed.id, values: {}, unresolved: [] };
-        const selection = state.selection.weighing;
+        // A window placed by hand is the reader's own statement, and a stronger one than a
+        // pick from a list: the span they dragged to is in no paper.
+        if (placed) {
+          state.selection.weighing = {
+            methodId: placed.id, values: {}, unresolved: [],
+            fromDefault: new Set(), recommended: new Set(), methodFromRecommendation: false,
+          };
+        }
+        const selection = withSources(state.selection.weighing);
         const length = windowLengthParameter(candidateFor('weighing', selection.methodId));
         if (length) {
           selection.values[length] = durationSeconds;
           selection.unresolved = (selection.unresolved || []).filter((name) => name !== length);
+          recordStated(selection, length);
         }
         renderDecisions();
         runAnalysis();
@@ -53,6 +62,22 @@ export function enterWorkspace() {
   refreshEnvelope();
   renderDecisions();
   runAnalysis();
+}
+
+/*
+ * Everything the software bound before the reader arrived, stamped beside the call that
+ * binds it.
+ *
+ * A slot that forces no decision opens with its rule already chosen and its registry
+ * defaults already filled, so this is where most defaulted values on the page enter, and
+ * every one of them would otherwise be indistinguishable from a value the reader stated.
+ */
+function recordTheOpeningSelection() {
+  for (const slot of state.slots) {
+    const selection = withSources(state.selection[slot.key]);
+    if (!selection.methodId) continue;
+    for (const name of Object.keys(selection.values)) selection.fromDefault.add(name);
+  }
 }
 
 export function refreshEnvelope() {
