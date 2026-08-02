@@ -448,5 +448,14 @@ mod tests {
                 serde_spelling(&detectability)
             );
         }
+        for boundary in [
+            Boundary::Protocol,
+            Boundary::Equipment,
+            Boundary::Both,
+            Boundary::Source,
+            Boundary::Undetermined,
+        ] {
+            assert_eq!(boundary.as_registry_str(), serde_spelling(&boundary));
+        }
     }
 }
