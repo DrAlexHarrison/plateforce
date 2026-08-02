@@ -66,7 +66,7 @@ function renderLegend() {
   const entries = [
     ['var(--trace)', 'vGRF'],
     ['var(--accent)', 'System weight and the k SD band'],
-    ['var(--danger)', 'The force takeoff is called at'],
+    ['var(--mark-threshold)', 'The force takeoff is called at'],
     ['var(--track-onset)', 'Start of the jump'],
     ['var(--track-takeoff)', 'Takeoff'],
     ['var(--track-touchdown)', 'Touchdown'],

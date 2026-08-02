@@ -18,6 +18,7 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { validate } from './validate_palette.js';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8741)];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
@@ -172,6 +173,26 @@ const swept = paint.spreadRows.map((row) => row[1]).filter(Boolean);
 check('the swept setting moved the number',
   new Set(swept).size > 1,
   `${new Set(swept).size} distinct values across ${swept.length} rules: ${swept.join(', ')}`);
+
+// The three landmark tracks are read back from the running page rather than from the
+// stylesheet, so what is checked is what renders, in the theme it renders in.
+for (const theme of ['light', 'dark']) {
+  const tokens = await evaluate(`(() => {
+    document.documentElement.dataset.theme = ${JSON.stringify(theme)};
+    const read = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return ['--track-onset', '--track-takeoff', '--track-touchdown'].map(read);
+  })()`);
+  const { report, ok } = validate(tokens, {
+    mode: theme,
+    surface: theme === 'dark' ? '#12171c' : '#ffffff',
+    pairs: 'all',
+  });
+  const worst = report.filter(([name]) => name.includes('vision') || name.includes('CVD') || name.includes('Lightness'));
+  check(`the three landmark tracks pass every computable check in ${theme}`,
+    ok,
+    `${tokens.join(', ')} | ${worst.map(([name, , detail]) => `${name}: ${detail}`).join(' | ')}`);
+}
+await evaluate("document.documentElement.dataset.theme = 'auto'");
 
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 

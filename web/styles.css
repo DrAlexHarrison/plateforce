@@ -30,9 +30,16 @@
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  --track-onset: #b45309;
-  --track-takeoff: #b81d5b;
-  --track-touchdown: #1b5fa8;
+  /* Three landmark tracks at one lightness and one chroma, so no landmark outranks
+   * another by accident, and the same three hues in both modes so the dark set is the
+   * measured counterpart of the light one rather than a second hand-picked palette.
+   * Acceptance is scripts/validate_palette.js, not an opinion. A status colour never
+   * draws a mark on the trace: the takeoff rule's threshold is not a landmark, so it
+   * takes ink and a dash rather than a hue. */
+  --track-onset: #b54f05;
+  --track-takeoff: #a8488d;
+  --track-touchdown: #2172c6;
+  --mark-threshold: var(--text-tertiary);
 
   color-scheme: light;
   --surface: #ffffff;
@@ -83,9 +90,9 @@
   --trace: #cfd9e2;
   --grid: #202832;
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
-  --track-onset: #e0a33c;
-  --track-takeoff: #f27ba6;
-  --track-touchdown: #6ea8e8;
+  --track-onset: #d76e33;
+  --track-takeoff: #c967ac;
+  --track-touchdown: #4492e7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -113,9 +120,9 @@
     --trace: #cfd9e2;
     --grid: #202832;
     --shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
-    --track-onset: #e0a33c;
-    --track-takeoff: #f27ba6;
-    --track-touchdown: #6ea8e8;
+    --track-onset: #d76e33;
+    --track-takeoff: #c967ac;
+    --track-touchdown: #4492e7;
   }
 }
 
