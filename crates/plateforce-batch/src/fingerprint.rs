@@ -142,4 +142,54 @@ mod tests {
         assert!(id.starts_with("content-"), "{id}");
         assert_eq!(id.len(), "content-".len() + 16);
     }
+
+    fn run_row() -> RunRow {
+        RunRow {
+            plateforce_version: "0.1.0".to_string(),
+            registry_version: String::new(),
+            registry_digest: "content-0".to_string(),
+            request_digest: "content-1".to_string(),
+            files_found: 6,
+            files_unidentified: 0,
+            trial_count: 6,
+            computed_count: 6,
+            refusal_count: 0,
+            acquisition_complete_count: 0,
+            trials_excluded: 0,
+            gates_reporting: 0,
+            gates_applied: 0,
+            distinct_provenance_count: 2,
+            trial_identity: "file_stem".to_string(),
+            run_fingerprint: String::new(),
+        }
+    }
+
+    fn ids(first: &str, second: &str) -> BTreeSet<String> {
+        [first.to_string(), second.to_string()]
+            .into_iter()
+            .collect()
+    }
+
+    /// How many distinct chains a run held is already a field on the row, so only the chains
+    /// themselves separate two runs that walked the same files under the same request and
+    /// resolved different methods on them.
+    #[test]
+    fn two_runs_that_ran_different_rules_the_same_number_of_ways_differ() {
+        let row = run_row();
+        let left = run_fingerprint(&row, &ids("content-aaa", "content-bbb"));
+        let right = run_fingerprint(&row, &ids("content-ccc", "content-ddd"));
+        assert_ne!(
+            left, right,
+            "these two runs held the same number of chains and not the same chains"
+        );
+    }
+
+    #[test]
+    fn one_run_fingerprints_the_same_way_twice() {
+        let row = run_row();
+        assert_eq!(
+            run_fingerprint(&row, &ids("content-aaa", "content-bbb")),
+            run_fingerprint(&row, &ids("content-bbb", "content-aaa"))
+        );
+    }
 }

@@ -2,7 +2,10 @@
 
 mod common;
 
-use common::{bound_request, committed_format, copy_committed_fixtures, registry, tempdir};
+use common::{
+    bound_request, committed_format, copy_committed_fixtures, declared_pattern, registry,
+    synthetic_format, tempdir,
+};
 use plateforce_batch::{analyse, BatchRequest, TrialIdentity, TrialSet};
 
 #[test]
@@ -64,6 +67,57 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
         .run
         .check_invariants()
         .expect("the run keeps its own arithmetic");
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// `refusals` is keyed by trial and ordinal rather than by trial alone, because a trial that
+/// computed some numbers and declined a landmark carries several rows. Keying it by trial
+/// would let one decline overwrite another and report fewer than happened.
+#[test]
+fn a_trial_that_declined_more_than_once_keeps_a_row_for_each_decline() {
+    let directory = tempdir("refusal-ordinals");
+    plateforce_batch::synthetic::write_corpus(&directory, 2, 2, 7).unwrap();
+    // Two names the declared template cannot parse, so both refuse under one trial id.
+    for name in ["notes.txt", "second_note.txt"] {
+        std::fs::write(directory.join(name), "0\n0\n0\n").unwrap();
+    }
+    let set = TrialSet::walk(&directory, &synthetic_format(), &declared_pattern()).unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).expect("every choice was made");
+
+    let mut keys: Vec<(&str, usize)> = result
+        .refusals
+        .iter()
+        .map(|row| (row.trial_id.as_str(), row.ordinal))
+        .collect();
+    let rows = keys.len();
+    keys.sort_unstable();
+    keys.dedup();
+    println!(
+        "refusal rows {rows}, distinct trial and ordinal pairs {}",
+        keys.len()
+    );
+    assert_eq!(
+        keys.len(),
+        rows,
+        "trial and ordinal together key the relation"
+    );
+
+    let busiest = result
+        .refusals
+        .iter()
+        .map(|row| {
+            result
+                .refusals
+                .iter()
+                .filter(|other| other.trial_id == row.trial_id)
+                .count()
+        })
+        .max()
+        .unwrap_or(0);
+    assert!(
+        busiest >= 2,
+        "one id carried {busiest} rows, so the ordinal was never asked to do anything"
+    );
     std::fs::remove_dir_all(&directory).ok();
 }
 
