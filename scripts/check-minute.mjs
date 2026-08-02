@@ -35,10 +35,21 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(port, resolve));
 
+// Its own process group, so the browser and every renderer it spawns go together. A
+// browser is a tree, and terminating the process that was launched leaves the rest of it
+// running; this script is meant to be run many times over while a guard is broken and put
+// back, and one leaked tree per run reaches the hundreds.
 const chrome = spawn('google-chrome', [
   '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
   '--disable-gpu', `--user-data-dir=/tmp/plateforce-check-minute-${port}`, 'about:blank',
-], { stdio: 'ignore' });
+], { stdio: 'ignore', detached: true });
+
+// On every exit rather than on the one at the bottom: a check that times out waiting for
+// the page leaves through a thrown error, which is exactly the run whose browser nobody
+// closes.
+process.on('exit', () => {
+  try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
+});
 
 const targets = await (async () => {
   for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -582,6 +593,5 @@ for (const result of results) {
 console.log(`\n${results.length - failed.length} of ${results.length} checks passed`);
 
 socket.close();
-chrome.kill();
 server.close();
 process.exit(failed.length ? 1 : 0);
