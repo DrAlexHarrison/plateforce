@@ -7,6 +7,8 @@
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
 
+use serde::{Deserialize, Serialize};
+
 pub mod acquisition;
 pub mod agreement;
 pub mod baseline_offset;
@@ -61,23 +63,18 @@ pub use gravity::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 /// Reported alongside every computed quantity so a number never travels without the
 /// choices that produced it. The absence of anything like this across the seven open
 /// force-plate tools is what the registry exists to fix.
-#[derive(Debug, Clone, PartialEq)]
+/// Field order is the wire order every surface is compared against, so it is a contract
+/// rather than a local preference. The first seven are the shared schema; the rest follow it
+/// and default when absent, so a record written against the shared schema alone still reads.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Provenance {
     pub method_id: String,
-    /// Where the method itself came from: chosen by the caller, or accepted from the
-    /// registry's recommendation. A bulk acceptance and a considered pick used to produce
-    /// byte-identical records.
-    pub method_source: crate::provenance::ParameterSource,
     /// Every numeric value the rule read, each carrying where it came from. A value the
     /// caller typed and one the interface pre-filled move the number identically, so the
     /// record has to keep them apart.
     pub parameters: Vec<crate::provenance::ParameterRecord>,
     /// Choices between named alternatives, which move the number as far as the numbers do.
     pub choices: Vec<crate::provenance::ChoiceRecord>,
-    /// The provenance of each result this one was computed from. Jump height moves with the
-    /// onset rule and the weighing epoch, so a record naming only the last step understates
-    /// what produced it.
-    pub depends_on: Vec<Provenance>,
     /// The revision a caller pinned, and None when they pinned none.
     pub registry_version: Option<String>,
     /// Digest of the registry files that were read, measured rather than declared, so it
@@ -86,15 +83,40 @@ pub struct Provenance {
     /// False when the acquisition block could not be filled, in which case this result
     /// must never be declared to match another lab's.
     pub acquisition_complete: bool,
+    /// The provenance of each result this one was computed from. Jump height moves with the
+    /// onset rule and the weighing epoch, so a record naming only the last step understates
+    /// what produced it.
+    pub depends_on: Vec<Provenance>,
+    /// Where the method itself came from: chosen by the caller, or accepted from the
+    /// registry's recommendation. A bulk acceptance and a considered pick used to produce
+    /// byte-identical records.
+    #[serde(default = "method_source_default")]
+    pub method_source: crate::provenance::ParameterSource,
     /// Names the request carried that this rule does not read, reported rather than dropped.
+    #[serde(default)]
     pub not_read: Vec<String>,
     /// Set when a marker was dragged. The strongest provenance fact a record can carry, and
     /// an export that lost it would be exportable and wrong.
+    #[serde(default)]
     pub manual_override: bool,
     /// False when no registry row carries this id.
+    #[serde(default = "registry_entry_default")]
     pub registry_entry: bool,
     /// The entry this rule composes, when it is a composition rather than an entry.
+    #[serde(default)]
     pub composed_from: Option<String>,
+}
+
+/// A record that says nothing about how its method was chosen says the caller chose it, which
+/// is the claim `Provenance::of` already makes.
+fn method_source_default() -> crate::provenance::ParameterSource {
+    crate::provenance::ParameterSource::Stated
+}
+
+/// A record silent either way is a registry entry, because the absence of a row is the
+/// exceptional case and the one worth stating.
+fn registry_entry_default() -> bool {
+    true
 }
 
 impl Provenance {
@@ -141,7 +163,9 @@ impl Provenance {
 }
 
 /// A value and the choices that produced it. Nothing user-facing returns a bare f64.
-#[derive(Debug, Clone, PartialEq)]
+///
+/// `unit` is a fixed string the registry spells, so this serialises and does not deserialise.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Measured {
     pub value: f64,
     pub unit: &'static str,

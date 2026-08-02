@@ -293,6 +293,73 @@ mod tests {
         assert_eq!(provisional_sources(&root).len(), 2);
     }
 
+    /// The record as the shared cross-surface schema spells it, pasted rather than built, so
+    /// this fails if the shape drifts from the document every surface is written against.
+    const SHARED_SCHEMA_RECORD: &str = r#"{
+      "method_id": "jumpheight.takeoff.impulse_momentum",
+      "parameters": [
+        { "name": "gravity_meters_per_second_squared", "value": 9.80665, "source": "assumed" }
+      ],
+      "choices": [],
+      "registry_version": "2026-07-25",
+      "registry_digest": "content-a14543984c4ed7d2",
+      "acquisition_complete": false,
+      "depends_on": [
+        {
+          "method_id": "onset.threshold.noise_relative",
+          "parameters": [ { "name": "k", "value": 5.0, "source": "stated" } ],
+          "choices": [
+            { "name": "degenerate_band", "value": "refuse", "source": "assumed" },
+            { "name": "sd_convention", "value": "sample", "source": "assumed" }
+          ],
+          "registry_version": "2026-07-25",
+          "registry_digest": "content-a14543984c4ed7d2",
+          "acquisition_complete": false,
+          "depends_on": []
+        }
+      ]
+    }"#;
+
+    #[test]
+    fn a_record_written_to_the_shared_schema_reads_back_unchanged() {
+        let parsed: Provenance = serde_json::from_str(SHARED_SCHEMA_RECORD).unwrap();
+        assert_eq!(parsed.method_id, "jumpheight.takeoff.impulse_momentum");
+        assert_eq!(parsed.depends_on.len(), 1);
+        assert_eq!(parsed.depends_on[0].choices.len(), 2);
+        assert!(!parsed.acquisition_complete);
+
+        // Re-serialising adds the fields beyond the shared schema, so the assertion is that
+        // the record survives the trip, not that the two texts match.
+        let written = serde_json::to_string(&parsed).unwrap();
+        let read_back: Provenance = serde_json::from_str(&written).unwrap();
+        assert_eq!(parsed, read_back);
+    }
+
+    #[test]
+    fn the_shared_schema_keys_are_written_in_the_order_every_surface_compares() {
+        let written = serde_json::to_string(
+            &serde_json::from_str::<Provenance>(SHARED_SCHEMA_RECORD).unwrap(),
+        )
+        .unwrap();
+        let shared = [
+            "\"method_id\"",
+            "\"parameters\"",
+            "\"choices\"",
+            "\"registry_version\"",
+            "\"registry_digest\"",
+            "\"acquisition_complete\"",
+            "\"depends_on\"",
+        ];
+        let mut previous = 0;
+        for key in shared {
+            let at = written
+                .find(key)
+                .unwrap_or_else(|| panic!("{key} is not written"));
+            assert!(at > previous, "{key} is out of the shared order");
+            previous = at;
+        }
+    }
+
     #[test]
     fn every_source_value_carries_its_declared_wire_spelling() {
         let spellings = [
