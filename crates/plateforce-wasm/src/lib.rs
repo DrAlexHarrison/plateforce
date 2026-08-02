@@ -199,12 +199,15 @@ impl LoadedTrial {
         Ok(LoadedTrial { trial, info })
     }
 
-    /// The synthetic trial the interface opens with, so the tool is explorable with no
-    /// data at hand and no recorded subject involved.
+    /// The trial the interface opens with, so the tool is explorable with no data at hand.
+    ///
+    /// Recorded rather than drawn. Sweeping the published rules for the start of the jump
+    /// moves the height by 1.9 cm on this trace and by 0.04 mm on the drawn one, so the
+    /// drawn one cannot show what choosing a method costs.
     #[wasm_bindgen(js_name = demonstration)]
     pub fn demonstration() -> LoadedTrial {
-        let trial = demo::synthetic_countermovement_jump();
-        let info = describe(&trial, 0, "none", 0, true);
+        let trial = demo::recorded_countermovement_jump();
+        let info = describe(&trial, 0, "none", 0, false);
         LoadedTrial { trial, info }
     }
 
