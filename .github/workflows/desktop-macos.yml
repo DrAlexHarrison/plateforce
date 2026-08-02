@@ -192,6 +192,15 @@ jobs:
             -name '*.dmg' | head -1)"
           bash scripts/verify-macos-artefact.sh "$image"
 
+      # The half an unsigned build can answer, run so that the first signed release is not
+      # also the first time anything opened one of these images.
+      - name: The image mounts and carries an application
+        if: steps.signing.outputs.able == 'no'
+        run: |
+          image="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg \
+            -name '*.dmg' | head -1)"
+          bash scripts/verify-macos-artefact.sh "$image" --mounts-only
+
       # Runs whether the notarisation succeeded or ran out of attempts, so the signed
       # binary survives an Apple outage and so the key does not outlive the job.
       - uses: actions/upload-artifact@v4
