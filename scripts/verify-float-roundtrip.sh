@@ -51,13 +51,20 @@ for workspace in "${workspaces[@]}"; do
     continue
   fi
 
-  if printf '%s' "$graph" | grep -q "feature \"${REQUIRED_FEATURE}\""; then
+  # Matched without a pipe. `printf | grep -q` under `pipefail` reports the writer's status
+  # when the reader exits first on a match, so a successful match could be read as the
+  # property being false. Measured over five runs of this script on one tree at one commit:
+  # three said the feature was present and two said it was absent.
+  case "$graph" in
+  *"feature \"${REQUIRED_FEATURE}\""*)
     echo "  $named: serde_json resolves with ${REQUIRED_FEATURE}"
-  else
+    ;;
+  *)
     echo "  $named: serde_json resolves WITHOUT ${REQUIRED_FEATURE}" >&2
     echo "      a double written here and read on another surface comes back different" >&2
     status=1
-  fi
+    ;;
+  esac
 done
 
 exit "$status"
