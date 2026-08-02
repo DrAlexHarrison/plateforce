@@ -41,7 +41,7 @@ def test_every_result_names_its_method_and_unit(jump):
         "onset_time_seconds": ("seconds", "onset.threshold.noise_relative"),
         "takeoff_time_seconds": ("seconds", "takeoff.threshold.absolute_force"),
         "time_to_takeoff_seconds": ("seconds", "time_to_takeoff.onset_to_takeoff"),
-        "jump_height_takeoff_frame_meters": ("meters", "jump_height.from_takeoff_velocity"),
+        "jump_height_takeoff_frame_meters": ("meters", "jumpheight.takeoff.impulse_momentum"),
     }
     for attribute, (unit, method_id) in expected.items():
         result = getattr(jump, attribute)
@@ -129,7 +129,7 @@ def test_jump_height_names_the_upstream_choices_that_moved_it(jump):
 def test_describe_shows_the_value_and_the_whole_chain(jump, registry):
     described = jump.jump_height_takeoff_frame_meters.describe()
     assert "meters" in described
-    assert "jump_height.from_takeoff_velocity" in described
+    assert "jumpheight.takeoff.impulse_momentum" in described
     assert "onset.threshold.noise_relative" in described
     assert "bwepoch.fixed_window" in described
     assert f"registry fixture-1 ({registry.digest})" in described
@@ -172,14 +172,14 @@ def test_gravity_is_recorded_because_the_tools_disagree_on_it(trial, bound_metho
 
 
 def test_steps_no_registry_entry_describes_are_listed_rather_than_hidden(jump):
-    unregistered = jump.unregistered_methods
-    assert "takeoff_velocity.impulse_momentum" in unregistered
-    assert "jump_height.from_takeoff_velocity" in unregistered
+    """Every step this analysis performs now resolves to a registry entry, so the list is
+    empty. A step added without one appears here rather than travelling unnamed."""
+    assert jump.unregistered_methods == []
 
 
 def test_flight_time_height_is_a_separate_construct_and_says_so():
     height = pf.jump_height_from_flight_time(0.5)
-    assert height.provenance.method_id == "jump_height.from_flight_time"
+    assert height.provenance.method_id == "jumpheight.takeoff.flight_time"
     assert height.unit == "meters"
     assert height.provenance.bound_parameters["flight_time_seconds"] == pytest.approx(0.5)
     assert height.provenance.acquisition_complete is False
