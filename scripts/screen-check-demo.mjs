@@ -106,6 +106,14 @@ const wall = await evaluate(`(() => {
   return text;
 })()`);
 await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid');
+// The sweep settles after the markers do, so reading the panel the instant the metrics
+// appear reads it before it has run. Waiting for the rows is the difference between an
+// instrument that reports a regression and one that causes it.
+await settle(
+  "!!document.querySelector('.spread-headline__figure')"
+    + " || !!document.querySelector('#spread-result .notice')",
+  'the spread panel',
+);
 
 const report = await evaluate(`(() => {
   const WALL = ${JSON.stringify(wall ?? 'numbers on first paint')};
