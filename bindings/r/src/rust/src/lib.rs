@@ -545,19 +545,15 @@ fn descriptions_of(
             .iter()
             .filter_map(|id| bound.get(id.as_str()))
             .map(|method| {
-                ProvenanceChain::leaf(provenance_of(method, registry_digest))
-                    .choosing(method.enumerated_choices())
+                let record =
+                    method.into_provenance(None, registry_digest.clone(), false, Vec::new());
+                ProvenanceChain::leaf(record).choosing(method.enumerated_choices())
             })
             .collect();
 
         let own = Provenance {
-            method_id: metric.computed_by.clone().unwrap_or_default(),
-            bound_parameters: Vec::new(),
-            registry_version: None,
             registry_digest: registry_digest.clone(),
-            // No acquisition block reaches this binding yet, and a dataset that cannot
-            // fill one fingerprints as incomplete rather than as matching.
-            acquisition_complete: false,
+            ..Provenance::of(metric.computed_by.clone().unwrap_or_default())
         };
         let Some(unit) = declared_unit(metric) else {
             continue;
@@ -585,18 +581,6 @@ fn declared_unit(metric: &plateforce_analysis::Metric) -> Option<&'static str> {
     (declared.unit == metric.unit).then_some(declared.unit)
 }
 
-fn provenance_of(
-    method: &plateforce_analysis::BoundMethod,
-    registry_digest: &Option<String>,
-) -> Provenance {
-    Provenance {
-        method_id: method.method_id.clone(),
-        bound_parameters: method.quantities(),
-        registry_version: None,
-        registry_digest: registry_digest.clone(),
-        acquisition_complete: false,
-    }
-}
 
 /// What this surface can be asked to do, reported by naming the entry points it dispatches
 /// rather than by forwarding a document every surface would agree with.

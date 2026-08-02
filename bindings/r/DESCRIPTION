@@ -34,6 +34,7 @@ Collate:
     'capability.R'
     'coercion.R'
     'describe.R'
+    'quality.R'
     'read.R'
     'zzz.R'
     'registry.R'
