@@ -50,33 +50,34 @@ fn document_of(request: &AnalysisRequest) -> MethodSet {
 /// The round trip is anchored to the request rather than to a second document, because
 /// comparing two documents compares two outputs of the same function: a writer that drops a
 /// parameter drops it from both sides and the comparison passes.
-fn stated(
-    request: &AnalysisRequest,
-) -> Vec<(
-    String,
-    String,
-    BTreeMap<String, f64>,
-    BTreeMap<String, String>,
-)> {
+#[derive(Debug, PartialEq)]
+struct StatedBinding {
+    construct: String,
+    method_id: String,
+    parameters: BTreeMap<String, f64>,
+    options: BTreeMap<String, String>,
+}
+
+fn stated(request: &AnalysisRequest) -> Vec<StatedBinding> {
     vec![
-        (
-            "system_weight".into(),
-            request.weighing.method_id.clone(),
-            request.weighing.parameters.clone(),
-            request.weighing.options.clone(),
-        ),
-        (
-            "movement_onset".into(),
-            request.onset.method_id.clone(),
-            request.onset.parameters.clone(),
-            request.onset.options.clone(),
-        ),
-        (
-            "takeoff".into(),
-            request.takeoff.method_id.clone(),
-            request.takeoff.parameters.clone(),
-            request.takeoff.options.clone(),
-        ),
+        StatedBinding {
+            construct: "system_weight".into(),
+            method_id: request.weighing.method_id.clone(),
+            parameters: request.weighing.parameters.clone(),
+            options: request.weighing.options.clone(),
+        },
+        StatedBinding {
+            construct: "movement_onset".into(),
+            method_id: request.onset.method_id.clone(),
+            parameters: request.onset.parameters.clone(),
+            options: request.onset.options.clone(),
+        },
+        StatedBinding {
+            construct: "takeoff".into(),
+            method_id: request.takeoff.method_id.clone(),
+            parameters: request.takeoff.parameters.clone(),
+            options: request.takeoff.options.clone(),
+        },
     ]
 }
 
