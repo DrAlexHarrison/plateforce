@@ -269,7 +269,7 @@ pub fn analyse(
 
         let mut values: BTreeMap<String, Option<f64>> = BTreeMap::new();
         for metric in &response.metrics {
-            if !quantities.iter().any(|name| *name == metric.key) {
+            if !quantities.contains(&metric.key) {
                 quantities.push(metric.key.to_string());
                 units.insert(metric.key.to_string(), metric.unit.to_string());
             }
