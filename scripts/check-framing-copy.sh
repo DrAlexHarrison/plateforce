@@ -26,7 +26,14 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repository_root"
 
-census="$(cargo run -q -p plateforce-cli -- registry census)"
+# Rule 1 takes the count from the registry rather than carrying one, so it needs the
+# command to run. When it cannot, say which command and why rather than exiting on its
+# status, which reads as this check being broken.
+if ! census="$(cargo run -q -p plateforce-cli -- registry census 2>&1)"; then
+  printf 'FAIL  registry census could not run, so the debate count rule has no count to check\n'
+  printf '%s\n' "$census" | tail -5
+  exit 1
+fi
 
 python3 - "$census" <<'CHECKS'
 import re
