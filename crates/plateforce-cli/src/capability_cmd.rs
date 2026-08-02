@@ -40,6 +40,9 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
             Operation::RegistryShow,
             Operation::RegistryValidate,
         ]),
+        // The sweep under a name of its own, for a quantity other than the one `analyse`
+        // reports without being asked.
+        "spread" => Some(&[Operation::Spread]),
         "serve" => Some(&[]),
         "version" => Some(&[Operation::Version]),
         "help" => Some(&[]),

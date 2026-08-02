@@ -62,6 +62,8 @@ enum Command {
     /// Read the registry
     #[command(subcommand)]
     Registry(registry_cmd::Command),
+    /// Sweep a quantity over every rule this build runs for each step on its path
+    Spread(spread_cmd::Args),
     /// Serve the browser interface to this machine
     // Help is answered by the server, which owns the options, so this level does not
     // intercept the flag on its way there.
@@ -131,6 +133,9 @@ fn main() -> ExitCode {
                 None,
                 invocation.color,
             )
+        }
+        Command::Spread(args) => {
+            spread_cmd::run(args, &registry_directory, invocation.format, &renderer)
         }
         Command::Capability(args) => capability_cmd::run(args, invocation.format),
         Command::Version => version_cmd::run(invocation.format),

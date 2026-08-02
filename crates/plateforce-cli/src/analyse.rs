@@ -68,38 +68,64 @@ pub struct Args {
 /// The constructs a jump height is reached through, in the order the pipeline runs them.
 pub const PATH: [&str; 3] = [WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT];
 
-pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
+/// A trial read, a request built, and every choice on the path answered.
+pub(crate) struct Prepared {
+    pub registry: Registry,
+    pub trial: ReadTrial,
+    pub request: AnalysisRequest,
+    pub chosen: BTreeMap<String, String>,
+}
+
+/// One home for the path from a command line to a request, so a second command asking a
+/// second question of the same trial meets the same decision rail rather than its own.
+pub(crate) fn prepare(
+    args: &Args,
+    registry_directory: &Path,
+    renderer: &Renderer,
+) -> Result<Prepared, Outcome> {
     let registry = match Registry::load(registry_directory) {
         Ok(registry) => registry,
-        Err(error) => return Outcome::declined(Fault::Registry, format!("{error}")),
+        Err(error) => return Err(Outcome::declined(Fault::Registry, format!("{error}"))),
     };
 
-    let chosen = match chosen_methods(args) {
-        Ok(chosen) => chosen,
-        Err(outcome) => return outcome,
-    };
+    let chosen = chosen_methods(args)?;
     let stated = match stated_parameters(&args.set) {
         Ok(stated) => stated,
-        Err(message) => return Outcome::declined(Fault::Request, message),
+        Err(message) => return Err(Outcome::declined(Fault::Request, message)),
     };
 
     let open = decisions::open(&registry, &PATH, &chosen);
     if !open.is_empty() {
-        return Outcome::declined(
+        return Err(Outcome::declined(
             Fault::Request,
             decisions::describe(&open, PATH.len(), renderer),
-        );
+        ));
     }
     if let Some(message) = unresolved_parameters(&registry, &chosen, &stated, renderer) {
-        return Outcome::declined(Fault::Request, message);
+        return Err(Outcome::declined(Fault::Request, message));
     }
 
-    let trial = match read_trial(args) {
-        Ok(trial) => trial,
+    let trial = read_trial(args)?;
+    let request = build_request(&registry, &chosen, &stated);
+    Ok(Prepared {
+        registry,
+        trial,
+        request,
+        chosen,
+    })
+}
+
+pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
+    let Prepared {
+        registry,
+        trial,
+        request,
+        chosen,
+    } = match prepare(args, registry_directory, renderer) {
+        Ok(prepared) => prepared,
         Err(outcome) => return outcome,
     };
 
-    let request = build_request(&registry, &chosen, &stated);
     match plateforce_analysis::run(&trial.trial, &request) {
         // The engine writes the sentence. Which class of fault it is, is a question about
         // the request, so it is answered by asking the binding table rather than by reading
@@ -124,10 +150,10 @@ pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Re
     }
 }
 
-struct ReadTrial {
-    trial: Trial,
-    rows_read: usize,
-    sentinel_rows: usize,
+pub(crate) struct ReadTrial {
+    pub trial: Trial,
+    pub rows_read: usize,
+    pub sentinel_rows: usize,
 }
 
 /// Every method the request named, keyed by the construct it fills, refused when the id has
