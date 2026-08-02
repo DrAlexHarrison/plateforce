@@ -52,6 +52,10 @@ refusal_codes! {
     AmbiguousForceChannels,
     /// The plate reported a reading its own levelling makes uninterpretable.
     PlateNotLevel,
+    /// A document declaring a schema this build does not implement. Distinct from every
+    /// other code here: the remedy is a newer plateforce, not a different request, and
+    /// there is nothing the caller could have asked for instead.
+    SchemaUnsupported,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -66,7 +70,8 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         | RefusalCode::TraceTooShort
         | RefusalCode::ColumnNotFound
         | RefusalCode::TrialIdentityUnparsed
-        | RefusalCode::AmbiguousForceChannels => 65,
+        | RefusalCode::AmbiguousForceChannels
+        | RefusalCode::SchemaUnsupported => 65,
         RefusalCode::MethodNotImplemented
         | RefusalCode::UnknownParameter
         | RefusalCode::ParameterNotFinite
@@ -337,6 +342,24 @@ impl Refusal {
         )
     }
 
+    /// A document from a version this build does not read.
+    ///
+    /// `available` carries the schema this build does implement, which is the one fact that
+    /// tells a reader whether to upgrade plateforce or to have written a different file.
+    pub fn schema_unsupported(
+        declared: impl Into<String>,
+        implemented: impl Into<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::SchemaUnsupported,
+            "",
+            Some(declared.into()),
+            None,
+            BTreeMap::new(),
+            vec![implemented.into()],
+        )
+    }
+
     /// A parameter the registry marks required with no default, left unstated.
     pub fn required_parameter_unstated(
         method_id: impl Into<String>,
@@ -458,6 +481,11 @@ fn sentence(
         RefusalCode::SentinelConventionUnknown => format!(
             "{} is not a sentinel convention this reader applies, and it applies {available:?}",
             parameter.unwrap_or("that")
+        ),
+        RefusalCode::SchemaUnsupported => format!(
+            "this file declares {}, and this plateforce reads {}",
+            parameter.unwrap_or("a schema"),
+            available.first().map(String::as_str).unwrap_or("another")
         ),
         RefusalCode::RegistryInvalid => format!(
             "the registry does not load: {}",
@@ -672,6 +700,22 @@ mod tests {
         assert_eq!(refused.slot.as_deref(), Some("movement_onset"));
         assert!(
             refused.message().contains("movement_onset"),
+            "{}",
+            refused.message()
+        );
+    }
+
+    /// The remedy here is a newer plateforce, which no other code says, so the sentence
+    /// names both versions rather than offering the caller an alternative to ask for.
+    #[test]
+    fn a_document_from_a_later_version_says_which_version_it_wants() {
+        let refused =
+            Refusal::schema_unsupported("plateforce.method-set/2", "plateforce.method-set/1");
+        assert_eq!(refused.code, RefusalCode::SchemaUnsupported);
+        assert_eq!(refused.exit_code(), 65);
+        assert!(
+            refused.message().contains("plateforce.method-set/2")
+                && refused.message().contains("plateforce.method-set/1"),
             "{}",
             refused.message()
         );
