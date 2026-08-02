@@ -1891,11 +1891,13 @@ mod tests {
             "the height was not corrected for extent: {} against {point_wise}",
             result.critical_threshold
         );
-        let ThresholdSource::RandomFieldTheory { resel_count, .. } = result.threshold_source
-        else {
+        let ThresholdSource::RandomFieldTheory { resel_count, .. } = result.threshold_source else {
             panic!("the recorded source is not the one that ran")
         };
-        assert!(resel_count > 1.0, "the field measured {resel_count} resels long");
+        assert!(
+            resel_count > 1.0,
+            "the field measured {resel_count} resels long"
+        );
     }
 
     #[test]
@@ -1962,8 +1964,7 @@ mod tests {
             second: &second,
         };
         let parametric = continuum_inference_random_field(design, 0.05, Tails::Two).unwrap();
-        let permuted =
-            continuum_inference_permutation(design, 0.05, Tails::Two, 500, 7).unwrap();
+        let permuted = continuum_inference_permutation(design, 0.05, Tails::Two, 500, 7).unwrap();
         let gap = (parametric.critical_threshold - permuted.critical_threshold).abs();
         assert!(
             gap < parametric.critical_threshold,
@@ -1980,8 +1981,7 @@ mod tests {
             first: &first,
             second: &second,
         };
-        let error =
-            continuum_inference_permutation(design, 0.05, Tails::Two, 0, 1).unwrap_err();
+        let error = continuum_inference_permutation(design, 0.05, Tails::Two, 0, 1).unwrap_err();
         assert!(matches!(error, WaveformError::NoPermutations));
     }
 
