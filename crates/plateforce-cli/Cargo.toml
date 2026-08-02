@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 plateforce-analysis = { workspace = true }
-plateforce-batch = { workspace = true }
+plateforce-batch = { workspace = true, features = ["parquet"] }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 plateforce-serve = { workspace = true }
