@@ -135,12 +135,22 @@ fn a_preset_naming_a_rule_the_registry_does_not_carry_is_refused() {
 /// rendered sentence is asserted rather than only the variant.
 #[test]
 fn a_preset_binding_a_rule_under_another_construct_is_refused_and_names_both() {
-    let messages = violations_of(&SOUND_PRESET.replace(
+    let broken = SOUND_PRESET.replace(
         "method_id = \"bwepoch.fixed_window\"",
         "method_id = \"onset.threshold.noise_relative\"",
-    ));
+    );
+    assert!(
+        kinds_of(&broken).contains(&ViolationKind::PresetBindingConstructMismatch {
+            preset: "owen2014".to_string(),
+            method_id: "onset.threshold.noise_relative".to_string(),
+            declared: "system_weight".to_string(),
+            actual: "movement_onset".to_string(),
+        }),
+        "{:?}",
+        kinds_of(&broken)
+    );
     assert_eq!(
-        messages,
+        violations_of(&broken),
         vec![
             "owen2014: binds 'onset.threshold.noise_relative' under construct 'system_weight', \
              and that entry's construct is 'movement_onset'"
