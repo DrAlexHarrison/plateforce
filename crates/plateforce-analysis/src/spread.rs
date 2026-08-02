@@ -320,6 +320,7 @@ mod tests {
                 start_index: None,
                 parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
                 options: BTreeMap::new(),
+                ..Default::default()
             },
             onset: MethodChoice {
                 method_id: "onset.threshold.noise_relative".into(),

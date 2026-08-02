@@ -6,14 +6,19 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_core::takeoff::ResidualComparison;
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::DispersionEstimator;
 use serde::Serialize;
 
 pub(crate) struct Resolution<'a> {
     parameters: &'a BTreeMap<String, f64>,
     options: &'a BTreeMap<String, String>,
+    /// Names the caller says it accepted from the registry's recommendation, and names it
+    /// filled from a default with nobody asked. A rule cannot tell either from the number.
+    recommended: &'a BTreeSet<String>,
+    from_registry_default: &'a BTreeSet<String>,
     read: Vec<(String, String)>,
-    assumed: Vec<String>,
+    sources: BTreeMap<String, ParameterSource>,
     consulted: BTreeSet<String>,
     /// The value behind each name a rule read as a number, kept as the number. A caller
     /// that wanted it back would otherwise parse the display text, which is a second
@@ -24,7 +29,7 @@ pub(crate) struct Resolution<'a> {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct BoundValues {
     pub parameters: Vec<(String, String)>,
-    pub assumed: Vec<String>,
+    pub sources: BTreeMap<String, ParameterSource>,
     pub unread: Vec<String>,
     pub numbers: BTreeMap<String, f64>,
 }
@@ -33,29 +38,52 @@ impl<'a> Resolution<'a> {
     pub(crate) fn over(
         parameters: &'a BTreeMap<String, f64>,
         options: &'a BTreeMap<String, String>,
+        recommended: &'a BTreeSet<String>,
+        from_registry_default: &'a BTreeSet<String>,
     ) -> Self {
         Self {
             parameters,
             options,
+            recommended,
+            from_registry_default,
             read: Vec::new(),
-            assumed: Vec::new(),
+            sources: BTreeMap::new(),
             consulted: BTreeSet::new(),
             numbers: BTreeMap::new(),
         }
     }
 
-    pub(crate) fn record(&mut self, name: &str, value: String, assumed: bool) {
-        self.read.push((name.to_string(), value));
-        if assumed {
-            self.assumed.push(name.to_string());
+    /// What the caller claimed about a name it did supply.
+    ///
+    /// A value present in the request is `stated` unless the caller said otherwise, because
+    /// only the caller knows whether a number was typed, accepted in bulk, or filled by an
+    /// interface on the reader's behalf.
+    fn stated_source(&self, name: &str) -> ParameterSource {
+        if self.recommended.contains(name) {
+            ParameterSource::Recommended
+        } else if self.from_registry_default.contains(name) {
+            ParameterSource::Assumed
+        } else {
+            ParameterSource::Stated
         }
+    }
+
+    pub(crate) fn record(&mut self, name: &str, value: String, source: ParameterSource) {
+        self.read.push((name.to_string(), value));
+        self.sources.insert(name.to_string(), source);
     }
 
     /// A name whose value is a quantity, recorded both as the text a reader sees and as
     /// the number the rule ran on.
-    pub(crate) fn record_measured(&mut self, name: &str, value: f64, shown: String, assumed: bool) {
+    pub(crate) fn record_measured(
+        &mut self,
+        name: &str,
+        value: f64,
+        shown: String,
+        source: ParameterSource,
+    ) {
         self.numbers.insert(name.to_string(), value);
-        self.record(name, shown, assumed);
+        self.record(name, shown, source);
     }
 
     /// The request's value for this name, and a note that the rule asked either way.
@@ -67,7 +95,11 @@ impl<'a> Resolution<'a> {
     pub(crate) fn number(&mut self, name: &str, fallback: f64) -> f64 {
         let stated = self.stated(name);
         let value = stated.unwrap_or(fallback);
-        self.record_measured(name, value, format_number(value), stated.is_none());
+        let source = match stated {
+            Some(_) => self.stated_source(name),
+            None => ParameterSource::Assumed,
+        };
+        self.record_measured(name, value, format_number(value), source);
         value
     }
 
@@ -99,9 +131,12 @@ impl<'a> Resolution<'a> {
     pub(crate) fn option(&mut self, name: &str, fallback: &'static str) -> String {
         self.consulted.insert(name.to_string());
         let stated = self.options.get(name).cloned();
-        let assumed = stated.is_none();
+        let source = match &stated {
+            Some(_) => self.stated_source(name),
+            None => ParameterSource::Assumed,
+        };
         let value = stated.unwrap_or_else(|| fallback.to_string());
-        self.record(name, value.clone(), assumed);
+        self.record(name, value.clone(), source);
         value
     }
 
@@ -160,10 +195,9 @@ impl<'a> Resolution<'a> {
             .cloned()
             .collect();
         self.read.sort();
-        self.assumed.sort();
         BoundValues {
             parameters: self.read,
-            assumed: self.assumed,
+            sources: self.sources,
             unread,
             numbers: self.numbers,
         }
@@ -209,8 +243,9 @@ impl std::fmt::Display for RuleRefusal {
 pub struct BoundMethod {
     pub method_id: String,
     pub bound_parameters: Vec<(String, String)>,
-    /// Names in `bound_parameters` the request did not carry, so the rule used its own.
-    pub assumed_parameters: Vec<String>,
+    /// Where each name in `bound_parameters` came from. A value the caller typed and one
+    /// the rule fell back to move the number identically, so the record keeps them apart.
+    pub parameter_sources: BTreeMap<String, ParameterSource>,
     /// Names the request carried that this rule does not read.
     pub unread_parameters: Vec<String>,
     pub registry_backed: bool,
@@ -246,15 +281,15 @@ impl BoundMethod {
         acquisition_complete: bool,
         depends_on: Vec<plateforce_core::Provenance>,
     ) -> plateforce_core::Provenance {
-        use plateforce_core::provenance::{ChoiceRecord, ParameterRecord, ParameterSource};
+        use plateforce_core::provenance::{ChoiceRecord, ParameterRecord};
 
-        let assumed: BTreeSet<&str> = self.assumed_parameters.iter().map(String::as_str).collect();
+        // The rule recorded a source per name as it read it. Anything absent was never read
+        // by this rule, so it takes the weakest claim rather than being asserted as stated.
         let source_of = |name: &str| {
-            if assumed.contains(name) {
-                ParameterSource::Assumed
-            } else {
-                ParameterSource::Stated
-            }
+            self.parameter_sources
+                .get(name)
+                .copied()
+                .unwrap_or(ParameterSource::Assumed)
         };
 
         plateforce_core::Provenance {
@@ -289,6 +324,16 @@ impl BoundMethod {
         }
     }
 
+    /// Names whose value the rule fell back to rather than being given. Derived from the
+    /// recorded sources, so the list and the record cannot disagree.
+    pub fn assumed_parameters(&self) -> Vec<String> {
+        self.parameter_sources
+            .iter()
+            .filter(|(_, source)| **source == ParameterSource::Assumed)
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
+
     pub fn enumerated_choices(&self) -> Vec<(String, String)> {
         self.bound_parameters
             .iter()
@@ -307,7 +352,7 @@ pub(crate) fn bound_method(
     BoundMethod {
         method_id: method_id.to_string(),
         bound_parameters: values.parameters,
-        assumed_parameters: values.assumed,
+        parameter_sources: values.sources,
         unread_parameters: values.unread,
         registry_backed,
         manual_override,

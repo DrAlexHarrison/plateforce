@@ -150,6 +150,7 @@ impl MethodSet {
                 parameters: binding.parameters.clone(),
                 options: binding.options.clone(),
                 manual_index: None,
+                ..Default::default()
             };
             match binding.construct.as_str() {
                 WEIGHING_CONSTRUCT => {
@@ -158,6 +159,7 @@ impl MethodSet {
                         start_index: None,
                         parameters: binding.parameters.clone(),
                         options: binding.options.clone(),
+                        ..Default::default()
                     }
                 }
                 ONSET_CONSTRUCT => request.onset = choice,

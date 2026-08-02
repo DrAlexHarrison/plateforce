@@ -39,6 +39,7 @@ fn bare_request() -> AnalysisRequest {
             start_index: None,
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
             options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: "onset.threshold.noise_relative".into(),
@@ -94,7 +95,7 @@ fn the_persistence_operator_runs_when_nobody_asked_for_it() {
 
     assert!(
         persistence
-            .assumed_parameters
+            .assumed_parameters()
             .contains(&"span_ms".to_string()),
         "its span is the rule's own, so it is recorded assumed: {:?}",
         persistence.bound_parameters

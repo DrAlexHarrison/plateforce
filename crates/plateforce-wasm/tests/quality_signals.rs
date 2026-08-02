@@ -30,6 +30,7 @@ fn request_with_onset(method_id: &str) -> AnalysisRequest {
             start_index: None,
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
             options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: method_id.into(),

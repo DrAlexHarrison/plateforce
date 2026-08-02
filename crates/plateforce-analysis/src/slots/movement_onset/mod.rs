@@ -7,6 +7,7 @@ pub mod last_within_band;
 pub mod noise_relative;
 pub mod relative_to_system_weight;
 
+use plateforce_core::provenance::ParameterSource;
 use std::collections::BTreeMap;
 
 use plateforce_core::onset::{backtrack, CrossingSearch, CrossingSelection};
@@ -53,8 +54,16 @@ pub(crate) fn direction(resolved: &mut Resolution) -> Result<OnsetDirection, Rul
 /// not produce the number.
 pub(crate) fn record_inherited_spread(resolved: &mut Resolution, inherited_spread: (&str, bool)) {
     let (convention, stated) = inherited_spread;
-    resolved.record("sd_convention", convention.to_string(), !stated);
-    resolved.record("reference_distribution", "quiet_stance_force".into(), true);
+    resolved.record(
+        "sd_convention",
+        convention.to_string(),
+        if stated { ParameterSource::Stated } else { ParameterSource::Assumed },
+    );
+    resolved.record(
+        "reference_distribution",
+        "quiet_stance_force".into(),
+        ParameterSource::Assumed,
+    );
 }
 
 pub(crate) fn onset_search(
@@ -69,7 +78,12 @@ pub(crate) fn onset_search(
     // recorded as the derived bound it is rather than as a time nobody stated.
     let start_index = match resolved.stated("floor_seconds") {
         Some(seconds) => {
-            resolved.record_measured("floor_seconds", seconds, format_number(seconds), false);
+            resolved.record_measured(
+                "floor_seconds",
+                seconds,
+                format_number(seconds),
+                ParameterSource::Stated,
+            );
             (seconds * rate).round() as usize
         }
         None => {
@@ -77,7 +91,7 @@ pub(crate) fn onset_search(
                 "weighing_epoch_end_seconds",
                 trial.time_at(epoch.end_index),
                 format!("{:.4}", trial.time_at(epoch.end_index)),
-                true,
+                ParameterSource::Measured,
             );
             epoch.end_index
         }
@@ -153,7 +167,12 @@ pub(crate) fn resolve(
     warnings: &mut Vec<String>,
 ) -> OnsetOutcome {
     let rate = trial.sample_rate_hz();
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options);
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        &choice.recommended,
+        &choice.from_registry_default,
+    );
     let found = crossing(
         trial,
         epoch,
@@ -245,8 +264,8 @@ pub(crate) fn bound_methods(
             Some(operator) => composed.entry(operator).or_default(),
             None => &mut threshold,
         };
-        if values.assumed.contains(&name) {
-            carried_by.assumed.push(name.clone());
+        if let Some(source) = values.sources.get(&name) {
+            carried_by.sources.insert(name.clone(), *source);
         }
         if let Some(number) = values.numbers.get(&name) {
             carried_by.numbers.insert(name.clone(), *number);
