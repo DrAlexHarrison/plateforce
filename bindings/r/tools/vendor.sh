@@ -11,9 +11,7 @@ here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 package_root=$(dirname -- "$here")
 crate="$package_root/src/rust"
 
-if [ ! -d "$crate/crates/plateforce-core" ]; then
-    sh "$here/sync-engine.sh" >/dev/null
-fi
+sh "$here/ensure-engine.sh"
 
 stamp=$(sed -n 's/^Version: *//p' "$package_root/DESCRIPTION" | head -1)
 

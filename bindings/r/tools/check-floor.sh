@@ -19,9 +19,7 @@ as_number() {
     echo "$1" | awk -F. '{printf "%d%03d%03d\n", $1, $2, ($3 == "" ? 0 : $3)}'
 }
 
-if [ ! -d "$crate/crates/plateforce-core" ]; then
-    sh "$here/sync-engine.sh" >/dev/null
-fi
+sh "$here/ensure-engine.sh"
 
 # Kept apart from the comparison below so a cargo that cannot resolve the tree reports
 # that, rather than handing an empty document to the reader and failing as a parse error.
