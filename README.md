@@ -1,102 +1,81 @@
 # plateforce
 
-Force-plate kinetic analysis with a method registry.
+A useful tool for processing force-plate data.
 
-Every computed quantity is bound to a named method variant carrying its citation,
-its exact rule, its known bias and a status flag. Choosing a different variant is
-an explicit act that appears in the output, not an invisible default.
+It reads a force trace and computes jump kinetics. Every value it returns carries the rule that
+produced it, that rule's parameters, and that rule's citation.
 
-## Why the registry exists
+## Why that matters
 
-Two independent open-source implementations of the same named methods, run over 243 of
-the same 244 countermovement jump trials, agree at r = 0.961 on jump height and
-**r = 0.696 on time to takeoff**.
+Across 244 countermovement jump trials, 10 published jump-height methods disagree by a median of
+3.51 cm within a single trial. The training intervention those trials were collected to measure
+moved jump height by 1.98 cm. So a jump height is only comparable with another one computed the
+same way, and the record of how it was computed is the thing that makes the comparison possible.
 
-Across those 244 trials, 9 published onset rules and 10 published jump-height methods:
+## Running it
 
-| quantity | spread across published methods, within a single trial |
-|---|---|
-| time to takeoff | median 0.335 s, which is 38.9% of that trial's own value |
-| jump height | median 3.51 cm |
+The browser build reads the file in the tab and sends nothing anywhere:
+[dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce)
 
-For reference, the training intervention that dataset was collected to measure moved
-jump height by 1.98 cm. The method choice moves the number further than the training did.
+`docs/install.md` covers the desktop application, the command line, and the Python and R
+packages, on Linux, macOS, Windows, and machines that will not let you install anything.
 
-Agreement is also not the whole story, because the disagreement is not evenly spread.
-**Two of the nine published onset rules place the start of the movement more than two
-seconds before takeoff on roughly one trial in seven**, on a movement lasting under a
-second. Their median behaviour is unremarkable and their 95th percentile is three times
-normal, so a single reported bias figure for those rules averages "agrees reasonably"
-together with "found the wrong event entirely".
-
-The spreads, the failure rates and the sentinel effects on this page are recomputed by
-`audit/headline_audit.py` rather than quoted, and each states the query and the denominator
-that produced it. The two correlations come from a pairwise run over the same matrix, and
-the 1.98 cm intervention effect comes from the source study. The underlying trial matrix is
-not yet released: the 2011 corpus it derives from is re-identifiable and the consent
-position for the full cohort is unresolved, so the analysis is open and the data release is
-pending rather than declined.
-
-## Status
-
-Early, and the browser build runs: **https://dralexharrison.github.io/plateforce/**
-
-Drop a force trace in and nothing is uploaded. The file is read in the tab.
-
-What works: the registry loads and validates as data, across 18 method files. It reports its
-own size rather than having it written here, because a count in a document goes stale and a
-count from the software does not:
+At a terminal:
 
 ```
-cargo run -q -p plateforce-cli -- registry census
-```
-
-The two populations it prints, computation entries and protocol entries, are separate and are
-never added together. The core reproduces a frozen 56-variant reference
-implementation over 244 trials, every column. Six of those trials ship as a fixture and a
-difference in them fails the build; the other 238 run where the corpus is, which is one
-machine, and every run prints which of the two it checked.
-
-What that does not yet mean: **12 rules run**, covering the weighing epoch, movement onset
-and takeoff. Eight are registry entries, three bind an operator onto a registry entry and
-carry that entry's citations, and one the registry files under a different id. The rest of
-the registry is catalogued and cited with no running maths behind it, so the interface does
-not offer those methods at all.
-
-The command line analyses a trace, reports every rule that produced each number, and
-declines rather than choosing for you when a step on the path has no defensible default:
-
-```
-cargo run -q -p plateforce-cli -- analyse <trace> --column 0 --sample-rate-hz 1200 \
-  --sentinel none --weighing bwepoch.fixed_window --set weighing.duration=1.0 \
+plateforce analyse <trace> --column 0 --sample-rate-hz 1200 --sentinel none \
+  --weighing bwepoch.fixed_window --set weighing.duration=1.0 \
   --onset onset.threshold.noise_relative --set onset.k=5 \
   --takeoff takeoff.threshold.absolute_force --set takeoff.threshold_n=20
 ```
 
-Run it without the three method flags and it produces no number, names the choices that are
-open and what the literature publishes for each, and exits 64.
+Leave the method flags out and it computes nothing. It names each choice that is open and what
+the literature publishes for it, then exits 64:
 
-The Python package builds as one wheel per platform for Linux, macOS and Windows and
-installs with no compiler; it is not on PyPI, so it is built from this repository.
+```
+plateforce: 2 of 3 choices on the path to a jump height have no default.
 
-Installing: `docs/install.md` covers Linux, macOS, Windows, and machines that will not let
-you install anything.
+  --weighing <METHOD>   Standing still, before the jump   system_weight
+      System weight includes the bar. Bodyweight does not. The registry records
+      real conflations.
+      bwepoch.fixed_window                                accepted
+          duration published at 0.1, 0.25, 0.4, 0.5, 1.0, 2.0
+      bwepoch.adaptive_lowest_variance                    recommended
+          window_seconds published at 0.2, 0.5, 1.0, 2.0
+      bwepoch.manual_placement                            accepted
+```
+
+## What it can do
+
+```
+plateforce capability        the operations, methods, output formats and refusal codes this
+                             surface reaches, as JSON
+plateforce registry census   the registry's populations, each counted and reported on its own
+```
 
 ## Layout
 
 ```
 registry/   method definitions as data: rule, citation, status, bias, parameters
-crates/     the Rust workspace: registry, core maths, CLI, conformance, wasm, python
+crates/     the Rust workspace: registry, core maths, CLI, conformance, wasm, Python
+bindings/   the R package
 web/        the browser interface that the wasm build drives
 docs/       method rulings, schema, and the reasoning behind both
-audit/      the script that recomputes the spreads, failure rates and sentinel effects above
+audit/      headline_audit.py recomputes the spread above from the trial matrix, with its
+            denominator
 ```
 
 ## Contributing
 
-Read `CONVENTIONS.md` first. It is binding, and it is short.
+`CONVENTIONS.md` is binding and it is short.
 
 Adding a method means adding a registry entry, not writing code.
+
+## Citing
+
+Harrison, A. plateforce. https://github.com/DrAlexHarrison/plateforce
+
+`plateforce version` prints the version to cite alongside it.
 
 ## Licence
 

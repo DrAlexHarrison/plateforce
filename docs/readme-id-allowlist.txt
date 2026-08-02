@@ -39,8 +39,9 @@ onset.k
 takeoff.threshold_n
 weighing.duration
 
-# Filenames and a hostname.
+# Filenames and two hostnames.
 headline_audit.py
 trial.csv
 install.md
 dralexharrison.github.io
+github.com
