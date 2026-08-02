@@ -19,8 +19,9 @@ use plateforce_core::DispersionEstimator;
 use serde::Serialize;
 
 use crate::engine::BatchRequest;
+use crate::fingerprint::provenance_id;
 use crate::identity::{Session, TrialSet};
-use crate::relations::RefusalRow;
+use crate::relations::{ProvenanceRow, RefusalRow};
 
 /// The statistic ids this crate can resolve, in one table.
 ///
@@ -134,6 +135,9 @@ pub struct PairedRow {
 #[derive(Debug, Clone)]
 pub struct BatchCompareResult {
     pub paired: Vec<PairedRow>,
+    /// One row per distinct chain, keyed the way `analyse` keys its own, so a paired value
+    /// reaches the rule that produced it rather than only the rule's name.
+    pub provenance: Vec<ProvenanceRow>,
     pub refusals: Vec<RefusalRow>,
     pub quantity: String,
     pub method_ids: Vec<String>,
@@ -372,9 +376,40 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
         }
     }
 
+    // A variant names the rules it ran under, so the chain behind each paired value is
+    // recorded and keyed rather than left as a label a reader has to interpret.
+    let mut chains: BTreeMap<String, Vec<ProvenanceRow>> = BTreeMap::new();
+    for row in &mut paired {
+        let rows: Vec<ProvenanceRow> = row
+            .method_ids
+            .iter()
+            .enumerate()
+            .map(|(depth, method_id)| ProvenanceRow {
+                provenance_id: String::new(),
+                quantity: row.quantity.clone(),
+                depth,
+                method_id: method_id.clone(),
+                parameter: String::new(),
+                value: String::new(),
+                source: "stated".to_string(),
+            })
+            .collect();
+        let identifier = provenance_id(&rows);
+        row.provenance_id = identifier.clone();
+        chains.entry(identifier.clone()).or_insert_with(|| {
+            rows.into_iter()
+                .map(|mut entry| {
+                    entry.provenance_id = identifier.clone();
+                    entry
+                })
+                .collect()
+        });
+    }
+
     let complete_pairs = complete_pairs(&paired, request.method_ids.len());
     BatchCompareResult {
         paired,
+        provenance: chains.into_values().flatten().collect(),
         refusals,
         quantity: request.quantity.clone(),
         method_ids: request.method_ids.clone(),

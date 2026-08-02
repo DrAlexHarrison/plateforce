@@ -245,3 +245,49 @@ fn every_statistic_id_resolves_in_one_table_and_the_registry_carries_it() {
     }
     assert!(!present.is_empty(), "the registry carries these entries");
 }
+
+#[test]
+fn every_paired_value_reaches_the_rules_that_produced_it() {
+    let directory = tempdir("agreement-paired-chain");
+    let copied = copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = compare(&set, &compare_request());
+    assert!(copied > 0 && !result.paired.is_empty(), "the run produced pairs");
+
+    // A paired value with no chain is a number whose method nobody recorded, which is the
+    // thing this product exists to prevent, one level up from a single trial.
+    assert!(
+        result.paired.iter().all(|row| !row.provenance_id.is_empty()),
+        "every paired row is keyed"
+    );
+
+    let distinct: std::collections::BTreeSet<&str> = result
+        .paired
+        .iter()
+        .map(|row| row.provenance_id.as_str())
+        .collect();
+    println!(
+        "{} distinct chains over {} paired rows from {} trials, {} provenance rows",
+        distinct.len(),
+        result.paired.len(),
+        result.trial_count,
+        result.provenance.len()
+    );
+    assert_eq!(
+        distinct.len(),
+        TWO_ONSET_RULES.len(),
+        "one chain per swept rule, shared across every trial that ran it"
+    );
+
+    // Each chain reaches back to the onset rule the variant swept.
+    for rule in TWO_ONSET_RULES {
+        assert!(
+            result
+                .provenance
+                .iter()
+                .any(|entry| entry.method_id == rule),
+            "{rule} is named in the chain"
+        );
+    }
+    std::fs::remove_dir_all(&directory).ok();
+}
