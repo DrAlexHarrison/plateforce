@@ -35,6 +35,7 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
         // only the first would claim one operation where the software has two.
         "batch" => Some(&[Operation::Batch, Operation::Compare]),
         "capability" => Some(&[Operation::Capability]),
+        "reach" => Some(&[Operation::Reach]),
         "registry" => Some(&[
             Operation::RegistryCensus,
             Operation::RegistryShow,

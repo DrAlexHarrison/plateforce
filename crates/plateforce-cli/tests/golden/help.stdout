@@ -6,6 +6,7 @@ Commands:
   analyse     Compute every number one trace supports, with the rule behind each
   batch       Run every trial in a folder under one request
   capability  Report what this build can do, for comparison against every other surface
+  reach       Report what this registry reaches, per construct, and what stands in the way of the rest
   registry    Read the registry
   spread      Sweep a quantity over every rule this build runs for each step on its path
   serve       Serve the browser interface to this machine

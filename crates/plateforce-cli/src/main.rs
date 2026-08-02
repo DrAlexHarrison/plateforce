@@ -10,6 +10,7 @@ mod capability_cmd;
 mod decisions;
 mod exit;
 mod out;
+mod reach;
 mod registry_cmd;
 mod render;
 mod spread_cmd;
@@ -59,6 +60,8 @@ enum Command {
     Batch(batch::Args),
     /// Report what this build can do, for comparison against every other surface
     Capability(capability_cmd::Args),
+    /// Report what this registry reaches, per construct, and what stands in the way of the rest
+    Reach,
     /// Read the registry
     #[command(subcommand)]
     Registry(registry_cmd::Command),
@@ -113,6 +116,7 @@ fn main() -> ExitCode {
         Command::Analyse(args) => {
             analyse::run(args, &registry_directory, invocation.format, &renderer)
         }
+        Command::Reach => reach::run(&registry_directory, invocation.format, &renderer),
         // The server holds the process rather than handing back a document, and it reads its
         // own options, so the one parser for them stays in the crate that acts on them.
         Command::Serve { options } => {
