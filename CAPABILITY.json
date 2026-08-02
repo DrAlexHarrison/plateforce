@@ -116,6 +116,10 @@
           "exit_code": 65
         },
         {
+          "code": "conventions_not_comparable",
+          "exit_code": 64
+        },
+        {
           "code": "decision_not_made",
           "exit_code": 64
         },
@@ -125,6 +129,14 @@
         },
         {
           "code": "no_crossing",
+          "exit_code": 65
+        },
+        {
+          "code": "not_enough_observations",
+          "exit_code": 65
+        },
+        {
+          "code": "observations_not_paired",
           "exit_code": 65
         },
         {
@@ -266,6 +278,10 @@
           "exit_code": 65
         },
         {
+          "code": "conventions_not_comparable",
+          "exit_code": 64
+        },
+        {
           "code": "decision_not_made",
           "exit_code": 64
         },
@@ -275,6 +291,14 @@
         },
         {
           "code": "no_crossing",
+          "exit_code": 65
+        },
+        {
+          "code": "not_enough_observations",
+          "exit_code": 65
+        },
+        {
+          "code": "observations_not_paired",
           "exit_code": 65
         },
         {
