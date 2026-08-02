@@ -68,6 +68,19 @@ jobs:
           fi
           node scripts/screen-check-demo.mjs web 8731
 
+      # The page holds a researcher's trace, and `web/README.md` tells its reader that trace
+      # never leaves the machine. This records every address the page asks for while a trial is
+      # analysed, so the claim is measured rather than read off the source. It exits 2 when the
+      # journey does not finish, because a page that never analysed anything reaches no address
+      # and would otherwise pass while proving nothing.
+      - name: The page reaches no address but its own
+        run: |
+          if ! command -v google-chrome >/dev/null; then
+            echo "no google-chrome on this runner, so the addresses were not read" >&2
+            exit 3
+          fi
+          node scripts/verify-browser-reaches-no-address.mjs web 8741
+
       # A registry that fails its own validator must not be published silently. The site
       # reports violations in its own interface; this makes them visible in the build log
       # too, and does not block the deploy, because a site that explains why the registry
