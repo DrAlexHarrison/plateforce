@@ -4,7 +4,7 @@ import { $, state } from './state.js';
 import { element } from './format.js';
 import { rankCandidates, initialParameters, findMethod } from './registry.js';
 import { candidateFor } from './startup.js';
-import { runAnalysis, boundValueText, acceptRecommended } from './analysis.js';
+import { runAnalysis, acceptRecommended } from './analysis.js';
 import { openDrawer } from './drawer.js';
 
 /*
@@ -150,7 +150,7 @@ function renderRulesThatRanBeside(slot, candidate) {
 
     const row = element('div', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
     row.append(element('span', 'ran-beside__title', method.title));
-    const values = boundValueText(bound, ' ').join(', ');
+    const values = valuesWithTheirSource(method, bound);
     if (values) row.append(element('span', 'ran-beside__value', values));
 
     const open = element('button', 'chip chip--quiet', verdict === NAMES_ITS_ALTERNATIVES ? 'Rule and its alternatives' : 'Rule and citations');
@@ -160,6 +160,25 @@ function renderRulesThatRanBeside(slot, candidate) {
     host.append(row);
   }
   return host;
+}
+
+/*
+ * A value the caller did not supply is shown with whoever proposed it, because a number on
+ * screen that nobody asked for is only checkable if the reader can reach where it came from.
+ *
+ * The row says the rule supplied it and stops there when no source is recorded, rather than
+ * calling it unsourced: the engine reports one bucket for a value the rule defaulted and a
+ * value the rule measured off this trace, and only the first of those is missing a source.
+ */
+function valuesWithTheirSource(method, bound) {
+  const fromTheRule = new Set(bound.assumed_parameters || []);
+  return (bound.bound_parameters || [])
+    .map(([name, value]) => {
+      if (!fromTheRule.has(name)) return `${name} ${value}`;
+      const source = (method.parameter || []).find((entry) => entry.name === name)?.default_source;
+      return `${name} ${value} (from the rule${source ? `, ${source}` : ''})`;
+    })
+    .join(', ');
 }
 
 function renderParameters(slot, candidate, selection) {

@@ -93,19 +93,47 @@ for number, line in enumerate(markup.read_text().splitlines(), start=1):
         if text.strip():
             labelled.append((f"{markup}:{number}", text.strip()))
 
-# The rail's slot titles and the trace legend are JavaScript literals rather than markup,
-# and the words that fail this rule are in them, so the check reaches them where they are
-# written rather than only where they are easy to parse.
-for source, pattern in (
-    (Path("web/registry.js"), r"^\s+title: '([^']*)'"),
-    (Path("web/workspace.js"), r"^\s+\['var\(--[a-z-]+\)', '([^']*)'\]"),
-):
+# The rail's slot titles, the trace legend and every notice heading are JavaScript literals
+# rather than markup, and the words that fail this rule are in them, so the check reaches
+# them where they are written rather than only where they are easy to parse.
+#
+# Matched over the whole file rather than line by line. A call wrapped across lines reads
+# exactly like a file with nothing to find, and two of these were being missed that way.
+JAVASCRIPT_LABELS = (
+    (Path("web/registry.js"), r"\btitle: '([^']*)'", "a slot title"),
+    (Path("web/workspace.js"), r"\['var\(--[a-z-]+\)',\s*'([^']*)'\]", "a legend entry"),
+)
+
+# Every notice heading in the browser, found by what it is rather than by a list of files
+# that would go stale the first time somebody writes one somewhere new.
+NOTICE_HEADING = r"\bnotice\(\s*'[a-z]+',\s*'([^']*)'"
+notice_sources = sorted(path for path in Path("web").glob("*.js"))
+
+blind_patterns = []
+for source, pattern, what in JAVASCRIPT_LABELS:
     if not source.exists():
         continue
-    for number, line in enumerate(source.read_text().splitlines(), start=1):
-        found = re.match(pattern, line)
-        if found and found.group(1).strip():
-            labelled.append((f"{source}:{number}", found.group(1).strip()))
+    text = source.read_text()
+    found = list(re.finditer(pattern, text))
+    if not found:
+        blind_patterns.append(f"{source} for {what}")
+    for match in found:
+        if not match.group(1).strip():
+            continue
+        number = text.count("\n", 0, match.start()) + 1
+        labelled.append((f"{source}:{number}", match.group(1).strip()))
+
+notices = 0
+for source in notice_sources:
+    text = source.read_text()
+    for match in re.finditer(NOTICE_HEADING, text):
+        if not match.group(1).strip():
+            continue
+        notices += 1
+        number = text.count("\n", 0, match.start()) + 1
+        labelled.append((f"{source}:{number}", match.group(1).strip()))
+if not notices:
+    blind_patterns.append(f"{len(notice_sources)} files in web/ for a notice heading")
 
 vocabulary_failures = 0
 for where, text in labelled:
@@ -114,13 +142,16 @@ for where, text in labelled:
         vocabulary_failures += 1
         report(where, f'"{text}" uses "{hit.group(0)}", which appears in 0 of 6 teaching documents')
 
-# A pattern that silently matches nothing reads exactly like a file with nothing to find,
-# so the rule refuses to pass on zero strings, and one string it must always see is named.
+# A pattern that silently matches nothing reads exactly like a file with nothing to find, so
+# every pattern has to see something and the markup has to yield a string named here.
 control = [text for _, text in labelled if text == "Drop a force trace here"]
 if not control:
     report("rule 2", f"read {len(labelled)} labels and no control string, so a pass would mean nothing")
-elif not vocabulary_failures:
-    print(f"pass  rule 2, {len(labelled)} headings, labels, legends and buttons use the words the audience uses")
+for blind in blind_patterns:
+    report("rule 2", f"read nothing from {blind}, so it is not checking what it claims to")
+if control and not blind_patterns and not vocabulary_failures:
+    print(f"pass  rule 2, {len(labelled)} headings, labels, legends, buttons and notices "
+          f"use the words the audience uses")
 
 
 # --------------------------------------------------- 3. strings about the software
