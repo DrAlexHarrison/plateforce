@@ -758,6 +758,7 @@ name = "plateforce-analysis"
 version = "0.1.0"
 dependencies = [
  "plateforce-core",
+ "plateforce-registry",
  "serde",
 ]
 
@@ -784,6 +785,7 @@ dependencies = [
  "anstyle-query",
  "clap",
  "plateforce-analysis",
+ "plateforce-batch",
  "plateforce-core",
  "plateforce-registry",
  "serde_json",
@@ -802,7 +804,8 @@ dependencies = [
 name = "plateforce-core"
 version = "0.1.0"
 dependencies = [
- "plateforce-registry",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 
