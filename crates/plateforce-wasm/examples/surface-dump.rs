@@ -8,7 +8,7 @@
 //! characterisation baseline instead: a refusal is carried out of here as `JsError`, whose
 //! constructor is a wasm import and aborts when it is called off a wasm target.
 
-use plateforce_wasm::{build_info_json, registry_json, ForceFile, Session};
+use plateforce_wasm::{build_info_json, registry_json, ForceFile, LoadedTrial};
 
 fn quiet_standing(samples: usize, weight_newtons: f64) -> Vec<f64> {
     (0..samples)
@@ -582,31 +582,28 @@ fn main() {
         ("pre movement bump", pre_movement_bump()),
     ];
 
-    let mut sessions: Vec<(String, Session)> =
-        vec![("demonstration".into(), Session::demonstration())];
+    let mut loaded: Vec<(String, LoadedTrial)> =
+        vec![("demonstration".into(), LoadedTrial::demonstration())];
     for (name, force) in &traces {
         let text = as_export_text(force);
         let file = ForceFile::parse_text(&text).expect("the reader stopped reading its own export");
         report(&format!("reader {name}"), file.summary_json());
-        let session = Session::from_force_file(&file, 2, 1200.0, "none")
+        let trial = LoadedTrial::from_force_file(&file, 2, 1200.0, "none")
             .expect("the reader's own column stopped binding");
-        sessions.push(((*name).to_string(), session));
+        loaded.push(((*name).to_string(), trial));
     }
 
-    for (trace, session) in &sessions {
-        report(&format!("session {trace} info"), session.info_json());
+    for (trace, trial) in &loaded {
+        report(&format!("session {trace} info"), trial.info_json());
         report(
             &format!("session {trace} envelope"),
-            session.envelope_json(64),
+            trial.envelope_json(64),
         );
         for (name, payload) in requests() {
-            report(
-                &format!("analyze {trace} {name}"),
-                session.analyze(&payload),
-            );
+            report(&format!("analyze {trace} {name}"), trial.analyse(&payload));
         }
         for (name, payload) in sweeps() {
-            report(&format!("spread {trace} {name}"), session.spread(&payload));
+            report(&format!("spread {trace} {name}"), trial.spread(&payload));
         }
     }
 }

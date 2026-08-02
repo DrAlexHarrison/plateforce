@@ -118,7 +118,7 @@ impl ForceFile {
 }
 
 #[derive(Serialize)]
-struct SessionInfo {
+struct LoadedTrialInfo {
     sample_count: usize,
     sample_rate_hz: f64,
     duration_seconds: f64,
@@ -133,13 +133,13 @@ struct SessionInfo {
 /// One loaded trial. Held in WebAssembly memory for the life of the tab and written
 /// nowhere.
 #[wasm_bindgen]
-pub struct Session {
+pub struct LoadedTrial {
     trial: Trial,
-    info: SessionInfo,
+    info: LoadedTrialInfo,
 }
 
 #[wasm_bindgen]
-impl Session {
+impl LoadedTrial {
     /// Bind a column of a parsed file to the vertical ground reaction force channel.
     ///
     /// The sentinel convention is stated by the caller and never inherited, because a
@@ -150,7 +150,7 @@ impl Session {
         force_column: usize,
         sample_rate_hz: f64,
         sentinel_convention: &str,
-    ) -> Result<Session, JsError> {
+    ) -> Result<LoadedTrial, JsError> {
         let column = file.inner.columns.get(force_column).ok_or_else(|| {
             JsError::new(&format!(
                 "column {} was requested but the file has {}",
@@ -191,16 +191,16 @@ impl Session {
 
         let trial = Trial::new(force, sample_rate_hz).map_err(|e| JsError::new(&e.to_string()))?;
         let info = describe(&trial, force_column, sentinel_convention, replaced, false);
-        Ok(Session { trial, info })
+        Ok(LoadedTrial { trial, info })
     }
 
     /// The synthetic trial the interface opens with, so the tool is explorable with no
     /// data at hand and no recorded subject involved.
     #[wasm_bindgen(js_name = demonstration)]
-    pub fn demonstration() -> Session {
+    pub fn demonstration() -> LoadedTrial {
         let trial = demo::synthetic_countermovement_jump();
         let info = describe(&trial, 0, "none", 0, true);
-        Session { trial, info }
+        LoadedTrial { trial, info }
     }
 
     #[wasm_bindgen(js_name = infoJson)]
@@ -233,8 +233,8 @@ impl Session {
     }
 
     /// One analysis. Every number in the response names the methods that produced it.
-    #[wasm_bindgen(js_name = analyze)]
-    pub fn analyze(&self, request_json: &str) -> Result<String, JsError> {
+    #[wasm_bindgen(js_name = analyse)]
+    pub fn analyse(&self, request_json: &str) -> Result<String, JsError> {
         let request: AnalysisRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
         let response =
@@ -258,8 +258,8 @@ fn describe(
     sentinel_convention: &str,
     sentinel_samples_replaced: usize,
     synthetic: bool,
-) -> SessionInfo {
-    SessionInfo {
+) -> LoadedTrialInfo {
+    LoadedTrialInfo {
         sample_count: trial.len(),
         sample_rate_hz: trial.sample_rate_hz(),
         duration_seconds: trial.duration_seconds(),

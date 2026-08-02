@@ -6,7 +6,7 @@
  * because a second implementation of any quantity is the failure this project documents.
  */
 
-import init, { buildInfoJson, registryJson, ForceFile, Session } from './pkg/plateforce_wasm.js';
+import init, { buildInfoJson, registryJson, ForceFile, LoadedTrial } from './pkg/plateforce_wasm.js';
 import { TraceChart } from './chart.js';
 import {
   buildDecisionModel,
@@ -29,7 +29,7 @@ const state = {
   weighing: { startIndex: null },
   overrides: { onset: null, takeoff: null, touchdown: null },
   file: null,
-  session: null,
+  loadedTrial: null,
   envelope: null,
   analysis: null,
   chart: null,
@@ -300,8 +300,8 @@ function confirmColumns() {
   const rate = Number($('sample-rate').value);
   if (!(rate > 0)) return;
   try {
-    state.session?.free?.();
-    state.session = Session.fromForceFile(state.file, state.chosenColumn, rate, $('sentinel').value);
+    state.loadedTrial?.free?.();
+    state.loadedTrial = LoadedTrial.fromForceFile(state.file, state.chosenColumn, rate, $('sentinel').value);
     enterWorkspace();
   } catch (error) {
     reportInline(String(error.message || error));
@@ -310,8 +310,8 @@ function confirmColumns() {
 }
 
 function loadDemonstration() {
-  state.session?.free?.();
-  state.session = Session.demonstration();
+  state.loadedTrial?.free?.();
+  state.loadedTrial = LoadedTrial.demonstration();
   enterWorkspace();
 }
 
@@ -322,7 +322,7 @@ function enterWorkspace() {
   resetSelections();
   showStage('stage-workspace');
 
-  const info = JSON.parse(state.session.infoJson());
+  const info = JSON.parse(state.loadedTrial.infoJson());
   state.info = info;
   $('trial-summary').textContent =
     `${info.sample_count.toLocaleString()} samples at ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
@@ -365,8 +365,8 @@ function enterWorkspace() {
 }
 
 function refreshEnvelope() {
-  if (!state.session || !state.chart) return;
-  state.envelope = JSON.parse(state.session.envelopeJson(state.chart.plotWidthPx()));
+  if (!state.loadedTrial || !state.chart) return;
+  state.envelope = JSON.parse(state.loadedTrial.envelopeJson(state.chart.plotWidthPx()));
   state.chart.setEnvelope(state.envelope);
   state.chart.schedule();
 }
@@ -587,7 +587,7 @@ function buildRequest() {
 }
 
 function runAnalysis() {
-  if (!state.session) return;
+  if (!state.loadedTrial) return;
   $('reset-markers').disabled = !Object.values(state.overrides).some((value) => value != null);
 
   const pending = unresolvedDecisions();
@@ -602,7 +602,7 @@ function runAnalysis() {
   }
 
   try {
-    state.analysis = JSON.parse(state.session.analyze(JSON.stringify(buildRequest())));
+    state.analysis = JSON.parse(state.loadedTrial.analyse(JSON.stringify(buildRequest())));
   } catch (error) {
     $('metric-grid').replaceChildren();
     $('analysis-warnings').replaceChildren(notice('danger', 'The analysis could not run', String(error.message || error)));
@@ -973,7 +973,7 @@ function runSpread() {
   let result;
   try {
     result = JSON.parse(
-      state.session.spread(
+      state.loadedTrial.spread(
         JSON.stringify({
           base: buildRequest(),
           axes: axes.map((axis) => ({
