@@ -26,7 +26,10 @@ fn four_files_or_none() {
     println!("wrote {} files: {}", names.len(), names.join(", "));
 
     for required in ["run.json", "results.csv", "provenance.csv", "refusals.csv"] {
-        assert!(out.join(required).exists(), "{required} is beside the others");
+        assert!(
+            out.join(required).exists(),
+            "{required} is beside the others"
+        );
     }
     // No aggregation was bound, so the fifth relation is absent rather than empty.
     assert!(!out.join("aggregates.csv").exists());
@@ -45,8 +48,14 @@ fn a_table_without_its_record_is_refused_and_says_where_the_record_goes() {
     let message = refusal.to_string();
     println!("{message}");
     assert!(matches!(refusal, WriteRefusal::RecordNotRequested { .. }));
-    assert!(message.contains(out.to_str().unwrap()), "it names the directory");
-    assert!(message.contains("run.json"), "and what goes beside the table");
+    assert!(
+        message.contains(out.to_str().unwrap()),
+        "it names the directory"
+    );
+    assert!(
+        message.contains("run.json"),
+        "and what goes beside the table"
+    );
     assert!(
         !out.join("results.csv").exists(),
         "and nothing was written before the refusal"

@@ -14,14 +14,12 @@ use plateforce_registry::Registry;
 use serde::Serialize;
 
 use crate::decisions::{unresolved, UnresolvedDecision};
+use crate::exclusions::{GateRegistry, PopulationExclusion, ValidityGate};
 use crate::fingerprint::{provenance_id, request_digest, run_fingerprint};
 use crate::identity::{TrialSet, UnidentifiedFile};
-use crate::relations::{
-    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow,
-};
+use crate::relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
 
 /// What one batch run was asked to do.
-#[derive(Debug, Clone)]
 pub struct BatchRequest {
     pub analysis: AnalysisRequest,
     /// The revision the caller pinned, if they pinned one.
@@ -29,6 +27,9 @@ pub struct BatchRequest {
     /// Constructs an explicit act has resolved. Naming a rule on a command line or in a
     /// browser is such an act; arriving at one because nobody said otherwise is not.
     pub resolved_decisions: BTreeSet<String>,
+    /// The validity gates this run bound, and which of them remove a trial rather than
+    /// naming it. Empty is the correct state of a run that bound none.
+    pub gates: GateRegistry,
 }
 
 impl BatchRequest {
@@ -37,7 +38,20 @@ impl BatchRequest {
             analysis,
             registry_version: None,
             resolved_decisions: BTreeSet::new(),
+            gates: GateRegistry::default(),
         }
+    }
+
+    /// Bind a validity gate. It reports and removes nothing until the request applies it.
+    pub fn with_gate(mut self, gate: Box<dyn ValidityGate>) -> Self {
+        self.gates.register(gate);
+        self
+    }
+
+    /// Ask a bound gate's finding to remove the trial from the population.
+    pub fn applying(mut self, method_id: &str) -> Self {
+        self.gates.apply(method_id);
+        self
     }
 
     /// Record that the caller chose these constructs' rules deliberately.
@@ -103,6 +117,8 @@ pub struct BatchResult {
     pub warnings: Vec<WarningRow>,
     /// Written only when the request bound an aggregation rule.
     pub aggregates: Vec<AggregateRow>,
+    /// What each bound gate found, whether or not the request asked it to remove anything.
+    pub exclusions: Vec<PopulationExclusion>,
     pub coverage: Coverage,
 }
 
@@ -122,11 +138,7 @@ pub fn analyse(
     request: &BatchRequest,
     registry: &Registry,
 ) -> Result<BatchResult, RunRefusal> {
-    let open = unresolved(
-        registry,
-        &path_constructs(),
-        &request.resolved_decisions,
-    );
+    let open = unresolved(registry, &path_constructs(), &request.resolved_decisions);
     if !open.is_empty() {
         let named: Vec<String> = open.iter().map(UnresolvedDecision::message).collect();
         return Err(RunRefusal {
@@ -146,6 +158,7 @@ pub fn analyse(
     let mut provenance: BTreeMap<String, Vec<ProvenanceRow>> = BTreeMap::new();
     let mut refusals: Vec<RefusalRow> = Vec::new();
     let mut warnings: Vec<WarningRow> = Vec::new();
+    let mut exclusions: Vec<PopulationExclusion> = Vec::new();
     let mut computed = 0usize;
     let mut refused = 0usize;
 
@@ -159,7 +172,8 @@ pub fn analyse(
         } else {
             String::new()
         };
-        let ordinal = |rows: &[RefusalRow]| rows.iter().filter(|row| row.trial_id == *trial_id).count();
+        let ordinal =
+            |rows: &[RefusalRow]| rows.iter().filter(|row| row.trial_id == *trial_id).count();
 
         let trial = match entry.source.read(&set.format) {
             Ok((trial, _report)) => trial,
@@ -198,7 +212,11 @@ pub fn analyse(
                     available: String::new(),
                     message,
                 });
-                results.push(refused_row(trial_id, &source_path, "method_not_implemented"));
+                results.push(refused_row(
+                    trial_id,
+                    &source_path,
+                    "method_not_implemented",
+                ));
                 refused += 1;
                 continue;
             }
@@ -222,6 +240,10 @@ pub fn analyse(
                 message: sentence.clone(),
             });
         }
+
+        // Every gate looks at every trial that computed. The finding is recorded whether or
+        // not it removes the trial, so the denominator is visible either way.
+        exclusions.extend(request.gates.examine(trial_id, &response));
 
         let rows = provenance_rows(&response);
         let identifier = provenance_id(&rows);
@@ -251,6 +273,13 @@ pub fn analyse(
         computed += 1;
     }
 
+    let excluded = exclusions
+        .iter()
+        .filter(|exclusion| exclusion.applied)
+        .map(|exclusion| exclusion.trial_id.clone())
+        .collect::<BTreeSet<String>>()
+        .len();
+
     let coverage = Coverage {
         files_found: set.files_found,
         files_unidentified: set.unidentified.len(),
@@ -258,7 +287,7 @@ pub fn analyse(
         results_written: results.len(),
         computed,
         refused,
-        excluded: 0,
+        excluded,
     };
     let provenance_ids: BTreeSet<String> = provenance.keys().cloned().collect();
     let mut flattened: Vec<ProvenanceRow> = provenance.into_values().flatten().collect();
@@ -293,8 +322,8 @@ pub fn analyse(
         // trials that computed, which is what a dataset that cannot fill it should report.
         acquisition_complete_count: 0,
         trials_excluded: coverage.excluded,
-        gates_reporting: 0,
-        gates_applied: 0,
+        gates_reporting: request.gates.reporting_count(),
+        gates_applied: request.gates.applied_count(),
         distinct_provenance_count: provenance_ids.len(),
         trial_identity: set.identity.describe(),
         run_fingerprint: String::new(),
@@ -309,6 +338,7 @@ pub fn analyse(
         refusals,
         warnings,
         aggregates: Vec::new(),
+        exclusions,
         coverage,
     })
 }
@@ -401,7 +431,9 @@ fn rule_refusal_row(
             method_id.clone(),
             parameter.clone(),
             crate::relations::format_value(*value),
-            format!("dispersion_newtons={dispersion_newtons},threshold_newtons={threshold_newtons}"),
+            format!(
+                "dispersion_newtons={dispersion_newtons},threshold_newtons={threshold_newtons}"
+            ),
         ),
         RuleRefusal::Trial(other) => (
             trial_error_code(other),
@@ -479,11 +511,7 @@ fn provenance_rows(response: &AnalysisResponse) -> Vec<ProvenanceRow> {
     rows
 }
 
-fn rows_for_bound_method(
-    metric: &Metric,
-    bound: &BoundMethod,
-    depth: usize,
-) -> Vec<ProvenanceRow> {
+fn rows_for_bound_method(metric: &Metric, bound: &BoundMethod, depth: usize) -> Vec<ProvenanceRow> {
     if bound.bound_parameters.is_empty() {
         return vec![ProvenanceRow {
             provenance_id: String::new(),

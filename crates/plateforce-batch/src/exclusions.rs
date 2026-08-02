@@ -84,7 +84,9 @@ pub struct GateRegistry {
 
 impl GateRegistry {
     pub fn register(&mut self, gate: Box<dyn ValidityGate>) {
-        self.applied.entry(gate.method_id().to_string()).or_insert(false);
+        self.applied
+            .entry(gate.method_id().to_string())
+            .or_insert(false);
         self.gates.push(gate);
     }
 
@@ -118,18 +120,15 @@ impl GateRegistry {
         self.gates
             .iter()
             .filter_map(|gate| {
-                gate.examine(trial_id, response).map(|finding| PopulationExclusion {
-                    trial_id: trial_id.to_string(),
-                    method_id: gate.method_id().to_string(),
-                    parameter: finding.parameter,
-                    value: finding.value,
-                    criterion: finding.criterion,
-                    applied: self
-                        .applied
-                        .get(gate.method_id())
-                        .copied()
-                        .unwrap_or(false),
-                })
+                gate.examine(trial_id, response)
+                    .map(|finding| PopulationExclusion {
+                        trial_id: trial_id.to_string(),
+                        method_id: gate.method_id().to_string(),
+                        parameter: finding.parameter,
+                        value: finding.value,
+                        criterion: finding.criterion,
+                        applied: self.applied.get(gate.method_id()).copied().unwrap_or(false),
+                    })
             })
             .collect()
     }

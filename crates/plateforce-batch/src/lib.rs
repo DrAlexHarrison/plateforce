@@ -8,6 +8,7 @@
 
 pub mod decisions;
 pub mod engine;
+pub mod exclusions;
 pub mod fingerprint;
 pub mod identity;
 pub mod relations;
@@ -19,11 +20,10 @@ pub mod write_parquet;
 
 pub use decisions::{unresolved, UnresolvedDecision};
 pub use engine::{analyse, BatchRequest, BatchResult, Coverage, RunRefusal};
-pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
-pub use write_json::envelope;
+pub use exclusions::{GateFinding, GateRegistry, GateTally, PopulationExclusion, ValidityGate};
 pub use identity::{
     Session, SourceFormat, SubjectKey, TrialEntry, TrialIdentity, TrialSet, TrialSource, WalkError,
 };
-pub use relations::{
-    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow,
-};
+pub use relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
+pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
+pub use write_json::envelope;

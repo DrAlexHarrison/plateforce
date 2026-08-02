@@ -31,7 +31,10 @@ fn trials_that_produced_the_same_quantities_under_the_same_rules_share_one_chain
     );
 
     let distinct = distinct_provenance(&result.results);
-    println!("distinct provenance_id: {} of {copied} trials", distinct.len());
+    println!(
+        "distinct provenance_id: {} of {copied} trials",
+        distinct.len()
+    );
     assert!(!distinct.is_empty(), "a computed trial carries a chain");
     assert_eq!(
         distinct.len(),
@@ -82,7 +85,10 @@ fn a_trial_that_ran_differently_gets_its_own_chain() {
     ]);
     let second = analyse(&set, &overridden, &registry).unwrap();
 
-    assert_eq!(first.coverage.computed, copied, "the first run computed every trial");
+    assert_eq!(
+        first.coverage.computed, copied,
+        "the first run computed every trial"
+    );
     assert_eq!(second.coverage.computed, copied, "and so did the second");
 
     let before = distinct_provenance(&first.results);
@@ -182,7 +188,8 @@ fn every_number_reaches_the_rules_that_produced_it() {
     assert!(
         height
             .iter()
-            .any(|entry| entry.depth == 0 && entry.method_id == "jumpheight.takeoff.impulse_momentum"),
+            .any(|entry| entry.depth == 0
+                && entry.method_id == "jumpheight.takeoff.impulse_momentum"),
         "the arithmetic sits at depth 0"
     );
     assert!(

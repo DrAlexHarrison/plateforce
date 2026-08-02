@@ -1,0 +1,3 @@
+qc.countermovement_contamination.chavda2020 would exclude 20 of 20, applied 0 of 20
+qc.transient_peak_count.pedley2023 would exclude 20 of 20, applied 0 of 20
+trial.gate.between_trial_agreement.kraska2009 would exclude 20 of 20, applied 0 of 20

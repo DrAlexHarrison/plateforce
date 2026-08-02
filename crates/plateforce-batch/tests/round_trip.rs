@@ -20,7 +20,10 @@ fn envelope_carries_one_key_and_survives_the_round_trip() {
     let text = result.to_json();
 
     let value: serde_json::Value = serde_json::from_str(&text).unwrap();
-    assert!(value.get("ok").is_some(), "a run that produced numbers is ok");
+    assert!(
+        value.get("ok").is_some(),
+        "a run that produced numbers is ok"
+    );
     assert!(value.get("refusal").is_none(), "and never both keys");
 
     let back = BatchResult::from_json(&text).expect("the envelope reads back");

@@ -145,9 +145,14 @@ pub struct UnidentifiedFile {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnidentifiedReason {
-    PatternDidNotMatch { template: String },
+    PatternDidNotMatch {
+        template: String,
+    },
     /// Two files resolved to one id, so the table cannot be keyed. Neither is preferred.
-    DuplicateTrialId { trial_id: String, other: String },
+    DuplicateTrialId {
+        trial_id: String,
+        other: String,
+    },
 }
 
 impl UnidentifiedFile {
@@ -277,14 +282,15 @@ impl TrialSet {
 
             let parsed = match identity {
                 TrialIdentity::FileStem => Some((stem.clone(), None, None)),
-                TrialIdentity::DeclaredPattern { template } => parse_template(template, &stem)
-                    .map(|fields| {
+                TrialIdentity::DeclaredPattern { template } => {
+                    parse_template(template, &stem).map(|fields| {
                         let subject = fields.get("subject").map(|subject| SubjectKey {
                             subject: subject.clone(),
                             occasion: fields.get("occasion").cloned(),
                         });
                         (stem.clone(), subject, fields.get("trial").cloned())
-                    }),
+                    })
+                }
             };
 
             let Some((trial_id, subject, trial_label)) = parsed else {

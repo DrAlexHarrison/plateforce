@@ -50,10 +50,16 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
         .collect();
     assert_eq!(refused, vec!["truncated"], "the bad trial fails by name");
     assert!(
-        result.refusals.iter().any(|row| row.trial_id == "truncated"),
+        result
+            .refusals
+            .iter()
+            .any(|row| row.trial_id == "truncated"),
         "and it says why"
     );
-    result.run.check_invariants().expect("the run keeps its own arithmetic");
+    result
+        .run
+        .check_invariants()
+        .expect("the run keeps its own arithmetic");
     std::fs::remove_dir_all(&directory).ok();
 }
 
@@ -68,9 +74,21 @@ fn a_run_with_a_choice_still_open_reads_no_trial_at_all() {
     let refusal = analyse(&set, &request, &registry()).expect_err("a choice is still open");
 
     println!("{}", refusal.message);
-    assert_eq!(refusal.unresolved.len(), 2, "two of three constructs force one");
-    assert!(refusal.message.contains("system_weight"), "{}", refusal.message);
-    assert!(refusal.message.contains("movement_onset"), "{}", refusal.message);
+    assert_eq!(
+        refusal.unresolved.len(),
+        2,
+        "two of three constructs force one"
+    );
+    assert!(
+        refusal.message.contains("system_weight"),
+        "{}",
+        refusal.message
+    );
+    assert!(
+        refusal.message.contains("movement_onset"),
+        "{}",
+        refusal.message
+    );
     assert!(
         refusal
             .unresolved

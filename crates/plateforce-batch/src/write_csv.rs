@@ -8,9 +8,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::engine::BatchResult;
-use crate::relations::{
-    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow,
-};
+use crate::relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
 
 /// One table a caller can ask for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -169,18 +167,14 @@ pub fn read_csv(directory: &Path) -> Result<ReadBack, WriteRefusal> {
             source,
         })
     };
-    let run: RunRow = serde_json::from_str(&read("run.json")?).map_err(|source| WriteRefusal::Io {
-        path: directory.join("run.json").display().to_string(),
-        source: std::io::Error::new(std::io::ErrorKind::InvalidData, source),
-    })?;
+    let run: RunRow =
+        serde_json::from_str(&read("run.json")?).map_err(|source| WriteRefusal::Io {
+            path: directory.join("run.json").display().to_string(),
+            source: std::io::Error::new(std::io::ErrorKind::InvalidData, source),
+        })?;
 
     let results_table = parse(&read("results.csv")?);
-    let quantities: Vec<String> = results_table
-        .header
-        .iter()
-        .skip(4)
-        .cloned()
-        .collect();
+    let quantities: Vec<String> = results_table.header.iter().skip(4).cloned().collect();
     let results = results_table
         .rows
         .iter()

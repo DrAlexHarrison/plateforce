@@ -7,8 +7,10 @@ use plateforce_analysis::{AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_batch::{BatchRequest, SourceFormat, TrialIdentity};
 use plateforce_registry::Registry;
 
-pub const FIXTURES: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../plateforce-conformance/fixtures");
+pub const FIXTURES: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../plateforce-conformance/fixtures"
+);
 
 pub fn registry() -> Registry {
     Registry::load(concat!(env!("CARGO_MANIFEST_DIR"), "/../../registry"))

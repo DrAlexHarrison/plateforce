@@ -48,7 +48,8 @@ pub fn trace(
     }
     for index in 0..propulsion {
         let phase = index as f64 / propulsion as f64;
-        let rise = (phase * std::f64::consts::PI).sin() * (1.05 + jitter_newtons / 100.0)
+        let rise = (phase * std::f64::consts::PI).sin()
+            * (1.05 + jitter_newtons / 100.0)
             * system_weight_newtons;
         force.push(system_weight_newtons + rise);
     }
@@ -125,7 +126,9 @@ mod tests {
         let force = trace(600.0, 1200.0, 0.0, 3);
         assert!(force.iter().any(|value| *value == 0.0), "it takes off");
         assert!(
-            force[..1800].iter().all(|value| (*value - 600.0).abs() < 5.0),
+            force[..1800]
+                .iter()
+                .all(|value| (*value - 600.0).abs() < 5.0),
             "it stands still first"
         );
     }

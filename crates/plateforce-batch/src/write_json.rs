@@ -28,6 +28,7 @@ impl BatchResult {
             "refusals": self.refusals,
             "warnings": self.warnings,
             "aggregates": self.aggregates,
+            "exclusions": self.exclusions,
         })
     }
 
@@ -49,6 +50,8 @@ impl BatchResult {
             warnings: serde_json::from_value(read("warnings"))
                 .map_err(|error| error.to_string())?,
             aggregates: serde_json::from_value(read("aggregates"))
+                .map_err(|error| error.to_string())?,
+            exclusions: serde_json::from_value(read("exclusions"))
                 .map_err(|error| error.to_string())?,
             coverage: Default::default(),
         })

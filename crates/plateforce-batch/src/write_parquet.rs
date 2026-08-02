@@ -50,7 +50,12 @@ impl BatchResult {
             self.provenance_batch()?,
             &record,
         )?);
-        written.push(self.write_relation(directory, "refusals", self.refusals_batch()?, &record)?);
+        written.push(self.write_relation(
+            directory,
+            "refusals",
+            self.refusals_batch()?,
+            &record,
+        )?);
         Ok(written)
     }
 
@@ -66,8 +71,7 @@ impl BatchResult {
             path: path.display().to_string(),
             source,
         })?;
-        let metadata =
-            HashMap::from([(RUN_METADATA_KEY.to_string(), record.to_string())]);
+        let metadata = HashMap::from([(RUN_METADATA_KEY.to_string(), record.to_string())]);
         let schema = Arc::new(batch.schema().as_ref().clone().with_metadata(metadata));
         let mut writer =
             ArrowWriter::try_new(file, schema, None).map_err(|error| ParquetError::Arrow {

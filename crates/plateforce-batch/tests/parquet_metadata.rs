@@ -23,7 +23,8 @@ fn the_run_block_survives_a_parquet_round_trip_under_our_own_key() {
     for path in &written {
         let run = read_run(path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
         assert_eq!(
-            run, result.run,
+            run,
+            result.run,
             "{} carries the same record as every other file in the set",
             path.display()
         );
@@ -54,7 +55,10 @@ fn a_file_with_no_record_is_named_rather_than_read_as_if_it_had_one() {
     let error = read_run(&path).unwrap_err();
     println!("{error}");
     assert!(
-        matches!(error, ParquetError::Arrow { .. } | ParquetError::RecordAbsent { .. }),
+        matches!(
+            error,
+            ParquetError::Arrow { .. } | ParquetError::RecordAbsent { .. }
+        ),
         "{error}"
     );
     std::fs::remove_dir_all(&directory).ok();

@@ -5,7 +5,10 @@ use std::collections::BTreeSet;
 use plateforce_batch::identity::{UnidentifiedReason, WalkError};
 use plateforce_batch::{Session, SourceFormat, TrialIdentity, TrialSet};
 
-const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../plateforce-conformance/fixtures");
+const FIXTURES: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../plateforce-conformance/fixtures"
+);
 
 fn committed_format() -> SourceFormat {
     SourceFormat {
@@ -26,7 +29,11 @@ fn reads_every_committed_fixture() {
     )
     .expect("the committed fixtures are on disk");
 
-    println!("{} of {} committed fixtures read", set.len(), set.files_found);
+    println!(
+        "{} of {} committed fixtures read",
+        set.len(),
+        set.files_found
+    );
     assert_eq!(set.files_found, 6, "six names carry the declared suffix");
     assert_eq!(set.len(), 6, "all six are named");
     assert!(set.unidentified.is_empty());
@@ -34,7 +41,10 @@ fn reads_every_committed_fixture() {
     // The directory holds eight files. The two that are not traces are outside the declared
     // set rather than refused as data failures, and the narrowing is what `files_found` says.
     let on_disk = std::fs::read_dir(FIXTURES).unwrap().count();
-    println!("{} of {on_disk} files in the directory are declared trials", set.files_found);
+    println!(
+        "{} of {on_disk} files in the directory are declared trials",
+        set.files_found
+    );
     assert_eq!(on_disk, 8);
 
     for (trial_id, entry) in set.iter() {
@@ -68,14 +78,21 @@ fn a_declared_pattern_parses_what_the_conformance_crate_parses() {
 
     // The conformance crate accepts the first two and rejects the last two, and so does this.
     let named: Vec<&String> = set.iter().map(|(id, _)| id).collect();
-    println!("named {} of {} declared trials", named.len(), set.files_found);
+    println!(
+        "named {} of {} declared trials",
+        named.len(),
+        set.files_found
+    );
     assert_eq!(named, vec!["AT01_6", "AT13_3"]);
 
     let subjects: BTreeSet<String> = set
         .iter()
         .filter_map(|(_, entry)| entry.subject.as_ref().map(|key| key.subject.clone()))
         .collect();
-    assert_eq!(subjects, BTreeSet::from(["01".to_string(), "13".to_string()]));
+    assert_eq!(
+        subjects,
+        BTreeSet::from(["01".to_string(), "13".to_string()])
+    );
 
     // `AT01_6.csv` carries no declared suffix, so it is not a trial and not a failure.
     assert_eq!(set.files_found, 3, "three names carry the declared suffix");
@@ -116,7 +133,11 @@ fn a_file_the_pattern_does_not_match_is_refused_by_name_rather_than_skipped() {
 
     let refused = &set.unidentified[0];
     assert_eq!(refused.file_name, "notes.txt");
-    assert!(refused.message().contains("AT{subject}_{trial}"), "{}", refused.message());
+    assert!(
+        refused.message().contains("AT{subject}_{trial}"),
+        "{}",
+        refused.message()
+    );
     assert!(matches!(
         refused.reason,
         UnidentifiedReason::PatternDidNotMatch { .. }
@@ -165,7 +186,11 @@ fn a_run_walked_twice_lists_its_trials_in_the_same_order() {
     )
     .unwrap();
     assert_eq!(first.trial_ids(), second.trial_ids());
-    println!("{} of {} trials in one order", first.len(), first.files_found);
+    println!(
+        "{} of {} trials in one order",
+        first.len(),
+        first.files_found
+    );
 }
 
 #[test]
