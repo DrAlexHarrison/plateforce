@@ -341,15 +341,14 @@ pub fn analyse(
         &integration,
         bindings.gravity_meters_per_second_squared,
     );
-    let velocity = velocity_series.meters_per_second();
-    let velocity_zero = velocity_zero_crossing(velocity, onset_for_phases, takeoff_jm);
+    let velocity_zero = velocity_zero_crossing(&velocity_series, onset_for_phases, takeoff_jm);
 
     let braking_reference_newtons = match bindings.braking_start_reference {
         BrakingStartReference::ForceAtOnset => force[onset_for_phases],
         BrakingStartReference::SystemWeight => weight[0],
     };
     let unweighting_end = [
-        braking_start_by_velocity_minimum(velocity, onset_for_phases, takeoff_jm),
+        braking_start_by_velocity_minimum(&velocity_series, onset_for_phases, takeoff_jm),
         braking_start_by_force_return(
             force,
             onset_for_phases,
@@ -768,12 +767,10 @@ pub fn fixed_epoch(
 mod tests {
     use super::*;
     use plateforce_core::read_trial_from_path;
-    use std::path::Path;
 
     fn committed_trial(trial_number: u32) -> Trial {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("fixtures")
-            .join(format!("subject01_trial{trial_number}.force.txt"));
+        let path =
+            crate::fixtures_directory().join(format!("subject01_trial{trial_number}.force.txt"));
         read_trial_from_path(&path, '\t', 0, 1200.0)
             .expect("committed fixture reads")
             .0

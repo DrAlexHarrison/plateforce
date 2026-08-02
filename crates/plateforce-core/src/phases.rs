@@ -41,14 +41,14 @@ pub fn cumulative_trapezoid(values: &[f64], sample_interval_seconds: f64) -> Vec
 /// Searched to the end of an untrimmed recording this finds the landing, where velocity
 /// is far more negative than anything in the countermovement.
 pub fn braking_start_by_velocity_minimum(
-    velocity_meters_per_second: &[f64],
+    velocity: &crate::series::VelocitySeries,
     onset_index: usize,
     search_end_index: usize,
 ) -> Option<usize> {
-    if onset_index + 1 >= search_end_index || search_end_index > velocity_meters_per_second.len() {
+    if onset_index + 1 >= search_end_index || search_end_index > velocity.len() {
         return None;
     }
-    index_of_minimum(&velocity_meters_per_second[onset_index..search_end_index])
+    index_of_minimum(&velocity.meters_per_second()[onset_index..search_end_index])
         .map(|offset| onset_index + offset)
 }
 
@@ -142,14 +142,14 @@ pub fn propulsion_end_by_force_crossing(
 /// The mirror of the velocity form of braking start: braking begins at the most negative
 /// velocity and propulsion ends at the most positive one, over the same interval.
 pub fn propulsion_end_by_velocity_maximum(
-    velocity_meters_per_second: &[f64],
+    velocity: &crate::series::VelocitySeries,
     onset_index: usize,
     search_end_index: usize,
 ) -> Option<usize> {
-    if onset_index + 1 >= search_end_index || search_end_index > velocity_meters_per_second.len() {
+    if onset_index + 1 >= search_end_index || search_end_index > velocity.len() {
         return None;
     }
-    index_of_maximum(&velocity_meters_per_second[onset_index..search_end_index])
+    index_of_maximum(&velocity.meters_per_second()[onset_index..search_end_index])
         .map(|offset| onset_index + offset)
 }
 
@@ -186,16 +186,11 @@ pub struct VelocityZeroCrossing {
 }
 
 pub fn velocity_zero_crossing(
-    velocity_meters_per_second: &[f64],
+    velocity: &crate::series::VelocitySeries,
     onset_index: usize,
     search_end_index: usize,
 ) -> Option<VelocityZeroCrossing> {
-    velocity_threshold_crossing(
-        velocity_meters_per_second,
-        onset_index,
-        search_end_index,
-        0.0,
-    )
+    velocity_threshold_crossing(velocity, onset_index, search_end_index, 0.0)
 }
 
 /// The same rising crossing, against a small positive threshold instead of zero.
@@ -205,15 +200,15 @@ pub fn velocity_zero_crossing(
 /// the zero form is this one at a threshold of zero, so a caller comparing them is
 /// comparing thresholds rather than implementations.
 pub fn velocity_threshold_crossing(
-    velocity_meters_per_second: &[f64],
+    velocity: &crate::series::VelocitySeries,
     onset_index: usize,
     search_end_index: usize,
     threshold_meters_per_second: f64,
 ) -> Option<VelocityZeroCrossing> {
-    if onset_index + 1 >= search_end_index || search_end_index > velocity_meters_per_second.len() {
+    if onset_index + 1 >= search_end_index || search_end_index > velocity.len() {
         return None;
     }
-    let segment = &velocity_meters_per_second[onset_index..search_end_index];
+    let segment = &velocity.meters_per_second()[onset_index..search_end_index];
     let minimum = index_of_minimum(segment)?;
     for index in minimum..segment.len().saturating_sub(1) {
         if segment[index] <= threshold_meters_per_second
@@ -357,7 +352,7 @@ pub fn phase_model_unweighting_single(
 #[allow(clippy::too_many_arguments)]
 pub fn phase_model_unloading_yielding_split(
     vertical_ground_reaction_force_newtons: &[f64],
-    velocity_meters_per_second: &[f64],
+    velocity: &crate::series::VelocitySeries,
     system_weight_newtons: f64,
     unloading_drop_percent_of_system_weight: f64,
     search_start_index: usize,
@@ -366,7 +361,7 @@ pub fn phase_model_unloading_yielding_split(
 ) -> Option<PhaseModelBoundaries> {
     if takeoff_index <= search_start_index
         || takeoff_index > vertical_ground_reaction_force_newtons.len()
-        || takeoff_index > velocity_meters_per_second.len()
+        || takeoff_index > velocity.len()
     {
         return None;
     }
@@ -383,17 +378,10 @@ pub fn phase_model_unloading_yielding_split(
         unloading_start,
         peak_index,
     )?;
-    let velocity_minimum = braking_start_by_velocity_minimum(
-        velocity_meters_per_second,
-        force_minimum,
-        takeoff_index,
-    )?;
-    let positive_velocity = velocity_threshold_crossing(
-        velocity_meters_per_second,
-        velocity_minimum,
-        takeoff_index,
-        0.0,
-    )?;
+    let velocity_minimum =
+        braking_start_by_velocity_minimum(velocity, force_minimum, takeoff_index)?;
+    let positive_velocity =
+        velocity_threshold_crossing(velocity, velocity_minimum, takeoff_index, 0.0)?;
     Some(PhaseModelBoundaries {
         indices: vec![
             unloading_start,
@@ -520,6 +508,28 @@ pub fn landing_end_by_zero_com_velocity(
 mod tests {
     use super::*;
 
+    /// A velocity series over samples a test built directly, with all four choices stated.
+    ///
+    /// The type exists so a landmark cannot be read off a series whose settings nobody
+    /// declared, and a test is not exempt from declaring them.
+    fn stated_series(meters_per_second: Vec<f64>) -> crate::series::VelocitySeries {
+        use crate::series::{
+            IntegrationAnchor, IntegrationDirection, IntegrationSpec, IntegrationStart,
+            QuadratureRule, VelocitySeries,
+        };
+        VelocitySeries::from_samples(
+            meters_per_second,
+            IntegrationSpec {
+                quadrature: QuadratureRule::Trapezoid,
+                direction: IntegrationDirection::Forward,
+                start: IntegrationStart::TrialStart,
+                anchor: IntegrationAnchor::SinglePoint { index: 0 },
+            },
+            0,
+            0.001,
+        )
+    }
+
     #[test]
     fn integrating_a_constant_acceleration_gives_a_linear_velocity() {
         let acceleration = vec![2.0; 1001];
@@ -535,8 +545,12 @@ mod tests {
         velocity.extend((0..100).map(|i| -1.0 + (i as f64) / 50.0));
         let takeoff = velocity.len();
         velocity.extend((0..200).map(|i| -5.0 - (i as f64) / 100.0));
-        let bounded = braking_start_by_velocity_minimum(&velocity, 0, takeoff).unwrap();
-        let unbounded = braking_start_by_velocity_minimum(&velocity, 0, velocity.len()).unwrap();
+        let bounded =
+            braking_start_by_velocity_minimum(&stated_series(velocity.clone()), 0, takeoff)
+                .unwrap();
+        let unbounded =
+            braking_start_by_velocity_minimum(&stated_series(velocity.clone()), 0, velocity.len())
+                .unwrap();
         assert_eq!(bounded, 200);
         assert!(
             unbounded > takeoff,
@@ -548,7 +562,8 @@ mod tests {
     fn a_fallback_velocity_zero_is_flagged_as_not_a_crossing() {
         let mut velocity: Vec<f64> = (0..200).map(|i| -(i as f64) / 100.0).collect();
         velocity.extend(std::iter::repeat_n(-2.0, 50));
-        let never_returns = velocity_zero_crossing(&velocity, 0, velocity.len()).unwrap();
+        let never_returns =
+            velocity_zero_crossing(&stated_series(velocity.clone()), 0, velocity.len()).unwrap();
         assert!(
             !never_returns.is_true_crossing,
             "a fall that never returns reported a crossing"
@@ -556,7 +571,8 @@ mod tests {
 
         let mut recovers = velocity.clone();
         recovers.extend((0..50).map(|i| -2.0 + (i as f64) / 10.0));
-        let crossed = velocity_zero_crossing(&recovers, 0, recovers.len()).unwrap();
+        let crossed =
+            velocity_zero_crossing(&stated_series(recovers.clone()), 0, recovers.len()).unwrap();
         assert!(crossed.is_true_crossing);
     }
 
@@ -629,8 +645,10 @@ mod tests {
         velocity.extend((0..100).map(|i| -(i as f64) / 100.0));
         velocity.extend((0..200).map(|i| -1.0 + (i as f64) / 100.0));
         let end = velocity.len();
-        let braking = braking_start_by_velocity_minimum(&velocity, 0, end).unwrap();
-        let propulsion = propulsion_end_by_velocity_maximum(&velocity, 0, end).unwrap();
+        let braking =
+            braking_start_by_velocity_minimum(&stated_series(velocity.clone()), 0, end).unwrap();
+        let propulsion =
+            propulsion_end_by_velocity_maximum(&stated_series(velocity.clone()), 0, end).unwrap();
         assert_eq!(braking, 200);
         assert_eq!(propulsion, end - 1);
         assert!(braking < propulsion);
@@ -771,11 +789,14 @@ mod tests {
         let force = countermovement_force();
         let velocity = countermovement_velocity(&force);
         assert_eq!(
-            velocity_zero_crossing(&velocity, 500, TAKEOFF_INDEX),
-            velocity_threshold_crossing(&velocity, 500, TAKEOFF_INDEX, 0.0)
+            velocity_zero_crossing(&stated_series(velocity.clone()), 500, TAKEOFF_INDEX),
+            velocity_threshold_crossing(&stated_series(velocity.clone()), 500, TAKEOFF_INDEX, 0.0)
         );
-        let guarded = velocity_threshold_crossing(&velocity, 500, TAKEOFF_INDEX, 0.01).unwrap();
-        let bare = velocity_zero_crossing(&velocity, 500, TAKEOFF_INDEX).unwrap();
+        let guarded =
+            velocity_threshold_crossing(&stated_series(velocity.clone()), 500, TAKEOFF_INDEX, 0.01)
+                .unwrap();
+        let bare =
+            velocity_zero_crossing(&stated_series(velocity.clone()), 500, TAKEOFF_INDEX).unwrap();
         assert!(guarded.index > bare.index, "{guarded:?} against {bare:?}");
     }
 
@@ -803,7 +824,7 @@ mod tests {
         let velocity = countermovement_velocity(&force);
         let from_early = phase_model_unloading_yielding_split(
             &force,
-            &velocity,
+            &stated_series(velocity.clone()),
             SYSTEM_WEIGHT_NEWTONS,
             2.5,
             0,
@@ -813,7 +834,7 @@ mod tests {
         .unwrap();
         let from_late = phase_model_unloading_yielding_split(
             &force,
-            &velocity,
+            &stated_series(velocity.clone()),
             SYSTEM_WEIGHT_NEWTONS,
             2.5,
             480,
@@ -830,7 +851,7 @@ mod tests {
 
         let deeper = phase_model_unloading_yielding_split(
             &force,
-            &velocity,
+            &stated_series(velocity.clone()),
             SYSTEM_WEIGHT_NEWTONS,
             10.0,
             0,
