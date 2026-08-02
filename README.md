@@ -43,8 +43,16 @@ Early, and the browser build runs: **https://dralexharrison.github.io/plateforce
 
 Drop a force trace in and nothing is uploaded. The file is read in the tab.
 
-What works: the registry loads and validates as data, 246 computation entries and 8
-protocol entries across 18 method files. The core reproduces a frozen 56-variant reference
+What works: the registry loads and validates as data, across 18 method files. It reports its
+own size rather than having it written here, because a count in a document goes stale and a
+count from the software does not:
+
+```
+cargo run -q -p plateforce-cli -- registry census
+```
+
+The two populations it prints, computation entries and protocol entries, are separate and are
+never added together. The core reproduces a frozen 56-variant reference
 implementation over 244 trials, every column. Six of those trials ship as a fixture and a
 difference in them fails the build; the other 238 run where the corpus is, which is one
 machine, and every run prints which of the two it checked.
