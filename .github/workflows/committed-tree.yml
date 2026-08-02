@@ -30,3 +30,19 @@ jobs:
 
       - name: Read the ref rather than the working tree
         run: python3 scripts/verify-committed-tree.py HEAD
+
+  every_workspace_reads_a_double_back_as_itself:
+    name: serde_json resolves with float_roundtrip everywhere
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      # The resolved feature graph rather than the tests. Removing the root declaration does
+      # redden four tests, so the workspace is covered; removing it from the desktop shell
+      # reddens nothing at all, because that package sits outside the workspace suite and its
+      # own tests carry no double. Measured both ways. This asks all three workspaces.
+      - name: Every workspace that ships
+        run: bash scripts/verify-float-roundtrip.sh

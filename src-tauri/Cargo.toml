@@ -26,10 +26,17 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 sha2 = "0.10"
 
-# Reads the configuration files in the tests, so what the shell promises a reader is
-# asserted rather than reviewed.
-[dev-dependencies]
-serde_json = "1"
+# The root workspace carries `float_roundtrip` so no crate depends on cargo's feature
+# unification for a double surviving being written and read back. This package is outside
+# that workspace by design, which is what keeps `cargo test --workspace` needing nothing but
+# a Rust toolchain, and the same exclusion is what stops the root's declaration reaching
+# here. So it is declared again, in the graph that ships: tauri pulls serde_json regardless,
+# and this is the feature the union then carries.
+#
+# A regular dependency rather than a dev one. Dev dependencies are absent from a release
+# build, so declaring it there would give the tests the property and the shipped binary the
+# defect, which is the worst of both.
+serde_json = { version = "1", features = ["float_roundtrip"] }
 
 [profile.release]
 opt-level = 2
