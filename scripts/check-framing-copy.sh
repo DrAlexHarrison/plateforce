@@ -175,17 +175,41 @@ for path in sorted(Path("web").rglob("*")):
             state_hits += 1
             report(f"{path}:{number}", f'"{hit.group(0)}" describes the state of the software')
 
-# This rule can only ever pass on its own evidence, so it carries its own. Each phrase is run
-# against a line built to contain it, and a phrase that has stopped matching is named here
-# rather than in a release. Rules 1 and 2 read real content and a break shows up in it; this
+# This rule can only ever pass on its own evidence, so it carries its own, taken from a
+# document it does not own. Rules 1 and 2 read real content and a break shows up in it; this
 # one reads the absence of content, where a dead pattern and a clean interface are the same
 # reading.
-dead = [phrase for phrase in ABOUT_THE_SOFTWARE
-        if not about.search(f"the panel is {phrase} on this screen")]
+#
+# The list is checked against CONVENTIONS.md section 5 in both directions, because each
+# direction catches a different failure: a phrase here that section 5 does not ban is a
+# check enforcing something nobody agreed, and a phrase section 5 bans that nothing here
+# matches is a ban with no enforcement. A probe built out of this tuple would match itself
+# whatever it said, which is a control that cannot fail.
+# The paragraph rather than the section: section 5 also quotes a sentence as an illustration
+# of the class, and a parse that swept the whole section would read the illustration as an
+# item on the list. Whitespace is normalised inside the paragraph because the list wraps
+# across lines, and a pattern that does not tolerate the wrap undercounts silently.
+paragraphs = Path("CONVENTIONS.md").read_text().split("\n\n")
+listed = [" ".join(block.split()) for block in paragraphs if "Banned outright:" in block]
+banned_in_conventions = [phrase for block in listed for phrase in re.findall(r'"([^"]+)"', block)]
+
 control_failures = 0
-if dead:
+if not banned_in_conventions:
     control_failures += 1
-    report("rule 3", f"{len(dead)} of {len(ABOUT_THE_SOFTWARE)} phrases match nothing even when present: {dead}")
+    report("rule 3", "CONVENTIONS.md yielded no banned list, so this rule is checking itself")
+unagreed = [phrase for phrase in ABOUT_THE_SOFTWARE
+            if not any(phrase.lower() in quoted.lower() for quoted in banned_in_conventions)]
+if unagreed:
+    control_failures += 1
+    report("rule 3", f"{len(unagreed)} of {len(ABOUT_THE_SOFTWARE)} phrases are not in CONVENTIONS.md "
+                     f"section 5's banned list, so this check enforces something nobody agreed: {unagreed}")
+
+unenforced = [quoted for quoted in banned_in_conventions
+              if not about.search(quoted)]
+if unenforced:
+    control_failures += 1
+    report("rule 3", f"{len(unenforced)} of {len(banned_in_conventions)} phrases CONVENTIONS.md section 5 "
+                     f"bans are matched by nothing here: {unenforced}")
 
 # The scan reaching the file the copy is written in, named rather than counted, so narrowing
 # the glob cannot read as an interface that stopped saying these things.
@@ -196,7 +220,8 @@ if CARRIES_THE_COPY not in read:
 
 if not state_hits and not control_failures:
     print(f"pass  rule 3, no string across {scanned} files in web/ describes the state of the software "
-          f"(all {len(ABOUT_THE_SOFTWARE)} phrases match when present)")
+          f"({len(ABOUT_THE_SOFTWARE)} phrases, each on CONVENTIONS.md section 5's list of "
+          f"{len(banned_in_conventions)} and each matching it)")
 
 
 for failure in failures:
