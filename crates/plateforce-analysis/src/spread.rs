@@ -104,7 +104,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
 
     let mut variants = Vec::with_capacity(combinations_run);
     for index in 0..combinations_run {
-        let (candidate, settings) = materialise(&request.base, &request.axes, index);
+        let (candidate, settings) = materialise(&request.base, &request.axes, index)?;
         let method_ids = vec![
             candidate.weighing.method_id.clone(),
             candidate.onset.method_id.clone(),
@@ -196,12 +196,33 @@ fn extract(
     (value, response.warnings.first().cloned())
 }
 
+/// The slots this sweep can vary, and the request field that is not a slot. Named here so a
+/// refusal can print what the caller could have asked for.
+const SWEEPABLE_SLOTS: &[&str] = &["weighing", "onset", "takeoff"];
+const GRAVITY_FIELD: &str = "gravity_meters_per_second_squared";
+
+/// A slot the sweep does not recognise, refused rather than skipped.
+///
+/// Skipping produced a run in which every variant was the baseline, so the panel printed a
+/// spread of zero over knobs that had not moved and reported success. A caller reading that
+/// cannot tell a method that agrees with itself from a name this function did not know.
+fn unsweepable(slot: &str, parameter: Option<&str>) -> String {
+    let named = match parameter {
+        Some(parameter) => format!("'{slot}.{parameter}'"),
+        None => format!("'{slot}'"),
+    };
+    format!(
+        "{named} was passed as a sweep axis, and the axes this sweep can vary are the slots \
+         {SWEEPABLE_SLOTS:?} and the request field '{GRAVITY_FIELD}'"
+    )
+}
+
 /// Mixed-radix decode of the flat index into one point of the cartesian product.
 fn materialise(
     base: &AnalysisRequest,
     axes: &[Axis],
     flat_index: usize,
-) -> (AnalysisRequest, Vec<(String, String)>) {
+) -> Result<(AnalysisRequest, Vec<(String, String)>), String> {
     let mut candidate = base.clone();
     let mut settings = Vec::new();
     let mut remainder = flat_index;
@@ -226,7 +247,7 @@ fn materialise(
                     candidate.takeoff.manual_index = None;
                 }
                 "weighing" => candidate.weighing.method_id = method_id,
-                _ => {}
+                other => return Err(unsweepable(other, None)),
             }
             continue;
         }
@@ -238,10 +259,7 @@ fn materialise(
         settings.push((parameter.clone(), format_value(value)));
 
         match (axis.slot.as_str(), parameter.as_str()) {
-            ("", "gravity_meters_per_second_squared")
-            | ("global", "gravity_meters_per_second_squared") => {
-                candidate.gravity_meters_per_second_squared = value
-            }
+            ("" | "global", GRAVITY_FIELD) => candidate.gravity_meters_per_second_squared = value,
             ("weighing", name) => {
                 candidate
                     .weighing
@@ -258,11 +276,11 @@ fn materialise(
                 candidate.takeoff.parameters.insert(name.to_string(), value);
                 candidate.takeoff.manual_index = None;
             }
-            _ => {}
+            (other, name) => return Err(unsweepable(other, Some(name))),
         }
     }
 
-    (candidate, settings)
+    Ok((candidate, settings))
 }
 
 fn format_value(value: f64) -> String {
@@ -283,7 +301,7 @@ mod tests {
     use crate::{MethodChoice, WeighingChoice};
     use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 
-    fn synthetic() -> Trial {
+    pub(super) fn synthetic() -> Trial {
         let mut force = vec![600.0; 1200];
         for (index, sample) in force.iter_mut().enumerate() {
             *sample += ((index % 17) as f64 - 8.0) * 0.4;
@@ -295,7 +313,7 @@ mod tests {
         Trial::new(force, 1200.0).unwrap()
     }
 
-    fn base() -> AnalysisRequest {
+    pub(super) fn base() -> AnalysisRequest {
         AnalysisRequest {
             weighing: WeighingChoice {
                 method_id: "bwepoch.fixed_window".into(),
@@ -453,5 +471,77 @@ mod tests {
             .find(|v| v.value.is_none())
             .unwrap();
         assert!(failed.failure_reason.is_some());
+    }
+}
+
+#[cfg(test)]
+mod a_slot_the_sweep_cannot_vary {
+    use std::collections::BTreeMap;
+
+    use super::tests::{base, synthetic};
+    use super::*;
+
+    fn sweep_over(slot: &str, parameter: Option<&str>, values: Vec<f64>) -> SpreadRequest {
+        SpreadRequest {
+            base: base(),
+            axes: vec![Axis {
+                slot: slot.to_string(),
+                parameter: parameter.map(str::to_string),
+                values,
+                method_ids: Vec::new(),
+            }],
+            quantity_key: "jump_height_from_takeoff_meters".into(),
+            maximum_combinations: 512,
+        }
+    }
+
+    /// The name the browser posts once slot identity is the construct id. Under the arm that
+    /// swallowed it, every variant was the baseline and the panel printed a spread of zero.
+    #[test]
+    fn a_construct_id_the_sweep_does_not_know_is_refused_by_name() {
+        let request = sweep_over("movement_onset", Some("k"), vec![2.0, 5.0, 8.0]);
+        let refusal = run(&synthetic(), &request).expect_err("an unknown axis is refused");
+        println!("{refusal}");
+        assert!(refusal.contains("movement_onset.k"), "{refusal}");
+        assert!(refusal.contains("onset"), "{refusal}");
+    }
+
+    #[test]
+    fn an_unknown_method_axis_names_the_slot_rather_than_sweeping_nothing() {
+        let mut request = sweep_over("movement_onset", None, Vec::new());
+        request.axes[0].method_ids = vec![
+            "onset.threshold.noise_relative".into(),
+            "onset.threshold.absolute_force".into(),
+        ];
+        let refusal = run(&synthetic(), &request).expect_err("an unknown axis is refused");
+        println!("{refusal}");
+        assert!(refusal.contains("'movement_onset'"), "{refusal}");
+    }
+
+    /// The control. A knob the sweep does know still moves the number, so the refusal above
+    /// is a rejected name rather than a sweep that refuses everything.
+    #[test]
+    fn a_slot_the_sweep_does_know_still_moves_the_number() {
+        let request = sweep_over("onset", Some("k"), vec![2.0, 5.0, 8.0]);
+        let response = run(&synthetic(), &request).expect("a known axis sweeps");
+        println!(
+            "{} of {} variants succeeded, spread {:?}",
+            response.succeeded, response.combinations_run, response.spread_absolute
+        );
+        assert_eq!(response.succeeded, 3);
+        assert!(
+            response.spread_absolute.is_some_and(|spread| spread > 0.0),
+            "a swept knob has to move the number: {:?}",
+            response.spread_absolute
+        );
+    }
+
+    #[test]
+    fn the_gravity_field_is_not_a_slot_and_still_sweeps() {
+        let request = sweep_over("global", Some(GRAVITY_FIELD), vec![9.8, 9.80665, 9.81]);
+        let response = run(&synthetic(), &request).expect("gravity sweeps");
+        assert_eq!(response.succeeded, 3);
+        assert!(response.spread_absolute.is_some_and(|spread| spread > 0.0));
+        let _ = BTreeMap::<String, f64>::new();
     }
 }
