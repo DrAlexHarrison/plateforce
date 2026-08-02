@@ -37,11 +37,11 @@ fi
 # The boundary cost, measured rather than asserted. One JSON serialise and one parse per
 # analysed trial was argued to be acceptable, and an argued number is the kind this
 # project keeps finding to be wrong.
-if [ "${PLATEFORCE_SKIP_TIMING:-}" != "1" ] && command -v Rscript >/dev/null 2>&1; then
+if [ "${PLATEFORCE_SKIP_TIMING:-}" != "1" ]; then
     Rscript -e '
 if (!requireNamespace("plateforce", quietly = TRUE)) {
-  cat("median milliseconds per call: the package is not installed in this library\n")
-  quit(status = 0)
+  cat("plateforce is not in this R library, so the boundary cost cannot be measured\n")
+  quit(status = 1)
 }
 trial <- plateforce::pf_trial(rep(700, 2400), sample_rate_hz = 1200)
 once <- function() {
@@ -57,7 +57,7 @@ once <- function() {
 }
 elapsed <- vapply(seq_len(100), function(i) system.time(once())[["elapsed"]], numeric(1))
 cat(sprintf("median milliseconds per call: %.3f\n", stats::median(elapsed) * 1000))
-' 2>/dev/null || printf 'median milliseconds per call: not measured in this library\n'
+' || status=1
 fi
 
 exit "$status"

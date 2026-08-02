@@ -23,15 +23,40 @@ test_that("a derived count appears only on the population it was taken over", {
   expect_lte(computation[["can_find_wrong_event"]], computation[["count"]])
 })
 
-test_that("the census R reports is the census the engine counted", {
-  recorded <- fixture_lines("census.txt")
-  census <- pf_registry()@census
-  live <- vapply(seq_len(nrow(census)), function(row) {
-    paste(census[["population"]][row], census[["count"]][row],
-          census[["genuine_debates"]][row], census[["can_find_wrong_event"]][row])
-  }, character(1))
+test_that("the census R reports is the census the command line counts", {
+  repository <- testthat::test_path("..", "..", "..", "..")
+  skip_if_not(dir.exists(file.path(repository, "crates", "plateforce-cli")),
+              "the command line is not beside this test")
+  skip_if_not(nzchar(Sys.which("cargo")), "no cargo on this machine")
 
-  expect_identical(live, recorded)
+  printed <- suppressWarnings(system2(
+    "cargo",
+    c("run", "-q", "--manifest-path", shQuote(file.path(repository, "Cargo.toml")),
+      "-p", "plateforce-cli", "--",
+      "--registry", shQuote(file.path(repository, "registry")), "registry", "census"),
+    stdout = TRUE, stderr = FALSE
+  ))
+  expect_true(any(startsWith(trimws(printed), "constructs")),
+              info = paste(printed, collapse = " | "))
+
+  number <- function(label) {
+    line <- printed[startsWith(trimws(printed), label)]
+    skip_if(length(line) == 0, paste(label, "is not in the census"))
+    # The derived rows read "N of M". The count is the first number and M is the
+    # denominator it was taken over, so taking the last number would report the wrong one.
+    as.integer(regmatches(line[1], gregexpr("[0-9]+", line[1]))[[1]][1])
+  }
+
+  census <- pf_registry(file.path(repository, "registry"))@census
+  row <- function(population) census[census[["population"]] == population, , drop = FALSE]
+
+  expect_identical(row("constructs")[["count"]], number("constructs"))
+  expect_identical(row("computation_entries")[["count"]], number("computation entries"))
+  expect_identical(row("computation_entries")[["genuine_debates"]],
+                   number("of which genuine debates"))
+  expect_identical(row("computation_entries")[["can_find_wrong_event"]],
+                   number("of which can find the wrong event"))
+  expect_identical(row("protocol_entries")[["count"]], number("protocol entries"))
 })
 
 test_that("an entry comes back with the fields the registry states", {

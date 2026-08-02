@@ -56,15 +56,13 @@ Three landmark rules are named by their registry identifiers, and every paramete
 one read travels in the result beside the number it produced.
 }
 \examples{
-quiet <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
-condition <- tryCatch(
-  analyse_countermovement_jump(
-    quiet,
-    weighing = "bwepoch.fixed_window",
-    onset = "onset.threshold.noise_relative",
-    takeoff = "takeoff.threshold.absolute_force"
-  ),
-  plateforce_refusal = identity
+standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
+result <- analyse_countermovement_jump(
+  standing,
+  weighing = "bwepoch.fixed_window",
+  onset = "onset.threshold.noise_relative",
+  takeoff = "takeoff.threshold.absolute_force"
 )
-condition[["code"]]
+pf_value(result, "system_weight_newtons")@value
+result@warnings
 }

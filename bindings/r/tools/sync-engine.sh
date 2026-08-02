@@ -70,6 +70,11 @@ done
 
 take registry "$registry"
 
+{
+    printf 'revision %s\n' "${revision:-worktree}"
+    printf 'digest %s\n' "$(sh "$here/engine-digest.sh" "$package_root")"
+} > "$package_root/src/rust/ENGINE-SOURCE"
+
 if [ "$source_kind" = commit ]; then
     echo "engine and registry copied from commit $revision"
 else

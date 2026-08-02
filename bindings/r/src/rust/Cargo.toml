@@ -2,7 +2,7 @@
 name = "plateforce-r"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.82"
 license = "Apache-2.0"
 repository = "https://github.com/DrAlexHarrison/plateforce"
 authors = ["Alex Harrison"]
@@ -25,7 +25,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.82"
 license = "Apache-2.0"
 repository = "https://github.com/DrAlexHarrison/plateforce"
 authors = ["Alex Harrison"]

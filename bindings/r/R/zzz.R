@@ -27,3 +27,16 @@ registry_root <- function(path = NULL) {
   }
   shipped
 }
+
+# The digest of a registry is measured once per path per session. Measuring it costs a
+# read and a validation of every file in the tree, and an analysis reads no rule out of
+# it, so measuring it on every call would put that cost on every number.
+measured_digests <- new.env(parent = emptyenv())
+
+registry_digest <- function(path = NULL) {
+  root <- registry_root(path)
+  if (is.null(measured_digests[[root]])) {
+    measured_digests[[root]] <- pf_registry(root)@digest
+  }
+  measured_digests[[root]]
+}

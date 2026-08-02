@@ -7,7 +7,7 @@ NULL
 #' samples that convention treated as missing, and for a file, the delimiter, the force
 #' column and the rows it read.
 #'
-#' @export
+#' @noRd
 trial <- S7::new_class(
   "trial",
   package = "plateforce",

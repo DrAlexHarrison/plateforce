@@ -1,0 +1,142 @@
+---
+title: "Every number carries the method that produced it"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Every number carries the method that produced it}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Ten published ways of computing one jump height disagree by 3.51 cm on 244 real trials.
+The training effect the source study was built to detect is 1.98 cm. plateforce records
+which one you used.
+
+```{r setup}
+library(plateforce)
+```
+
+## A trace, and the rate it was recorded at
+
+A trial is a vector of vertical ground reaction force in newtons, and the rate it was
+recorded at. The rate has no default: guessing it scales every velocity, displacement,
+impulse and rate of force development by the ratio of the two rates.
+
+```{r trial}
+trial <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
+trial
+```
+
+Reading from a file works the same way, through `pf_read_force_file()`, which states back
+the delimiter it used, the column it read as force, the rows it read and the samples the
+sentinel convention treated as missing.
+
+## Naming the three rules
+
+An analysis names the rule that establishes system weight, the rule that places the start
+of the jump, and the rule that places the instant of takeoff. Each is a registry
+identifier.
+
+```{r bindings}
+head(pf_bindings(), 4)
+```
+
+```{r analyse}
+result <- analyse_countermovement_jump(
+  trial,
+  weighing = "bwepoch.fixed_window",
+  onset = "onset.threshold.noise_relative",
+  takeoff = "takeoff.threshold.absolute_force"
+)
+```
+
+This trace is a person standing still, so the landmark rules have nothing to find, and
+each one says so by name and by parameter rather than returning a number anyway.
+
+```{r warnings}
+result@warnings
+```
+
+## Reading a value, and what produced it
+
+```{r value}
+weight <- pf_value(result, "system_weight_newtons")
+weight
+```
+
+The number is `@value`. Everything that produced it is `@provenance`, and the rules
+upstream of it are `@depends_on`, each with the parameters it read and where each value
+came from.
+
+```{r provenance}
+chain <- weight@provenance@depends_on
+chain[[1]]@method_id
+chain[[1]]@parameters
+```
+
+`assumed` means the rule supplied that value because the caller did not. State one and it
+is recorded as stated:
+
+```{r stated}
+stated <- analyse_countermovement_jump(
+  trial,
+  weighing = "bwepoch.fixed_window",
+  weighing_parameters = list(duration = 0.5),
+  onset = "onset.threshold.noise_relative",
+  takeoff = "takeoff.threshold.absolute_force"
+)
+bound <- pf_value(stated, "system_weight_newtons")@provenance@depends_on[[1]]@parameters
+bound[bound[["name"]] == "duration", ]
+```
+
+Reading a shortened property name is an error rather than a neighbouring property's value,
+and putting the object into arithmetic asks you to name the number:
+
+```{r refuse-arithmetic, error = TRUE}
+weight + 1
+```
+
+```{r value-out}
+weight@value
+```
+
+## When a rule declines
+
+A rule that cannot answer raises a condition classed by its code, so you branch on the
+fields rather than on the sentence.
+
+```{r refusal}
+condition <- tryCatch(
+  analyse_countermovement_jump(
+    trial,
+    weighing = "bwepoch.fixed_window",
+    onset = "onset.not.a.rule",
+    takeoff = "takeoff.threshold.absolute_force"
+  ),
+  plateforce_refusal = identity
+)
+class(condition)
+condition[["code"]]
+```
+
+Read a field with `[[`, which matches the whole name. `condition$method` is an error here,
+because `$` on a list matches a shortened name without saying so.
+
+## The registry
+
+```{r registry}
+registry <- pf_registry()
+registry@census
+```
+
+The two populations are counted apart and never added together, and each derived count
+sits beside the population it was taken over. One entry reads out in full:
+
+```{r entry}
+entry <- pf_entry("onset.threshold.noise_relative")
+entry[["construct"]]
+entry[["title"]]
+```

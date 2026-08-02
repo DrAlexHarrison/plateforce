@@ -76,13 +76,3 @@ write_lines("chain.txt", vapply(chain, function(step) {
           collapse = " ")
   )
 }, character(1)))
-
-census <- pf_registry(file.path(repository, "registry"))@census
-write_lines("census.txt", vapply(seq_len(nrow(census)), function(row) {
-  paste(
-    census[["population"]][row],
-    census[["count"]][row],
-    census[["genuine_debates"]][row],
-    census[["can_find_wrong_event"]][row]
-  )
-}, character(1)))

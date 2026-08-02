@@ -1,0 +1,12 @@
+bibentry(
+  bibtype  = "Manual",
+  title    = "plateforce: Force-Plate Jump Kinetics that Carry Their Method",
+  author   = person("Alex", "Harrison"),
+  year     = "2026",
+  note     = "R package version 0.1.0",
+  url      = "https://github.com/DrAlexHarrison/plateforce",
+  header   = paste(
+    "A methods section that names plateforce should also name the registry digest",
+    "the numbers were bound to, which every result carries."
+  )
+)

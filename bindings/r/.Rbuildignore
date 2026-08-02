@@ -5,3 +5,5 @@
 ^src/rust/target$
 ^src/rust/vendor$
 ^\.gitignore$
+^src/Makevars$
+^src/Makevars\.win$

@@ -9,7 +9,7 @@ NULL
 #' Properties are reached with `@`, which requires the whole name. A shortened name is an
 #' error rather than a neighbouring property's value.
 #'
-#' @export
+#' @noRd
 measured <- S7::new_class(
   "measured",
   package = "plateforce",

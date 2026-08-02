@@ -10,7 +10,7 @@ NULL
 #' The names come from the engine rather than from a list written here, so a quantity that
 #' arrives or is renamed upstream arrives or is renamed here without an edit.
 #'
-#' @export
+#' @noRd
 countermovement_jump <- S7::new_class(
   "countermovement_jump",
   package = "plateforce",
@@ -86,17 +86,15 @@ pf_value <- function(x, quantity) {
 #' @return A [countermovement_jump].
 #' @export
 #' @examples
-#' quiet <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
-#' condition <- tryCatch(
-#'   analyse_countermovement_jump(
-#'     quiet,
-#'     weighing = "bwepoch.fixed_window",
-#'     onset = "onset.threshold.noise_relative",
-#'     takeoff = "takeoff.threshold.absolute_force"
-#'   ),
-#'   plateforce_refusal = identity
+#' standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
+#' result <- analyse_countermovement_jump(
+#'   standing,
+#'   weighing = "bwepoch.fixed_window",
+#'   onset = "onset.threshold.noise_relative",
+#'   takeoff = "takeoff.threshold.absolute_force"
 #' )
-#' condition[["code"]]
+#' pf_value(result, "system_weight_newtons")@value
+#' result@warnings
 analyse_countermovement_jump <- function(trial,
                                         weighing,
                                         onset,
@@ -134,7 +132,7 @@ analyse_countermovement_jump <- function(trial,
     )),
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
-    registry_root = registry_root(registry)
+    registry_digest = registry_digest(registry)
   )
   response <- unwrap(decode(rust_analyse_json(trial@handle, request)))
   jump_from_response(response)
@@ -159,11 +157,14 @@ jump_from_response <- function(response) {
   bound <- response[["bound_methods"]]
   by_method <- stats::setNames(bound, vapply(bound, function(b) b[["method_id"]], character(1)))
 
+  # One record per rule, built once. Eleven quantities naming the same eight rules would
+  # otherwise build the same record eighty-eight times.
+  records <- lapply(by_method, provenance_from_bound_method, digest, complete)
+
   values <- list()
   for (metric in response[["metrics"]]) {
-    chain <- lapply(metric[["contributing_method_ids"]], function(id) {
-      provenance_from_bound_method(by_method[[id]], digest, complete)
-    })
+    chain <- records[as.character(unlist(metric[["contributing_method_ids"]]))]
+    names(chain) <- NULL
     computed_by <- metric[["computed_by"]]
     own <- provenance(
       method_id = if (is.null(computed_by)) character(0) else as.character(computed_by),

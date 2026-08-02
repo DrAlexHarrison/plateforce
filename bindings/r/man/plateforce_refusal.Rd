@@ -18,15 +18,16 @@ condition, silently, because `$` partial matches on a list, so this package defi
 `$` on a refusal to require the whole name.
 }
 \examples{
-quiet <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
+standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
 condition <- tryCatch(
   analyse_countermovement_jump(
-    quiet,
+    standing,
     weighing = "bwepoch.fixed_window",
-    onset = "onset.threshold.noise_relative",
+    onset = "onset.not.a.rule",
     takeoff = "takeoff.threshold.absolute_force"
   ),
   plateforce_refusal = identity
 )
 condition[["code"]]
+condition[["message"]]
 }

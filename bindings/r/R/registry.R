@@ -3,7 +3,7 @@ NULL
 
 #' The method registry
 #'
-#' @export
+#' @noRd
 registry <- S7::new_class(
   "registry",
   package = "plateforce",

@@ -10,7 +10,7 @@
 #' Read a column with `x[["name"]]`. A `$` on a data frame matches a shortened name
 #' without saying so, and these column names are long on purpose.
 #'
-#' @export
+#' @noRd
 provenance <- S7::new_class(
   "provenance",
   package = "plateforce",

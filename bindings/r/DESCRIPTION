@@ -18,7 +18,7 @@ BugReports: https://github.com/DrAlexHarrison/plateforce/issues
 Depends: R (>= 4.3.0)
 Imports: S7
 Suggests: testthat (>= 3.0.0), knitr, rmarkdown, jsonlite
-SystemRequirements: Cargo (Rust's package manager), rustc >= 1.76
+SystemRequirements: Cargo (Rust's package manager), rustc >= 1.82
 Config/testthat/edition: 3
 Encoding: UTF-8
 VignetteBuilder: knitr

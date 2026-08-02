@@ -86,12 +86,12 @@ fn encode<T: Serialize>(envelope: Envelope<T>) -> String {
     }
 }
 
-fn parse_request<T: serde::de::DeserializeOwned>(request_json: &str) -> Result<T, Refusal> {
+fn parse_request<T: serde::de::DeserializeOwned>(request_json: &str) -> Result<T, Box<Refusal>> {
     serde_json::from_str(request_json).map_err(|error| {
-        Refusal::of(
+        Box::new(Refusal::of(
             "request_not_understood",
             format!("the request could not be read: {error}"),
-        )
+        ))
     })
 }
 
@@ -233,12 +233,12 @@ struct ReadRequest {
     sentinel_convention: Option<String>,
 }
 
-fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Refusal> {
+fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Box<Refusal>> {
     match convention {
         "none" => Ok(None),
         "zero" => Ok(Some(Sentinel::Zero)),
         "negative_one" => Ok(Some(Sentinel::NegativeOne)),
-        other => Err(Refusal {
+        other => Err(Box::new(Refusal {
             available: Some(vec![
                 "none".to_string(),
                 "zero".to_string(),
@@ -250,7 +250,7 @@ fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Refusal> {
                 format!("{other} is not a sentinel convention this reader applies"),
             )
             .about(other)
-        }),
+        })),
     }
 }
 
@@ -280,19 +280,19 @@ fn build_trial(
     sample_rate_hz: Option<f64>,
     convention: Option<String>,
     source: String,
-) -> Result<TrialHandle, Refusal> {
+) -> Result<TrialHandle, Box<Refusal>> {
     let sample_rate_hz = sample_rate_hz.ok_or_else(|| {
-        Refusal::naming_parameter(
+        Box::new(Refusal::naming_parameter(
             "sample_rate_not_declared",
             "sample_rate_hz",
             "this trace carries no sample rate, so state the rate it was recorded at".to_string(),
-        )
+        ))
     })?;
     let convention = convention.unwrap_or_else(|| "none".to_string());
     let sentinel = sentinel_from(&convention)?;
     let (force, held) = apply_sentinel(values, sentinel);
     let trial = Trial::new(force, sample_rate_hz)
-        .map_err(|error| Refusal::of("trace_unusable", error.to_string()))?;
+        .map_err(|error| Box::new(Refusal::of("trace_unusable", error.to_string())))?;
     let report = TrialReport {
         sample_count: trial.len(),
         sample_rate_hz: trial.sample_rate_hz(),
@@ -309,10 +309,13 @@ fn build_trial(
     Ok(TrialHandle { trial, report })
 }
 
-pub fn trial_from_force(force_newtons: &[f64], request_json: &str) -> (String, Option<TrialHandle>) {
+pub fn trial_from_force(
+    force_newtons: &[f64],
+    request_json: &str,
+) -> (String, Option<TrialHandle>) {
     let request: TrialRequest = match parse_request(request_json) {
         Ok(request) => request,
-        Err(refusal) => return (refuse::<TrialReport>(refusal), None),
+        Err(refusal) => return (refuse::<TrialReport>(*refusal), None),
     };
     match build_trial(
         force_newtons,
@@ -321,7 +324,7 @@ pub fn trial_from_force(force_newtons: &[f64], request_json: &str) -> (String, O
         "vector".to_string(),
     ) {
         Ok(handle) => (ok(handle.report.clone()), Some(handle)),
-        Err(refusal) => (refuse::<TrialReport>(refusal), None),
+        Err(refusal) => (refuse::<TrialReport>(*refusal), None),
     }
 }
 
@@ -331,12 +334,12 @@ pub fn trial_from_force(force_newtons: &[f64], request_json: &str) -> (String, O
 pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
     let request: ReadRequest = match parse_request(request_json) {
         Ok(request) => request,
-        Err(refusal) => return (refuse::<TrialReport>(refusal), None),
+        Err(refusal) => return (refuse::<TrialReport>(*refusal), None),
     };
 
     let delimiter = match declared_delimiter(request.delimiter.as_deref()) {
         Ok(delimiter) => delimiter,
-        Err(refusal) => return (refuse::<TrialReport>(refusal), None),
+        Err(refusal) => return (refuse::<TrialReport>(*refusal), None),
     };
     let force_column = match request.force_column {
         Some(column) => column,
@@ -388,27 +391,29 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
             handle.report.blank_lines_skipped = Some(column.blank_lines_skipped);
             (ok(handle.report.clone()), Some(handle))
         }
-        Err(refusal) => (refuse::<TrialReport>(refusal), None),
+        Err(refusal) => (refuse::<TrialReport>(*refusal), None),
     }
 }
 
-fn declared_delimiter(declared: Option<&str>) -> Result<char, Refusal> {
+fn declared_delimiter(declared: Option<&str>) -> Result<char, Box<Refusal>> {
     let text = declared.ok_or_else(|| {
-        Refusal::naming_parameter(
+        Box::new(Refusal::naming_parameter(
             "delimiter_not_declared",
             "delimiter",
             "state the character that separates this file's columns".to_string(),
-        )
+        ))
     })?;
     let mut characters = text.chars();
     match (characters.next(), characters.next()) {
         (Some(single), None) => Ok(single),
-        _ => Err(Refusal::naming_parameter(
-            "delimiter_not_one_character",
-            "delimiter",
-            "a column separator is one character".to_string(),
-        )
-        .about(text)),
+        _ => Err(Box::new(
+            Refusal::naming_parameter(
+                "delimiter_not_one_character",
+                "delimiter",
+                "a column separator is one character".to_string(),
+            )
+            .about(text),
+        )),
     }
 }
 
@@ -421,8 +426,7 @@ pub fn trial_report_json(handle: &TrialHandle) -> String {
 pub fn handle_lost_json() -> String {
     refuse::<TrialReport>(Refusal::of(
         "trial_not_in_this_session",
-        "this trial belongs to a session that has ended, so read the trace again"
-            .to_string(),
+        "this trial belongs to a session that has ended, so read the trace again".to_string(),
     ))
 }
 
@@ -443,32 +447,22 @@ struct AnalysisReport {
 struct AnalyseRequest {
     #[serde(flatten)]
     analysis: AnalysisRequest,
-    registry_root: Option<String>,
+    /// Measured by the caller from the registry it loaded, rather than measured again
+    /// here. Loading and validating the registry costs nine milliseconds and this path
+    /// does not read a rule out of it.
+    registry_digest: Option<String>,
 }
 
 pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
     let request: AnalyseRequest = match parse_request(request_json) {
         Ok(request) => request,
-        Err(refusal) => return refuse::<AnalysisReport>(refusal),
+        Err(refusal) => return refuse::<AnalysisReport>(*refusal),
     };
-
-    let mut digest = None;
-    if let Some(root) = &request.registry_root {
-        match Registry::load(root) {
-            Ok(registry) => digest = Some(registry.content_digest.clone()),
-            Err(error) => {
-                return refuse::<AnalysisReport>(Refusal::of(
-                    "registry_unreadable",
-                    error.to_string(),
-                ))
-            }
-        }
-    }
 
     match run(&handle.trial, &request.analysis) {
         Ok(response) => ok(AnalysisReport {
             response,
-            registry_digest: digest,
+            registry_digest: request.registry_digest,
             // No acquisition block reaches this binding yet, and a dataset that cannot
             // fill one fingerprints as incomplete rather than as matching.
             acquisition_complete: false,

@@ -40,6 +40,7 @@ highest_version=$(echo "$highest" | cut -d' ' -f1)
 highest_crate=$(echo "$highest" | cut -d' ' -f2-)
 
 stated=$(sed -n 's/.*rustc >= *\([0-9.]*\).*/\1/p' "$package_root/DESCRIPTION" | head -1)
+manifest=$(sed -n 's/^rust-version = "\([0-9.]*\)"/\1/p' "$crate/Cargo.toml" | sort -u)
 
 status=0
 
@@ -69,6 +70,33 @@ fi
 printf 'declared floor %s against SystemRequirements %s\n' "$declared" "$stated"
 if [ "$declared" != "$stated" ]; then
     printf 'DESCRIPTION states rustc >= %s and tools/msrv holds %s\n' "$stated" "$declared" >&2
+    status=1
+fi
+
+printf 'declared floor %s against the crate manifest %s\n' "$declared" "$manifest"
+if [ "$manifest" != "$declared" ]; then
+    printf 'src/rust/Cargo.toml declares %s and tools/msrv holds %s\n' "$manifest" "$declared" >&2
+    status=1
+fi
+
+# The comparisons above read declared versions, and a declared version says nothing
+# about the language features the sources use. This one compiles. Reading alone put the
+# floor at 1.76 while `plateforce-registry` used `Option::is_none_or`, stable at 1.82, so
+# the SystemRequirements claim would have been false and nothing above would have said so.
+if ! rustup toolchain list 2>/dev/null | grep -q "^$declared"; then
+    printf 'no rustc %s installed, so the floor is a claim rather than a measurement\n' \
+        "$declared" >&2
+    printf 'install it with: rustup toolchain install %s --profile minimal\n' "$declared" >&2
+    exit 1
+fi
+
+printf 'building the tree on rustc %s\n' "$declared"
+if cd "$crate" && cargo "+$declared" build --lib --release \
+        --target-dir "$crate/target/floor-$declared" >/dev/null 2>&1; then
+    printf 'the tree builds on the floor it declares\n'
+else
+    printf 'the tree does not build on rustc %s, which is the floor it declares\n' \
+        "$declared" >&2
     status=1
 fi
 
