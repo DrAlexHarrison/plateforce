@@ -163,17 +163,40 @@ ABOUT_THE_SOFTWARE = (
 about = re.compile("|".join(re.escape(phrase) for phrase in ABOUT_THE_SOFTWARE), re.IGNORECASE)
 state_hits = 0
 scanned = 0
+read = set()
 for path in sorted(Path("web").rglob("*")):
     if path.is_dir() or path.name == "pkg" or "pkg" in path.parts or path.suffix not in {".html", ".js", ".css"}:
         continue
     scanned += 1
+    read.add(path.as_posix())
     for number, line in enumerate(path.read_text().splitlines(), start=1):
         hit = about.search(line)
         if hit:
             state_hits += 1
             report(f"{path}:{number}", f'"{hit.group(0)}" describes the state of the software')
-if not state_hits:
-    print(f"pass  rule 3, no string across {scanned} files in web/ describes the state of the software")
+
+# This rule can only ever pass on its own evidence, so it carries its own. Each phrase is run
+# against a line built to contain it, and a phrase that has stopped matching is named here
+# rather than in a release. Rules 1 and 2 read real content and a break shows up in it; this
+# one reads the absence of content, where a dead pattern and a clean interface are the same
+# reading.
+dead = [phrase for phrase in ABOUT_THE_SOFTWARE
+        if not about.search(f"the panel is {phrase} on this screen")]
+control_failures = 0
+if dead:
+    control_failures += 1
+    report("rule 3", f"{len(dead)} of {len(ABOUT_THE_SOFTWARE)} phrases match nothing even when present: {dead}")
+
+# The scan reaching the file the copy is written in, named rather than counted, so narrowing
+# the glob cannot read as an interface that stopped saying these things.
+CARRIES_THE_COPY = "web/index.html"
+if CARRIES_THE_COPY not in read:
+    control_failures += 1
+    report("rule 3", f"read {scanned} files and not {CARRIES_THE_COPY}, which is where the copy is")
+
+if not state_hits and not control_failures:
+    print(f"pass  rule 3, no string across {scanned} files in web/ describes the state of the software "
+          f"(all {len(ABOUT_THE_SOFTWARE)} phrases match when present)")
 
 
 for failure in failures:
