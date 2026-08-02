@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+use plateforce_analysis::document::{ResultDocument, TrialSource};
 use plateforce_analysis::quality::QualitySignal;
 use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, Metric,
@@ -387,37 +388,46 @@ fn render(
         .iter()
         .filter(|metric| metric.value.is_none())
         .collect();
-    let refusals: Vec<String> = response
+    // The sentence a person reads, built from the same typed refusals the document carries
+    // rather than from a second pass over the response.
+    let reported = ResultDocument::of(
+        env!("CARGO_PKG_VERSION"),
+        TrialSource {
+            name: args.trial.display().to_string(),
+            rows_read: trial.rows_read,
+            sentinel_rows: trial.sentinel_rows,
+        },
+        registry.declared_version.clone(),
+        Some(registry.content_digest.clone()),
+        // No acquisition block reaches this surface, and a dataset that cannot fill one
+        // fingerprints as incomplete rather than as matching.
+        false,
+        response,
+        BTreeMap::new(),
+        spread,
+    );
+    let refusals: Vec<String> = reported
         .refusals
         .iter()
-        .map(|(slot, refusal)| format!("{slot}: {refusal}"))
+        .map(|refusal| match &refusal.slot {
+            Some(slot) => format!("{slot}: {}", refusal.message()),
+            None => refusal.message().to_string(),
+        })
         .collect();
-    // What the software already knows about a number it is about to print. A value the
-    // browser flags and the pipe does not is a confident wrong number reaching a paper.
-    let signals = plateforce_analysis::quality::signals(response);
 
     let document = match format {
-        Format::Json => canonical(&json!({
-            "trial": args.trial.display().to_string(),
-            "rows_read": trial.rows_read,
-            "sentinel_rows": trial.sentinel_rows,
-            "registry_digest": registry.content_digest,
-            "metrics": response.metrics,
-            "bound_methods": response.bound_methods,
-            "levels": response.levels,
-            "warnings": response.warnings,
-            "refusals": refusals,
-            "signals": signals,
-            "spread": spread,
-        })),
+        Format::Json => match serde_json::to_value(&reported) {
+            Ok(value) => canonical(&value),
+            Err(error) => return Outcome::declined(Fault::Internal, format!("{error}")),
+        },
         Format::Text => text_body(
             response,
-            spread.as_ref(),
+            reported.spread.as_ref(),
             registry,
             args,
             renderer,
             &refusals,
-            &signals,
+            &response.signals,
         ),
     };
 
