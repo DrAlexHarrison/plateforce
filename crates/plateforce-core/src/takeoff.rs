@@ -423,3 +423,291 @@ mod tests {
         assert!(message.contains("threshold_newtons"), "{message}");
     }
 }
+
+/// Telling a landing apart from the reweighting that leads into propulsion, by the shape of
+/// the rise out of a low-force run.
+///
+/// Both shipped takeoff rules pick a stretch of near-zero force and call it flight. The
+/// first-run rule is destroyed by an athlete who unloads the plate without leaving it; the
+/// longest-run rule is destroyed by an untrimmed recording, where the athlete standing off
+/// the plate afterwards outlasts the jump. Neither looks at what happens next, and that is
+/// where the answer is: force leaves a genuine flight phase through a collision, and a false
+/// one through the athlete's own push.
+pub mod landing_shape {
+    /// The settings the registry entry `takeoff.threshold.landing_shape` declares.
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct LandingShapeSpec {
+        pub landing_rise_rate_floor_bodyweights_per_second: f64,
+        pub landing_peak_floor_bodyweights: f64,
+        pub maximum_rise_seconds: f64,
+        pub slope_span_seconds: f64,
+        pub minimum_run_seconds: f64,
+        pub bridged_gap_seconds: f64,
+        pub bridged_gap_ceiling_bodyweights: f64,
+    }
+
+    /// The values fitted on the 244-trial corpus, matching the registry row's defaults.
+    impl Default for LandingShapeSpec {
+        fn default() -> Self {
+            Self {
+                landing_rise_rate_floor_bodyweights_per_second: 20.0,
+                landing_peak_floor_bodyweights: 0.5,
+                maximum_rise_seconds: 0.600,
+                slope_span_seconds: 0.010,
+                minimum_run_seconds: 0.008,
+                bridged_gap_seconds: 0.020,
+                bridged_gap_ceiling_bodyweights: 0.10,
+            }
+        }
+    }
+
+    /// The three numbers read off the rise out of a run, all of them scale free.
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct RiseShape {
+        /// Concavity as one number. Computed and reported, and deliberately not used to
+        /// decide: on this corpus flight runs and other runs both sit at 0.437.
+        pub rise_fullness: f64,
+        pub peak_rise_rate_bodyweights_per_second: f64,
+        pub peak_bodyweights: f64,
+        pub rise_seconds: f64,
+        pub peak_sample: usize,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct LowForceRun {
+        pub start_sample: usize,
+        pub end_sample: usize,
+        pub duration_seconds: f64,
+        /// No rise follows, so nothing in the signal says whether the recording stopped
+        /// mid-flight or the athlete walked off. The verdict is absent rather than false.
+        pub ends_the_recording: bool,
+        pub shape: Option<RiseShape>,
+        pub is_flight: bool,
+    }
+
+    /// Every stretch below the threshold, as half-open sample ranges, with noise gaps bridged.
+    pub fn low_force_runs(
+        vertical_force_newtons: &[f64],
+        threshold_newtons: f64,
+        system_weight_newtons: f64,
+        sample_rate_hz: f64,
+        spec: &LandingShapeSpec,
+    ) -> Vec<(usize, usize)> {
+        let mut raw: Vec<(usize, usize)> = Vec::new();
+        let mut run_start: Option<usize> = None;
+        for (sample, value) in vertical_force_newtons.iter().enumerate() {
+            let is_below = *value < threshold_newtons;
+            match (is_below, run_start) {
+                (true, None) => run_start = Some(sample),
+                (false, Some(start)) => {
+                    raw.push((start, sample));
+                    run_start = None;
+                }
+                _ => {}
+            }
+        }
+        if let Some(start) = run_start {
+            raw.push((start, vertical_force_newtons.len()));
+        }
+
+        let bridge_samples = (spec.bridged_gap_seconds * sample_rate_hz) as usize;
+        let ceiling_newtons = spec.bridged_gap_ceiling_bodyweights * system_weight_newtons.max(0.0);
+        let mut merged: Vec<(usize, usize)> = Vec::new();
+        for (start_sample, end_sample) in raw {
+            if let Some(&(previous_start, previous_end)) = merged.last() {
+                let gap = &vertical_force_newtons[previous_end..start_sample];
+                let gap_stays_small = gap.is_empty()
+                    || gap.iter().copied().fold(f64::NEG_INFINITY, f64::max) <= ceiling_newtons;
+                if start_sample - previous_end <= bridge_samples && gap_stays_small {
+                    *merged.last_mut().expect("just read") = (previous_start, end_sample);
+                    continue;
+                }
+            }
+            merged.push((start_sample, end_sample));
+        }
+
+        let minimum_samples = ((spec.minimum_run_seconds * sample_rate_hz) as usize).max(1);
+        merged
+            .into_iter()
+            .filter(|(start, end)| end - start >= minimum_samples)
+            .collect()
+    }
+
+    /// A centred moving average, zero-padded at both ends, matching the reference
+    /// implementation's convolution so the two place takeoff on the same sample.
+    fn centred_moving_average(segment: &[f64], span: usize) -> Vec<f64> {
+        let lead = (span - 1) / 2;
+        (0..segment.len())
+            .map(|centre| {
+                let total: f64 = (0..span)
+                    .filter_map(|offset| {
+                        (centre + lead)
+                            .checked_sub(offset)
+                            .and_then(|index| segment.get(index))
+                    })
+                    .sum();
+                total / span as f64
+            })
+            .collect()
+    }
+
+    /// The shape numbers for the rise out of a run, or nothing when there is no rise to read.
+    ///
+    /// The peak is the first local turnover inside the window rather than the window's
+    /// maximum, so a landing followed by a second larger event is measured on its own rise.
+    pub fn rise_after(
+        vertical_force_newtons: &[f64],
+        run_end_sample: usize,
+        system_weight_newtons: f64,
+        sample_rate_hz: f64,
+        spec: &LandingShapeSpec,
+    ) -> Option<RiseShape> {
+        if system_weight_newtons <= 0.0 || run_end_sample + 2 >= vertical_force_newtons.len() {
+            return None;
+        }
+        let window_end = vertical_force_newtons
+            .len()
+            .min(run_end_sample + (spec.maximum_rise_seconds * sample_rate_hz) as usize);
+        let segment = &vertical_force_newtons[run_end_sample..window_end];
+        if segment.len() < 4 {
+            return None;
+        }
+
+        // Smoothed only to locate the turnover. Every number below is measured on the raw
+        // signal, so the smoothing window cannot flatten a rate or fill a shape.
+        let span = ((spec.slope_span_seconds * sample_rate_hz) as usize).max(3);
+        let smoothed = centred_moving_average(segment, span);
+        let slope: Vec<f64> = smoothed.windows(2).map(|pair| pair[1] - pair[0]).collect();
+
+        let mut peak_offset = None;
+        if slope.len() > 2 * span {
+            for offset in span..slope.len() - span {
+                if slope[offset] <= 0.0 && slope[offset..offset + span].iter().all(|s| *s <= 0.0) {
+                    peak_offset = Some(offset);
+                    break;
+                }
+            }
+        }
+        let peak_offset = peak_offset.unwrap_or_else(|| {
+            smoothed
+                .iter()
+                .enumerate()
+                .fold((0usize, f64::NEG_INFINITY), |best, (index, value)| {
+                    if *value > best.1 {
+                        (index, *value)
+                    } else {
+                        best
+                    }
+                })
+                .0
+        });
+        if peak_offset < span || !slope[..peak_offset].iter().any(|s| *s > 0.0) {
+            return None;
+        }
+
+        let rise = &segment[..=peak_offset];
+        let start_newtons = rise[0];
+        let peak_newtons = rise.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        if peak_newtons - start_newtons < 0.2 * system_weight_newtons {
+            return None;
+        }
+
+        let height = peak_newtons - start_newtons;
+        let rise_fullness = rise
+            .iter()
+            .map(|value| ((value - start_newtons) / height).clamp(0.0, 1.0))
+            .sum::<f64>()
+            / rise.len() as f64;
+
+        let seconds_per_span = span as f64 / sample_rate_hz;
+        let peak_slope = (0..peak_offset.max(1))
+            .filter(|index| index + span < segment.len())
+            .map(|index| (segment[index + span] - segment[index]) / seconds_per_span)
+            .fold(f64::NEG_INFINITY, f64::max);
+
+        Some(RiseShape {
+            rise_fullness,
+            peak_rise_rate_bodyweights_per_second: peak_slope / system_weight_newtons,
+            peak_bodyweights: peak_newtons / system_weight_newtons,
+            rise_seconds: peak_offset as f64 / sample_rate_hz,
+            peak_sample: run_end_sample + peak_offset,
+        })
+    }
+
+    /// Whether the rise out of a run is a collision rather than a muscular push.
+    pub fn looks_like_a_landing(shape: Option<&RiseShape>, spec: &LandingShapeSpec) -> bool {
+        shape.is_some_and(|shape| {
+            shape.peak_rise_rate_bodyweights_per_second
+                >= spec.landing_rise_rate_floor_bodyweights_per_second
+                && shape.peak_bodyweights >= spec.landing_peak_floor_bodyweights
+        })
+    }
+
+    /// Every low-force run with the shape of its exit and the verdict that follows from it.
+    pub fn classify_runs(
+        vertical_force_newtons: &[f64],
+        system_weight_newtons: f64,
+        threshold_newtons: f64,
+        sample_rate_hz: f64,
+        spec: &LandingShapeSpec,
+    ) -> Vec<LowForceRun> {
+        low_force_runs(
+            vertical_force_newtons,
+            threshold_newtons,
+            system_weight_newtons,
+            sample_rate_hz,
+            spec,
+        )
+        .into_iter()
+        .map(|(start_sample, end_sample)| {
+            let ends_the_recording = end_sample >= vertical_force_newtons.len();
+            let shape = if ends_the_recording {
+                None
+            } else {
+                rise_after(
+                    vertical_force_newtons,
+                    end_sample,
+                    system_weight_newtons,
+                    sample_rate_hz,
+                    spec,
+                )
+            };
+            LowForceRun {
+                start_sample,
+                end_sample,
+                duration_seconds: (end_sample - start_sample) as f64 / sample_rate_hz,
+                ends_the_recording,
+                is_flight: !ends_the_recording && looks_like_a_landing(shape.as_ref(), spec),
+                shape,
+            }
+        })
+        .collect()
+    }
+
+    /// Takeoff as the start of the first run the recording closes with a landing, and how
+    /// many such runs it found.
+    ///
+    /// First rather than longest: once the runs that are not flights are removed, the
+    /// remaining ambiguity is a recording holding more than one real jump, and the first is
+    /// the one the operator asked about. The count travels so a caller can say so rather
+    /// than silently reporting one of several.
+    pub fn takeoff_by_landing_shape(
+        vertical_force_newtons: &[f64],
+        system_weight_newtons: f64,
+        threshold_newtons: f64,
+        sample_rate_hz: f64,
+        spec: &LandingShapeSpec,
+    ) -> (Option<usize>, usize) {
+        let flights: Vec<LowForceRun> = classify_runs(
+            vertical_force_newtons,
+            system_weight_newtons,
+            threshold_newtons,
+            sample_rate_hz,
+            spec,
+        )
+        .into_iter()
+        .filter(|run| run.is_flight)
+        .collect();
+        (flights.first().map(|run| run.start_sample), flights.len())
+    }
+}

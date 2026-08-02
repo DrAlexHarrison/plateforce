@@ -104,6 +104,11 @@ id = "onset.op.hysteresis"
 kind = "genuine"
 
 [[method.disagrees_with]]
+id = "takeoff.threshold.landing_shape"
+kind = "genuine"
+note = "Reads only where force falls below the threshold, never what it did on the way back up, so an unloading the athlete pushes out of is indistinguishable from a takeoff."
+
+[[method.disagrees_with]]
 id = "takeoff.threshold.descending_crossing"
 kind = "genuine"
 note = "The confirmed-crossing reading of the same threshold. Identical wherever the first sample below the threshold is also the start of a sustained run."
@@ -715,4 +720,133 @@ rationale = """
 Name the rule that placed the rising edge alongside flight time, with the tied alternative one
 interaction away. The two edges of a flight phase are two choices, and a tool that offers only one
 of them has decided the other.
+"""
+
+[[method]]
+id = "takeoff.threshold.landing_shape"
+construct = "takeoff"
+group = "D"
+title = "First low-force run the recording closes with a landing"
+rule = """
+Takeoff is the start of the first low-force run that the recording leaves through a landing, where a
+landing is told from a reweighting into propulsion by the shape of the rise out of the run. Force
+leaves a genuine flight phase through a collision, so the rise is immediate, very steep, and reaches
+several times bodyweight. Force leaves a false one through the athlete pushing against the plate, so
+the rise starts slowly and tops out near their own weight. A run that reaches the end of the
+recording is classified neither way: there is no rise to read.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "landing_rise_rate_floor_bodyweights_per_second"
+unit = "bodyweights_per_second"
+published_values = [20.0]
+default = 20.0
+default_source = "plateforce_corpus_fit"
+required = true
+notes = """
+Steepness does the separating. Landings on this corpus rise at a median 163 bodyweights per second
+with a first percentile of 26; a reweighting into propulsion rises at 12. A floor of 20 sits between
+them with a factor of 1.6 in hand and keeps 108 of 109 labelled flights.
+"""
+
+[[method.parameter]]
+name = "landing_peak_floor_bodyweights"
+unit = "bodyweights"
+published_values = [0.5]
+default = 0.5
+default_source = "plateforce_corpus_fit"
+required = true
+notes = """
+Height only rejects what cannot be a collision, and it has to stay low: most recordings here stop at
+the plate's floor, so a real landing is often truncated before its peak and the fifth percentile of
+flight peaks is 0.96 bodyweights. At 0.9 it sat 7 percent under that percentile, close enough that a
+weight estimate moving with the capture start flips a verdict. At 0.5 no capture-start figure moved
+and impossible outputs fell from 2.11 percent to 1.69 percent, so the tighter floor had been
+rejecting real landings.
+"""
+
+[[method.parameter]]
+name = "maximum_rise_seconds"
+unit = "seconds"
+published_values = [0.6]
+default = 0.6
+default_source = "plateforce_corpus_fit"
+notes = """
+A landing turns over inside about 100 ms and reweighting takes longer, so the window has to contain
+the slow case. Truncated, the slow case's peak is cut off and it reads as fast.
+"""
+
+[[method.parameter]]
+name = "slope_span_seconds"
+unit = "seconds"
+published_values = [0.01]
+default = 0.01
+default_source = "plateforce_corpus_fit"
+notes = "Slope is read over this span rather than between adjacent samples, where the converter step and the plate noise dominate the difference."
+
+[[method.parameter]]
+name = "minimum_run_seconds"
+unit = "seconds"
+published_values = [0.008]
+default = 0.008
+default_source = "plateforce_corpus_fit"
+notes = "Below this a run is a few samples of noise crossing the threshold rather than an event."
+
+[[method.parameter]]
+name = "bridged_gap_seconds"
+unit = "seconds"
+published_values = [0.02]
+default = 0.02
+default_source = "plateforce_corpus_fit"
+notes = """
+An unloaded plate reading near zero crosses a near-zero threshold repeatedly, which cuts one flight
+phase into a dozen runs and measures the shape of a noise blip. A gap is treated as part of the
+flight when it is this brief and the force inside it stays under the ceiling below.
+"""
+
+[[method.parameter]]
+name = "bridged_gap_ceiling_bodyweights"
+unit = "bodyweights"
+published_values = [0.1]
+default = 0.1
+default_source = "plateforce_corpus_fit"
+notes = "A landing or a push is neither brief nor small, so neither is bridged."
+
+[[method.citation]]
+key = "plateforce_corpus_fit"
+role = "proposes"
+reference = "Fitted on the 244-trial countermovement-jump corpus against runs whose identity the recording settles on its own. Re-fit before trusting these values on a different plate or a different population."
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = """
+Taking the earliest low-force stretch is destroyed by an athlete who unloads the plate without
+leaving it; taking the longest, which is that entry composed with the selection operator, is
+destroyed by an untrimmed recording where the athlete standing off the plate afterwards outlasts the
+jump. Each is right in the population the other is wrong in, and picking one is picking which
+recordings to be wrong about. This rule reads what happens after each run instead.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = """
+Decisive on a recording holding anything other than one trimmed jump, and identical to the shipped
+rules on one that holds exactly that. It moves takeoff by the whole distance between a step-off and
+the jump when the two disagree.
+"""
+rationale = """
+Name it beside takeoff with the two threshold rules one interaction away, because it answers a
+question they do not ask: what the force did after the run ended.
+
+Concavity was the third number and it is reported and deliberately not used to decide. The rise from
+the run's end to its next peak, with time and force each on zero to one, averages above one half for
+a rise that shoots up and flattens and below it for one that starts slowly. On a constructed case it
+separates cleanly, 0.64 against 0.33. On the corpus flight runs and other runs both sit at 0.437 to
+three decimals, so it carries no information about which is which and a rule using it rejects most
+real landings. Steepness and height separate them; concavity does not.
 """
