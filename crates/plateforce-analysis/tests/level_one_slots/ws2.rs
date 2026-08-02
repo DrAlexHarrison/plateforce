@@ -6,6 +6,7 @@
 
 use plateforce_analysis::run;
 use plateforce_core::rate::sequential_chords;
+use plateforce_core::smoothing::savitzky_golay_interpolated_edges;
 
 use crate::common::{committed_trial, default_request, COMMITTED_TRIALS, CORPUS_SAMPLE_RATE_HZ};
 
@@ -161,5 +162,56 @@ fn moving_onset_moves_every_consecutive_window_not_only_the_first() {
         worst_later_window_change > 100.0,
         "no consecutive window past the first moved when onset moved, so this check saw nothing \
          to compare"
+    );
+}
+
+/// How far the single-sample peak sits above the peak of a centred moving average.
+///
+/// The estimator's two published settings are a raw maximum and a 0.1 s average, and the
+/// gap between them is a readout of how peaky the trace is rather than a property of the
+/// athlete.
+#[test]
+fn the_two_peak_estimators_differ_by_a_measurable_amount() {
+    let averaging_window_samples = (0.1 * CORPUS_SAMPLE_RATE_HZ).round() as usize | 1;
+    let mut gaps_newtons = Vec::new();
+
+    for name in COMMITTED_TRIALS {
+        let trial = committed_trial(name);
+        let response = run(&trial, &default_request())
+            .unwrap_or_else(|error| panic!("{name} did not run: {error}"));
+        let (Some(onset), Some(takeoff)) = (response.onset_index, response.takeoff_index) else {
+            panic!("{name} placed no landmarks");
+        };
+
+        let raw_peak = trial.force()[onset..takeoff]
+            .iter()
+            .copied()
+            .fold(f64::MIN, f64::max);
+        let averaged =
+            savitzky_golay_interpolated_edges(trial.force(), averaging_window_samples, 0)
+                .expect("the window fits the trace");
+        let averaged_peak = averaged[onset..takeoff]
+            .iter()
+            .copied()
+            .fold(f64::MIN, f64::max);
+
+        let gap = raw_peak - averaged_peak;
+        gaps_newtons.push(gap);
+        println!(
+            "{name}: raw peak {raw_peak:.1} N, 0.1 s averaged peak {averaged_peak:.1} N, gap {gap:.1} N"
+        );
+    }
+
+    assert_eq!(gaps_newtons.len(), COMMITTED_TRIALS.len());
+    let mean = gaps_newtons.iter().sum::<f64>() / gaps_newtons.len() as f64;
+    println!(
+        "over {} trials the gap runs {:.1} to {:.1} N, mean {mean:.1} N",
+        gaps_newtons.len(),
+        gaps_newtons.iter().copied().fold(f64::MAX, f64::min),
+        gaps_newtons.iter().copied().fold(f64::MIN, f64::max)
+    );
+    assert!(
+        gaps_newtons.iter().all(|gap| *gap >= 0.0),
+        "a centred average peaked above the raw maximum, which cannot happen"
     );
 }
