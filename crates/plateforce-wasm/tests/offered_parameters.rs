@@ -126,9 +126,8 @@ fn jump_whose_landing_rises_slowly() -> Trial {
     let standing = standing_newtons(&force, rate);
     let landing_start = (4.76 * rate) as usize;
     let rise_samples = (0.120 * rate) as usize;
-    for offset in landing_start..force.len() {
-        let elapsed = offset - landing_start;
-        force[offset] = if elapsed < rise_samples {
+    for (elapsed, sample) in force.iter_mut().skip(landing_start).enumerate() {
+        *sample = if elapsed < rise_samples {
             3.0 * standing * (elapsed + 1) as f64 / rise_samples as f64
         } else {
             3.0 * standing
