@@ -116,6 +116,7 @@ fn base_request() -> AnalysisRequest {
             start_index: None,
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
             options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: "onset.threshold.noise_relative".into(),

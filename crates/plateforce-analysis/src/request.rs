@@ -1,7 +1,7 @@
 //! What a caller asks for: a rule per slot, the values bound to it, and the constants the
 //! request itself carries.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use serde::Deserialize;
@@ -24,6 +24,18 @@ pub struct MethodChoice {
     /// bypass, so it is reported next to the number it changed.
     #[serde(default)]
     pub manual_index: Option<usize>,
+    /// Names in `parameters` and `options` whose value came from the caller accepting the
+    /// registry's recommendation rather than choosing it. An acceptance and a hand-typed
+    /// value produce byte-identical requests otherwise, so the request has to say which.
+    #[serde(default)]
+    pub recommended: BTreeSet<String>,
+    /// Set when the rule itself came from the recommendation rather than being picked.
+    #[serde(default)]
+    pub method_from_recommendation: bool,
+    /// Names the caller filled from the registry's default with nobody asked. Distinct from
+    /// `recommended`, which is an act somebody performed.
+    #[serde(default)]
+    pub from_registry_default: BTreeSet<String>,
 }
 
 /// `Default` so a caller can build one with `..Default::default()`. The next field this
@@ -40,6 +52,18 @@ pub struct WeighingChoice {
     pub parameters: BTreeMap<String, f64>,
     #[serde(default)]
     pub options: BTreeMap<String, String>,
+    /// Names in `parameters` and `options` whose value came from the caller accepting the
+    /// registry's recommendation rather than choosing it. An acceptance and a hand-typed
+    /// value produce byte-identical requests otherwise, so the request has to say which.
+    #[serde(default)]
+    pub recommended: BTreeSet<String>,
+    /// Set when the rule itself came from the recommendation rather than being picked.
+    #[serde(default)]
+    pub method_from_recommendation: bool,
+    /// Names the caller filled from the registry's default with nobody asked. Distinct from
+    /// `recommended`, which is an act somebody performed.
+    #[serde(default)]
+    pub from_registry_default: BTreeSet<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

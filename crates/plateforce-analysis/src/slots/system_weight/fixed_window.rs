@@ -1,5 +1,6 @@
 //! `bwepoch.fixed_window`: a window of stated length at a stated start.
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::trial::CentralTendency;
 use plateforce_core::{DispersionEstimator, Trial, WeighingEpoch};
 
@@ -37,7 +38,11 @@ pub(crate) fn place(
         "start_seconds",
         trial.time_at(epoch.start_index),
         format!("{:.4}", trial.time_at(epoch.start_index)),
-        choice.start_index.is_none(),
+        if choice.start_index.is_some() {
+            ParameterSource::Stated
+        } else {
+            ParameterSource::Measured
+        },
     );
     Ok(epoch)
 }

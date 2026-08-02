@@ -286,6 +286,7 @@ mod tests {
                 duration_seconds,
             )]),
             options: BTreeMap::new(),
+            ..Default::default()
         }
     }
 
@@ -1119,6 +1120,7 @@ mod tests {
                 parameters: case_parameters(parameters),
                 options: case_options(options),
                 manual_index: None,
+                ..Default::default()
             };
             cases.push(CharacterisationCase {
                 name: format!("onset {name}"),
@@ -1134,6 +1136,7 @@ mod tests {
                 parameters: case_parameters(parameters),
                 options: case_options(options),
                 manual_index: None,
+                ..Default::default()
             };
             cases.push(CharacterisationCase {
                 name: format!("takeoff {name}"),
@@ -1155,6 +1158,7 @@ mod tests {
                 start_index: *start_index,
                 parameters: values,
                 options: case_options(options),
+                ..Default::default()
             };
             cases.push(CharacterisationCase {
                 name: format!("weighing {name}"),
@@ -1249,6 +1253,7 @@ mod tests {
                 parameters: case_parameters(parameters),
                 options: case_options(options),
                 manual_index: None,
+                ..Default::default()
             };
             cases.push(CharacterisationCase {
                 name: format!("bump onset {name}"),

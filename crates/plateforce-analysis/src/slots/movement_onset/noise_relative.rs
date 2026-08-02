@@ -1,5 +1,6 @@
 //! `onset.threshold.noise_relative`: k standard deviations of the quiet epoch.
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::onset::{onset_noise_relative, BandSides, DegenerateBandPolicy};
 use plateforce_core::{Trial, WeighingEpoch};
 
@@ -30,12 +31,12 @@ pub(crate) fn crossing(
                 "degenerate_fraction",
                 fraction,
                 format_number(fraction),
-                false,
+                ParameterSource::Stated,
             );
             DegenerateBandPolicy::FractionOfReference(fraction)
         }
         None => {
-            resolved.record("degenerate_band", "refuse".into(), true);
+            resolved.record("degenerate_band", "refuse".into(), ParameterSource::Assumed);
             DegenerateBandPolicy::Refuse
         }
     };

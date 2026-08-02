@@ -1,5 +1,6 @@
 //! `bwepoch.adaptive_lowest_variance`: the quietest window the recording holds.
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::statistics::median;
 use plateforce_core::{DispersionEstimator, Trial, VarianceAccumulation, WeighingEpoch};
 
@@ -65,7 +66,7 @@ pub(crate) fn search(
         "reject_at_or_below_newtons",
         reject_at_or_below_newtons,
         format!("{reject_at_or_below_newtons:.4}"),
-        true,
+        ParameterSource::Measured,
     );
     let mut epoch = WeighingEpoch::lowest_variance(
         trial,
@@ -89,7 +90,7 @@ pub(crate) fn search(
         "start_seconds",
         trial.time_at(epoch.start_index),
         format!("{:.4}", trial.time_at(epoch.start_index)),
-        false,
+        ParameterSource::Measured,
     );
     apply_variance_floor(&mut epoch, resolved, warnings);
     Ok(epoch)
