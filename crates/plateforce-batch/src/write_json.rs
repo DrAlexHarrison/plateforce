@@ -23,6 +23,7 @@ impl BatchResult {
         json!({
             "run": self.run,
             "quantities": self.quantities,
+            "units": self.units,
             "results": self.results,
             "provenance": self.provenance,
             "refusals": self.refusals,
@@ -42,6 +43,14 @@ impl BatchResult {
             run: serde_json::from_value(read("run")).map_err(|error| error.to_string())?,
             quantities: serde_json::from_value(read("quantities"))
                 .map_err(|error| error.to_string())?,
+            units: serde_json::from_value(
+                value
+                    .get("ok")
+                    .and_then(|b| b.get("units"))
+                    .cloned()
+                    .unwrap_or(Value::Object(Default::default())),
+            )
+            .map_err(|error| error.to_string())?,
             results: serde_json::from_value(read("results")).map_err(|error| error.to_string())?,
             provenance: serde_json::from_value(read("provenance"))
                 .map_err(|error| error.to_string())?,

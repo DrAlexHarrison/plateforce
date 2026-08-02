@@ -105,7 +105,10 @@ fn bland_altman_refuses_when_neither_required_parameter_is_stated() {
     println!("{message}");
     assert!(message.contains("unit_of_analysis"), "{message}");
     assert!(message.contains("dispersion"), "{message}");
-    assert!(message.contains("subject"), "the legal values are named: {message}");
+    assert!(
+        message.contains("subject"),
+        "the legal values are named: {message}"
+    );
     assert!(message.contains("population"), "{message}");
 }
 
@@ -226,7 +229,14 @@ fn every_statistic_id_resolves_in_one_table_and_the_registry_carries_it() {
         ids.len()
     );
     for id in &ids {
-        println!("  {id}  {}", if present.contains(id) { "resolves" } else { "no entry" });
+        println!(
+            "  {id}  {}",
+            if present.contains(id) {
+                "resolves"
+            } else {
+                "no entry"
+            }
+        );
     }
     // A rule that reported one id when it worked and another when it did not is the defect
     // this table exists to prevent, so every id it holds is bindable.

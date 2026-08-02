@@ -111,6 +111,10 @@ pub struct BatchResult {
     pub run: RunRow,
     /// The quantity columns, in the order the analysis reported them.
     pub quantities: Vec<String>,
+    /// The unit each quantity is in, as the registry spells it. Carried rather than inferred
+    /// from the column name, because a surface that guessed a unit from a name would be
+    /// deciding something no rule decided.
+    pub units: BTreeMap<String, String>,
     pub results: Vec<ResultRow>,
     pub provenance: Vec<ProvenanceRow>,
     pub refusals: Vec<RefusalRow>,
@@ -154,6 +158,7 @@ pub fn analyse(
     }
 
     let mut quantities: Vec<String> = Vec::new();
+    let mut units: BTreeMap<String, String> = BTreeMap::new();
     let mut results: Vec<ResultRow> = Vec::new();
     let mut provenance: BTreeMap<String, Vec<ProvenanceRow>> = BTreeMap::new();
     let mut refusals: Vec<RefusalRow> = Vec::new();
@@ -260,6 +265,7 @@ pub fn analyse(
         for metric in &response.metrics {
             if !quantities.iter().any(|name| name == metric.key) {
                 quantities.push(metric.key.to_string());
+                units.insert(metric.key.to_string(), metric.unit.to_string());
             }
             values.insert(metric.key.to_string(), metric.value);
         }
@@ -333,6 +339,7 @@ pub fn analyse(
     Ok(BatchResult {
         run,
         quantities,
+        units,
         results,
         provenance: flattened,
         refusals,

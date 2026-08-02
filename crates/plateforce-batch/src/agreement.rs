@@ -29,7 +29,10 @@ use crate::relations::RefusalRow;
 /// did not is the defect this table exists to prevent.
 const STATISTIC_IDS: &[(&str, Statistic)] = &[
     ("agreement.bland_altman_loa", Statistic::LimitsOfAgreement),
-    ("agreement.olp_regression.ludbrook", Statistic::ProductRegression),
+    (
+        "agreement.olp_regression.ludbrook",
+        Statistic::ProductRegression,
+    ),
     (
         "agreement.correlation_or_mean_difference",
         Statistic::CorrelationWithLimits,
@@ -148,10 +151,7 @@ impl BatchCompareResult {
             self.method_ids.len() * self.trial_count,
             self.method_ids.len(),
             self.trial_count,
-            self.paired
-                .iter()
-                .filter(|row| row.value.is_none())
-                .count(),
+            self.paired.iter().filter(|row| row.value.is_none()).count(),
             self.paired.len()
         )
     }
@@ -160,14 +160,25 @@ impl BatchCompareResult {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum AgreementRefusal {
     /// Both required parameters of the limits entry, named with what they take.
-    RequiredParametersUnstated { parameters: Vec<String>, legal: Vec<String> },
+    RequiredParametersUnstated {
+        parameters: Vec<String>,
+        legal: Vec<String>,
+    },
     /// Two values that did not come from the same repetition.
-    NotTheSameRepetition { pairs: Vec<String> },
+    NotTheSameRepetition {
+        pairs: Vec<String>,
+    },
     /// A subject-level unit of analysis on a run with no declared grouping.
     SubjectUnitWithoutGrouping,
     /// Two figures under conventions whose difference has never been published.
-    ConventionsDiffer { left: String, right: String },
-    NotEnoughPairs { had: usize, needs: usize },
+    ConventionsDiffer {
+        left: String,
+        right: String,
+    },
+    NotEnoughPairs {
+        had: usize,
+        needs: usize,
+    },
 }
 
 impl AgreementRefusal {
@@ -232,8 +243,10 @@ impl LimitsRequest {
             missing.push("dispersion".to_string());
         }
         if !missing.is_empty() {
-            let mut legal: Vec<String> =
-                UNIT_OF_ANALYSIS_VALUES.iter().map(|v| v.to_string()).collect();
+            let mut legal: Vec<String> = UNIT_OF_ANALYSIS_VALUES
+                .iter()
+                .map(|v| v.to_string())
+                .collect();
             legal.extend(DISPERSION_VALUES.iter().map(|v| v.to_string()));
             return Err(AgreementRefusal::RequiredParametersUnstated {
                 parameters: missing,
@@ -246,7 +259,10 @@ impl LimitsRequest {
             _ => {
                 return Err(AgreementRefusal::RequiredParametersUnstated {
                     parameters: vec!["unit_of_analysis".to_string()],
-                    legal: UNIT_OF_ANALYSIS_VALUES.iter().map(|v| v.to_string()).collect(),
+                    legal: UNIT_OF_ANALYSIS_VALUES
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect(),
                 })
             }
         };
@@ -372,7 +388,10 @@ fn complete_pairs(paired: &[PairedRow], methods: usize) -> usize {
     for row in paired.iter().filter(|row| row.value.is_some()) {
         *per_trial.entry(row.trial_id.as_str()).or_default() += 1;
     }
-    per_trial.values().filter(|count| **count >= methods).count()
+    per_trial
+        .values()
+        .filter(|count| **count >= methods)
+        .count()
 }
 
 /// Pairs from the first two variants of each trial, refusing any pair whose two values did
@@ -386,7 +405,10 @@ pub fn pairs_from(result: &BatchCompareResult) -> Result<Vec<Pair>, AgreementRef
     let mut by_trial: BTreeMap<&str, Vec<f64>> = BTreeMap::new();
     for row in &result.paired {
         if let Some(value) = row.value {
-            by_trial.entry(row.trial_id.as_str()).or_default().push(value);
+            by_trial
+                .entry(row.trial_id.as_str())
+                .or_default()
+                .push(value);
         }
     }
     let pairs: Vec<Pair> = by_trial

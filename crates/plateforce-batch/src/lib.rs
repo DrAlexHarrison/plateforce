@@ -6,8 +6,8 @@
 //! declines is named in `refusals` and stays in the denominator, so a run over fifty files
 //! never reports forty-seven answers and says nothing about the other three.
 
-pub mod agreement;
 pub mod aggregate;
+pub mod agreement;
 pub mod decisions;
 pub mod engine;
 pub mod exclusions;
@@ -21,12 +21,12 @@ pub mod write_json;
 #[cfg(feature = "parquet")]
 pub mod write_parquet;
 
+pub use aggregate::{
+    aggregate, with_aggregates, AggregationRefusal, AggregationRequest, AggregationRule, GroupKind,
+};
 pub use agreement::{
     bind_statistic, bound_statistic_ids, compare, AgreementRefusal, BatchCompareRequest,
     BatchCompareResult, LimitsRequest, PairedRow, ReliabilityInterval, UnitOfAnalysis,
-};
-pub use aggregate::{
-    aggregate, with_aggregates, AggregationRefusal, AggregationRequest, AggregationRule, GroupKind,
 };
 pub use decisions::{unresolved, UnresolvedDecision};
 pub use engine::{analyse, BatchRequest, BatchResult, Coverage, RunRefusal};

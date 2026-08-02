@@ -28,7 +28,11 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
         set.len()
     );
 
-    assert_eq!(result.results.len(), copied + 1, "every trial keeps its row");
+    assert_eq!(
+        result.results.len(),
+        copied + 1,
+        "every trial keeps its row"
+    );
     assert_eq!(result.coverage.trial_count, copied + 1);
     assert_eq!(result.coverage.computed, copied);
     assert_eq!(result.coverage.refused, 1);
