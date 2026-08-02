@@ -98,9 +98,18 @@ fn metric(response: &AnalysisResponse, key: &str) -> Option<f64> {
 }
 
 /// The impulse route and the flight-time route answer the same question from different
-/// halves of the trace, so they check each other. An onset placed after the unweighting
-/// dip over-counts the net impulse and inflates the impulse route alone, which is a
-/// confident wrong number with nothing beside it to say so.
+/// halves of the trace, so they check each other, and which of the two reads higher says
+/// which landmark to look at.
+///
+/// The impulse route counts every newton between the two landmarks. Reading high means it
+/// counted too much, and the way to count too much is to start after the unweighting has
+/// begun, missing the negative impulse. Reading low means it counted too little, and the
+/// ways to do that both sit at the other end: stopping before the propulsion finishes, or
+/// running past takeoff into a flight phase carrying almost no force.
+///
+/// The direction is evidence rather than proof. A system weight that is itself wrong moves
+/// the impulse route either way, so the remedy names the landmark the evidence points at
+/// and leaves both heights on screen for the reader to check.
 fn jump_height_routes_disagree(response: &AnalysisResponse) -> Option<QualitySignal> {
     let from_takeoff = metric(response, TAKEOFF_FRAME_HEIGHT)?;
     let qualifies = vec![TAKEOFF_FRAME_HEIGHT, FLIGHT_TIME_HEIGHT];
@@ -130,20 +139,36 @@ fn jump_height_routes_disagree(response: &AnalysisResponse) -> Option<QualitySig
         return None;
     }
 
+    let centimetres_apart = 100.0 * (from_takeoff - from_flight).abs();
+    let counted_too_much = from_takeoff > from_flight;
+    let remedy = if counted_too_much {
+        format!(
+            "These two heights are {centimetres_apart:.0} cm apart, and the impulse route \
+             reads higher. It counts every newton from the start of the jump, so a start \
+             placed after the unweighting has begun inflates it. Compare the rules for the \
+             start of the jump and watch both numbers."
+        )
+    } else {
+        format!(
+            "These two heights are {centimetres_apart:.0} cm apart, and the impulse route \
+             reads lower. It stops counting at takeoff, so a takeoff placed anywhere but \
+             the last foot leaving the plate cuts the count short. Compare the rules for \
+             takeoff and watch both numbers."
+        )
+    };
+
     Some(QualitySignal {
         label,
         value: Some(disagreement_percent),
         unit: "percent",
         threshold: JUMP_HEIGHT_DISAGREEMENT_THRESHOLD_PERCENT,
         status: QualityStatus::Disagrees,
-        remedy: format!(
-            "These two heights are {:.0} cm apart. The impulse route counts every newton \
-             from the start of the jump, so a start placed after the unweighting dip \
-             inflates it. Choose a different rule for the start of the jump and watch \
-             both numbers.",
-            100.0 * (from_takeoff - from_flight).abs()
-        ),
-        remedy_construct: crate::ONSET_CONSTRUCT,
+        remedy,
+        remedy_construct: if counted_too_much {
+            crate::ONSET_CONSTRUCT
+        } else {
+            crate::TAKEOFF_CONSTRUCT
+        },
         qualifies,
     })
 }

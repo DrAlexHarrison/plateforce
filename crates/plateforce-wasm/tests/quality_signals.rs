@@ -140,10 +140,55 @@ fn a_step_off_produces_two_jump_heights_and_only_that_trace_is_flagged() {
     );
     assert_eq!(fired[0].status, QualityStatus::Disagrees);
     assert!(!fired[0].remedy.is_empty());
-    assert_eq!(fired[0].remedy_construct, "movement_onset");
+    // The impulse route reads lower here, which is what counting too little looks like, and
+    // the only way to count too little is at the takeoff end. Naming the start of the jump
+    // would send the reader to a rule whose every published alternative changes nothing.
+    assert_eq!(fired[0].remedy_construct, "takeoff");
+    assert!(fired[0].remedy.contains("takeoff"));
     assert!(fired[0].qualifies.contains(&FROM_TAKEOFF));
     assert!(fired[0].qualifies.contains(&FROM_FLIGHT));
     println!("signal: {} | {}", fired[0].label, fired[0].remedy);
+}
+
+/// The other direction, and it needs no broken rule: a reader who drags the start of the
+/// jump past the unweighting produces an impulse route that counted too much.
+///
+/// Both of this signal's earlier fixtures were defects in our own engine and both were
+/// fixed out from under it. A dragged marker is an act a reader performs, so this one
+/// cannot be repaired away.
+#[test]
+fn a_start_dragged_past_the_unweighting_names_the_start_and_not_the_takeoff() {
+    let trial = synthetic_countermovement_jump();
+    let honest = analyse(&trial, "onset.threshold.noise_relative");
+    let placed_late = honest
+        .onset_index
+        .expect("the demonstration trial finds an onset")
+        + 400;
+
+    let mut dragged = request_with_onset("onset.threshold.noise_relative");
+    dragged.onset.manual_index = Some(placed_late);
+    let response = run(&trial, &dragged).expect("a dragged marker still analyses");
+
+    let from_takeoff = metric(&response, FROM_TAKEOFF);
+    let from_flight = metric(&response, FROM_FLIGHT);
+    println!(
+        "start dragged to sample {placed_late}: impulse {from_takeoff} m, flight {from_flight} m"
+    );
+    assert!(
+        from_takeoff > from_flight,
+        "dragging the start later counts too much, so the impulse route reads high"
+    );
+
+    let fired = signals(&response);
+    assert_eq!(
+        fired.len(),
+        1,
+        "the dragged marker raises exactly one signal"
+    );
+    assert_eq!(fired[0].status, QualityStatus::Disagrees);
+    assert_eq!(fired[0].remedy_construct, "movement_onset");
+    assert!(fired[0].remedy.contains("start of the jump"));
+    println!("signal: {}", fired[0].remedy);
 }
 
 #[test]
