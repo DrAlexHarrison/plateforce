@@ -171,6 +171,16 @@ pub fn slot_of(construct: &str) -> &'static str {
         .unwrap_or("")
 }
 
+/// The construct a slot fills, read off the same table `slot_of` reads. A record naming the
+/// slot hands a caller `onset`, which the registry does not declare and cannot resolve.
+pub fn construct_of(slot: &str) -> &'static str {
+    plateforce_analysis::BINDINGS
+        .iter()
+        .find(|binding| binding.slot == slot)
+        .map(|binding| binding.construct)
+        .unwrap_or("")
+}
+
 /// The field's spoken words for a construct, which the registry carries. `onset` appears in
 /// none of six course documents and "start of the jump" appears in nine places across them.
 pub fn label_of(registry: &Registry, construct: &str) -> String {

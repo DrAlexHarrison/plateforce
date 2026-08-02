@@ -10,12 +10,12 @@ use plateforce_analysis::{
     WeighingChoice, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
 use plateforce_core::signal::{partition_sentinels, Sentinel};
-use plateforce_core::{read_delimited_column, Trial};
+use plateforce_core::{read_delimited_column, Refusal, Trial};
 use plateforce_registry::{Registry, Surfacing};
 use serde_json::json;
 
 use crate::decisions;
-use crate::exit::{Fault, Outcome};
+use crate::exit::{Declined, Fault, Outcome};
 use crate::out::Format;
 use crate::registry_cmd::canonical;
 use crate::render::{Renderer, Role};
@@ -98,24 +98,25 @@ pub(crate) fn prepare(
 ) -> Result<Prepared, Outcome> {
     let registry = match Registry::load(registry_directory) {
         Ok(registry) => registry,
-        Err(error) => return Err(Outcome::declined(Fault::Registry, format!("{error}"))),
+        Err(error) => {
+            return Err(Outcome::declined(Declined::recorded(
+                Refusal::registry_invalid(format!("{error}")),
+            )))
+        }
     };
 
     let chosen = chosen_methods(args)?;
     let stated = match stated_parameters(&args.set) {
         Ok(stated) => stated,
-        Err(message) => return Err(Outcome::declined(Fault::Request, message)),
+        Err(declined) => return Err(Outcome::declined(declined)),
     };
 
     let open = decisions::open(&registry, &PATH, &chosen);
     if !open.is_empty() {
-        return Err(Outcome::declined(
-            Fault::Request,
-            decisions::describe(&open, PATH.len(), renderer),
-        ));
+        return Err(Outcome::declined(open_decisions_refusal(&open, renderer)));
     }
-    if let Some(message) = unresolved_parameters(&registry, &chosen, &stated, renderer) {
-        return Err(Outcome::declined(Fault::Request, message));
+    if let Some(declined) = unresolved_parameters(&registry, &chosen, &stated, renderer) {
+        return Err(Outcome::declined(declined));
     }
 
     let trial = read_trial(args)?;
@@ -143,7 +144,7 @@ pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Re
         // The engine writes the sentence. Which class of fault it is, is a question about
         // the request, so it is answered by asking the binding table rather than by reading
         // the sentence back apart.
-        Err(message) => Outcome::declined(fault_of(&chosen), message),
+        Err(message) => Outcome::declined_line(fault_of(&chosen), message),
         Ok(response) => {
             let spread = crate::spread_cmd::measure(
                 &trial.trial,
@@ -181,13 +182,12 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
         let Some(id) = given else { continue };
         let slot = decisions::slot_of(construct);
         if !bindings_for(slot).any(|binding| binding.id == id) {
-            let available: Vec<&str> = bindings_for(slot).map(|binding| binding.id).collect();
-            return Err(Outcome::declined(
-                Fault::Request,
-                format!(
-                    "'{id}' has no rule behind it, and this build runs {available:?} for that step"
-                ),
-            ));
+            let available: Vec<String> = bindings_for(slot)
+                .map(|binding| binding.id.to_string())
+                .collect();
+            return Err(Outcome::declined(Declined::recorded(
+                Refusal::method_not_implemented(id, construct, available),
+            )));
         }
         chosen.insert(construct.to_string(), id.clone());
     }
@@ -199,34 +199,45 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
 /// spelled the same way never receive each other's number.
 pub(crate) fn stated_parameters(
     assignments: &[String],
-) -> Result<BTreeMap<String, BTreeMap<String, f64>>, String> {
+) -> Result<BTreeMap<String, BTreeMap<String, f64>>, Declined> {
     let slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
     let mut stated: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
+    // The shape of the assignment is a fault in the line and reaches no rule, so it carries
+    // no published code. A number a rule cannot run on is a fault the engine has a code for,
+    // and it reaches the same code here as it would from inside a rule.
     for assignment in assignments {
         let Some((qualified, written)) = assignment.split_once('=') else {
-            return Err(format!(
-                "--set takes <slot>.<name>=<value>, and '{assignment}' carries no ="
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--set takes <slot>.<name>=<value>, and '{assignment}' carries no ="),
             ));
         };
         let Some((slot, name)) = qualified.split_once('.') else {
-            return Err(format!(
-                "--set takes <slot>.<name>=<value>, and '{qualified}' names no slot"
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--set takes <slot>.<name>=<value>, and '{qualified}' names no slot"),
             ));
         };
         // A value written against a step this run does not have would otherwise be read,
         // accepted and never passed to anything.
         if !slots.contains(&slot) {
-            return Err(format!(
-                "--set {qualified} names the step '{slot}', and this run has {slots:?}"
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--set {qualified} names the step '{slot}', and this run has {slots:?}"),
             ));
         }
         let value: f64 = written.trim().parse().map_err(|_| {
-            format!("--set {qualified} was given '{written}', which is not a number")
+            Declined::line(
+                Fault::Request,
+                format!("--set {qualified} was given '{written}', which is not a number"),
+            )
         })?;
+        // Named by the step and the parameter together, because no rule is bound yet and a
+        // slot written into the record's method id would be a word nobody can look up.
         if !value.is_finite() {
-            return Err(format!(
-                "--set {qualified} was given '{written}', and a rule cannot run on it"
-            ));
+            return Err(Declined::recorded(Refusal::parameter_not_finite(
+                "", qualified, value,
+            )));
         }
         stated
             .entry(slot.to_string())
@@ -236,15 +247,37 @@ pub(crate) fn stated_parameters(
     Ok(stated)
 }
 
+/// A choice the registry forces, stated once as the record and once as the terminal's layout.
+///
+/// The record names the constructs still open; the screen names the rules each one can be
+/// answered with and what the literature publishes for them.
+pub(crate) fn open_decisions_refusal(
+    open: &[decisions::OpenDecision],
+    renderer: &Renderer,
+) -> Declined {
+    let outstanding: Vec<String> = open
+        .iter()
+        .map(|decision| decision.construct.clone())
+        .collect();
+    Declined::shown_as(
+        Refusal::decision_not_made("this result", outstanding),
+        decisions::describe(open, PATH.len(), renderer),
+    )
+}
+
+/// A parameter the bound rule requires that the literature publishes more than one value for.
+///
+/// The unit of resolution is the parameter, so a rule chosen by name still leaves a choice
+/// open when the number behind it was published several ways.
 fn unresolved_parameters(
     registry: &Registry,
     chosen: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,
     renderer: &Renderer,
-) -> Option<String> {
+) -> Option<Declined> {
     let empty = BTreeMap::new();
     let mut lines = Vec::new();
-    let mut open_count = 0;
+    let mut outstanding = Vec::new();
     for (construct, method_id) in chosen {
         let slot = decisions::slot_of(construct);
         let open = decisions::open_parameters(
@@ -254,7 +287,7 @@ fn unresolved_parameters(
             stated.get(slot).unwrap_or(&empty),
         );
         for (name, published) in open {
-            open_count += 1;
+            outstanding.push(format!("{slot}.{name}"));
             let values: Vec<String> = published.iter().map(|value| format!("{value:?}")).collect();
             lines.push(format!("  --set {slot}.{name}=<VALUE>"));
             lines.extend(renderer.wrap(
@@ -266,16 +299,20 @@ fn unresolved_parameters(
     if lines.is_empty() {
         return None;
     }
-    let mut message = format!(
-        "{open_count} values on the path to a jump height are published more than one way and were not named.\n",
+    let mut terminal = format!(
+        "{} values on the path to a jump height are published more than one way and were not named.\n",
+        outstanding.len(),
     );
-    message.push_str(&lines.join("\n"));
-    Some(message)
+    terminal.push_str(&lines.join("\n"));
+    Some(Declined::shown_as(
+        Refusal::decision_not_made("this result", outstanding),
+        terminal,
+    ))
 }
 
 fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
     let Some(sample_rate_hz) = args.sample_rate_hz else {
-        return Err(Outcome::declined(
+        return Err(Outcome::declined_line(
             Fault::Request,
             format!(
                 "{} carries no sample rate, so --sample-rate-hz names it. Reading a 1200 Hz recording as 1000 Hz scales every velocity, displacement and impulse by a fifth",
@@ -284,7 +321,7 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         ));
     };
     let text = std::fs::read_to_string(&args.trial).map_err(|error| {
-        Outcome::declined(
+        Outcome::declined_line(
             Fault::Request,
             format!("{} cannot be read: {error}", args.trial.display()),
         )
@@ -293,7 +330,7 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
     // export and any other column refuses by naming the index it wanted.
     let delimiter = args.delimiter.unwrap_or('\u{0}');
     let (values, report) = read_delimited_column(&text, delimiter, args.column)
-        .map_err(|error| Outcome::declined(Fault::Recording, format!("{error}")))?;
+        .map_err(|error| Outcome::declined_line(Fault::Recording, format!("{error}")))?;
 
     let sentinel = match args.sentinel {
         SentinelConvention::Zero => Some(Sentinel::Zero),
@@ -305,7 +342,7 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         .unwrap_or(0);
 
     let trial = Trial::new(values, sample_rate_hz)
-        .map_err(|error| Outcome::declined(Fault::Recording, format!("{error}")))?;
+        .map_err(|error| Outcome::declined(Declined::recorded(Refusal::from(error))))?;
     Ok(ReadTrial {
         trial,
         rows_read: report.rows_read,
@@ -360,6 +397,35 @@ fn build_request(
     }
 }
 
+/// A landmark rule that produced nothing, as a record where the engine has one.
+///
+/// The rule that carries the core's own error carries its code with it. The one that hands
+/// back a sentence alone publishes no code, because a code chosen here would name a failure
+/// no other surface can raise, and a wrong code in a record is worse than an absent one in
+/// software whose product is the record.
+fn declined_landmark(slot: &str, refusal: &plateforce_analysis::RuleRefusal) -> Declined {
+    match refusal {
+        plateforce_analysis::RuleRefusal::Trial(error) => {
+            Declined::recorded(Refusal::from(error.clone()).in_slot(decisions::construct_of(slot)))
+        }
+        plateforce_analysis::RuleRefusal::Stated(message) => {
+            Declined::line(Fault::Recording, format!("{slot}: {message}"))
+        }
+    }
+}
+
+/// The construct a refusal happened under, on every row. A record built without one is a
+/// fault the engine records no construct for, and the caller still has to know which
+/// landmark declined.
+fn with_slot(slot: &str, mut record: serde_json::Value) -> serde_json::Value {
+    if let Some(object) = record.as_object_mut() {
+        if object.get("slot").is_none_or(serde_json::Value::is_null) {
+            object.insert("slot".to_string(), json!(slot));
+        }
+    }
+    record
+}
+
 /// A request naming a rule this build cannot run asked for something not on offer; one whose
 /// rules all exist and still produced nothing met a recording without what they look for.
 fn fault_of(chosen: &BTreeMap<String, String>) -> Fault {
@@ -387,10 +453,16 @@ fn render(
         .iter()
         .filter(|metric| metric.value.is_none())
         .collect();
-    let refusals: Vec<String> = response
+    let refusals: Vec<Declined> = response
         .refusals
         .iter()
-        .map(|(slot, refusal)| format!("{slot}: {refusal}"))
+        .map(|(slot, refusal)| declined_landmark(slot, refusal))
+        .collect();
+    let recorded: Vec<serde_json::Value> = response
+        .refusals
+        .iter()
+        .zip(&refusals)
+        .map(|((slot, _), declined)| with_slot(decisions::construct_of(slot), declined.record()))
         .collect();
     // What the software already knows about a number it is about to print. A value the
     // browser flags and the pipe does not is a confident wrong number reaching a paper.
@@ -406,7 +478,7 @@ fn render(
             "bound_methods": response.bound_methods,
             "levels": response.levels,
             "warnings": response.warnings,
-            "refusals": refusals,
+            "refusals": recorded,
             "signals": signals,
             "spread": spread,
         })),
@@ -451,7 +523,7 @@ fn text_body(
     registry: &Registry,
     args: &Args,
     renderer: &Renderer,
-    refusals: &[String],
+    refusals: &[Declined],
     signals: &[QualitySignal],
 ) -> String {
     let mut document = String::new();
@@ -494,7 +566,7 @@ fn text_body(
         }
     }
     for refusal in refusals {
-        for line in renderer.wrap(refusal, 2) {
+        for line in renderer.wrap(refusal.terminal(), 2) {
             let _ = writeln!(document, "{line}");
         }
     }

@@ -132,6 +132,7 @@ fn main() -> ExitCode {
                 ),
                 None,
                 invocation.color,
+                invocation.format,
             )
         }
         Command::Spread(args) => {
@@ -141,7 +142,12 @@ fn main() -> ExitCode {
         Command::Version => version_cmd::run(invocation.format),
     };
 
-    deliver(outcome, invocation.out.as_deref(), invocation.color)
+    deliver(
+        outcome,
+        invocation.out.as_deref(),
+        invocation.color,
+        invocation.format,
+    )
 }
 
 /// clap's own `Error::exit` prints to stderr and terminates with 2 for a usage error, and
@@ -192,7 +198,12 @@ fn times_written(arguments: impl Iterator<Item = std::ffi::OsString>, flag: &str
         .count()
 }
 
-fn deliver(outcome: Outcome, destination: Option<&std::path::Path>, colour: Colour) -> ExitCode {
+fn deliver(
+    outcome: Outcome,
+    destination: Option<&std::path::Path>,
+    colour: Colour,
+    format: Format,
+) -> ExitCode {
     let code = code_for(&outcome);
     let stream = stream_for(&outcome);
 
@@ -204,10 +215,17 @@ fn deliver(outcome: Outcome, destination: Option<&std::path::Path>, colour: Colo
     }
 
     // A refusal with no result to sit beside travels on its own stream, so a reader who
-    // redirected the result to a file still learns why a number is absent.
+    // redirected the result to a file still learns why a number is absent. A caller who
+    // asked for JSON gets the record rather than a sentence to parse back apart, in the
+    // envelope every surface returns.
     if outcome.document.is_none() {
         for refusal in &outcome.refusals {
-            eprintln!("plateforce: {refusal}");
+            match format {
+                Format::Json => {
+                    eprintln!("{}", registry_cmd::canonical_refusal(&refusal.record()))
+                }
+                Format::Text => eprintln!("plateforce: {}", refusal.terminal()),
+            }
         }
     }
 

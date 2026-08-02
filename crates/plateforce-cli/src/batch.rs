@@ -11,10 +11,10 @@ use plateforce_batch::agreement::BatchCompareRequest;
 use plateforce_batch::{
     analyse, compare, BatchRequest, Rendering, SourceFormat, TrialIdentity, TrialSet,
 };
-use plateforce_core::exit_code;
+use plateforce_core::Refusal;
 use plateforce_registry::Registry;
 
-use crate::exit::{Fault, Outcome};
+use crate::exit::{fault_for, Declined, Fault, Outcome};
 use crate::out::Format;
 
 /// Which of the two questions this run is asking.
@@ -88,19 +88,6 @@ pub struct Args {
     pub without_provenance: bool,
 }
 
-/// The mapping from a refused run to a shell status, taken from the engine's own table.
-///
-/// One table, in `plateforce_core`, so a new code is ruled on there rather than falling
-/// through to whichever status a second table here happened to list last.
-fn fault_for(code: plateforce_core::RefusalCode) -> Fault {
-    match exit_code(code) {
-        64 => Fault::Request,
-        65 => Fault::Recording,
-        78 => Fault::Registry,
-        _ => Fault::Internal,
-    }
-}
-
 pub fn run(
     args: &Args,
     registry_directory: &std::path::Path,
@@ -111,7 +98,7 @@ pub fn run(
     // The global flag names one file, and a run has no single document to put in one, so a
     // line carrying both is asking for two destinations and gets neither by guess.
     if document_destination.is_some() {
-        return Outcome::declined(
+        return Outcome::declined_line(
             Fault::Request,
             "a run writes a table, its chain, its refusals and the record beside them, so it is --out-dir that names the folder they go in".to_string(),
         );
@@ -127,7 +114,7 @@ pub fn run(
     match std::fs::metadata(out_dir) {
         Ok(found) if found.is_dir() => {}
         Ok(_) => {
-            return Outcome::declined(
+            return Outcome::declined_line(
                 Fault::Request,
                 format!(
                     "{} is a file, and a run writes a table, its chain, its refusals and the record beside them, so --out names a folder",
@@ -137,7 +124,7 @@ pub fn run(
         }
         Err(_) => {
             if let Err(error) = std::fs::create_dir_all(out_dir) {
-                return Outcome::declined(
+                return Outcome::declined_line(
                     Fault::Request,
                     format!("{} cannot be made: {error}", out_dir.display()),
                 );
@@ -147,7 +134,11 @@ pub fn run(
 
     let registry = match Registry::load(registry_directory) {
         Ok(registry) => registry,
-        Err(error) => return Outcome::declined(Fault::Registry, error.to_string()),
+        Err(error) => {
+            return Outcome::declined(Declined::recorded(Refusal::registry_invalid(
+                error.to_string(),
+            )))
+        }
     };
 
     let format_declaration = SourceFormat {
@@ -166,7 +157,7 @@ pub fn run(
 
     let set = match TrialSet::walk(&args.trials, &format_declaration, &identity) {
         Ok(set) => set,
-        Err(error) => return Outcome::declined(Fault::Recording, error.to_string()),
+        Err(error) => return Outcome::declined_line(Fault::Recording, error.to_string()),
     };
 
     // A run over a folder multiplies one unmade choice by the trial count, so it is refused
@@ -184,16 +175,13 @@ pub fn run(
     }
     let open = crate::decisions::open(&registry, &crate::analyse::PATH, &chosen);
     if !open.is_empty() {
-        return Outcome::declined(
-            Fault::Request,
-            crate::decisions::describe(&open, crate::analyse::PATH.len(), renderer),
-        );
+        return Outcome::declined(crate::analyse::open_decisions_refusal(&open, renderer));
     }
 
     let resolved: Vec<&str> = chosen.keys().map(String::as_str).collect();
     let stated = match crate::analyse::stated_parameters(&args.set) {
         Ok(stated) => stated,
-        Err(message) => return Outcome::declined(Fault::Request, message),
+        Err(declined) => return Outcome::declined(declined),
     };
     let request = BatchRequest::new(request_for(args, &registry, &stated)).resolving(&resolved);
 
@@ -264,7 +252,7 @@ fn run_analyse(
     };
 
     if let Err(error) = result.write_csv(out_dir) {
-        return Outcome::declined(Fault::Request, error.to_string());
+        return Outcome::declined_line(Fault::Request, error.to_string());
     }
 
     let rendering = if args.without_provenance {
@@ -277,14 +265,10 @@ fn run_analyse(
         _ => render_table(&result.render(rendering)),
     };
 
-    let mut outcome = Outcome::complete(document);
     // A trial that declined one landmark computed the rest, so its refusals travel beside the
-    // numbers rather than in place of them.
-    outcome.refusals = result
-        .refusals
-        .iter()
-        .map(|row| format!("{}: {}", row.trial_id, row.message))
-        .collect();
+    // numbers: in the table, in the run's own refusals file, and in the JSON document, each
+    // carrying the code and the rule that produced it.
+    let mut outcome = Outcome::complete(document);
     outcome.every_requested_quantity_has_a_value = result.refusals.is_empty();
     outcome
 }
@@ -298,7 +282,7 @@ fn run_compare(
     format: Format,
 ) -> Outcome {
     if args.against.is_empty() {
-        return Outcome::declined(
+        return Outcome::declined_line(
             Fault::Request,
             "a comparison runs two or more rules over one recording, and this one named a single rule, so --against takes the rule to compare the bound one against".to_string(),
         );
@@ -320,7 +304,7 @@ fn run_compare(
     let request_digest =
         plateforce_batch::fingerprint::request_digest(&compare_request.analysis.analysis, None);
     if let Err(error) = result.write_csv(out_dir, &registry.content_digest, &request_digest) {
-        return Outcome::declined(Fault::Request, error.to_string());
+        return Outcome::declined_line(Fault::Request, error.to_string());
     }
 
     let document = match format {
@@ -328,11 +312,6 @@ fn run_compare(
         _ => result.coverage(),
     };
     let mut outcome = Outcome::complete(document);
-    outcome.refusals = result
-        .refusals
-        .iter()
-        .map(|row| format!("{}: {}", row.trial_id, row.message))
-        .collect();
     outcome.every_requested_quantity_has_a_value = result.complete_pairs == result.trial_count;
     outcome
 }
@@ -342,12 +321,18 @@ fn run_compare(
 /// The constructs and their published alternatives travel out so the caller renders them
 /// through whatever it already uses for a forced decision, rather than a second layout here.
 fn declined_run(refusal: plateforce_batch::RunRefusal) -> Outcome {
-    Outcome {
-        document: None,
-        refusals: vec![refusal.message.clone()],
-        fault: Some(fault_for(refusal.code)),
-        every_requested_quantity_has_a_value: false,
-    }
+    let outstanding: Vec<String> = refusal
+        .unresolved
+        .iter()
+        .map(|open| open.construct.clone())
+        .collect();
+    let recorded = match refusal.code {
+        plateforce_core::RefusalCode::DecisionNotMade => {
+            Refusal::decision_not_made("this run", outstanding)
+        }
+        other => return Outcome::declined_line(fault_for(other), refusal.message.clone()),
+    };
+    Outcome::declined(Declined::shown_as(recorded, refusal.message.clone()))
 }
 
 /// The table as a terminal reads it, in the shape the renderer already decided.
