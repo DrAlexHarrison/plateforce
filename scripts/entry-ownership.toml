@@ -1,0 +1,115 @@
+# Which workstream may edit which registry entry.
+#
+# Ten of the fifteen characterised method files hold entries belonging to two
+# different workstreams, so ownership inside them is per entry by id rather than per
+# file. An id named below wins over its file's default; a file with no default and no
+# named entry is unowned, and `entry-ownership.sh` fails on it rather than passing,
+# because an entry nobody owns is where a crossing hides.
+#
+# Six entries outside onset, takeoff and baseline carry a construct those three files
+# own, and every one of them is assigned by name in a plan. A named assignment wins
+# over ownership inherited from a construct.
+#
+# `registry/protocols/` is listed unowned deliberately: no plan claims it.
+
+[file_default]
+"registry/constructs.toml" = "WS-A"
+"registry/methods/onset.toml" = "WS-A"
+"registry/methods/takeoff.toml" = "WS-A"
+"registry/methods/baseline.toml" = "WS-A"
+"registry/methods/acquisition.toml" = "WS-E1"
+"registry/methods/agreement-reliability.toml" = "WS-E1"
+"registry/methods/asymmetry.toml" = "WS-E1"
+"registry/methods/force-rfd-impulse.toml" = "WS-E1"
+"registry/methods/integration.toml" = "WS-E1"
+"registry/methods/jump-height.toml" = "WS-E1"
+"registry/methods/loaded-lift-fv.toml" = "WS-E1"
+"registry/methods/multivariate.toml" = "WS-E2"
+"registry/methods/normalisation.toml" = "WS-E1"
+"registry/methods/phase.toml" = "WS-E1"
+"registry/methods/power-work.toml" = "WS-E1"
+"registry/methods/reactive-strength.toml" = "WS-E1"
+"registry/methods/sprint-start.toml" = "WS-E1"
+"registry/methods/trial-validity.toml" = "WS-E1"
+"registry/methods/waveform.toml" = "WS-E1"
+"registry/presets" = "WS-F"
+
+# The fifty-four entries at depth two and beyond.
+
+[[entry]]
+workstream = "WS-E2"
+ids = [
+  "phase.braking_start.zero_net_force",
+  "phase.model.unweighting_single.mcmahon2018",
+  "phase.model.unloading_yielding_split.harry2020",
+  "phase.propulsion_start.zero_velocity",
+  "phase.propulsion_start.velocity_threshold",
+  "phase.propulsion_subdivision.by_time",
+  "phase.propulsion_subdivision.by_force_crossing",
+  "phase.landing_subdivision.impact_stabilising",
+  "phase.landing_end.zero_com_velocity",
+  "window_end.force_dropoff_from_running_max",
+  "phase.window.positive_impulse.net_force_positive",
+  "phase.propulsion_end.peak_com_velocity",
+  "power.instantaneous.force_x_velocity",
+  "power.peak.instantaneous",
+  "power.mean.phase",
+  "work.integral_power_dt",
+  "work.integral_force_ds",
+  "work.single_force_displacement_product",
+  "power.peak_from_height.lewis",
+  "power.peak_from_height.regression",
+  "rfd.phase_endpoint_secant.harry",
+  "rfd.at_fraction_of_peak_force",
+  "rfd.average_to_peak_force",
+  "rfd.mean_force_over_duration.lapuente",
+  "impulse.to_fraction_of_peak_force",
+  "rpd.phase_anchored",
+  "rpd.peak_to_peak_anchored.amti",
+  "fv.point_reduction",
+  "jumpheight.frame",
+  "jumpheight.takeoff.peak_velocity.chavda2018",
+  "jumpheight.takeoff.work_energy",
+  "jumpheight.standing.double_integration",
+  "jumpheight.standing.tov_plus_displacement",
+  "jumpheight.flight_phase_displacement.vald_impdis",
+  "jumpheight.min_of_ft_and_tov.labanalysis",
+  "rsimod.jh_ft_over_ttt",
+  "index.rpem.riosgallardo",
+  "norm.pct_peak_force",
+  "norm.dimensionless_hof",
+  "waveform.spm1d.pataky",
+  "waveform.snpm.permutation",
+  "waveform.fda_fpca.ramsay",
+  "waveform.acp.richter2014",
+  "waveform.pca_time_stratified_discrete.wu2019",
+  "timenorm.piecewise_per_phase",
+  "registration.landmark",
+  "analysis.movement_strategy_clustering.bird2022",
+  "analysis.jump_strategy_waveform_clustering.guess2020",
+  "trial.aggregation",
+  "trial.gate.between_trial_agreement.kraska2009",
+  "qc.transient_peak_count.pedley2023",
+  "aggregation.peak_of_average_vs_average_of_peaks",
+  "cutoff.residual_analysis.winter",
+  "cutoff.autocorrelation_whiteness.challis1999",
+]
+
+# The agreement and reliability track blocks on the batch loop and the per-subject
+# aggregation, so all ten of its computation entries sit with the workstream that
+# builds those. The two declarations beside them stay with the file's default.
+
+[[entry]]
+workstream = "WS-C"
+ids = [
+  "agreement.olp_regression.ludbrook",
+  "agreement.bland_altman_loa",
+  "agreement.correlation_or_mean_difference",
+  "agreement.kappa_categorical",
+  "reliability.icc_absolute_agreement",
+  "reliability.icc_consistency",
+  "reliability.cv_typical_error.hopkins",
+  "reliability.cv_sd_over_mean_of_trials",
+  "reliability.sem_mdc",
+  "reliability.swc_0.2sd",
+]
