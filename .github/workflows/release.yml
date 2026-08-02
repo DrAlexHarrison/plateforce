@@ -46,8 +46,12 @@ jobs:
                -o -name '*-setup.exe' -o -name 'plateforce-*-linux-static' \) \
             -exec cp {} dist/ \;
           # An artefact is zipped in transit and comes back without its executable bit, so
-          # the programs below arrive whole and refuse to run.
-          chmod +x dist/plateforce-*-linux-static dist/*.AppImage
+          # the programs below arrive whole and refuse to run. Restoring the bit is not the
+          # place to notice a missing platform: a glob that matches nothing would fail here
+          # and hide the count below, which is what says which artefact did not arrive.
+          find dist -maxdepth 1 -type f \
+            \( -name 'plateforce-*-linux-static' -o -name '*.AppImage' \) \
+            -exec chmod +x {} +
           ls -la dist/
 
       # Counted against a declared list rather than inspected one by one, and the two
