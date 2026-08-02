@@ -321,15 +321,17 @@ doi = "10.1098/rsos.192093"
 obtained = true
 
 [[method.bias]]
-magnitude = -0.0008
+magnitude = 0.0
 unit = "seconds"
-direction = "early"
+direction = "none"
 criterion = "onset.threshold.noise_relative"
 criterion_kind = "instrument"
 source = "plateforce_signal_measurement"
-# Measured on 200 trials of the validation corpus at 1200 Hz. The predicted systematic early bias
-# is absent; what is present is dispersion of SD 22.4 ms, range -87 to +275 ms, because
-# quiet-standing noise is low-frequency postural sway rather than white.
+# Measured on 200 trials of the validation corpus at 1200 Hz. The predicted systematic early shift
+# is absent: the mean sits within one standard error of zero, SD 22.4 ms over 200 giving 1.6 ms.
+# What is present is dispersion, SD 22.4 ms and range -87 to +275 ms, because quiet-standing noise
+# is low-frequency postural sway rather than white. A mean drawn from that scatter is not a shift
+# to report.
 
 [[method.disagrees_with]]
 id = "filter.butterworth.dual_pass_zerolag"
@@ -341,7 +343,13 @@ kind = "genuine"
 
 [method.gui]
 surfacing = "default_and_hide"
-sensitivity = "dispersion of 22.4 ms on onset, roughly a fifth of the cross-implementation spread"
+sensitivity = """
+Dispersion of 22.4 ms on onset, roughly a fifth of the cross-implementation spread, and larger by
+orders of magnitude where a threshold rule scales itself by the dispersion of the quiet epoch.
+Conditioning narrows that dispersion, so it narrows the band such a rule searches: over six trials
+here the quiet-epoch spread fell by 1.0 to 1.5 times, and on the quietest of them a band narrowing
+from 7.03 to 4.77 N moved onset 710 ms earlier.
+"""
 rationale = """
 The filter must be recorded as part of the event definition rather than as a global preprocessing
 setting, because it is applied inside onset detection.
