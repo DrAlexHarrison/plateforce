@@ -46,6 +46,19 @@ pub const REFERENCE_NOT_FOUND: f64 = -100.0;
 /// used, so its braking boundary moves when the onset rule moves.
 /// `phase.braking_start.zero_net_force` states the level as system weight. Measured on
 /// the six committed subject-01 trials, the two land 1 to 8 samples apart on 6 of 6.
+/// Which `integration.start.*` rule this pipeline integrates the velocity series under.
+///
+/// Named here rather than taken from `IntegrationStart` directly, because that enum carries
+/// the onset index, which is a property of the trial rather than of a binding set.
+/// `integration.start.trial_start` is `deprecated` and `integration.start.detected_onset` is
+/// `recommended`, and both force a decision, so a harness reproducing a pipeline that
+/// integrates from sample zero says so rather than inheriting it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IntegrationStartRule {
+    TrialStart,
+    DetectedOnset,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BrakingStartReference {
     ForceAtOnset,
@@ -94,6 +107,7 @@ pub struct ReferenceBindings {
     pub duration_rounding: DurationRounding,
     pub residual_comparison: ResidualComparison,
     pub braking_start_reference: BrakingStartReference,
+    pub integration_start: IntegrationStartRule,
 }
 
 impl Default for ReferenceBindings {
@@ -134,6 +148,7 @@ impl Default for ReferenceBindings {
             duration_rounding: DurationRounding::Truncate,
             residual_comparison: ResidualComparison::Magnitude,
             braking_start_reference: BrakingStartReference::ForceAtOnset,
+            integration_start: IntegrationStartRule::TrialStart,
         }
     }
 }
@@ -298,8 +313,8 @@ pub fn analyse(
     // The reference integrates the whole recording from sample zero with velocity zero
     // there, which is `integration.start.trial_start`. That entry is deprecated and
     // `integration.start.detected_onset` is recommended, and both force a decision, so the
-    // start is stated here as the value this pipeline used rather than left to whatever a
-    // caller would otherwise inherit.
+    // start is named by the binding set rather than left to whatever a caller inherits.
+    let onset_for_phases = onset[0].filter(|&index| index > 0).unwrap_or(0);
     let weighing = WeighingEpoch {
         start_index: 0,
         end_index: samples(bindings.quiet_window_seconds[0], bindings),
@@ -312,7 +327,12 @@ pub fn analyse(
     let integration = IntegrationSpec {
         quadrature: QuadratureRule::Trapezoid,
         direction: IntegrationDirection::Forward,
-        start: IntegrationStart::TrialStart,
+        start: match bindings.integration_start {
+            IntegrationStartRule::TrialStart => IntegrationStart::TrialStart,
+            IntegrationStartRule::DetectedOnset => IntegrationStart::DetectedOnset {
+                index: onset_for_phases,
+            },
+        },
         anchor: IntegrationAnchor::SinglePoint { index: 0 },
     };
     let velocity_series = centre_of_mass_velocity_meters_per_second(
@@ -322,7 +342,6 @@ pub fn analyse(
         bindings.gravity_meters_per_second_squared,
     );
     let velocity = velocity_series.meters_per_second();
-    let onset_for_phases = onset[0].filter(|&index| index > 0).unwrap_or(0);
     let velocity_zero = velocity_zero_crossing(velocity, onset_for_phases, takeoff_jm);
 
     let braking_reference_newtons = match bindings.braking_start_reference {
@@ -783,5 +802,34 @@ mod tests {
             }
         }
         assert_eq!(moved, 6, "the braking reference moved {moved} of 6 trials");
+    }
+
+    /// A field nobody can flip is a note rather than a choice. `integration.start` forces a
+    /// decision in the registry, so the binding set has to be able to state either side and
+    /// the two have to give different numbers.
+    #[test]
+    fn the_integration_start_moves_the_velocity_zero_it_is_read_from() {
+        let at_detected_onset = ReferenceBindings {
+            integration_start: IntegrationStartRule::DetectedOnset,
+            ..ReferenceBindings::default()
+        };
+        let mut moved = 0;
+        for trial_number in 1..=6 {
+            let trial = committed_trial(trial_number);
+            let reference = analyse(&trial, &ReferenceBindings::default())
+                .expect("the reference binding analyses")
+                .velocity_zero_index;
+            let onset = analyse(&trial, &at_detected_onset)
+                .expect("the detected-onset binding analyses")
+                .velocity_zero_index;
+            assert!(reference.is_some() && onset.is_some());
+            if reference != onset {
+                moved += 1;
+            }
+        }
+        // Four rather than six: on two of the committed trials the onset falls where the
+        // two rules happen to place the crossing at the same sample, so a set that only
+        // ever ran those two would read the choice as making no difference.
+        assert_eq!(moved, 4, "the integration start moved {moved} of 6 trials");
     }
 }
