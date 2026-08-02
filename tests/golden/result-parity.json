@@ -9,11 +9,6 @@
   "result": {
     "bound_methods": [
       {
-        "assumed_parameters": [
-          "centre",
-          "dispersion",
-          "start_seconds"
-        ],
         "bound_parameters": [
           [
             "centre",
@@ -34,15 +29,16 @@
         ],
         "manual_override": false,
         "method_id": "bwepoch.fixed_window",
+        "parameter_sources": {
+          "centre": "assumed",
+          "dispersion": "assumed",
+          "duration": "stated",
+          "start_seconds": "measured"
+        },
         "registry_backed": true,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "degenerate_band",
-          "reference_distribution",
-          "sd_convention"
-        ],
         "bound_parameters": [
           [
             "degenerate_band",
@@ -63,13 +59,16 @@
         ],
         "manual_override": false,
         "method_id": "onset.threshold.noise_relative",
+        "parameter_sources": {
+          "degenerate_band": "assumed",
+          "k": "stated",
+          "reference_distribution": "assumed",
+          "sd_convention": "assumed"
+        },
         "registry_backed": true,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "offset_ms"
-        ],
         "bound_parameters": [
           [
             "offset_ms",
@@ -78,13 +77,13 @@
         ],
         "manual_override": false,
         "method_id": "onset.op.backward_offset_fixed",
+        "parameter_sources": {
+          "offset_ms": "assumed"
+        },
         "registry_backed": false,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "selection"
-        ],
         "bound_parameters": [
           [
             "selection",
@@ -93,13 +92,13 @@
         ],
         "manual_override": false,
         "method_id": "onset.op.crossing_selection",
+        "parameter_sources": {
+          "selection": "assumed"
+        },
         "registry_backed": false,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "direction"
-        ],
         "bound_parameters": [
           [
             "direction",
@@ -108,13 +107,13 @@
         ],
         "manual_override": false,
         "method_id": "onset.op.direction",
+        "parameter_sources": {
+          "direction": "assumed"
+        },
         "registry_backed": false,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "span_ms"
-        ],
         "bound_parameters": [
           [
             "span_ms",
@@ -123,13 +122,13 @@
         ],
         "manual_override": false,
         "method_id": "onset.op.persistence",
+        "parameter_sources": {
+          "span_ms": "assumed"
+        },
         "registry_backed": false,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "weighing_epoch_end_seconds"
-        ],
         "bound_parameters": [
           [
             "weighing_epoch_end_seconds",
@@ -138,14 +137,13 @@
         ],
         "manual_override": false,
         "method_id": "onset.op.search_floor_at_weighing_epoch_end",
+        "parameter_sources": {
+          "weighing_epoch_end_seconds": "measured"
+        },
         "registry_backed": false,
         "unread_parameters": []
       },
       {
-        "assumed_parameters": [
-          "comparison",
-          "persistence_ms"
-        ],
         "bound_parameters": [
           [
             "comparison",
@@ -162,6 +160,11 @@
         ],
         "manual_override": false,
         "method_id": "takeoff.threshold.absolute_force",
+        "parameter_sources": {
+          "comparison": "assumed",
+          "persistence_ms": "assumed",
+          "threshold_n": "stated"
+        },
         "registry_backed": true,
         "unread_parameters": []
       }
