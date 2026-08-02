@@ -36,6 +36,19 @@ use plateforce_core::{statistics::samples_for_duration, Trial};
 /// as an index would put movement onset a twelfth of a second before the recording.
 pub const REFERENCE_NOT_FOUND: f64 = -100.0;
 
+/// Which force level the braking-start search returns to.
+///
+/// The reference emits this column as `f_cross_bw` and computes it against the force at
+/// movement onset, which is system weight less whatever threshold the bound onset rule
+/// used, so its braking boundary moves when the onset rule moves.
+/// `phase.braking_start.zero_net_force` states the level as system weight. Measured on
+/// the six committed subject-01 trials, the two land 1 to 8 samples apart on 6 of 6.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BrakingStartReference {
+    ForceAtOnset,
+    SystemWeight,
+}
+
 /// Every parameter the reference implementation bound, in one place.
 ///
 /// The reference runs nine onset rules, five takeoff rules and four phase-boundary
@@ -77,12 +90,15 @@ pub struct ReferenceBindings {
     pub variance_accumulation: VarianceAccumulation,
     pub duration_rounding: DurationRounding,
     pub residual_comparison: ResidualComparison,
+    pub braking_start_reference: BrakingStartReference,
 }
 
 impl Default for ReferenceBindings {
     fn default() -> Self {
         Self {
             sample_rate_hz: 1200.0,
+            // The reference's own value. The software defaults to standard gravity,
+            // 9.80665, and the two differ by 342 parts per million on every height.
             gravity_meters_per_second_squared: 9.81,
             noise_multiplier: 5.0,
             quiet_window_seconds: [0.25, 0.40, 1.00],
@@ -114,6 +130,7 @@ impl Default for ReferenceBindings {
             variance_accumulation: VarianceAccumulation::CumulativeSumOfSquares,
             duration_rounding: DurationRounding::Truncate,
             residual_comparison: ResidualComparison::Magnitude,
+            braking_start_reference: BrakingStartReference::ForceAtOnset,
         }
     }
 }
@@ -281,9 +298,18 @@ pub fn analyse(
     let onset_for_phases = onset[0].filter(|&index| index > 0).unwrap_or(0);
     let velocity_zero = velocity_zero_crossing(&velocity, onset_for_phases, takeoff_jm);
 
+    let braking_reference_newtons = match bindings.braking_start_reference {
+        BrakingStartReference::ForceAtOnset => force[onset_for_phases],
+        BrakingStartReference::SystemWeight => weight[0],
+    };
     let unweighting_end = [
         braking_start_by_velocity_minimum(&velocity, onset_for_phases, takeoff_jm),
-        braking_start_by_force_return(force, onset_for_phases, force[onset_for_phases], peak_index),
+        braking_start_by_force_return(
+            force,
+            onset_for_phases,
+            braking_reference_newtons,
+            peak_index,
+        ),
         braking_start_by_force_minimum(
             force,
             onset_for_phases,
@@ -694,4 +720,45 @@ pub fn fixed_epoch(
         CentralTendency::Mean,
         bindings.dispersion,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use plateforce_core::read_trial_from_path;
+    use std::path::Path;
+
+    fn committed_trial(trial_number: u32) -> Trial {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures")
+            .join(format!("subject01_trial{trial_number}.force.txt"));
+        read_trial_from_path(&path, '\t', 0, 1200.0)
+            .expect("committed fixture reads")
+            .0
+    }
+
+    /// The reference level and the level the registry entry states are two rules, and a
+    /// binding that ignored the choice would leave every column identical.
+    #[test]
+    fn the_braking_start_reference_moves_the_boundary_on_every_committed_trial() {
+        let at_system_weight = ReferenceBindings {
+            braking_start_reference: BrakingStartReference::SystemWeight,
+            ..ReferenceBindings::default()
+        };
+        let mut moved = 0;
+        for trial_number in 1..=6 {
+            let trial = committed_trial(trial_number);
+            let reference = analyse(&trial, &ReferenceBindings::default())
+                .expect("the reference binding analyses")
+                .unweighting_end_index[1];
+            let weight = analyse(&trial, &at_system_weight)
+                .expect("the system weight binding analyses")
+                .unweighting_end_index[1];
+            assert!(reference.is_some() && weight.is_some());
+            if reference != weight {
+                moved += 1;
+            }
+        }
+        assert_eq!(moved, 6, "the braking reference moved {moved} of 6 trials");
+    }
 }
