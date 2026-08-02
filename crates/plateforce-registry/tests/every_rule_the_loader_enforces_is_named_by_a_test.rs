@@ -61,6 +61,26 @@ fn every_rule_the_loader_enforces_is_named_by_a_test() {
     );
 }
 
+/// `docs/schema.md` is the published contract for a format that ships into other people's
+/// repositories, and it stated 8 rules while the loader enforced 24. A document asserting a
+/// guarantee narrower than the code provides is worse than one asserting a wider guarantee,
+/// because a reader writes against the narrow one and is refused by the wide one.
+#[test]
+fn every_rule_the_loader_enforces_is_named_in_the_published_contract() {
+    let contract = include_str!("../../../docs/schema.md");
+    let declared = variants_declared();
+    let undocumented: Vec<&String> = declared
+        .iter()
+        .filter(|variant| !contract.contains(variant.as_str()))
+        .collect();
+    assert!(
+        undocumented.is_empty(),
+        "{} of {} rules are enforced and absent from docs/schema.md: {undocumented:?}",
+        undocumented.len(),
+        declared.len()
+    );
+}
+
 /// The control. Without it a scan that silently matched nothing would report every rule as
 /// tested, which is the shape the check above exists to catch one level down.
 #[test]
