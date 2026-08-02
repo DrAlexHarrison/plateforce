@@ -1161,6 +1161,15 @@ id = "window_end.force_dropoff_from_running_max"
 kind = "genuine"
 note = "The two answer different questions: the first two seconds, against as long as the effort was maintained."
 
+[[method.disagrees_with]]
+id = "window_end.takeoff.detected"
+kind = "genuine"
+note = """
+The two answer different questions: how long a sustained effort was held, against where the jump
+ended. On a jump a fixed length from onset lands mid-flight or past touchdown, depending on the
+length.
+"""
+
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "moderate on peak force, large on peak and best-window rate of force development"
@@ -1214,6 +1223,15 @@ obtained = true
 [[method.disagrees_with]]
 id = "window_end.fixed_duration.isometric"
 kind = "genuine"
+
+[[method.disagrees_with]]
+id = "window_end.takeoff.detected"
+kind = "genuine"
+note = """
+The two answer different questions: how long a sustained effort was maintained, against where the
+jump ended. On a jump the running maximum is reached during the countermovement, so the dropoff
+closes the window before the propulsion it was meant to bound.
+"""
 
 [method.gui]
 surfacing = "surface_on_demand"
@@ -1331,4 +1349,49 @@ It only matters to users computing phase-resolved quantities, and a user wanting
 never see it. The two rules encode two defensible definitions, that propulsion ends when the athlete
 stops accelerating upward and that it ends when the athlete leaves the plate, and both appear in the
 literature without either acknowledging the other.
+"""
+
+[[method]]
+id = "window_end.takeoff.detected"
+construct = "analysis_window"
+group = "G"
+title = "The analysis window ends at the detected takeoff"
+rule = """
+The analysis window runs from the first sample of the recording to the sample the bound takeoff rule
+placed. A quantity taken as an extremum over that window is taken over the jump, and the landing
+that follows takeoff falls outside it.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "single_position"
+
+[[method.disagrees_with]]
+id = "window_end.fixed_duration.isometric"
+kind = "genuine"
+note = """
+The two answer different questions: how long a sustained effort was held, against where the jump
+ended. A fixed length from onset lands mid-flight or past touchdown on a jump, depending on the
+length.
+"""
+
+[[method.disagrees_with]]
+id = "window_end.force_dropoff_from_running_max"
+kind = "genuine"
+note = """
+The two answer different questions: how long a sustained effort was maintained, against where the
+jump ended. A dropoff from a running maximum is reached during the countermovement on a jump, before
+the propulsion that the maximum is meant to bound.
+"""
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = """
+total on any quantity taken as a maximum or a minimum over an interval, and nil on quantities bounded
+by two landmarks. On an untrimmed recording the largest vertical force is the landing, not the jump,
+and two open tools place takeoff 843 ms late on 155 of 244 trials of one corpus.
+"""
+rationale = """
+Peak force, peak rate of force development and the two phase-start landmarks are each an extremum
+over an interval, and the interval decides them. A peak taken over one jump is comparable with a peak
+taken over another only when both windows are named.
 """
