@@ -31,6 +31,24 @@ jobs:
       - name: Read the ref rather than the working tree
         run: python3 scripts/verify-committed-tree.py HEAD
 
+  # The licence tables name every package that ships and are generated rather than kept by
+  # hand, so nothing but a run of the generator can tell whether they still describe the
+  # tree. Pull request time rather than release time: a release gate stops a stale table
+  # shipping, and this stops one merging.
+  the_licence_tables_describe_what_ships:
+    name: NOTICE names the dependencies the tree resolves
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      # Exits 1 on a table that has drifted and 0 on one that has not, watched both ways
+      # against this ref before the job was written.
+      - name: Ask the generator whether the committed tables are current
+        run: python3 scripts/write-dependency-licences.py --check
+
   every_workspace_reads_a_double_back_as_itself:
     name: serde_json resolves with float_roundtrip everywhere
     runs-on: ubuntu-24.04
