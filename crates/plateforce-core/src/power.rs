@@ -280,6 +280,85 @@ pub fn peak_power_from_height_lewis_watts(
     Some(4.9f64.sqrt() * system_mass_kilograms * jump_height_meters.sqrt() * 9.81)
 }
 
+/// A rate of power development, with the two instants the line was drawn between.
+///
+/// The instants travel with the number because two rules under this construct anchor
+/// differently, and the slope alone cannot say which one produced it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PowerRate {
+    pub watts_per_second: f64,
+    pub first_index: usize,
+    pub last_index: usize,
+}
+
+/// Rate of power development from the start of a declared phase to the instant of peak
+/// power inside it.
+pub fn rate_of_power_development_phase_anchored(
+    series: &PowerSeries,
+    phase: &DeclaredPhase,
+    sample_interval_seconds: f64,
+) -> Result<PowerRate, PowerError> {
+    let peak = peak_power_watts(series, phase)?;
+    if peak.index == phase.first_index {
+        return Err(PowerError::PhaseTooShort { sample_count: 1 });
+    }
+    let elapsed_seconds = (peak.index - phase.first_index) as f64 * sample_interval_seconds;
+    Ok(PowerRate {
+        watts_per_second: (peak.watts - series.watts()[phase.first_index]) / elapsed_seconds,
+        first_index: phase.first_index,
+        last_index: peak.index,
+    })
+}
+
+/// Rate of power development as the line from the lowest power to the highest power that
+/// follows it, one value for the whole jump.
+///
+/// This takes no phase, and that is what separates it from the phase-anchored rule rather
+/// than an omission: it reads the trough and the peak of the whole recording, so a version
+/// that quietly accepted a phase would be computing the other rule under this name.
+pub fn rate_of_power_development_peak_to_peak(
+    series: &PowerSeries,
+    sample_interval_seconds: f64,
+) -> Result<PowerRate, PowerError> {
+    let watts = series.watts();
+    if watts.len() < 2 {
+        return Err(PowerError::PhaseTooShort {
+            sample_count: watts.len(),
+        });
+    }
+    let (trough_index, trough) = watts
+        .iter()
+        .enumerate()
+        .min_by(|left, right| {
+            left.1
+                .partial_cmp(right.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(index, value)| (index, *value))
+        .ok_or(PowerError::PhaseTooShort { sample_count: 0 })?;
+    // The peak has to follow the trough, which is what "subsequent" states and what makes
+    // the slope a rise rather than whichever of the two happened to come first.
+    let (peak_index, peak) = watts
+        .iter()
+        .enumerate()
+        .skip(trough_index + 1)
+        .max_by(|left, right| {
+            left.1
+                .partial_cmp(right.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(index, value)| (index, *value))
+        .ok_or(PowerError::PhaseTooShort {
+            sample_count: watts.len() - trough_index,
+        })?;
+    let elapsed_seconds = (peak_index - trough_index) as f64 * sample_interval_seconds;
+    Ok(PowerRate {
+        watts_per_second: (peak - trough) / elapsed_seconds,
+        first_index: trough_index,
+        last_index: peak_index,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -562,6 +641,96 @@ mod tests {
         assert!(matches!(
             DeclaredPhase::from_model(&boundaries, 2, "x").unwrap_err(),
             PowerError::SegmentOutsideModel { segment: 2, .. }
+        ));
+    }
+
+    #[test]
+    fn the_phase_anchored_rate_runs_from_the_phase_start_to_the_peak_inside_it() {
+        let series = power_from(&jump_like_force(), ForceTerm::GroundReaction);
+        let rate = rate_of_power_development_phase_anchored(
+            &series,
+            &declared(500, 899),
+            1.0 / SAMPLE_RATE_HZ,
+        )
+        .unwrap();
+        assert_eq!(rate.first_index, 500);
+        assert!((500..=899).contains(&rate.last_index));
+        assert!(rate.watts_per_second > 0.0);
+
+        // Moving the phase start moves the line, so the declared phase reaches the number
+        // rather than riding along beside it.
+        let earlier = rate_of_power_development_phase_anchored(
+            &series,
+            &declared(400, 899),
+            1.0 / SAMPLE_RATE_HZ,
+        )
+        .unwrap();
+        assert_eq!(earlier.first_index, 400);
+        assert_ne!(earlier.watts_per_second, rate.watts_per_second);
+    }
+
+    #[test]
+    fn a_phase_whose_peak_is_its_own_first_sample_is_refused_rather_than_reported_as_zero() {
+        // Through the unweighting stretch power only falls, so the largest value inside it
+        // is the sample it starts on and the rule has no line to draw. A slope over no
+        // elapsed time is not a rate, and reporting one would be a number with no method.
+        let series = power_from(&jump_like_force(), ForceTerm::GroundReaction);
+        assert!(matches!(
+            rate_of_power_development_phase_anchored(
+                &series,
+                &declared(200, 499),
+                1.0 / SAMPLE_RATE_HZ
+            )
+            .unwrap_err(),
+            PowerError::PhaseTooShort { .. }
+        ));
+    }
+
+    #[test]
+    fn the_peak_to_peak_rate_reads_the_whole_recording() {
+        let force = jump_like_force();
+        let series = power_from(&force, ForceTerm::GroundReaction);
+        let rate = rate_of_power_development_peak_to_peak(&series, 1.0 / SAMPLE_RATE_HZ).unwrap();
+        assert!(rate.watts_per_second > 0.0);
+
+        // Deepening the trough late in the trace moves the answer. A rule scoped to any one
+        // phase would return the same number for both recordings, which is the difference
+        // between this rule and the phase-anchored one beside it.
+        let mut deeper = force.clone();
+        for sample in deeper.iter_mut().take(720).skip(700) {
+            *sample += 3000.0;
+        }
+        let deepened = power_from(&deeper, ForceTerm::GroundReaction);
+        let moved =
+            rate_of_power_development_peak_to_peak(&deepened, 1.0 / SAMPLE_RATE_HZ).unwrap();
+        assert_ne!(moved.watts_per_second, rate.watts_per_second);
+    }
+
+    #[test]
+    fn the_peak_to_peak_rate_takes_the_peak_that_follows_the_trough() {
+        // A series whose largest value precedes its smallest. Taking the global maximum
+        // would give a negative elapsed time or a backwards line.
+        let series = PowerSeries {
+            watts: vec![500.0, 100.0, -300.0, -50.0, 200.0],
+            force_term: ForceTerm::GroundReaction,
+            sign_convention: PowerSignConvention::UpwardPositive,
+        };
+        let rate = rate_of_power_development_peak_to_peak(&series, 0.001).unwrap();
+        assert_eq!(rate.first_index, 2);
+        assert_eq!(rate.last_index, 4);
+        assert!(rate.watts_per_second > 0.0);
+    }
+
+    #[test]
+    fn a_series_whose_trough_is_its_last_sample_is_refused() {
+        let series = PowerSeries {
+            watts: vec![5.0, 3.0, -9.0],
+            force_term: ForceTerm::GroundReaction,
+            sign_convention: PowerSignConvention::UpwardPositive,
+        };
+        assert!(matches!(
+            rate_of_power_development_peak_to_peak(&series, 0.001).unwrap_err(),
+            PowerError::PhaseTooShort { .. }
         ));
     }
 

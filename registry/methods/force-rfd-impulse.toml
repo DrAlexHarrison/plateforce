@@ -959,4 +959,10 @@ placement: a rare property in this registry.
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "low with respect to onset"
-rationale = "Under legacy compatibility. It produced reference values in the validation corpus on a superseded product."
+rationale = """
+Under legacy compatibility. It produced reference values in the validation corpus on a superseded
+product. Both ends of the line are sample extremes of a noisy series, and such an extreme drifts
+outward as the sampling rate rises, so this rule carries that drift at both ends where a rule
+reading one extreme carries it at one. No study found in the sweep quantifies it, which makes
+values from recordings at different sampling rates not directly comparable under this rule.
+"""
