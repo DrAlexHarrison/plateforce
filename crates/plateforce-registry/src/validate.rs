@@ -14,6 +14,7 @@ pub enum ViolationKind {
     BiasWithoutCriterion,
     DefaultWithoutSource { parameter: String },
     RecommendedOnUnobtainedSource { citation: String },
+    RefuseWithoutRationale,
     FailureWithoutDenominator,
     FailureRateInconsistent { stated: f64, computed: f64 },
     DuplicateId,
@@ -63,6 +64,11 @@ impl fmt::Display for Violation {
             RecommendedOnUnobtainedSource { citation } => write!(
                 f,
                 "{}: status is recommended but rests on '{citation}', which was never obtained",
+                self.entry
+            ),
+            RefuseWithoutRationale => write!(
+                f,
+                "{}: surfacing is refuse with no gui.rationale, so an interface reads the refusal and cannot say what it is for",
                 self.entry
             ),
             FailureWithoutDenominator => write!(
@@ -161,6 +167,21 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                         },
                     });
                 }
+            }
+        }
+
+        // Every other verdict decides its own behaviour. `refuse` decides only that the
+        // rule is not offered, so what a reader is owed instead lives in the rationale.
+        if let Some(gui) = &method.gui {
+            let unexplained = gui
+                .rationale
+                .as_ref()
+                .is_none_or(|rationale| rationale.trim().is_empty());
+            if gui.surfacing == Surfacing::Refuse && unexplained {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::RefuseWithoutRationale,
+                });
             }
         }
 

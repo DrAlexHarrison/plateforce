@@ -11,6 +11,12 @@ use serde::{Deserialize, Serialize};
 pub struct Construct {
     pub id: String,
     pub title: String,
+    /// The field's spoken words for this quantity, for surfaces that show a name beside the
+    /// identifier. Measured across six course documents, `takeoff` appears in 6 of 6 and
+    /// `onset`, `threshold` and `epoch` in 0 of 6, so the identifier alone reaches a reader
+    /// who has met the concept under other words.
+    #[serde(default)]
+    pub label: Option<String>,
     pub unit: String,
     #[serde(default)]
     pub frame: Option<String>,

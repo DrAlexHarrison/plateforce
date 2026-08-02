@@ -641,6 +641,12 @@ source. The maintainer could not find the citation and shipped it anyway.
 
 [method.gui]
 surfacing = "refuse"
+rationale = """
+Never offered. A number produced with it stays interpretable and carries a permanent flag, because
+the argument is a pure ratio of times multiplied by a bare constant and so cannot have units of power
+per unit mass. It circulated for years with no locatable source: the maintainer who shipped it
+recorded that the publication could not be found.
+"""
 
 [[method]]
 id = "power.repeated_jump.bosco1983"

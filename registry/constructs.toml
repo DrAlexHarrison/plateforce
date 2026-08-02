@@ -7,17 +7,20 @@
 [[construct]]
 id = "movement_onset"
 title = "The instant the movement begins"
+label = "Start of the jump"
 unit = "seconds"
 notes = "Every downstream interval that starts here inherits this choice."
 
 [[construct]]
 id = "takeoff"
 title = "The instant the last foot leaves the plate"
+label = "Takeoff"
 unit = "seconds"
 
 [[construct]]
 id = "time_to_takeoff"
 title = "Elapsed time from movement onset to takeoff"
+label = "Time from the start of the jump to takeoff"
 unit = "seconds"
 notes = """
 Across 10 published rules on 244 trials the within-trial spread is 38.9 percent of the
@@ -27,6 +30,7 @@ trial's own value. This is the metric on which open implementations disagree mos
 [[construct]]
 id = "jump_height.takeoff_frame"
 title = "Centre of mass rise measured from the instant of takeoff"
+label = "Jump height, measured from the instant of takeoff"
 unit = "meters"
 frame = "takeoff"
 notes = "Not comparable with standing_frame without a declared correction."
@@ -34,6 +38,7 @@ notes = "Not comparable with standing_frame without a declared correction."
 [[construct]]
 id = "jump_height.standing_frame"
 title = "Centre of mass rise measured from quiet standing"
+label = "Jump height, measured from standing"
 unit = "meters"
 frame = "standing"
 notes = "Differs from the takeoff frame by 26 to 45 percent, which is a different quantity."
@@ -41,35 +46,41 @@ notes = "Differs from the takeoff frame by 26 to 45 percent, which is a differen
 [[construct]]
 id = "system_weight"
 title = "Weight of athlete plus any external load during the weighing epoch"
+label = "Standing still, before the jump"
 unit = "newtons"
 notes = "System weight includes the bar. Bodyweight does not. The registry records real conflations."
 
 [[construct]]
 id = "calibrated_force"
 title = "Vertical ground reaction force in newtons as the instrument reports it"
+label = "Force on the plate, as the instrument reports it"
 unit = "newtons"
 notes = "The layer every other construct silently assumes is correct."
 
 [[construct]]
 id = "conditioned_force_signal"
 title = "Vertical ground reaction force after conditioning and before event detection"
+label = "Force on the plate, after the signal is cleaned up"
 unit = "newtons"
 notes = "Group A is a substrate rather than a sibling group. Every other construct is computed on this."
 
 [[construct]]
 id = "filter_cutoff_frequency"
 title = "The cutoff frequency a conditioning filter is set to"
+label = "How much of the signal the filter keeps"
 unit = "hertz"
 
 [[construct]]
 id = "baseline_offset"
 title = "The plate's zero-load output, estimated separately from the athlete's weight"
+label = "What the plate reads with nobody on it"
 unit = "newtons"
 notes = "Offset and system weight are two separately estimated constants. Most tools estimate one."
 
 [[construct]]
 id = "baseline_noise_scale"
 title = "The spread of the reference distribution a noise-relative threshold is scaled by"
+label = "How much the reading wobbles when nothing is happening"
 unit = "newtons"
 notes = """
 Quiet-stance force and empty-plate noise are different distributions, so a comparison of
@@ -79,34 +90,40 @@ Quiet-stance force and empty-plate noise are different distributions, so a compa
 [[construct]]
 id = "trial_validity"
 title = "Whether a trial is admitted to analysis"
+label = "Whether this trial counts"
 unit = "boolean"
 notes = "Every gate that rejects a trial is invisible data loss unless it reports what it rejected."
 
 [[construct]]
 id = "landing"
 title = "The instant the first foot returns to the plate"
+label = "Landing"
 unit = "seconds"
 
 [[construct]]
 id = "flight_time"
 title = "Elapsed time from takeoff to landing"
+label = "Time in the air"
 unit = "seconds"
 notes = "Both edges are biased in the same direction by a threshold rule, so the errors compound."
 
 [[construct]]
 id = "net_impulse"
 title = "Integral of vertical ground reaction force less system weight over a declared interval"
+label = "Force above standing weight, added up over time"
 unit = "newton_seconds"
 
 [[construct]]
 id = "takeoff_velocity"
 title = "Centre of mass velocity at the instant of takeoff"
+label = "How fast the athlete is moving at takeoff"
 unit = "meters_per_second"
 notes = "Takeoff velocity and peak velocity are different instants. Peak generally precedes takeoff."
 
 [[construct]]
 id = "jump_height.landing_frame"
 title = "Centre of mass rise measured from takeoff to the height of touchdown"
+label = "Jump height, measured to the height they land at"
 unit = "meters"
 frame = "landing"
 notes = """
@@ -118,6 +135,7 @@ and not hypothetical: time down exceeds time up by 0.016 s because subjects land
 [[construct]]
 id = "jump_height.undeclared"
 title = "Centre of mass rise with no declared reference frame"
+label = "Jump height, with no frame stated"
 unit = "meters"
 notes = """
 A real registry value rather than a gap. An undeclared frame must not compare equal to a declared
@@ -127,6 +145,7 @@ one, and one entry's frame is not merely undeclared but non-constant, changing t
 [[construct]]
 id = "braking_phase_start"
 title = "The instant the braking phase begins"
+label = "Start of braking"
 unit = "seconds"
 notes = """
 Two published rules name two different instants and one of them, minimum force, occurs while the
@@ -136,33 +155,39 @@ athlete is still accelerating downward. The name and the physics disagree.
 [[construct]]
 id = "propulsion_phase_start"
 title = "The instant the propulsion phase begins"
+label = "Start of the push"
 unit = "seconds"
 
 [[construct]]
 id = "propulsion_phase_end"
 title = "The instant the propulsion phase ends"
+label = "End of the push"
 unit = "seconds"
 notes = "Peak centre of mass velocity and takeoff are different instants, and both appear in the literature."
 
 [[construct]]
 id = "lifting_phase_start"
 title = "The instant the positive lifting phase begins on a loaded lift"
+label = "Start of the lift"
 unit = "seconds"
 
 [[construct]]
 id = "lifting_phase_end"
 title = "The instant the positive lifting phase ends on a loaded lift"
+label = "End of the lift"
 unit = "seconds"
 notes = "Two rules differ by the braking sub-phase, whose duration is load dependent, and by 24 percent on mean force."
 
 [[construct]]
 id = "landing_phase_end"
 title = "The instant the landing phase ends"
+label = "End of the landing"
 unit = "seconds"
 
 [[construct]]
 id = "phase_model"
 title = "Which landmarks are promoted to phase boundaries and what the intervals are called"
+label = "Which parts of the jump are named, and what they are called"
 unit = "enumeration"
 notes = """
 Nobody disputes where the landmarks are, modulo onset. What is disputed is which are promoted and
@@ -173,16 +198,19 @@ the literature that product's users cite.
 [[construct]]
 id = "analysis_window"
 title = "The interval a per-phase or per-epoch quantity is integrated or searched over"
+label = "The stretch of the recording this number is taken over"
 unit = "seconds"
 
 [[construct]]
 id = "sticking_region"
 title = "The interval of reduced bar velocity during a maximal lift"
+label = "Where the bar slows down"
 unit = "seconds"
 
 [[construct]]
 id = "peak_force"
 title = "The largest vertical force produced during the effort"
+label = "The biggest force"
 unit = "newtons"
 notes = """
 Gross and net differ by exactly one system weight, and the choice is not an offset: gross peak force
@@ -193,6 +221,7 @@ onset-sensitive family at all.
 [[construct]]
 id = "rate_of_force_development"
 title = "How fast force rises"
+label = "How fast force rises"
 unit = "newtons_per_second"
 notes = """
 At least three incompatible quantities are called this, and one vendor ships four. A bare label is
@@ -202,16 +231,19 @@ never sufficient: the variant and its window must travel with the number.
 [[construct]]
 id = "epoch_impulse"
 title = "Force integrated over a declared epoch from onset"
+label = "Force added up over a set stretch of time"
 unit = "newton_seconds"
 
 [[construct]]
 id = "rate_of_power_development"
 title = "How fast power rises"
+label = "How fast power rises"
 unit = "watts_per_second"
 
 [[construct]]
 id = "mechanical_power"
 title = "Rate of doing mechanical work"
+label = "Power"
 unit = "watts"
 notes = """
 Whether this determines jump performance at all has been argued in print, by name, with rebuttals,
@@ -222,11 +254,13 @@ quantity.
 [[construct]]
 id = "mechanical_work"
 title = "Mechanical work done over a declared interval"
+label = "Work"
 unit = "joules"
 
 [[construct]]
 id = "mechanical_object"
 title = "Which mechanical object a loaded-lift quantity describes"
+label = "What the number describes: the athlete, the bar, or both together"
 unit = "enumeration"
 notes = """
 Barbell, body or system. On one deadlift dataset peak power occurs at 50 percent of one-repetition
@@ -237,17 +271,20 @@ session. The axis does not exist for an unloaded jump, where the three coincide.
 [[construct]]
 id = "normalisation_basis"
 title = "What a force, rate, power, work or impulse is expressed relative to"
+label = "What the number is divided by"
 unit = "enumeration"
 notes = "Relative power in the weightlifting literature and in strength and conditioning are different quantities with the same name."
 
 [[construct]]
 id = "reactive_strength_index"
 title = "Jump height per unit of ground contact or takeoff time"
+label = "Jump height for each unit of time on the ground"
 unit = "meters_per_second"
 
 [[construct]]
 id = "reactive_strength_ratio"
 title = "Flight time per unit of ground contact or takeoff time"
+label = "Time in the air for each unit of time on the ground"
 unit = "dimensionless"
 notes = """
 Not convertible to the index form by any constant, because jump height depends on flight time
@@ -257,26 +294,31 @@ quadratically, so two athletes with identical ratios can rank differently on the
 [[construct]]
 id = "eccentric_utilisation_ratio"
 title = "Countermovement jump result relative to a squat jump result"
+label = "Countermovement jump compared with squat jump"
 unit = "dimensionless"
 
 [[construct]]
 id = "lower_limb_stiffness"
 title = "Whole-limb stiffness estimated from flight and contact times"
+label = "Leg stiffness"
 unit = "newtons_per_meter"
 
 [[construct]]
 id = "movement_signature_score"
 title = "A composite score describing how a jump was produced rather than how well"
+label = "How the jump was produced, as one score"
 unit = "dimensionless"
 
 [[construct]]
 id = "time_to_stabilisation"
 title = "Time for force to settle within a band of system weight after landing"
+label = "How long until they are steady again after landing"
 unit = "seconds"
 
 [[construct]]
 id = "joint_energy_absorption"
 title = "Negative work done at the hip, knee and ankle during landing"
+label = "Energy taken up by hip, knee and ankle on landing"
 unit = "joules"
 notes = """
 Joint-level and centre-of-mass-level energy absorption are different quantities and are routinely
@@ -287,11 +329,13 @@ same trial.
 [[construct]]
 id = "dynamic_strength_index"
 title = "Ballistic peak force relative to isometric peak force in the same movement pattern"
+label = "Jumping force compared with pushing force"
 unit = "dimensionless"
 
 [[construct]]
 id = "interlimb_asymmetry"
 title = "The difference between limbs, expressed on a declared algebra and over a declared window"
+label = "Difference between left and right"
 unit = "percent"
 notes = """
 Not a stable athlete property. In sixteen athletes the same day, individual asymmetry ranged 0.0 to
@@ -302,11 +346,13 @@ tests.
 [[construct]]
 id = "waveform_inference"
 title = "The statistical machinery a whole force-time curve is tested with"
+label = "How two whole curves are compared"
 unit = "enumeration"
 
 [[construct]]
 id = "time_treatment"
 title = "What was done to the time axis before a curve was tested"
+label = "What was done to the time axis before comparing"
 unit = "enumeration"
 notes = """
 Not a preprocessing parameter of the inference method. The two axes cross rather than nest, and on
@@ -316,28 +362,33 @@ one published dataset the time treatment alone decided whether an effect was sig
 [[construct]]
 id = "jump_type"
 title = "Which jump the trial contains"
+label = "Which jump this is"
 unit = "enumeration"
 notes = "Misclassification is categorical, not numeric: a squat-jump pipeline has no unweighting or braking phase to find."
 
 [[construct]]
 id = "aggregated_value"
 title = "The single number reported per athlete per session from several trials"
+label = "The one number reported from several trials"
 unit = "enumeration"
 
 [[construct]]
 id = "method_agreement"
 title = "The rule by which two methods are declared to agree"
+label = "When two methods count as agreeing"
 unit = "enumeration"
 notes = "An error here silently launders errors in every other group, because it certifies an interoperability claim."
 
 [[construct]]
 id = "measurement_reliability"
 title = "The rule by which a metric is declared reliable"
+label = "When a measurement counts as repeatable"
 unit = "enumeration"
 
 [[construct]]
 id = "force_velocity_profile"
 title = "The force-velocity line fitted across loads, and the quantities read off it"
+label = "The force-velocity line across loads"
 unit = "enumeration"
 notes = """
 Its headline outputs are extrapolations to conditions never measured: a force at a velocity no jump
@@ -347,37 +398,44 @@ visits and a velocity at a force no jump produces.
 [[construct]]
 id = "optimal_load"
 title = "The load at which mechanical power output is maximal"
+label = "The load that produces the most power"
 unit = "percent_of_one_repetition_maximum"
 notes = "Four published frameworks give four mutually incompatible answers and none of them cites more than one of the others."
 
 [[construct]]
 id = "one_repetition_maximum"
 title = "The heaviest load liftable once, estimated from submaximal velocities"
+label = "The heaviest single lift"
 unit = "kilograms"
 
 [[construct]]
 id = "false_start"
 title = "Whether an athlete began before the permitted instant"
+label = "Whether they went early"
 unit = "boolean"
 notes = "The governing rule defines the offence kinematically and the certified apparatus detects it kinetically through an undisclosed threshold."
 
 [[construct]]
 id = "sprint_start_performance"
 title = "How well an athlete performed the start"
+label = "How good the start was"
 unit = "varies"
 notes = "The two published measures carry different units, which is part of the disagreement rather than incidental to it."
 
 [[construct]]
 id = "sprint_velocity_model"
 title = "Modelled velocity over the acceleration phase"
+label = "Modelled sprint speed"
 unit = "meters_per_second"
 
 [[construct]]
 id = "change_of_direction_deficit"
 title = "Turn time isolated from linear sprint speed"
+label = "Turn time, with sprint speed taken out"
 unit = "seconds"
 
 [[construct]]
 id = "movement_strategy_cluster"
 title = "Which movement strategy an athlete's jump belongs to"
+label = "Which movement pattern this athlete uses"
 unit = "enumeration"
