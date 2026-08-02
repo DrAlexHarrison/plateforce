@@ -50,10 +50,13 @@ if (!requireNamespace("plateforce", quietly = TRUE)) {
 }
 # A trace that produces a jump. Timing one that declines would measure the refusal path
 # and report it as the cost of an analysis.
+path <- Sys.getenv("PLATEFORCE_TIMING_TRACE")
+cat("reading:", path, "\n")
 trial <- plateforce::pf_read_force_file(
-  Sys.getenv("PLATEFORCE_TIMING_TRACE"),
+  path,
   sample_rate_hz = 1200, delimiter = "\t", force_column = 0, sentinel_convention = "none"
 )
+cat("read:", trial@sample_count, "samples\n")
 once <- function() {
   plateforce::analyse_countermovement_jump(
     trial,
@@ -63,6 +66,7 @@ once <- function() {
   )
 }
 first <- once()
+cat("first analysis:", length(first@values), "quantities\n")
 if (is.na(plateforce::pf_value(first, "jump_height_from_takeoff_meters")@value)) {
   cat("the trial produced no jump height, so the cost measured is not an analysis\n")
   quit(status = 1)
