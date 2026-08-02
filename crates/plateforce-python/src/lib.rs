@@ -8,6 +8,7 @@
 //! travel outward only, and every class states which of the two it is.
 
 mod analysis;
+mod batch;
 mod errors;
 mod registry;
 mod result;

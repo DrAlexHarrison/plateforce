@@ -11,6 +11,7 @@
 //! No threads. Threads would require `SharedArrayBuffer`, which would require
 //! cross-origin isolation headers, which static hosting does not serve.
 
+pub mod batch;
 pub mod demo;
 pub mod registry_embed;
 
