@@ -1,0 +1,7 @@
+^tools$
+^cran-comments\.md$
+^.*\.Rproj$
+^\.Rproj\.user$
+^src/rust/target$
+^src/rust/vendor$
+^\.gitignore$

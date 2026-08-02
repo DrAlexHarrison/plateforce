@@ -1,0 +1,9 @@
+# The oldest rustc on CRAN's check farm, and the flavours that run it.
+# flavour: r-release-macos-arm64, r-release-macos-x86_64, r-oldrel-macos-arm64,
+#          r-oldrel-macos-x86_64. All six macOS builds sit at this version, against
+#          1.87.0 on fedora, 1.91.1 on debian and linux, and 1.92.0 on windows.
+# read: 2026-08-01
+# source: https://github.com/extendr/extendr.github.io/issues/74
+# The binding flavour moves. Windows set the floor until it was upgraded, which put it
+# on macOS, so the flavour is recorded beside the number rather than assumed.
+1.84.1

@@ -1,0 +1,33 @@
+TARGET_DIR = $(CURDIR)/rust/target
+LIBDIR = $(TARGET_DIR)/@LIBDIR@
+STATLIB = $(LIBDIR)/libplateforce_r.a
+PKG_LIBS = -L$(LIBDIR) -lplateforce_r
+
+CARGO_HOME_DIR = $(CURDIR)/.cargo
+VENDOR_DIR = $(CURDIR)/rust/vendor
+
+all: $(SHLIB) rust_clean
+
+.PHONY: $(STATLIB) rust_clean
+
+$(SHLIB): $(STATLIB)
+
+# Two parallel jobs, because cargo otherwise takes every logical CPU and CRAN's policy
+# caps what a build may use. CARGO_HOME sits under the build tree so an install writes
+# nothing into the user's home.
+$(STATLIB):
+	if [ -f ./rust/vendor.tar.xz ]; then \
+		tar -xf ./rust/vendor.tar.xz -C ./rust && \
+		mkdir -p "$(CARGO_HOME_DIR)" && \
+		cp ./rust/vendor-config.toml "$(CARGO_HOME_DIR)/config.toml"; \
+	fi
+	export CARGO_HOME="$(CARGO_HOME_DIR)" && \
+	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
+	cargo build --lib --release -j 2 \
+		--manifest-path=./rust/Cargo.toml --target-dir="$(TARGET_DIR)" @TARGET@
+
+rust_clean: $(SHLIB)
+	rm -Rf "$(CARGO_HOME_DIR)" "$(VENDOR_DIR)"
+
+clean:
+	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) "$(TARGET_DIR)" "$(VENDOR_DIR)" "$(CARGO_HOME_DIR)"

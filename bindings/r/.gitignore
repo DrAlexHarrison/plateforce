@@ -1,0 +1,15 @@
+# The engine sources are copied in by tools/sync-engine.sh so the built tarball is
+# self-contained. Git carries one copy of them, in the repository's own crates/.
+src/rust/crates/
+src/rust/target/
+src/rust/vendor/
+src/rust/vendor.tar.xz
+src/rust/vendor-config.toml
+src/Makevars
+src/Makevars.win
+src/*.o
+src/*.so
+src/*.dll
+inst/AUTHORS
+inst/registry/
+../../plateforce_*.tar.gz

@@ -1,0 +1,53 @@
+[package]
+name = "plateforce-r"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+license = "Apache-2.0"
+repository = "https://github.com/DrAlexHarrison/plateforce"
+authors = ["Alex Harrison"]
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+# The engine crates are members here rather than in the repository's workspace, so the R
+# tree resolves on its own and the CRAN build gets exactly the sources that were checked.
+# Their manifests inherit from this table unchanged, which is what lets them be copied in
+# without a single edit.
+[workspace]
+members = [
+    "crates/plateforce-registry",
+    "crates/plateforce-core",
+    "crates/plateforce-analysis",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+license = "Apache-2.0"
+repository = "https://github.com/DrAlexHarrison/plateforce"
+authors = ["Alex Harrison"]
+
+[workspace.dependencies]
+plateforce-analysis = { path = "crates/plateforce-analysis" }
+plateforce-core = { path = "crates/plateforce-core" }
+plateforce-registry = { path = "crates/plateforce-registry" }
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+thiserror = "2"
+
+[dependencies]
+plateforce-analysis = { workspace = true }
+plateforce-core = { workspace = true }
+plateforce-registry = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
+extendr-api = "0.9"
+
+# The same optimisation settings the repository builds every other surface with, so a
+# number that differs between R and the browser is not the optimiser's doing.
+[profile.release]
+opt-level = 2
+lto = "thin"

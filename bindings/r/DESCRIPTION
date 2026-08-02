@@ -1,0 +1,26 @@
+Package: plateforce
+Title: Force-Plate Jump Kinetics That Carry Their Method
+Version: 0.1.0
+Authors@R:
+    person("Alex", "Harrison", email = "alex@saturdaymorning.fit",
+           role = c("aut", "cre", "cph"))
+Description: Computes jump kinetics from a vertical ground reaction force
+    trace. Every value carries the method that produced it: the rule, its
+    published parameters, its citation and the choices made upstream of it.
+    Ten published ways of computing one jump height disagree by 3.51 cm on
+    244 real trials, against the 1.98 cm training effect the source study
+    was built to detect, so the method is reported with the number.
+    Authorship and copyright of the bundled Rust sources are listed in the
+    AUTHORS file of the installed package.
+License: Apache License (>= 2)
+URL: https://github.com/DrAlexHarrison/plateforce
+BugReports: https://github.com/DrAlexHarrison/plateforce/issues
+Depends: R (>= 4.3.0)
+Imports: S7
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown, arrow, nanoarrow,
+    jsonlite
+SystemRequirements: Cargo (Rust's package manager), rustc >= 1.76
+Config/testthat/edition: 3
+Encoding: UTF-8
+VignetteBuilder: knitr
+RoxygenNote: 8.0.0

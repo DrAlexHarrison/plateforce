@@ -1,0 +1,51 @@
+#!/bin/sh
+# Finds a Rust toolchain, reports its version before anything compiles, and stops with a
+# sentence naming both versions when the one installed is older than the package needs.
+set -eu
+
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+if [ -f "$here/tools/msrv" ]; then
+    needed=$(grep -v '^ *#' "$here/tools/msrv" | grep -v '^ *$' | head -1 | tr -d ' \r')
+else
+    needed=$(sed -n 's/.*rustc >= *\([0-9.]*\).*/\1/p' "$here/DESCRIPTION" | head -1)
+fi
+
+# CRAN's guidance names ~/.cargo/bin specifically, because a toolchain installed by
+# rustup is often absent from the PATH a non-interactive build inherits.
+PATH="$PATH:$HOME/.cargo/bin"
+export PATH
+
+if ! command -v cargo >/dev/null 2>&1 || ! command -v rustc >/dev/null 2>&1; then
+    cat >&2 <<MESSAGE
+plateforce compiles a Rust component and no Rust toolchain was found.
+Install one with your package manager, for example 'apt install cargo' or
+'dnf install cargo', or from https://rustup.rs, then install this package again.
+Searched PATH and \$HOME/.cargo/bin.
+MESSAGE
+    exit 1
+fi
+
+found=$(rustc --version | awk '{print $2}')
+echo "plateforce: building with rustc $found, cargo $(cargo --version | awk '{print $2}')"
+
+as_number() {
+    echo "$1" | awk -F'[.-]' '{printf "%d%03d%03d\n", $1, $2, ($3 == "" ? 0 : $3)}'
+}
+
+if [ "$(as_number "$found")" -lt "$(as_number "$needed")" ]; then
+    cat >&2 <<MESSAGE
+plateforce needs rustc $needed or newer and this machine has $found.
+Update the toolchain, for example with 'rustup update stable', then install again.
+MESSAGE
+    exit 1
+fi
+
+# A source checkout carries the engine crates in the repository rather than inside the
+# package. A built tarball already carries them and this does nothing.
+if [ ! -d "$here/src/rust/crates/plateforce-core" ] && [ -x "$here/tools/sync-engine.sh" ]; then
+    sh "$here/tools/sync-engine.sh"
+fi
+
+sed -e 's|@TARGET@||' -e 's|@LIBDIR@|release|' \
+    "$here/src/Makevars.in" > "$here/src/Makevars"
