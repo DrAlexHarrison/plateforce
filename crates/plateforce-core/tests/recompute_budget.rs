@@ -109,4 +109,21 @@ fn the_recompute_path_reports_its_cost_with_the_sample_count_beside_it() {
         "smoothing::moving_average_boxcar {:?} over {n} samples",
         at.elapsed() / 20
     );
+
+    // Set-level rather than single-trial, and deliberately off the redraw path: the cost is
+    // the product of the two lengths. Reported anyway, because a budget nobody measured is
+    // a budget nobody can design around.
+    let one = plateforce_core::resample::resample_interval(&values, 0, n - 1, 500).unwrap();
+    let other = plateforce_core::resample::resample_interval(&values, 0, n - 2, 500).unwrap();
+    let at = Instant::now();
+    for _ in 0..5 {
+        black_box(
+            plateforce_core::warp::align_to_reference(black_box(&one), black_box(&other), Some(50))
+                .unwrap(),
+        );
+    }
+    println!(
+        "warp::align_to_reference {:?} per pair over 500 by 500 points, off the redraw path",
+        at.elapsed() / 5
+    );
 }
