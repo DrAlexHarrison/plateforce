@@ -5,6 +5,7 @@
 //! tool that prints escape codes into a log file has failed at its job.
 
 mod analyse;
+mod capability_cmd;
 mod decisions;
 mod exit;
 mod out;
@@ -52,6 +53,8 @@ struct Invocation {
 enum Command {
     /// Compute every number one trace supports, with the rule behind each
     Analyse(analyse::Args),
+    /// Report what this build can do, for comparison against every other surface
+    Capability(capability_cmd::Args),
     /// Read the registry
     #[command(subcommand)]
     Registry(registry_cmd::Command),
@@ -67,6 +70,11 @@ enum Command {
     },
     /// Print the version
     Version,
+}
+
+/// clap's own view of what this binary offers, which is what the parity manifest reports.
+pub fn command_tree() -> clap::Command {
+    Invocation::command()
 }
 
 fn main() -> ExitCode {
@@ -102,6 +110,7 @@ fn main() -> ExitCode {
             let borrowed: Vec<&str> = options.iter().map(String::as_str).collect();
             return plateforce_serve::run(&borrowed);
         }
+        Command::Capability(args) => capability_cmd::run(args, invocation.format),
         Command::Version => version_cmd::run(invocation.format),
     };
 

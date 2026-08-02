@@ -22,7 +22,9 @@
 //! directory per construct with one module per bound rule, and `pipeline` runs them.
 
 pub mod binding;
+pub mod capability;
 pub mod pipeline;
+pub mod quality;
 pub mod request;
 pub mod resolution;
 pub mod response;
