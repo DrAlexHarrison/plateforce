@@ -1,17 +1,16 @@
 //! The confident wrong number this build offers, reproduced, and the signal that catches it.
 //!
-//! `onset.threshold.last_within_band` is one of five rules in the onset picker on the
-//! demonstration trial. It places the start of the jump after the unweighting dip, so the
-//! net impulse is over-counted and the jump height it produces is 73.9 cm on a trace whose
-//! flight time says 42.4 cm. Both numbers render in the same panel with nothing to tell
-//! them apart, which is the field's defining failure reproduced inside the tool built to
-//! document it.
+//! An untrimmed recording holds the athlete stepping off the plate before the jump. The
+//! shipped takeoff rules take that step-off as the flight phase, so the impulse route counts
+//! an interval holding no jump and returns nothing, while flight time measures the step-off
+//! and returns 44 cm. Both numbers render in the same panel with nothing to tell them apart,
+//! which is the field's defining failure reproduced inside the tool built to document it.
 //!
-//! The test reproduces both numbers rather than asserting that the remedy fires. A test
-//! that only asserted the fix cannot tell a fix from a fixture that never had the defect.
-//! It pins the disagreements and the onset offset in samples rather than the four heights:
-//! a legitimate change to the demonstration trace would fail four float pins with no
-//! diagnosis, and fails one disagreement with a name.
+//! The test reproduces both numbers rather than asserting that the remedy fires. A test that
+//! only asserted the fix cannot tell a fix from a fixture that never had the defect. It pins
+//! the disagreements and the takeoff sample rather than the four heights: a legitimate change
+//! to the demonstration trace would fail four float pins with no diagnosis, and fails one
+//! disagreement with a name.
 
 use std::collections::BTreeMap;
 
@@ -60,20 +59,41 @@ fn analyse(trial: &Trial, method_id: &str) -> AnalysisResponse {
     run(trial, &request_with_onset(method_id)).expect("the demonstration trial analyses")
 }
 
-#[test]
-fn two_onset_rules_produce_two_jump_heights_and_only_one_is_flagged() {
-    let trial = synthetic_countermovement_jump();
+/// The demonstration jump preceded by the athlete stepping off the plate and back on, which
+/// is the shape of an untrimmed recording.
+fn jump_after_a_step_off_the_plate() -> Trial {
+    let demonstration = synthetic_countermovement_jump();
+    let rate = demonstration.sample_rate_hz();
+    let mut force = demonstration.force().to_vec();
+    let step_start = (1.2 * rate) as usize;
+    let step_samples = (0.6 * rate) as usize;
+    for sample in force.iter_mut().skip(step_start).take(step_samples) {
+        *sample = 0.0;
+    }
+    Trial::new(force, rate).expect("the modified trace is still a trial")
+}
 
-    let clean = analyse(&trial, "onset.threshold.noise_relative");
-    let broken = analyse(&trial, "onset.threshold.last_within_band");
+#[test]
+fn a_step_off_produces_two_jump_heights_and_only_that_trace_is_flagged() {
+    let trimmed = synthetic_countermovement_jump();
+    let untrimmed = jump_after_a_step_off_the_plate();
+
+    let clean = analyse(&trimmed, "onset.threshold.noise_relative");
+    let broken = analyse(&untrimmed, "onset.threshold.noise_relative");
 
     let clean_takeoff = metric(&clean, FROM_TAKEOFF);
     let clean_flight = metric(&clean, FROM_FLIGHT);
     let broken_takeoff = metric(&broken, FROM_TAKEOFF);
     let broken_flight = metric(&broken, FROM_FLIGHT);
 
-    println!("onset.threshold.noise_relative     impulse {clean_takeoff} m, flight {clean_flight} m, onset sample {:?}", clean.onset_index);
-    println!("onset.threshold.last_within_band   impulse {broken_takeoff} m, flight {broken_flight} m, onset sample {:?}", broken.onset_index);
+    println!(
+        "one trimmed jump      impulse {clean_takeoff} m, flight {clean_flight} m, takeoff sample {:?}",
+        clean.takeoff_index
+    );
+    println!(
+        "a step off the plate  impulse {broken_takeoff} m, flight {broken_flight} m, takeoff sample {:?}",
+        broken.takeoff_index
+    );
     println!(
         "warnings: {} and {}, refusals: {} and {}",
         clean.warnings.len(),
@@ -89,23 +109,23 @@ fn two_onset_rules_produce_two_jump_heights_and_only_one_is_flagged() {
     let clean_disagreement = (clean_takeoff - clean_flight).abs();
     let broken_disagreement = (broken_takeoff - broken_flight).abs();
     println!(
-        "disagreement: {:.4} cm under the clean rule, {:.4} cm under the broken one",
+        "disagreement: {:.4} cm on one trimmed jump, {:.4} cm after a step off the plate",
         100.0 * clean_disagreement,
         100.0 * broken_disagreement
     );
     assert!(
         (clean_disagreement - 0.0114).abs() < 0.001,
-        "the two routes agree to 1.1 cm under noise_relative, read {clean_disagreement}"
+        "the two routes agree to 1.1 cm on a trimmed jump, read {clean_disagreement}"
     );
     assert!(
-        (broken_disagreement - 0.3147).abs() < 0.001,
-        "the two routes sit 31.5 cm apart under last_within_band, read {broken_disagreement}"
+        (broken_disagreement - 0.4413).abs() < 0.001,
+        "the two routes sit 44.1 cm apart after a step off the plate, read {broken_disagreement}"
     );
 
-    let offset = broken.onset_index.unwrap() - clean.onset_index.unwrap();
+    let early_by = clean.takeoff_index.unwrap() - broken.takeoff_index.unwrap();
     assert_eq!(
-        offset, 354,
-        "the broken rule places the start 354 samples later"
+        early_by, 3567,
+        "the step-off is taken as the flight phase, 3567 samples before the jump"
     );
 
     assert!(
@@ -113,7 +133,11 @@ fn two_onset_rules_produce_two_jump_heights_and_only_one_is_flagged() {
         "a trial whose two routes agree carries no signal"
     );
     let fired = signals(&broken);
-    assert_eq!(fired.len(), 1, "the broken rule raises exactly one signal");
+    assert_eq!(
+        fired.len(),
+        1,
+        "the untrimmed trace raises exactly one signal"
+    );
     assert_eq!(fired[0].status, QualityStatus::Disagrees);
     assert!(!fired[0].remedy.is_empty());
     assert_eq!(fired[0].remedy_construct, "movement_onset");

@@ -7,14 +7,17 @@
 
 use std::process::Command;
 
-const FIXTURE: &str = "../plateforce-conformance/fixtures/subject01_trial1.force.txt";
+/// A recording holding a step off the plate before the jump, where takeoff lands on the
+/// step-off and the impulse route to a height returns 0.87 mm against 45.4 cm from flight
+/// time. `MISSION.md` P5 names this recording as the pillar's own test.
+const TRACE_WHOSE_ROUTES_DISAGREE: &str =
+    "../plateforce-conformance/fixtures/synthetic_untrimmed_step_off.force.txt";
 
-/// The rule whose two routes to a height disagree on this trial. Four of the other five
-/// onset rules agree with one another to within a tenth of a millimetre, so the signal here
-/// is about this rule rather than about the trace.
-const RULE_WHOSE_ROUTES_DISAGREE: &str = "onset.threshold.last_within_band";
+/// One trimmed jump, where the two routes sit 3 cm apart and the signal has nothing to say.
+const TRACE_WHOSE_ROUTES_AGREE: &str =
+    "../plateforce-conformance/fixtures/subject01_trial1.force.txt";
 
-fn analyse(onset: &str, format: &str) -> (String, Option<i32>) {
+fn analyse(fixture: &str, format: &str) -> (String, Option<i32>) {
     let output = Command::new(env!("CARGO_BIN_EXE_plateforce"))
         .args([
             "--registry",
@@ -22,7 +25,7 @@ fn analyse(onset: &str, format: &str) -> (String, Option<i32>) {
             "--format",
             format,
             "analyse",
-            FIXTURE,
+            fixture,
             "--column",
             "0",
             "--sample-rate-hz",
@@ -34,7 +37,7 @@ fn analyse(onset: &str, format: &str) -> (String, Option<i32>) {
             "--set",
             "weighing.duration=1.0",
             "--onset",
-            onset,
+            "onset.threshold.noise_relative",
             "--set",
             "onset.k=5",
             "--takeoff",
@@ -54,7 +57,7 @@ fn analyse(onset: &str, format: &str) -> (String, Option<i32>) {
 
 #[test]
 fn a_pipe_reading_the_result_can_branch_on_what_the_software_doubts() {
-    let (document, _) = analyse(RULE_WHOSE_ROUTES_DISAGREE, "json");
+    let (document, _) = analyse(TRACE_WHOSE_ROUTES_DISAGREE, "json");
     let parsed: serde_json::Value = serde_json::from_str(&document).expect("the result parses");
     let signals = parsed["ok"]["signals"]
         .as_array()
@@ -83,7 +86,7 @@ fn a_pipe_reading_the_result_can_branch_on_what_the_software_doubts() {
 /// does not go to the end.
 #[test]
 fn the_signal_sits_between_the_value_it_qualifies_and_the_next_one() {
-    let (document, _) = analyse(RULE_WHOSE_ROUTES_DISAGREE, "text");
+    let (document, _) = analyse(TRACE_WHOSE_ROUTES_DISAGREE, "text");
     let lines: Vec<&str> = document.lines().collect();
     let qualified = lines
         .iter()
@@ -105,7 +108,7 @@ fn the_signal_sits_between_the_value_it_qualifies_and_the_next_one() {
 /// two findings about one comparison.
 #[test]
 fn a_signal_over_two_metrics_is_said_once() {
-    let (document, _) = analyse(RULE_WHOSE_ROUTES_DISAGREE, "text");
+    let (document, _) = analyse(TRACE_WHOSE_ROUTES_DISAGREE, "text");
     let times = document.matches("past 20 percent").count();
     println!("times the signal is said: {times}");
     assert_eq!(times, 1);
@@ -115,20 +118,23 @@ fn a_signal_over_two_metrics_is_said_once() {
 /// a failure would drop a result the software stands behind.
 #[test]
 fn a_signal_does_not_move_the_exit_code() {
-    let (_, code) = analyse(RULE_WHOSE_ROUTES_DISAGREE, "json");
+    let (_, code) = analyse(TRACE_WHOSE_ROUTES_DISAGREE, "json");
     assert_eq!(code, Some(0));
 }
 
-/// The control: a rule whose two routes agree produces no signal, so a passing assertion
-/// above is about this trial's disagreement rather than about a signal that always fires.
+/// The control: a trace whose two routes agree produces no signal, so a passing assertion
+/// above is about this recording's disagreement rather than about a signal that always fires.
 #[test]
-fn a_rule_whose_routes_agree_says_nothing() {
-    let (document, code) = analyse("onset.threshold.noise_relative", "json");
+fn a_trace_whose_routes_agree_says_nothing() {
+    let (document, code) = analyse(TRACE_WHOSE_ROUTES_AGREE, "json");
     let parsed: serde_json::Value = serde_json::from_str(&document).expect("the result parses");
     let signals = parsed["ok"]["signals"]
         .as_array()
         .expect("a result carries its signals");
-    println!("signals under a rule whose routes agree: {}", signals.len());
+    println!(
+        "signals under a trace whose routes agree: {}",
+        signals.len()
+    );
     assert!(signals.is_empty(), "{signals:#?}");
     assert_eq!(code, Some(0));
 }
