@@ -11,7 +11,7 @@ use plateforce_analysis::{
     AnalysisRequest, AnalysisResponse, BoundMethod, Metric, RuleRefusal, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
-use plateforce_core::RefusalCode;
+use plateforce_core::{Acquisition, RefusalCode};
 use plateforce_registry::Registry;
 use serde::Serialize;
 
@@ -32,6 +32,10 @@ pub struct BatchRequest {
     /// The validity gates this run bound, and which of them remove a trial rather than
     /// naming it. Empty is the correct state of a run that bound none.
     pub gates: GateRegistry,
+    /// What the caller knows about the capture. A trace of forces carries none of it, so it
+    /// is stated per run rather than read per file, and a run that states nothing reports
+    /// every trial as incomplete rather than as matching.
+    pub acquisition: Option<Acquisition>,
 }
 
 impl BatchRequest {
@@ -41,7 +45,15 @@ impl BatchRequest {
             registry_version: None,
             resolved_decisions: BTreeSet::new(),
             gates: GateRegistry::default(),
+            acquisition: None,
         }
+    }
+
+    /// State what the capture was, so results from it can be told apart from results whose
+    /// capture nobody recorded.
+    pub fn describing(mut self, acquisition: Acquisition) -> Self {
+        self.acquisition = Some(acquisition);
+        self
     }
 
     /// Bind a validity gate. It reports and removes nothing until the request applies it.
@@ -321,6 +333,12 @@ pub fn analyse(
             ))
     });
 
+    // The block describes the capture, so it is complete or it is not, once for the run.
+    let acquisition_is_complete = request
+        .acquisition
+        .as_ref()
+        .is_some_and(Acquisition::is_complete);
+
     let mut run = RunRow {
         plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
         registry_version: request.registry_version.clone().unwrap_or_default(),
@@ -331,9 +349,11 @@ pub fn analyse(
         trial_count: coverage.trial_count,
         computed_count: coverage.computed,
         refusal_count: coverage.refused,
-        // Nothing in the shipped reader fills an acquisition block, so this is 0 of the
-        // trials that computed, which is what a dataset that cannot fill it should report.
-        acquisition_complete_count: 0,
+        acquisition_complete_count: if acquisition_is_complete {
+            coverage.computed
+        } else {
+            0
+        },
         trials_excluded: coverage.excluded,
         gates_reporting: request.gates.reporting_count(),
         gates_applied: request.gates.applied_count(),
