@@ -83,17 +83,21 @@ fn validate(registry: &Registry, directory: &Path, format: Format) -> Outcome {
     if format == Format::Json {
         return Outcome::complete(canonical(&json!({
             "registry_directory": directory.display().to_string(),
+            "registry_digest": registry.content_digest,
             "computation_entries": census.computation_entries,
             "protocol_entries": census.protocol_entries,
             "constructs": census.constructs,
         })));
     }
+    // The digest names which registry this was, measured from the bytes read rather than
+    // declared beside them, so an id quoted in a methods section resolves to a version.
     Outcome::complete(format!(
-        "registry at {} is valid: {} computation entries, {} protocol entries, {} constructs",
+        "registry at {} is valid: {} computation entries, {} protocol entries, {} constructs\nregistry digest: {}",
         directory.display(),
         census.computation_entries,
         census.protocol_entries,
-        census.constructs
+        census.constructs,
+        registry.content_digest
     ))
 }
 

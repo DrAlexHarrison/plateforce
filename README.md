@@ -61,10 +61,26 @@ What that does not yet mean: **12 rules run**, covering the weighing epoch, move
 and takeoff. Eight are registry entries, three bind an operator onto a registry entry and
 carry that entry's citations, and one the registry files under a different id. The rest of
 the registry is catalogued and cited with no running maths behind it, so the interface does
-not offer those methods at all. There is no desktop application, the command line inspects
-the registry but does not analyse a trace, and the R binding does not exist. The Python
-package builds as one wheel per platform for Linux, macOS and Windows and installs with no
-compiler; it is not on PyPI, so it is built from this repository.
+not offer those methods at all.
+
+The command line analyses a trace, reports every rule that produced each number, and
+declines rather than choosing for you when a step on the path has no defensible default:
+
+```
+cargo run -q -p plateforce-cli -- analyse <trace> --column 0 --sample-rate-hz 1200 \
+  --sentinel none --weighing bwepoch.fixed_window --set weighing.duration=1.0 \
+  --onset onset.threshold.noise_relative --set onset.k=5 \
+  --takeoff takeoff.threshold.absolute_force --set takeoff.threshold_n=20
+```
+
+Run it without the three method flags and it produces no number, names the choices that are
+open and what the literature publishes for each, and exits 64.
+
+The Python package builds as one wheel per platform for Linux, macOS and Windows and
+installs with no compiler; it is not on PyPI, so it is built from this repository.
+
+Installing: `docs/install.md` covers Linux, macOS, Windows, and machines that will not let
+you install anything.
 
 ## Layout
 

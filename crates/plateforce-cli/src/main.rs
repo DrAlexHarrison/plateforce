@@ -55,6 +55,16 @@ enum Command {
     /// Read the registry
     #[command(subcommand)]
     Registry(registry_cmd::Command),
+    /// Serve the browser interface to this machine
+    Serve {
+        /// Passed to the server: --port <PORT>, --port=<PORT>, --open
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            value_name = "OPTION"
+        )]
+        options: Vec<String>,
+    },
     /// Print the version
     Version,
 }
@@ -85,6 +95,12 @@ fn main() -> ExitCode {
         }
         Command::Analyse(args) => {
             analyse::run(args, &registry_directory, invocation.format, &renderer)
+        }
+        // The server holds the process rather than handing back a document, and it reads its
+        // own options, so the one parser for them stays in the crate that acts on them.
+        Command::Serve { options } => {
+            let borrowed: Vec<&str> = options.iter().map(String::as_str).collect();
+            return plateforce_serve::run(&borrowed);
         }
         Command::Version => version_cmd::run(invocation.format),
     };
