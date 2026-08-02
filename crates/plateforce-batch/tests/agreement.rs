@@ -468,3 +468,43 @@ fn every_agreement_refusal_carries_a_published_code() {
         "these five faults are not one fault: {distinct:?}"
     );
 }
+
+/// The limits entry names its dispersion as required with no default, so a request that
+/// states one must be computed under it. Stating a value the binding then ignores is the same
+/// fault as defaulting through the requirement, one step later and harder to see.
+#[test]
+fn the_dispersion_the_request_states_is_the_one_the_limits_use() {
+    use plateforce_core::agreement::limits_of_agreement;
+
+    let directory = tempdir("agreement-dispersion");
+    copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = compare(&set, &compare_request());
+    let pairs = pairs_from(&result).expect("the run produced pairs");
+
+    // Stated the way a caller states them, through the same parsing a request goes through.
+    for (name, stated) in [
+        ("sample", DispersionEstimator::Sample),
+        ("population", DispersionEstimator::Population),
+    ] {
+        let expected = limits_of_agreement(&pairs, stated).expect("the pairs support limits");
+        let request = LimitsRequest::declared(Some("trial"), Some(name)).expect("both stated");
+        let through = bland_altman(&set, &result, request).expect("trials are available");
+        println!(
+            "{stated:?}: limits {:.9} to {:.9}",
+            through.lower, through.upper
+        );
+        assert_eq!(
+            through.upper, expected.upper,
+            "{name} was stated and the limits were taken under something else"
+        );
+    }
+
+    // The two estimators have to differ on this many pairs, or the check above could not
+    // tell them apart and would pass whichever one the binding used.
+    let sample = limits_of_agreement(&pairs, DispersionEstimator::Sample).unwrap();
+    let population = limits_of_agreement(&pairs, DispersionEstimator::Population).unwrap();
+    println!("{} pairs, and the two estimators differ", pairs.len());
+    assert_ne!(sample.upper, population.upper);
+    std::fs::remove_dir_all(&directory).ok();
+}
