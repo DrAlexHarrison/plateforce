@@ -335,6 +335,46 @@ check('every control carries a name a screen reader can read',
   narrow.unlabelled.length === 0,
   narrow.unlabelled.join(', ') || `${narrow.counted} controls checked`);
 
+// The engine computes this signal and has no way to hand it to a browser yet, so the
+// transport is what is missing rather than the maths. This checks the drawing half only,
+// against a signal shaped exactly as the engine serialises one, and says so.
+const remedy = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const arrived = Array.isArray(state.analysis.signals) && state.analysis.signals.length > 0;
+  if (!arrived) {
+    // Stub the one link that does not exist yet, the field on the wire, and let every other
+    // step run for real: the request is built, the engine runs, the response is parsed, and
+    // the page renders from it.
+    const engine = state.loadedTrial.analyse.bind(state.loadedTrial);
+    state.loadedTrial.analyse = (request) => {
+      const response = JSON.parse(engine(request));
+      response.signals = [{
+        label: 'Jump height from the impulse against jump height from the flight time',
+        value: 74.16, unit: 'percent', threshold: 20.0, status: 'disagrees',
+        remedy: 'These two heights are 31 cm apart. Choose a different rule for the start of the jump.',
+        remedy_construct: 'movement_onset',
+        qualifies: ['jump_height_from_takeoff_meters', 'jump_height_from_flight_time_meters'],
+      }];
+      return JSON.stringify(response);
+    };
+  }
+  analysis.runAnalysis();
+  const cards = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
+    card.querySelector('.metric__signal'));
+  return {
+    arrived,
+    beside: cards.map((card) => card.querySelector('.metric__label').textContent),
+    figure: cards[0]?.querySelector('.metric__signal-figure')?.textContent ?? null,
+    remedy: cards[0]?.querySelector('.metric__signal-remedy')?.textContent ?? null,
+    reaches: Boolean(cards[0]?.querySelector('.metric__signal button')),
+  };
+})()`);
+check('a quality signal draws in line beside every value it qualifies, with its remedy',
+  remedy.beside.length === 2 && Boolean(remedy.remedy) && remedy.reaches,
+  `${remedy.arrived ? 'from the engine' : 'drawing half only, the engine cannot hand it over yet'}: ` +
+  `beside ${remedy.beside.join(' and ') || 'nothing'} | ${remedy.figure ?? 'no figure'} | ${remedy.remedy ?? 'no remedy'}`);
+
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
 const failed = results.filter((result) => !result.passed);

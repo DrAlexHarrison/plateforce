@@ -165,6 +165,7 @@ function renderMetrics() {
 
     if (metric.note) card.append(element('p', 'metric__note', metric.note));
     if (restingOn.length) card.append(stillToBeChosen(restingOn));
+    for (const signal of signalsQualifying(metric.key)) card.append(renderSignal(signal));
     card.append(provenanceRow(metric.contributing_method_ids));
     grid.append(card);
   }
@@ -174,6 +175,46 @@ function renderMetrics() {
   for (const warning of state.analysis.warnings) {
     host.append(notice('warning', 'The rule reported a problem', warning));
   }
+}
+
+/*
+ * What the software already knows about the number in this card.
+ *
+ * The engine says which metric keys each signal is about, so the placement needs no second
+ * lookup table here and a signal cannot drift away from the value it qualifies.
+ */
+function signalsQualifying(metricKey) {
+  return (state.analysis.signals || []).filter((signal) => (signal.qualifies || []).includes(metricKey));
+}
+
+/* A rate stated with no action leaves the reader holding a diagnosis they cannot act on,
+ * which is the half of this pattern that does the work. The threshold is shown because the
+ * threshold is itself a choice, and a reader who disagrees with it can see what it was. */
+function renderSignal(signal) {
+  const wrap = element('p', `metric__signal metric__signal--${signal.status.replace(/_/g, '-')}`);
+  wrap.append(element('span', 'metric__signal-label', signal.label));
+  wrap.append(element('span', 'metric__signal-remedy', signal.remedy));
+  wrap.append(
+    element(
+      'span',
+      'metric__signal-figure',
+      signal.value == null
+        ? 'no second route on this trace'
+        : `${signal.value.toFixed(1)} ${signal.unit} against ${signal.threshold.toFixed(1)} ${signal.unit}`,
+    ),
+  );
+
+  if (signal.remedy_construct) {
+    const choose = element('button', 'chip', 'Choose the rule');
+    choose.type = 'button';
+    choose.addEventListener('click', () => {
+      const select = document.querySelector(`#decision-list select[data-construct="${signal.remedy_construct}"]`);
+      select?.scrollIntoView({ block: 'center' });
+      select?.focus();
+    });
+    wrap.append(choose);
+  }
+  return wrap;
 }
 
 /* Named beside the number rather than in a drawer, with the choice one interaction away.
