@@ -97,6 +97,18 @@ jobs:
             cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
           fi
 
+      # The packaging script runs only on a release with the Store identity set, so a syntax
+      # error in it would otherwise surface for the first time during a release. Parsing
+      # costs nothing and needs no identity.
+      - name: The packaging script parses
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ./scripts/build-msix.ps1), [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          Write-Output "scripts/build-msix.ps1 parses"
+
       # The Store overlay builds no installer, since makeappx packages the program itself,
       # and skips the WebView2 bootstrapper, which a package may not carry.
       - name: Build the program the package wraps
