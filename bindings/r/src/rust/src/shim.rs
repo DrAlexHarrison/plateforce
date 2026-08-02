@@ -70,6 +70,11 @@ pub fn pf_analyse_json(handle: Robj, request_json: &str) -> String {
     }
 }
 
+#[extendr]
+pub fn pf_double_probe_json(count: i32) -> String {
+    crate::double_probe_json(count.max(0) as usize)
+}
+
 /// Turns one of this crate's answers into R data.
 ///
 /// R never parses JSON. A parser written in R would be a second reading of a document this
@@ -138,4 +143,5 @@ extendr_module! {
     fn pf_trial_force;
     fn pf_analyse_json;
     fn pf_spread_json;
+    fn pf_double_probe_json;
 }

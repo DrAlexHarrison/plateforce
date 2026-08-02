@@ -32,6 +32,7 @@ Collate:
     'measured.R'
     'analyse.R'
     'coercion.R'
+    'describe.R'
     'read.R'
     'zzz.R'
     'registry.R'

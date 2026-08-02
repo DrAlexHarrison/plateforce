@@ -161,6 +161,8 @@ jump_from_response <- function(response) {
   # otherwise build the same record eighty-eight times.
   records <- lapply(by_method, provenance_from_bound_method, digest, complete)
 
+  accounts <- response[["descriptions"]]
+
   values <- list()
   for (metric in response[["metrics"]]) {
     chain <- records[as.character(unlist(metric[["contributing_method_ids"]]))]
@@ -175,12 +177,14 @@ jump_from_response <- function(response) {
       acquisition_complete = complete,
       depends_on = chain
     )
+    account <- accounts[[metric[["key"]]]]
     values[[metric[["key"]]]] <- measured(
       value = if (is.null(metric[["value"]])) NA_real_ else as.double(metric[["value"]]),
       unit = as.character(metric[["unit"]]),
       unit_symbol = as.character(metric[["unit_symbol"]]),
       quantity = as.character(metric[["key"]]),
-      provenance = own
+      provenance = own,
+      account = if (is.null(account)) character(0) else as.character(account)
     )
   }
 

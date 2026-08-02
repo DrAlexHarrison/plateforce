@@ -18,7 +18,8 @@ measured <- S7::new_class(
     unit = S7::class_character,
     unit_symbol = S7::class_character,
     quantity = S7::class_character,
-    provenance = provenance
+    provenance = provenance,
+    account = S7::class_character
   )
 )
 
@@ -39,7 +40,7 @@ measured <- S7::new_class(
 }
 
 measured_from_list <- function(fields) {
-  known <- c("value", "unit", "unit_symbol", "quantity", "provenance")
+  known <- c("value", "unit", "unit_symbol", "quantity", "provenance", "account")
   unknown <- setdiff(names(fields), known)
   if (length(unknown)) {
     refuse_here(
@@ -57,6 +58,7 @@ measured_from_list <- function(fields) {
     unit = as.character(fields[["unit"]]),
     unit_symbol = as.character(fields[["unit_symbol"]]),
     quantity = as.character(fields[["quantity"]]),
-    provenance = fields[["provenance"]]
+    provenance = fields[["provenance"]],
+    account = as.character(fields[["account"]])
   )
 }
