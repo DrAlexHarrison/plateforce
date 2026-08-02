@@ -29,6 +29,11 @@ pub fn pf_bindings_json() -> String {
 }
 
 #[extendr]
+pub fn pf_acquisition_members_json() -> String {
+    crate::acquisition_members_json()
+}
+
+#[extendr]
 pub fn pf_trial_from_force(force_newtons: &[f64], request_json: &str) -> List {
     carried(crate::trial_from_force(force_newtons, request_json))
 }
@@ -142,6 +147,7 @@ extendr_module! {
     fn pf_registry_json;
     fn pf_registry_entry_json;
     fn pf_bindings_json;
+    fn pf_acquisition_members_json;
     fn pf_trial_from_force;
     fn pf_trial_from_file;
     fn pf_trial_report_json;

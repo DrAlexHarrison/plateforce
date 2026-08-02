@@ -16,6 +16,8 @@ trial <- S7::new_class(
     sample_rate_hz = S7::class_double,
     duration_seconds = S7::class_double,
     read_report = S7::class_list,
+    acquisition_complete = S7::class_logical,
+    acquisition_missing = S7::class_character,
     handle = S7::class_any
   )
 )
@@ -43,13 +45,17 @@ trial <- S7::new_class(
 #' @param sentinel_convention How this export writes a missing sample: `"none"`, `"zero"`
 #'   or `"negative_one"`. A sample matching the convention is held at the last real
 #'   reading and counted, and the count is reported rather than folded into the trace.
+#' @param acquisition What the plate and its settings were, from [pf_acquisition()]. A
+#'   block missing any member makes every result from this trial carry
+#'   `acquisition_complete = FALSE`.
 #' @return A `trial`.
 #' @export
 #' @examples
 #' quiet <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
 #' quiet@sample_count
 #' quiet@duration_seconds
-pf_trial <- function(force_newtons, sample_rate_hz = NULL, sentinel_convention = "none") {
+pf_trial <- function(force_newtons, sample_rate_hz = NULL, sentinel_convention = "none",
+                     acquisition = NULL) {
   if (is.integer(force_newtons)) {
     refuse_here(
       "force_not_double",
@@ -72,7 +78,8 @@ pf_trial <- function(force_newtons, sample_rate_hz = NULL, sentinel_convention =
     force_newtons,
     request_of(
       sample_rate_hz = sample_rate_hz,
-      sentinel_convention = sentinel_convention
+      sentinel_convention = sentinel_convention,
+      acquisition = acquisition
     )
   )
   trial_from_carried(carried)
@@ -85,6 +92,8 @@ trial_from_carried <- function(carried) {
     sample_rate_hz = as.double(report[["sample_rate_hz"]]),
     duration_seconds = as.double(report[["duration_seconds"]]),
     read_report = report,
+    acquisition_complete = isTRUE(report[["acquisition_complete"]]),
+    acquisition_missing = as.character(unlist(report[["acquisition_missing"]])),
     handle = carried[["handle"]]
   )
 }
