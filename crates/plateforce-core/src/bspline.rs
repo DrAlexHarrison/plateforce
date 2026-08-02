@@ -42,9 +42,7 @@ impl Basis {
         }
         let interior_count = basis_count - degree - 1;
         let mut knots = vec![0.0f64; degree + 1];
-        knots.extend(
-            (1..=interior_count).map(|step| step as f64 / (interior_count + 1) as f64),
-        );
+        knots.extend((1..=interior_count).map(|step| step as f64 / (interior_count + 1) as f64));
         knots.extend(std::iter::repeat_n(1.0, degree + 1));
         Ok(Self {
             degree,
@@ -204,8 +202,8 @@ mod tests {
     #[test]
     fn a_cubic_is_returned_unchanged_by_a_cubic_basis() {
         let point_count = 400usize;
-        let cubic = |position: f64| 7.0 - 2.5 * position + 1.25 * position.powi(2)
-            - 0.4 * position.powi(3);
+        let cubic =
+            |position: f64| 7.0 - 2.5 * position + 1.25 * position.powi(2) - 0.4 * position.powi(3);
         let observations: Vec<f64> = (0..point_count)
             .map(|point| cubic(point as f64 / (point_count - 1) as f64))
             .collect();

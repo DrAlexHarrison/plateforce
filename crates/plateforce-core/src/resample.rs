@@ -48,9 +48,8 @@ impl CubicSpline {
         // Under unit spacing the not-a-knot row at each end collapses into its neighbour
         // and hands back that neighbour's moment directly, leaving an ordinary tridiagonal
         // system across the samples between them.
-        let curvature = |index: usize| {
-            6.0 * (values[index + 1] - 2.0 * values[index] + values[index - 1])
-        };
+        let curvature =
+            |index: usize| 6.0 * (values[index + 1] - 2.0 * values[index] + values[index - 1]);
         let mut moments = vec![0.0f64; count];
         moments[1] = curvature(1) / 6.0;
         moments[count - 2] = curvature(count - 2) / 6.0;
@@ -58,8 +57,7 @@ impl CubicSpline {
         if count > 4 {
             let interior = count - 4;
             let mut diagonal = vec![4.0f64; interior];
-            let mut right_hand_side: Vec<f64> =
-                (2..count - 2).map(curvature).collect();
+            let mut right_hand_side: Vec<f64> = (2..count - 2).map(curvature).collect();
             right_hand_side[0] -= moments[1];
             right_hand_side[interior - 1] -= moments[count - 2];
 
