@@ -83,6 +83,57 @@ pub fn exit_code(code: RefusalCode) -> i32 {
     }
 }
 
+impl RefusalCode {
+    /// The code as it is written on the wire, for a caller that needs the text rather than
+    /// the value. Matched exhaustively, so a new code cannot reach a surface unnamed.
+    pub fn wire_name(self) -> &'static str {
+        match self {
+            RefusalCode::NoCrossing => "no_crossing",
+            RefusalCode::CollapsedBand => "collapsed_band",
+            RefusalCode::MethodNotImplemented => "method_not_implemented",
+            RefusalCode::UnknownParameter => "unknown_parameter",
+            RefusalCode::ParameterNotFinite => "parameter_not_finite",
+            RefusalCode::TraceTooShort => "trace_too_short",
+            RefusalCode::ColumnNotFound => "column_not_found",
+            RefusalCode::SentinelConventionUnknown => "sentinel_convention_unknown",
+            RefusalCode::RegistryInvalid => "registry_invalid",
+            RefusalCode::DecisionNotMade => "decision_not_made",
+            RefusalCode::RequiredParameterUnstated => "required_parameter_unstated",
+            RefusalCode::TrialIdentityUnparsed => "trial_identity_unparsed",
+            RefusalCode::AmbiguousForceChannels => "ambiguous_force_channels",
+            RefusalCode::PlateNotLevel => "plate_not_level",
+            RefusalCode::SchemaUnsupported => "schema_unsupported",
+        }
+    }
+}
+
+/// Which code a failed read is, decided once here so a batch row and a single-trial document
+/// cannot answer one failure two ways.
+impl From<&crate::signal::TrialError> for RefusalCode {
+    fn from(error: &crate::signal::TrialError) -> Self {
+        use crate::signal::TrialError;
+        match error {
+            TrialError::Empty | TrialError::EpochTooLong { .. } => RefusalCode::TraceTooShort,
+            TrialError::BadSampleRate(_) => RefusalCode::ParameterNotFinite,
+            TrialError::NoCrossing { .. } => RefusalCode::NoCrossing,
+            TrialError::CollapsedBand { .. } => RefusalCode::CollapsedBand,
+        }
+    }
+}
+
+impl From<&crate::read::ReadError> for RefusalCode {
+    fn from(error: &crate::read::ReadError) -> Self {
+        use crate::read::ReadError;
+        match error {
+            ReadError::ColumnMissing { .. } | ReadError::NoRows { .. } | ReadError::Io { .. } => {
+                RefusalCode::ColumnNotFound
+            }
+            ReadError::NotANumber { .. } => RefusalCode::ParameterNotFinite,
+            ReadError::Trace(inner) => RefusalCode::from(inner),
+        }
+    }
+}
+
 /// A declined result, carrying what a caller branches on and the sentence a person reads.
 ///
 /// `message` has no public constructor path of its own: every way of building a `Refusal`
@@ -518,6 +569,39 @@ fn sentence(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_name_a_caller_reads_is_the_name_on_the_wire() {
+        for code in RefusalCode::ALL {
+            let written = serde_json::to_string(code).unwrap();
+            assert_eq!(
+                format!("\"{}\"", code.wire_name()),
+                written,
+                "{code:?} is written one way and named another"
+            );
+        }
+    }
+
+    #[test]
+    fn a_failed_read_answers_with_one_code() {
+        use crate::read::ReadError;
+        use crate::signal::TrialError;
+
+        assert_eq!(
+            RefusalCode::from(&TrialError::Empty),
+            RefusalCode::TraceTooShort
+        );
+        assert_eq!(
+            RefusalCode::from(&TrialError::BadSampleRate(0.0)),
+            RefusalCode::ParameterNotFinite
+        );
+        // A trace failure reached through a read is the same code as the trace failure
+        // itself, which is the whole point of the conversion living in one place.
+        assert_eq!(
+            RefusalCode::from(&ReadError::Trace(TrialError::Empty)),
+            RefusalCode::from(&TrialError::Empty)
+        );
+    }
 
     #[test]
     fn every_code_carries_an_exit_status() {

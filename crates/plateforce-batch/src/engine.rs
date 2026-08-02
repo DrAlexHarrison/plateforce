@@ -189,7 +189,7 @@ pub fn analyse(
         let trial = match entry.source.read(&set.format) {
             Ok((trial, _report)) => trial,
             Err(error) => {
-                let code = read_error_code(&error);
+                let code = RefusalCode::from(&error).wire_name();
                 refusals.push(RefusalRow {
                     trial_id: trial_id.clone(),
                     ordinal: ordinal(&refusals),
@@ -214,7 +214,7 @@ pub fn analyse(
                 refusals.push(RefusalRow {
                     trial_id: trial_id.clone(),
                     ordinal: ordinal(&refusals),
-                    code: "method_not_implemented".to_string(),
+                    code: RefusalCode::MethodNotImplemented.wire_name().to_string(),
                     method_id: String::new(),
                     slot: String::new(),
                     parameter: String::new(),
@@ -226,7 +226,7 @@ pub fn analyse(
                 results.push(refused_row(
                     trial_id,
                     &source_path,
-                    "method_not_implemented",
+                    RefusalCode::MethodNotImplemented.wire_name(),
                 ));
                 refused += 1;
                 continue;
@@ -370,7 +370,7 @@ fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
     RefusalRow {
         trial_id: String::new(),
         ordinal,
-        code: "column_not_found".to_string(),
+        code: RefusalCode::ColumnNotFound.wire_name().to_string(),
         method_id: String::new(),
         slot: String::new(),
         parameter: file.parameter(),
@@ -378,27 +378,6 @@ fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
         detail: file.file_name.clone(),
         available: String::new(),
         message: file.message(),
-    }
-}
-
-/// The reader's own errors, carried under the code that names the class of fault.
-fn read_error_code(error: &plateforce_core::ReadError) -> &'static str {
-    use plateforce_core::ReadError;
-    match error {
-        ReadError::ColumnMissing { .. } | ReadError::NoRows { .. } => "column_not_found",
-        ReadError::NotANumber { .. } => "parameter_not_finite",
-        ReadError::Trace(inner) => trial_error_code(inner),
-        ReadError::Io { .. } => "column_not_found",
-    }
-}
-
-fn trial_error_code(error: &plateforce_core::TrialError) -> &'static str {
-    use plateforce_core::TrialError;
-    match error {
-        TrialError::Empty | TrialError::EpochTooLong { .. } => "trace_too_short",
-        TrialError::BadSampleRate(_) => "parameter_not_finite",
-        TrialError::NoCrossing { .. } => "no_crossing",
-        TrialError::CollapsedBand { .. } => "collapsed_band",
     }
 }
 
@@ -427,7 +406,7 @@ fn rule_refusal_row(
             value,
             search_bound_seconds,
         }) => (
-            "no_crossing",
+            RefusalCode::NoCrossing.wire_name(),
             method_id.clone(),
             parameter.clone(),
             crate::relations::format_value(*value),
@@ -440,7 +419,7 @@ fn rule_refusal_row(
             dispersion_newtons,
             threshold_newtons,
         }) => (
-            "collapsed_band",
+            RefusalCode::CollapsedBand.wire_name(),
             method_id.clone(),
             parameter.clone(),
             crate::relations::format_value(*value),
@@ -449,14 +428,14 @@ fn rule_refusal_row(
             ),
         ),
         RuleRefusal::Trial(other) => (
-            trial_error_code(other),
+            RefusalCode::from(other).wire_name(),
             bound_for_slot,
             String::new(),
             String::new(),
             String::new(),
         ),
         RuleRefusal::Stated(_) => (
-            "unknown_parameter",
+            RefusalCode::UnknownParameter.wire_name(),
             bound_for_slot,
             String::new(),
             String::new(),
