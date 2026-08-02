@@ -817,7 +817,20 @@ debate = "single_position"
 name = "convention"
 unit = "enumeration"
 required = true
-notes = "gross or net. Net is universal for jumps; gross is in wide use for dead-start lifts, where there is no meaningful centre of mass velocity to recover."
+
+[[method.parameter.value]]
+key = "net"
+label = "Net of system weight"
+notes = "Universal for jumps, where the quantity wanted is the impulse that changed the athlete's momentum."
+
+[[method.parameter.value]]
+key = "gross"
+label = "Gross"
+source = "suchomel2018"
+notes = """
+In wide use for dead-start lifts, where there is no meaningful centre of mass velocity to recover.
+Over a short epoch from a static start it is dominated by system weight times the epoch.
+"""
 
 [[method.citation]]
 key = "suchomel2018"
