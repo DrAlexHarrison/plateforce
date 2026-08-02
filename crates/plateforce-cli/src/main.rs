@@ -129,13 +129,14 @@ fn main() -> ExitCode {
                     &renderer,
                 ),
                 None,
+                invocation.color,
             )
         }
         Command::Capability(args) => capability_cmd::run(args, invocation.format),
         Command::Version => version_cmd::run(invocation.format),
     };
 
-    deliver(outcome, invocation.out.as_deref())
+    deliver(outcome, invocation.out.as_deref(), invocation.color)
 }
 
 /// clap's own `Error::exit` prints to stderr and terminates with 2 for a usage error, and
@@ -186,12 +187,12 @@ fn times_written(arguments: impl Iterator<Item = std::ffi::OsString>, flag: &str
         .count()
 }
 
-fn deliver(outcome: Outcome, destination: Option<&std::path::Path>) -> ExitCode {
+fn deliver(outcome: Outcome, destination: Option<&std::path::Path>, colour: Colour) -> ExitCode {
     let code = code_for(&outcome);
     let stream = stream_for(&outcome);
 
     if let Some(document) = &outcome.document {
-        if let Err((fault, message)) = out::deliver(document, destination, stream) {
+        if let Err((fault, message)) = out::deliver(document, destination, stream, colour) {
             eprintln!("plateforce: {message}");
             return ExitCode::from(fault.code());
         }

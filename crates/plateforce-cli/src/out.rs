@@ -10,6 +10,20 @@ use std::path::{Path, PathBuf};
 use clap::ValueEnum;
 
 use crate::exit::{Fault, Stream};
+use crate::render::Colour;
+
+/// The operator's answer reaches the stream as well as the renderer.
+///
+/// Two places deciding whether an escape byte survives is one place too many, and the one
+/// that loses is the operator: an `always` the renderer honoured was stripped again here
+/// because the destination was a pipe. `auto` is what keeps a redirected document clean.
+fn passing(colour: Colour) -> anstream::ColorChoice {
+    match colour {
+        Colour::Always => anstream::ColorChoice::Always,
+        Colour::Never => anstream::ColorChoice::Never,
+        Colour::Auto => anstream::ColorChoice::Auto,
+    }
+}
 
 /// What a result is written as.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -24,18 +38,20 @@ pub fn deliver(
     document: &str,
     destination: Option<&Path>,
     stream: Stream,
+    colour: Colour,
 ) -> Result<(), (Fault, String)> {
     match destination {
         Some(path) => write_file(document, path),
         None => {
             let ending = if document.ends_with('\n') { "" } else { "\n" };
+            let choice = passing(colour);
             match stream {
                 Stream::Stdout => {
-                    let mut out = anstream::stdout();
+                    let mut out = anstream::AutoStream::new(std::io::stdout(), choice);
                     write!(out, "{document}{ending}").and_then(|()| out.flush())
                 }
                 Stream::Stderr => {
-                    let mut out = anstream::stderr();
+                    let mut out = anstream::AutoStream::new(std::io::stderr(), choice);
                     write!(out, "{document}{ending}").and_then(|()| out.flush())
                 }
             }

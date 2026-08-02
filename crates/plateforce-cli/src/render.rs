@@ -68,7 +68,7 @@ impl Renderer {
             } else {
                 WIDTH_WHEN_NOT_A_TERMINAL
             },
-            palette: palette_for(colour, attached),
+            palette: palette_for(colour, attached, writing_to_a_file),
         }
     }
 
@@ -132,7 +132,14 @@ impl Renderer {
     }
 }
 
-fn palette_for(colour: Colour, attached_to_a_terminal: bool) -> Palette {
+fn palette_for(colour: Colour, attached_to_a_terminal: bool, writing_to_a_file: bool) -> Palette {
+    // A document asked for by path is read by a parser rather than by a terminal, and an
+    // escape byte inside one is rejected by `json.load`, `jq`, `pandas.read_json` and
+    // `jsonlite` alike. This outranks the operator's answer because the two do not conflict:
+    // the answer is about a terminal and the destination is not one.
+    if writing_to_a_file {
+        return Palette::Absent;
+    }
     match colour {
         Colour::Never => Palette::Absent,
         Colour::Always => Palette::Ansi16,
@@ -186,7 +193,20 @@ mod tests {
 
     #[test]
     fn colour_never_beats_every_other_signal() {
-        assert_eq!(palette_for(Colour::Never, true), Palette::Absent);
-        assert_eq!(palette_for(Colour::Always, false), Palette::Ansi16);
+        assert_eq!(palette_for(Colour::Never, true, false), Palette::Absent);
+        assert_eq!(palette_for(Colour::Always, false, false), Palette::Ansi16);
+    }
+
+    /// A named destination is read by a parser. `always` is an answer about a terminal, and
+    /// a file is not one, so the two do not disagree.
+    #[test]
+    fn a_document_asked_for_by_path_carries_no_escape_byte() {
+        for colour in [Colour::Auto, Colour::Always, Colour::Never] {
+            assert_eq!(
+                palette_for(colour, true, true),
+                Palette::Absent,
+                "{colour:?}"
+            );
+        }
     }
 }
