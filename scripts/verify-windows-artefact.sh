@@ -19,11 +19,13 @@ if [ "$#" -ne 1 ]; then
 fi
 artefacts="$1"
 
-# A truncated upload leaves a file that exists and does not run. The band is wide because
-# the interface and the module inside dominate the size, and it is narrow enough that half
-# an upload fails it.
-readonly SMALLEST_PLAUSIBLE_BYTES=$((3 * 1024 * 1024))
-readonly LARGEST_PLAUSIBLE_BYTES=$((60 * 1024 * 1024))
+# A truncated upload leaves a file that exists and does not run, and the size is all that
+# separates it from a whole one. The floor was 3 MiB against an installer NSIS actually
+# produces at 2,380,954 bytes, measured on run 30738883059: NSIS compresses a payload whose
+# deb and rpm figures were taken uncompressed, so the band rejected every correct build.
+# 1.5 MiB is under that measurement and above half of it, so half a file still fails.
+readonly SMALLEST_PLAUSIBLE_BYTES=$((3 * 1024 * 1024 / 2))
+readonly LARGEST_PLAUSIBLE_BYTES=$((120 * 1024 * 1024))
 
 in_the_tree="$(sha256sum web/pkg/plateforce_wasm_bg.wasm | cut -c1-64)"
 status=0
