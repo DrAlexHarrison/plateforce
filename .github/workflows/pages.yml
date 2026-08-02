@@ -57,6 +57,17 @@ jobs:
       - name: Build the browser bundle
         run: ./scripts/build-web.sh release
 
+      # The browser is the one surface no cargo command reaches, so the only proof it still
+      # renders is to load it and read the page back. Chrome is asked for first and by name,
+      # because a driver that is absent and a page that is broken produce the same silence.
+      - name: The demonstration trial still renders
+        run: |
+          if ! command -v google-chrome >/dev/null; then
+            echo "no google-chrome on this runner, so the browser was not checked" >&2
+            exit 3
+          fi
+          node scripts/screen-check-demo.mjs web 8731
+
       # A registry that fails its own validator must not be published silently. The site
       # reports violations in its own interface; this makes them visible in the build log
       # too, and does not block the deploy, because a site that explains why the registry
