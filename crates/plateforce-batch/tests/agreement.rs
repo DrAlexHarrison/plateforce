@@ -56,6 +56,51 @@ fn paired_relation_is_one_row_per_trial_per_method() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
+/// Sweeping a slot releases a marker the caller pinned on it, so the swept values are the
+/// rule's own. A sweep that honoured the pin would return one index for every method and read
+/// perfect agreement on data that has none, which is the one reading this statistic must never
+/// produce.
+#[test]
+fn a_swept_slot_reports_the_rules_own_values_and_not_a_pinned_index() {
+    let directory = tempdir("agreement-pinned-marker");
+    plateforce_batch::synthetic::write_corpus(&directory, 3, 3, 7).unwrap();
+    let set = TrialSet::walk(&directory, &synthetic_format(), &declared_pattern()).unwrap();
+
+    let free = compare(&set, &compare_request());
+    let mut pinned_request = compare_request();
+    pinned_request.analysis = BatchRequest::new({
+        let mut request = analysis_request(1.0);
+        request.onset.manual_index = Some(1300);
+        request
+    })
+    .resolving(&["system_weight", "movement_onset", "takeoff"]);
+    let pinned = compare(&set, &pinned_request);
+
+    let values = |result: &plateforce_batch::BatchCompareResult| -> Vec<Option<f64>> {
+        result.paired.iter().map(|row| row.value).collect()
+    };
+    let distinct: std::collections::BTreeSet<String> = values(&pinned)
+        .iter()
+        .map(|value| format!("{value:?}"))
+        .collect();
+    println!(
+        "{} paired rows under a pinned onset, {} distinct values",
+        pinned.paired.len(),
+        distinct.len()
+    );
+
+    assert_eq!(
+        values(&pinned),
+        values(&free),
+        "the sweep read the rules rather than the pin"
+    );
+    assert!(
+        distinct.len() > 1,
+        "and the rules disagree here, so equality above was not two runs of one number"
+    );
+    std::fs::remove_dir_all(&directory).ok();
+}
+
 #[test]
 fn pairs_from_one_trace_satisfy_the_design_and_record_it() {
     let directory = tempdir("agreement-one-trace");
