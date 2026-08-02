@@ -35,6 +35,18 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     )];
 
     let mut refusals: Vec<(&'static str, RuleRefusal)> = Vec::new();
+
+    // Takeoff settles first because one onset rule searches back from the countermovement
+    // dip, which is the force minimum before the propulsive peak and so needs the jump's
+    // end. Its warnings and refusal are held back and reported in slot order below, so the
+    // record reads the same whichever rule needed the other.
+    let mut takeoff_warnings = Vec::new();
+    let mut takeoff = takeoff_slot::resolve(trial, &epoch, &request.takeoff, &mut takeoff_warnings);
+    let takeoff_index = match request.takeoff.manual_index {
+        Some(index) => Some(index.min(trial.len() - 1)),
+        None => takeoff.index,
+    };
+
     let (onset_index, onset_bound) = match request.onset.manual_index {
         // A dragged marker stands in for the rule, so no value the rule reads produced it.
         Some(index) => (
@@ -45,6 +57,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             let outcome = movement_onset::resolve(
                 trial,
                 &epoch,
+                takeoff_index,
                 &request.onset,
                 inherited_spread,
                 &mut warnings,
@@ -69,14 +82,10 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
 
     // The takeoff rule runs even under a dragged marker, because the threshold it resolves
     // is what touchdown is found against.
-    let mut takeoff = takeoff_slot::resolve(trial, &epoch, &request.takeoff, &mut warnings);
+    warnings.extend(takeoff_warnings);
     if let Some(rejected) = takeoff.refusal.take() {
         refusals.push(("takeoff", rejected));
     }
-    let takeoff_index = match request.takeoff.manual_index {
-        Some(index) => Some(index.min(trial.len() - 1)),
-        None => takeoff.index,
-    };
     bound_methods.push(bound_method(
         &request.takeoff.method_id,
         takeoff.bound,
