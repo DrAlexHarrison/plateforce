@@ -1,4 +1,4 @@
-//! The eight rules from `docs/schema.md`, enforced rather than documented.
+//! The rules from `docs/schema.md`, enforced rather than documented.
 
 use std::fmt;
 
@@ -8,16 +8,46 @@ use crate::Registry;
 #[derive(Debug, Clone, PartialEq)]
 pub enum ViolationKind {
     IdNotDotted,
-    UnknownConstruct { construct: String },
-    UnknownDisagreement { target: String },
-    AsymmetricDisagreement { target: String },
+    UnknownConstruct {
+        construct: String,
+    },
+    UnknownDisagreement {
+        target: String,
+    },
+    AsymmetricDisagreement {
+        target: String,
+    },
     BiasWithoutCriterion,
-    DefaultWithoutSource { parameter: String },
-    RecommendedOnUnobtainedSource { citation: String },
+    DefaultWithoutSource {
+        parameter: String,
+    },
+    RecommendedOnUnobtainedSource {
+        citation: String,
+    },
     RefuseWithoutRationale,
     FailureWithoutDenominator,
-    FailureRateInconsistent { stated: f64, computed: f64 },
+    FailureRateInconsistent {
+        stated: f64,
+        computed: f64,
+    },
     DuplicateId,
+    PresetBindsUnknownMethod {
+        preset: String,
+        method_id: String,
+    },
+    PresetBindingConstructMismatch {
+        preset: String,
+        method_id: String,
+        declared: String,
+        actual: String,
+    },
+    PresetWithoutCitation {
+        preset: String,
+    },
+    PresetBindsOneConstructTwice {
+        preset: String,
+        construct: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -80,6 +110,26 @@ impl fmt::Display for Violation {
                 f,
                 "{}: failure rate {stated:.4} does not match numerator over denominator, {computed:.4}",
                 self.entry
+            ),
+            PresetBindsUnknownMethod { preset, method_id } => write!(
+                f,
+                "{preset}: binds '{method_id}', which the registry does not carry"
+            ),
+            PresetBindingConstructMismatch {
+                preset,
+                method_id,
+                declared,
+                actual,
+            } => write!(
+                f,
+                "{preset}: binds '{method_id}' under construct '{declared}', and that entry's construct is '{actual}'"
+            ),
+            PresetWithoutCitation { preset } => {
+                write!(f, "{preset}: states a pipeline and cites no source for it")
+            }
+            PresetBindsOneConstructTwice { preset, construct } => write!(
+                f,
+                "{preset}: binds construct '{construct}' more than once, so one binding replaced another"
             ),
         }
     }
@@ -236,6 +286,10 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             });
         }
     }
+
+    // The preset population's own rules, run here so the registry's validator is one
+    // question rather than one per population.
+    violations.extend(crate::preset::validate(registry));
 
     violations
 }

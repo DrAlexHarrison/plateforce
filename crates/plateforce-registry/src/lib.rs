@@ -5,6 +5,7 @@
 //! provenance nobody checked, so an unvalidated registry is worse than no registry.
 
 pub mod assembly;
+pub mod preset;
 pub mod schema;
 pub mod validate;
 
@@ -12,6 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 pub use assembly::{assemble, content_digest, read_sources, Assembled, AssemblyError, Source};
+pub use preset::{Preset, PresetBinding, PresetFile};
 pub use schema::*;
 pub use validate::{Violation, ViolationKind};
 
@@ -33,7 +35,9 @@ pub enum RegistryError {
     Invalid(Vec<Violation>),
     #[error("no registry at {path}: {reason}")]
     Absent { path: PathBuf, reason: String },
-    #[error("no population owns {path}: entries live in constructs.toml, methods/ or protocols/")]
+    #[error(
+        "no population owns {path}: entries live in constructs.toml, methods/, protocols/ or presets/"
+    )]
     Unplaced { path: PathBuf },
     #[error("a link under the registry root leads back to {path}")]
     Cycle { path: PathBuf },
@@ -58,6 +62,7 @@ pub struct Registry {
     pub constructs: BTreeMap<String, Construct>,
     pub methods: BTreeMap<String, Method>,
     pub protocols: BTreeMap<String, Protocol>,
+    pub presets: BTreeMap<String, preset::Preset>,
     /// Which registry this is, measured from the bytes that were assembled rather than
     /// declared alongside them, so it never disagrees with what was loaded.
     pub content_digest: String,
@@ -76,6 +81,7 @@ pub struct Census {
     pub constructs: usize,
     pub computation_entries: usize,
     pub protocol_entries: usize,
+    pub preset_entries: usize,
 }
 
 /// Reads the revision a registry directory names itself. The walk that assembles entries
@@ -158,6 +164,7 @@ impl Registry {
             constructs: self.constructs.len(),
             computation_entries: self.methods.len(),
             protocol_entries: self.protocols.len(),
+            preset_entries: self.presets.len(),
         }
     }
 
