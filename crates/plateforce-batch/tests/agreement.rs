@@ -291,3 +291,53 @@ fn every_paired_value_reaches_the_rules_that_produced_it() {
     }
     std::fs::remove_dir_all(&directory).ok();
 }
+
+#[test]
+fn a_compare_run_leaves_the_machine_with_its_record_beside_it() {
+    let directory = tempdir("agreement-compare-writer");
+    let copied = copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = compare(&set, &compare_request());
+    assert!(copied > 0 && !result.paired.is_empty(), "the run produced pairs");
+
+    let registry = registry();
+    let out = directory.join("out");
+    let written = result
+        .write_csv(&out, &registry.content_digest, "content-request")
+        .expect("the directory takes them");
+
+    let names: Vec<String> = written
+        .iter()
+        .map(|path| path.file_name().unwrap().to_str().unwrap().to_string())
+        .collect();
+    println!("wrote {}", names.join(", "));
+    assert!(names.contains(&"compare-run.json".to_string()));
+    assert!(names.contains(&"paired.csv".to_string()));
+
+    // The table joins back to the chain, so a reader of paired.csv reaches the rules.
+    let paired = std::fs::read_to_string(out.join("paired.csv")).unwrap();
+    let header = paired.lines().next().unwrap();
+    println!("{header}");
+    assert!(header.contains("provenance_id"), "{header}");
+    assert!(header.contains("method_ids"), "{header}");
+    assert_eq!(
+        paired.lines().count(),
+        1 + result.paired.len(),
+        "the header and one row per paired value"
+    );
+
+    // Every count in the record is one the run measured rather than one it was told.
+    let run: plateforce_batch::agreement::CompareRunRow =
+        serde_json::from_str(&std::fs::read_to_string(out.join("compare-run.json")).unwrap())
+            .unwrap();
+    println!(
+        "compare over {} trials: {} paired rows, {} failed, {} complete pairs, {} chains",
+        run.trial_count, run.paired_rows, run.failed_rows, run.complete_pairs, run.distinct_provenance_count
+    );
+    assert_eq!(run.trial_count, copied);
+    assert_eq!(run.paired_rows, result.paired.len());
+    assert_eq!(run.method_ids.len(), 2);
+    assert_eq!(run.distinct_provenance_count, 2);
+    assert!(run.registry_digest.starts_with("content-"));
+    std::fs::remove_dir_all(&directory).ok();
+}

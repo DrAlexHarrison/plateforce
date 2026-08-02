@@ -99,23 +99,23 @@ impl BatchResult {
         let path = directory.join(relation.file_name());
         let body = match relation {
             Relation::Run => serde_json::to_string_pretty(&self.run).unwrap_or_default(),
-            Relation::Results => table(
+            Relation::Results => render_table(
                 ResultRow::header(&self.quantities),
                 self.results.iter().map(|row| row.cells(&self.quantities)),
             ),
-            Relation::Provenance => table(
+            Relation::Provenance => render_table(
                 ProvenanceRow::header(),
                 self.provenance.iter().map(ProvenanceRow::cells),
             ),
-            Relation::Refusals => table(
+            Relation::Refusals => render_table(
                 RefusalRow::header(),
                 self.refusals.iter().map(RefusalRow::cells),
             ),
-            Relation::Warnings => table(
+            Relation::Warnings => render_table(
                 WarningRow::header(),
                 self.warnings.iter().map(WarningRow::cells),
             ),
-            Relation::Aggregates => table(
+            Relation::Aggregates => render_table(
                 AggregateRow::header(),
                 self.aggregates.iter().map(AggregateRow::cells),
             ),
@@ -128,9 +128,9 @@ impl BatchResult {
     }
 }
 
-/// Written by hand rather than through a crate: six relations of scalar columns, and one
-/// quoting rule for a path that contains a comma.
-fn table(header: Vec<String>, rows: impl Iterator<Item = Vec<String>>) -> String {
+/// Written by hand rather than through a crate: scalar columns, and one quoting rule for a
+/// path that contains a comma.
+pub(crate) fn render_table(header: Vec<String>, rows: impl Iterator<Item = Vec<String>>) -> String {
     let mut text = String::new();
     text.push_str(&join(&header));
     text.push('\n');
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn a_field_carrying_the_separator_survives_the_round_trip() {
-        let written = table(
+        let written = render_table(
             vec!["a".to_string(), "b".to_string()],
             std::iter::once(vec![
                 "one,two".to_string(),

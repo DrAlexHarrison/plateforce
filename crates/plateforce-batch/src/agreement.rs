@@ -131,6 +131,39 @@ pub struct PairedRow {
     pub provenance_id: String,
 }
 
+impl PairedRow {
+    pub fn header() -> Vec<String> {
+        [
+            "trial_id",
+            "subject",
+            "variant_label",
+            "method_ids",
+            "quantity",
+            "value",
+            "failure_reason",
+            "provenance_id",
+        ]
+        .iter()
+        .map(|name| name.to_string())
+        .collect()
+    }
+
+    pub fn cells(&self) -> Vec<String> {
+        vec![
+            self.trial_id.clone(),
+            self.subject.clone(),
+            self.variant_label.clone(),
+            self.method_ids.join(" "),
+            self.quantity.clone(),
+            self.value
+                .map(crate::relations::format_value)
+                .unwrap_or_default(),
+            self.failure_reason.clone(),
+            self.provenance_id.clone(),
+        ]
+    }
+}
+
 /// What a compare run produced.
 #[derive(Debug, Clone)]
 pub struct BatchCompareResult {
@@ -615,3 +648,113 @@ fn label(dispersion: DispersionEstimator) -> &'static str {
 /// One subject's coefficient of variation, re-exported so a caller building the set the mean
 /// is taken over reaches the same function rather than writing a second one.
 pub use plateforce_core::agreement::coefficient_of_variation as subject_coefficient_of_variation;
+
+/// The record a compare run carries: what it ran over, and what identifies it.
+#[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize)]
+pub struct CompareRunRow {
+    pub plateforce_version: String,
+    pub registry_digest: String,
+    pub request_digest: String,
+    pub quantity: String,
+    pub slot: String,
+    pub method_ids: Vec<String>,
+    pub trial_count: usize,
+    /// Trials that produced a value for every method, which is the denominator of any paired
+    /// statistic taken over this run.
+    pub complete_pairs: usize,
+    pub paired_rows: usize,
+    pub failed_rows: usize,
+    pub distinct_provenance_count: usize,
+}
+
+impl BatchCompareResult {
+    /// The run row, measured from what the run actually produced.
+    pub fn run_row(&self, registry_digest: &str, request_digest: &str) -> CompareRunRow {
+        let distinct: std::collections::BTreeSet<&str> = self
+            .paired
+            .iter()
+            .map(|row| row.provenance_id.as_str())
+            .collect();
+        CompareRunRow {
+            plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
+            registry_digest: registry_digest.to_string(),
+            request_digest: request_digest.to_string(),
+            quantity: self.quantity.clone(),
+            slot: String::new(),
+            method_ids: self.method_ids.clone(),
+            trial_count: self.trial_count,
+            complete_pairs: self.complete_pairs,
+            paired_rows: self.paired.len(),
+            failed_rows: self.paired.iter().filter(|row| row.value.is_none()).count(),
+            distinct_provenance_count: distinct.len(),
+        }
+    }
+
+    /// `{"ok": {...}}`, the same envelope shape a single-mode run returns.
+    pub fn to_json(&self, registry_digest: &str, request_digest: &str) -> String {
+        serde_json::json!({
+            "ok": {
+                "run": self.run_row(registry_digest, request_digest),
+                "paired": self.paired,
+                "provenance": self.provenance,
+                "refusals": self.refusals,
+            }
+        })
+        .to_string()
+    }
+
+    /// The relations on disk, with the record beside them.
+    ///
+    /// A compare run answers how far two methods disagree, so a table of paired numbers with
+    /// no record of which rules produced which column is the artefact this software exists to
+    /// argue against. The refusal to write one without its record is the same one the trial
+    /// writer applies, for the same reason.
+    pub fn write_csv(
+        &self,
+        directory: &std::path::Path,
+        registry_digest: &str,
+        request_digest: &str,
+    ) -> Result<Vec<std::path::PathBuf>, crate::WriteRefusal> {
+        std::fs::create_dir_all(directory).map_err(|source| crate::WriteRefusal::Io {
+            path: directory.display().to_string(),
+            source,
+        })?;
+        let write = |name: &str, body: String| -> Result<std::path::PathBuf, crate::WriteRefusal> {
+            let path = directory.join(name);
+            std::fs::write(&path, body).map_err(|source| crate::WriteRefusal::Io {
+                path: path.display().to_string(),
+                source,
+            })?;
+            Ok(path)
+        };
+
+        let record = serde_json::to_string_pretty(&self.run_row(registry_digest, request_digest))
+            .unwrap_or_default();
+        Ok(vec![
+            write("compare-run.json", record)?,
+            write(
+                "paired.csv",
+                crate::write_csv::render_table(
+                    PairedRow::header(),
+                    self.paired.iter().map(PairedRow::cells),
+                ),
+            )?,
+            write(
+                "provenance.csv",
+                crate::write_csv::render_table(
+                    crate::relations::ProvenanceRow::header(),
+                    self.provenance
+                        .iter()
+                        .map(crate::relations::ProvenanceRow::cells),
+                ),
+            )?,
+            write(
+                "refusals.csv",
+                crate::write_csv::render_table(
+                    RefusalRow::header(),
+                    self.refusals.iter().map(RefusalRow::cells),
+                ),
+            )?,
+        ])
+    }
+}

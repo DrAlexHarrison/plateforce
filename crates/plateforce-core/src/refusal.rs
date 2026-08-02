@@ -22,6 +22,17 @@ pub enum RefusalCode {
     RegistryInvalid,
     /// A result was asked for while a choice the registry forces is still open.
     DecisionNotMade,
+    /// A parameter the registry marks required, with no default to fall through to, that
+    /// nobody stated. Distinct from `UnknownParameter`: the name is known and the value is
+    /// missing, so saying the name is unknown sends a caller looking for a typo.
+    RequiredParameterUnstated,
+    /// A file whose name a declared identity pattern could not parse. Refused by name rather
+    /// than skipped, because a file that vanishes from the denominator is a silent exclusion.
+    TrialIdentityUnparsed,
+    /// More than one column in a file looks like a force channel while the caller declared
+    /// one. A quantity taken over the whole system, read from one plate of two, is wrong by
+    /// roughly a factor of two and nothing in the record would say so.
+    AmbiguousForceChannels,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -34,12 +45,15 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         RefusalCode::NoCrossing
         | RefusalCode::CollapsedBand
         | RefusalCode::TraceTooShort
-        | RefusalCode::ColumnNotFound => 65,
+        | RefusalCode::ColumnNotFound
+        | RefusalCode::TrialIdentityUnparsed
+        | RefusalCode::AmbiguousForceChannels => 65,
         RefusalCode::MethodNotImplemented
         | RefusalCode::UnknownParameter
         | RefusalCode::ParameterNotFinite
         | RefusalCode::SentinelConventionUnknown
-        | RefusalCode::DecisionNotMade => 64,
+        | RefusalCode::DecisionNotMade
+        | RefusalCode::RequiredParameterUnstated => 64,
         RefusalCode::RegistryInvalid => 78,
     }
 }
@@ -278,6 +292,49 @@ impl Refusal {
         )
     }
 
+    /// A parameter the registry marks required with no default, left unstated.
+    pub fn required_parameter_unstated(
+        method_id: impl Into<String>,
+        parameter: impl Into<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::RequiredParameterUnstated,
+            method_id,
+            Some(parameter.into()),
+            None,
+            BTreeMap::new(),
+            Vec::new(),
+        )
+    }
+
+    /// A file name the declared pattern could not parse, named rather than skipped.
+    pub fn trial_identity_unparsed(
+        file_name: impl Into<String>,
+        template: impl Into<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::TrialIdentityUnparsed,
+            "",
+            Some(file_name.into()),
+            None,
+            BTreeMap::new(),
+            vec![template.into()],
+        )
+    }
+
+    /// More than one column looks like a force channel. `available` names what would resolve
+    /// it, because a refusal states an action rather than an absence.
+    pub fn ambiguous_force_channels(force_like_columns: usize, resolves: Vec<String>) -> Self {
+        Self::build(
+            RefusalCode::AmbiguousForceChannels,
+            "",
+            None,
+            None,
+            BTreeMap::from([("force_like_columns".to_string(), force_like_columns as f64)]),
+            resolves,
+        )
+    }
+
     /// A result was asked for while a choice the registry forces is still open. `available`
     /// carries the constructs whose choice is outstanding.
     pub fn decision_not_made(artifact: impl Into<String>, outstanding: Vec<String>) -> Self {
@@ -366,6 +423,21 @@ fn sentence(
             parameter.unwrap_or("this artifact"),
             if available.len() == 1 { "is" } else { "are" }
         ),
+        RefusalCode::RequiredParameterUnstated => format!(
+            "{method_id} publishes no default for {}, so it has to be stated",
+            parameter.unwrap_or("that name")
+        ),
+        RefusalCode::TrialIdentityUnparsed => format!(
+            "{} does not match the declared trial-identity pattern {}",
+            parameter.unwrap_or("that file name"),
+            available.first().map(String::as_str).unwrap_or("that was set")
+        ),
+        RefusalCode::AmbiguousForceChannels => format!(
+            "{} columns in this file look like force channels, so a quantity taken over the \
+             whole system cannot be read from one of them without declaring the file \
+             single-plate",
+            named("force_like_columns")
+        ),
     }
 }
 
@@ -374,7 +446,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_ten_codes_each_carry_an_exit_status() {
+    fn every_code_carries_an_exit_status() {
         let codes = [
             (RefusalCode::NoCrossing, 65),
             (RefusalCode::CollapsedBand, 65),
@@ -386,8 +458,12 @@ mod tests {
             (RefusalCode::SentinelConventionUnknown, 64),
             (RefusalCode::DecisionNotMade, 64),
             (RefusalCode::RegistryInvalid, 78),
+            (RefusalCode::RequiredParameterUnstated, 64),
+            (RefusalCode::TrialIdentityUnparsed, 65),
+            (RefusalCode::AmbiguousForceChannels, 65),
         ];
-        assert_eq!(codes.len(), 10);
+        println!("{} refusal codes", codes.len());
+        assert_eq!(codes.len(), 13);
         for (code, expected) in codes {
             assert_eq!(exit_code(code), expected, "{code:?}");
         }
@@ -412,6 +488,18 @@ mod tests {
             ),
             (RefusalCode::RegistryInvalid, "\"registry_invalid\""),
             (RefusalCode::DecisionNotMade, "\"decision_not_made\""),
+            (
+                RefusalCode::RequiredParameterUnstated,
+                "\"required_parameter_unstated\"",
+            ),
+            (
+                RefusalCode::TrialIdentityUnparsed,
+                "\"trial_identity_unparsed\"",
+            ),
+            (
+                RefusalCode::AmbiguousForceChannels,
+                "\"ambiguous_force_channels\"",
+            ),
         ];
         for (code, expected) in spellings {
             assert_eq!(serde_json::to_string(&code).unwrap(), expected);

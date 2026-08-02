@@ -3,7 +3,7 @@
 //! Which column carries vertical ground reaction force is a property of the export,
 //! not of the file format, so the caller names it and the reader reports back what it
 //! read rather than inferring anything.
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::signal::{Trial, TrialError};
 
@@ -217,6 +217,10 @@ pub struct ForceFileSummary {
     pub columns: Vec<ColumnSummary>,
     pub suggested_force_column: Option<usize>,
     pub suggested_force_column_reason: String,
+    /// How many columns carry a positive baseline in the newton range, which is what a
+    /// vertical force channel looks like. Two means the file holds two plates, and a
+    /// system-level quantity read from one of them is wrong by roughly a factor of two.
+    pub force_like_column_count: usize,
     pub suggested_time_column: Option<usize>,
     pub suggested_sample_rate_hz: Option<f64>,
     pub sample_rate_source: String,
@@ -308,6 +312,7 @@ pub fn parse(text: &str) -> Result<ForceFile, ParseError> {
         .find(|c| c.implied_sample_rate_hz.is_some())
         .map(|c| c.index);
     let (suggested_force_column, reason) = suggest_force_column(&summaries, suggested_time_column);
+    let force_like_column_count = force_like_columns(&summaries, suggested_time_column).len();
 
     let suggested_sample_rate_hz =
         suggested_time_column.and_then(|index| summaries[index].implied_sample_rate_hz);
@@ -327,6 +332,7 @@ pub fn parse(text: &str) -> Result<ForceFile, ParseError> {
             columns: summaries,
             suggested_force_column,
             suggested_force_column_reason: reason,
+            force_like_column_count,
             suggested_time_column,
             suggested_sample_rate_hz,
             sample_rate_source,
@@ -423,15 +429,25 @@ fn even_spacing(values: &[f64]) -> Option<f64> {
 /// The force channel is the one that moves most while sitting on a positive baseline. A
 /// heuristic is not a measurement, so the reason travels with the suggestion and the
 /// interface offers every column.
+/// Columns that look like a vertical force channel: a positive baseline in the newton range
+/// that varies. This is the reader's existing judgement rather than a second inference, and
+/// it is what both the suggestion and the dual-plate refusal are taken over.
+fn force_like_columns<'a>(
+    summaries: &'a [ColumnSummary],
+    time_column: Option<usize>,
+) -> Vec<&'a ColumnSummary> {
+    summaries
+        .iter()
+        .filter(|c| Some(c.index) != time_column)
+        .filter(|c| c.median > 50.0 && c.standard_deviation > 0.0)
+        .collect()
+}
+
 fn suggest_force_column(
     summaries: &[ColumnSummary],
     time_column: Option<usize>,
 ) -> (Option<usize>, String) {
-    let plausible: Vec<&ColumnSummary> = summaries
-        .iter()
-        .filter(|c| Some(c.index) != time_column)
-        .filter(|c| c.median > 50.0 && c.standard_deviation > 0.0)
-        .collect();
+    let plausible = force_like_columns(summaries, time_column);
 
     if plausible.is_empty() {
         return (
@@ -533,5 +549,141 @@ mod reading_an_undeclared_export {
     #[test]
     fn a_file_with_no_numbers_says_so_rather_than_returning_an_empty_trace() {
         assert!(parse("name,notes\nalpha,beta\n").is_err());
+    }
+}
+
+/// What the caller has said about how many plates the file holds.
+///
+/// A file carrying two force-like columns is two plates until somebody says otherwise, and
+/// saying otherwise is an act that travels in the record rather than a default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PlateDeclaration {
+    /// Nobody has said. A quantity taken over the whole system refuses when more than one
+    /// column looks like force.
+    Undeclared,
+    /// The operator states that one column is the whole system, so the others are not
+    /// plates. Recorded, so a reader of the fingerprint knows it was said rather than
+    /// assumed.
+    SinglePlate,
+}
+
+impl ForceFile {
+    /// Whether a quantity taken over the whole system can be read from one column of this
+    /// file, or a refusal naming both columns and what would resolve it.
+    ///
+    /// `MISSION.md` P5 asks every real export for a correct answer or a refusal naming the
+    /// method and the parameter, never a confident wrong number. A dual-plate export read as
+    /// one plate is the confident wrong number: the system weight, the net impulse and the
+    /// jump height all come back for one leg, and nothing records that a second force
+    /// channel sat beside it.
+    ///
+    /// This is not dual-plate support and does not become it. It is a file declining to be
+    /// half-read.
+    pub fn check_system_quantity_is_readable(
+        &self,
+        declaration: PlateDeclaration,
+    ) -> Result<(), crate::refusal::Refusal> {
+        if declaration == PlateDeclaration::SinglePlate {
+            return Ok(());
+        }
+        if self.summary.force_like_column_count <= 1 {
+            return Ok(());
+        }
+        let named: Vec<String> = self
+            .summary
+            .columns
+            .iter()
+            .filter(|column| column.median > 50.0 && column.standard_deviation > 0.0)
+            .map(|column| match &column.header {
+                Some(header) => format!(
+                    "column {} '{header}' at {:.0} N",
+                    column.index + 1,
+                    column.median
+                ),
+                None => format!("column {} at {:.0} N", column.index + 1, column.median),
+            })
+            .collect();
+        Err(crate::refusal::Refusal::ambiguous_force_channels(
+            self.summary.force_like_column_count,
+            named,
+        ))
+    }
+}
+
+#[cfg(test)]
+mod two_plates_where_the_software_expects_one {
+    use super::*;
+
+    /// A vendor export of a dual-plate capture: time, then one force channel per plate.
+    fn two_plate_export() -> String {
+        let mut text = String::from("Exported 2011-03-04\nPlate 1\tPlate 2\ntime\tfz1\tfz2\n");
+        for sample in 0..400 {
+            let phase = sample as f64 / 400.0;
+            // Not monotonic: a strictly increasing evenly spaced column is what a time
+            // column looks like, and the reader would rightly read one as that.
+            let shape = (phase * std::f64::consts::TAU).sin();
+            text.push_str(&format!(
+                "{:.4}\t{:.3}\t{:.3}\n",
+                sample as f64 / 1200.0,
+                300.0 + 60.0 * shape,
+                290.0 + 55.0 * shape,
+            ));
+        }
+        text
+    }
+
+    fn one_plate_export() -> String {
+        let mut text = String::from("time\tfz\n");
+        for sample in 0..400 {
+            let phase = sample as f64 / 400.0;
+            let shape = (phase * std::f64::consts::TAU).sin();
+            text.push_str(&format!(
+                "{:.4}\t{:.3}\n",
+                sample as f64 / 1200.0,
+                600.0 + 120.0 * shape
+            ));
+        }
+        text
+    }
+
+    #[test]
+    fn a_file_with_two_force_columns_refuses_a_system_quantity_by_name() {
+        let file = parse(&two_plate_export()).expect("the export reads");
+        assert_eq!(file.summary.force_like_column_count, 2);
+        let refusal = file
+            .check_system_quantity_is_readable(PlateDeclaration::Undeclared)
+            .expect_err("two plates cannot answer a whole-system question");
+        println!("{refusal}");
+        assert_eq!(
+            refusal.code,
+            crate::refusal::RefusalCode::AmbiguousForceChannels
+        );
+        assert!(refusal.message().contains('2'), "{}", refusal.message());
+        // Both columns are named, so the user knows which two the reader could not choose
+        // between rather than being told only that it could not.
+        assert_eq!(refusal.available.len(), 2, "{:?}", refusal.available);
+        assert!(refusal.available.iter().any(|named| named.contains("fz1")));
+        assert!(refusal.available.iter().any(|named| named.contains("fz2")));
+    }
+
+    #[test]
+    fn declaring_the_file_single_plate_computes_and_the_declaration_is_a_value() {
+        let file = parse(&two_plate_export()).expect("the export reads");
+        file.check_system_quantity_is_readable(PlateDeclaration::SinglePlate)
+            .expect("a stated single plate answers the question");
+        // The count stays on the record either way, so a single-plate read of a two-plate
+        // file is visible in the fingerprint whatever the caller declared.
+        assert_eq!(file.summary.force_like_column_count, 2);
+    }
+
+    /// The control. One force-like column needs no declaration, so the refusal above is a
+    /// second channel rather than a check that refuses every file.
+    #[test]
+    fn one_force_column_needs_no_declaration() {
+        let file = parse(&one_plate_export()).expect("the export reads");
+        assert_eq!(file.summary.force_like_column_count, 1);
+        file.check_system_quantity_is_readable(PlateDeclaration::Undeclared)
+            .expect("one plate is not ambiguous");
     }
 }
