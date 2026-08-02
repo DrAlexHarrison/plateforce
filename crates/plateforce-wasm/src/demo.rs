@@ -1,17 +1,18 @@
-//! A synthetic countermovement jump, for the interface to open with.
+//! The two countermovement jumps the interface can open with no file at hand.
 //!
-//! Synthetic on purpose. The corpus this project was built from is re-identifiable, so
-//! no recorded trial ships with the software. The shape is drawn to the landmark
-//! definitions in `docs/landmarks.md` and the propulsion amplitude is then solved so
-//! that net impulse over system mass equals the stated takeoff velocity, which keeps the
-//! demonstration internally consistent rather than merely plausible.
+//! The drawn one follows the landmark definitions in `docs/landmarks.md`, and its
+//! propulsion amplitude is solved so that net impulse over system mass equals the stated
+//! takeoff velocity, which keeps it internally consistent rather than merely plausible.
+//!
+//! Both run past the landing, so both carry a flight time and the two routes to a jump
+//! height can check each other on either.
 
 use plateforce_core::takeoff::{takeoff_first_sustained_run, ResidualComparison};
 use plateforce_core::trial::{takeoff_velocity_meters_per_second, CentralTendency};
 use plateforce_core::DispersionEstimator;
 use plateforce_core::Trial;
 use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED as GRAVITY;
-use plateforce_core::{Landmarks, WeighingEpoch};
+use plateforce_core::{read_delimited_column, Landmarks, WeighingEpoch};
 
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 const DURATION_SECONDS: f64 = 5.0;
@@ -239,4 +240,17 @@ mod tests {
         );
         assert!(onset.is_ok(), "{onset:?}");
     }
+}
+
+/// A recorded countermovement jump, embedded so it needs no network and no file at hand.
+///
+/// The rate is not in the export and every velocity, displacement and impulse scales with
+/// it: this corpus samples at 1200 Hz. The column is the first and the delimiter is a tab,
+/// which is what the committed file carries.
+pub fn recorded_countermovement_jump() -> Trial {
+    const TRACE: &str =
+        include_str!("../../plateforce-conformance/fixtures/subject01_trial1.force.txt");
+    let (values, _) =
+        read_delimited_column(TRACE, '\t', 0).expect("the committed trace reads as one column");
+    Trial::new(values, SAMPLE_RATE_HZ).expect("the committed trace is a trial")
 }
