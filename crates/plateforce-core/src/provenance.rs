@@ -1,6 +1,55 @@
-//! The chain of methods behind one number.
+//! The chain of methods behind one number, and where each value in it came from.
+
+use serde::{Deserialize, Serialize};
 
 use crate::Provenance;
+
+/// Where a bound value came from.
+///
+/// A value the caller typed and a value the interface pre-filled from the registry move the
+/// number by exactly the same amount, and recording the second as the first is a default
+/// wearing the user's signature. The five are kept apart because each answers a different
+/// question a reader of a methods section asks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParameterSource {
+    /// The caller supplied the value and claimed no other source for it.
+    Stated,
+    /// A registry default was used with nobody asked, by the rule or by the interface.
+    Assumed,
+    /// The rule computed it from this trace.
+    Measured,
+    /// The user accepted the registry's recommendation as an explicit act.
+    Recommended,
+    /// No act has happened. The value exists to be looked at, and a result resting on one
+    /// cannot leave the building.
+    Provisional,
+}
+
+impl ParameterSource {
+    /// Whether a value from this source leaves a result unfit to export, fingerprint or
+    /// cite. Only an unmade decision does. An accepted recommendation is a choice.
+    pub fn taints_the_record(self) -> bool {
+        matches!(self, ParameterSource::Provisional)
+    }
+}
+
+/// A numeric value a rule was bound to, and where it came from.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ParameterRecord {
+    pub name: String,
+    pub value: f64,
+    pub source: ParameterSource,
+}
+
+/// A choice between named alternatives, and where it came from. Population against sample
+/// standard deviation moves the number as far as a numeric parameter does.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ChoiceRecord {
+    pub name: String,
+    pub value: String,
+    pub source: ParameterSource,
+}
 
 /// A provenance and the provenances of the results it was computed from.
 ///
@@ -76,6 +125,38 @@ mod tests {
             registry_version: None,
             registry_digest: None,
             acquisition_complete: true,
+        }
+    }
+
+    #[test]
+    fn the_source_enum_has_five_values() {
+        let spellings = [
+            (ParameterSource::Stated, "\"stated\""),
+            (ParameterSource::Assumed, "\"assumed\""),
+            (ParameterSource::Measured, "\"measured\""),
+            (ParameterSource::Recommended, "\"recommended\""),
+            (ParameterSource::Provisional, "\"provisional\""),
+        ];
+        assert_eq!(spellings.len(), 5);
+        for (source, expected) in spellings {
+            assert_eq!(serde_json::to_string(&source).unwrap(), expected);
+            assert_eq!(
+                serde_json::from_str::<ParameterSource>(expected).unwrap(),
+                source
+            );
+        }
+    }
+
+    #[test]
+    fn only_an_unmade_decision_taints_the_record() {
+        assert!(ParameterSource::Provisional.taints_the_record());
+        for kept in [
+            ParameterSource::Stated,
+            ParameterSource::Assumed,
+            ParameterSource::Measured,
+            ParameterSource::Recommended,
+        ] {
+            assert!(!kept.taints_the_record(), "{kept:?}");
         }
     }
 
