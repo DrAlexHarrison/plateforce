@@ -214,7 +214,7 @@ impl Derived<'_> {
                     provenance: software_step(
                         method_id,
                         bound_parameters,
-                        &self.registry,
+                        self.registry,
                         self.acquisition_complete,
                     ),
                 },
