@@ -15,7 +15,7 @@ use plateforce_core::agreement::{
     ordinary_least_products, CoefficientOfVariation, IntraclassCorrelation, IntraclassForm,
     LimitsOfAgreement, Pair, ProductRegression,
 };
-use plateforce_core::DispersionEstimator;
+use plateforce_core::{DispersionEstimator, RefusalCode};
 use serde::Serialize;
 
 use crate::engine::BatchRequest;
@@ -219,6 +219,23 @@ pub enum AgreementRefusal {
 }
 
 impl AgreementRefusal {
+    /// The published code for this fault. Every refusal the crate emits answers to one of
+    /// these, so a caller reading a batch row and a caller reading a compare result meet the
+    /// same word for the same failure.
+    pub fn code(&self) -> RefusalCode {
+        match self {
+            // The pattern that would name a subject is the thing left unstated, so the
+            // remedy is to state it rather than to repair the data.
+            AgreementRefusal::RequiredParametersUnstated { .. }
+            | AgreementRefusal::SubjectUnitWithoutGrouping => {
+                RefusalCode::RequiredParameterUnstated
+            }
+            AgreementRefusal::NotTheSameRepetition { .. } => RefusalCode::ObservationsNotPaired,
+            AgreementRefusal::ConventionsDiffer { .. } => RefusalCode::ConventionsNotComparable,
+            AgreementRefusal::NotEnoughPairs { .. } => RefusalCode::NotEnoughObservations,
+        }
+    }
+
     pub fn message(&self) -> String {
         match self {
             AgreementRefusal::RequiredParametersUnstated { parameters, legal } => format!(

@@ -399,3 +399,72 @@ fn a_compare_run_leaves_the_machine_with_its_record_beside_it() {
     assert!(run.registry_digest.starts_with("content-"));
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// Every refusal this crate emits answers to a published code, so a caller reading a batch
+/// row and a caller reading a compare result meet the same word for the same failure. The
+/// list is built from the variants rather than typed, so a new one cannot ship uncoded.
+#[test]
+fn every_agreement_refusal_carries_a_published_code() {
+    let every = [
+        AgreementRefusal::RequiredParametersUnstated {
+            parameters: vec!["unit_of_analysis".to_string()],
+            legal: vec!["trial".to_string()],
+        },
+        AgreementRefusal::NotTheSameRepetition {
+            pairs: vec!["a against b".to_string()],
+        },
+        AgreementRefusal::SubjectUnitWithoutGrouping,
+        AgreementRefusal::ConventionsDiffer {
+            left: "sample".to_string(),
+            right: "population".to_string(),
+        },
+        AgreementRefusal::NotEnoughPairs { had: 1, needs: 2 },
+    ];
+
+    let published: std::collections::BTreeSet<&str> = plateforce_core::RefusalCode::ALL
+        .iter()
+        .map(|code| code.wire_name())
+        .collect();
+    // The pairing itself, because a code that resolves and discriminates can still be the
+    // wrong one: swapping `not_enough_observations` for `trace_too_short` keeps both of those
+    // properties and tells a caller their recording is short when their group is small.
+    let expected = [
+        "required_parameter_unstated",
+        "observations_not_paired",
+        "required_parameter_unstated",
+        "conventions_not_comparable",
+        "not_enough_observations",
+    ];
+    assert_eq!(every.len(), expected.len(), "one expectation per variant");
+
+    for (refusal, want) in every.iter().zip(expected) {
+        let code = refusal.code();
+        println!("{:38} {}", code.wire_name(), refusal.message());
+        assert!(
+            published.contains(code.wire_name()),
+            "{} is not a code this build publishes",
+            code.wire_name()
+        );
+        assert_eq!(
+            code.wire_name(),
+            want,
+            "this fault answers to {want}: {}",
+            refusal.message()
+        );
+        assert!(!refusal.message().is_empty(), "and it says what happened");
+    }
+
+    // Distinctness as well, so a mapping that answered everything the same way would fail
+    // here even if every expectation above were rewritten to match it.
+    let distinct: std::collections::BTreeSet<&str> =
+        every.iter().map(|r| r.code().wire_name()).collect();
+    println!(
+        "{} distinct codes over {} refusals",
+        distinct.len(),
+        every.len()
+    );
+    assert!(
+        distinct.len() >= 4,
+        "these five faults are not one fault: {distinct:?}"
+    );
+}
