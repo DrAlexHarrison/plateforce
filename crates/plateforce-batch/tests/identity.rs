@@ -34,18 +34,29 @@ fn reads_every_committed_fixture() {
         set.len(),
         set.files_found
     );
-    assert_eq!(set.files_found, 6, "six names carry the declared suffix");
-    assert_eq!(set.len(), 6, "all six are named");
+    // The count comes from the directory rather than from a literal here. Other workstreams
+    // land fixtures, and a number written into this file goes stale into a green pass.
+    let traces = std::fs::read_dir(FIXTURES)
+        .unwrap()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_name().to_string_lossy().ends_with("force.txt"))
+        .count();
+    assert!(traces >= 6, "the committed set only grows");
+    assert_eq!(
+        set.files_found, traces,
+        "every trace carries the declared suffix"
+    );
+    assert_eq!(set.len(), traces, "and every one of them is named");
     assert!(set.unidentified.is_empty());
 
-    // The directory holds eight files. The two that are not traces are outside the declared
-    // set rather than refused as data failures, and the narrowing is what `files_found` says.
+    // The files that are not traces sit outside the declared set rather than being refused as
+    // data failures, and the narrowing is itself what `files_found` records.
     let on_disk = std::fs::read_dir(FIXTURES).unwrap().count();
     println!(
         "{} of {on_disk} files in the directory are declared trials",
         set.files_found
     );
-    assert_eq!(on_disk, 8);
+    assert!(on_disk > set.files_found);
 
     for (trial_id, entry) in set.iter() {
         let (trial, report) = entry

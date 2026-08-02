@@ -21,7 +21,11 @@ fn synthetic(name: &str, subjects: usize, trials: usize) -> (std::path::PathBuf,
     (directory, set)
 }
 
-fn request(rule: &str, n: usize, kind: GroupKind) -> Result<AggregationRequest, AggregationRefusal> {
+fn request(
+    rule: &str,
+    n: usize,
+    kind: GroupKind,
+) -> Result<AggregationRequest, AggregationRefusal> {
     AggregationRequest::declared(
         Some(rule),
         Some(n),
@@ -46,7 +50,11 @@ fn an_aggregate_names_its_rule_and_its_n() {
         joined.coverage.computed,
         set.len()
     );
-    assert_eq!(joined.aggregates.len(), 5, "one row per subject per quantity");
+    assert_eq!(
+        joined.aggregates.len(),
+        5,
+        "one row per subject per quantity"
+    );
 
     let row = &joined.aggregates[0];
     assert_eq!(row.method_id, "trial.aggregation", "the rule is named");
@@ -92,7 +100,10 @@ fn aggregation_without_a_declared_rule_is_refused() {
     println!("{message}");
     assert_eq!(refusal, AggregationRefusal::RuleNotStated);
     for published in AggregationRule::PUBLISHED {
-        assert!(message.contains(published), "{published} is named: {message}");
+        assert!(
+            message.contains(published),
+            "{published} is named: {message}"
+        );
     }
 }
 
@@ -117,10 +128,7 @@ fn a_rule_that_ranks_on_a_quantity_this_analysis_does_not_produce_refuses_by_nam
     let plan = request("best_of_n_by_peak_force", 3, GroupKind::Subject).unwrap();
     let refusal = aggregate(&set, &result, &plan).expect_err("peak force is not among the columns");
     println!("{}", refusal.message());
-    assert!(matches!(
-        refusal,
-        AggregationRefusal::QuantityAbsent { .. }
-    ));
+    assert!(matches!(refusal, AggregationRefusal::QuantityAbsent { .. }));
     assert!(refusal.message().contains("peak_force"));
     std::fs::remove_dir_all(&directory).ok();
 }
@@ -150,7 +158,10 @@ fn grouping_refusal_names_the_pattern_that_would_supply_a_subject() {
     let refusal = aggregate(&set, &result, &plan).expect_err("no pattern, no subject");
     let message = refusal.message();
     println!("{message}");
-    assert!(message.contains("{subject}"), "it names the placeholder: {message}");
+    assert!(
+        message.contains("{subject}"),
+        "it names the placeholder: {message}"
+    );
 
     // The number that is defensible without a subject is still available, and it is a
     // different group kind rather than the same one under a weaker claim.
@@ -177,7 +188,10 @@ fn a_run_level_reduction_claims_no_published_rule() {
     println!(
         "run-level method_id {:?}, chain sources {:?}",
         rows[0].method_id,
-        chain.iter().map(|row| row.source.as_str()).collect::<Vec<_>>()
+        chain
+            .iter()
+            .map(|row| row.source.as_str())
+            .collect::<Vec<_>>()
     );
     assert!(
         rows[0].method_id.is_empty(),

@@ -4,9 +4,7 @@ mod common;
 
 use common::{bound_request, declared_pattern, registry, synthetic_format, tempdir};
 use plateforce_batch::render::Rendering;
-use plateforce_batch::{
-    analyse, with_aggregates, AggregationRequest, GroupKind, TrialSet,
-};
+use plateforce_batch::{analyse, with_aggregates, AggregationRequest, GroupKind, TrialSet};
 use plateforce_core::DispersionEstimator;
 
 const HEIGHT: &str = "jump_height_from_takeoff_meters";
@@ -103,7 +101,11 @@ fn the_summary_renders_beneath_the_table_with_its_count_beside_it() {
     }
 
     // The summary is a rendering of `aggregates` beneath the table, not a row inside it.
-    assert_eq!(rendered.rows.len(), 12, "twelve trials, and no mean among them");
+    assert_eq!(
+        rendered.rows.len(),
+        12,
+        "twelve trials, and no mean among them"
+    );
     std::fs::remove_dir_all(&directory).ok();
 }
 

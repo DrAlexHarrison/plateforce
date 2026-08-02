@@ -414,6 +414,16 @@ status = "accepted"
 confidence = "high"
 debate = "genuine"
 
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+required = true
+notes = """
+population or sample. The rule says standard deviation and does not say which, and the two divisors
+give different numbers from the same trials. On the three to five trials a subject usually supplies,
+the difference is a several-percent shift in the reported figure rather than a rounding one.
+"""
+
 [[method.citation]]
 key = "merrigan2021"
 role = "uses"

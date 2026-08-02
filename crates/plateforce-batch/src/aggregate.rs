@@ -51,7 +51,9 @@ impl AggregationRule {
     pub fn parse(name: &str) -> Result<Self, AggregationRefusal> {
         match name {
             "best_of_n_by_peak_force" => Ok(AggregationRule::BestOfNByPeakForce),
-            "mean_of_best_three_of_at_least_five" => Ok(AggregationRule::MeanOfBestThreeOfAtLeastFive),
+            "mean_of_best_three_of_at_least_five" => {
+                Ok(AggregationRule::MeanOfBestThreeOfAtLeastFive)
+            }
             "mean_of_best_two" => Ok(AggregationRule::MeanOfBestTwo),
             _ => Err(AggregationRefusal::RuleNotStated),
         }
@@ -102,7 +104,10 @@ pub enum AggregationRefusal {
     RuleNotStated,
     CountNotStated,
     /// The rule ranks on a quantity the analysis did not produce.
-    QuantityAbsent { rule: String, quantity: String },
+    QuantityAbsent {
+        rule: String,
+        quantity: String,
+    },
     /// Fewer trials in the group than the rule requires.
     TooFewTrials {
         rule: String,
@@ -111,7 +116,9 @@ pub enum AggregationRefusal {
         group: String,
     },
     /// The run declared no pattern, so it has no subject to group by.
-    NoDeclaredGrouping { template_hint: String },
+    NoDeclaredGrouping {
+        template_hint: String,
+    },
     /// The declared count is below what the rule can honour.
     CountBelowRule {
         rule: String,
@@ -291,7 +298,9 @@ pub fn aggregate(
                 });
             }
 
-            values.sort_by(|left, right| right.partial_cmp(left).unwrap_or(std::cmp::Ordering::Equal));
+            values.sort_by(|left, right| {
+                right.partial_cmp(left).unwrap_or(std::cmp::Ordering::Equal)
+            });
             let taken = request.rule.trials_taken().min(values.len());
             let reduced = &values[..taken];
 

@@ -9,7 +9,7 @@ use plateforce_batch::{analyse, BatchRequest, TrialIdentity, TrialSet};
 fn one_bad_trial_costs_one_row_and_the_run_continues() {
     let directory = tempdir("one-bad-trial");
     let copied = copy_committed_fixtures(&directory);
-    assert_eq!(copied, 6, "the six committed traces are the good half");
+    assert!(copied >= 6, "the committed traces are the good half");
     // Cut before any row landed, which is the failure a run over a copied folder actually
     // meets and which the reader is the one to catch.
     std::fs::write(directory.join("truncated.force.txt"), "").unwrap();
@@ -28,9 +28,9 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
         set.len()
     );
 
-    assert_eq!(result.results.len(), 7, "every trial keeps its row");
-    assert_eq!(result.coverage.trial_count, 7);
-    assert_eq!(result.coverage.computed, 6);
+    assert_eq!(result.results.len(), copied + 1, "every trial keeps its row");
+    assert_eq!(result.coverage.trial_count, copied + 1);
+    assert_eq!(result.coverage.computed, copied);
     assert_eq!(result.coverage.refused, 1);
     assert_eq!(
         result
@@ -38,8 +38,8 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
             .iter()
             .filter(|row| row.refusal_code.is_empty())
             .count(),
-        6,
-        "six rows carry values"
+        copied,
+        "every good trace carries values"
     );
 
     let refused: Vec<&str> = result
@@ -102,7 +102,7 @@ fn a_run_with_a_choice_still_open_reads_no_trial_at_all() {
 #[test]
 fn a_trace_no_rule_can_work_with_also_costs_one_row() {
     let directory = tempdir("too-short");
-    copy_committed_fixtures(&directory);
+    let copied = copy_committed_fixtures(&directory);
     // The reader accepts this and every landmark rule declines it, which is a different
     // failure point from a file that will not parse and must cost the same one row.
     std::fs::write(directory.join("stub.force.txt"), "600.0\n").unwrap();
@@ -111,8 +111,8 @@ fn a_trace_no_rule_can_work_with_also_costs_one_row() {
     let result = analyse(&set, &bound_request(), &registry()).unwrap();
 
     println!("{}", result.coverage.line());
-    assert_eq!(result.results.len(), 7);
-    assert_eq!(result.coverage.computed, 6);
+    assert_eq!(result.results.len(), copied + 1);
+    assert_eq!(result.coverage.computed, copied);
     assert_eq!(result.coverage.refused, 1);
     let row = result
         .results
@@ -126,16 +126,19 @@ fn a_trace_no_rule_can_work_with_also_costs_one_row() {
 #[test]
 fn the_coverage_line_names_every_count_against_one_denominator() {
     let directory = tempdir("coverage-line");
-    copy_committed_fixtures(&directory);
+    let copied = copy_committed_fixtures(&directory);
     std::fs::write(directory.join("README.md"), "not a trace\n").unwrap();
     let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
     let result = analyse(&set, &bound_request(), &registry()).unwrap();
 
     let line = result.coverage.line();
     println!("{line}");
-    assert!(line.contains("files 6 found"), "{line}");
-    assert!(line.contains("computed 6 of 6"), "{line}");
-    assert!(line.contains("excluded 0 of 6"), "{line}");
+    assert!(line.contains(&format!("files {copied} found")), "{line}");
+    assert!(
+        line.contains(&format!("computed {copied} of {copied}")),
+        "{line}"
+    );
+    assert!(line.contains(&format!("excluded 0 of {copied}")), "{line}");
     assert_eq!(
         result.coverage.computed + result.coverage.refused,
         result.coverage.trial_count,
