@@ -740,6 +740,19 @@ confidence = "medium"
 debate = "genuine"
 
 [[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [20.0]
+default = 20.0
+default_source = "plateforce_corpus_fit"
+required = true
+notes = """
+What counts as low force, before any shape is read. The value the shape parameters below were fitted
+under. The debate about the number itself is the one takeoff.threshold.absolute_force carries under
+this name, where seven published values sit between 1 N and 50 N.
+"""
+
+[[method.parameter]]
 name = "landing_rise_rate_floor_bodyweights_per_second"
 unit = "bodyweights_per_second"
 published_values = [20.0]
