@@ -2,6 +2,10 @@
 //!
 //! See `docs/landmarks.md` for the operational rule behind each point.
 
+use crate::series::{
+    centre_of_mass_velocity_meters_per_second, IntegrationAnchor, IntegrationDirection,
+    IntegrationSpec, IntegrationStart, QuadratureRule,
+};
 use crate::signal::{Trial, TrialError};
 use crate::statistics::{
     lowest_variance_window, mean_and_standard_deviation, median, DispersionEstimator,
@@ -179,18 +183,37 @@ pub struct Landmarks {
 ///
 /// Net impulse from onset to takeoff divided by system mass. This is an identity, not
 /// an estimate, so it is the anchor every other velocity claim is checked against.
+///
+/// Read off the centre-of-mass velocity series rather than integrated again here, under
+/// `integration.start.detected_onset`. A caller holding a series built under a different
+/// start reads it directly and gets a different, declared, number.
 pub fn takeoff_velocity_meters_per_second(
     trial: &Trial,
     epoch: &WeighingEpoch,
     landmarks: &Landmarks,
     gravity_meters_per_second_squared: f64,
 ) -> f64 {
-    let net = trial.integrate_offset_newton_seconds(
-        landmarks.onset_index,
-        landmarks.takeoff_index,
-        epoch.system_weight_newtons,
+    let spec = IntegrationSpec {
+        quadrature: QuadratureRule::Trapezoid,
+        direction: IntegrationDirection::Forward,
+        start: IntegrationStart::DetectedOnset {
+            index: landmarks.onset_index,
+        },
+        anchor: IntegrationAnchor::SinglePoint {
+            index: landmarks.onset_index,
+        },
+    };
+    let series = centre_of_mass_velocity_meters_per_second(
+        trial,
+        epoch,
+        &spec,
+        gravity_meters_per_second_squared,
     );
-    net / epoch.system_mass_kilograms(gravity_meters_per_second_squared)
+    // Takeoff is the start of the first run below the threshold, so the last sample in
+    // contact is the one before it and the interval across it is already flight.
+    series
+        .at(landmarks.takeoff_index.saturating_sub(1))
+        .unwrap_or(0.0)
 }
 
 /// Jump height from takeoff velocity, in metres. The takeoff frame.
