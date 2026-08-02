@@ -26,7 +26,9 @@ pub struct MethodChoice {
     pub manual_index: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+/// `Default` so a caller can build one with `..Default::default()`. The next field this
+/// struct gains would otherwise break every exhaustive literal in the workspace at once.
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WeighingChoice {
     pub method_id: String,

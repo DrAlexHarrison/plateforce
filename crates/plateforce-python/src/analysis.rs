@@ -23,8 +23,7 @@ use crate::result::{Exclusions, Measured, ProvenanceChain};
 use crate::trial::Trial;
 
 /// Steps the software performs that no registry entry describes, reported on every result
-/// rather than left to be discovered. Gravity rides on them because the core takes it as an
-/// argument, tools disagree on 9.81 against 9.80665, and no entry covers the choice.
+/// rather than left to be discovered.
 // Five of these are registry entries and were being reported as unregistered on this surface
 // alone. The rule was always the registry's; only the name this crate used for it was not, so
 // the same number arrived carrying a resolvable id through the browser and an unresolvable one
@@ -36,13 +35,12 @@ const JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID: &str = "jumpheight.takeoff.impulse_mo
 const JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID: &str = "jumpheight.takeoff.flight_time";
 const RSI_MODIFIED_METHOD_ID: &str = "rsimod.jh_tov_over_ttt";
 
-// These two are genuinely unfiled: no entry describes turning two landmark indices into an
-// elapsed time. They stay declared as unregistered rather than being given a plausible-looking
-// id, because an id that resolves to nothing is worse than an honest absence.
+// Turning two landmark indices into an elapsed time carried no entry until the registry
+// gained one for each. Both ids resolve, so neither is reported as unregistered.
 const TIME_TO_TAKEOFF_METHOD_ID: &str = "time_to_takeoff.onset_to_takeoff";
 const FLIGHT_TIME_METHOD_ID: &str = "flight_time.takeoff_to_touchdown";
 
-const UNREGISTERED_METHOD_IDS: &[&str] = &[TIME_TO_TAKEOFF_METHOD_ID, FLIGHT_TIME_METHOD_ID];
+const UNREGISTERED_METHOD_IDS: &[&str] = &[];
 
 /// Registry entries this build can run, taken from the one list every surface reads. An
 /// entry the registry describes and no rule implements has to fail rather than quietly
