@@ -5,8 +5,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use plateforce_core::takeoff::ResidualComparison;
 use plateforce_core::provenance::ParameterSource;
+use plateforce_core::takeoff::ResidualComparison;
 use plateforce_core::DispersionEstimator;
 use serde::Serialize;
 

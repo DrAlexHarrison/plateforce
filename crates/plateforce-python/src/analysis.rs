@@ -101,7 +101,10 @@ fn chain_of(
         registry.version.clone(),
         registry.digest.clone(),
         acquisition_complete,
-        depends_on.iter().map(|input| input.provenance.clone()).collect(),
+        depends_on
+            .iter()
+            .map(|input| input.provenance.clone())
+            .collect(),
     );
     ProvenanceChain {
         enumerated_choices: provenance
