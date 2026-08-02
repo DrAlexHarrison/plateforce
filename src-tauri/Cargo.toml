@@ -1,0 +1,32 @@
+[package]
+name = "plateforce-desktop"
+description = "The plateforce interface as a desktop application."
+# Outside the workspace by design, so `[workspace.package] version` cannot reach it and this
+# literal is the app version Tauri reads. `scripts/verify-release-artefacts.sh` refuses a
+# release whose two version homes disagree, because a bump applied to one and not the other
+# ships an installer whose About box names a different release from the tag that produced it.
+version = "0.1.0"
+edition = "2021"
+# The shell's own floor, which is not the workspace's. `scripts/check-msrv.sh` reads the
+# workspace and this package sits outside it, so the floor is declared where it is enforced.
+# Set by the Tauri dependency tree rather than by anything written here: `serde_with` and
+# `time` declare 1.88 while the scientific workspace still compiles on 1.85. Nothing depends
+# on this crate, so raising 1.85 to accommodate a shell would cost users a toolchain for
+# nothing.
+rust-version = "1.88"
+license = "Apache-2.0"
+repository = "https://github.com/DrAlexHarrison/plateforce"
+authors = ["Alex Harrison"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+sha2 = "0.10"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+strip = true

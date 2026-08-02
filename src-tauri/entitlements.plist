@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Notarisation requires the hardened runtime, which blocks unsigned JIT, and WebKit's
+	     JavaScript engine needs it. Nothing else is granted: allow-unsigned-executable-memory
+	     and disable-library-validation turn up in copied Tauri configurations and each widens
+	     the attack surface of a program that reads other people's research data. -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+</dict>
+</plist>

@@ -1,0 +1,182 @@
+name: desktop, Linux
+
+# The deb, the rpm and the AppImage, plus the static binaries for the machines no desktop
+# artefact reaches. AppImage is the Linux primary despite being the largest of the three,
+# because it is the only one a researcher without root can run.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  # The three gates below are the ones that matter, and on workflow_call alone they would
+  # run at tag time and never on the change that breaks them, so the first person to learn
+  # the glibc floor moved would be whoever cut the release. The paths list every input they
+  # read, including this file, so a push that edits only a gate has to meet it.
+  pull_request:
+    paths:
+      - "web/**"
+      - "src-tauri/**"
+      - "crates/plateforce-serve/**"
+      - "scripts/build-web.sh"
+      - "scripts/build-serve-binaries.sh"
+      - "scripts/verify-glibc-floor.sh"
+      - ".github/workflows/desktop-linux.yml"
+
+permissions:
+  contents: read
+
+env:
+  # The CLI is installed rather than taken from an action, which keeps Node out of the
+  # release path entirely. Pinned so a release cut six months from now bundles the same way.
+  TAURI_CLI_VERSION: "2.11.4"
+
+jobs:
+  bundles:
+    name: deb, rpm and AppImage
+    # Built inside 22.04 on a 24.04 runner rather than on the 22.04 runner Tauri's own
+    # documentation still shows. GitHub begins brownouts of that image on 2026-09-17 and
+    # retires it on 2027-04-17, and moving the build to 24.04 would raise the glibc floor
+    # from 2.35 to 2.39 and drop Debian 12 and Ubuntu 22.04 with no visible error until a
+    # user reports the application will not start. The container pins the floor to a base
+    # the runner lifecycle does not control.
+    runs-on: ubuntu-24.04
+    container: ubuntu:22.04
+    steps:
+      # A bare container has none of what a runner image provides.
+      - name: Install the system dependencies the shell links
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils \
+            build-essential curl file libssl-dev git ca-certificates binutils python3
+
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tauri
+            ~/.cargo/bin/wasm-bindgen
+            target
+            src-tauri/target
+          key: desktop-linux-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+
+      - name: Install the Tauri CLI
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/cargo-tauri" ]; then
+            cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
+          fi
+          cargo tauri --version
+
+      # The hand-written half of the payload. The generated binding under web/pkg/ is
+      # excluded on purpose: it contains wasm-bindgen's same-origin fetch of its own module,
+      # which is the reason the page works at all, so a grep run over it reports a hit on a
+      # clean tree and whoever meets that either weakens the pattern or deletes the check.
+      # That half is covered by the content security policy the shell sends and by the
+      # digest comparison below, which proves the generated code is this tree's.
+      - name: The interface asks the network for nothing
+        run: |
+          found=$(grep -rnE "fetch\(|XMLHttpRequest|@import|<link[^>]+href=\"http" \
+            web/*.js web/*.css web/*.html | wc -l)
+          echo "outbound-request patterns in the hand-written interface: $found"
+          test "$found" -eq 0
+
+      - name: Build the bundles
+        run: cargo tauri build --bundles deb,rpm,appimage
+
+      # A bundle carries its own copy of the browser build, so one built against a stale
+      # module ships older numbers while claiming to be the release, and no comparison
+      # between the other surfaces would see it.
+      - name: The module inside the bundle is the one this tree builds
+        run: bash scripts/verify-release-artefacts.sh --bundle-wasm-only
+
+      - name: The glibc floor
+        run: bash scripts/verify-glibc-floor.sh src-tauri/target/release/plateforce
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          # A silently empty upload is a release missing a platform.
+          if-no-files-found: error
+
+  runs-on-an-older-base:
+    name: the AppImage starts on Debian 12
+    needs: bundles
+    runs-on: ubuntu-24.04
+    container: debian:12
+    steps:
+      - name: Install what the AppImage needs to be read and run
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-0 libgtk-3-0 xvfb ca-certificates file util-linux
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-linux
+          path: artefacts
+
+      # Debian 12 is glibc 2.36, above the 2.35 floor and below the 2.39 a 24.04 build would
+      # need, so this is where a raised floor would first be visible. AppImage's own FUSE
+      # mount needs privileges CI does not have, hence the extraction.
+      - name: The capability report runs with no display at all
+        run: |
+          appimage=$(ls artefacts/*.AppImage)
+          chmod +x "$appimage"
+          reported=$("$appimage" --appimage-extract-and-run --capability)
+          echo "appimage smoke: capability reported on debian:12 as $reported"
+          case "$reported" in sha256:*) ;; *) exit 1 ;; esac
+
+      # The static check above covers the code humans write. This covers what the running
+      # application does: no route to anywhere, and it still reaches a painted window.
+      - name: The application starts with no network route
+        run: |
+          appimage=$(ls artefacts/*.AppImage)
+          unshare --map-root-user --net -- \
+            xvfb-run -a "$appimage" --appimage-extract-and-run &
+          started=$!
+          sleep 8
+          if kill -0 "$started" 2>/dev/null; then
+            echo "no network route: the window stayed up for 8 seconds"
+            kill "$started"
+          else
+            echo "no network route: the application did not stay up" >&2
+            exit 1
+          fi
+
+  static-binaries:
+    name: the static binaries for enterprise and air-gapped Linux
+    # On the runner rather than in the 22.04 container: a musl target has no glibc floor to
+    # protect and rustc supplies everything it needs.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/wasm-bindgen
+            target
+          key: serve-static-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build both architectures
+        run: bash scripts/build-serve-binaries.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: serve-static
+          path: dist/plateforce-*-linux-static
+          if-no-files-found: error

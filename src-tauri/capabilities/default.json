@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Opens the two kinds of address the interface links, and nothing else. A tool built on the claim that nothing leaves the machine does not hold a capability to open whatever URL a page asks for.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://doi.org/*" },
+        { "url": "https://github.com/DrAlexHarrison/*" }
+      ]
+    }
+  ]
+}

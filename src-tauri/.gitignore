@@ -1,0 +1,4 @@
+# Tauri writes its permission and capability schemas here at build time. Only that
+# subdirectory: `gen/windows/AppxManifest.xml` beside it is hand-written, committed, and
+# read by the Store packaging step, and a blanket `gen/` would delete it from the release.
+gen/schemas/
