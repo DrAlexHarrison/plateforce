@@ -56,20 +56,8 @@ pub struct MethodSet {
     pub bindings: Vec<MethodSetBinding>,
 }
 
-/// What a document names, and what this build knows how to run.
-///
-/// The three constructs come from the binding layer rather than from a second table of
-/// strings here. A construct with no slot is refused by name, so the day a fourth slot is
-/// declared and not mapped, the failure says so instead of silently dropping a binding.
-fn slot_for(construct: &str) -> Option<&'static str> {
-    match construct {
-        WEIGHING_CONSTRUCT => Some("weighing"),
-        ONSET_CONSTRUCT => Some("onset"),
-        TAKEOFF_CONSTRUCT => Some("takeoff"),
-        _ => None,
-    }
-}
-
+/// The constructs this build runs a step for, named from the binding layer rather than
+/// from a second table of strings here.
 fn declared_constructs() -> Vec<String> {
     [WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]
         .iter()
@@ -153,15 +141,18 @@ impl MethodSet {
         };
 
         self.readable()?;
+        // A construct with no step is refused by name rather than dropped, so the day a
+        // fourth construct is declared and not mapped here, the failure says so instead of
+        // silently discarding a binding somebody stated.
         for binding in &self.bindings {
-            let Some(slot) = slot_for(&binding.construct) else {
-                return Err(Refusal::construct_not_on_the_path(
-                    binding.construct.clone(),
-                    declared_constructs(),
-                ));
+            let choice = MethodChoice {
+                method_id: binding.method_id.clone(),
+                parameters: binding.parameters.clone(),
+                options: binding.options.clone(),
+                manual_index: None,
             };
-            match slot {
-                "weighing" => {
+            match binding.construct.as_str() {
+                WEIGHING_CONSTRUCT => {
                     request.weighing = WeighingChoice {
                         method_id: binding.method_id.clone(),
                         start_index: None,
@@ -169,21 +160,13 @@ impl MethodSet {
                         options: binding.options.clone(),
                     }
                 }
-                "onset" => {
-                    request.onset = MethodChoice {
-                        method_id: binding.method_id.clone(),
-                        parameters: binding.parameters.clone(),
-                        options: binding.options.clone(),
-                        manual_index: None,
-                    }
-                }
+                ONSET_CONSTRUCT => request.onset = choice,
+                TAKEOFF_CONSTRUCT => request.takeoff = choice,
                 _ => {
-                    request.takeoff = MethodChoice {
-                        method_id: binding.method_id.clone(),
-                        parameters: binding.parameters.clone(),
-                        options: binding.options.clone(),
-                        manual_index: None,
-                    }
+                    return Err(Refusal::construct_not_on_the_path(
+                        binding.construct.clone(),
+                        declared_constructs(),
+                    ))
                 }
             }
         }
