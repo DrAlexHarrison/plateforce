@@ -37,6 +37,13 @@ pub enum WaveformError {
     ThresholdOutOfReach { alpha: f64 },
     #[error("a permutation null needs at least one permutation")]
     NoPermutations,
+    #[error("{curve_count} curves were offered against {landmark_set_count} landmark sets")]
+    LandmarkSetSizeMismatch {
+        curve_count: usize,
+        landmark_set_count: usize,
+    },
+    #[error("registration needs at least one designated landmark to carry")]
+    NoDesignatedLandmarks,
 }
 
 /// Eigenvalues descending, each with its eigenvector.
@@ -1210,6 +1217,223 @@ pub fn continuum_inference_permutation(
     })
 }
 
+/// Where each designated feature sits on one curve.
+///
+/// `None` is the rule declining on this curve, which is a different state from a landmark
+/// at sample zero and is the state this whole rule turns on.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DesignatedLandmarks {
+    pub indices: Vec<Option<usize>>,
+}
+
+/// How many curves carried each designated landmark, out of how many were offered.
+///
+/// The count travels with its denominator because the fraction is the finding: jump force
+/// curves are non-, uni- and bimodal across a population, so a landmark set that registers
+/// one cohort cleanly can be undefined for a large share of another, and no source in the
+/// sweep reports what that share is.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LandmarkCoverage {
+    /// One entry per designated landmark, in the order they were declared.
+    pub carrying_curve_count: Vec<usize>,
+    pub curve_count: usize,
+}
+
+impl LandmarkCoverage {
+    /// The share of curves carrying the landmark at `position`, or nothing when no curves
+    /// were offered.
+    pub fn share_carrying(&self, position: usize) -> Option<f64> {
+        if self.curve_count == 0 {
+            return None;
+        }
+        self.carrying_curve_count
+            .get(position)
+            .map(|count| *count as f64 / self.curve_count as f64)
+    }
+}
+
+/// What happened to one curve.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CurveRegistration {
+    Registered(Vec<f64>),
+    /// The rule placing this landmark declined on this curve, so there is no feature to
+    /// carry to a common time.
+    LandmarkAbsent {
+        landmark: usize,
+    },
+    /// Two designated landmarks share an instant or run backwards, and no monotone warp
+    /// carries both to their common times.
+    LandmarksNotInOrder,
+}
+
+impl CurveRegistration {
+    pub fn samples(&self) -> Option<&[f64]> {
+        match self {
+            Self::Registered(values) => Some(values),
+            _ => None,
+        }
+    }
+}
+
+/// Curves warped onto common landmark times, and what could not be warped.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LandmarkRegistration {
+    /// One entry per input curve, in input order. A curve that could not be registered
+    /// stays in this list saying why, because removing it changes the population the
+    /// registered set describes without saying so.
+    pub curves: Vec<CurveRegistration>,
+    pub coverage: LandmarkCoverage,
+    /// Where each designated landmark was carried to, as a fraction of the output length.
+    pub common_positions: Vec<f64>,
+    pub point_count: usize,
+}
+
+impl LandmarkRegistration {
+    pub fn registered_count(&self) -> usize {
+        self.curves
+            .iter()
+            .filter(|curve| matches!(curve, CurveRegistration::Registered(_)))
+            .count()
+    }
+}
+
+/// Warp each curve by a monotone function so designated features land at common times.
+///
+/// The common time for a landmark is the mean of where it sits across the curves that carry
+/// it, so the target is the cohort's own centre rather than a position chosen here.
+pub fn register_to_landmarks(
+    curves: &[Vec<f64>],
+    landmarks: &[DesignatedLandmarks],
+    point_count: usize,
+) -> Result<LandmarkRegistration, WaveformError> {
+    if curves.len() != landmarks.len() {
+        return Err(WaveformError::LandmarkSetSizeMismatch {
+            curve_count: curves.len(),
+            landmark_set_count: landmarks.len(),
+        });
+    }
+    checked_curve_set(curves)?;
+    if point_count < 2 {
+        return Err(WaveformError::CurveTooShort { point_count });
+    }
+    let designated_count = landmarks[0].indices.len();
+    if designated_count == 0 {
+        return Err(WaveformError::NoDesignatedLandmarks);
+    }
+    for (index, set) in landmarks.iter().enumerate() {
+        if set.indices.len() != designated_count {
+            return Err(WaveformError::LandmarkSetSizeMismatch {
+                curve_count: index,
+                landmark_set_count: set.indices.len(),
+            });
+        }
+    }
+
+    // A landmark no curve carries has no cohort time, and the coverage count beside it is
+    // what says so rather than a position invented here.
+    let (carrying_curve_count, common_positions): (Vec<usize>, Vec<f64>) = (0..designated_count)
+        .map(|position| {
+            let seen: Vec<f64> = curves
+                .iter()
+                .zip(landmarks)
+                .filter_map(|(curve, set)| {
+                    set.indices[position].map(|index| index as f64 / (curve.len() - 1) as f64)
+                })
+                .collect();
+            let centre = if seen.is_empty() {
+                f64::NAN
+            } else {
+                compensated_sum(&seen) / seen.len() as f64
+            };
+            (seen.len(), centre)
+        })
+        .unzip();
+
+    let registered = curves
+        .iter()
+        .zip(landmarks)
+        .map(|(curve, set)| register_one(curve, set, &common_positions, point_count))
+        .collect();
+
+    Ok(LandmarkRegistration {
+        curves: registered,
+        coverage: LandmarkCoverage {
+            carrying_curve_count,
+            curve_count: curves.len(),
+        },
+        common_positions,
+        point_count,
+    })
+}
+
+fn register_one(
+    curve: &[f64],
+    set: &DesignatedLandmarks,
+    common_positions: &[f64],
+    point_count: usize,
+) -> CurveRegistration {
+    let last = (curve.len() - 1) as f64;
+    let mut source = vec![0.0f64];
+    let mut target = vec![0.0f64];
+    for (position, index) in set.indices.iter().enumerate() {
+        let Some(index) = index else {
+            return CurveRegistration::LandmarkAbsent { landmark: position };
+        };
+        if !common_positions[position].is_finite() {
+            return CurveRegistration::LandmarkAbsent { landmark: position };
+        }
+        source.push(*index as f64 / last);
+        target.push(common_positions[position]);
+    }
+    source.push(1.0);
+    target.push(1.0);
+
+    // Monotone in both coordinates is the rule's own word, and a landmark set that is not
+    // strictly ordered cannot be honoured by any warp rather than by this one.
+    for pair in source.windows(2) {
+        if pair[1] <= pair[0] {
+            return CurveRegistration::LandmarksNotInOrder;
+        }
+    }
+    for pair in target.windows(2) {
+        if pair[1] <= pair[0] {
+            return CurveRegistration::LandmarksNotInOrder;
+        }
+    }
+
+    let Ok(spline) = crate::resample::CubicSpline::through(curve) else {
+        return CurveRegistration::LandmarksNotInOrder;
+    };
+    let warped = (0..point_count)
+        .map(|point| {
+            let common = point as f64 / (point_count - 1) as f64;
+            let at = source_position(common, &source, &target);
+            spline.at(at * last)
+        })
+        .collect();
+    CurveRegistration::Registered(warped)
+}
+
+/// Where on the original timebase a common time came from, by straight lines between the
+/// anchor pairs.
+fn source_position(common: f64, source: &[f64], target: &[f64]) -> f64 {
+    if common <= target[0] {
+        return source[0];
+    }
+    for window in 1..target.len() {
+        if common <= target[window] {
+            let span = target[window] - target[window - 1];
+            let along = if span > 0.0 {
+                (common - target[window - 1]) / span
+            } else {
+                0.0
+            };
+            return source[window - 1] + along * (source[window] - source[window - 1]);
+        }
+    }
+    source[source.len() - 1]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1735,6 +1959,141 @@ mod tests {
                 WaveformError::LoadingThresholdOutsideRange { .. }
             ));
         }
+    }
+
+    /// A curve with a single bump centred at `centre`, on a 101-point grid.
+    fn bumped_curve(centre: usize) -> Vec<f64> {
+        (0..101)
+            .map(|point| (-(((point as f64) - centre as f64) / 8.0).powi(2)).exp())
+            .collect()
+    }
+
+    fn at(index: usize) -> DesignatedLandmarks {
+        DesignatedLandmarks {
+            indices: vec![Some(index)],
+        }
+    }
+
+    #[test]
+    fn registration_carries_features_from_different_times_onto_one() {
+        let curves = vec![bumped_curve(30), bumped_curve(60)];
+        let sets = vec![at(30), at(60)];
+        let result = register_to_landmarks(&curves, &sets, 101).unwrap();
+        assert_eq!(result.registered_count(), 2);
+
+        // The common time is the cohort's own mean, 0.45, and both bumps must arrive there.
+        assert!((result.common_positions[0] - 0.45).abs() < 1e-12);
+        let peak_of = |curve: &CurveRegistration| {
+            curve
+                .samples()
+                .unwrap()
+                .iter()
+                .enumerate()
+                .max_by(|left, right| left.1.partial_cmp(right.1).unwrap())
+                .unwrap()
+                .0
+        };
+        let first = peak_of(&result.curves[0]);
+        let second = peak_of(&result.curves[1]);
+        assert!(
+            first.abs_diff(second) <= 1,
+            "the two bumps landed at {first} and {second}"
+        );
+        assert!(
+            first.abs_diff(45) <= 1,
+            "the common time was 0.45 and the bump arrived at {first}"
+        );
+
+        // Unregistered, the same two peaks are thirty points apart, so the warp did the
+        // work rather than the curves already agreeing.
+        assert_eq!(
+            curves[0]
+                .iter()
+                .enumerate()
+                .max_by(|l, r| l.1.partial_cmp(r.1).unwrap())
+                .unwrap()
+                .0,
+            30
+        );
+    }
+
+    #[test]
+    fn a_curve_missing_a_landmark_is_reported_with_its_denominator_and_not_dropped() {
+        let curves = vec![bumped_curve(30), bumped_curve(60), bumped_curve(45)];
+        let sets = vec![
+            at(30),
+            DesignatedLandmarks {
+                indices: vec![None],
+            },
+            at(45),
+        ];
+        let result = register_to_landmarks(&curves, &sets, 101).unwrap();
+
+        // Three went in and three come back. A curve that cannot be registered stays in the
+        // list saying why, because removing it changes the population the registered set
+        // describes without saying so.
+        assert_eq!(result.curves.len(), 3);
+        assert_eq!(result.registered_count(), 2);
+        assert_eq!(
+            result.curves[1],
+            CurveRegistration::LandmarkAbsent { landmark: 0 }
+        );
+        assert_eq!(result.coverage.curve_count, 3);
+        assert_eq!(result.coverage.carrying_curve_count, vec![2]);
+        assert!((result.coverage.share_carrying(0).unwrap() - 2.0 / 3.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn landmarks_that_share_an_instant_cannot_be_carried_by_a_monotone_warp() {
+        let curves = vec![bumped_curve(30), bumped_curve(60)];
+        let sets = vec![
+            DesignatedLandmarks {
+                indices: vec![Some(30), Some(30)],
+            },
+            DesignatedLandmarks {
+                indices: vec![Some(40), Some(70)],
+            },
+        ];
+        let result = register_to_landmarks(&curves, &sets, 101).unwrap();
+        assert_eq!(result.curves[0], CurveRegistration::LandmarksNotInOrder);
+        assert!(matches!(result.curves[1], CurveRegistration::Registered(_)));
+        // Both curves offered both landmarks, so coverage counts them even though one
+        // curve could not be warped. Absence and disorder are different states.
+        assert_eq!(result.coverage.carrying_curve_count, vec![2, 2]);
+    }
+
+    #[test]
+    fn a_landmark_no_curve_carries_leaves_every_curve_unregistered_rather_than_guessed_at() {
+        let curves = vec![bumped_curve(30), bumped_curve(60)];
+        let sets = vec![
+            DesignatedLandmarks {
+                indices: vec![Some(30), None],
+            },
+            DesignatedLandmarks {
+                indices: vec![Some(60), None],
+            },
+        ];
+        let result = register_to_landmarks(&curves, &sets, 101).unwrap();
+        assert_eq!(result.registered_count(), 0);
+        assert_eq!(result.coverage.carrying_curve_count, vec![2, 0]);
+        assert_eq!(result.coverage.share_carrying(1).unwrap(), 0.0);
+    }
+
+    #[test]
+    fn a_registration_with_no_designated_landmarks_is_refused() {
+        let curves = vec![bumped_curve(30), bumped_curve(60)];
+        let sets = vec![
+            DesignatedLandmarks { indices: vec![] },
+            DesignatedLandmarks { indices: vec![] },
+        ];
+        assert!(matches!(
+            register_to_landmarks(&curves, &sets, 101).unwrap_err(),
+            WaveformError::NoDesignatedLandmarks
+        ));
+        assert!(matches!(
+            register_to_landmarks(&curves, &sets[..1], 101).unwrap_err(),
+            WaveformError::LandmarkSetSizeMismatch { .. }
+        ));
     }
 
     #[test]
