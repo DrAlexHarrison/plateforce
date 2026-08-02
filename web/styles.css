@@ -629,6 +629,11 @@ select { cursor: pointer; }
   padding-top: var(--space-1);
   border-top: 1px dashed var(--border);
 }
+/* The two verdicts owe the reader different things, so they do not look the same. One is a
+   value being shown unasked, which is content and reads solid. The other is an offer to go
+   and look at what else was available, which is not a statement and reads open. */
+.ran-beside__row--default-and-show { border-left: 3px solid var(--border-strong); padding-left: var(--space-2); }
+.ran-beside__row--surface-on-demand { border-left: 3px dashed var(--border); padding-left: var(--space-2); }
 .ran-beside__title { color: var(--text); }
 .ran-beside__value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .chip--quiet { border-style: dashed; color: var(--text-tertiary); }

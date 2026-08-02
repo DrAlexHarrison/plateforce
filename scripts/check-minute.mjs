@@ -253,13 +253,30 @@ const recompute = await evaluate(`(async () => {
   for (let i = 0; i < 5; i += 1) state.loadedTrial.spread(sweep);
   const panel = (performance.now() - started) / 5;
   analysis.runAnalysis();
-  return { whole, one, panel, saidSoMidDrag, rules: axes[0].method_ids.length };
+  return { whole, one, panel, saidSoMidDrag, slowest: Math.max(...whole), rules: axes[0].method_ids.length };
 })()`);
 const slowest = Math.max(...recompute.whole);
-check('the recompute a marker drag triggers lands inside 100 ms',
-  slowest < 100,
-  `slowest of ${recompute.whole.length} placements ${slowest.toFixed(1)} ms; one analysis ` +
-  `${recompute.one.toFixed(1)} ms, the spread over ${recompute.rules} rules ${recompute.panel.toFixed(1)} ms`);
+/*
+ * Two claims, and only one of them is about this machine.
+ *
+ * The design property is that a drag recomputes the number and not the panel, so the drag
+ * costs about one analysis rather than an analysis plus a sweep. That ratio holds whatever
+ * else the machine is doing. The 100 ms budget is wall-clock and it is only meaningful when
+ * one analysis is itself well inside it: measured on a build machine under load, the same
+ * wasm on the same trial took 131 ms for a single analysis against 18 ms quiet, so an
+ * absolute assertion there would report a regression that is not in the code. When the
+ * machine cannot answer the question, the check says so rather than failing or passing.
+ */
+const ratio = recompute.slowest / Math.max(recompute.one, 0.001);
+const measurable = recompute.one < 40;
+check('a marker drag recomputes the number and not the panel',
+  ratio < 3 && (!measurable || slowest < 100),
+  `slowest of ${recompute.whole.length} placements ${slowest.toFixed(1)} ms, ` +
+  `${ratio.toFixed(1)} times one analysis at ${recompute.one.toFixed(1)} ms; the spread it no ` +
+  `longer waits for costs ${recompute.panel.toFixed(1)} ms. ` +
+  (measurable
+    ? `The 100 ms budget applies and is ${slowest < 100 ? 'met' : 'missed'}.`
+    : `One analysis alone is over 40 ms here, so the 100 ms budget is not measurable on this machine right now.`));
 
 // The budget is met by computing less, never by drawing something older without saying so.
 // While the marker is moving the panel holds figures for a position the reader has left.
@@ -409,45 +426,39 @@ check('a value picked by hand belongs to no other source, and its neighbours kee
       `${JSON.stringify(picked.recommended)}, untouched ${JSON.stringify(picked.untouched)}`
     : 'no parameter control to pick from');
 
-// The engine computes this signal and has no way to hand it to a browser yet, so the
-// transport is what is missing rather than the maths. This checks the drawing half only,
-// against a signal shaped exactly as the engine serialises one, and says so.
+// The confident wrong number, selected the way a first-time user would meet it: one click
+// in the onset picker. The signal has to come from the engine, so the check refuses a
+// result it produced itself.
 const remedy = await evaluate(`(async () => {
   const state = (await import('./state.js')).state;
   const analysis = await import('./analysis.js');
-  const arrived = Array.isArray(state.analysis.signals) && state.analysis.signals.length > 0;
-  if (!arrived) {
-    // Stub the one link that does not exist yet, the field on the wire, and let every other
-    // step run for real: the request is built, the engine runs, the response is parsed, and
-    // the page renders from it.
-    const engine = state.loadedTrial.analyse.bind(state.loadedTrial);
-    state.loadedTrial.analyse = (request) => {
-      const response = JSON.parse(engine(request));
-      response.signals = [{
-        label: 'Jump height from the impulse against jump height from the flight time',
-        value: 74.16, unit: 'percent', threshold: 20.0, status: 'disagrees',
-        remedy: 'These two heights are 31 cm apart. Choose a different rule for the start of the jump.',
-        remedy_construct: 'movement_onset',
-        qualifies: ['jump_height_from_takeoff_meters', 'jump_height_from_flight_time_meters'],
-      }];
-      return JSON.stringify(response);
-    };
-  }
-  analysis.runAnalysis();
+  const select = document.querySelector('#decision-list select[data-construct="movement_onset"]');
+  select.value = 'onset.threshold.last_within_band';
+  select.dispatchEvent(new Event('change'));
+  await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+  const height = (key) => state.analysis.metrics.find((m) => m.key === key)?.value ?? null;
   const cards = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
     card.querySelector('.metric__signal'));
   return {
-    arrived,
+    fromTheEngine: (state.analysis.signals ?? []).length,
+    impulse: height('jump_height_from_takeoff_meters'),
+    flight: height('jump_height_from_flight_time_meters'),
+    warnings: state.analysis.warnings.length,
     beside: cards.map((card) => card.querySelector('.metric__label').textContent),
     figure: cards[0]?.querySelector('.metric__signal-figure')?.textContent ?? null,
     remedy: cards[0]?.querySelector('.metric__signal-remedy')?.textContent ?? null,
     reaches: Boolean(cards[0]?.querySelector('.metric__signal button')),
+    inAPanel: Boolean(document.querySelector('#analysis-warnings .metric__signal')),
   };
 })()`);
-check('a quality signal draws in line beside every value it qualifies, with its remedy',
-  remedy.beside.length === 2 && Boolean(remedy.remedy) && remedy.reaches,
-  `${remedy.arrived ? 'from the engine' : 'drawing half only, the engine cannot hand it over yet'}: ` +
-  `beside ${remedy.beside.join(' and ') || 'nothing'} | ${remedy.figure ?? 'no figure'} | ${remedy.remedy ?? 'no remedy'}`);
+
+check('the engine flags the confident wrong number, in line beside both heights',
+  remedy.fromTheEngine === 1 && remedy.beside.length === 2 && Boolean(remedy.remedy) &&
+    remedy.reaches && !remedy.inAPanel,
+  `${remedy.fromTheEngine} signal from the engine, ${remedy.warnings} warnings; ` +
+  `impulse ${remedy.impulse}, flight ${remedy.flight}; beside ${remedy.beside.join(' and ') || 'nothing'}; ` +
+  `${remedy.figure ?? 'no figure'}`);
 
 // An intermediate frame of a number counting up to its new value is a number no method
 // produced, rendered convincingly, in a tool whose premise is that every number on screen
@@ -482,57 +493,62 @@ check('the spread is the largest figure on the page',
 // Five states of a value, and a reader has to be able to tell them apart without reading
 // the words. Compared as rendered, in both themes, because a token that collapses two of
 // them in dark mode alone would be invisible in a light-mode screenshot.
-const states = await evaluate(`(async () => {
-  // A freshly opened trial, so the provisional state is actually on screen. Read after
-  // everything has been resolved, this check would be comparing three states and calling
-  // it four.
-  (await import('./workspace.js')).enterWorkspace();
-  // Owen's onset rule, which runs a sub-rule the registry says to display unasked. The
-  // weighing choice is left open, so the provisional state is on screen at the same time
-  // and all four states can be compared in one paint.
-  const onset = document.querySelector('#decision-list select[data-construct="movement_onset"]');
-  if (onset) {
-    onset.value = 'onset.threshold.noise_relative';
+//
+// Two of the five cannot share one paint: the rule that disagrees with the flight-time
+// route is not the rule that runs the sub-rule the registry displays unasked. Each is read
+// under the rule that produces it and they are compared afterwards. They are states of one
+// interface either way, and nothing here depends on them co-occurring.
+const STATE_SELECTORS = {
+  provisional: '.metric:not(.metric--headline).metric--provisional',
+  resolved: '.metric:not(.metric--headline):not(.metric--provisional)',
+  warned: '.metric__signal',
+  displayed: '.ran-beside__row--default-and-show',
+  named: '.ran-beside__row--surface-on-demand',
+};
+const states = {};
+for (const rule of ['onset.threshold.noise_relative', 'onset.threshold.last_within_band']) {
+  const painted = await evaluate(`(async () => {
+    (await import('./workspace.js')).enterWorkspace();
+    const onset = document.querySelector('#decision-list select[data-construct="movement_onset"]');
+    onset.value = ${JSON.stringify(rule)};
     onset.dispatchEvent(new Event('change'));
+    const selectors = ${JSON.stringify(STATE_SELECTORS)};
+    const seen = {};
+    for (const theme of ['light', 'dark']) {
+      document.documentElement.dataset.theme = theme;
+      seen[theme] = {};
+      for (const [state, selector] of Object.entries(selectors)) {
+        const node = document.querySelector(selector);
+        if (!node) continue;
+        const style = getComputedStyle(node);
+        seen[theme][state] = [style.backgroundColor, style.borderStyle, style.borderColor, style.color].join(' ');
+      }
+    }
+    document.documentElement.dataset.theme = 'auto';
+    return seen;
+  })()`);
+  for (const [theme, found] of Object.entries(painted)) {
+    states[theme] ??= {};
+    for (const [state, value] of Object.entries(found)) states[theme][state] ??= value;
   }
-  const seen = {};
-  for (const theme of ['light', 'dark']) {
-    document.documentElement.dataset.theme = theme;
-    const paint = (node) => {
-      if (!node) return null;
-      const style = getComputedStyle(node);
-      return [style.backgroundColor, style.borderStyle, style.borderColor, style.color].join(' ');
-    };
-    // Both cards are non-headline, so the only thing that differs between them is the
-    // state under test. A headline card carries its own paint and would read as a
-    // difference this check did not make.
-    seen[theme] = {
-      provisional: paint(document.querySelector('.metric:not(.metric--headline).metric--provisional')),
-      resolved: paint(document.querySelector('.metric:not(.metric--headline):not(.metric--provisional)')),
-      warned: paint(document.querySelector('.metric__signal')),
-      absent: paint(document.querySelector('.metric__value--absent')) ?? 'no absent value on this trial',
-      displayed: paint(document.querySelector('.ran-beside__row--default-and-show')),
-    };
-  }
-  document.documentElement.dataset.theme = 'auto';
-  return seen;
-})()`);
+}
 const collapsed = [];
+const read = [];
 for (const [theme, painted] of Object.entries(states)) {
-  const drawn = Object.entries(painted).filter(([, value]) => value && value !== 'no absent value on this trial');
+  const drawn = Object.entries(painted);
+  read.push(...drawn.map(([state]) => state));
   for (let i = 0; i < drawn.length; i += 1) {
     for (let j = i + 1; j < drawn.length; j += 1) {
       if (drawn[i][1] === drawn[j][1]) collapsed.push(`${theme}: ${drawn[i][0]} and ${drawn[j][0]}`);
     }
   }
 }
-const read = Object.values(states).flatMap((painted) =>
-  Object.entries(painted).filter(([, value]) => value && value !== 'no absent value on this trial'));
-check('provisional, resolved, warned and displayed-unasked are told apart without reading',
-  collapsed.length === 0 && read.length >= 8,
-  collapsed.length
-    ? `render identically, ${collapsed.join('; ')}`
-    : `${read.length} states read across two themes, all distinct`);
+const missing = Object.keys(STATE_SELECTORS).filter((state) => !read.includes(state));
+check('the five states of a value are told apart without reading the words',
+  collapsed.length === 0 && missing.length === 0,
+  collapsed.length ? `render identically, ${collapsed.join('; ')}`
+    : missing.length ? `never rendered, so never compared: ${missing.join(', ')}`
+    : `${read.length} readings across two themes, all distinct: ${[...new Set(read)].join(', ')}`);
 
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
