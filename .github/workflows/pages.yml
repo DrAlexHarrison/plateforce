@@ -110,6 +110,30 @@ jobs:
           FLOOR: ${{ steps.floor.outputs.version }}
         run: cargo "+$FLOOR" check --workspace --locked --all-targets
 
+  # A raster font under cmd.exe mangles anything outside ASCII, so the terminal surface
+  # restricts itself and nothing measured that it does. The commands are run rather than
+  # read: a glyph arrives through whatever the code path emits, including a dependency's
+  # error text, which a search of this repository cannot see.
+  ascii:
+    name: the terminal surface emits ASCII
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ascii-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      # Exit 1 is a non-ASCII byte. Exit 3 is the check being unable to measure, which is
+      # reported separately because a run that could not look is not a run that found
+      # nothing.
+      - name: Run the commands and read every byte they write
+        run: ./scripts/check-cli-output-is-ascii.sh
+
   deploy:
     needs: [build, floor]
     if: github.event_name != 'pull_request'
