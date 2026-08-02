@@ -242,3 +242,69 @@ fn bound_aggregation_writes_one_more() {
     );
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// A session is one subject on one occasion, so a subject with two occasions is one subject
+/// and two sessions. Keying both on the session reports one athlete's Monday and Tuesday as
+/// two athletes, under a label that says subject, and every count that travels with the
+/// value is then the occasion's count rather than the athlete's.
+#[test]
+fn grouping_by_subject_pools_the_occasions_that_grouping_by_session_keeps_apart() {
+    let directory = tempdir("subject-versus-session");
+    plateforce_batch::synthetic::write_corpus(&directory, 2, 4, 7).unwrap();
+    // Two occasions per subject, named in the file so a template can read them.
+    for entry in std::fs::read_dir(&directory).unwrap() {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let Some(rest) = name.strip_prefix("AT") else {
+            continue;
+        };
+        let (subject, trial) = rest.split_once('_').unwrap();
+        let number: usize = trial.trim_end_matches(".txt").parse().unwrap();
+        let occasion = if number <= 2 { "monday" } else { "tuesday" };
+        std::fs::rename(
+            &path,
+            directory.join(format!("AT{}_{}_{}.txt", subject, occasion, number)),
+        )
+        .unwrap();
+    }
+
+    let identity = TrialIdentity::DeclaredPattern {
+        template: String::from("AT{subject}_{occasion}_{trial}"),
+    };
+    let set = TrialSet::walk(&directory, &synthetic_format(), &identity).unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).unwrap();
+
+    let rows_for = |kind: GroupKind| -> Vec<String> {
+        let plan = AggregationRequest::declared(
+            Some("mean_of_best_two"),
+            Some(2),
+            kind,
+            vec!["jump_height_from_takeoff_meters".to_string()],
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let joined = with_aggregates(result.clone(), &set, &plan).unwrap();
+        joined
+            .aggregates
+            .iter()
+            .map(|row| format!("{}={}", row.group_kind, row.group_key))
+            .collect()
+    };
+
+    let by_subject = rows_for(GroupKind::Subject);
+    let by_session = rows_for(GroupKind::Session);
+    println!("subject: {by_subject:?}");
+    println!("session: {by_session:?}");
+
+    assert_eq!(by_subject.len(), 2, "two athletes, two subject rows");
+    assert_eq!(by_session.len(), 4, "each of them on two occasions");
+    assert!(
+        by_subject.iter().all(|row| !row.contains('/')),
+        "a subject key names the athlete and not the occasion: {by_subject:?}"
+    );
+    assert!(
+        by_session.iter().all(|row| row.contains('/')),
+        "a session key names both: {by_session:?}"
+    );
+    std::fs::remove_dir_all(&directory).ok();
+}

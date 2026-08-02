@@ -234,17 +234,23 @@ fn groups(
             let sessions = Session::group(set).ok_or(AggregationRefusal::NoDeclaredGrouping {
                 template_hint: "AT{subject}_{trial}".to_string(),
             })?;
-            Ok(sessions
-                .into_iter()
-                .map(|session| {
-                    let trials = session
+            // A session is one subject on one occasion, so grouping by subject pools that
+            // subject's occasions and grouping by session keeps them apart. Keying both on
+            // the session would report one athlete's Monday and Tuesday as two athletes.
+            let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
+            for session in sessions {
+                let key = match kind {
+                    GroupKind::Session => session.key.label(),
+                    _ => session.key.subject.clone(),
+                };
+                grouped.entry(key).or_default().extend(
+                    session
                         .trial_ids
                         .into_iter()
-                        .filter(|id| computed.contains(id))
-                        .collect();
-                    (session.key.label(), trials)
-                })
-                .collect())
+                        .filter(|id| computed.contains(id)),
+                );
+            }
+            Ok(grouped.into_iter().collect())
         }
     }
 }
