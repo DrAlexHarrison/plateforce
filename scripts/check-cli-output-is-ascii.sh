@@ -49,9 +49,9 @@ fi
 
 trial=crates/plateforce-conformance/fixtures/subject01_trial1.force.txt
 
-# Each entry is a label and the arguments. The set spans a document, a manifest, the
-# registry's three verbs and two refusals, because the refusal sentence is written by hand
-# and the document is written by the formatter.
+# Each entry is a label and the arguments. The set spans a document, a manifest, a listing
+# whose rows are prose, the registry's three verbs and two refusals, because the refusal
+# sentence is written by hand and the document is written by the formatter.
 runs=(
     "version|version"
     "capability|capability"
@@ -59,6 +59,7 @@ runs=(
     "validate|registry validate"
     "show|registry show takeoff.threshold.absolute_force"
     "analyse|analyse $trial"
+    "reach|reach"
     "refuse-unknown-id|registry show no.such.entry.exists"
     "refuse-missing-file|analyse /nonexistent/trace.txt"
 )
@@ -68,7 +69,7 @@ runs=(
 # large enough that an error message alone cannot satisfy it for the document runs.
 declare -A floor=(
     [version]=5 [capability]=200 [census]=40 [validate]=10 [show]=100
-    [analyse]=200 [refuse-unknown-id]=10 [refuse-missing-file]=10
+    [analyse]=200 [reach]=1000 [refuse-unknown-id]=10 [refuse-missing-file]=10
 )
 
 work="$(mktemp -d)"
