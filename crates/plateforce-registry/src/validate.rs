@@ -31,6 +31,20 @@ pub enum ViolationKind {
         computed: f64,
     },
     DuplicateId,
+    DefaultDeclaredTwice {
+        parameter: String,
+    },
+    DefaultNamesUnknownValue {
+        parameter: String,
+        key: String,
+    },
+    NamedValueDeclaredTwice {
+        parameter: String,
+        key: String,
+    },
+    ReachQueryOnSettledBoundary {
+        boundary: Boundary,
+    },
     PresetBindsUnknownMethod {
         preset: String,
         method_id: String,
@@ -89,6 +103,26 @@ impl fmt::Display for Violation {
             DefaultWithoutSource { parameter } => write!(
                 f,
                 "{}: parameter '{parameter}' has a default with no default_source naming who chose it",
+                self.entry
+            ),
+            DefaultDeclaredTwice { parameter } => write!(
+                f,
+                "{}: parameter '{parameter}' declares both default and default_key, so two values claim to be the one the software binds",
+                self.entry
+            ),
+            DefaultNamesUnknownValue { parameter, key } => write!(
+                f,
+                "{}: parameter '{parameter}' defaults to '{key}', which is not among the values it lists",
+                self.entry
+            ),
+            NamedValueDeclaredTwice { parameter, key } => write!(
+                f,
+                "{}: parameter '{parameter}' lists '{key}' more than once, so one option replaced another",
+                self.entry
+            ),
+            ReachQueryOnSettledBoundary { boundary } => write!(
+                f,
+                "{}: reach is '{boundary}' and carries a query, which reads as doubt about a boundary that was settled",
                 self.entry
             ),
             RecommendedOnUnobtainedSource { citation } => write!(
@@ -193,11 +227,62 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
         }
 
         for parameter in &method.parameters {
-            if parameter.default.is_some() && parameter.default_source.is_none() {
+            if parameter.has_default() && parameter.default_source.is_none() {
                 violations.push(Violation {
                     entry: entry.clone(),
                     kind: ViolationKind::DefaultWithoutSource {
                         parameter: parameter.name.clone(),
+                    },
+                });
+            }
+            if parameter.default.is_some() && parameter.default_key.is_some() {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::DefaultDeclaredTwice {
+                        parameter: parameter.name.clone(),
+                    },
+                });
+            }
+
+            let mut listed: Vec<&str> = Vec::new();
+            for value in &parameter.named_values {
+                if listed.contains(&value.key.as_str()) {
+                    violations.push(Violation {
+                        entry: entry.clone(),
+                        kind: ViolationKind::NamedValueDeclaredTwice {
+                            parameter: parameter.name.clone(),
+                            key: value.key.clone(),
+                        },
+                    });
+                }
+                listed.push(&value.key);
+            }
+
+            if let Some(key) = &parameter.default_key {
+                if !listed.contains(&key.as_str()) {
+                    violations.push(Violation {
+                        entry: entry.clone(),
+                        kind: ViolationKind::DefaultNamesUnknownValue {
+                            parameter: parameter.name.clone(),
+                            key: key.clone(),
+                        },
+                    });
+                }
+            }
+        }
+
+        // A query beside a settled boundary is the classification arguing with itself.
+        if let Some(reach) = &method.reach {
+            let settled = reach.boundary != Boundary::Undetermined;
+            let asked = reach
+                .query
+                .as_ref()
+                .is_some_and(|query| !query.trim().is_empty());
+            if settled && asked {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::ReachQueryOnSettledBoundary {
+                        boundary: reach.boundary,
                     },
                 });
             }
