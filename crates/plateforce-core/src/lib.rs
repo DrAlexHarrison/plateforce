@@ -21,6 +21,7 @@ pub mod method_ids;
 pub mod normalisation;
 pub mod onset;
 pub mod phases;
+pub mod power;
 pub mod provenance;
 pub mod rate;
 pub mod read;
