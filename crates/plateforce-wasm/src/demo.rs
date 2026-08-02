@@ -156,6 +156,19 @@ pub fn synthetic_countermovement_jump() -> Trial {
     Trial::new(build((low + high) / 2.0, flight_seconds), SAMPLE_RATE_HZ).unwrap()
 }
 
+/// A recorded countermovement jump, embedded so it needs no network and no file at hand.
+///
+/// The rate is not in the export and every velocity, displacement and impulse scales with
+/// it: this corpus samples at 1200 Hz. The column is the first and the delimiter is a tab,
+/// which is what the committed file carries.
+pub fn recorded_countermovement_jump() -> Trial {
+    const TRACE: &str =
+        include_str!("../../plateforce-conformance/fixtures/subject01_trial1.force.txt");
+    let (values, _) =
+        read_delimited_column(TRACE, '\t', 0).expect("the committed trace reads as one column");
+    Trial::new(values, SAMPLE_RATE_HZ).expect("the committed trace is a trial")
+}
+
 #[cfg(test)]
 mod tests {
     use plateforce_core::jump_height_from_takeoff_velocity;
@@ -240,17 +253,4 @@ mod tests {
         );
         assert!(onset.is_ok(), "{onset:?}");
     }
-}
-
-/// A recorded countermovement jump, embedded so it needs no network and no file at hand.
-///
-/// The rate is not in the export and every velocity, displacement and impulse scales with
-/// it: this corpus samples at 1200 Hz. The column is the first and the delimiter is a tab,
-/// which is what the committed file carries.
-pub fn recorded_countermovement_jump() -> Trial {
-    const TRACE: &str =
-        include_str!("../../plateforce-conformance/fixtures/subject01_trial1.force.txt");
-    let (values, _) =
-        read_delimited_column(TRACE, '\t', 0).expect("the committed trace reads as one column");
-    Trial::new(values, SAMPLE_RATE_HZ).expect("the committed trace is a trial")
 }
