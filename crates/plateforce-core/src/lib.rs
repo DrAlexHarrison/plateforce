@@ -29,6 +29,7 @@ pub mod takeoff;
 pub mod trial;
 pub mod validity;
 pub mod warp;
+pub mod waveform;
 
 pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};
