@@ -104,7 +104,22 @@ pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Re
         // the request, so it is answered by asking the binding table rather than by reading
         // the sentence back apart.
         Err(message) => Outcome::declined(fault_of(&chosen), message),
-        Ok(response) => render(&response, &trial, &registry, args, format, renderer),
+        Ok(response) => {
+            let spread = crate::spread_cmd::measure(
+                &trial.trial,
+                &request,
+                crate::spread_cmd::HEADLINE_QUANTITY,
+            );
+            render(
+                &response,
+                spread.ok(),
+                &trial,
+                &registry,
+                args,
+                format,
+                renderer,
+            )
+        }
     }
 }
 
@@ -317,6 +332,7 @@ fn fault_of(chosen: &BTreeMap<String, String>) -> Fault {
 
 fn render(
     response: &AnalysisResponse,
+    spread: Option<plateforce_analysis::spread::SpreadResponse>,
     trial: &ReadTrial,
     registry: &Registry,
     args: &Args,
@@ -345,8 +361,16 @@ fn render(
             "levels": response.levels,
             "warnings": response.warnings,
             "refusals": refusals,
+            "spread": spread,
         })),
-        Format::Text => text_body(response, registry, args, renderer, &refusals),
+        Format::Text => text_body(
+            response,
+            spread.as_ref(),
+            registry,
+            args,
+            renderer,
+            &refusals,
+        ),
     };
 
     Outcome {
@@ -359,6 +383,7 @@ fn render(
 
 fn text_body(
     response: &AnalysisResponse,
+    spread: Option<&plateforce_analysis::spread::SpreadResponse>,
     registry: &Registry,
     args: &Args,
     renderer: &Renderer,
@@ -401,6 +426,16 @@ fn text_body(
         for line in renderer.wrap(warning, 2) {
             let _ = writeln!(document, "{line}");
         }
+    }
+
+    // The spread is the second thing this command shows and it is never behind a flag.
+    if let Some(spread) = spread {
+        let _ = writeln!(document);
+        let _ = writeln!(
+            document,
+            "{}",
+            crate::spread_cmd::describe(spread, renderer)
+        );
     }
 
     let _ = writeln!(document);

@@ -11,6 +11,7 @@ mod exit;
 mod out;
 mod registry_cmd;
 mod render;
+mod spread_cmd;
 mod verdict;
 mod version_cmd;
 
