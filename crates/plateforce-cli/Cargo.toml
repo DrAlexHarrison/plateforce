@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 plateforce-analysis = { workspace = true }
+plateforce-batch = { workspace = true }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 clap = { version = "4.6", features = ["derive"] }

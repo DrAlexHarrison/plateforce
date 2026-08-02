@@ -4,6 +4,8 @@
 //! Windows ConHost does not enable ANSI unless a registry value says so, and a scientific
 //! tool that prints escape codes into a log file has failed at its job.
 
+mod analyse;
+mod decisions;
 mod exit;
 mod out;
 mod registry_cmd;
@@ -48,6 +50,8 @@ struct Invocation {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Compute every number one trace supports, with the rule behind each
+    Analyse(analyse::Args),
     /// Read the registry
     #[command(subcommand)]
     Registry(registry_cmd::Command),
@@ -78,6 +82,9 @@ fn main() -> ExitCode {
     let outcome = match &invocation.command {
         Command::Registry(command) => {
             registry_cmd::run(command, &registry_directory, invocation.format, &renderer)
+        }
+        Command::Analyse(args) => {
+            analyse::run(args, &registry_directory, invocation.format, &renderer)
         }
         Command::Version => version_cmd::run(invocation.format),
     };
