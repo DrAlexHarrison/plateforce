@@ -4,7 +4,12 @@
 \alias{pf_trial}
 \title{Build a trial from a force vector}
 \usage{
-pf_trial(force_newtons, sample_rate_hz = NULL, sentinel_convention = "none")
+pf_trial(
+  force_newtons,
+  sample_rate_hz = NULL,
+  sentinel_convention = "none",
+  acquisition = NULL
+)
 }
 \arguments{
 \item{force_newtons}{Vertical ground reaction force, in newtons, as a `double` vector.}
@@ -16,6 +21,10 @@ has no default.}
 \item{sentinel_convention}{How this export writes a missing sample: `"none"`, `"zero"`
 or `"negative_one"`. A sample matching the convention is held at the last real
 reading and counted, and the count is reported rather than folded into the trace.}
+
+\item{acquisition}{What the plate and its settings were, from [pf_acquisition()]. A
+block missing any member makes every result from this trial carry
+`acquisition_complete = FALSE`.}
 }
 \value{
 A `trial`.
