@@ -30,7 +30,10 @@ DECLARES_A_MODULE = re.compile(
 COMMENTS = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
 
 # `include!` splices a file's tokens in, so the file is compiled while no `mod` names it.
-# Its path resolves against the directory of the file doing the including, not against where
+# `include_str!` and `include_bytes!` embed rather than compile, and are followed too: the
+# question worth asking is whether anything references the file, because that is what makes
+# the remedy safe. Telling somebody to delete a file another file embeds breaks the build.
+# The path resolves against the directory of the file doing the including, not against where
 # that file's child modules would live.
 INCLUDES_A_FILE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(\s*\"(?P<path>[^\"]+)\"")
 OPENS_A_MACRO_BODY = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*!\s*[{(\[]")

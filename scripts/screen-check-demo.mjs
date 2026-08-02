@@ -143,7 +143,26 @@ const report = await evaluate(`(() => {
 console.log(report);
 if (consoleLines.length) console.log('console errors:\n' + consoleLines.join('\n'));
 
+// A page that renders NaN into every card logs nothing, so console errors alone certify it.
+// The report is printed above and reads like a checked table, which is the reason to check
+// it rather than to trust that a reader will.
+const complaints = [];
+const notFinite = report.split('\n').filter((line) => /\b(NaN|Infinity|undefined|null)\b/.test(line));
+if (notFinite.length) complaints.push('a rendered value is not a number:\n' + notFinite.join('\n'));
+
+const metricCount = Number((report.match(/^metrics \((\d+)\):$/m) || [])[1]);
+if (!(metricCount > 0)) complaints.push('no metric cards rendered, so nothing above was measured');
+
+// A spread is a percentage of a median. Outside this band the page is not reporting a
+// spread, whatever it printed, and the band is wide enough that no real trial approaches it.
+const headline = Number((report.match(/^spread headline: (-?[\d.]+)%$/m) || [])[1]);
+if (!Number.isFinite(headline) || headline < 0 || headline > 500) {
+  complaints.push(`the spread headline reads ${headline}, which is not a percentage of a median`);
+}
+
+if (complaints.length) console.log('rendered values:\n' + complaints.join('\n'));
+
 socket.close();
 chrome.kill();
 server.close();
-process.exit(consoleLines.length ? 1 : 0);
+process.exit(consoleLines.length || complaints.length ? 1 : 0);
