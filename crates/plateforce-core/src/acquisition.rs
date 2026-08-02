@@ -32,6 +32,15 @@ macro_rules! acquisition_block {
                 $( if self.$member.is_none() { missing.push(stringify!($member)); } )+
                 missing
             }
+
+            /// Every member as the text a fingerprint is taken over, in declaration order.
+            /// An absent member contributes an empty string.
+            pub fn members_as_text(&self) -> Vec<(&'static str, String)> {
+                vec![ $( (
+                    stringify!($member),
+                    self.$member.as_ref().map(|value| value.to_string()).unwrap_or_default(),
+                ), )+ ]
+            }
         }
     };
 }

@@ -9,6 +9,9 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+# For `content_digest`, so a fingerprint and a registry digest are the same function rather
+# than two hashes that agree until one of them is changed. Every surface already links it.
+plateforce-registry = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
