@@ -1,14 +1,12 @@
 //! What the run reads, and what it calls each thing it read.
 
+mod common;
+
 use std::collections::BTreeSet;
 
+use common::{tempdir, FIXTURES};
 use plateforce_batch::identity::{UnidentifiedReason, WalkError};
 use plateforce_batch::{Session, SourceFormat, TrialIdentity, TrialSet};
-
-const FIXTURES: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../plateforce-conformance/fixtures"
-);
 
 fn committed_format() -> SourceFormat {
     SourceFormat {
@@ -264,11 +262,4 @@ fn a_run_that_declares_no_trial_names_is_refused_rather_than_given_a_default() {
     )
     .unwrap_err();
     assert!(matches!(error, WalkError::NoTrialFileSuffixes), "{error}");
-}
-
-fn tempdir(name: &str) -> std::path::PathBuf {
-    let directory = std::env::temp_dir().join(format!("plateforce-batch-{name}"));
-    std::fs::remove_dir_all(&directory).ok();
-    std::fs::create_dir_all(&directory).unwrap();
-    directory
 }

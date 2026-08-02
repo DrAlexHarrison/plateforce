@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use plateforce_analysis::{AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_batch::{BatchRequest, SourceFormat, TrialIdentity};
@@ -81,8 +82,17 @@ pub fn analysis_request(weighing_duration_seconds: f64) -> AnalysisRequest {
 
 /// A directory of its own, so a denominator is what the test put there rather than what the
 /// repository happens to hold.
+///
+/// The system temporary directory is shared by every checkout on the machine, so the name
+/// alone is not its own: two suites running at once walk and wipe each other's corpora, and
+/// the failure reads as a wrong count rather than as interference.
 pub fn tempdir(name: &str) -> PathBuf {
-    let directory = std::env::temp_dir().join(format!("plateforce-batch-{name}"));
+    static NEXT: AtomicUsize = AtomicUsize::new(0);
+    let directory = std::env::temp_dir().join(format!(
+        "plateforce-batch-{name}-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
     std::fs::remove_dir_all(&directory).ok();
     std::fs::create_dir_all(&directory).unwrap();
     directory
