@@ -35,4 +35,5 @@ Collate:
     'read.R'
     'zzz.R'
     'registry.R'
+    'spread.R'
     'version.R'

@@ -11,6 +11,7 @@
 
 pub mod shim;
 
+use plateforce_analysis::spread::{self, SpreadRequest, SpreadResponse};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, Binding, BINDINGS};
 use plateforce_core::read::read_delimited_column;
 use plateforce_core::signal::partition_sentinels;
@@ -468,5 +469,20 @@ pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
             acquisition_complete: false,
         }),
         Err(message) => refuse::<AnalysisReport>(Refusal::of("analysis_declined", message)),
+    }
+}
+
+/// The sweep over a slot's defensible alternatives, for one quantity on one trial.
+///
+/// This is what answers "how much does the method choice move this number", so it takes no
+/// option to enable it and sits beside the analysis rather than behind it.
+pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
+    let request: SpreadRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<SpreadResponse>(*refusal),
+    };
+    match spread::run(&handle.trial, &request) {
+        Ok(response) => ok(response),
+        Err(message) => refuse::<SpreadResponse>(Refusal::of("spread_declined", message)),
     }
 }

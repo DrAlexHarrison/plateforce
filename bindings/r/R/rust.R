@@ -32,3 +32,7 @@ rust_trial_force <- function(handle) .Call(wrap__pf_trial_force, handle)
 rust_analyse_json <- function(handle, request_json) {
   .Call(wrap__pf_analyse_json, handle, request_json)
 }
+
+rust_spread_json <- function(handle, request_json) {
+  .Call(wrap__pf_spread_json, handle, request_json)
+}
