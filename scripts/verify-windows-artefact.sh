@@ -27,6 +27,8 @@ readonly LARGEST_PLAUSIBLE_BYTES=$((60 * 1024 * 1024))
 
 in_the_tree="$(sha256sum web/pkg/plateforce_wasm_bg.wasm | cut -c1-64)"
 status=0
+checked=0
+absent=""
 
 check_size() {
   local file="$1" size
@@ -52,9 +54,9 @@ check_payload() {
 
 installer="$(ls "${artefacts}"/*-setup.exe 2>/dev/null | head -1 || true)"
 if [ -z "$installer" ]; then
-  echo "no -setup.exe in ${artefacts}" >&2
-  status=1
+  absent="$absent the installer"
 else
+  checked=$((checked + 1))
   check_size "$installer" || status=1
   scratch="$(mktemp -d)"
   7z x -y -o"$scratch" "$installer" >/dev/null
@@ -70,9 +72,9 @@ fi
 
 package="$(ls "${artefacts}"/*.msix 2>/dev/null | head -1 || true)"
 if [ -z "$package" ]; then
-  echo "no .msix in ${artefacts}, so the Store route has nothing to submit" >&2
-  status=1
+  absent="$absent the Store package"
 else
+  checked=$((checked + 1))
   check_size "$package" || status=1
   scratch="$(mktemp -d)"
   makeappx.exe unpack /p "$package" /d "$scratch" /o >/dev/null
@@ -80,6 +82,14 @@ else
     || { echo "the package declares no runFullTrust, which a packaged desktop application needs" >&2; status=1; }
   check_payload "msix" "${scratch}/plateforce-desktop.exe" || status=1
   rm -rf "$scratch"
+fi
+
+# The count with its denominator, so a run that inspected one artefact cannot read as a run
+# that inspected both. Zero is a failure: a check that examined nothing is not a pass.
+echo "checked ${checked} of 2 Windows artefacts${absent:+, absent:${absent}}"
+if [ "$checked" -eq 0 ]; then
+  echo "nothing in ${artefacts} was a Windows artefact, so nothing was verified" >&2
+  status=1
 fi
 
 exit "$status"

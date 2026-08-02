@@ -66,6 +66,14 @@ jobs:
           mkdir -p dist
           cp src-tauri/target/release/bundle/nsis/*-setup.exe dist/
 
+      # The step above this one reads the loose executable the build produced. This extracts
+      # the installer and asks the program inside it, which is a different question: it is
+      # the copy a reader actually runs. It stays in this job because the comparison is
+      # against this job's web/pkg, and the module is not byte-reproducible across runners.
+      - name: What the installer carries
+        shell: bash
+        run: bash scripts/verify-windows-artefact.sh dist
+
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows
@@ -154,9 +162,19 @@ jobs:
             echo "Certification then takes one to five business days."
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Unpacks the package and asks the program inside it, against this job's web/pkg for
+      # the same reason the installer job checks its own.
+      - name: What the Store package carries
+        if: env.STORE_IDENTITY_NAME != ''
+        env:
+          STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
+        shell: bash
+        run: bash scripts/verify-windows-artefact.sh dist
+
       - uses: actions/upload-artifact@v4
         if: env.STORE_IDENTITY_NAME != ''
         with:
           name: store-package
           path: dist/*.msix
           if-no-files-found: error
+
