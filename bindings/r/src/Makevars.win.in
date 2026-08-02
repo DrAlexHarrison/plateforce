@@ -31,10 +31,13 @@ $(STATLIB):
 	cargo build --lib --release -j 2 \
 		--manifest-path=./rust/Cargo.toml --target-dir="$(TARGET_DIR)" @TARGET@
 
-# The static library and the rest of the target tree are inputs to the shared object
-# rather than parts of an installed package.
+# The static library is an input to the shared object rather than a part of the package,
+# and leaving it beside the build is what puts a Rust archive in front of the check that
+# reads a shared object's symbols. The rest of the target tree stays, so a rebuild is
+# incremental.
 rust_clean: $(SHLIB)
-	rm -Rf "$(CARGO_HOME_DIR)" "$(VENDOR_DIR)" "$(TARGET_DIR)"
+	rm -Rf "$(CARGO_HOME_DIR)" "$(VENDOR_DIR)"
+	rm -f "$(STATLIB)"
 
 clean:
 	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) "$(TARGET_DIR)" "$(VENDOR_DIR)" "$(CARGO_HOME_DIR)"
