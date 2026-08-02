@@ -21,8 +21,20 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repository_root"
 
 profile="${1:-debug}"
-target_dir="target/wasm32-unknown-unknown/${profile}"
 output_dir="web/pkg"
+
+# Where cargo will actually put the module, asked rather than assumed. CARGO_TARGET_DIR and
+# a build.target-dir in config.toml both move it, and a literal `target/` then names a path
+# that never appears, so the build succeeds and this script reports the module missing.
+cargo_target_dir="$(
+  cargo metadata --format-version 1 --no-deps 2>/dev/null \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])'
+)"
+if [ -z "$cargo_target_dir" ]; then
+  echo "cargo did not say where it builds, so there is nowhere to read the module from" >&2
+  exit 1
+fi
+target_dir="${cargo_target_dir}/wasm32-unknown-unknown/${profile}"
 
 wasm_bindgen_version="$(
   sed -n 's/^wasm-bindgen = .*version = "=\([0-9.]*\)".*/\1/p' crates/plateforce-wasm/Cargo.toml
