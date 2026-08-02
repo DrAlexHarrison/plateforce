@@ -848,7 +848,11 @@ group = "H"
 title = "Net vertical impulse from onset to takeoff as the determinant of jump performance"
 rule = """
 Integrate force less system weight from onset to takeoff. Takeoff velocity is that impulse divided
-by body mass, and height follows.
+by system mass, and height follows.
+
+The divisor is the mass the net impulse accelerates, which is the athlete together with anything
+they carry. On an unloaded jump that equals body mass; under an external load the two differ by the
+load, and dividing by body mass alone would attribute the bar's momentum to the athlete.
 """
 status = "recommended"
 confidence = "high"
