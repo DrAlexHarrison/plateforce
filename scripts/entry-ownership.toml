@@ -10,7 +10,8 @@
 # own, and every one of them is assigned by name in a plan. A named assignment wins
 # over ownership inherited from a construct.
 #
-# `registry/protocols/` is listed unowned deliberately: no plan claims it.
+# A protocol entry carries no computational rule field, so what it needs is a custodian
+# who declares it and its blocker rather than an implementer.
 
 [file_default]
 "registry/constructs.toml" = "WS-A"
@@ -33,6 +34,7 @@
 "registry/methods/trial-validity.toml" = "WS-E1"
 "registry/methods/waveform.toml" = "WS-E1"
 "registry/presets" = "WS-F"
+"registry/protocols" = "WS-E1"
 
 # The fifty-four entries at depth two and beyond.
 
