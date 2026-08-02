@@ -13,8 +13,8 @@ crate-type = ["staticlib"]
 
 # The engine crates are members here rather than in the repository's workspace, so the R
 # tree resolves on its own and the CRAN build gets exactly the sources that were checked.
-# Their manifests inherit from this table unchanged, which is what lets them be copied in
-# without a single edit.
+# `tools/sync-engine.sh` resolves what their manifests inherit into the copies, so this
+# table never has to mirror a dependency list the engine is free to change.
 [workspace]
 members = [
     "crates/plateforce-registry",
@@ -22,27 +22,11 @@ members = [
     "crates/plateforce-analysis",
 ]
 
-[workspace.package]
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.82"
-license = "Apache-2.0"
-repository = "https://github.com/DrAlexHarrison/plateforce"
-authors = ["Alex Harrison"]
-
-[workspace.dependencies]
+[dependencies]
 plateforce-analysis = { path = "crates/plateforce-analysis" }
 plateforce-core = { path = "crates/plateforce-core" }
 plateforce-registry = { path = "crates/plateforce-registry" }
 serde = { version = "1", features = ["derive"] }
-toml = "0.9"
-thiserror = "2"
-
-[dependencies]
-plateforce-analysis = { workspace = true }
-plateforce-core = { workspace = true }
-plateforce-registry = { workspace = true }
-serde = { workspace = true }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 extendr-api = "0.9"
 

@@ -7,7 +7,7 @@
 
 ## R CMD check results
 
-Zero errors, zero warnings, three NOTEs.
+Zero errors, zero warnings, four NOTEs.
 
 ```
 * checking CRAN incoming feasibility ... NOTE
@@ -23,6 +23,17 @@ unable to verify current time
 ```
 
 The check machine could not reach the time service it queries.
+
+```
+* checking installed package size ... NOTE
+  installed size is  5.1Mb
+  sub-directories of 1Mb or more:
+    libs   4.3Mb
+```
+
+The shared object statically links the compiled analysis engine, which is what makes the
+R surface produce the same numbers as the other surfaces rather than a second
+implementation of them.
 
 ```
 * checking compilation flags used ... NOTE

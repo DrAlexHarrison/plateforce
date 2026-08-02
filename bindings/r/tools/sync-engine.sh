@@ -70,6 +70,9 @@ done
 
 take registry "$registry"
 
+floor=$(grep -v '^ *#' "$here/msrv" | grep -v '^ *$' | head -1 | tr -d ' \r')
+python3 "$here/resolve-manifests.py" "$repository" "$destination" "$floor"
+
 {
     printf 'revision %s\n' "${revision:-worktree}"
     printf 'digest %s\n' "$(sh "$here/engine-digest.sh" "$package_root")"
