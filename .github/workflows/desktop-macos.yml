@@ -59,24 +59,44 @@ jobs:
       # A contributor's pull request is not given the signing secrets, and failing them at
       # the signing step would report a problem that has nothing to do with their change.
       # Which path ran is logged, so a release that quietly went out unsigned is visible.
+      #
+      # All three inputs are read, not just the identity: a certificate without an identity
+      # signs as whatever the certificate happens to be, and an identity without a
+      # certificate reaches Tauri as an instruction to import one that is not there, which
+      # surfaces as `security import: failed to import keychain certificate` and reads like
+      # a broken certificate rather than a missing one.
       - name: Decide whether this run can sign
         id: signing
         env:
           IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          if [ -n "$IDENTITY" ]; then
-            echo "able=yes" >> "$GITHUB_OUTPUT"
-            echo "signing: Developer ID, notarisation to follow"
-          else
-            echo "able=no" >> "$GITHUB_OUTPUT"
-            echo "signing: ad-hoc, notarisation skipped"
-          fi
+          absent=""
+          [ -n "$IDENTITY" ] || absent="$absent APPLE_SIGNING_IDENTITY"
+          [ -n "$CERTIFICATE" ] || absent="$absent APPLE_CERTIFICATE"
+          [ -n "$CERTIFICATE_PASSWORD" ] || absent="$absent APPLE_CERTIFICATE_PASSWORD"
+          case "$absent" in
+            "")
+              echo "able=yes" >> "$GITHUB_OUTPUT"
+              echo "signing: Developer ID, notarisation to follow"
+              ;;
+            " APPLE_SIGNING_IDENTITY APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD")
+              echo "able=no" >> "$GITHUB_OUTPUT"
+              echo "signing: ad-hoc, notarisation skipped"
+              ;;
+            *)
+              echo "signing: declined, the credentials are incomplete." >&2
+              echo "absent:$absent" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Write the App Store Connect key
         if: steps.signing.outputs.able == 'yes'
         env:
           KEY: ${{ secrets.APPLE_API_KEY_CONTENTS }}
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/apple-api-key.p8
         run: |
           printf '%s' "$KEY" > "$APPLE_API_KEY_PATH"
           chmod 600 "$APPLE_API_KEY_PATH"
@@ -85,12 +105,33 @@ jobs:
       # environment, and it does not retry. They are deliberately withheld here so signing
       # and notarisation are separate steps and the second one can be retried against the
       # binary the first produced rather than against a rebuilt one.
+      #
+      # The certificate reaches this step under names Tauri does not read, and takes the
+      # names it does read only on the branch that has a certificate. Actions materialises
+      # an absent secret as an empty string rather than leaving the variable unset, and
+      # tauri-bundler's keychain() branches on whether APPLE_CERTIFICATE is present rather
+      # than on whether it holds anything, so naming it unconditionally sends the ad-hoc
+      # path into an import with nothing to import.
       - name: Build and sign
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ steps.signing.outputs.able == 'yes' && secrets.APPLE_SIGNING_IDENTITY || '-' }}
-        run: cargo tauri build --target universal-apple-darwin --bundles app,dmg
+          SIGNING_ABLE: ${{ steps.signing.outputs.able }}
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ "$SIGNING_ABLE" = yes ]; then
+            export APPLE_CERTIFICATE="$CERTIFICATE"
+            export APPLE_CERTIFICATE_PASSWORD="$CERTIFICATE_PASSWORD"
+            export APPLE_SIGNING_IDENTITY="$IDENTITY"
+          else
+            export APPLE_SIGNING_IDENTITY="-"
+          fi
+          if [ -n "${APPLE_CERTIFICATE+defined}" ]; then
+            echo "APPLE_CERTIFICATE reaches the build: yes"
+          else
+            echo "APPLE_CERTIFICATE reaches the build: no"
+          fi
+          cargo tauri build --target universal-apple-darwin --bundles app,dmg
 
       - name: Both architectures are in the one binary
         run: |
@@ -106,7 +147,7 @@ jobs:
         env:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/apple-api-key.p8
         run: |
           image="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg \
             -name '*.dmg' | head -1)"
@@ -148,5 +189,5 @@ jobs:
       - name: Remove the App Store Connect key
         if: always()
         env:
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/apple-api-key.p8
         run: rm -f "$APPLE_API_KEY_PATH"
