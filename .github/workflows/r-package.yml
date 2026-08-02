@@ -133,6 +133,8 @@ jobs:
         working-directory: bindings/r/src/rust
         run: cargo fmt --check -p plateforce-r
 
+      # `--no-deps` because the engine crates are members of this detached workspace and
+      # their lints belong to the workstreams that own them, not to this gate.
       - name: Lints
         working-directory: bindings/r/src/rust
-        run: cargo clippy -p plateforce-r --all-targets -- -D warnings
+        run: cargo clippy -p plateforce-r --no-deps --all-targets -- -D warnings

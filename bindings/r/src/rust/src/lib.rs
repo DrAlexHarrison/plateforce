@@ -13,6 +13,7 @@ pub mod shim;
 
 use std::collections::BTreeMap;
 
+use plateforce_analysis::capability::{capability, Operation, OutputFormat};
 use plateforce_analysis::spread::{self, SpreadRequest, SpreadResponse};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, Binding, BINDINGS};
 use plateforce_core::read::read_delimited_column;
@@ -135,7 +136,7 @@ pub fn registry_json(root: &str) -> String {
     let registry = match Registry::load(root) {
         Ok(registry) => registry,
         Err(error) => {
-            return refuse::<RegistryReport>(Refusal::of("registry_unreadable", error.to_string()))
+            return refuse::<RegistryReport>(Refusal::of("registry_invalid", error.to_string()))
         }
     };
     let census = registry.census();
@@ -173,9 +174,7 @@ pub fn registry_json(root: &str) -> String {
 pub fn registry_entry_json(root: &str, id: &str) -> String {
     let registry = match Registry::load(root) {
         Ok(registry) => registry,
-        Err(error) => {
-            return refuse::<Method>(Refusal::of("registry_unreadable", error.to_string()))
-        }
+        Err(error) => return refuse::<Method>(Refusal::of("registry_invalid", error.to_string())),
     };
     match registry.methods.get(id) {
         Some(method) => ok(method.clone()),
@@ -249,7 +248,7 @@ fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Box<Refusal>> {
                 "negative_one".to_string(),
             ]),
             ..Refusal::naming_parameter(
-                "unknown_sentinel_convention",
+                "sentinel_convention_unknown",
                 "sentinel_convention",
                 format!("{other} is not a sentinel convention this reader applies"),
             )
@@ -287,7 +286,7 @@ fn build_trial(
 ) -> Result<TrialHandle, Box<Refusal>> {
     let sample_rate_hz = sample_rate_hz.ok_or_else(|| {
         Box::new(Refusal::naming_parameter(
-            "sample_rate_not_declared",
+            "required_parameter_unstated",
             "sample_rate_hz",
             "this trace carries no sample rate, so state the rate it was recorded at".to_string(),
         ))
@@ -296,7 +295,7 @@ fn build_trial(
     let sentinel = sentinel_from(&convention)?;
     let (force, held) = apply_sentinel(values, sentinel);
     let trial = Trial::new(force, sample_rate_hz)
-        .map_err(|error| Box::new(Refusal::of("trace_unusable", error.to_string())))?;
+        .map_err(|error| Box::new(Refusal::of("trace_too_short", error.to_string())))?;
     let report = TrialReport {
         sample_count: trial.len(),
         sample_rate_hz: trial.sample_rate_hz(),
@@ -350,7 +349,7 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
         None => {
             return (
                 refuse::<TrialReport>(Refusal::naming_parameter(
-                    "force_column_not_declared",
+                    "required_parameter_unstated",
                     "force_column",
                     "name the column that carries vertical ground reaction force".to_string(),
                 )),
@@ -402,7 +401,7 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
 fn declared_delimiter(declared: Option<&str>) -> Result<char, Box<Refusal>> {
     let text = declared.ok_or_else(|| {
         Box::new(Refusal::naming_parameter(
-            "delimiter_not_declared",
+            "required_parameter_unstated",
             "delimiter",
             "state the character that separates this file's columns".to_string(),
         ))
@@ -581,5 +580,54 @@ fn provenance_of(
         registry_version: None,
         registry_digest: registry_digest.clone(),
         acquisition_complete: false,
+    }
+}
+
+/// What this surface can be asked to do, reported by naming the entry points it dispatches
+/// rather than by forwarding a document every surface would agree with.
+///
+/// `output_formats` is empty because this surface writes no file. A surface that claimed a
+/// container it cannot write would pass a comparison and fail a user.
+pub fn capability_json() -> String {
+    let operations = [
+        Operation::Analyse,
+        Operation::Capability,
+        Operation::ParseForceFile,
+        Operation::RegistryCensus,
+        Operation::RegistryShow,
+        Operation::Spread,
+        Operation::Version,
+    ];
+    let formats: [OutputFormat; 0] = [];
+    match serde_json::to_value(capability(&operations, &formats)) {
+        Ok(value) => canonical(&value),
+        Err(error) => {
+            refuse::<serde_json::Value>(Refusal::of("serialisation_failed", error.to_string()))
+        }
+    }
+}
+
+/// Sorted keys and no spacing, so a comparison against another surface is a plain diff and
+/// not a question about which map type a build selected.
+fn canonical(value: &serde_json::Value) -> String {
+    serde_json::to_string(&sorted(&serde_json::json!({ "ok": value })))
+        .unwrap_or_else(|_| String::from("{}"))
+}
+
+fn sorted(value: &serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let mut out = serde_json::Map::new();
+            for key in keys {
+                out.insert(key.clone(), sorted(&map[key]));
+            }
+            serde_json::Value::Object(out)
+        }
+        serde_json::Value::Array(items) => {
+            serde_json::Value::Array(items.iter().map(sorted).collect())
+        }
+        other => other.clone(),
     }
 }

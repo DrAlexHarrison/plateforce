@@ -71,6 +71,11 @@ pub fn pf_analyse_json(handle: Robj, request_json: &str) -> String {
 }
 
 #[extendr]
+pub fn pf_capability_json() -> String {
+    crate::capability_json()
+}
+
+#[extendr]
 pub fn pf_double_probe_json(count: i32) -> String {
     crate::double_probe_json(count.max(0) as usize)
 }
@@ -144,4 +149,5 @@ extendr_module! {
     fn pf_analyse_json;
     fn pf_spread_json;
     fn pf_double_probe_json;
+    fn pf_capability_json;
 }

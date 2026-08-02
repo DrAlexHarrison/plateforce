@@ -38,3 +38,5 @@ rust_spread_json <- function(handle, request_json) {
 }
 
 rust_double_probe_json <- function(count) .Call(wrap__pf_double_probe_json, as.integer(count))
+
+rust_capability_json <- function() .Call(wrap__pf_capability_json)

@@ -9,7 +9,7 @@ test_that("a trial reports what it holds", {
 test_that("a rate that was not declared is refused by naming the argument", {
   condition <- tryCatch(pf_trial(rep(700, 1200)), plateforce_refusal = identity)
 
-  expect_s3_class(condition, "plateforce_sample_rate_not_declared")
+  expect_s3_class(condition, "plateforce_required_parameter_unstated")
   expect_identical(condition[["parameter"]], "sample_rate_hz")
 })
 
@@ -29,7 +29,7 @@ test_that("a sentinel convention nobody applies is refused with the ones that ar
     plateforce_refusal = identity
   )
 
-  expect_s3_class(condition, "plateforce_unknown_sentinel_convention")
+  expect_s3_class(condition, "plateforce_sentinel_convention_unknown")
   expect_setequal(condition[["available"]], list("none", "zero", "negative_one"))
 })
 

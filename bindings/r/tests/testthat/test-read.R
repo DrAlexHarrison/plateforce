@@ -8,7 +8,7 @@ test_that("a delimiter that was not declared is refused by naming the argument",
     plateforce_refusal = identity
   )
 
-  expect_s3_class(condition, "plateforce_delimiter_not_declared")
+  expect_s3_class(condition, "plateforce_required_parameter_unstated")
   expect_identical(condition[["parameter"]], "delimiter")
 })
 
@@ -22,7 +22,7 @@ test_that("a force column that was not declared is refused by naming the argumen
     plateforce_refusal = identity
   )
 
-  expect_s3_class(condition, "plateforce_force_column_not_declared")
+  expect_s3_class(condition, "plateforce_required_parameter_unstated")
   expect_identical(condition[["parameter"]], "force_column")
 })
 
@@ -36,7 +36,7 @@ test_that("a rate the file does not carry is refused rather than guessed", {
     plateforce_refusal = identity
   )
 
-  expect_s3_class(condition, "plateforce_sample_rate_not_declared")
+  expect_s3_class(condition, "plateforce_required_parameter_unstated")
   expect_identical(condition[["parameter"]], "sample_rate_hz")
 })
 

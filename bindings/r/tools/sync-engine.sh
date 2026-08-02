@@ -70,6 +70,12 @@ done
 
 take registry "$registry"
 
+# `git archive` stamps every member with the commit's time, so a copy taken from a newer
+# commit can carry an older mtime than the last build and cargo will skip the rebuild. The
+# digest guard compares content and reports the copy as current while the linked engine is
+# stale, which is the drift this product exists to publish about, in our own build.
+find "$destination" "$registry" -type f -exec touch {} +
+
 floor=$(grep -v '^ *#' "$here/msrv" | grep -v '^ *$' | head -1 | tr -d ' \r')
 python3 "$here/resolve-manifests.py" "$repository" "$destination" "$floor"
 

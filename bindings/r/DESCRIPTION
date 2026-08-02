@@ -31,6 +31,7 @@ Collate:
     'provenance.R'
     'measured.R'
     'analyse.R'
+    'capability.R'
     'coercion.R'
     'describe.R'
     'read.R'
