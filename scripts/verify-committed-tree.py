@@ -14,6 +14,7 @@ than after one. `--compile` extracts the ref and builds it, which catches everyt
 static check cannot but costs a cold build.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -27,6 +28,11 @@ DECLARES_A_MODULE = re.compile(
     re.M,
 )
 COMMENTS = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+
+# `include!` splices a file's tokens in, so the file is compiled while no `mod` names it.
+# Its path resolves against the directory of the file doing the including, not against where
+# that file's child modules would live.
+INCLUDES_A_FILE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(\s*\"(?P<path>[^\"]+)\"")
 OPENS_A_MACRO_BODY = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*!\s*[{(\[]")
 
 # A file named for the module it opens holds its children beside it; any other file holds
@@ -112,7 +118,8 @@ def unresolved_modules(ref: str) -> list[str]:
 def names_of(ref: str, path: str) -> set[str]:
     """The paths this one file's declarations name."""
     directory = where_children_live(PurePosixPath(path))
-    readable = without_macro_bodies(COMMENTS.sub("", contents(ref, path)))
+    uncommented = COMMENTS.sub("", contents(ref, path))
+    readable = without_macro_bodies(uncommented)
     named: set[str] = set()
     for declaration in DECLARES_A_MODULE.finditer(readable):
         given = declaration.group("path")
@@ -122,6 +129,12 @@ def names_of(ref: str, path: str) -> set[str]:
             child = declaration.group("name")
             named.add(str(directory / f"{child}.rs"))
             named.add(str(directory / child / "mod.rs"))
+    # An included file is compiled without any `mod` naming it, so a walk that follows only
+    # declarations reports it as unreachable and then tells a reader to declare it, which
+    # would define it twice, or delete it, which would delete compiled code.
+    for inclusion in INCLUDES_A_FILE.finditer(uncommented):
+        here = PurePosixPath(path).parent
+        named.add(str(PurePosixPath(os.path.normpath(str(here / inclusion.group("path"))))))
     return named
 
 
