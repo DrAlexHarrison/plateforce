@@ -23,6 +23,7 @@
 
 pub mod binding;
 pub mod capability;
+pub mod method_set;
 pub mod pipeline;
 pub mod quality;
 pub mod request;
