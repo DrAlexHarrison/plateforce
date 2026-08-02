@@ -60,21 +60,18 @@ pub fn analysis_request(weighing_duration_seconds: f64) -> AnalysisRequest {
     AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".to_string(),
-            start_index: None,
             parameters: BTreeMap::from([("duration".to_string(), weighing_duration_seconds)]),
-            options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: "onset.threshold.noise_relative".to_string(),
             parameters: BTreeMap::from([("k".to_string(), 5.0)]),
-            options: BTreeMap::new(),
-            manual_index: None,
+            ..Default::default()
         },
         takeoff: MethodChoice {
             method_id: "takeoff.threshold.absolute_force".to_string(),
             parameters: BTreeMap::from([("threshold_n".to_string(), 20.0)]),
-            options: BTreeMap::new(),
-            manual_index: None,
+            ..Default::default()
         },
         touchdown_index: None,
         gravity_meters_per_second_squared: 9.80665,

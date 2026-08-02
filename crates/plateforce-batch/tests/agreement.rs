@@ -252,12 +252,18 @@ fn every_paired_value_reaches_the_rules_that_produced_it() {
     let copied = copy_committed_fixtures(&directory);
     let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
     let result = compare(&set, &compare_request());
-    assert!(copied > 0 && !result.paired.is_empty(), "the run produced pairs");
+    assert!(
+        copied > 0 && !result.paired.is_empty(),
+        "the run produced pairs"
+    );
 
     // A paired value with no chain is a number whose method nobody recorded, which is the
     // thing this product exists to prevent, one level up from a single trial.
     assert!(
-        result.paired.iter().all(|row| !row.provenance_id.is_empty()),
+        result
+            .paired
+            .iter()
+            .all(|row| !row.provenance_id.is_empty()),
         "every paired row is keyed"
     );
 
@@ -298,7 +304,10 @@ fn a_compare_run_leaves_the_machine_with_its_record_beside_it() {
     let copied = copy_committed_fixtures(&directory);
     let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
     let result = compare(&set, &compare_request());
-    assert!(copied > 0 && !result.paired.is_empty(), "the run produced pairs");
+    assert!(
+        copied > 0 && !result.paired.is_empty(),
+        "the run produced pairs"
+    );
 
     let registry = registry();
     let out = directory.join("out");
@@ -332,7 +341,11 @@ fn a_compare_run_leaves_the_machine_with_its_record_beside_it() {
             .unwrap();
     println!(
         "compare over {} trials: {} paired rows, {} failed, {} complete pairs, {} chains",
-        run.trial_count, run.paired_rows, run.failed_rows, run.complete_pairs, run.distinct_provenance_count
+        run.trial_count,
+        run.paired_rows,
+        run.failed_rows,
+        run.complete_pairs,
+        run.distinct_provenance_count
     );
     assert_eq!(run.trial_count, copied);
     assert_eq!(run.paired_rows, result.paired.len());

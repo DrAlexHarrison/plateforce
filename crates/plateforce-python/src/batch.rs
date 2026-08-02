@@ -276,9 +276,7 @@ pub fn batch(
     let analysis = plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: weighing.to_string(),
-            start_index: None,
-            parameters: BTreeMap::new(),
-            options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: plateforce_analysis::MethodChoice {
             method_id: onset.to_string(),
