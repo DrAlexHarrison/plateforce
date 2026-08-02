@@ -460,6 +460,32 @@ check('a value picked by hand belongs to no other source, and its neighbours kee
       `${JSON.stringify(picked.recommended)}, untouched ${JSON.stringify(picked.untouched)}`
     : 'no parameter control to pick from');
 
+// The four checks above read what the tab remembers. This one reads what the engine was
+// told, which is a different question and the one that decides what a fingerprint asserts.
+// They passed for as long as the tab tracked every source correctly and then dropped all
+// of it at the boundary, so the record said the reader stated values they never saw.
+const recorded = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const sources = {};
+  for (const bound of state.analysis?.bound_methods ?? []) {
+    for (const [name, source] of Object.entries(bound.parameter_sources ?? {})) {
+      (sources[source] ??= []).push(bound.method_id + '.' + name);
+    }
+  }
+  return sources;
+})()`);
+const heard = Object.entries(recorded).map(([source, names]) => `${source} ${names.length}`).sort();
+// The property is exact rather than a threshold, and the walk supplies its own expectation:
+// this walk typed one value by hand, so that is the one name the engine may record as
+// stated. A count or a largest-bucket test is too loose to catch it, because a request that
+// declares two of its three sources still leaves most values correctly attributed while
+// silently promoting the rest to the reader's signature.
+const typedByHand = picked ? [picked.picked] : [];
+const saidStated = (recorded.stated ?? []).map((entry) => entry.slice(entry.lastIndexOf('.') + 1)).sort();
+check('the engine records as stated exactly the values the reader typed, and no others',
+  picked !== null && saidStated.join() === [...typedByHand].sort().join(),
+  `${heard.join(', ')}; stated ${JSON.stringify(saidStated)} against ${JSON.stringify(typedByHand)} typed by hand`);
+
 // The confident wrong number, selected the way a first-time user would meet it: one click
 // in the onset picker. The signal has to come from the engine, so the check refuses a
 // result it produced itself.

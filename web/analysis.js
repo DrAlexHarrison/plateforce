@@ -71,6 +71,22 @@ export function provisionallyBoundSlots() {
     .filter((slot) => !seen.has(slot.key) && seen.add(slot.key));
 }
 
+/*
+ * Where each value in a slot came from, sent with the values rather than kept in the tab.
+ *
+ * The request always carries every name, and an empty pair here means the engine reads all
+ * of them as stated by the reader. So omitting these is not the cautious reading, it is the
+ * strongest claim the request can make, asserted by default about values nobody ever saw.
+ */
+function whereTheValuesCameFrom(slot) {
+  const selection = state.selection[slot];
+  return {
+    recommended: [...(selection?.recommended ?? [])],
+    from_registry_default: [...(selection?.fromDefault ?? [])],
+    method_from_recommendation: selection?.methodFromRecommendation ?? false,
+  };
+}
+
 export function buildRequest() {
   const weighingId = boundMethodId('weighing');
   return {
@@ -79,18 +95,21 @@ export function buildRequest() {
       start_index: state.weighing.startIndex,
       parameters: state.selection.weighing?.values || {},
       options: {},
+      ...whereTheValuesCameFrom('weighing'),
     },
     onset: {
       method_id: boundMethodId('onset'),
       parameters: state.selection.onset?.values || {},
       options: {},
       manual_index: state.overrides.onset,
+      ...whereTheValuesCameFrom('onset'),
     },
     takeoff: {
       method_id: boundMethodId('takeoff'),
       parameters: state.selection.takeoff?.values || {},
       options: {},
       manual_index: state.overrides.takeoff,
+      ...whereTheValuesCameFrom('takeoff'),
     },
     touchdown_index: state.overrides.touchdown,
     // Sent only when the operator has stated it. A literal here would be standard gravity's
