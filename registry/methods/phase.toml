@@ -194,6 +194,18 @@ status = "accepted"
 confidence = "medium"
 debate = "genuine"
 
+[[method.parameter]]
+name = "unloading_drop_percent_of_system_weight"
+unit = "percent"
+published_values = [2.5]
+default = 2.5
+default_source = "harry2020"
+required = true
+notes = """
+This model's own definition of where movement began, which is not the bound onset rule's. Reading
+the bound rule instead would make every boundary below it move with a choice the model does not make.
+"""
+
 [[method.citation]]
 key = "harry2020"
 role = "proposes"
@@ -669,6 +681,14 @@ rule = "The propulsion phase is split at 50 percent of its duration into two nam
 status = "accepted"
 confidence = "high"
 debate = "genuine"
+
+[[method.parameter]]
+name = "split_percent_of_duration"
+unit = "percent"
+published_values = [50.0]
+default = 50.0
+default_source = "vald_glossary"
+required = true
 
 [[method.citation]]
 key = "vald_glossary"

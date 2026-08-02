@@ -190,13 +190,35 @@ pub fn velocity_zero_crossing(
     onset_index: usize,
     search_end_index: usize,
 ) -> Option<VelocityZeroCrossing> {
+    velocity_threshold_crossing(
+        velocity_meters_per_second,
+        onset_index,
+        search_end_index,
+        0.0,
+    )
+}
+
+/// The same rising crossing, against a small positive threshold instead of zero.
+///
+/// A bare zero crossing fires on numerical jitter, and one published rule guards against
+/// that by asking for a stated velocity rather than any velocity. The two are one search:
+/// the zero form is this one at a threshold of zero, so a caller comparing them is
+/// comparing thresholds rather than implementations.
+pub fn velocity_threshold_crossing(
+    velocity_meters_per_second: &[f64],
+    onset_index: usize,
+    search_end_index: usize,
+    threshold_meters_per_second: f64,
+) -> Option<VelocityZeroCrossing> {
     if onset_index + 1 >= search_end_index || search_end_index > velocity_meters_per_second.len() {
         return None;
     }
     let segment = &velocity_meters_per_second[onset_index..search_end_index];
     let minimum = index_of_minimum(segment)?;
     for index in minimum..segment.len().saturating_sub(1) {
-        if segment[index] <= 0.0 && segment[index + 1] > 0.0 {
+        if segment[index] <= threshold_meters_per_second
+            && segment[index + 1] > threshold_meters_per_second
+        {
             return Some(VelocityZeroCrossing {
                 index: onset_index + index + 1,
                 is_true_crossing: true,
@@ -215,10 +237,10 @@ pub fn velocity_zero_crossing(
 /// The analysis window ends where a smoothed force has fallen a stated percentage below
 /// its running maximum since the peak rate of force development.
 ///
-/// The running maximum only rises, so one high sample after the peak raises the level the
-/// trace then has to fall below and carries the window past it. The smoother is a second
-/// one cascaded on whatever conditioning filter already ran, so the effective smoothing on
-/// this decision is not the filter setting a user reads.
+/// The running maximum only rises and the stop compares against a fixed fraction of it,
+/// so a higher running maximum can only close the window at the same sample or an earlier
+/// one. The smoother is a second one cascaded on whatever conditioning filter already ran,
+/// so the effective smoothing on this decision is not the filter setting a user reads.
 ///
 /// `Ok(None)` is the rule running and finding no such fall. The error is the smoother
 /// declining, and it names the window it could not fit.
@@ -237,14 +259,209 @@ pub fn window_end_by_force_dropoff_from_running_maximum(
     }
     let retained = 1.0 - dropoff_percent / 100.0;
     let mut running_maximum_newtons = smoothed[peak_rate_of_force_development_index];
-    for index in peak_rate_of_force_development_index + 1..smoothed.len() {
-        if smoothed[index] > running_maximum_newtons {
-            running_maximum_newtons = smoothed[index];
-        } else if smoothed[index] < running_maximum_newtons * retained {
+    for (index, &smoothed_newtons) in smoothed
+        .iter()
+        .enumerate()
+        .skip(peak_rate_of_force_development_index + 1)
+    {
+        if smoothed_newtons > running_maximum_newtons {
+            running_maximum_newtons = smoothed_newtons;
+        } else if smoothed_newtons < running_maximum_newtons * retained {
             return Ok(Some(index));
         }
     }
     Ok(None)
+}
+
+/// A boundary index and the rule that placed it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlacedLandmark {
+    pub index: usize,
+    /// The registry id of the rule, in its dotted form, so a phase model consuming this
+    /// can report the chain without re-deriving it.
+    pub method_id: String,
+}
+
+impl PlacedLandmark {
+    pub fn new(index: usize, method_id: impl Into<String>) -> Self {
+        Self {
+            index,
+            method_id: method_id.into(),
+        }
+    }
+}
+
+/// The boundaries the phase rules place, kept apart from `Landmarks`.
+///
+/// `Landmarks` is an input to the scalar jump metrics and holds three fields every one of
+/// them reads. These are the output of the phase rules and the input to the phase-anchored
+/// ones, so a scalar metric would carry six fields it never reads. Each is optional
+/// because each rule can decline.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PhaseLandmarks {
+    pub force_minimum: Option<PlacedLandmark>,
+    pub braking_start: Option<PlacedLandmark>,
+    pub propulsion_start: Option<PlacedLandmark>,
+    pub propulsion_end: Option<PlacedLandmark>,
+    pub landing_end: Option<PlacedLandmark>,
+}
+
+/// The boundaries one phase model declares, in trace order.
+///
+/// The intervals between them are the model's phases and this type does not name them.
+/// What a phase is called is a live question in the field and no registry field carries
+/// the answer, so naming them here would settle it in a function body. The model's own id
+/// travels in the provenance the caller already builds, for the same reason no other
+/// function here mints one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhaseModelBoundaries {
+    pub indices: Vec<usize>,
+}
+
+/// The single unweighting phase: from the departure below system weight to the return
+/// through it.
+///
+/// The minimum-force instant is not a boundary in this model even though the rule that
+/// finds it exists, which is what separates it from the split model. An implementation
+/// that puts the minimum in has built the other model.
+pub fn phase_model_unweighting_single(
+    vertical_ground_reaction_force_newtons: &[f64],
+    system_weight_newtons: f64,
+    onset_index: usize,
+    peak_index: usize,
+) -> Option<PhaseModelBoundaries> {
+    if peak_index <= onset_index || peak_index >= vertical_ground_reaction_force_newtons.len() {
+        return None;
+    }
+    let start = onset_index
+        + vertical_ground_reaction_force_newtons[onset_index..peak_index]
+            .iter()
+            .position(|&force| force < system_weight_newtons)?;
+    let end = force_reference_crossing(
+        vertical_ground_reaction_force_newtons,
+        system_weight_newtons,
+        start,
+        peak_index,
+        CrossingDirection::Rising,
+    )?;
+    Some(PhaseModelBoundaries {
+        indices: vec![start, end],
+    })
+}
+
+/// The unloading and yielding split: four boundaries from onset to takeoff.
+///
+/// The unloading start is this model's own definition of onset, a stated fraction of system
+/// weight, and not the bound onset rule's. Reading it from the bound rule would make the
+/// model's boundaries move with a choice the model does not make.
+#[allow(clippy::too_many_arguments)]
+pub fn phase_model_unloading_yielding_split(
+    vertical_ground_reaction_force_newtons: &[f64],
+    velocity_meters_per_second: &[f64],
+    system_weight_newtons: f64,
+    unloading_drop_percent_of_system_weight: f64,
+    search_start_index: usize,
+    peak_index: usize,
+    takeoff_index: usize,
+) -> Option<PhaseModelBoundaries> {
+    if takeoff_index <= search_start_index
+        || takeoff_index > vertical_ground_reaction_force_newtons.len()
+        || takeoff_index > velocity_meters_per_second.len()
+    {
+        return None;
+    }
+    let unloading_level_newtons =
+        system_weight_newtons * (1.0 - unloading_drop_percent_of_system_weight / 100.0);
+    let unloading_start = search_start_index
+        + vertical_ground_reaction_force_newtons[search_start_index..takeoff_index]
+            .iter()
+            .position(|&force| force < unloading_level_newtons)?;
+    // Bounded at the propulsive peak rather than at takeoff, where force is still
+    // collapsing toward zero and the minimum is the sample before takeoff.
+    let force_minimum = braking_start_by_force_minimum(
+        vertical_ground_reaction_force_newtons,
+        unloading_start,
+        peak_index,
+    )?;
+    let velocity_minimum = braking_start_by_velocity_minimum(
+        velocity_meters_per_second,
+        force_minimum,
+        takeoff_index,
+    )?;
+    let positive_velocity = velocity_threshold_crossing(
+        velocity_meters_per_second,
+        velocity_minimum,
+        takeoff_index,
+        0.0,
+    )?;
+    Some(PhaseModelBoundaries {
+        indices: vec![
+            unloading_start,
+            force_minimum,
+            velocity_minimum,
+            positive_velocity.index,
+            takeoff_index,
+        ],
+    })
+}
+
+/// The interval over which force exceeds system weight, from the rising crossing after the
+/// unweighting minimum to the falling crossing during late propulsion.
+///
+/// Free once the two crossings exist, and it is not a dual-plate rule despite sitting under
+/// the window the asymmetry entries declare.
+pub fn positive_impulse_window(
+    vertical_ground_reaction_force_newtons: &[f64],
+    system_weight_newtons: f64,
+    onset_index: usize,
+    peak_index: usize,
+    takeoff_index: usize,
+) -> Option<(usize, usize)> {
+    let start = force_reference_crossing(
+        vertical_ground_reaction_force_newtons,
+        system_weight_newtons,
+        onset_index,
+        peak_index,
+        CrossingDirection::Rising,
+    )?;
+    let end = force_reference_crossing(
+        vertical_ground_reaction_force_newtons,
+        system_weight_newtons,
+        start,
+        takeoff_index,
+        CrossingDirection::Falling,
+    )?;
+    Some((start, end))
+}
+
+/// The propulsion phase split at a stated fraction of its duration.
+pub fn propulsion_subdivision_by_time(
+    propulsion_start_index: usize,
+    propulsion_end_index: usize,
+    split_percent_of_duration: f64,
+) -> Option<usize> {
+    if propulsion_end_index <= propulsion_start_index {
+        return None;
+    }
+    let duration = (propulsion_end_index - propulsion_start_index) as f64;
+    let offset = (duration * split_percent_of_duration / 100.0).round() as usize;
+    Some(propulsion_start_index + offset)
+}
+
+/// The propulsion phase split where force descends through system weight.
+pub fn propulsion_subdivision_by_force_crossing(
+    vertical_ground_reaction_force_newtons: &[f64],
+    system_weight_newtons: f64,
+    propulsion_start_index: usize,
+    propulsion_end_index: usize,
+) -> Option<usize> {
+    force_reference_crossing(
+        vertical_ground_reaction_force_newtons,
+        system_weight_newtons,
+        propulsion_start_index,
+        propulsion_end_index,
+        CrossingDirection::Falling,
+    )
 }
 
 #[cfg(test)]
@@ -474,5 +691,165 @@ mod tests {
         )
         .unwrap();
         assert_ne!(at_1200, at_600, "the sample rate did not reach the window");
+    }
+
+    const SYSTEM_WEIGHT_NEWTONS: f64 = 700.0;
+    const TAKEOFF_INDEX: usize = 1300;
+    const PEAK_INDEX: usize = 1100;
+
+    /// A countermovement shape with a real unweighting dip, a braking rise through system
+    /// weight, a propulsive peak and a fall to zero, so both phase models resolve on it.
+    fn countermovement_force() -> Vec<f64> {
+        let mut force = vec![SYSTEM_WEIGHT_NEWTONS; 500];
+        force.extend((0..300).map(|i| SYSTEM_WEIGHT_NEWTONS - 400.0 * i as f64 / 300.0));
+        force.extend((0..300).map(|i| 300.0 + 1100.0 * i as f64 / 300.0));
+        force.extend((0..200).map(|i| 1400.0 - 1400.0 * i as f64 / 200.0));
+        force.extend(vec![0.0; 300]);
+        force
+    }
+
+    fn countermovement_velocity(force: &[f64]) -> Vec<f64> {
+        let mass = SYSTEM_WEIGHT_NEWTONS / 9.806_65;
+        let acceleration = center_of_mass_acceleration(force, SYSTEM_WEIGHT_NEWTONS, mass);
+        cumulative_trapezoid(&acceleration, 1.0 / 1200.0)
+    }
+
+    #[test]
+    fn the_threshold_form_of_the_velocity_crossing_is_the_zero_form_at_zero() {
+        let force = countermovement_force();
+        let velocity = countermovement_velocity(&force);
+        assert_eq!(
+            velocity_zero_crossing(&velocity, 500, TAKEOFF_INDEX),
+            velocity_threshold_crossing(&velocity, 500, TAKEOFF_INDEX, 0.0)
+        );
+        let guarded = velocity_threshold_crossing(&velocity, 500, TAKEOFF_INDEX, 0.01).unwrap();
+        let bare = velocity_zero_crossing(&velocity, 500, TAKEOFF_INDEX).unwrap();
+        assert!(guarded.index > bare.index, "{guarded:?} against {bare:?}");
+    }
+
+    /// The minimum-force instant is not a boundary in this model, which is the whole
+    /// difference between it and the split model.
+    #[test]
+    fn the_single_unweighting_model_does_not_declare_the_force_minimum() {
+        let force = countermovement_force();
+        let model =
+            phase_model_unweighting_single(&force, SYSTEM_WEIGHT_NEWTONS, 500, PEAK_INDEX).unwrap();
+        let minimum = braking_start_by_force_minimum(&force, 500, PEAK_INDEX).unwrap();
+        assert_eq!(model.indices.len(), 2, "{model:?}");
+        assert!(
+            !model.indices.contains(&minimum),
+            "the model declared the force minimum at {minimum}: {model:?}"
+        );
+        assert!(model.indices[0] < minimum && minimum < model.indices[1]);
+    }
+
+    /// The split model reads its own unloading definition, so a caller passing a different
+    /// bound onset cannot move its first boundary.
+    #[test]
+    fn the_split_models_unloading_start_does_not_follow_the_bound_onset_rule() {
+        let force = countermovement_force();
+        let velocity = countermovement_velocity(&force);
+        let from_early = phase_model_unloading_yielding_split(
+            &force,
+            &velocity,
+            SYSTEM_WEIGHT_NEWTONS,
+            2.5,
+            0,
+            PEAK_INDEX,
+            TAKEOFF_INDEX,
+        )
+        .unwrap();
+        let from_late = phase_model_unloading_yielding_split(
+            &force,
+            &velocity,
+            SYSTEM_WEIGHT_NEWTONS,
+            2.5,
+            480,
+            PEAK_INDEX,
+            TAKEOFF_INDEX,
+        )
+        .unwrap();
+        assert_eq!(from_early.indices, from_late.indices);
+        assert_eq!(from_early.indices.len(), 5, "{from_early:?}");
+        assert!(
+            from_early.indices.windows(2).all(|pair| pair[0] < pair[1]),
+            "{from_early:?}"
+        );
+
+        let deeper = phase_model_unloading_yielding_split(
+            &force,
+            &velocity,
+            SYSTEM_WEIGHT_NEWTONS,
+            10.0,
+            0,
+            PEAK_INDEX,
+            TAKEOFF_INDEX,
+        )
+        .unwrap();
+        assert!(
+            deeper.indices[0] > from_early.indices[0],
+            "a deeper drop started no later: {deeper:?} against {from_early:?}"
+        );
+    }
+
+    /// The window is the interval between the two crossings, so its ends are the two
+    /// landmarks rather than a third derivation of them.
+    #[test]
+    fn the_positive_impulse_window_ends_on_the_two_crossings() {
+        let force = countermovement_force();
+        let (start, end) = positive_impulse_window(
+            &force,
+            SYSTEM_WEIGHT_NEWTONS,
+            500,
+            PEAK_INDEX,
+            TAKEOFF_INDEX,
+        )
+        .unwrap();
+        assert_eq!(
+            start,
+            force_reference_crossing(
+                &force,
+                SYSTEM_WEIGHT_NEWTONS,
+                500,
+                PEAK_INDEX,
+                CrossingDirection::Rising
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            end,
+            propulsion_end_by_force_crossing(&force, SYSTEM_WEIGHT_NEWTONS, start, TAKEOFF_INDEX)
+                .unwrap()
+        );
+        assert!(force[start] <= SYSTEM_WEIGHT_NEWTONS && force[start + 1] > SYSTEM_WEIGHT_NEWTONS);
+        assert!(force[end] <= SYSTEM_WEIGHT_NEWTONS && force[end - 1] > SYSTEM_WEIGHT_NEWTONS);
+    }
+
+    #[test]
+    fn the_two_propulsion_subdivisions_split_the_same_phase_at_two_instants() {
+        let force = countermovement_force();
+        let by_time = propulsion_subdivision_by_time(900, 1300, 50.0).unwrap();
+        assert_eq!(by_time, 1100);
+        let by_force =
+            propulsion_subdivision_by_force_crossing(&force, SYSTEM_WEIGHT_NEWTONS, 900, 1300)
+                .unwrap();
+        assert!((900..1300).contains(&by_force), "{by_force}");
+        assert_ne!(by_time, by_force);
+        assert!(propulsion_subdivision_by_time(1300, 900, 50.0).is_none());
+    }
+
+    #[test]
+    fn a_placed_landmark_carries_the_rule_that_placed_it() {
+        let landmarks = PhaseLandmarks {
+            braking_start: Some(PlacedLandmark::new(
+                812,
+                "phase.braking_start.zero_net_force",
+            )),
+            ..PhaseLandmarks::default()
+        };
+        let placed = landmarks.braking_start.as_ref().unwrap();
+        assert_eq!(placed.index, 812);
+        assert_eq!(placed.method_id, "phase.braking_start.zero_net_force");
+        assert!(landmarks.propulsion_end.is_none());
     }
 }
