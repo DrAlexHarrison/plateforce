@@ -4,4 +4,8 @@
 #
 # A row is added in the same commit as the entry point it calls. A row added before its
 # surface can answer fails, which is the intended behaviour.
-cli	./target/debug/plateforce capability --format json
+#
+# Each command builds what it asks. A prebuilt artifact answers for whatever source it was
+# built from, so a check against one certifies a binary that may predate the change under
+# review, and reports a match while doing it.
+cli	cargo run -q -p plateforce-cli -- capability --format json

@@ -12,6 +12,8 @@
 
 use serde::Serialize;
 
+use plateforce_core::{exit_code, RefusalCode};
+
 use crate::binding::BINDINGS;
 
 /// The manifest's shape, so a reader of a committed file knows which shape it is.
@@ -64,6 +66,13 @@ pub struct MethodRecord {
     pub composed_from: Option<&'static str>,
 }
 
+/// One way this software can decline, and what a shell learns from it.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct RefusalRecord {
+    pub code: String,
+    pub exit_code: i32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Capability {
     pub schema: &'static str,
@@ -71,6 +80,7 @@ pub struct Capability {
     pub methods: Vec<MethodRecord>,
     pub operations: Vec<Operation>,
     pub output_formats: Vec<OutputFormat>,
+    pub refusal_codes: Vec<RefusalRecord>,
 }
 
 /// Sorted throughout, so two surfaces that can do the same things emit the same bytes and a
@@ -95,13 +105,44 @@ pub fn capability(operations: &[Operation], output_formats: &[OutputFormat]) -> 
     output_formats.sort();
     output_formats.dedup();
 
+    // Generated from the enum rather than a list beside it. The vocabulary has gone from
+    // nine values to fourteen while this file was being written, and every one arrived here
+    // without an edit.
+    let mut refusal_codes: Vec<RefusalRecord> = RefusalCode::ALL
+        .iter()
+        .map(|code| RefusalRecord {
+            code: spelling(*code),
+            exit_code: exit_code(*code),
+        })
+        .collect();
+    refusal_codes.sort();
+
     Capability {
         schema: SCHEMA,
         plateforce_version: env!("CARGO_PKG_VERSION"),
         methods,
         operations,
         output_formats,
+        refusal_codes,
     }
+}
+
+/// The registry and every binding spell a code in snake_case, and this crate carries no JSON
+/// writer, so the spelling is derived from the variant name rather than transcribed.
+fn spelling(code: RefusalCode) -> String {
+    let named = format!("{code:?}");
+    let mut out = String::with_capacity(named.len() + 4);
+    for (index, character) in named.char_indices() {
+        if character.is_uppercase() {
+            if index > 0 {
+                out.push('_');
+            }
+            out.extend(character.to_lowercase());
+        } else {
+            out.push(character);
+        }
+    }
+    out
 }
 
 #[cfg(test)]
