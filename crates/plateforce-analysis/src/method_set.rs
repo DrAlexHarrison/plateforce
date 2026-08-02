@@ -114,14 +114,14 @@ impl MethodSet {
     /// A file written by a later `plateforce` is refused as a version rather than as a
     /// corrupt file, because the two have different answers: there is nothing else the
     /// reader could have asked for, and the remedy is a newer build.
-    pub fn readable(&self) -> Result<(), Refusal> {
+    pub fn readable(&self) -> Result<(), Box<Refusal>> {
         if self.schema == METHOD_SET_SCHEMA {
             return Ok(());
         }
-        Err(Refusal::schema_unsupported(
+        Err(Box::new(Refusal::schema_unsupported(
             self.schema.clone(),
             METHOD_SET_SCHEMA,
-        ))
+        )))
     }
 
     /// The request this document asks for.
@@ -129,7 +129,7 @@ impl MethodSet {
     /// A construct this build runs no slot for is refused naming the construct and what is
     /// declared, rather than dropped, because a binding silently ignored is a stated choice
     /// the run did not make.
-    pub fn resolve(&self) -> Result<AnalysisRequest, Refusal> {
+    pub fn resolve(&self) -> Result<AnalysisRequest, Box<Refusal>> {
         let mut request = AnalysisRequest {
             weighing: WeighingChoice::default(),
             onset: MethodChoice::default(),
@@ -163,10 +163,10 @@ impl MethodSet {
                 ONSET_CONSTRUCT => request.onset = choice,
                 TAKEOFF_CONSTRUCT => request.takeoff = choice,
                 _ => {
-                    return Err(Refusal::construct_not_on_the_path(
+                    return Err(Box::new(Refusal::construct_not_on_the_path(
                         binding.construct.clone(),
                         declared_constructs(),
-                    ))
+                    )))
                 }
             }
         }
