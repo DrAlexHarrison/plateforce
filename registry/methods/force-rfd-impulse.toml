@@ -128,16 +128,20 @@ reference = "Chronojump computes a 0.1 s centred moving average peak and never d
 obtained = true
 
 [[method.bias]]
-magnitude = 10.0
+magnitude = 44.2
 unit = "newtons"
 direction = "high"
 criterion = "force.peak.estimator"
 criterion_kind = "model"
-source = "plateforce_inference"
-# The single-sample peak is upward biased with sampling rate and with filter cutoff, because the
-# sample maximum of a noisy signal grows with the number of independent samples in the peak region.
-# The gap between the two is a direct readout of how peaky the trace is, which makes it a
-# data-quality signal that one shipped tool computes and throws away. Not quantified.
+source = "plateforce_corpus_fit"
+# The single-sample peak reads above the peak of a centred average, because the sample maximum of a
+# noisy signal grows with the number of independent samples in the peak region. It therefore rises
+# with sampling rate and falls with filter cutoff, so the figure holds for the conditions it was
+# taken under and not generally: six unfiltered countermovement trials at 1200 Hz, peak taken from
+# onset to takeoff, raw against the 0.1 s average this rule's own published pair names. The gap ran
+# 27.1 to 60.8 N, mean 44.2. On a drop-jump impact peak or at a higher rate it is larger.
+# The gap is a direct readout of how peaky the trace is, which makes it a data-quality signal that
+# one shipped tool computes and throws away.
 
 [[method.disagrees_with]]
 id = "force.peak.model_asymptote"
