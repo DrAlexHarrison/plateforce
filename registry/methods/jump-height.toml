@@ -1198,3 +1198,54 @@ rationale = """
 Gated on video availability: unavailable to most users, decisive for those who have the data. It is
 the only rebound-height method in the sweep validated against a double-force-platform reference.
 """
+
+[[method]]
+id = "time_to_takeoff.onset_to_takeoff"
+construct = "time_to_takeoff"
+group = "F"
+title = "The interval between the placed onset and the placed takeoff"
+rule = """
+The elapsed time from the sample the bound onset rule placed to the sample the bound takeoff rule
+placed, taken as the difference between the two sample indices multiplied by the sampling interval.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = """
+total, and inherited whole from the two landmarks. Across 10 published rules on 244 trials the
+within-trial spread is 38.9 percent of the trial's own value, which is the widest disagreement
+between open implementations of any quantity in this registry.
+"""
+rationale = """
+The subtraction is not the argument. Both edges are threshold crossings carrying entries of their
+own, so the onset rule and the takeoff rule named beside this number are what decide it.
+"""
+
+[[method]]
+id = "flight_time.takeoff_to_touchdown"
+construct = "flight_time"
+group = "F"
+title = "The interval between the placed takeoff and the return above the same threshold"
+rule = """
+The elapsed time from the sample the bound takeoff rule placed to the first sample at which force
+returned above the threshold that placed takeoff, taken as the difference between the two sample
+indices multiplied by the sampling interval.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = """
+total, and inherited whole from the threshold that placed both edges. A higher threshold places
+takeoff earlier and touchdown later, so the two errors compound rather than cancel and the interval
+is longer at both ends.
+"""
+rationale = """
+The subtraction is not the argument. One threshold decides both edges, so a flight time is
+comparable with another only when the threshold rule behind both is named.
+"""
