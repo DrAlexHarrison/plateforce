@@ -4,31 +4,56 @@ use serde::{Deserialize, Serialize};
 
 use crate::Provenance;
 
-/// Where a bound value came from.
-///
-/// A value the caller typed and a value the interface pre-filled from the registry move the
-/// number by exactly the same amount, and recording the second as the first is a default
-/// wearing the user's signature. The five are kept apart because each answers a different
-/// question a reader of a methods section asks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ParameterSource {
-    /// The caller supplied the value and claimed no other source for it.
-    Stated,
-    /// A registry default was used with nobody asked, by the rule or by the interface.
-    Assumed,
-    /// The rule computed it from this trace.
-    Measured,
-    /// The user accepted the registry's recommendation as an explicit act.
-    Recommended,
-    /// No act has happened. The value exists to be looked at, and a result resting on one
-    /// cannot leave the building.
-    Provisional,
+/// Declares the enum and the list of every variant from one source, so the vocabulary a
+/// surface reports cannot fall behind the sources the build can record.
+macro_rules! parameter_sources {
+    (
+        $(#[$enum_note:meta])*
+        pub enum $name:ident { $( $(#[$note:meta])* $variant:ident ),+ $(,)? }
+    ) => {
+        $(#[$enum_note])*
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(rename_all = "snake_case")]
+        pub enum $name {
+            $( $(#[$note])* $variant, )+
+        }
+
+        impl $name {
+            /// Every source this build can record.
+            pub const ALL: &'static [$name] = &[ $( $name::$variant, )+ ];
+        }
+    };
+}
+
+parameter_sources! {
+    /// Where a bound value came from.
+    ///
+    /// A value the caller typed and a value the interface pre-filled from the registry move
+    /// the number by exactly the same amount, and recording the second as the first is a
+    /// default wearing the user's signature. They are kept apart because each answers a
+    /// different question a reader of a methods section asks.
+    pub enum ParameterSource {
+        /// The caller supplied the value and claimed no other source for it.
+        Stated,
+        /// A registry default was used with nobody asked, by the rule or by the interface.
+        Assumed,
+        /// The rule computed it from this trace.
+        Measured,
+        /// The user accepted the registry's recommendation as an explicit act.
+        Recommended,
+        /// No act has happened. The value exists to be looked at, and a result resting on one
+        /// cannot leave the building.
+        Provisional,
+        /// A named published pipeline the caller adopted supplied the value. The caller chose
+        /// the pipeline by its id and its citation, not this value.
+        Cited,
+    }
 }
 
 impl ParameterSource {
     /// Whether a value from this source leaves a result unfit to export, fingerprint or
-    /// cite. Only an unmade decision does. An accepted recommendation is a choice.
+    /// cite. Only an unmade decision does. An accepted recommendation is a choice, and so
+    /// is adopting a published pipeline.
     pub fn taints_the_record(self) -> bool {
         matches!(self, ParameterSource::Provisional)
     }
@@ -126,15 +151,23 @@ mod tests {
     }
 
     #[test]
-    fn the_source_enum_has_five_values() {
+    fn every_source_value_carries_its_declared_wire_spelling() {
         let spellings = [
             (ParameterSource::Stated, "\"stated\""),
             (ParameterSource::Assumed, "\"assumed\""),
             (ParameterSource::Measured, "\"measured\""),
             (ParameterSource::Recommended, "\"recommended\""),
             (ParameterSource::Provisional, "\"provisional\""),
+            (ParameterSource::Cited, "\"cited\""),
         ];
-        assert_eq!(spellings.len(), 5);
+        for source in ParameterSource::ALL {
+            assert!(
+                spellings.iter().any(|(pinned, _)| pinned == source),
+                "{source:?} has no wire spelling pinned, {} of {} do",
+                spellings.len(),
+                ParameterSource::ALL.len()
+            );
+        }
         for (source, expected) in spellings {
             assert_eq!(serde_json::to_string(&source).unwrap(), expected);
             assert_eq!(
@@ -147,12 +180,10 @@ mod tests {
     #[test]
     fn only_an_unmade_decision_taints_the_record() {
         assert!(ParameterSource::Provisional.taints_the_record());
-        for kept in [
-            ParameterSource::Stated,
-            ParameterSource::Assumed,
-            ParameterSource::Measured,
-            ParameterSource::Recommended,
-        ] {
+        for kept in ParameterSource::ALL
+            .iter()
+            .filter(|source| **source != ParameterSource::Provisional)
+        {
             assert!(!kept.taints_the_record(), "{kept:?}");
         }
     }
