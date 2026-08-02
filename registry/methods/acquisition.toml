@@ -1000,7 +1000,21 @@ debate = "single_position"
 [[method.parameter]]
 name = "declared_mass_kg"
 unit = "kilograms"
+required = true
 notes = "Typed by the user. A scale-against-plate discrepancy becomes a constant force offset."
+
+[[method.parameter]]
+name = "tare_detection_ceiling_newtons"
+unit = "newtons"
+default = 20.0
+default_source = "plateforce_derivation"
+required = true
+notes = """
+A quiet-standing window whose mean sits within this of zero was recorded on a plate that was
+zeroed under the athlete. A plate carrying a standing adult reads several hundred newtons, and
+one zeroed under them reads only its own noise, which on a plate quantising at 1.4 N is under a
+newton averaged over a second. The value only has to fall between the two.
+"""
 
 [[method.citation]]
 key = "biomex"
