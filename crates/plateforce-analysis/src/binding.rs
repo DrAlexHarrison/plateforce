@@ -119,7 +119,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: TAKEOFF_CONSTRUCT,
         title: "Threshold re-estimated from the flight phase itself",
         composed_from: None,
-        note: "plateforce_core reports this rule's failures under takeoff.threshold.reestimated_flight.",
+        note: "",
     },
 ];
 

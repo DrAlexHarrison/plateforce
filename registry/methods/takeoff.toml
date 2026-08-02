@@ -1,7 +1,10 @@
 # Group D. Takeoff, flight and landing detection.
 #
-# Landing and touchdown thresholds add zero entries: the absolute, percent-bodyweight and
-# noise-relative rules at the rising edge are the same three families at the falling edge.
+# The rising edge draws on the same three families as the falling edge, absolute,
+# percent-bodyweight and noise-relative, so the families add no entries. What does add entries is
+# whether the two edges are tied: JumpMetrics detects landing at 20 N sustained 15 ms while
+# detecting takeoff at 10 N sustained 250 ms, so tying them is a convention rather than a fact and
+# the fingerprint carries which one ran.
 #
 # The whole group is low-stakes relative to onset, and that is measured rather than assumed. Six
 # published takeoff rules on the same 21 participants and the same code span 1.4 cm of jump height
@@ -607,4 +610,109 @@ sensitivity = "none on a plate whose zero is clean, large on one whose zero has 
 rationale = """
 It is a property of the device rather than a methodological choice, so it belongs beside the
 calibration rather than in the method list.
+"""
+
+[[method]]
+id = "landing.threshold.tied_to_takeoff"
+construct = "landing"
+group = "D"
+title = "First return above the threshold that placed takeoff"
+rule = """
+Landing is the first sample at or above the threshold that placed takeoff, with no span required
+above it. One threshold decides both edges of the flight phase.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.citation]]
+key = "plateforce_shipped_convention"
+role = "uses"
+reference = "The convention this software has applied since flight time was first emitted, recorded here so a number produced under it names it"
+obtained = true
+
+[[method.disagrees_with]]
+id = "landing.threshold.absolute_force"
+kind = "genuine"
+note = """
+Tying the edges makes a threshold error compound: a higher threshold places takeoff earlier and
+landing later, so flight time grows at both ends rather than the two errors cancelling. Stating the
+rising edge separately lets them differ, and at least one surveyed tool sets them an order of
+magnitude apart in persistence.
+"""
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = """
+None against the shipped behaviour, which is this rule. Against a separately stated rising edge it
+is the whole of the difference in flight time, and flight-time jump height goes as the square of it.
+"""
+rationale = """
+It is what runs when nobody states otherwise, so it is chosen silently and recorded always. Hidden
+is not unrecorded: a flight time is comparable with another only when the rule behind both edges is
+named.
+"""
+
+[[method]]
+id = "landing.threshold.absolute_force"
+construct = "landing"
+group = "D"
+title = "First sustained run above a threshold stated for the rising edge"
+rule = """
+Landing is the first sample beginning a run at or above a threshold stated for the rising edge and
+sustained for a stated span, independently of whatever threshold placed takeoff.
+"""
+status = "accepted"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [20.0]
+default = 20.0
+default_source = "jumpmetrics"
+required = true
+notes = """
+Only one value was recovered from a surveyed implementation. The falling edge in the same tool sits
+at 10 N, so a single published value here is not evidence that the two edges agree.
+"""
+
+[[method.parameter]]
+name = "persistence_ms"
+unit = "milliseconds"
+published_values = [15.0]
+default = 15.0
+default_source = "jumpmetrics"
+required = true
+notes = """
+The same tool requires 250 ms at the falling edge and 15 ms here, a factor of about seventeen. A
+landing is a step change and a takeoff is the absence of one, so the two edges are not equally
+exposed to a brief excursion.
+"""
+
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics landing and takeoff detection, as recorded in this project's tool survey rather than read first-hand"
+obtained = false
+
+[[method.disagrees_with]]
+id = "landing.threshold.tied_to_takeoff"
+kind = "genuine"
+note = """
+A separately stated rising edge lets a threshold error at one edge stay at that edge. Tying the two
+makes flight time longer at both ends under a higher threshold.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = """
+Unquantified against the tied rule on this corpus. The direction is known: a rising-edge threshold
+above the falling-edge one places landing later and lengthens flight time.
+"""
+rationale = """
+Name the rule that placed the rising edge alongside flight time, with the tied alternative one
+interaction away. The two edges of a flight phase are two choices, and a tool that offers only one
+of them has decided the other.
 """

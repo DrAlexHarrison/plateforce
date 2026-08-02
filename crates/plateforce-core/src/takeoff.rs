@@ -237,8 +237,11 @@ pub fn takeoff_reestimated_flight_threshold(
     dispersion: DispersionEstimator,
     sample_rate_hz: f64,
 ) -> Result<ReestimatedFlight, TrialError> {
+    // The id the caller selected, so the rule reports the same name whether it worked or
+    // not. Reported under a second name, one rule looks like two and the failing one
+    // resolves nowhere.
     let failure = || TrialError::NoCrossing {
-        method_id: "takeoff.threshold.reestimated_flight".to_string(),
+        method_id: "takeoff.threshold.flight_noise_k_sd".to_string(),
         parameter: "provisional_threshold_newtons".to_string(),
         value: provisional_threshold_newtons,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,
