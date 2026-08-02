@@ -12,13 +12,13 @@
 //! cross-origin isolation headers, which static hosting does not serve.
 
 pub mod demo;
-pub mod parse;
 pub mod registry_embed;
 
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use plateforce_analysis::{spread, AnalysisRequest, Binding, BINDINGS};
+use plateforce_core::read;
 use plateforce_core::signal::{partition_sentinels, Sentinel};
 use plateforce_core::Trial;
 
@@ -101,7 +101,7 @@ pub fn registry_json() -> Result<String, JsError> {
 /// A parsed force file, before any column has been declared to be the force channel.
 #[wasm_bindgen]
 pub struct ForceFile {
-    inner: parse::ForceFile,
+    inner: read::ForceFile,
 }
 
 #[wasm_bindgen]
@@ -109,7 +109,7 @@ impl ForceFile {
     /// Parse text that came from a file input. The bytes never leave the tab.
     #[wasm_bindgen(js_name = parse)]
     pub fn parse_text(text: &str) -> Result<ForceFile, JsError> {
-        parse::parse(text)
+        read::parse(text)
             .map(|inner| ForceFile { inner })
             .map_err(|e| JsError::new(&e.to_string()))
     }
