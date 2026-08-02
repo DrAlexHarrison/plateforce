@@ -195,9 +195,32 @@ const onDemand = paint.ranBeside.filter((row) => row.kind.endsWith('surface-on-d
 check('a rule the registry says to display unasked is on screen with the value it used',
   shown.length > 0,
   shown.map((row) => row.text).join(' / ') || 'nothing displayed');
-check('a rule the registry says to name is on screen with its alternatives one interaction away',
+check('a rule the registry says to name is on screen',
   onDemand.length > 0,
   onDemand.map((row) => row.text).join(' / ') || 'nothing named');
+
+// The row existing is half the verdict. The other half is that the alternatives are one
+// interaction away, so the check takes the interaction rather than reading the row and
+// claiming what the row does not say. The alternative ids come back so a pass cannot be
+// an empty list rendered under a heading.
+const alternatives = await evaluate(`(() => {
+  const row = document.querySelector('#decision-list .ran-beside__row--surface-on-demand');
+  if (!row) return { reached: false, why: 'no rule on screen under this verdict' };
+  const button = [...row.querySelectorAll('button')].pop();
+  if (!button) return { reached: false, why: 'the row names no interaction' };
+  button.click();
+  const drawer = document.getElementById('method-drawer');
+  const named = [...document.querySelectorAll('#drawer-body li')]
+    .map((item) => item.textContent.trim())
+    .filter((text) => /^[a-z_]+(\\.[a-z_0-9]+)+/.test(text));
+  return { reached: true, open: drawer && !drawer.hidden, label: button.textContent.trim(), named };
+})()`);
+check('and its alternatives are one interaction away, named by id',
+  alternatives.reached && alternatives.open && alternatives.named.length > 0,
+  alternatives.reached
+    ? `"${alternatives.label}" opens ${alternatives.named.length} alternatives: ${alternatives.named.map((t) => t.split(' ')[0]).join(', ') || 'none'}`
+    : alternatives.why);
+await evaluate(`(() => { document.getElementById('method-drawer').hidden = true; return true; })()`);
 
 const ticked = paint.axes.filter((axis) => axis.ticked);
 check('the setting the panel opened on is named on screen',
