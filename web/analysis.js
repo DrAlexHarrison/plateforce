@@ -201,7 +201,10 @@ function renderMetrics() {
 
     const formatted = formatNumber(metric.value, metric.unit);
     if (formatted == null) {
-      card.append(element('p', 'metric__value metric__value--absent', 'No value, the rule found no crossing'));
+      // The card knows the value is absent and not why. The rule that produced nothing says
+      // so in its own words in the warnings, so naming a cause here would be a second and
+      // possibly different answer to the same question.
+      card.append(element('p', 'metric__value metric__value--absent', 'No value on this trial'));
     } else {
       const value = element('p', 'metric__value', formatted);
       value.append(element('small', null, metric.unit_symbol));
