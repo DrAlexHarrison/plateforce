@@ -57,7 +57,11 @@ pub(crate) fn record_inherited_spread(resolved: &mut Resolution, inherited_sprea
     resolved.record(
         "sd_convention",
         convention.to_string(),
-        if stated { ParameterSource::Stated } else { ParameterSource::Assumed },
+        if stated {
+            ParameterSource::Stated
+        } else {
+            ParameterSource::Assumed
+        },
     );
     resolved.record(
         "reference_distribution",

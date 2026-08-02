@@ -1,7 +1,7 @@
 //! `onset.threshold.noise_relative`: k standard deviations of the quiet epoch.
 
-use plateforce_core::provenance::ParameterSource;
 use plateforce_core::onset::{onset_noise_relative, BandSides, DegenerateBandPolicy};
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{format_number, Resolution, RuleRefusal};
