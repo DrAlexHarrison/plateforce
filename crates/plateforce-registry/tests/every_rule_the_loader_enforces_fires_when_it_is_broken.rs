@@ -36,11 +36,27 @@ published_values = [5.0, 8.0]
 default = 5.0
 default_source = "owen2014"
 
+[[method.parameter]]
+name = "dwell_seconds"
+unit = "seconds"
+published_values = [1.0]
+default = 1.0
+default_source = "hawkin_glossary"
+required = true
+
 [[method.bias]]
 magnitude = 0.011
 unit = "meters"
 criterion = "simultaneous motion capture"
 criterion_kind = "simultaneous_capture"
+
+[[method.bias]]
+magnitude = 1.0
+unit = "seconds"
+direction = "long"
+equals_parameter = "dwell_seconds"
+criterion = "time_to_stabilisation"
+criterion_kind = "model"
 
 [[method.citation]]
 key = "owen2014"
@@ -201,6 +217,77 @@ fn a_bias_stated_against_a_blank_criterion_is_refused() {
         kinds.contains(&ViolationKind::BiasWithoutCriterion),
         "{kinds:?}"
     );
+}
+
+/// A rule that waits a dwell before declaring stabilisation overstates by exactly that
+/// dwell, so the recorded magnitude is that parameter's value rather than a constant. The
+/// four cases below are the four ways that identity can be false while looking true.
+#[test]
+fn a_bias_equalling_a_parameter_this_entry_does_not_carry_is_refused() {
+    let kinds = methods_broken(
+        "equals_parameter = \"dwell_seconds\"",
+        "equals_parameter = \"dwell_ms\"",
+    );
+    assert!(
+        kinds.contains(&ViolationKind::BiasNamesUnknownParameter {
+            parameter: "dwell_ms".to_string(),
+        }),
+        "{kinds:?}"
+    );
+}
+
+#[test]
+fn a_bias_equalling_a_parameter_that_declares_no_default_is_refused() {
+    let kinds = methods_broken("default = 1.0\ndefault_source = \"hawkin_glossary\"\n", "");
+    assert!(
+        kinds.contains(&ViolationKind::BiasNamesParameterWithoutDefault {
+            parameter: "dwell_seconds".to_string(),
+        }),
+        "{kinds:?}"
+    );
+}
+
+/// The number and the parameter it claims to equal, held together. Without this the
+/// magnitude is right at the published default and wrong everywhere else, which is the
+/// state the registry was in before the field existed.
+#[test]
+fn a_bias_disagreeing_with_the_parameter_it_equals_is_refused() {
+    let kinds = methods_broken(
+        "default = 1.0\ndefault_source",
+        "default = 2.0\ndefault_source",
+    );
+    assert!(
+        kinds.contains(&ViolationKind::BiasMagnitudeDisagreesWithParameter {
+            parameter: "dwell_seconds".to_string(),
+            stated: 1.0,
+            declared: 2.0,
+        }),
+        "{kinds:?}"
+    );
+}
+
+/// An identity between quantities in different units is not an identity.
+#[test]
+fn a_bias_in_a_different_unit_from_the_parameter_it_equals_is_refused() {
+    let kinds = methods_broken(
+        "magnitude = 1.0\nunit = \"seconds\"\ndirection = \"long\"",
+        "magnitude = 1.0\nunit = \"milliseconds\"\ndirection = \"long\"",
+    );
+    assert!(
+        kinds.contains(&ViolationKind::BiasUnitDiffersFromParameter {
+            parameter: "dwell_seconds".to_string(),
+            stated: "milliseconds".to_string(),
+            declared: "seconds".to_string(),
+        }),
+        "{kinds:?}"
+    );
+}
+
+/// A bias that names no parameter is a fixed quantity and none of the four rules touch it.
+#[test]
+fn a_bias_that_names_no_parameter_is_left_alone() {
+    let kinds = methods_broken("equals_parameter = \"dwell_seconds\"\n", "");
+    assert_eq!(kinds, Vec::new());
 }
 
 #[test]

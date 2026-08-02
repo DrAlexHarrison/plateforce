@@ -163,10 +163,18 @@ pub enum CriterionKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Bias {
+    /// The size of the bias. Where `equals_parameter` names a parameter, this is the size
+    /// at that parameter's declared default, and the validator holds the two together.
     pub magnitude: f64,
     pub unit: String,
     #[serde(default)]
     pub direction: Option<String>,
+    /// The parameter of this entry whose value the bias equals, where it tracks one rather
+    /// than being fixed. A rule that waits a dwell before declaring stabilisation overstates
+    /// by exactly that dwell, so a magnitude recorded alone goes wrong the moment a reader
+    /// changes the parameter the entry told them to change.
+    #[serde(default)]
+    pub equals_parameter: Option<String>,
     pub criterion: String,
     pub criterion_kind: CriterionKind,
     #[serde(default)]

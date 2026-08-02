@@ -18,6 +18,22 @@ pub enum ViolationKind {
         target: String,
     },
     BiasWithoutCriterion,
+    BiasNamesUnknownParameter {
+        parameter: String,
+    },
+    BiasNamesParameterWithoutDefault {
+        parameter: String,
+    },
+    BiasMagnitudeDisagreesWithParameter {
+        parameter: String,
+        stated: f64,
+        declared: f64,
+    },
+    BiasUnitDiffersFromParameter {
+        parameter: String,
+        stated: String,
+        declared: String,
+    },
     DefaultWithoutSource {
         parameter: String,
     },
@@ -102,6 +118,34 @@ impl fmt::Display for Violation {
             BiasWithoutCriterion => write!(
                 f,
                 "{}: a bias is stated with no criterion, so a reader cannot tell what it is a bias against",
+                self.entry
+            ),
+            BiasNamesUnknownParameter { parameter } => write!(
+                f,
+                "{}: a bias equals parameter '{parameter}', which this entry does not carry",
+                self.entry
+            ),
+            BiasNamesParameterWithoutDefault { parameter } => write!(
+                f,
+                "{}: a bias equals parameter '{parameter}', which declares no default, so the magnitude is anchored to nothing",
+                self.entry
+            ),
+            BiasMagnitudeDisagreesWithParameter {
+                parameter,
+                stated,
+                declared,
+            } => write!(
+                f,
+                "{}: a bias of {stated} equals parameter '{parameter}', whose default is {declared}",
+                self.entry
+            ),
+            BiasUnitDiffersFromParameter {
+                parameter,
+                stated,
+                declared,
+            } => write!(
+                f,
+                "{}: a bias in {stated} equals parameter '{parameter}', which is in {declared}",
                 self.entry
             ),
             DefaultWithoutSource { parameter } => write!(
@@ -230,6 +274,52 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                 violations.push(Violation {
                     entry: entry.clone(),
                     kind: ViolationKind::BiasWithoutCriterion,
+                });
+            }
+
+            // A bias that tracks a parameter is recorded at that parameter's default, so the
+            // two are held together here rather than drifting the first time either moves.
+            let Some(named) = &bias.equals_parameter else {
+                continue;
+            };
+            let Some(parameter) = method
+                .parameters
+                .iter()
+                .find(|parameter| &parameter.name == named)
+            else {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::BiasNamesUnknownParameter {
+                        parameter: named.clone(),
+                    },
+                });
+                continue;
+            };
+            match parameter.default {
+                None => violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::BiasNamesParameterWithoutDefault {
+                        parameter: named.clone(),
+                    },
+                }),
+                Some(declared) if declared != bias.magnitude => violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::BiasMagnitudeDisagreesWithParameter {
+                        parameter: named.clone(),
+                        stated: bias.magnitude,
+                        declared,
+                    },
+                }),
+                Some(_) => {}
+            }
+            if parameter.unit.as_deref() != Some(bias.unit.as_str()) {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::BiasUnitDiffersFromParameter {
+                        parameter: named.clone(),
+                        stated: bias.unit.clone(),
+                        declared: parameter.unit.clone().unwrap_or_default(),
+                    },
                 });
             }
         }
