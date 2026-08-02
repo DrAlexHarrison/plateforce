@@ -5,6 +5,7 @@
 //! tool that prints escape codes into a log file has failed at its job.
 
 mod analyse;
+mod batch;
 mod capability_cmd;
 mod decisions;
 mod exit;
@@ -54,6 +55,8 @@ struct Invocation {
 enum Command {
     /// Compute every number one trace supports, with the rule behind each
     Analyse(analyse::Args),
+    /// Run every trial in a folder under one request
+    Batch(batch::Args),
     /// Report what this build can do, for comparison against every other surface
     Capability(capability_cmd::Args),
     /// Read the registry
@@ -113,6 +116,20 @@ fn main() -> ExitCode {
         Command::Serve { options } => {
             let borrowed: Vec<&str> = options.iter().map(String::as_str).collect();
             return plateforce_serve::run(&borrowed);
+        }
+        // A run's result is a set of files, so `--out` names the folder they go in and the
+        // summary is not a second document written to the same path.
+        Command::Batch(args) => {
+            return deliver(
+                batch::run(
+                    args,
+                    &registry_directory,
+                    invocation.format,
+                    invocation.out.as_deref(),
+                    &renderer,
+                ),
+                None,
+            )
         }
         Command::Capability(args) => capability_cmd::run(args, invocation.format),
         Command::Version => version_cmd::run(invocation.format),

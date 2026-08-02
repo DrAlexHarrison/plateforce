@@ -27,6 +27,10 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
             // here beside the command that exercises it.
             Operation::ParseForceFile,
         ]),
+        // Both entry points, because batch has two: one loops the analysis and returns
+        // results, the other loops the sweep and returns paired variants. A surface reaching
+        // only the first would claim one operation where the software has two.
+        "batch" => Some(&[Operation::Batch, Operation::Compare]),
         "capability" => Some(&[Operation::Capability]),
         "registry" => Some(&[
             Operation::RegistryCensus,
