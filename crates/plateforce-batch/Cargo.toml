@@ -23,9 +23,9 @@ thiserror = { workspace = true }
 # whether a file this writes can be opened by a reader that has to be able to open it.
 # `flate2-rust_backened` is upstream's spelling, and it selects the pure-Rust inflate so no
 # system zlib is needed on any of the three platforms.
-arrow-array = { version = "56", optional = true }
-arrow-schema = { version = "56", optional = true }
-parquet = { version = "56", optional = true, default-features = false, features = [
+arrow-array = { version = "59", optional = true }
+arrow-schema = { version = "59", optional = true }
+parquet = { version = "59", optional = true, default-features = false, features = [
     "arrow",
     "snap",
     "brotli",
