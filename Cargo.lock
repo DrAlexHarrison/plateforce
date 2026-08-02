@@ -670,9 +670,11 @@ name = "plateforce-python"
 version = "0.1.0"
 dependencies = [
  "plateforce-analysis",
+ "plateforce-batch",
  "plateforce-core",
  "plateforce-registry",
  "pyo3",
+ "serde_json",
 ]
 
 [[package]]
@@ -693,6 +695,7 @@ name = "plateforce-wasm"
 version = "0.1.0"
 dependencies = [
  "plateforce-analysis",
+ "plateforce-batch",
  "plateforce-core",
  "plateforce-registry",
  "serde",
