@@ -50,3 +50,24 @@ test_that("every field the idiom names is present on a refusal", {
     expect_true(field %in% carried, info = field)
   }
 })
+
+test_that("one trial analyses as many times as it is asked, without losing its trace", {
+  # One trial analysed repeatedly is the shape a batch and an interactive session both
+  # take. A trace reached through a pointer a collection can free would work once and fail
+  # later, which no single-call test would see.
+  trial <- quiet_trial(samples = 2400)
+  weights <- numeric(0)
+  for (index in seq_len(200)) {
+    if (index %% 50L == 0L) gc(verbose = FALSE)
+    result <- analyse_countermovement_jump(
+      trial,
+      weighing = "bwepoch.fixed_window",
+      onset = "onset.threshold.noise_relative",
+      takeoff = "takeoff.threshold.absolute_force"
+    )
+    weights <- union(weights, pf_value(result, "system_weight_newtons")@value)
+  }
+
+  expect_length(weights, 1L)
+  expect_identical(trial@sample_count, 2400L)
+})

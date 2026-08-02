@@ -1,4 +1,4 @@
-bwepoch.fixed_window centre=mean(assumed) dispersion=sample(assumed) duration=1(assumed) start_seconds=0.0000(measured)
+bwepoch.fixed_window centre=mean(assumed) dispersion=sample(assumed) duration=1(assumed) start_seconds=0.0000(measured) window_anchor=trial_start(assumed)
 onset.threshold.noise_relative degenerate_band=refuse(assumed) k=5(assumed) reference_distribution=quiet_stance_force(assumed) sd_convention=sample(assumed)
 onset.op.backward_offset_fixed offset_ms=30(assumed)
 onset.op.crossing_selection selection=first(assumed)
