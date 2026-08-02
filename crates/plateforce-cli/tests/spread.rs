@@ -65,14 +65,21 @@ fn the_sweep_reports_what_ran_and_what_did_not() {
     let failed = response["failed"].as_u64().expect("a count");
     println!("succeeded {succeeded}, failed {failed}, of combinations_run {run}");
     assert!(run > 1, "a sweep over one combination is not a sweep");
-    assert_eq!(succeeded + failed, run, "every combination is accounted for");
+    assert_eq!(
+        succeeded + failed,
+        run,
+        "every combination is accounted for"
+    );
 }
 
 /// A quantity other than the one `analyse` headlines, which is the reason this command
 /// exists rather than a flag on that one.
 #[test]
 fn a_quantity_the_analysis_does_not_headline_can_be_swept() {
-    let output = spread(&["--format", "json", "--quantity", "time_to_takeoff_seconds"], true);
+    let output = spread(
+        &["--format", "json", "--quantity", "time_to_takeoff_seconds"],
+        true,
+    );
     assert_eq!(output.status.code(), Some(0));
     let response = body(&output);
     assert_eq!(response["quantity_key"], "time_to_takeoff_seconds");
