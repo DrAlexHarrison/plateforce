@@ -9,6 +9,7 @@ members = [
     "crates/plateforce-wasm",
     "crates/plateforce-python",
     "crates/plateforce-serve",
+    "crates/plateforce-batch",
 ]
 
 # The desktop shell is a Tauri application and compiling it needs system webkit. A member
@@ -29,6 +30,7 @@ authors = ["Alex Harrison"]
 
 [workspace.dependencies]
 plateforce-analysis = { path = "crates/plateforce-analysis", version = "0.1.0" }
+plateforce-batch = { path = "crates/plateforce-batch", version = "0.1.0" }
 plateforce-core = { path = "crates/plateforce-core", version = "0.1.0" }
 plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.0" }
 plateforce-serve = { path = "crates/plateforce-serve", version = "0.1.0" }
