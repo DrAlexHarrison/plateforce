@@ -16,6 +16,14 @@ use common::{bound_request, committed_format, copy_committed_fixtures, registry,
 use plateforce_batch::{analyse, BatchResult, TrialIdentity, TrialSet};
 use serde::{Deserialize, Serialize};
 
+/// Values measured to read back as a different double without the round-trip feature. A
+/// named case holds when a generated sweep drifts, and each one's written text is identical
+/// either way, which is why inspecting the file would never show it.
+const KNOWN_TO_MISPARSE: [(f64, f64); 2] = [
+    (10.106284223733105, 10.106284223733104),
+    (3.6408148087849357, 3.640814808784936),
+];
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct TypedRow {
     quantity: f64,
@@ -59,7 +67,7 @@ fn a_typed_struct_round_trips_every_double_exactly() {
         };
         let text = serde_json::to_string(&row).expect("a finite double serialises");
         let back: TypedRow = serde_json::from_str(&text).expect("and reads back");
-        if back != row {
+        if back.quantity.to_bits() != row.quantity.to_bits() {
             lost += 1;
         }
     }
@@ -80,7 +88,7 @@ fn a_bare_float_and_a_vector_of_them_round_trip_exactly() {
     let mut bare = 0usize;
     for value in &values {
         let text = serde_json::to_string(value).unwrap();
-        if serde_json::from_str::<f64>(&text).unwrap() != *value {
+        if serde_json::from_str::<f64>(&text).unwrap().to_bits() != value.to_bits() {
             bare += 1;
         }
     }
@@ -89,7 +97,7 @@ fn a_bare_float_and_a_vector_of_them_round_trip_exactly() {
     let vector = values
         .iter()
         .zip(back.iter())
-        .filter(|(left, right)| left != right)
+        .filter(|(left, right)| left.to_bits() != right.to_bits())
         .count();
 
     println!(
@@ -127,4 +135,31 @@ fn the_batch_envelope_survives_the_shapes_its_surfaces_read() {
     println!("{compared} computed values across {copied} trials, all identical after a round trip");
     assert!(compared > 0, "there were values to compare");
     std::fs::remove_dir_all(&directory).ok();
+}
+
+#[test]
+fn the_values_known_to_misparse_read_back_as_themselves() {
+    for (value, what_it_became) in KNOWN_TO_MISPARSE {
+        let text = serde_json::to_string(&value).unwrap();
+        let back: f64 = serde_json::from_str(&text).unwrap();
+        println!("{value} wrote {text} and read back {back}");
+
+        // The written text is byte-identical either way, so nobody reading the file would
+        // ever see this. Only the bits separate the two.
+        assert_eq!(
+            text,
+            format!("{value:?}"),
+            "the write side was never the problem"
+        );
+        assert_eq!(
+            back.to_bits(),
+            value.to_bits(),
+            "{value} read back as {back}, and without the round-trip feature it becomes {what_it_became}"
+        );
+        assert_ne!(
+            value.to_bits(),
+            what_it_became.to_bits(),
+            "the two are genuinely different doubles rather than one value written twice"
+        );
+    }
 }
