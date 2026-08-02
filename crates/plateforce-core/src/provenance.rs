@@ -120,11 +120,8 @@ mod tests {
 
     fn step(method_id: &str) -> Provenance {
         Provenance {
-            method_id: method_id.to_string(),
-            bound_parameters: Vec::new(),
-            registry_version: None,
-            registry_digest: None,
             acquisition_complete: true,
+            ..Provenance::of(method_id)
         }
     }
 

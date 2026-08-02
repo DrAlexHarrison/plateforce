@@ -235,6 +235,60 @@ impl BoundMethod {
             .collect()
     }
 
+    /// The record this rule leaves behind, with each value carrying where it came from.
+    ///
+    /// A value the caller stated and one the rule fell back to move the number identically,
+    /// so the distinction has to survive into the record rather than living only here.
+    pub fn into_provenance(
+        &self,
+        registry_version: Option<String>,
+        registry_digest: Option<String>,
+        acquisition_complete: bool,
+        depends_on: Vec<plateforce_core::Provenance>,
+    ) -> plateforce_core::Provenance {
+        use plateforce_core::provenance::{ChoiceRecord, ParameterRecord, ParameterSource};
+
+        let assumed: BTreeSet<&str> = self.assumed_parameters.iter().map(String::as_str).collect();
+        let source_of = |name: &str| {
+            if assumed.contains(name) {
+                ParameterSource::Assumed
+            } else {
+                ParameterSource::Stated
+            }
+        };
+
+        plateforce_core::Provenance {
+            method_id: self.method_id.clone(),
+            method_source: ParameterSource::Stated,
+            parameters: self
+                .quantities()
+                .into_iter()
+                .map(|(name, value)| ParameterRecord {
+                    source: source_of(&name),
+                    name,
+                    value,
+                })
+                .collect(),
+            choices: self
+                .enumerated_choices()
+                .into_iter()
+                .map(|(name, value)| ChoiceRecord {
+                    source: source_of(&name),
+                    name,
+                    value,
+                })
+                .collect(),
+            depends_on,
+            registry_version,
+            registry_digest,
+            acquisition_complete,
+            not_read: self.unread_parameters.clone(),
+            manual_override: self.manual_override,
+            registry_entry: self.registry_backed,
+            composed_from: None,
+        }
+    }
+
     pub fn enumerated_choices(&self) -> Vec<(String, String)> {
         self.bound_parameters
             .iter()
