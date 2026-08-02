@@ -33,6 +33,12 @@ unit = "count"
 required = true
 notes = "Mandatory and travels with the value in every export and every label. Best of five and best of three are different numbers."
 
+[[method.parameter]]
+name = "ranked_by"
+unit = "enumeration"
+required = true
+notes = "The construct whose value orders the trials, named by id. Of the three rules only best_of_n_by_peak_force carries its criterion; under the other two the best trial is undefined until this is set, and two criteria select different trials from one session."
+
 [[method.citation]]
 key = "maffiuletti2016"
 role = "uses"
@@ -531,6 +537,12 @@ name = "order"
 unit = "enumeration"
 required = true
 notes = "peak_then_average or average_then_peak. The order must appear in the export header."
+
+[[method.parameter]]
+name = "alignment_time_treatment"
+unit = "enumeration"
+required = true
+notes = "The time_treatment rule that aligns the curves before averaging, named by id. Under average_then_peak the peak of the average is a property of the alignment as much as of the trials, so two alignments give two peaks from one trial set."
 
 [[method.citation]]
 key = "sportsbiomech2018"
