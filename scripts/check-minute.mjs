@@ -209,6 +209,47 @@ check('the swept setting moved the number',
   new Set(swept).size > 1,
   `${new Set(swept).size} distinct values across ${swept.length} rules: ${swept.join(', ')}`);
 
+// Dragging a marker recomputes every dependent number, and the budget on that is a hard
+// gate rather than a preference: a practitioner triggers it dozens of times a session, so
+// the cost is paid dozens of times. Timed on the recompute the drag calls, over several
+// placements, and reported with the split so a failure names where the time went.
+const recompute = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const onset = state.analysis.onset_index;
+  const whole = [];
+  for (const offset of [-200, -100, 100, 200]) {
+    state.overrides.onset = onset + offset;
+    const started = performance.now();
+    analysis.runAnalysis();
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    whole.push(performance.now() - started);
+  }
+  state.overrides.onset = null;
+  const request = JSON.stringify(analysis.buildRequest());
+  let started = performance.now();
+  for (let i = 0; i < 10; i += 1) state.loadedTrial.analyse(request);
+  const one = (performance.now() - started) / 10;
+  const axes = [{
+    slot: 'onset', parameter: null, values: [],
+    method_ids: state.build.bindings.filter((b) => b.slot === 'onset').map((b) => b.id),
+  }];
+  const sweep = JSON.stringify({
+    base: analysis.buildRequest(), axes,
+    quantity_key: state.spread.quantity, maximum_combinations: 512,
+  });
+  started = performance.now();
+  for (let i = 0; i < 5; i += 1) state.loadedTrial.spread(sweep);
+  const panel = (performance.now() - started) / 5;
+  analysis.runAnalysis();
+  return { whole, one, panel, rules: axes[0].method_ids.length };
+})()`);
+const slowest = Math.max(...recompute.whole);
+check('the recompute a marker drag triggers lands inside 100 ms',
+  slowest < 100,
+  `slowest of ${recompute.whole.length} placements ${slowest.toFixed(1)} ms; one analysis ` +
+  `${recompute.one.toFixed(1)} ms, the spread over ${recompute.rules} rules ${recompute.panel.toFixed(1)} ms`);
+
 // The three landmark tracks are read back from the running page rather than from the
 // stylesheet, so what is checked is what renders, in the theme it renders in.
 for (const theme of ['light', 'dark']) {
