@@ -85,3 +85,22 @@ test_that("the registry the numbers were bound to is named in the record", {
 
   expect_identical(result@registry_digest, pf_registry()@digest)
 })
+
+test_that("a rule the caller named out of the registry is recorded as coming from it", {
+  named <- c("bwepoch.fixed_window", "onset.threshold.noise_relative",
+             "takeoff.threshold.absolute_force")
+  result <- analyse_countermovement_jump(
+    quiet_trial(),
+    weighing = named[1], onset = named[2], takeoff = named[3]
+  )
+
+  ids <- vapply(result@bound_methods, function(m) as.character(m[["method_id"]]), character(1))
+  backed <- vapply(result@bound_methods, function(m) isTRUE(m[["registry_backed"]]), logical(1))
+
+  # Both sides in one run: the operators the rule composed were named by nobody, so a
+  # surface reporting one value for every rule cannot satisfy both halves.
+  expect_true(any(backed))
+  expect_true(any(!backed))
+  expect_identical(sort(unname(ids[backed])), sort(named))
+  expect_true(all(ids[backed] %in% pf_registry()@method_ids))
+})

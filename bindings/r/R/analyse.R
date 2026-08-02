@@ -139,7 +139,8 @@ analyse_countermovement_jump <- function(trial,
     )),
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
-    registry_digest = registry_digest(registry)
+    registry_digest = registry_digest(registry),
+    registry_backed_ids = registry_backed_among(c(weighing, onset, takeoff), registry)
   )
   response <- unwrap(decode(rust_analyse_json(trial@handle, request)))
   jump_from_response(response)

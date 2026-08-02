@@ -28,15 +28,34 @@ registry_root <- function(path = NULL) {
   shipped
 }
 
-# The digest of a registry is measured once per path per session. Measuring it costs a
-# read and a validation of every file in the tree, and an analysis reads no rule out of
-# it, so measuring it on every call would put that cost on every number.
-measured_digests <- new.env(parent = emptyenv())
+# A registry is read once per path per session. Reading it costs a read and a validation
+# of every file in the tree, and an analysis reads no rule out of it, so reading it on
+# every call would put that cost on every number. Both facts a request carries come from
+# the one read.
+read_registries <- new.env(parent = emptyenv())
 
-registry_digest <- function(path = NULL) {
+registry_facts <- function(path = NULL) {
   root <- registry_root(path)
-  if (is.null(measured_digests[[root]])) {
-    measured_digests[[root]] <- pf_registry(root)@digest
+  if (is.null(read_registries[[root]])) {
+    registry <- pf_registry(root)
+    read_registries[[root]] <- list(
+      digest = registry@digest,
+      method_ids = registry@method_ids
+    )
   }
-  measured_digests[[root]]
+  read_registries[[root]]
+}
+
+registry_digest <- function(path = NULL) registry_facts(path)$digest
+
+# Which of the rules a caller named this registry carries. The engine is told rather than
+# asked: it reports a rule as registry backed only for the ids the request declares, so a
+# request that names none produces a record stating that no rule came from the registry.
+registry_backed_among <- function(method_ids, path = NULL) {
+  named <- method_ids[!vapply(method_ids, is.null, logical(1))]
+  if (!length(named)) {
+    return(NULL)
+  }
+  backed <- intersect(as.character(named), registry_facts(path)$method_ids)
+  if (!length(backed)) NULL else as.list(backed)
 }
