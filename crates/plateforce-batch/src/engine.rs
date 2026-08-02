@@ -6,6 +6,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use plateforce_analysis::document::refusal_from_rule;
 use plateforce_analysis::{
     AnalysisRequest, AnalysisResponse, BoundMethod, Metric, RuleRefusal, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
@@ -393,68 +394,32 @@ fn rule_refusal_row(
     refusal: &RuleRefusal,
     response: &AnalysisResponse,
 ) -> RefusalRow {
-    use plateforce_core::TrialError;
     let bound_for_slot = response
         .bound_methods
         .iter()
         .find(|bound| bound.method_id.starts_with(slot_prefix(slot)))
-        .map(|bound| bound.method_id.clone())
+        .map(|bound| bound.method_id.as_str())
         .unwrap_or_default();
-
-    let (code, method_id, parameter, value, detail) = match refusal {
-        RuleRefusal::Trial(TrialError::NoCrossing {
-            method_id,
-            parameter,
-            value,
-            search_bound_seconds,
-        }) => (
-            RefusalCode::NoCrossing.wire_name(),
-            method_id.clone(),
-            parameter.clone(),
-            crate::relations::format_value(*value),
-            format!("search_bound_seconds={search_bound_seconds}"),
-        ),
-        RuleRefusal::Trial(TrialError::CollapsedBand {
-            method_id,
-            parameter,
-            value,
-            dispersion_newtons,
-            threshold_newtons,
-        }) => (
-            RefusalCode::CollapsedBand.wire_name(),
-            method_id.clone(),
-            parameter.clone(),
-            crate::relations::format_value(*value),
-            format!(
-                "dispersion_newtons={dispersion_newtons},threshold_newtons={threshold_newtons}"
-            ),
-        ),
-        RuleRefusal::Trial(other) => (
-            RefusalCode::from(other).wire_name(),
-            bound_for_slot,
-            String::new(),
-            String::new(),
-            String::new(),
-        ),
-        RuleRefusal::Stated(_) => (
-            RefusalCode::UnknownParameter.wire_name(),
-            bound_for_slot,
-            String::new(),
-            String::new(),
-            String::new(),
-        ),
-    };
+    let refused = refusal_from_rule(slot, refusal, bound_for_slot);
 
     RefusalRow {
         trial_id: trial_id.to_string(),
         ordinal,
-        code: code.to_string(),
-        method_id,
+        code: refused.code.wire_name().to_string(),
+        method_id: refused.method_id.clone(),
         slot: slot.to_string(),
-        parameter,
-        value,
-        detail,
-        available: String::new(),
+        parameter: refused.parameter.clone().unwrap_or_default(),
+        value: refused
+            .value
+            .map(crate::relations::format_value)
+            .unwrap_or_default(),
+        detail: refused
+            .detail
+            .iter()
+            .map(|(name, value)| format!("{name}={value}"))
+            .collect::<Vec<_>>()
+            .join(","),
+        available: refused.available.join(","),
         message: refusal.to_string(),
     }
 }
