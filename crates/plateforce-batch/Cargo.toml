@@ -1,0 +1,37 @@
+[package]
+name = "plateforce-batch"
+description = "One analysis over a set of trials, returned as flat relations with a run-level fingerprint."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# The registry dependency is what lets a run measure its own digest from the bytes that
+# were read. Taking it as a caller argument would rest the fingerprint on a caller's word.
+[dependencies]
+plateforce-analysis = { workspace = true }
+plateforce-core = { workspace = true }
+plateforce-registry = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
+thiserror = { workspace = true }
+
+# Codecs are named one by one rather than taken from the default set, which also carries
+# lz4 and zstd. Neither builds for `wasm32-unknown-unknown`, and a codec chosen here decides
+# whether a file this writes can be opened by a reader that has to be able to open it.
+# `flate2-rust_backened` is upstream's spelling, and it selects the pure-Rust inflate so no
+# system zlib is needed on any of the three platforms.
+arrow-array = { version = "56", optional = true }
+arrow-schema = { version = "56", optional = true }
+parquet = { version = "56", optional = true, default-features = false, features = [
+    "arrow",
+    "snap",
+    "brotli",
+    "flate2-rust_backened",
+] }
+
+[features]
+default = ["parquet"]
+parquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema"]

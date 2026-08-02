@@ -1,0 +1,238 @@
+//! What the run reads, and what it calls each thing it read.
+
+use std::collections::BTreeSet;
+
+use plateforce_batch::identity::{UnidentifiedReason, WalkError};
+use plateforce_batch::{Session, SourceFormat, TrialIdentity, TrialSet};
+
+const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../plateforce-conformance/fixtures");
+
+fn committed_format() -> SourceFormat {
+    SourceFormat {
+        delimiter: '\t',
+        force_column_index: 0,
+        sample_rate_hz: 1200.0,
+        trial_file_suffixes: vec!["force.txt".to_string()],
+    }
+}
+
+#[test]
+fn reads_every_committed_fixture() {
+    let format = committed_format();
+    let set = TrialSet::walk(
+        std::path::Path::new(FIXTURES),
+        &format,
+        &TrialIdentity::FileStem,
+    )
+    .expect("the committed fixtures are on disk");
+
+    println!("{} of {} committed fixtures read", set.len(), set.files_found);
+    assert_eq!(set.files_found, 6, "six names carry the declared suffix");
+    assert_eq!(set.len(), 6, "all six are named");
+    assert!(set.unidentified.is_empty());
+
+    // The directory holds eight files. The two that are not traces are outside the declared
+    // set rather than refused as data failures, and the narrowing is what `files_found` says.
+    let on_disk = std::fs::read_dir(FIXTURES).unwrap().count();
+    println!("{} of {on_disk} files in the directory are declared trials", set.files_found);
+    assert_eq!(on_disk, 8);
+
+    for (trial_id, entry) in set.iter() {
+        let (trial, report) = entry
+            .source
+            .read(&format)
+            .unwrap_or_else(|error| panic!("{trial_id}: {error}"));
+        assert!(trial.len() > 1000, "{trial_id} carries a trace");
+        assert_eq!(report.column_index, 0);
+    }
+}
+
+#[test]
+fn a_declared_pattern_parses_what_the_conformance_crate_parses() {
+    let format = SourceFormat {
+        delimiter: '\t',
+        force_column_index: 0,
+        sample_rate_hz: 1200.0,
+        trial_file_suffixes: vec!["txt".to_string()],
+    };
+    let identity = TrialIdentity::DeclaredPattern {
+        template: "AT{subject}_{trial}".to_string(),
+    };
+    let directory = tempdir("pattern-parses");
+    for name in ["AT01_6.txt", "AT13_3.txt", "notes.txt"] {
+        std::fs::write(directory.join(name), "600.0\n600.0\n").unwrap();
+    }
+    std::fs::write(directory.join("AT01_6.csv"), "600.0\n").unwrap();
+
+    let set = TrialSet::walk(&directory, &format, &identity).unwrap();
+
+    // The conformance crate accepts the first two and rejects the last two, and so does this.
+    let named: Vec<&String> = set.iter().map(|(id, _)| id).collect();
+    println!("named {} of {} declared trials", named.len(), set.files_found);
+    assert_eq!(named, vec!["AT01_6", "AT13_3"]);
+
+    let subjects: BTreeSet<String> = set
+        .iter()
+        .filter_map(|(_, entry)| entry.subject.as_ref().map(|key| key.subject.clone()))
+        .collect();
+    assert_eq!(subjects, BTreeSet::from(["01".to_string(), "13".to_string()]));
+
+    // `AT01_6.csv` carries no declared suffix, so it is not a trial and not a failure.
+    assert_eq!(set.files_found, 3, "three names carry the declared suffix");
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+#[test]
+fn a_file_the_pattern_does_not_match_is_refused_by_name_rather_than_skipped() {
+    let format = SourceFormat {
+        delimiter: '\t',
+        force_column_index: 0,
+        sample_rate_hz: 1200.0,
+        trial_file_suffixes: vec!["txt".to_string()],
+    };
+    let identity = TrialIdentity::DeclaredPattern {
+        template: "AT{subject}_{trial}".to_string(),
+    };
+    let directory = tempdir("pattern-refuses");
+    std::fs::write(directory.join("AT01_6.txt"), "600.0\n").unwrap();
+    std::fs::write(directory.join("notes.txt"), "600.0\n").unwrap();
+
+    let set = TrialSet::walk(&directory, &format, &identity).unwrap();
+
+    println!(
+        "named {} of {} declared trials, unidentified {} of {}",
+        set.len(),
+        set.files_found,
+        set.unidentified.len(),
+        set.files_found
+    );
+    assert_eq!(set.files_found, 2);
+    assert_eq!(set.len(), 1);
+    assert_eq!(
+        set.len() + set.unidentified.len(),
+        set.files_found,
+        "every file the run found is either named or refused by name"
+    );
+
+    let refused = &set.unidentified[0];
+    assert_eq!(refused.file_name, "notes.txt");
+    assert!(refused.message().contains("AT{subject}_{trial}"), "{}", refused.message());
+    assert!(matches!(
+        refused.reason,
+        UnidentifiedReason::PatternDidNotMatch { .. }
+    ));
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+#[test]
+fn two_files_resolving_to_one_id_are_both_named_and_neither_is_preferred() {
+    let format = committed_format();
+    let directory = tempdir("duplicate-ids");
+    std::fs::create_dir_all(directory.join("monday")).unwrap();
+    std::fs::create_dir_all(directory.join("tuesday")).unwrap();
+    std::fs::write(directory.join("monday/a.force.txt"), "600.0\n").unwrap();
+    std::fs::write(directory.join("tuesday/a.force.txt"), "600.0\n").unwrap();
+
+    let set = TrialSet::walk(&directory, &format, &TrialIdentity::FileStem).unwrap();
+
+    println!(
+        "named {} of {}, unidentified {} of {}",
+        set.len(),
+        set.files_found,
+        set.unidentified.len(),
+        set.files_found
+    );
+    assert_eq!(set.files_found, 2);
+    assert_eq!(set.len(), 0, "neither file keys a row");
+    assert_eq!(set.unidentified.len(), 2, "both are named");
+    assert!(set.unidentified[0].message().contains("trial id a"));
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+#[test]
+fn a_run_walked_twice_lists_its_trials_in_the_same_order() {
+    let format = committed_format();
+    let first = TrialSet::walk(
+        std::path::Path::new(FIXTURES),
+        &format,
+        &TrialIdentity::FileStem,
+    )
+    .unwrap();
+    let second = TrialSet::walk(
+        std::path::Path::new(FIXTURES),
+        &format,
+        &TrialIdentity::FileStem,
+    )
+    .unwrap();
+    assert_eq!(first.trial_ids(), second.trial_ids());
+    println!("{} of {} trials in one order", first.len(), first.files_found);
+}
+
+#[test]
+fn grouping_by_subject_is_unavailable_when_no_pattern_was_declared() {
+    let format = committed_format();
+    let set = TrialSet::walk(
+        std::path::Path::new(FIXTURES),
+        &format,
+        &TrialIdentity::FileStem,
+    )
+    .unwrap();
+    assert!(
+        Session::group(&set).is_none(),
+        "a run with no declared grouping has no subject to group by"
+    );
+}
+
+#[test]
+fn a_declared_pattern_groups_one_subjects_trials_from_one_occasion() {
+    let format = SourceFormat {
+        delimiter: '\t',
+        force_column_index: 0,
+        sample_rate_hz: 1200.0,
+        trial_file_suffixes: vec!["txt".to_string()],
+    };
+    let identity = TrialIdentity::DeclaredPattern {
+        template: "AT{subject}_{trial}".to_string(),
+    };
+    let directory = tempdir("grouping");
+    let generated = plateforce_batch::synthetic::write_corpus(&directory, 5, 4, 7).unwrap();
+
+    let set = TrialSet::walk(&directory, &format, &identity).unwrap();
+    let sessions = Session::group(&set).expect("a declared pattern groups");
+
+    println!(
+        "{} of {} files parsed into {} subjects x {} trials",
+        set.len(),
+        generated.len(),
+        sessions.len(),
+        sessions.first().map(|s| s.trial_ids.len()).unwrap_or(0)
+    );
+    assert_eq!(set.len(), 20);
+    assert_eq!(sessions.len(), 5);
+    assert!(sessions.iter().all(|session| session.trial_ids.len() == 4));
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+#[test]
+fn a_run_that_declares_no_trial_names_is_refused_rather_than_given_a_default() {
+    let format = SourceFormat {
+        delimiter: '\t',
+        force_column_index: 0,
+        sample_rate_hz: 1200.0,
+        trial_file_suffixes: Vec::new(),
+    };
+    let error = TrialSet::walk(
+        std::path::Path::new(FIXTURES),
+        &format,
+        &TrialIdentity::FileStem,
+    )
+    .unwrap_err();
+    assert!(matches!(error, WalkError::NoTrialFileSuffixes), "{error}");
+}
+
+fn tempdir(name: &str) -> std::path::PathBuf {
+    let directory = std::env::temp_dir().join(format!("plateforce-batch-{name}"));
+    std::fs::remove_dir_all(&directory).ok();
+    std::fs::create_dir_all(&directory).unwrap();
+    directory
+}
