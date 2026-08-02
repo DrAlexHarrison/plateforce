@@ -365,3 +365,50 @@ fn a_run_that_states_nothing_about_its_capture_claims_no_complete_acquisition() 
     assert_ne!(described.run.run_fingerprint, partial.run.run_fingerprint);
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// Who chose each value is the record, so a value the caller stated must not be attributed
+/// to the registry. The distinction lives two crates away in the resolution layer and a
+/// refactor there is only caught by something asserting it downstream.
+#[test]
+fn a_value_the_request_stated_is_not_attributed_to_the_registry() {
+    let directory = tempdir("stated-not-assumed");
+    copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    // `bound_request` states three parameters and leaves everything else to the rules.
+    let result = analyse(&set, &bound_request(), &registry()).expect("every choice was made");
+
+    let sources_for = |parameter: &str| -> Vec<&str> {
+        result
+            .provenance
+            .iter()
+            .filter(|row| row.parameter == parameter)
+            .map(|row| row.source.as_str())
+            .collect()
+    };
+    for stated in ["duration", "k", "threshold_n"] {
+        let sources = sources_for(stated);
+        println!("{stated:12} recorded as {sources:?}");
+        assert!(!sources.is_empty(), "{stated} reaches the record at all");
+        assert!(
+            sources.iter().all(|source| *source == "stated"),
+            "{stated} was stated by the request and the record says {sources:?}"
+        );
+    }
+
+    // Both kinds reach the record, so a run whose provenance is uniformly one word would
+    // fail here. It does not prove the reverse attribution: an unstated value recorded as
+    // stated is caught in the analysis crate, by the test that watches the persistence
+    // operator run when nobody asked for it.
+    let assumed: Vec<&str> = result
+        .provenance
+        .iter()
+        .filter(|row| row.source == "assumed")
+        .map(|row| row.parameter.as_str())
+        .collect();
+    println!("{} rows the rules supplied themselves", assumed.len());
+    assert!(
+        !assumed.is_empty(),
+        "a run this short states three values and the rules supply the rest"
+    );
+    std::fs::remove_dir_all(&directory).ok();
+}
