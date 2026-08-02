@@ -30,7 +30,11 @@ authors = ["Alex Harrison"]
 
 [workspace.dependencies]
 plateforce-analysis = { path = "crates/plateforce-analysis", version = "0.1.0" }
-plateforce-batch = { path = "crates/plateforce-batch", version = "0.1.0" }
+# `default-features = false` belongs here rather than on the crates that want it off. A
+# member declaring it against a workspace entry that omits the key has it discarded, so the
+# browser was taking Parquet with `default-features = false` already written beside it.
+# A dependent that wants Parquet names the feature.
+plateforce-batch = { path = "crates/plateforce-batch", version = "0.1.0", default-features = false }
 plateforce-core = { path = "crates/plateforce-core", version = "0.1.0" }
 plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.0" }
 plateforce-serve = { path = "crates/plateforce-serve", version = "0.1.0" }
