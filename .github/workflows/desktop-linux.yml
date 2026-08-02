@@ -126,7 +126,9 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-0 libgtk-3-0 xvfb ca-certificates file util-linux
+            libwebkit2gtk-4.1-0 libgtk-3-0 xvfb ca-certificates file strace
+
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
@@ -145,22 +147,15 @@ jobs:
           echo "appimage smoke: capability reported on debian:12 as $reported"
           case "$reported" in sha256:*) ;; *) exit 1 ;; esac
 
-      # The static check above covers the code humans write. This covers what the running
-      # application does: no route to anywhere, and it still reaches a painted window.
-      - name: The application starts with no network route
+      # The grep in the build job covers the code humans write. This covers what the running
+      # application does, measured rather than inferred: every address it reaches for over
+      # twelve seconds with a window open. A local socket to the display server is not an
+      # outbound request; anything that is not loopback is.
+      - name: The application reaches for no address
         run: |
           appimage=$(find artefacts -name "*.AppImage" | head -1)
-          unshare --map-root-user --net -- \
-            xvfb-run -a "$appimage" --appimage-extract-and-run &
-          started=$!
-          sleep 8
-          if kill -0 "$started" 2>/dev/null; then
-            echo "no network route: the window stayed up for 8 seconds"
-            kill "$started"
-          else
-            echo "no network route: the application did not stay up" >&2
-            exit 1
-          fi
+          xvfb-run -a bash scripts/verify-no-outbound-request.sh 12 \
+            "$appimage" --appimage-extract-and-run
 
   static-binaries:
     name: the static binaries for enterprise and air-gapped Linux
