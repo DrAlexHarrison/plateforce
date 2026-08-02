@@ -31,6 +31,12 @@ pub enum Mode {
 pub struct Args {
     /// The folder of force traces to read
     pub trials: PathBuf,
+    /// The folder the tables and the record are written to. Named apart from the global
+    /// `--out`, which names one file: a run writes a set of files, and one word that means a
+    /// file in one command and a folder in another is a word whose meaning depends on where
+    /// it appears.
+    #[arg(long = "out-dir", value_name = "DIR")]
+    pub out_dir: PathBuf,
     /// Which question this run is asking
     #[arg(long, value_enum, default_value = "analyse")]
     pub mode: Mode,
@@ -90,15 +96,18 @@ pub fn run(
     args: &Args,
     registry_directory: &std::path::Path,
     format: Format,
-    destination: Option<&std::path::Path>,
+    document_destination: Option<&std::path::Path>,
     renderer: &crate::render::Renderer,
 ) -> Outcome {
-    let Some(out_dir) = destination else {
+    // The global flag names one file, and a run has no single document to put in one, so a
+    // line carrying both is asking for two destinations and gets neither by guess.
+    if document_destination.is_some() {
         return Outcome::declined(
             Fault::Request,
-            "a run writes a table, its chain, its refusals and the record beside them, so --out names the folder they go in".to_string(),
+            "a run writes a table, its chain, its refusals and the record beside them, so it is --out-dir that names the folder they go in".to_string(),
         );
-    };
+    }
+    let out_dir = args.out_dir.as_path();
     // A table of numbers has no channel for what produced them, so the record goes beside it
     // and the destination is a folder that can hold both. Writing one file would mean writing
     // the table alone, which is the artefact this software exists to argue against.
