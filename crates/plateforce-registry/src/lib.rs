@@ -61,6 +61,13 @@ pub struct Registry {
     /// Which registry this is, measured from the bytes that were assembled rather than
     /// declared alongside them, so it never disagrees with what was loaded.
     pub content_digest: String,
+    /// The revision the registry names itself, read from a `VERSION` file beside the
+    /// entries. None when the directory carries none, which a caller assembling entries
+    /// from memory always will.
+    ///
+    /// A name and a digest answer different questions. The digest says which bytes were
+    /// read; this says which revision a reader is meant to cite.
+    pub declared_version: Option<String>,
 }
 
 /// Counts, each carrying the population it counts over.
@@ -69,6 +76,18 @@ pub struct Census {
     pub constructs: usize,
     pub computation_entries: usize,
     pub protocol_entries: usize,
+}
+
+/// Reads the revision a registry directory names itself. The walk that assembles entries
+/// filters on the `toml` extension, so this file is invisible to it and adds no entry to
+/// either population.
+fn declared_version(root: &Path) -> Option<String> {
+    let named = std::fs::read_to_string(root.join("VERSION")).ok()?;
+    let trimmed = named.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(trimmed.to_string())
 }
 
 impl Registry {
@@ -118,11 +137,20 @@ impl Registry {
                 AssemblyError::Duplicated(violations) => RegistryError::Invalid(violations),
             })?;
 
-        if assembled.violations.is_empty() {
-            Ok(assembled.registry)
-        } else {
-            Err(RegistryError::Invalid(assembled.violations))
+        if !assembled.violations.is_empty() {
+            return Err(RegistryError::Invalid(assembled.violations));
         }
+        let mut registry = assembled.registry;
+        registry.declared_version = declared_version(root);
+        Ok(registry)
+    }
+
+    /// The revision the registry at `root` names itself, or None when it names none.
+    ///
+    /// An unreadable or blank file reads as None rather than as a version, because a
+    /// registry cited under an empty name is worse than one cited under none.
+    pub fn declared_version_at(root: impl AsRef<Path>) -> Option<String> {
+        declared_version(root.as_ref())
     }
 
     pub fn census(&self) -> Census {
@@ -177,6 +205,45 @@ mod tests {
         fn drop(&mut self) {
             std::fs::remove_dir_all(&self.path).ok();
         }
+    }
+
+    #[test]
+    fn a_registry_that_names_a_revision_reports_it() {
+        let scratch = ScratchDirectory::new("declared-version");
+        write_minimal_registry(
+            &scratch.path,
+            &scratch.path.join("methods/onset.toml"),
+            "onset.threshold.noise_relative",
+        );
+        std::fs::write(scratch.path.join("VERSION"), "2026-07-25\n").unwrap();
+
+        let registry = Registry::load(&scratch.path).unwrap();
+        assert_eq!(registry.declared_version.as_deref(), Some("2026-07-25"));
+        assert_eq!(
+            registry.census().computation_entries,
+            1,
+            "the version file is not an entry"
+        );
+    }
+
+    #[test]
+    fn a_registry_that_names_none_reports_none() {
+        let scratch = ScratchDirectory::new("no-declared-version");
+        write_minimal_registry(
+            &scratch.path,
+            &scratch.path.join("methods/onset.toml"),
+            "onset.threshold.noise_relative",
+        );
+
+        let registry = Registry::load(&scratch.path).unwrap();
+        assert_eq!(registry.declared_version, None);
+
+        std::fs::write(scratch.path.join("VERSION"), "   \n").unwrap();
+        let blank = Registry::load(&scratch.path).unwrap();
+        assert_eq!(
+            blank.declared_version, None,
+            "a blank name is no name, not an empty one"
+        );
     }
 
     #[test]

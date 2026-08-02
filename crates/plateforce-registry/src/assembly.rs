@@ -126,7 +126,8 @@ pub fn assemble<'a>(
 }
 
 /// FNV-1a over path and contents in path order. Identifies which registry a number came
-/// from without claiming to be a declared version, which the registry does not carry.
+/// from by measuring it, so it holds where a declared version cannot: a tree edited since
+/// it named itself digests differently and still declares the same revision.
 pub fn content_digest<'a>(files: impl IntoIterator<Item = (&'a str, &'a str)>) -> String {
     let mut ordered: Vec<(&str, &str)> = files.into_iter().collect();
     ordered.sort_by(|left, right| left.0.cmp(right.0));
