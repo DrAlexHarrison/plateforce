@@ -4,6 +4,7 @@
 pub mod absolute_force;
 pub mod descending_crossing;
 pub mod flight_noise_k_sd;
+pub mod landing_shape;
 pub mod longest_run;
 
 use plateforce_core::{Trial, WeighingEpoch};
@@ -57,6 +58,9 @@ fn crossing(
         }
         "takeoff.threshold.absolute_force" => {
             absolute_force::crossing(trial, epoch, *threshold_newtons, resolved)
+        }
+        "takeoff.threshold.landing_shape" => {
+            landing_shape::crossing(trial, epoch, *threshold_newtons, resolved, warnings)
         }
         other => Err(RuleRefusal::Stated(unbound_method_message(
             other, "takeoff",
