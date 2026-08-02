@@ -12,6 +12,12 @@ authors.workspace = true
 name = "plateforce"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["parquet"]
+# The batch surface's `write_parquet` is compiled against this name, so without it the method
+# is absent from the wheel and a notebook has no way to reach it.
+parquet = ["plateforce-batch/parquet"]
+
 [dependencies]
 plateforce-analysis = { workspace = true }
 plateforce-batch = { workspace = true, default-features = false }

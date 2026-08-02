@@ -5,7 +5,6 @@
 //! package would answer and what is available without it, rather than raising the import
 //! error the caller cannot act on.
 
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use plateforce_batch::{
@@ -21,7 +20,12 @@ use pyo3::types::{PyDict, PyList};
 ///
 /// Without a pattern a run has one unit of analysis, the trial. With one it also has a
 /// subject, and every figure taken per athlete needs that.
-#[pyclass(frozen, module = "plateforce", name = "TrialIdentity")]
+#[pyclass(
+    frozen,
+    module = "plateforce",
+    name = "TrialIdentity",
+    skip_from_py_object
+)]
 #[derive(Clone)]
 pub struct TrialIdentity {
     pub(crate) inner: CoreTrialIdentity,
@@ -53,7 +57,7 @@ impl TrialIdentity {
 }
 
 /// The run's own record: what it walked, what it read, and what identifies it.
-#[pyclass(frozen, module = "plateforce", name = "BatchRun")]
+#[pyclass(frozen, module = "plateforce", name = "BatchRun", skip_from_py_object)]
 #[derive(Clone)]
 pub struct BatchRun {
     pub(crate) row: plateforce_batch::RunRow,
@@ -119,7 +123,12 @@ impl BatchRun {
 }
 
 /// The relations one run produced.
-#[pyclass(frozen, module = "plateforce", name = "BatchResult")]
+#[pyclass(
+    frozen,
+    module = "plateforce",
+    name = "BatchResult",
+    skip_from_py_object
+)]
 #[derive(Clone)]
 pub struct BatchResult {
     pub(crate) inner: plateforce_batch::BatchResult,

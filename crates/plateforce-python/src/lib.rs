@@ -42,6 +42,10 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<result::Exclusions>()?;
     module.add_class::<analysis::CountermovementJump>()?;
 
+    module.add_class::<batch::BatchResult>()?;
+    module.add_class::<batch::BatchRun>()?;
+    module.add_class::<batch::TrialIdentity>()?;
+
     module.add_function(wrap_pyfunction!(
         analysis::analyse_countermovement_jump,
         module
@@ -61,6 +65,11 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
         module
     )?)?;
     module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
+
+    module.add_function(wrap_pyfunction!(batch::batch, module)?)?;
+    // `BatchResult.__reduce__` reaches this by name on the module, so a result cannot be
+    // pickled without it, and a pool over a directory cannot hand its results back.
+    module.add_function(wrap_pyfunction!(batch::batch_result_from_json, module)?)?;
 
     errors::register(module)
 }
