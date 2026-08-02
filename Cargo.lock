@@ -118,6 +118,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "plateforce-serve"
+version = "0.1.0"
+
+[[package]]
 name = "plateforce-wasm"
 version = "0.1.0"
 dependencies = [

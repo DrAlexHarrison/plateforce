@@ -1,0 +1,14 @@
+[package]
+name = "plateforce-serve"
+description = "Serves the plateforce browser interface to this machine only."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# No dependencies, and that is the deliverable rather than an omission. The binary this
+# crate ships into is copied onto machines with no package manager and no network, so
+# every crate it links is a crate that has to arrive there too.
+[dependencies]

@@ -8,7 +8,14 @@ members = [
     "crates/plateforce-conformance",
     "crates/plateforce-wasm",
     "crates/plateforce-python",
+    "crates/plateforce-serve",
 ]
+
+# The desktop shell is a Tauri application and compiling it needs system webkit. A member
+# would make `cargo test --workspace` need `libwebkit2gtk-4.1-dev` on every contributor
+# machine and inside the browser publication workflow, which installs no system libraries
+# at all. It carries its own lockfile and its own toolchain floor.
+exclude = ["src-tauri"]
 
 # The floor the dependency tree imposes: `toml` reaches `toml_parser`, `indexmap` and
 # `hashbrown`, which declare 1.85. `scripts/check-msrv.sh` holds this honest.
@@ -24,6 +31,7 @@ authors = ["Alex Harrison"]
 plateforce-analysis = { path = "crates/plateforce-analysis", version = "0.1.0" }
 plateforce-core = { path = "crates/plateforce-core", version = "0.1.0" }
 plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.0" }
+plateforce-serve = { path = "crates/plateforce-serve", version = "0.1.0" }
 serde = { version = "1", features = ["derive"] }
 toml = "0.9"
 thiserror = "2"
