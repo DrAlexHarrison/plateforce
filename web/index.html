@@ -109,7 +109,7 @@
 
       <div class="field-row">
         <div class="field">
-          <label for="sample-rate">Sample rate</label>
+          <label for="sample-rate">How many samples per second?</label>
           <div class="field__input-group">
             <input type="number" id="sample-rate" min="1" step="1" value="1200" inputmode="decimal">
             <span class="field__suffix">Hz</span>
@@ -117,13 +117,13 @@
           <p class="field__hint" id="sample-rate-hint"></p>
         </div>
         <div class="field">
-          <label for="sentinel">Missing-value convention</label>
+          <label for="sentinel">How does this file write a missing value?</label>
           <select id="sentinel">
             <option value="none">No sentinel, every value is a measurement</option>
             <option value="zero">0 means missing</option>
             <option value="negative_one">-1 means missing</option>
           </select>
-          <p class="field__hint">A sentinel read as a real value moved a published correlation by 0.16 in this project's own corpus.</p>
+          <p class="field__hint">Three sentinel rows in 244 moved a published correlation by 0.16.</p>
         </div>
       </div>
 
@@ -207,7 +207,7 @@
       </section>
 
       <section class="panel panel--rail">
-        <div class="panel__head"><h2>Provenance</h2></div>
+        <div class="panel__head"><h2>Where these numbers come from</h2></div>
         <dl class="kv" id="build-info"></dl>
       </section>
     </aside>
