@@ -17,6 +17,20 @@ cd "$repository_root"
 
 readonly THE_MODULE="web/pkg/plateforce_wasm_bg.wasm"
 
+# macOS ships `shasum` and no `sha256sum`, so a check written with one name reports exit 127
+# on the platform it was meant to protect, and 127 arrives through the same door as a real
+# mismatch. Absent both, this says so rather than comparing nothing.
+digest_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -c1-64
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | cut -c1-64
+  else
+    echo "no sha256 tool here, so nothing was compared" >&2
+    exit 1
+  fi
+}
+
 version_from() {
   cargo metadata --format-version 1 --no-deps --manifest-path "$1" 2>/dev/null \
     | python3 -c "
@@ -60,7 +74,7 @@ check_bundle_payload() {
     exit 1
   fi
   local in_the_tree
-  in_the_tree="$(sha256sum "$THE_MODULE" | cut -c1-64)"
+  in_the_tree="$(digest_of "$THE_MODULE")"
 
   local executable=""
   local scratch=""
