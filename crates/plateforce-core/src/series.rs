@@ -163,6 +163,28 @@ pub struct VelocitySeries {
 }
 
 impl VelocitySeries {
+    /// A series over samples the caller already holds, which still cannot be built without a
+    /// spec.
+    ///
+    /// The invariant is that a consumer receives what produced the samples, not that this
+    /// crate produced them. A crossing search is tested against velocities written by hand to
+    /// place a minimum on a segment boundary or a threshold between two samples, and reaching
+    /// those through the integrator would mean solving for a force trace that yields them,
+    /// which tests the integrator rather than the search.
+    pub fn from_samples(
+        meters_per_second: Vec<f64>,
+        spec: IntegrationSpec,
+        first_integrated_index: usize,
+        sample_interval_seconds: f64,
+    ) -> Self {
+        Self {
+            meters_per_second,
+            spec,
+            first_integrated_index,
+            sample_interval_seconds,
+        }
+    }
+
     pub fn meters_per_second(&self) -> &[f64] {
         &self.meters_per_second
     }
@@ -671,6 +693,27 @@ mod tests {
     }
 
     /// Displacement inherits every choice the velocity made, so both specs travel with it.
+    /// Samples the caller wrote still arrive carrying what they are claimed to be.
+    #[test]
+    fn a_series_built_from_samples_still_states_its_choices() {
+        let settings = spec(IntegrationStart::DetectedOnset { index: 4 });
+        let series = VelocitySeries::from_samples(
+            vec![0.0, -0.4, -0.9, -0.3, 0.6],
+            settings.clone(),
+            4,
+            0.001,
+        );
+
+        assert_eq!(series.spec(), &settings);
+        assert_eq!(series.first_integrated_index(), 4);
+        assert_eq!(series.sample_interval_seconds(), 0.001);
+        assert_eq!(
+            series.spec().method_ids()[2],
+            "integration.start.detected_onset"
+        );
+        assert_eq!(series.at(2), Some(-0.9));
+    }
+
     #[test]
     fn displacement_carries_the_velocity_choices_it_rests_on() {
         let (trial, epoch, onset_index) = trial_and_epoch();
