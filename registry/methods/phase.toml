@@ -28,14 +28,23 @@ debate = "single_position"
 [[method.parameter]]
 name = "search_signal"
 unit = "enumeration"
+default_key = "velocity_argmin"
+default_source = "plateforce_corpus_fit"
 notes = """
-velocity_argmin or force_bw_crossing, definitionally equivalent and numerically consequential.
-Default is the velocity form. The intuition that the force crossing is the sturdy one was measured
-on 243 trials and is wrong: disagreement magnitude correlates with raw-force re-crossings at
-r = +0.640 and with velocity flat-band width at r = -0.062. The velocity minimum is uniformly soft,
-about 33 ms wide at the 1 percent level, so it produces no cross-trial error variance. The
-multi-valued force crossing does.
+Definitionally equivalent and numerically consequential. The intuition that the force crossing is
+the sturdy one was measured on 243 trials and is wrong: disagreement magnitude correlates with
+raw-force re-crossings at r = +0.640 and with velocity flat-band width at r = -0.062. The velocity
+minimum is uniformly soft, about 33 ms wide at the 1 percent level, so it produces no cross-trial
+error variance. The multi-valued force crossing does.
 """
+
+[[method.parameter.value]]
+key = "velocity_argmin"
+label = "Peak negative centre of mass velocity"
+
+[[method.parameter.value]]
+key = "force_bw_crossing"
+label = "Force returning up through system weight"
 
 [[method.citation]]
 key = "mcmahon2018"
@@ -1341,6 +1350,25 @@ dividing net vertical force by body mass and integrating from the start of the c
 status = "accepted"
 confidence = "medium"
 debate = "single_position"
+
+[[method.parameter]]
+name = "search_signal"
+unit = "enumeration"
+required = true
+notes = """
+The mirror of the braking-start boundary: a velocity extremum against the instant force crosses
+system weight, the same two signals read in the other direction. Required with no default, because
+the 243-trial measurement that settled the braking-start default was made on the braking start and
+says nothing about which signal is steadier at this boundary.
+"""
+
+[[method.parameter.value]]
+key = "velocity_argmax"
+label = "Peak positive centre of mass velocity"
+
+[[method.parameter.value]]
+key = "force_bw_crossing"
+label = "Force falling through system weight"
 
 [[method.citation]]
 key = "hoffman2022"
