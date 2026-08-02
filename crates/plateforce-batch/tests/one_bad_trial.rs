@@ -121,6 +121,50 @@ fn a_trial_that_declined_more_than_once_keeps_a_row_for_each_decline() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
+/// The partial state, and the reason refusals are keyed by trial and ordinal rather than by
+/// trial. A trace that weighs and never crosses either threshold computes what it can and
+/// declines two landmarks, and both declines have to survive in the same relation.
+#[test]
+fn a_trial_that_computed_and_declined_two_landmarks_carries_a_row_for_each() {
+    let directory = tempdir("partial-state");
+    // Stands on the plate for three seconds and never leaves it. The ripple is deterministic
+    // so the noise-relative onset threshold sits just above the highest sample.
+    let standing: String = (0..3600)
+        .map(|sample| format!("{}\n", 700.0 + ((sample % 7) as f64) * 0.05))
+        .collect();
+    std::fs::write(directory.join("standing.force.txt"), standing).unwrap();
+
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).expect("every choice was made");
+
+    let row = result
+        .results
+        .iter()
+        .find(|row| row.trial_id == "standing")
+        .expect("the trial keeps its row");
+    let computed = row.values.values().filter(|value| value.is_some()).count();
+    let mut declines: Vec<(usize, &str)> = result
+        .refusals
+        .iter()
+        .filter(|refusal| refusal.trial_id == "standing")
+        .map(|refusal| (refusal.ordinal, refusal.slot.as_str()))
+        .collect();
+    declines.sort_unstable();
+    println!("standing computed {computed} quantities and declined {declines:?}");
+
+    assert!(computed > 0, "the trial produced numbers");
+    assert!(
+        row.refusal_code.is_empty(),
+        "so it is not a trial that produced nothing"
+    );
+    assert_eq!(
+        declines,
+        vec![(0, "onset"), (1, "takeoff")],
+        "each decline keeps its own row under its own ordinal"
+    );
+    std::fs::remove_dir_all(&directory).ok();
+}
+
 #[test]
 fn a_run_with_a_choice_still_open_reads_no_trial_at_all() {
     let directory = tempdir("unresolved-precondition");
