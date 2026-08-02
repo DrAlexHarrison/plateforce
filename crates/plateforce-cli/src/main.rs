@@ -128,25 +128,24 @@ fn registry_command(words: &[&str], directory: &str) -> ExitCode {
         }
         ["census"] => {
             let census = registry.census();
-            // Populations are reported apart and never summed. Both of this project's
-            // headline counts were assertions until somebody recounted them.
-            println!("constructs                      {}", census.constructs);
+            let computation = census.computation_entries;
+            // Populations are reported apart and never summed. Both derived counts are taken
+            // over the computation entries and say so, because indentation under the wrong
+            // line is how a count loses its denominator. Both of this project's headline
+            // counts were assertions until somebody recounted them.
+            println!("{:<36}{}", "constructs", census.constructs);
+            println!("{:<36}{computation}", "computation entries");
             println!(
-                "computation entries             {}",
-                census.computation_entries
-            );
-            println!(
-                "protocol entries                {}",
-                census.protocol_entries
-            );
-            println!(
-                "  of which genuine debates      {}",
+                "{:<36}{} of {computation}",
+                "  of which genuine debates",
                 registry.genuine_debates().count()
             );
             println!(
-                "  of which can find the wrong event  {}",
+                "{:<36}{} of {computation}",
+                "  of which can find the wrong event",
                 registry.methods_that_can_fail().count()
             );
+            println!("{:<36}{}", "protocol entries", census.protocol_entries);
             ExitCode::SUCCESS
         }
         ["show", id] => show_entry(&registry, id),
