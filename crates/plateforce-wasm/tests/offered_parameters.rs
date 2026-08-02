@@ -34,6 +34,27 @@ fn jump_with_a_brief_dip_before_takeoff() -> Trial {
     Trial::new(force, rate).expect("the modified trace is still a trial")
 }
 
+/// The demonstration jump followed by a long, quiet stretch with the athlete mostly off the
+/// plate, which is what an untrimmed recording holds after someone steps away.
+///
+/// That stretch is quieter than quiet standing, so a lowest-variance search takes it and reads
+/// system weight as a fraction of the real one unless a gate refuses it. The gate is a fraction
+/// of weight, so a trace whose leftover load is near zero rejects at every fraction and decides
+/// nothing. Here the leftover load sits inside the range the sweep drives, so the fraction picks
+/// between two different weighing windows.
+fn jump_followed_by_the_athlete_stepping_mostly_off() -> Trial {
+    let demonstration = synthetic_countermovement_jump();
+    let rate = demonstration.sample_rate_hz();
+    let mut force = demonstration.force().to_vec();
+    let standing_newtons = force[..rate as usize].iter().sum::<f64>() / rate;
+    let leftover_newtons = standing_newtons * 0.08;
+    force.extend(
+        (0..(2.0 * rate) as usize)
+            .map(|index| leftover_newtons + ((index % 7) as f64 - 3.0) * 0.002),
+    );
+    Trial::new(force, rate).expect("the modified trace is still a trial")
+}
+
 /// One control the interface draws, and the values this file drives it through.
 struct OfferedParameter {
     slot: &'static str,
@@ -190,6 +211,10 @@ fn every_parameter_a_control_offers_moves_a_number() {
         (
             "a jump with a brief dip",
             jump_with_a_brief_dip_before_takeoff(),
+        ),
+        (
+            "a jump followed by the athlete stepping mostly off",
+            jump_followed_by_the_athlete_stepping_mostly_off(),
         ),
     ];
 

@@ -150,6 +150,26 @@ against a 4.071 N floor on the tool's own demo trial, so the search is overridde
 rule collapses to a fixed 2.5 percent-below-bodyweight band.
 """
 
+[[method.parameter]]
+name = "reject_at_or_below_fraction_of_weight"
+unit = "fraction"
+default = 0.025
+default_source = "plateforce_derivation"
+notes = """
+Candidate windows whose force sits at or below this fraction of the provisional system weight are
+refused, which keeps the unloaded plate out of the search. The plate reads near zero in flight and
+is the quietest window in any recording, so without the gate the minimum-variance search selects
+the flight phase and system weight collapses. Stated against weight rather than in newtons because
+a fixed 20 N gate is 2.5 percent of an 80 kg athlete and 1.7 percent of a 120 kg one, so the same
+nominal rule tests the two differently.
+"""
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry as the mass-relative form of a fixed 20 N gate; no publication states a gate for this rule"
+obtained = true
+
 [[method.citation]]
 key = "sams_shiny"
 role = "proposes"

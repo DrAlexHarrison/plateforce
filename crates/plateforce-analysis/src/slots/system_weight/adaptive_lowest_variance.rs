@@ -7,11 +7,9 @@ use crate::resolution::Resolution;
 
 pub(crate) const WINDOW_LENGTH_PARAMETER: &str = "window_seconds";
 
-/// Fraction of the provisional system weight at or below which a candidate weighing window
-/// is refused, keeping the unloaded plate out of the lowest-variance search. No registry
-/// entry carries a gate for this rule. It is stated against weight because the 20 N it
-/// replaces was 2.5 percent of an 80 kg athlete and 1.7 percent of a 120 kg one, so the same
-/// nominal rule was a different test for each of them.
+/// Fallback for the gate below, matching the entry's declared default. The 20 N it replaces
+/// was 2.5 percent of an 80 kg athlete and 1.7 percent of a 120 kg one, so the same nominal
+/// rule tested the two differently.
 const REJECT_AT_OR_BELOW_FRACTION_OF_WEIGHT: f64 = 0.025;
 
 /// biomex clamps the searched spread up to a fraction of bodyweight before any threshold is
@@ -56,9 +54,13 @@ pub(crate) fn search(
         .map_err(|refused| refused.to_string())?;
     // The unloaded plate is the quietest window in any recording, so the gate is taken
     // against the weight the trace carries for most of its length.
+    let reject_at_or_below_fraction_of_weight = resolved.number(
+        "reject_at_or_below_fraction_of_weight",
+        REJECT_AT_OR_BELOW_FRACTION_OF_WEIGHT,
+    );
     let provisional_weight_newtons = median(trial.force()).unwrap_or_default();
     let reject_at_or_below_newtons =
-        provisional_weight_newtons * REJECT_AT_OR_BELOW_FRACTION_OF_WEIGHT;
+        provisional_weight_newtons * reject_at_or_below_fraction_of_weight;
     resolved.record_measured(
         "reject_at_or_below_newtons",
         reject_at_or_below_newtons,
