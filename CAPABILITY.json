@@ -97,6 +97,7 @@
         "version"
       ],
       "output_formats": [
+        "csv",
         "json",
         "text"
       ],
