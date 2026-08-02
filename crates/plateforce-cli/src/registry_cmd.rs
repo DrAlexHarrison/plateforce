@@ -159,6 +159,42 @@ fn status(method: &Method, renderer: &Renderer) -> String {
 
 /// TOML floats carry a decimal point and `f64`'s Display drops it on a whole number, so
 /// `20` on screen would not match the `20.0` in the file a reader goes on to search.
+/// One parameter, and whether the reader has to answer it.
+///
+/// A name alone reads the same whether the rule will supply a value or the reader must, and
+/// 66 of the registry's 202 parameters are the second: required, with nothing behind them.
+/// A forced decision rendered as an optional one is the silent default this software exists
+/// to make impossible, one step out from the number.
+///
+/// Both shapes of default are read, so a parameter whose options are named rather than
+/// numbered needs no second edit here.
+fn describe_parameter(parameter: &plateforce_registry::Parameter) -> String {
+    let mut described = parameter.name.clone();
+    if let Some(value) = parameter.default {
+        described.push_str(&format!(" = {value:?}"));
+    } else if let Some(key) = &parameter.default_key {
+        described.push_str(&format!(" = {key}"));
+    }
+    if parameter.required {
+        described.push_str(", required");
+    }
+    if !parameter.published_values.is_empty() {
+        described.push_str(&format!(
+            ", published {}",
+            join_numbers(&parameter.published_values)
+        ));
+    }
+    let named: Vec<&str> = parameter
+        .named_values
+        .iter()
+        .map(|value| value.key.as_str())
+        .collect();
+    if !named.is_empty() {
+        described.push_str(&format!(", published {}", named.join(", ")));
+    }
+    described
+}
+
 fn join_numbers(values: &[f64]) -> String {
     values
         .iter()
@@ -238,21 +274,7 @@ fn show_method(method: &Method, renderer: &Renderer) -> String {
     }
 
     for parameter in &method.parameters {
-        let published = if parameter.published_values.is_empty() {
-            String::new()
-        } else {
-            format!(", published {}", join_numbers(&parameter.published_values))
-        };
-        let described = format!(
-            "{}{}{}",
-            parameter.name,
-            parameter
-                .default
-                .map(|value| format!(" = {value:?}"))
-                .unwrap_or_default(),
-            published
-        );
-        for line in renderer.field_wrapped("parameter", &described) {
+        for line in renderer.field_wrapped("parameter", &describe_parameter(parameter)) {
             let _ = writeln!(document, "{line}");
         }
     }
