@@ -268,3 +268,68 @@ fn a_run_that_declares_no_trial_names_is_refused_rather_than_given_a_default() {
     .unwrap_err();
     assert!(matches!(error, WalkError::NoTrialFileSuffixes), "{error}");
 }
+
+/// The browser has no filesystem, so it hands the engine named text rather than a directory.
+/// One engine serves both, and the two entry points have to agree: a person who drops a
+/// folder on the page and a person who points the terminal at it are asking one question.
+#[test]
+fn the_same_folder_read_from_memory_and_from_disk_gives_one_answer() {
+    let directory = common::tempdir("memory-versus-disk");
+    plateforce_batch::synthetic::write_corpus(&directory, 3, 3, 7).unwrap();
+    // A file that is not a trial, so both paths have a narrowing to agree about rather than
+    // agreeing because there was nothing to exclude.
+    std::fs::write(directory.join("README.md"), "not a trace\n").unwrap();
+    let format = common::synthetic_format();
+    let identity = common::declared_pattern();
+
+    let mut sources: Vec<(String, String)> = std::fs::read_dir(&directory)
+        .unwrap()
+        .filter_map(|entry| entry.ok())
+        .map(|entry| {
+            (
+                entry.file_name().to_string_lossy().to_string(),
+                std::fs::read_to_string(entry.path()).unwrap(),
+            )
+        })
+        .collect();
+    sources.sort();
+
+    let walked = TrialSet::walk(&directory, &format, &identity).unwrap();
+    let handed = TrialSet::from_sources(sources, &format, &identity).unwrap();
+    println!(
+        "walked {} of {} named, handed {} of {} named",
+        walked.len(),
+        walked.files_found,
+        handed.len(),
+        handed.files_found
+    );
+    assert_eq!(walked.len(), 9, "three subjects of three");
+    assert_eq!(
+        walked.files_found, 9,
+        "and the file that is not a trial is outside the denominator, not refused"
+    );
+    assert_eq!(
+        walked.trial_ids(),
+        handed.trial_ids(),
+        "same trials, same order"
+    );
+    assert_eq!(walked.files_found, handed.files_found);
+
+    let request = common::bound_request();
+    let registry = common::registry();
+    let from_disk = plateforce_batch::analyse(&walked, &request, &registry).unwrap();
+    let from_memory = plateforce_batch::analyse(&handed, &request, &registry).unwrap();
+
+    // A declared pattern writes no path, so the two envelopes have nothing left to differ by.
+    assert_eq!(
+        from_disk.to_json(),
+        from_memory.to_json(),
+        "the browser and the terminal answer the same folder the same way"
+    );
+    println!(
+        "envelopes agree byte for byte, {} bytes, fingerprint {}",
+        from_disk.to_json().len(),
+        from_disk.run.run_fingerprint
+    );
+    std::fs::remove_dir_all(&directory).ok();
+}
