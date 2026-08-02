@@ -9,6 +9,8 @@ that says which of thirty documents to believe, what Alex has already ruled, wha
 been measured, and how this project characteristically goes wrong. Sessions that skip it
 propose research finished in July and re-decide questions Alex settled in his own words.
 
+Lab datasets: `~/force-plate-lab/datasets` is a symlink to `/mnt/coldstore/force-plate-lab-datasets/`.
+
 ## The one principle
 
 Published methods for the same jump metric disagree enough that the choice of method moves
