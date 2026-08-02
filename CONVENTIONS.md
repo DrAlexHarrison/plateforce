@@ -136,7 +136,10 @@ failed, alongside the failure rate and its denominator.
 ## 4. Repository files
 
 `README.md` states what the software does and how to run it. Not how it was
-built, not why it was built, not what was learned.
+built, not why it was built, not what was learned, and **not what has not been
+written yet**. Capability is reported as output the software prints, `capability`
+and `registry census`, never as prose about the roadmap. A number that moves as
+the work lands is a query; a sentence about what is missing is narrative.
 
 `NOTICE` carries copyright, licence posture and the dependency licence table.
 
@@ -163,15 +166,21 @@ default", "N of M rules available here", "listed disabled rather than hidden",
 
 Absence is not content either. The interface does not enumerate what it cannot
 do, does not offer, or has withheld. A method with a rule behind it is offered;
-one without is absent, and the interface says nothing about it. Coverage limits
-are stated once, in `README.md`, where somebody deciding whether to adopt this
-will look for them.
+one without is absent, and the interface says nothing about it. Coverage is what
+`capability` and `registry census` print, wherever it is reported.
 
 The distinction that makes this workable: a failure rate, a bias, a missing
 citation and a contested status are facts about the *literature*, and they are
 the product. "We have not written that part yet" is a fact about *us*, and it
-belongs in the README. An error message may say what went wrong and what is
-available instead. It may not apologise for the roadmap.
+goes nowhere a user can read, the README included. An error message may say what
+went wrong and what is available instead. It may not apologise for the roadmap.
+
+**No self-reflective narrative anywhere a user or a reader of the source can
+reach it.** Not in a comment, not in a doc comment, not in `README.md`, not in a
+commit message on a public repository. The source does not discuss what this
+project is about, what it exists to prevent, what it publishes about a
+competitor, or what it has decided to ship. A comment states the fact a reader
+cannot recover from the code, and stops.
 
 ---
 
