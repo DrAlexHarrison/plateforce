@@ -7,6 +7,7 @@
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
 
+pub mod bspline;
 pub mod butterworth;
 pub mod gravity;
 pub mod onset;
@@ -14,6 +15,7 @@ pub mod phases;
 pub mod provenance;
 pub mod rate;
 pub mod read;
+pub mod resample;
 pub mod reporting;
 pub mod signal;
 pub mod smoothing;
