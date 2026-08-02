@@ -119,7 +119,7 @@ fn compare(
 
 #[test]
 fn the_rust_landing_shape_rule_places_takeoff_where_the_reference_did_on_subject_01() {
-    let fixtures = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures"));
+    let fixtures = plateforce_conformance::fixtures_directory();
     let reference = parse_placements(
         &std::fs::read_to_string(fixtures.join("landing_shape_placements_subject01.tsv"))
             .expect("the committed reference placements"),

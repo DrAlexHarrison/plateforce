@@ -24,7 +24,7 @@ const REFERENCE_VARIABLE: &str = "PLATEFORCE_CONFORMANCE_REFERENCE";
 const COVERAGE_MARKER: &str = "CONFORMANCE COVERAGE:";
 
 fn fixtures() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures")
+    plateforce_conformance::fixtures_directory()
 }
 
 /// The committed traces are one column of numbers per file, named by subject and trial
