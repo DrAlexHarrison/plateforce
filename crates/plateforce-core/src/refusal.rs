@@ -8,9 +8,26 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RefusalCode {
+/// Declares the enum and the list of every variant from one source, so the list a surface
+/// reports as this build's vocabulary cannot fall behind the codes the build can emit.
+macro_rules! refusal_codes {
+    ($( $(#[$note:meta])* $variant:ident ),+ $(,)?) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+        #[serde(rename_all = "snake_case")]
+        pub enum RefusalCode {
+            $( $(#[$note])* $variant, )+
+        }
+
+        impl RefusalCode {
+            /// Every code this build can emit. Generated beside the enum rather than typed,
+            /// because a manifest asserting a vocabulary the binary has outgrown is the
+            /// defect the manifest exists to prevent.
+            pub const ALL: &'static [RefusalCode] = &[ $( RefusalCode::$variant, )+ ];
+        }
+    };
+}
+
+refusal_codes! {
     NoCrossing,
     CollapsedBand,
     MethodNotImplemented,
@@ -33,6 +50,8 @@ pub enum RefusalCode {
     /// one. A quantity taken over the whole system, read from one plate of two, is wrong by
     /// roughly a factor of two and nothing in the record would say so.
     AmbiguousForceChannels,
+    /// The plate reported a reading its own levelling makes uninterpretable.
+    PlateNotLevel,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -53,7 +72,8 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         | RefusalCode::ParameterNotFinite
         | RefusalCode::SentinelConventionUnknown
         | RefusalCode::DecisionNotMade
-        | RefusalCode::RequiredParameterUnstated => 64,
+        | RefusalCode::RequiredParameterUnstated
+        | RefusalCode::PlateNotLevel => 64,
         RefusalCode::RegistryInvalid => 78,
     }
 }
@@ -67,7 +87,13 @@ pub struct Refusal {
     pub code: RefusalCode,
     /// The rule that declined, named as the registry names it.
     pub method_id: String,
-    /// `weighing`, `onset`, `takeoff`, or None when the refusal is not about a landmark.
+    /// The construct the refusal happened under, named as the registry names it:
+    /// `system_weight`, `movement_onset`, `takeoff`. None when the refusal is not about a
+    /// step.
+    ///
+    /// The registry declares these and declares no `weighing` or `onset`, so a caller
+    /// handed one of those has a word it cannot look up. The two vocabularies also collide
+    /// on `takeoff`, which is why the string alone had to be pinned to one of them.
     pub slot: Option<String>,
     pub parameter: Option<String>,
     pub value: Option<f64>,
@@ -122,7 +148,7 @@ impl Refusal {
         exit_code(self.code)
     }
 
-    /// Names the slot the refusal happened in. Kept separate from construction because a
+    /// Names the construct the refusal happened under. Kept separate from construction because a
     /// core rule does not know which step a caller bound it to.
     pub fn in_slot(mut self, slot: impl Into<String>) -> Self {
         self.slot = Some(slot.into());
@@ -451,6 +477,10 @@ fn sentence(
             parameter.unwrap_or("that file name"),
             available.first().map(String::as_str).unwrap_or("that was set")
         ),
+        RefusalCode::PlateNotLevel => format!(
+            "{} reports the plate out of level, so a vertical force read from it is not vertical",
+            parameter.unwrap_or("the acquisition record")
+        ),
         RefusalCode::AmbiguousForceChannels => format!(
             "{} columns in this file look like force channels, so a quantity taken over the \
              whole system cannot be read from one of them without declaring the file \
@@ -604,6 +634,43 @@ mod tests {
             3.6408148087849357_f64.to_bits()
         );
         assert_eq!(read_back.message(), refused.message());
+    }
+
+    /// `ALL` is what a manifest reports as this build's vocabulary, so a variant missing from
+    /// it would be emittable and absent from the surface that claims to enumerate them.
+    #[test]
+    fn every_code_is_listed_once_in_all_and_carries_a_known_exit_status() {
+        let spelled: BTreeMap<String, RefusalCode> = RefusalCode::ALL
+            .iter()
+            .map(|code| (serde_json::to_string(code).unwrap(), *code))
+            .collect();
+        assert_eq!(
+            spelled.len(),
+            RefusalCode::ALL.len(),
+            "a code is listed twice in ALL"
+        );
+
+        for code in RefusalCode::ALL {
+            assert!(
+                matches!(exit_code(*code), 64 | 65 | 78),
+                "{code:?} exits {}, which is not one of the three statuses this build uses",
+                exit_code(*code)
+            );
+        }
+    }
+
+    /// The slot names a construct the registry declares. `weighing` and `onset` are the
+    /// binding table's own words and resolve to nothing, and `takeoff` belongs to both
+    /// vocabularies, so a caller could not tell which one it held.
+    #[test]
+    fn the_slot_names_a_construct_rather_than_a_binding_table_word() {
+        let refused = Refusal::method_not_implemented(
+            "onset.threshold.invented",
+            "movement_onset",
+            vec!["onset.threshold.noise_relative".to_string()],
+        );
+        assert_eq!(refused.slot.as_deref(), Some("movement_onset"));
+        assert!(refused.message().contains("movement_onset"), "{}", refused.message());
     }
 
     #[test]
