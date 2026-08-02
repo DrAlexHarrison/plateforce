@@ -16,6 +16,7 @@ crate-type = ["cdylib", "rlib"]
 plateforce-analysis = { workspace = true }
 plateforce-batch = { workspace = true, default-features = false }
 plateforce-core = { workspace = true }
+serde_json = { workspace = true }
 plateforce-registry = { workspace = true }
 
 # 0.29 is the first release carrying the fix for GHSA-36hh-v3qg-5jq4, an out-of-bounds

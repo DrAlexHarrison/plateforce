@@ -115,13 +115,13 @@ pub fn quantity(key: &str) -> Option<&'static Quantity> {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Metric {
-    pub key: &'static str,
-    pub label: &'static str,
+    pub key: String,
+    pub label: String,
     pub value: Option<f64>,
     /// As the registry spells it. `docs/schema.md` carries the same spelling on every
     /// construct and every parameter.
-    pub unit: &'static str,
-    pub unit_symbol: &'static str,
+    pub unit: String,
+    pub unit_symbol: String,
     /// The landmark rules whose answers this number rests on.
     pub contributing_method_ids: Vec<String>,
     /// The registry entry for the arithmetic that turned those landmarks into this number,
@@ -134,7 +134,7 @@ pub struct Metric {
     /// jump-height methods was run. `None` means no entry describes this arithmetic, which
     /// is itself worth seeing.
     #[serde(default)]
-    pub computed_by: Option<&'static str>,
+    pub computed_by: Option<String>,
     #[serde(default)]
     pub note: Option<String>,
 }
@@ -150,13 +150,13 @@ impl Metric {
     ) -> Self {
         let declared = quantity(key).unwrap_or_else(|| panic!("{key} is not a declared quantity"));
         Self {
-            key: declared.key,
-            label: declared.label,
+            key: declared.key.to_string(),
+            label: declared.label.to_string(),
             value,
-            unit: declared.unit,
-            unit_symbol: unit_symbol(declared.unit),
+            unit: declared.unit.to_string(),
+            unit_symbol: unit_symbol(declared.unit).to_string(),
             contributing_method_ids,
-            computed_by: declared.computed_by,
+            computed_by: declared.computed_by.map(str::to_string),
             note,
         }
     }

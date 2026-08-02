@@ -10,6 +10,7 @@ use plateforce_analysis::{
     AnalysisRequest, AnalysisResponse, BoundMethod, Metric, RuleRefusal, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
+use plateforce_core::RefusalCode;
 use plateforce_registry::Registry;
 use serde::Serialize;
 
@@ -63,9 +64,12 @@ impl BatchRequest {
 }
 
 /// A run that produced nothing, because a choice on the path is still open.
+///
+/// The code is the shared enum rather than a string, so a caller maps it through
+/// `plateforce_core::exit_code` instead of writing a second table that can disagree.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct RunRefusal {
-    pub code: String,
+    pub code: RefusalCode,
     pub message: String,
     pub unresolved: Vec<UnresolvedDecision>,
 }
@@ -146,7 +150,9 @@ pub fn analyse(
     if !open.is_empty() {
         let named: Vec<String> = open.iter().map(UnresolvedDecision::message).collect();
         return Err(RunRefusal {
-            code: "unknown_parameter".to_string(),
+            // The name is known and the choice was never made, which is a different fault
+            // from a parameter nobody recognises.
+            code: RefusalCode::DecisionNotMade,
             message: format!(
                 "{} of {} choices on this path are still to be made: {}",
                 open.len(),
@@ -492,7 +498,7 @@ fn provenance_rows(response: &AnalysisResponse) -> Vec<ProvenanceRow> {
             continue;
         }
         let base_depth = usize::from(metric.computed_by.is_some());
-        if let Some(arithmetic) = metric.computed_by {
+        if let Some(arithmetic) = &metric.computed_by {
             rows.push(ProvenanceRow {
                 provenance_id: String::new(),
                 quantity: metric.key.to_string(),

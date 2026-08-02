@@ -48,7 +48,7 @@ fn every_named_computation_resolves_in_the_registry() {
     let mut named = 0usize;
     let mut unresolved = Vec::new();
     for metric in &response.metrics {
-        let Some(id) = metric.computed_by else {
+        let Some(id) = metric.computed_by.as_deref() else {
             continue;
         };
         named += 1;
@@ -84,7 +84,7 @@ fn modified_reactive_strength_says_which_numerator_it_used() {
         .find(|metric| metric.key == "reactive_strength_index_modified")
         .expect("the build reports modified reactive strength");
 
-    assert_eq!(rsi.computed_by, Some("rsimod.jh_tov_over_ttt"));
+    assert_eq!(rsi.computed_by.as_deref(), Some("rsimod.jh_tov_over_ttt"));
 
     let alternative = "rsimod.jh_ft_over_ttt";
     assert!(

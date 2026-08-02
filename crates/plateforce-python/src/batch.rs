@@ -130,30 +130,30 @@ impl BatchResult {
     /// One row per trial, one column per quantity.
     #[getter]
     fn results<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, &self.inner.results)
+        rows(python, serde_json::to_value(&self.inner.results).unwrap_or_default())
     }
 
     /// One row per distinct chain per method per parameter.
     #[getter]
     fn provenance<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, &self.inner.provenance)
+        rows(python, serde_json::to_value(&self.inner.provenance).unwrap_or_default())
     }
 
     /// One row per refusal, keyed by trial and ordinal, because a trial can decline one
     /// landmark and compute the rest at once.
     #[getter]
     fn refusals<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, &self.inner.refusals)
+        rows(python, serde_json::to_value(&self.inner.refusals).unwrap_or_default())
     }
 
     #[getter]
     fn warnings<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, &self.inner.warnings)
+        rows(python, serde_json::to_value(&self.inner.warnings).unwrap_or_default())
     }
 
     #[getter]
     fn aggregates<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, &self.inner.aggregates)
+        rows(python, serde_json::to_value(&self.inner.aggregates).unwrap_or_default())
     }
 
     #[getter]
@@ -170,7 +170,7 @@ impl BatchResult {
     }
 
     fn to_pylist<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        rows(python, &self.inner.results)
+        rows(python, serde_json::to_value(&self.inner.results).unwrap_or_default())
     }
 
     /// The same string the browser and the library produce for the same input.
@@ -195,18 +195,18 @@ impl BatchResult {
 
     /// Arrow and pandas are not dependencies of this package. Asking for one that is absent
     /// says which package answers and what is available without it.
-    fn to_arrow(&self, python: Python<'_>) -> PyResult<PyObject> {
+    fn to_arrow(&self, python: Python<'_>) -> PyResult<Py<PyAny>> {
         convert_through(python, "pyarrow", "to_pylist")
     }
 
-    fn to_pandas(&self, python: Python<'_>) -> PyResult<PyObject> {
+    fn to_pandas(&self, python: Python<'_>) -> PyResult<Py<PyAny>> {
         convert_through(python, "pandas", "to_pylist")
     }
 
     /// A frozen class cannot take `__setstate__`, so the whole object travels as the one
     /// string every surface already agrees on. Without this a pool over a directory could
     /// not return its results.
-    fn __reduce__(&self, python: Python<'_>) -> PyResult<(PyObject, (String,))> {
+    fn __reduce__(&self, python: Python<'_>) -> PyResult<(Py<PyAny>, (String,))> {
         let module = python.import("plateforce")?;
         let rebuild = module.getattr("_batch_result_from_json")?;
         Ok((rebuild.unbind(), (self.inner.to_json(),)))
@@ -301,15 +301,11 @@ pub fn batch(
         .map_err(|refusal| PyValueError::new_err(refusal.message))
 }
 
-fn rows<'py, T: serde::Serialize>(
-    python: Python<'py>,
-    values: &[T],
-) -> PyResult<Bound<'py, PyList>> {
+/// One dictionary per row, from a value the caller already serialised.
+fn rows<'py>(python: Python<'py>, value: serde_json::Value) -> PyResult<Bound<'py, PyList>> {
     let list = PyList::empty(python);
-    for value in values {
-        let json = serde_json::to_value(value)
-            .map_err(|error| PyValueError::new_err(error.to_string()))?;
-        list.append(json_to_dict(python, &json)?)?;
+    for entry in value.as_array().cloned().unwrap_or_default() {
+        list.append(json_to_dict(python, &entry)?)?;
     }
     Ok(list)
 }
@@ -327,7 +323,7 @@ fn json_to_dict<'py>(
     Ok(dictionary)
 }
 
-fn json_to_object(python: Python<'_>, value: &serde_json::Value) -> PyResult<PyObject> {
+fn json_to_object(python: Python<'_>, value: &serde_json::Value) -> PyResult<Py<PyAny>> {
     Ok(match value {
         serde_json::Value::Null => python.None(),
         serde_json::Value::Bool(flag) => flag.into_pyobject(python)?.to_owned().into(),
@@ -347,7 +343,7 @@ fn json_to_object(python: Python<'_>, value: &serde_json::Value) -> PyResult<PyO
     })
 }
 
-fn convert_through(python: Python<'_>, package: &str, available: &str) -> PyResult<PyObject> {
+fn convert_through(python: Python<'_>, package: &str, available: &str) -> PyResult<Py<PyAny>> {
     match python.import(package) {
         Ok(_) => Err(PyValueError::new_err(format!(
             "{package} is installed; call .{available}() and hand the rows to it"
