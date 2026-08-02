@@ -62,6 +62,9 @@ pub struct Coverage {
     pub files_found: usize,
     pub files_unidentified: usize,
     pub trial_count: usize,
+    /// Counted off the rows that exist rather than taken from the trial count, so a row the
+    /// loop dropped shows up here instead of being papered over by the denominator.
+    pub results_written: usize,
     pub computed: usize,
     pub refused: usize,
     pub excluded: usize,
@@ -76,7 +79,7 @@ impl Coverage {
             self.files_found,
             self.trial_count,
             self.files_found,
-            self.trial_count,
+            self.results_written,
             self.trial_count,
             self.computed,
             self.trial_count,
@@ -252,6 +255,7 @@ pub fn analyse(
         files_found: set.files_found,
         files_unidentified: set.unidentified.len(),
         trial_count: set.len(),
+        results_written: results.len(),
         computed,
         refused,
         excluded: 0,
@@ -291,6 +295,7 @@ pub fn analyse(
         trials_excluded: coverage.excluded,
         gates_reporting: 0,
         gates_applied: 0,
+        distinct_provenance_count: provenance_ids.len(),
         trial_identity: set.identity.describe(),
         run_fingerprint: String::new(),
     };

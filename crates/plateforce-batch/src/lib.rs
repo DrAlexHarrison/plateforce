@@ -12,9 +12,15 @@ pub mod fingerprint;
 pub mod identity;
 pub mod relations;
 pub mod synthetic;
+pub mod write_csv;
+pub mod write_json;
+#[cfg(feature = "parquet")]
+pub mod write_parquet;
 
 pub use decisions::{unresolved, UnresolvedDecision};
 pub use engine::{analyse, BatchRequest, BatchResult, Coverage, RunRefusal};
+pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
+pub use write_json::envelope;
 pub use identity::{
     Session, SourceFormat, SubjectKey, TrialEntry, TrialIdentity, TrialSet, TrialSource, WalkError,
 };

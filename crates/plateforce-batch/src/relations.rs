@@ -203,6 +203,10 @@ pub struct RunRow {
     pub trials_excluded: usize,
     pub gates_reporting: usize,
     pub gates_applied: usize,
+    /// Distinct chains across the run. One means every trial was analysed by the same rules
+    /// under the same parameters and produced the same quantities, which is the question a
+    /// reader has to answer before pooling and which is otherwise a diff rather than a query.
+    pub distinct_provenance_count: usize,
     pub trial_identity: String,
     pub run_fingerprint: String,
 }
@@ -361,6 +365,7 @@ mod tests {
             trials_excluded: 0,
             gates_reporting: 0,
             gates_applied: 0,
+            distinct_provenance_count: 1,
             trial_identity: "file_stem".to_string(),
             run_fingerprint: String::new(),
         }
