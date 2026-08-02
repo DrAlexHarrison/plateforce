@@ -184,7 +184,7 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
 /// `--set <slot>.<name>=<value>`, keyed by the same word the method flag carries, so a reader
 /// who wrote `--onset` writes `--set onset.k`. Kept per slot, so two rules reading a name
 /// spelled the same way never receive each other's number.
-fn stated_parameters(
+pub(crate) fn stated_parameters(
     assignments: &[String],
 ) -> Result<BTreeMap<String, BTreeMap<String, f64>>, String> {
     let slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();

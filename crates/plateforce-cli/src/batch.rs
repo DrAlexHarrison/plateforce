@@ -64,6 +64,10 @@ pub struct Args {
     /// The rule that finds takeoff
     #[arg(long, value_name = "METHOD_ID")]
     pub takeoff: Option<String>,
+    /// A value for a rule, written <construct>.<name>=<value>. Repeatable, and it applies to
+    /// every trial in the folder
+    #[arg(long = "set", value_name = "ASSIGNMENT")]
+    pub set: Vec<String>,
     /// A rule to sweep against the bound one, for compare. Repeatable
     #[arg(long = "against", value_name = "METHOD_ID")]
     pub against: Vec<String>,
@@ -181,7 +185,11 @@ pub fn run(
     }
 
     let resolved: Vec<&str> = chosen.keys().map(String::as_str).collect();
-    let request = BatchRequest::new(request_for(args)).resolving(&resolved);
+    let stated = match crate::analyse::stated_parameters(&args.set) {
+        Ok(stated) => stated,
+        Err(message) => return Outcome::declined(Fault::Request, message),
+    };
+    let request = BatchRequest::new(request_for(args, &registry, &stated)).resolving(&resolved);
 
     match args.mode {
         Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format),
@@ -189,24 +197,50 @@ pub fn run(
     }
 }
 
-fn request_for(args: &Args) -> plateforce_analysis::AnalysisRequest {
+/// One request for every trial in the folder, carrying the values the operator stated and
+/// the ids the registry backs.
+///
+/// Both were empty before, so a folder run recorded every value as the rule's own however
+/// the operator had answered, and recorded no rule as registry-backed however the registry
+/// spelled it.
+fn request_for(
+    args: &Args,
+    registry: &plateforce_registry::Registry,
+    stated: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
+) -> plateforce_analysis::AnalysisRequest {
+    let parameters = |construct: &str| {
+        stated
+            .get(crate::decisions::slot_of(construct))
+            .cloned()
+            .unwrap_or_default()
+    };
+    let backed: Vec<String> = [&args.weighing, &args.onset, &args.takeoff]
+        .into_iter()
+        .flatten()
+        .filter(|method_id| registry.methods.contains_key(*method_id))
+        .cloned()
+        .collect();
+
     plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: args.weighing.clone().unwrap_or_default(),
+            parameters: parameters(plateforce_analysis::WEIGHING_CONSTRUCT),
             ..Default::default()
         },
         onset: plateforce_analysis::MethodChoice {
             method_id: args.onset.clone().unwrap_or_default(),
+            parameters: parameters(plateforce_analysis::ONSET_CONSTRUCT),
             ..Default::default()
         },
         takeoff: plateforce_analysis::MethodChoice {
             method_id: args.takeoff.clone().unwrap_or_default(),
+            parameters: parameters(plateforce_analysis::TAKEOFF_CONSTRUCT),
             ..Default::default()
         },
         touchdown_index: None,
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
-        registry_backed_ids: Vec::new(),
+        registry_backed_ids: backed,
     }
 }
 
@@ -274,7 +308,11 @@ fn run_compare(
     };
 
     let result = compare(set, &compare_request);
-    let request_digest = plateforce_batch::fingerprint::request_digest(&request_for(args), None);
+    // The request that ran, rather than one rebuilt from the arguments. A digest taken over a
+    // second construction identifies whatever that construction happens to produce, which is
+    // the fingerprint failing at its one job the moment the two drift apart.
+    let request_digest =
+        plateforce_batch::fingerprint::request_digest(&compare_request.analysis.analysis, None);
     if let Err(error) = result.write_csv(out_dir, &registry.content_digest, &request_digest) {
         return Outcome::declined(Fault::Request, error.to_string());
     }
