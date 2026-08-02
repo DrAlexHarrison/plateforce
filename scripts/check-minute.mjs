@@ -375,6 +375,25 @@ check('a quality signal draws in line beside every value it qualifies, with its 
   `${remedy.arrived ? 'from the engine' : 'drawing half only, the engine cannot hand it over yet'}: ` +
   `beside ${remedy.beside.join(' and ') || 'nothing'} | ${remedy.figure ?? 'no figure'} | ${remedy.remedy ?? 'no remedy'}`);
 
+// An intermediate frame of a number counting up to its new value is a number no method
+// produced, rendered convincingly, in a tool whose premise is that every number on screen
+// is attributable to a rule.
+const animated = await evaluate(`(() => {
+  const moving = (node) => {
+    const style = getComputedStyle(node);
+    const durations = (style.transitionDuration + ',' + style.animationDuration).split(',');
+    const properties = style.transitionProperty;
+    const timed = durations.some((d) => parseFloat(d) > 0.05);
+    return timed && /all|content|width|height|transform/.test(properties) ? properties : null;
+  };
+  return [...document.querySelectorAll('.metric__value, .spread-headline__figure, .metric__signal-figure')]
+    .map((node) => [node.className, moving(node)])
+    .filter(([, property]) => property);
+})()`);
+check('no number animates to its new value',
+  animated.length === 0,
+  animated.length ? animated.map(([what, property]) => `${what} transitions ${property}`).join(', ') : 'every numeric surface repaints in one frame');
+
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
 const failed = results.filter((result) => !result.passed);
