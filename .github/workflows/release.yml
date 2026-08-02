@@ -18,6 +18,11 @@ jobs:
   macos:
     uses: ./.github/workflows/desktop-macos.yml
     secrets: inherit
+    with:
+      # A dispatch exercises the whole route and may hand back an ad-hoc build. A tag is
+      # what reaches a reader, and docs/install.md tells that reader the file opens with no
+      # warning, which is true only of a signed and notarised one.
+      must_be_signed: ${{ startsWith(github.ref, 'refs/tags/') }}
   windows:
     uses: ./.github/workflows/desktop-windows.yml
     secrets: inherit
@@ -48,6 +53,11 @@ jobs:
       # reports a release missing a platform as sound.
       - name: The declared set arrived, and the versions agree
         run: bash scripts/verify-release-artefacts.sh dist
+
+      # NOTICE carries what every dependency is licensed under, and a release is the point
+      # at which that table reaches somebody who has to rely on it.
+      - name: The licence table is what cargo resolved
+        run: python3 scripts/write-dependency-licences.py --check
 
       - name: Which registry produced these numbers
         id: registry

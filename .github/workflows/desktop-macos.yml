@@ -9,6 +9,11 @@ name: desktop, macOS
 
 on:
   workflow_call:
+    inputs:
+      must_be_signed:
+        description: Refuse the ad-hoc path, for a run whose artefact reaches a reader.
+        type: boolean
+        default: false
   workflow_dispatch:
 
 permissions:
@@ -71,6 +76,7 @@ jobs:
           IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          MUST_BE_SIGNED: ${{ inputs.must_be_signed }}
         run: |
           absent=""
           [ -n "$IDENTITY" ] || absent="$absent APPLE_SIGNING_IDENTITY"
@@ -82,6 +88,11 @@ jobs:
               echo "signing: Developer ID, notarisation to follow"
               ;;
             " APPLE_SIGNING_IDENTITY APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD")
+              if [ "$MUST_BE_SIGNED" = true ]; then
+                echo "signing: declined. This artefact reaches a reader, who is told it" >&2
+                echo "opens with no warning, and no signing credentials are set." >&2
+                exit 1
+              fi
               echo "able=no" >> "$GITHUB_OUTPUT"
               echo "signing: ad-hoc, notarisation skipped"
               ;;

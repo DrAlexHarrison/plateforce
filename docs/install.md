@@ -35,6 +35,11 @@ macOS 10.13 and newer. The application is signed with a Developer ID certificate
 notarised by Apple, and the notarisation ticket travels inside the file, so it opens with no
 warning and with no network connection on first launch.
 
+**Who signed it.** macOS reports the signer as Saturday Inc. plateforce is Apache-2.0,
+authored by Alex Harrison, and is not a Saturday Inc product. It is signed under that
+company's Apple Developer membership because Apple charges per membership, and a second one
+would cost 99 dollars a year to ship the same free software.
+
 ## Windows
 
 **The direct download.** Run `plateforce_<version>_x64-setup.exe`. It installs into your own

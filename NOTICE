@@ -4,6 +4,11 @@ Copyright 2026 Alex Harrison
 This product includes software developed by Alex Harrison.
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
+macOS reports the signer of the desktop application as Saturday Inc, which holds the
+Apple Developer membership it is signed under. That is a cost saving rather than a
+statement of authorship: Apple charges per membership, and a second one would cost 99
+dollars a year to ship the same free software.
+
 ================================================================================
 Method registry provenance
 ================================================================================
@@ -21,27 +26,27 @@ says so.
 Dependency license posture
 ================================================================================
 
-The published crates resolve 140 packages beyond the ones this
+The published crates resolve 123 packages beyond the ones this
 repository publishes, grouped here by the license each one declares:
 
-  MIT OR Apache-2.0                                     84 of 140
-  MIT                                                   12 of 140
-  Apache-2.0                                            10 of 140
-  MIT/Apache-2.0                                         8 of 140
-  Apache-2.0 OR MIT                                      5 of 140
-  Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT    5 of 140
-  BSD-3-Clause                                           3 of 140
-  BSD-2-Clause OR Apache-2.0 OR MIT                      2 of 140
-  Unlicense OR MIT                                       2 of 140
-  (MIT OR Apache-2.0) AND Unicode-3.0                    1 of 140
-  0BSD OR MIT OR Apache-2.0                              1 of 140
-  Apache-2.0 OR BSL-1.0                                  1 of 140
-  Apache-2.0 WITH LLVM-exception                         1 of 140
-  BSD-3-Clause AND MIT                                   1 of 140
-  BSD-3-Clause/MIT                                       1 of 140
-  CC0-1.0                                                1 of 140
-  MIT OR Apache-2.0 OR LGPL-2.1-or-later                 1 of 140
-  MIT OR Zlib OR Apache-2.0                              1 of 140
+  MIT OR Apache-2.0                                     80 of 123
+  MIT                                                    9 of 123
+  Apache-2.0                                             7 of 123
+  Apache-2.0 OR MIT                                      5 of 123
+  Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT    5 of 123
+  BSD-3-Clause                                           3 of 123
+  BSD-2-Clause OR Apache-2.0 OR MIT                      2 of 123
+  MIT/Apache-2.0                                         2 of 123
+  (MIT OR Apache-2.0) AND Unicode-3.0                    1 of 123
+  0BSD OR MIT OR Apache-2.0                              1 of 123
+  Apache-2.0 AND MIT                                     1 of 123
+  Apache-2.0 WITH LLVM-exception                         1 of 123
+  BSD-3-Clause AND MIT                                   1 of 123
+  BSD-3-Clause/MIT                                       1 of 123
+  CC0-1.0                                                1 of 123
+  MIT OR Apache-2.0 OR LGPL-2.1-or-later                 1 of 123
+  MIT OR Zlib OR Apache-2.0                              1 of 123
+  Unlicense OR MIT                                       1 of 123
 
 The desktop shell resolves 459 packages. It is a separate distribution
 with a separate audience, so its dependencies are counted apart and the two totals
