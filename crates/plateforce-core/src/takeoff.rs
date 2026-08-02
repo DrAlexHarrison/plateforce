@@ -6,6 +6,7 @@
 //! standing off the plate afterwards, so the selection is reported rather than
 //! returned bare.
 
+use crate::method_ids;
 use crate::signal::TrialError;
 use crate::statistics::{index_of_minimum, mean_and_standard_deviation, DispersionEstimator};
 
@@ -104,7 +105,7 @@ pub fn takeoff_first_sustained_run(
         }
     }
     Err(TrialError::NoCrossing {
-        method_id: "takeoff.threshold.absolute_force".to_string(),
+        method_id: method_ids::TAKEOFF_THRESHOLD_ABSOLUTE_FORCE.to_string(),
         parameter: "threshold_newtons".to_string(),
         value: threshold_newtons,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,
@@ -138,7 +139,7 @@ pub fn takeoff_longest_run(
         .collect();
 
     let failure = || TrialError::NoCrossing {
-        method_id: "takeoff.threshold.longest_run".to_string(),
+        method_id: method_ids::TAKEOFF_THRESHOLD_LONGEST_RUN.to_string(),
         parameter: "minimum_flight_samples".to_string(),
         value: minimum_flight_samples as f64,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,
@@ -204,7 +205,7 @@ pub fn takeoff_descending_crossing(
         }
     }
     Err(TrialError::NoCrossing {
-        method_id: "takeoff.threshold.descending_crossing".to_string(),
+        method_id: method_ids::TAKEOFF_THRESHOLD_DESCENDING_CROSSING.to_string(),
         parameter: "threshold_newtons".to_string(),
         value: threshold_newtons,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,
@@ -241,7 +242,7 @@ pub fn takeoff_reestimated_flight_threshold(
     // not. Reported under a second name, one rule looks like two and the failing one
     // resolves nowhere.
     let failure = || TrialError::NoCrossing {
-        method_id: "takeoff.threshold.flight_noise_k_sd".to_string(),
+        method_id: method_ids::TAKEOFF_THRESHOLD_FLIGHT_NOISE_K_SD.to_string(),
         parameter: "provisional_threshold_newtons".to_string(),
         value: provisional_threshold_newtons,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,

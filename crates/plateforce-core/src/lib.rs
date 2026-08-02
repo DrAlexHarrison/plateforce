@@ -7,10 +7,10 @@
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
 
-pub mod agreement;
 pub mod bspline;
 pub mod butterworth;
 pub mod gravity;
+pub mod method_ids;
 pub mod onset;
 pub mod phases;
 pub mod provenance;
@@ -25,6 +25,7 @@ pub mod spectrum;
 pub mod statistics;
 pub mod takeoff;
 pub mod trial;
+pub mod validity;
 
 pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};

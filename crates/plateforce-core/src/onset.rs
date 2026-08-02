@@ -6,6 +6,7 @@
 //! does not identify a method: the same lab published the accompanying backtrack as
 //! 10 ms, then 30 ms, then 50 and 40 ms.
 
+use crate::method_ids;
 use crate::signal::TrialError;
 use crate::statistics::{
     index_of_maximum, index_of_minimum, mean_and_standard_deviation, DispersionEstimator,
@@ -148,7 +149,7 @@ pub fn onset_noise_relative(
     let band = match (collapsed, degenerate) {
         (true, DegenerateBandPolicy::Refuse) => {
             return Err(TrialError::CollapsedBand {
-                method_id: "onset.threshold.noise_relative".to_string(),
+                method_id: method_ids::ONSET_THRESHOLD_NOISE_RELATIVE.to_string(),
                 parameter: "k".to_string(),
                 value: multiplier,
                 dispersion_newtons,
@@ -165,7 +166,7 @@ pub fn onset_noise_relative(
     };
     sustained_excursion(tested_signal, &band, search).ok_or_else(|| {
         no_crossing(
-            "onset.threshold.noise_relative",
+            method_ids::ONSET_THRESHOLD_NOISE_RELATIVE,
             "k",
             multiplier,
             search.end_index as f64 / sample_rate_hz,
@@ -218,7 +219,7 @@ pub fn onset_final_departure_from_band(
     search_end_index: usize,
     sample_rate_hz: f64,
 ) -> Result<usize, TrialError> {
-    const METHOD: &str = "onset.threshold.noise_relative_final_departure";
+    const METHOD: &str = method_ids::ONSET_THRESHOLD_NOISE_RELATIVE_FINAL_DEPARTURE;
     let half_width = multiplier * dispersion_newtons;
     let lower = reference_newtons - half_width;
     let band = match (dispersion_newtons <= 0.0 || lower <= 0.0, degenerate) {
@@ -256,7 +257,7 @@ pub fn onset_relative_to_reference(
     let band = ExcursionBand::below((1.0 - fraction_below) * reference_newtons);
     sustained_excursion(signal, &band, search).ok_or_else(|| {
         no_crossing(
-            "onset.threshold.percent_bodyweight",
+            method_ids::ONSET_THRESHOLD_RELATIVE_TO_SYSTEM_WEIGHT,
             "fraction_below",
             fraction_below,
             search.end_index as f64 / sample_rate_hz,
@@ -315,7 +316,7 @@ pub fn onset_last_sample_within_noise_band(
         .find(|&index| signal[index] >= lower_threshold)
         .ok_or_else(|| {
             no_crossing(
-                "onset.threshold.last_within_band",
+                method_ids::ONSET_THRESHOLD_LAST_WITHIN_BAND,
                 "k",
                 multiplier,
                 scan_end as f64 / sample_rate_hz,
@@ -351,7 +352,7 @@ pub fn onset_last_sample_within_noise_band(
         .find(|&index| acceptance.accepts(signal[index]))
         .ok_or_else(|| {
             no_crossing(
-                "onset.threshold.last_within_band",
+                method_ids::ONSET_THRESHOLD_LAST_WITHIN_BAND,
                 "k",
                 multiplier,
                 scan_limit as f64 / sample_rate_hz,
@@ -398,7 +399,7 @@ pub fn onset_adaptive_trailing_window(
     let extremum = index_of_minimum(signal).unwrap_or_default();
     if extremum <= trailing_window_samples + 1 {
         return Err(no_crossing(
-            "onset.threshold.adaptive_trailing_window",
+            method_ids::ONSET_THRESHOLD_ADAPTIVE_TRAILING_WINDOW,
             "trailing_window_samples",
             trailing_window_samples as f64,
             extremum as f64 / sample_rate_hz,
@@ -419,7 +420,7 @@ pub fn onset_adaptive_trailing_window(
         .rfind(|&index| signal[index] < trailing_limit(index));
     let last_crossing = last_crossing.ok_or_else(|| {
         no_crossing(
-            "onset.threshold.adaptive_trailing_window",
+            method_ids::ONSET_THRESHOLD_ADAPTIVE_TRAILING_WINDOW,
             "k",
             multiplier,
             extremum as f64 / sample_rate_hz,
@@ -632,6 +633,28 @@ mod tests {
         )
         .unwrap();
         assert_eq!(fallen_back, 1000);
+    }
+
+    #[test]
+    fn a_rule_declines_under_the_same_id_it_succeeds_under() {
+        let quiet = vec![600.0; 1200];
+        let search = CrossingSearch {
+            start_index: 0,
+            end_index: 1199,
+            persistence_samples: 1,
+            selection: CrossingSelection::First,
+        };
+        let refused = onset_relative_to_reference(&quiet, 600.0, 0.1, &search, 1200.0).unwrap_err();
+        let message = refused.to_string();
+        assert!(
+            message.contains(method_ids::ONSET_THRESHOLD_RELATIVE_TO_SYSTEM_WEIGHT),
+            "{message}"
+        );
+        assert!(
+            method_ids::ALL.contains(&method_ids::ONSET_THRESHOLD_RELATIVE_TO_SYSTEM_WEIGHT),
+            "the id a caller is handed on failure has to be one they could have selected"
+        );
+        assert!(!message.contains("percent_bodyweight"), "{message}");
     }
 
     #[test]
