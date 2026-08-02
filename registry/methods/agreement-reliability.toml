@@ -623,6 +623,18 @@ unit = "enumeration"
 required = true
 notes = "within_session, between_session, between_day. The three intervals are deliberately not counted as three entries: the same rule applied to different data is one method."
 
+
+[[method.parameter.value]]
+key = "within_session"
+label = "Within session"
+
+[[method.parameter.value]]
+key = "between_session"
+label = "Between session"
+
+[[method.parameter.value]]
+key = "between_day"
+label = "Between day"
 [[method.citation]]
 key = "merrigan2021"
 role = "uses"

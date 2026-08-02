@@ -947,6 +947,18 @@ name = "model_form"
 unit = "enumeration"
 notes = "wide_range_in_situ, per_cell_offset_and_gain, legacy_polynomial_on_sum. Mandatory."
 
+
+[[method.parameter.value]]
+key = "wide_range_in_situ"
+label = "Wide-range in situ"
+
+[[method.parameter.value]]
+key = "per_cell_offset_and_gain"
+label = "Per cell offset and gain"
+
+[[method.parameter.value]]
+key = "legacy_polynomial_on_sum"
+label = "Legacy polynomial on the summed channel"
 [[method.citation]]
 key = "poyatos2026"
 role = "proposes"

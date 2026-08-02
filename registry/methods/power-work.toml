@@ -22,17 +22,9 @@ name = "force_term"
 unit = "enumeration"
 required = true
 notes = """
-The two differ by system weight times velocity, which at 2.5 m/s and 800 N is 2000 W. A mandatory
-declaration rather than a preference.
+total or net. The two differ by system weight times velocity, which at 2.5 m/s and 800 N is 2000 W.
+A mandatory declaration rather than a preference.
 """
-
-[[method.parameter.value]]
-key = "total"
-label = "The force the plate measured"
-
-[[method.parameter.value]]
-key = "net"
-label = "Measured force less system weight"
 
 [[method.parameter]]
 name = "sign_convention"
@@ -42,16 +34,8 @@ notes = """
 One published table defines peak braking power as the peak negative power, reports it negative for
 the countermovement jump and positive for the drop jump in adjacent tables. Sign convention on
 phase-restricted power is unmanaged across the entire field, including inside single papers by
-careful authors, so the two options below are the exhaustive pair rather than a published set.
+careful authors.
 """
-
-[[method.parameter.value]]
-key = "upward_positive"
-label = "Power is positive while the centre of mass rises"
-
-[[method.parameter.value]]
-key = "downward_positive"
-label = "Power is positive while the centre of mass descends"
 
 [[method.citation]]
 key = "cormie2007"
@@ -742,6 +726,18 @@ object is being described, and subtracting system weight from a barbell-derived 
 weight from a plate-derived force, are both errors and both easy to make.
 """
 
+
+[[method.parameter.value]]
+key = "barbell"
+label = "Barbell"
+
+[[method.parameter.value]]
+key = "body"
+label = "Body"
+
+[[method.parameter.value]]
+key = "system"
+label = "System"
 [[method.citation]]
 key = "blatnik2014"
 role = "evaluates"
@@ -795,6 +791,18 @@ unit = "enumeration"
 required = true
 notes = "body mass, system mass or barbell mass. One entry with three values rather than three methods, because no paper argues on principle that another's denominator is wrong."
 
+
+[[method.parameter.value]]
+key = "body_mass"
+label = "Body mass"
+
+[[method.parameter.value]]
+key = "system_mass"
+label = "System mass"
+
+[[method.parameter.value]]
+key = "barbell_mass"
+label = "Barbell mass"
 [[method.citation]]
 key = "suchomel2017"
 role = "uses"

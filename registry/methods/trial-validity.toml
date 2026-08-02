@@ -133,6 +133,16 @@ unit = "enumeration"
 required = true
 notes = "absolute_newtons_above_bodyweight or percent_of_bodyweight. The absolute form is stricter for light athletes and more permissive for heavy ones."
 
+
+[[method.parameter.value]]
+key = "absolute_newtons_above_bodyweight"
+label = "Absolute newtons above bodyweight"
+notes = "Stricter for light athletes."
+
+[[method.parameter.value]]
+key = "percent_of_bodyweight"
+label = "Percent of bodyweight"
+notes = "More permissive for light athletes."
 [[method.parameter]]
 name = "ceiling"
 unit = "newtons"
@@ -318,6 +328,14 @@ name = "selection"
 unit = "enumeration"
 notes = "first_qualifying or longest_qualifying_batch."
 
+
+[[method.parameter.value]]
+key = "first_qualifying"
+label = "First qualifying"
+
+[[method.parameter.value]]
+key = "longest_qualifying_batch"
+label = "Longest qualifying batch"
 [[method.citation]]
 key = "sams_shiny"
 role = "uses"

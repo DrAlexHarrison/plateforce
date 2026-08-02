@@ -477,6 +477,16 @@ bases, so the interval and its reciprocal slope are two different quantities dep
 meant. A fraction of maximal voluntary contraction is read from a separate maximal trial.
 """
 
+
+[[method.parameter.value]]
+key = "absolute"
+label = "Absolute newtons"
+notes = "The two levels are read as forces."
+
+[[method.parameter.value]]
+key = "fraction_of_mvc"
+label = "Fraction of maximal voluntary contraction"
+notes = "Read from a separate maximal trial, so this basis needs a recording the other does not."
 [[method.parameter]]
 name = "lower_level"
 unit = "newtons"
