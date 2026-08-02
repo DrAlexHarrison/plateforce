@@ -34,15 +34,20 @@ pub(crate) fn place(
         centre,
         dispersion,
     )?;
+    // Where the window is anchored and what time that lands on are two facts, and one
+    // recorded value carried both. The caller states a sample index; the seconds it means
+    // depend on the recording's rate, so a stated index reads as a different time on two
+    // recordings and only the anchor is the caller's.
+    let (anchor, anchor_source) = match choice.start_index {
+        Some(_) => ("stated_index", ParameterSource::Stated),
+        None => ("trial_start", ParameterSource::Assumed),
+    };
+    resolved.record("window_anchor", anchor.to_string(), anchor_source);
     resolved.record_measured(
         "start_seconds",
         trial.time_at(epoch.start_index),
         format!("{:.4}", trial.time_at(epoch.start_index)),
-        if choice.start_index.is_some() {
-            ParameterSource::Stated
-        } else {
-            ParameterSource::Measured
-        },
+        ParameterSource::Measured,
     );
     Ok(epoch)
 }
