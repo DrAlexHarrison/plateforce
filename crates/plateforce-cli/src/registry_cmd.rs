@@ -3,12 +3,13 @@
 use std::fmt::Write as _;
 use std::path::Path;
 
+use plateforce_core::Refusal;
 use plateforce_registry::{
     Census, Citation, CitationRole, Method, Protocol, Provenance, Registry, Status,
 };
 use serde_json::json;
 
-use crate::exit::{Fault, Outcome};
+use crate::exit::{Declined, Fault, Outcome};
 use crate::out::Format;
 use crate::render::{Renderer, Role};
 use crate::verdict;
@@ -29,7 +30,11 @@ pub enum Command {
 pub fn run(command: &Command, directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
     let registry = match Registry::load(directory) {
         Ok(registry) => registry,
-        Err(error) => return Outcome::declined(Fault::Registry, format!("{error}")),
+        Err(error) => {
+            return Outcome::declined(Declined::recorded(Refusal::registry_invalid(format!(
+                "{error}"
+            ))))
+        }
     };
 
     match command {
@@ -123,13 +128,26 @@ fn show(registry: &Registry, id: &str, format: Format, renderer: &Renderer) -> O
             Format::Text => Outcome::complete(show_protocol(protocol, renderer)),
         };
     }
-    Outcome::declined(Fault::Request, format!("no entry with id {id}"))
+    // A lookup in a data file rather than a rule that declined, so it carries no published
+    // code: the vocabulary names what a rule or a reader refused, and an id absent from the
+    // registry reached neither.
+    Outcome::declined_line(Fault::Request, format!("no entry with id {id}"))
 }
 
 /// Sorted keys and no spacing, so a document written here and one written by another surface
 /// are the same string rather than two renderings of one object.
 pub fn canonical(value: &serde_json::Value) -> String {
-    serde_json::to_string(&sorted(&json!({ "ok": value })))
+    canonical_under("ok", value)
+}
+
+/// The refusal envelope, written by the same function as the result so the two cannot drift
+/// into two spellings of one document.
+pub fn canonical_refusal(value: &serde_json::Value) -> String {
+    canonical_under("refusal", value)
+}
+
+fn canonical_under(key: &str, value: &serde_json::Value) -> String {
+    serde_json::to_string(&sorted(&json!({ key: value })))
         .expect("a value already in memory serialises")
 }
 

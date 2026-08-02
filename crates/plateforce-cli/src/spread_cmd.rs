@@ -48,23 +48,25 @@ pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Re
     // so a misspelling reads as a run that worked.
     let reported = match plateforce_analysis::run(&prepared.trial.trial, &prepared.request) {
         Ok(response) => response.metrics,
-        Err(message) => return Outcome::declined(Fault::Request, message),
+        Err(message) => return Outcome::declined_line(Fault::Request, message),
     };
     if !reported.iter().any(|metric| metric.key == quantity) {
         let names: Vec<&str> = reported.iter().map(|metric| metric.key.as_str()).collect();
-        return Outcome::declined(
+        return Outcome::declined_line(
             Fault::Request,
             format!("'{quantity}' is not a quantity this build reports, and it reports {names:?}"),
         );
     }
 
     match measure(&prepared.trial.trial, &prepared.request, quantity) {
-        Err(message) => Outcome::declined(Fault::Request, message),
+        Err(message) => Outcome::declined_line(Fault::Request, message),
         Ok(response) => {
             let document = match format {
                 Format::Json => match serde_json::to_value(&response) {
                     Ok(value) => canonical(&value),
-                    Err(error) => return Outcome::declined(Fault::Internal, format!("{error}")),
+                    Err(error) => {
+                        return Outcome::declined_line(Fault::Internal, format!("{error}"))
+                    }
                 },
                 Format::Text => describe(&response, renderer),
             };

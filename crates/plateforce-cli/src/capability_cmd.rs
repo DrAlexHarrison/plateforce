@@ -94,7 +94,7 @@ pub fn run(_args: &Args, _format: Format) -> Outcome {
     // renders what `--format json` renders rather than a second thing to keep true.
     match serde_json::to_value(manifest()) {
         Ok(value) => Outcome::complete(crate::registry_cmd::canonical(&value)),
-        Err(error) => Outcome::declined(Fault::Internal, format!("{error}")),
+        Err(error) => Outcome::declined_line(Fault::Internal, format!("{error}")),
     }
 }
 
