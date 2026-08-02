@@ -270,6 +270,54 @@ for (const theme of ['light', 'dark']) {
 }
 await evaluate("document.documentElement.dataset.theme = 'auto'");
 
+// The narrow viewport, where a layout that merely reflows on a desktop breaks. Four
+// mechanical floors, each read off the rendered box rather than off the stylesheet.
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
+});
+await new Promise((resolve) => setTimeout(resolve, 400));
+const narrow = await evaluate(`(() => {
+  const visible = (node) => node.getClientRects().length > 0;
+  const boxes = [...document.querySelectorAll('button, select, input, a[href], summary')].filter(visible);
+  // The target is the box a finger lands on. A tick box inside a label is toggled by the
+  // whole label, and a link inside a sentence is a word in running text rather than a
+  // control laid out on its own. Everything else is measured as it renders.
+  const target = (node) => {
+    if (/^(checkbox|radio)$/.test(node.type) && node.closest('label')) return node.closest('label');
+    return node;
+  };
+  const inRunningText = (node) => node.tagName === 'A' &&
+    [...(node.parentElement?.childNodes ?? [])].some((c) => c.nodeType === 3 && c.textContent.trim());
+  return {
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    small: boxes
+      .filter((node) => !inRunningText(node))
+      .map((node) => [node.tagName.toLowerCase() + (node.id ? '#' + node.id : ''), target(node).getBoundingClientRect()])
+      .map(([what, box]) => [what, Math.round(Math.min(box.width, box.height))])
+      .filter(([, side]) => side < 44),
+    tiny: [...document.querySelectorAll('body *')].filter(visible)
+      .filter((node) => [...node.childNodes].some((child) => child.nodeType === 3 && child.textContent.trim()))
+      .map((node) => [node.className || node.tagName.toLowerCase(), parseFloat(getComputedStyle(node).fontSize)])
+      .filter(([, size]) => size < 12),
+    unlabelled: boxes
+      .filter((node) => !node.textContent.trim() && !node.getAttribute('aria-label') && !node.getAttribute('title') && !node.labels?.length)
+      .map((node) => node.tagName.toLowerCase() + (node.id ? '#' + node.id : '')),
+    counted: boxes.length,
+  };
+})()`);
+await send('Emulation.clearDeviceMetricsOverride');
+
+check('at 390 px the page does not scroll sideways', narrow.overflow <= 0, `${narrow.overflow} px of horizontal overflow`);
+check('at 390 px every control clears 44 px on its short side',
+  narrow.small.length === 0,
+  narrow.small.length ? narrow.small.map(([what, side]) => `${what} ${side} px`).join(', ') : `${narrow.counted} controls checked`);
+check('at 390 px no text renders under 12 px',
+  narrow.tiny.length === 0,
+  narrow.tiny.length ? narrow.tiny.map(([what, size]) => `${what} ${size} px`).join(', ') : 'none under 12 px');
+check('every control carries a name a screen reader can read',
+  narrow.unlabelled.length === 0,
+  narrow.unlabelled.join(', ') || `${narrow.counted} controls checked`);
+
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
 const failed = results.filter((result) => !result.passed);

@@ -770,12 +770,13 @@ table.data td.failed { color: var(--danger); white-space: normal; }
      wrong default here, whatever the pointer media query reports. */
   .button--small { min-height: 44px; padding: 0 var(--space-3); }
   .provenance { min-height: 44px; }
+  .chip { min-height: 44px; padding: var(--space-2) var(--space-3); }
   .param select, .param input { min-height: 44px; }
   .spread-axes label { min-height: 44px; align-items: center; }
   .spread-axes input { min-width: 20px; min-height: 20px; }
   .skip-link { min-height: 44px; display: inline-flex; align-items: center; }
   .window-handle { width: 44px; margin-left: -22px; }
-  .marker__label { font-size: 11px; padding: 2px var(--space-1); }
+  .marker__label { padding: 2px var(--space-1); }
   .drawer__body, .drawer__head { padding-left: var(--space-4); padding-right: var(--space-4); }
 
   main { padding: var(--space-4) var(--space-3); }
