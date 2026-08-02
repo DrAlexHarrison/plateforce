@@ -15,6 +15,9 @@ export const state = {
   selection: {},
   weighing: { startIndex: null },
   overrides: { onset: null, takeoff: null, touchdown: null },
+  /* Where the plate is, when the operator has said. Null means nobody has stated it and the
+   * engine supplies standard gravity, which is the one place that constant lives. */
+  gravity: null,
   file: null,
   loadedTrial: null,
   envelope: null,

@@ -37,7 +37,12 @@ export const SLOTS = [
  * in the docs, not in the interface. */
 const NOT_A_CHOICE = new Set(['never_a_user_choice', 'refuse']);
 
+/* The loaded registry, so an axis can read the values the literature contains rather than
+ * carrying a copy of them. Set once when the model is built. */
+let loaded = null;
+
 export function buildDecisionModel(registry, bindings) {
+  loaded = registry;
   const byConstruct = new Map();
   for (const method of registry.methods) {
     if (!byConstruct.has(method.construct)) byConstruct.set(method.construct, []);
@@ -174,15 +179,34 @@ export function windowLengthParameter(candidate) {
   return (candidate?.method?.parameter || []).find((parameter) => parameter.unit === 'seconds')?.name || null;
 }
 
+/* Every value the registry publishes for gravity, read from the entry that declares the
+ * parameter. A list written here instead offered three of the four the registry carries,
+ * and a sweep that omits a published value is reporting a narrower disagreement than the
+ * literature holds. */
+function publishedGravityValues() {
+  for (const method of loaded?.methods || []) {
+    for (const parameter of method.parameter || []) {
+      if (parameter.name === 'gravity' && parameter.published_values?.length) {
+        return parameter.published_values;
+      }
+    }
+  }
+  return [];
+}
+
 export const GRAVITY_AXIS = {
   id: 'global:gravity',
   slot: 'global',
   parameter: 'gravity_meters_per_second_squared',
-  values: [9.8, 9.80665, 9.81],
+  get values() {
+    return publishedGravityValues();
+  },
   label: 'Gravity',
   unit: 'm/s2',
   note: 'the tools disagree on this constant',
-  display: '9.8, 9.80665, 9.81',
+  get display() {
+    return publishedGravityValues().join(', ');
+  },
 };
 
 export function findMethod(registry, id) {
