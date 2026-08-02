@@ -25,17 +25,21 @@ doi = "10.1080/14763141.2021.1974532"
 obtained = true
 
 [[method.bias]]
-magnitude = 0.25
-unit = "fraction"
+magnitude = 1.0
+unit = "system_weight"
 direction = "high"
 criterion = "force.peak.net"
 criterion_kind = "model"
 source = "plateforce_algebra"
-# Gross exceeds net by exactly one system weight, roughly 20 to 30 percent of a typical 3,000 to
-# 5,000 N isometric peak. It cascades into force at onset, every epoch force, every onset-anchored
-# rate, every impulse and every normalisation denominator. It also interacts with normalisation
-# non-obviously: net force per kg and gross force per kg differ by g rather than by a constant
-# factor, so recording force per kg without recording the convention has not recorded the method.
+# Gross exceeds net by exactly one system weight, which is what the algebra gives and does not
+# depend on the movement. As a fraction of net it does: roughly 20 to 30 percent of a typical 3,000
+# to 5,000 N isometric peak, and 0.583 to 0.643 of net, mean 0.617, measured over the six committed
+# countermovement trials. A single fraction recorded here would be right for one of those and wrong
+# by more than a factor of two for the other. It cascades into force at onset, every epoch force,
+# every onset-anchored rate, every impulse and every normalisation denominator. It also interacts
+# with normalisation non-obviously: net force per kg and gross force per kg differ by g rather than
+# by a constant factor, so recording force per kg without recording the convention has not recorded
+# the method.
 
 [[method.disagrees_with]]
 id = "force.peak.net"
