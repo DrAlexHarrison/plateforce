@@ -20,6 +20,72 @@ pub enum BSplineError {
     RankDeficient { index: usize },
 }
 
+/// A smoothed curve, and how much of the data it kept.
+///
+/// The penalty weight is not a number a user would recognise, because it is a property of
+/// this basis rather than of the signal. What travels beside it is the effective degrees of
+/// freedom, which says how many free parameters the fit actually spent, and the score the
+/// weight was chosen by.
+#[derive(Debug, Clone)]
+pub struct PenalisedFit {
+    pub coefficients: Vec<f64>,
+    pub fitted: Vec<f64>,
+    pub penalty_weight: f64,
+    pub effective_degrees_of_freedom: f64,
+    pub cross_validation_score: f64,
+}
+
+/// Lower triangular Cholesky factor of a symmetric positive definite matrix, in place of
+/// the matrix. Nothing when the matrix is not positive definite, which for a penalised
+/// normal matrix means the basis is larger than the data can support.
+fn cholesky(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let mut factor = matrix.to_vec();
+    let width = factor.len();
+    for column in 0..width {
+        let settled: Vec<f64> = factor[column][..column].to_vec();
+        let pivot = factor[column][column] - settled.iter().map(|value| value * value).sum::<f64>();
+        if !(pivot.is_finite() && pivot > 0.0) {
+            return None;
+        }
+        let root = pivot.sqrt();
+        factor[column][column] = root;
+        for row_values in factor.iter_mut().skip(column + 1) {
+            let crossed: f64 = row_values[..column]
+                .iter()
+                .zip(&settled)
+                .map(|(left, right)| left * right)
+                .sum();
+            row_values[column] = (row_values[column] - crossed) / root;
+        }
+    }
+    Some(factor)
+}
+
+/// Forward then back substitution through a Cholesky factor.
+fn solve_with(factor: &[Vec<f64>], right_hand_side: &[f64]) -> Vec<f64> {
+    let width = factor.len();
+    let mut intermediate: Vec<f64> = Vec::with_capacity(width);
+    for (row_values, &value) in factor.iter().zip(right_hand_side) {
+        let solved_so_far = intermediate.len();
+        let crossed: f64 = row_values[..solved_so_far]
+            .iter()
+            .zip(&intermediate)
+            .map(|(coefficient, solved)| coefficient * solved)
+            .sum();
+        intermediate.push((value - crossed) / row_values[solved_so_far]);
+    }
+    let mut solution = vec![0.0f64; width];
+    for row in (0..width).rev() {
+        let crossed: f64 = factor[row + 1..]
+            .iter()
+            .zip(&solution[row + 1..])
+            .map(|(later_row, solved)| later_row[row] * solved)
+            .sum();
+        solution[row] = (intermediate[row] - crossed) / factor[row][row];
+    }
+    solution
+}
+
 /// A clamped uniform b-spline basis over the unit interval.
 ///
 /// Clamped means the end knots are repeated, so the first and last basis functions reach
@@ -100,11 +166,24 @@ impl Basis {
             .collect()
     }
 
-    /// Least squares coefficients for one curve, by Cholesky on the normal equations.
+    /// Least squares coefficients for one curve.
     ///
-    /// A b-spline design matrix is banded and well conditioned, which is the property that
-    /// makes the normal equations safe here and unsafe for the monomials in `smoothing`.
+    /// The unpenalised fit is the penalised one at a weight of zero, so there is one solver
+    /// and the penalty is a value rather than a second routine.
     pub fn fit(&self, observations: &[f64]) -> Result<Vec<f64>, BSplineError> {
+        Ok(self.fit_penalised(observations, 0.0)?.coefficients)
+    }
+
+    /// Least squares with a second-difference penalty on the coefficients, which is the
+    /// discrete form of penalising how much the curve bends.
+    ///
+    /// A weight of zero returns the ordinary fit, so the penalised and unpenalised routes
+    /// are one implementation and the penalty is a value rather than a branch.
+    pub fn fit_penalised(
+        &self,
+        observations: &[f64],
+        penalty_weight: f64,
+    ) -> Result<PenalisedFit, BSplineError> {
         if observations.len() < self.basis_count {
             return Err(BSplineError::FewerObservationsThanFunctions {
                 observation_count: observations.len(),
@@ -112,58 +191,109 @@ impl Basis {
             });
         }
         let design = self.design_over_evenly_spaced(observations.len());
+        let width = self.basis_count;
 
-        let mut normal = vec![vec![0.0f64; self.basis_count]; self.basis_count];
-        let mut projected = vec![0.0f64; self.basis_count];
+        let mut gram = vec![vec![0.0f64; width]; width];
+        let mut projected = vec![0.0f64; width];
         for (row, observation) in design.iter().zip(observations) {
-            for left in 0..self.basis_count {
+            for left in 0..width {
                 projected[left] += row[left] * observation;
-                for right in 0..=left {
-                    normal[left][right] += row[left] * row[right];
+                for right in 0..width {
+                    gram[left][right] += row[left] * row[right];
                 }
             }
         }
 
-        for column in 0..self.basis_count {
-            let settled: Vec<f64> = normal[column][..column].to_vec();
-            let pivot =
-                normal[column][column] - settled.iter().map(|value| value * value).sum::<f64>();
-            if !(pivot.is_finite() && pivot > 0.0) {
-                return Err(BSplineError::RankDeficient { index: column });
-            }
-            let root = pivot.sqrt();
-            normal[column][column] = root;
-            for row_values in normal.iter_mut().skip(column + 1) {
-                let crossed: f64 = row_values[..column]
-                    .iter()
-                    .zip(&settled)
-                    .map(|(left, right)| left * right)
-                    .sum();
-                row_values[column] = (row_values[column] - crossed) / root;
+        let mut penalised = gram.clone();
+        for start in 0..width.saturating_sub(2) {
+            // One row of the second-difference operator, [1, -2, 1], contributing its outer
+            // product to the penalty.
+            let stencil = [(start, 1.0), (start + 1, -2.0), (start + 2, 1.0)];
+            for (left, left_weight) in stencil {
+                for (right, right_weight) in stencil {
+                    penalised[left][right] += penalty_weight * left_weight * right_weight;
+                }
             }
         }
 
-        let mut intermediate: Vec<f64> = Vec::with_capacity(self.basis_count);
-        for (row_values, &projection) in normal.iter().zip(&projected) {
-            let solved_so_far = intermediate.len();
-            let crossed: f64 = row_values[..solved_so_far]
-                .iter()
-                .zip(&intermediate)
-                .map(|(factor, solved)| factor * solved)
-                .sum();
-            intermediate.push((projection - crossed) / row_values[solved_so_far]);
+        let factored = cholesky(&penalised).ok_or(BSplineError::RankDeficient { index: 0 })?;
+        let coefficients = solve_with(&factored, &projected);
+
+        // The fit's trace, which is how many parameters it actually spent. Taken as
+        // trace of the penalised inverse times the unpenalised Gram, one column at a time,
+        // over a matrix the size of the basis rather than of the trace.
+        let mut effective_degrees_of_freedom = 0.0f64;
+        for column in 0..width {
+            let unit: Vec<f64> = gram.iter().map(|row| row[column]).collect();
+            effective_degrees_of_freedom += solve_with(&factored, &unit)[column];
         }
 
-        let mut coefficients = vec![0.0f64; self.basis_count];
-        for row in (0..self.basis_count).rev() {
-            let crossed: f64 = normal[row + 1..]
-                .iter()
-                .zip(&coefficients[row + 1..])
-                .map(|(later_row, solved)| later_row[row] * solved)
-                .sum();
-            coefficients[row] = (intermediate[row] - crossed) / normal[row][row];
+        let fitted: Vec<f64> = design
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .zip(&coefficients)
+                    .map(|(weight, coefficient)| weight * coefficient)
+                    .sum()
+            })
+            .collect();
+        let residual_sum_of_squares: f64 = fitted
+            .iter()
+            .zip(observations)
+            .map(|(got, want)| (got - want).powi(2))
+            .sum();
+
+        let count = observations.len() as f64;
+        let slack = count - effective_degrees_of_freedom;
+        let cross_validation_score = if slack > 0.0 {
+            count * residual_sum_of_squares / (slack * slack)
+        } else {
+            f64::INFINITY
+        };
+
+        Ok(PenalisedFit {
+            coefficients,
+            fitted,
+            penalty_weight,
+            effective_degrees_of_freedom,
+            cross_validation_score,
+        })
+    }
+
+    /// The penalty weight that minimises the generalised cross-validation score.
+    ///
+    /// Searched over a logarithmic grid and then refined around the winner, because the
+    /// score is smooth in the logarithm of the weight and flat in the weight itself. The
+    /// criterion chooses the smoothing rather than the operator choosing it, which is the
+    /// whole content of the published rule: nobody states a cutoff and the data does.
+    pub fn choose_penalty_by_cross_validation(
+        &self,
+        observations: &[f64],
+    ) -> Result<PenalisedFit, BSplineError> {
+        let mut best: Option<PenalisedFit> = None;
+        let consider = |weight: f64, best: &mut Option<PenalisedFit>| {
+            if let Ok(fit) = self.fit_penalised(observations, weight) {
+                let better = best
+                    .as_ref()
+                    .is_none_or(|held| fit.cross_validation_score < held.cross_validation_score);
+                if better {
+                    *best = Some(fit);
+                }
+            }
+        };
+
+        for exponent in -10..=10 {
+            consider(10.0f64.powi(exponent), &mut best);
         }
-        Ok(coefficients)
+        let coarse = best
+            .as_ref()
+            .ok_or(BSplineError::RankDeficient { index: 0 })?
+            .penalty_weight;
+        for step in 1..10 {
+            let fraction = step as f64 / 10.0;
+            consider(coarse * 10.0f64.powf(fraction - 0.5), &mut best);
+        }
+        best.ok_or(BSplineError::RankDeficient { index: 0 })
     }
 
     /// The curve those coefficients describe, back on a grid of stated length.
@@ -252,6 +382,56 @@ mod tests {
         assert!(
             fine > coarse * 2.0,
             "a basis of 60 peaked at {fine} and a basis of 8 at {coarse}"
+        );
+    }
+
+    /// The property that defines cross-validated smoothing: given the same underlying
+    /// curve, the criterion spends fewer parameters on the noisier copy. If it did not,
+    /// the criterion is not reaching the answer and the penalty is decorative.
+    #[test]
+    fn the_criterion_spends_fewer_parameters_on_a_noisier_copy() {
+        let point_count = 400usize;
+        let underlying = |point: usize| {
+            let position = point as f64 / (point_count - 1) as f64;
+            (2.0 * std::f64::consts::PI * position).sin()
+        };
+        let clean: Vec<f64> = (0..point_count).map(underlying).collect();
+        let noisy: Vec<f64> = (0..point_count)
+            .map(|point| underlying(point) + ((point % 13) as f64 - 6.0) * 0.08)
+            .collect();
+
+        let basis = Basis::clamped_uniform(24, 3).unwrap();
+        let on_clean = basis.choose_penalty_by_cross_validation(&clean).unwrap();
+        let on_noisy = basis.choose_penalty_by_cross_validation(&noisy).unwrap();
+        assert!(
+            on_noisy.effective_degrees_of_freedom < on_clean.effective_degrees_of_freedom,
+            "noisy spent {} parameters and clean spent {}",
+            on_noisy.effective_degrees_of_freedom,
+            on_clean.effective_degrees_of_freedom
+        );
+    }
+
+    /// A weight of zero is the ordinary fit, which is what lets the two share one solver.
+    /// The effective degrees of freedom then equal the basis size, because nothing is
+    /// being held back.
+    #[test]
+    fn a_zero_penalty_spends_the_whole_basis() {
+        let point_count = 400usize;
+        let observations: Vec<f64> = (0..point_count)
+            .map(|point| (point as f64 / 40.0).sin())
+            .collect();
+        let basis = Basis::clamped_uniform(16, 3).unwrap();
+        let unpenalised = basis.fit_penalised(&observations, 0.0).unwrap();
+        assert!(
+            (unpenalised.effective_degrees_of_freedom - 16.0).abs() < 1e-6,
+            "spent {}",
+            unpenalised.effective_degrees_of_freedom
+        );
+        let heavily = basis.fit_penalised(&observations, 1e6).unwrap();
+        assert!(
+            heavily.effective_degrees_of_freedom < 4.0,
+            "a heavy penalty still spent {}",
+            heavily.effective_degrees_of_freedom
         );
     }
 
