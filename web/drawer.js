@@ -133,7 +133,23 @@ export function openDrawer(method, fallbackId, bound) {
   if (method.disagrees_with?.length) {
     const list = element('ul');
     for (const other of method.disagrees_with) {
-      list.append(element('li', null, `${other.id} (${other.kind})${other.note ? `. ${other.note}` : ''}`));
+      const item = element('li', null, `${other.id} (${other.kind})`);
+      // A reader choosing between two rules is choosing between two sources, and the id
+      // alone does not say whose the other one is.
+      const alternative = findMethod(state.registry, other.id);
+      const source = alternative?.citation?.[0];
+      if (source) {
+        item.append(document.createTextNode(`, ${source.role}: ${source.reference}`));
+      }
+      if (other.note) item.append(document.createTextNode(`. ${other.note}`));
+      if (alternative) {
+        const open = element('button', 'button button--ghost button--small', 'Open this entry');
+        open.type = 'button';
+        open.addEventListener('click', () => openDrawer(alternative));
+        item.append(document.createTextNode(' '));
+        item.append(open);
+      }
+      list.append(item);
     }
     body.append(section('Disagrees with', list));
   }
