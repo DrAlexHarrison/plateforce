@@ -104,10 +104,19 @@ fn probes_for(published: &[f64], default: Option<f64>) -> Vec<f64> {
     }
     let low = probes.iter().copied().fold(f64::INFINITY, f64::min);
     let high = probes.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    probes.push(low / 8.0);
-    probes.push(high * 8.0);
+    probes.push(low / REACH_BEYOND_THE_PUBLISHED_VALUE);
+    probes.push(high * REACH_BEYOND_THE_PUBLISHED_VALUE);
     probes
 }
+
+/// How far past the published values a sweep drives, and it has to clear the largest value the
+/// traces present rather than the largest a rule was tuned for.
+///
+/// A published value is often deliberately low: `landing_peak_floor_bodyweights` is 0.5 because
+/// a truncated landing has to still be accepted, while the demonstration trace peaks at 4.42
+/// bodyweights after takeoff. At a reach of 8 the sweep topped out at 4.0, every value accepted
+/// the landing, and a parameter that decides the verdict at 5 read as inert.
+const REACH_BEYOND_THE_PUBLISHED_VALUE: f64 = 32.0;
 
 fn base_request() -> AnalysisRequest {
     AnalysisRequest {
@@ -219,7 +228,11 @@ fn every_parameter_a_control_offers_moves_a_number() {
         ),
     ];
 
-    for parameter in offered_parameters() {
+    let offered = offered_parameters();
+    let offered_count = offered.len();
+    let mut inert: Vec<String> = Vec::new();
+
+    for parameter in offered {
         // Moving a number on one trace is enough. Requiring it on every trace would demand
         // that a parameter matter even where the recording gives it nothing to decide.
         let moved_on = traces.iter().find(|(_, trial)| {
@@ -234,25 +247,36 @@ fn every_parameter_a_control_offers_moves_a_number() {
                 .len()
                 > 1
         });
-        assert!(
-            moved_on.is_some(),
-            "'{}' on {} is inert: {} values from {} to {} return the same numbers on all {} traces",
-            parameter.parameter,
-            parameter.method_id,
-            parameter.probes.len(),
-            parameter
+        if moved_on.is_none() {
+            let low = parameter
                 .probes
                 .iter()
                 .copied()
-                .fold(f64::INFINITY, f64::min),
-            parameter
+                .fold(f64::INFINITY, f64::min);
+            let high = parameter
                 .probes
                 .iter()
                 .copied()
-                .fold(f64::NEG_INFINITY, f64::max),
-            traces.len(),
-        );
+                .fold(f64::NEG_INFINITY, f64::max);
+            inert.push(format!(
+                "'{}' on {}: {} values from {low} to {high} return the same numbers",
+                parameter.parameter,
+                parameter.method_id,
+                parameter.probes.len(),
+            ));
+        }
     }
+
+    // Every inert parameter, not the first. A guard that stops at one makes the next run find
+    // the next, and hides how many traces the fixtures are short of.
+    assert!(
+        inert.is_empty(),
+        "{} of {} offered parameters are inert over {} traces:\n  {}",
+        inert.len(),
+        offered_count,
+        traces.len(),
+        inert.join("\n  ")
+    );
 }
 
 /// The mechanism the test above leans on. A name no rule reads has to be reported, because
