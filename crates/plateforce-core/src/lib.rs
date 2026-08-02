@@ -15,6 +15,7 @@ pub mod calibration;
 pub mod cutoff;
 pub mod gravity;
 pub mod method_ids;
+pub mod normalisation;
 pub mod onset;
 pub mod phases;
 pub mod provenance;
