@@ -1238,8 +1238,9 @@ surfacing = "surface_on_demand"
 sensitivity = "moderate on peak force, large on any rate that searches the window"
 rationale = """
 The percentage must be shown with the result, and the fact that the decision runs on a second
-smoother must be surfaced. The running-maximum update means a single high sample can extend the
-window a long way.
+smoother must be surfaced. The running maximum only ever rises and the stop compares against a
+fixed fraction of it, so a single high sample raises the level the trace has to fall below and
+closes the window earlier than the decay alone would, never later.
 """
 
 [[method]]

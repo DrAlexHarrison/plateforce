@@ -456,6 +456,17 @@ status = "accepted"
 confidence = "high"
 debate = "genuine"
 
+[[method.parameter]]
+name = "noise_dominated_from_hz"
+unit = "hertz"
+required = true
+notes = """
+Where the residual curve has become linear in noise, which is the segment the intercept is
+extrapolated from. Winter states the step and no source states the frequency, and the
+intercept moves with it, so it is asked for. A reported cutoff from this rule is only
+comparable with another one taken from the same segment.
+"""
+
 [[method.citation]]
 key = "winter2009"
 role = "proposes"
