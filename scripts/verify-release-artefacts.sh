@@ -101,6 +101,31 @@ check_versions() {
   echo "version $workspace in both manifests"
 }
 
+# The install documentation is the only place the routes are stated, so a command it names
+# and the binary does not have is a false instruction to the one population that cannot fall
+# back on a desktop artefact. Read off the document rather than listed here, so a route added
+# to it later is covered without this being edited.
+check_documented_commands() {
+  local binary="${1}/plateforce-x86_64-linux-static"
+  if [ ! -x "$binary" ]; then
+    echo "no static binary to ask, so the documented routes are unchecked" >&2
+    return 1
+  fi
+
+  local usage missing=()
+  usage="$("$binary" --help 2>&1)"
+  while read -r command; do
+    [ -z "$command" ] && continue
+    printf '%s' "$usage" | command grep -qw -- "$command" || missing+=("$command")
+  done < <(command grep -oE 'linux-static [a-z][a-z-]*' docs/install.md | awk '{print $2}' | sort -u)
+
+  if [ "${#missing[@]}" -gt 0 ]; then
+    echo "docs/install.md names commands this binary does not have: ${missing[*]}" >&2
+    return 1
+  fi
+  echo "every route docs/install.md names is one the binary answers"
+}
+
 check_declared_set() {
   local dist="$1"
   local version
@@ -146,6 +171,7 @@ case "${1:-}" in
     status=0
     check_declared_set "$1" || status=1
     check_versions || status=1
+    check_documented_commands "$1" || status=1
     exit "$status"
     ;;
 esac
