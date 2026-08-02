@@ -56,6 +56,18 @@ refusal_codes! {
     /// other code here: the remedy is a newer plateforce, not a different request, and
     /// there is nothing the caller could have asked for instead.
     SchemaUnsupported,
+    /// Values a comparison paired that did not come from the same repetition. The trace is
+    /// sound and the pairing is not, so a caller that reads this repairs the pairing rather
+    /// than the data.
+    ObservationsNotPaired,
+    /// Two figures computed under conventions whose difference the literature has never
+    /// characterised. Not a fault in the request or the data: the comparison itself has no
+    /// published meaning, and supplying a number would invent one.
+    ConventionsNotComparable,
+    /// Fewer observations than the rule requires, reported with the count it had and the
+    /// count it needs. Distinct from `TraceTooShort`, which is one recording being short
+    /// rather than a group being small.
+    NotEnoughObservations,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -71,14 +83,17 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         | RefusalCode::ColumnNotFound
         | RefusalCode::TrialIdentityUnparsed
         | RefusalCode::AmbiguousForceChannels
-        | RefusalCode::SchemaUnsupported => 65,
+        | RefusalCode::SchemaUnsupported
+        | RefusalCode::ObservationsNotPaired
+        | RefusalCode::NotEnoughObservations => 65,
         RefusalCode::MethodNotImplemented
         | RefusalCode::UnknownParameter
         | RefusalCode::ParameterNotFinite
         | RefusalCode::SentinelConventionUnknown
         | RefusalCode::DecisionNotMade
         | RefusalCode::RequiredParameterUnstated
-        | RefusalCode::PlateNotLevel => 64,
+        | RefusalCode::PlateNotLevel
+        | RefusalCode::ConventionsNotComparable => 64,
         RefusalCode::RegistryInvalid => 78,
     }
 }
@@ -103,6 +118,9 @@ impl RefusalCode {
             RefusalCode::AmbiguousForceChannels => "ambiguous_force_channels",
             RefusalCode::PlateNotLevel => "plate_not_level",
             RefusalCode::SchemaUnsupported => "schema_unsupported",
+            RefusalCode::ObservationsNotPaired => "observations_not_paired",
+            RefusalCode::ConventionsNotComparable => "conventions_not_comparable",
+            RefusalCode::NotEnoughObservations => "not_enough_observations",
         }
     }
 }
@@ -409,6 +427,52 @@ impl Refusal {
     }
 
     /// A parameter the registry marks required with no default, left unstated.
+    /// Values a comparison paired that did not come from the same repetition, named so a
+    /// caller can see which pairing to repair.
+    pub fn observations_not_paired(method_id: impl Into<String>, pairs: Vec<String>) -> Self {
+        Self::build(
+            RefusalCode::ObservationsNotPaired,
+            method_id,
+            None,
+            None,
+            BTreeMap::new(),
+            pairs,
+        )
+    }
+
+    /// Two conventions whose difference no published figure describes. Both are named,
+    /// because the pair is the fact rather than either one of them.
+    pub fn conventions_not_comparable(
+        method_id: impl Into<String>,
+        left: impl Into<String>,
+        right: impl Into<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::ConventionsNotComparable,
+            method_id,
+            None,
+            None,
+            BTreeMap::new(),
+            vec![left.into(), right.into()],
+        )
+    }
+
+    /// Fewer observations than a rule requires, carrying both counts as numbers so a caller
+    /// branches on them rather than reading them out of the sentence.
+    pub fn not_enough_observations(method_id: impl Into<String>, had: usize, needs: usize) -> Self {
+        Self::build(
+            RefusalCode::NotEnoughObservations,
+            method_id,
+            None,
+            None,
+            BTreeMap::from([
+                ("had".to_string(), had as f64),
+                ("needs".to_string(), needs as f64),
+            ]),
+            Vec::new(),
+        )
+    }
+
     pub fn required_parameter_unstated(
         method_id: impl Into<String>,
         parameter: impl Into<String>,
@@ -505,6 +569,19 @@ fn sentence(
             named("available_seconds")
         ),
         RefusalCode::TraceTooShort => "trace is empty".to_string(),
+        RefusalCode::ObservationsNotPaired => format!(
+            "{subject} compares values from different repetitions, and the values it paired are {available:?}"
+        ),
+        RefusalCode::ConventionsNotComparable => format!(
+            "no published figure describes how {} and {} differ, so their agreement has no meaning to report",
+            available.first().map(String::as_str).unwrap_or("one convention"),
+            available.get(1).map(String::as_str).unwrap_or("the other")
+        ),
+        RefusalCode::NotEnoughObservations => format!(
+            "{subject} needs {} observations and this group has {}",
+            named("needs"),
+            named("had")
+        ),
         RefusalCode::ParameterNotFinite => format!(
             "{} must be positive, got {}",
             parameter.unwrap_or("the parameter"),
@@ -580,6 +657,31 @@ mod tests {
                 "{code:?} is written one way and named another"
             );
         }
+    }
+
+    #[test]
+    fn an_agreement_that_cannot_be_reported_says_what_it_needed() {
+        let short = Refusal::not_enough_observations("agreement.limits_of_agreement", 2, 5);
+        assert_eq!(short.code, RefusalCode::NotEnoughObservations);
+        // Both counts are numbers a caller reads, not figures inside the sentence.
+        assert_eq!(short.detail["had"], 2.0);
+        assert_eq!(short.detail["needs"], 5.0);
+        assert!(short.message().contains('5') && short.message().contains('2'));
+
+        let conventions = Refusal::conventions_not_comparable(
+            "agreement.limits_of_agreement",
+            "jumpheight.takeoff.impulse_momentum",
+            "jumpheight.takeoff.flight_time",
+        );
+        assert_eq!(conventions.code, RefusalCode::ConventionsNotComparable);
+        assert_eq!(conventions.available.len(), 2);
+
+        let unpaired = Refusal::observations_not_paired(
+            "agreement.limits_of_agreement",
+            vec!["trial 1".to_string(), "trial 4".to_string()],
+        );
+        assert_eq!(unpaired.code, RefusalCode::ObservationsNotPaired);
+        assert_eq!(unpaired.available.len(), 2);
     }
 
     #[test]
