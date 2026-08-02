@@ -109,6 +109,50 @@ def unresolved_modules(ref: str) -> list[str]:
     return missing
 
 
+def declared_and_root_paths(ref: str) -> tuple[set[str], set[str]]:
+    """Every path some declaration names, and every path cargo reaches without one."""
+    paths = committed_paths(ref)
+    named: set[str] = set()
+    roots: set[str] = set()
+    for path in sorted(p for p in paths if p.endswith(".rs")):
+        source = PurePosixPath(path)
+        if source.name in {"lib.rs", "main.rs", "build.rs"}:
+            roots.add(path)
+        elif source.parent.name in DIRECTORIES_OF_CRATE_ROOTS or source.parent.name == "bin":
+            roots.add(path)
+        directory = where_children_live(source)
+        readable = without_macro_bodies(COMMENTS.sub("", contents(ref, path)))
+        for declaration in DECLARES_A_MODULE.finditer(readable):
+            given = declaration.group("path")
+            if given:
+                named.add(str(directory / given))
+            else:
+                child = declaration.group("name")
+                named.add(str(directory / f"{child}.rs"))
+                named.add(str(directory / child / "mod.rs"))
+    return named, roots
+
+
+def unreachable_modules(ref: str) -> list[str]:
+    """Files that compile for nobody, because no crate root reaches them.
+
+    The mirror of `unresolved_modules`, and the quieter direction of the same fault. A
+    declaration without its file fails a clean build loudly with E0583. A file without its
+    declaration fails nothing at all: it is never compiled, never linted and never tested,
+    and it reads as shipped code to anyone who opens it. `preset.rs` sat in
+    `plateforce-registry` that way, and declaring it cost five compile errors that no
+    reviewer had seen.
+    """
+    paths = committed_paths(ref)
+    named, roots = declared_and_root_paths(ref)
+    orphans = []
+    for path in sorted(p for p in paths if p.endswith(".rs")):
+        if path in roots or path in named:
+            continue
+        orphans.append(f"{path} is committed and no crate root reaches it, so it is never compiled")
+    return orphans
+
+
 def compiles(ref: str) -> bool:
     with tempfile.TemporaryDirectory() as scratch:
         archive = subprocess.Popen(["git", "archive", ref], stdout=subprocess.PIPE)
@@ -135,6 +179,16 @@ def main() -> int:
         return 1
 
     print(f"{ref}: every declared module is committed")
+
+    orphans = unreachable_modules(ref)
+    if orphans:
+        print(f"\n{ref} carries source no crate root reaches:", file=sys.stderr)
+        for line in orphans:
+            print(f"  {line}", file=sys.stderr)
+        print("\ndeclare it beside its module, or delete it until it is wanted", file=sys.stderr)
+        return 1
+
+    print(f"{ref}: every committed module is reachable")
 
     if also_compile and not compiles(ref):
         print(f"{ref} does not compile from a clean checkout", file=sys.stderr)
