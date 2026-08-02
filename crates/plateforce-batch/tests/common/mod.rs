@@ -1,5 +1,8 @@
 //! What every batch test needs: a registry, a bound request, and the committed fixtures.
 
+// Each test binary links this and uses part of it.
+#![allow(dead_code)]
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 

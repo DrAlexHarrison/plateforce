@@ -42,21 +42,11 @@ impl BatchResult {
         })?;
         let record = serde_json::to_string(&self.run).unwrap_or_default();
 
-        let mut written = Vec::new();
-        written.push(self.write_relation(directory, "results", self.results_batch()?, &record)?);
-        written.push(self.write_relation(
-            directory,
-            "provenance",
-            self.provenance_batch()?,
-            &record,
-        )?);
-        written.push(self.write_relation(
-            directory,
-            "refusals",
-            self.refusals_batch()?,
-            &record,
-        )?);
-        Ok(written)
+        Ok(vec![
+            self.write_relation(directory, "results", self.results_batch()?, &record)?,
+            self.write_relation(directory, "provenance", self.provenance_batch()?, &record)?,
+            self.write_relation(directory, "refusals", self.refusals_batch()?, &record)?,
+        ])
     }
 
     fn write_relation(

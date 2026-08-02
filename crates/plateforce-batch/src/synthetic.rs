@@ -53,9 +53,7 @@ pub fn trace(
             * system_weight_newtons;
         force.push(system_weight_newtons + rise);
     }
-    for _ in 0..flight {
-        force.push(0.0);
-    }
+    force.extend(std::iter::repeat_n(0.0, flight));
     for index in 0..landing {
         let phase = index as f64 / landing as f64;
         let spike = (1.0 - phase) * 2.4 * system_weight_newtons;
@@ -124,7 +122,7 @@ mod tests {
     #[test]
     fn a_generated_trace_stands_still_then_leaves_the_plate() {
         let force = trace(600.0, 1200.0, 0.0, 3);
-        assert!(force.iter().any(|value| *value == 0.0), "it takes off");
+        assert!(force.contains(&0.0), "it takes off");
         assert!(
             force[..1800]
                 .iter()

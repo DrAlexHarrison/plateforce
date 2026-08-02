@@ -6,24 +6,30 @@
 //! declines is named in `refusals` and stays in the denominator, so a run over fifty files
 //! never reports forty-seven answers and says nothing about the other three.
 
+pub mod aggregate;
 pub mod decisions;
 pub mod engine;
 pub mod exclusions;
 pub mod fingerprint;
 pub mod identity;
 pub mod relations;
+pub mod render;
 pub mod synthetic;
 pub mod write_csv;
 pub mod write_json;
 #[cfg(feature = "parquet")]
 pub mod write_parquet;
 
+pub use aggregate::{
+    aggregate, with_aggregates, AggregationRefusal, AggregationRequest, AggregationRule, GroupKind,
+};
 pub use decisions::{unresolved, UnresolvedDecision};
 pub use engine::{analyse, BatchRequest, BatchResult, Coverage, RunRefusal};
 pub use exclusions::{GateFinding, GateRegistry, GateTally, PopulationExclusion, ValidityGate};
 pub use identity::{
     Session, SourceFormat, SubjectKey, TrialEntry, TrialIdentity, TrialSet, TrialSource, WalkError,
 };
+pub use render::{Rendered, Rendering};
 pub use relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
 pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
 pub use write_json::envelope;
