@@ -1,0 +1,146 @@
+name: desktop, Windows
+
+# Two routes and both cost nothing. The direct download is the primary one: the Store
+# excludes Windows LTSC, which has no Store by design and is what clinical acquisition rigs
+# run, plus Enterprise and Education fleets with the Store policy set, and the Store lags
+# every direct release by a certification cycle, permanently.
+#
+# No paid signing. Microsoft states that an Extended Validation certificate no longer buys
+# instant SmartScreen reputation, and that reputation takes several weeks and hundreds of
+# clean installs from a wide audience, which a niche research tool will not reach. A
+# certificate would leave the warning in place and change only the publisher name inside it.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TAURI_CLI_VERSION: "2.11.4"
+
+jobs:
+  installer:
+    name: the direct download
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tauri.exe
+            ~/.cargo/bin/wasm-bindgen.exe
+            target
+            src-tauri/target
+          key: desktop-windows-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+
+      - name: Install the Tauri CLI
+        shell: bash
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/cargo-tauri.exe" ]; then
+            cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
+          fi
+
+      # installMode currentUser puts it in %LOCALAPPDATA% and needs no administrator, which
+      # is what a researcher on a managed university laptop can actually do. MSI is not
+      # built at all: it has no per-user install mode.
+      - name: Build the installer
+        run: cargo tauri build --bundles nsis
+
+      - name: The module inside the bundle is the one this tree builds
+        shell: bash
+        run: bash scripts/verify-release-artefacts.sh --bundle-wasm-only
+
+      - name: Gather the artefacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: dist/*-setup.exe
+          if-no-files-found: error
+
+  store-package:
+    name: the Store package, submission-ready
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tauri.exe
+            ~/.cargo/bin/wasm-bindgen.exe
+            target
+            src-tauri/target
+          key: desktop-windows-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+
+      - name: Install the Tauri CLI
+        shell: bash
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/cargo-tauri.exe" ]; then
+            cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
+          fi
+
+      # The Store overlay builds no installer, since makeappx packages the program itself,
+      # and skips the WebView2 bootstrapper, which a package may not carry.
+      - name: Build the program the package wraps
+        run: cargo tauri build --config src-tauri/tauri.store.conf.json --no-bundle
+
+      - name: Package it with the Windows SDK's own tool
+        if: env.STORE_IDENTITY_NAME != ''
+        env:
+          STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
+          STORE_PUBLISHER: ${{ vars.STORE_PUBLISHER }}
+          STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.STORE_PUBLISHER_DISPLAY_NAME }}
+        shell: pwsh
+        run: |
+          ./scripts/build-msix.ps1 `
+            -IdentityName $env:STORE_IDENTITY_NAME `
+            -Publisher $env:STORE_PUBLISHER `
+            -PublisherDisplayName $env:STORE_PUBLISHER_DISPLAY_NAME
+
+      # Stops at submission-ready. Registration, the identity verification and the written
+      # justification for the runFullTrust restricted capability are done once, by hand, by
+      # the person whose name the listing carries.
+      - name: What is left to do by hand
+        if: env.STORE_IDENTITY_NAME != ''
+        shell: bash
+        run: |
+          {
+            echo "### The Store package is built and unsigned"
+            echo ""
+            echo "It is unsigned on purpose: the Store re-signs it with a Microsoft"
+            echo "certificate after certification, and signing it first fails validation."
+            echo ""
+            echo "Three steps remain, each done once:"
+            echo ""
+            echo "1. Register the developer account, free for both account types."
+            echo "2. Reserve the package identity and put it in the repository variables."
+            echo "3. Write the justification for the runFullTrust restricted capability"
+            echo "   in Submission Options on the first submission."
+            echo ""
+            echo "Certification then takes one to five business days."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: env.STORE_IDENTITY_NAME != ''
+        with:
+          name: store-package
+          path: dist/*.msix
+          if-no-files-found: error

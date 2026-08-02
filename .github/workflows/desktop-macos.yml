@@ -1,0 +1,150 @@
+name: desktop, macOS
+
+# One universal DMG, signed with a Developer ID certificate and notarised, so a reader
+# drags plateforce to Applications and sees no warning of any kind.
+#
+# workflow_call and workflow_dispatch only. This job needs secrets a fork cannot have, and
+# its payload check is the same digest comparison the Linux job already runs on every pull
+# request.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TAURI_CLI_VERSION: "2.11.4"
+  # Roughly twenty minutes of Apple's service being unavailable. 2026 has had multi-day
+  # notarisation incidents, and a release should be delayed by one rather than lose the
+  # signed binary it spent twenty minutes producing.
+  NOTARISATION_ATTEMPTS: "5"
+
+jobs:
+  dmg:
+    name: universal DMG
+    # macos-14 is arm64. Both architectures are built here and lipo'd into one artefact by
+    # Tauri, which avoids macos-15-intel, the last x86_64 image Actions offers and the one
+    # retiring in August 2027. The documented universal-build failures are on x86 hosts and
+    # on OpenSSL cross-compilation, and this tree links no OpenSSL.
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain and both architectures
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tauri
+            ~/.cargo/bin/wasm-bindgen
+            target
+            src-tauri/target
+          key: desktop-macos-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+
+      - name: Install the Tauri CLI
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/cargo-tauri" ]; then
+            cargo install tauri-cli --locked --version "$TAURI_CLI_VERSION"
+          fi
+
+      # A contributor's pull request is not given the signing secrets, and failing them at
+      # the signing step would report a problem that has nothing to do with their change.
+      # Which path ran is logged, so a release that quietly went out unsigned is visible.
+      - name: Decide whether this run can sign
+        id: signing
+        env:
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -n "$IDENTITY" ]; then
+            echo "able=yes" >> "$GITHUB_OUTPUT"
+            echo "signing: Developer ID, notarisation to follow"
+          else
+            echo "able=no" >> "$GITHUB_OUTPUT"
+            echo "signing: ad-hoc, notarisation skipped"
+          fi
+
+      - name: Write the App Store Connect key
+        if: steps.signing.outputs.able == 'yes'
+        env:
+          KEY: ${{ secrets.APPLE_API_KEY_CONTENTS }}
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+        run: |
+          printf '%s' "$KEY" > "$APPLE_API_KEY_PATH"
+          chmod 600 "$APPLE_API_KEY_PATH"
+
+      # Tauri notarises by itself when the App Store Connect variables are in its
+      # environment, and it does not retry. They are deliberately withheld here so signing
+      # and notarisation are separate steps and the second one can be retried against the
+      # binary the first produced rather than against a rebuilt one.
+      - name: Build and sign
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.signing.outputs.able == 'yes' && secrets.APPLE_SIGNING_IDENTITY || '-' }}
+        run: cargo tauri build --target universal-apple-darwin --bundles app,dmg
+
+      - name: Both architectures are in the one binary
+        run: |
+          application="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos \
+            -maxdepth 1 -name '*.app' | head -1)"
+          lipo -info "$application/Contents/MacOS/plateforce-desktop"
+
+      - name: The module inside the bundle is the one this tree builds
+        run: bash scripts/verify-release-artefacts.sh --bundle-wasm-only
+
+      - name: Notarise, and staple the ticket into the file
+        if: steps.signing.outputs.able == 'yes'
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+        run: |
+          image="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg \
+            -name '*.dmg' | head -1)"
+          attempt=1
+          until xcrun notarytool submit "$image" \
+                  --key "$APPLE_API_KEY_PATH" \
+                  --key-id "$APPLE_API_KEY" \
+                  --issuer "$APPLE_API_ISSUER" \
+                  --wait --timeout 30m 2>&1 | tee submission.log; do
+            if [ "$attempt" -ge "$NOTARISATION_ATTEMPTS" ]; then
+              echo "notarisation did not complete in $attempt attempts" >&2
+              grep -oE 'id: [0-9a-f-]+' submission.log | head -1 >&2 || true
+              echo "the signed artefact is uploaded below and can be notarised and stapled" >&2
+              echo "by hand against this same binary rather than a rebuilt one" >&2
+              exit 1
+            fi
+            echo "notarisation attempt $attempt did not complete, waiting"
+            sleep $((attempt * 60))
+            attempt=$((attempt + 1))
+          done
+          xcrun stapler staple "$image"
+
+      - name: Ask the three questions Gatekeeper asks
+        if: steps.signing.outputs.able == 'yes'
+        run: |
+          image="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg \
+            -name '*.dmg' | head -1)"
+          bash scripts/verify-macos-artefact.sh "$image"
+
+      # Runs whether the notarisation succeeded or ran out of attempts, so the signed
+      # binary survives an Apple outage and so the key does not outlive the job.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-macos
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+      - name: Remove the App Store Connect key
+        if: always()
+        env:
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+        run: rm -f "$APPLE_API_KEY_PATH"

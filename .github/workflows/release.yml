@@ -1,0 +1,94 @@
+name: release
+
+# Cuts a draft release carrying every artefact, and refuses one that is missing a platform.
+# Draft rather than published: a person presses the button.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    uses: ./.github/workflows/desktop-linux.yml
+    secrets: inherit
+  macos:
+    uses: ./.github/workflows/desktop-macos.yml
+    secrets: inherit
+  windows:
+    uses: ./.github/workflows/desktop-windows.yml
+    secrets: inherit
+
+  gather:
+    name: every artefact the release promises
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: gathered
+
+      - name: Put them where the check looks
+        run: |
+          mkdir -p dist
+          find gathered -type f \
+            \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.dmg' \
+               -o -name '*-setup.exe' -o -name 'plateforce-*-linux-static' \) \
+            -exec cp {} dist/ \;
+          ls -la dist/
+
+      # Counted against a declared list rather than inspected one by one, and the two
+      # version homes are asserted to agree. A build leg that dropped out leaves the
+      # artefacts that did arrive perfectly valid, so a check reading only what is present
+      # reports a release missing a platform as sound.
+      - name: The declared set arrived, and the versions agree
+        run: bash scripts/verify-release-artefacts.sh dist
+
+      - name: Which registry produced these numbers
+        id: registry
+        run: |
+          # Taken from the software rather than typed. A digest in somebody's methods
+          # section two years from now resolves to this tag through the release body, and a
+          # second implementation of the digest is the failure this project publishes about.
+          {
+            echo "notes<<END_OF_NOTES"
+            echo "Installation routes are in [docs/install.md](docs/install.md)."
+            echo ""
+            echo '```'
+            cargo run -q -p plateforce-cli -- registry validate
+            echo '```'
+            echo "END_OF_NOTES"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-set
+          path: dist/*
+          if-no-files-found: error
+
+    outputs:
+      notes: ${{ steps.registry.outputs.notes }}
+
+  draft:
+    name: draft the release
+    needs: gather
+    runs-on: ubuntu-24.04
+    # The one job that can write, and it checks nothing out and runs no repository code.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-set
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: dist/*
+          body: ${{ needs.gather.outputs.notes }}

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Hand-written and committed, because makeappx.exe reads it and a reviewer can read it too.
+  Tauri produces MSI and NSIS installers and no MSIX, and its own Store documentation routes
+  to the EXE listing type, which Microsoft does not re-sign and which therefore needs a
+  purchased certificate. Packaging the MSIX here with the Windows SDK's own tool is what
+  makes the Store route cost nothing.
+
+  Identity Name, Publisher and Version are written by scripts/build-msix.ps1 from the values
+  Partner Center reserved and from src-tauri/Cargo.toml. The placeholders below are refused
+  by that script rather than shipped.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="STORE_IDENTITY_NAME"
+    Publisher="STORE_PUBLISHER"
+    Version="STORE_VERSION"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>plateforce</DisplayName>
+    <PublisherDisplayName>STORE_PUBLISHER_DISPLAY_NAME</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Force-plate kinetics, with the method attached to every number.</Description>
+  </Properties>
+
+  <Dependencies>
+    <!-- 17763 is the oldest Windows 10 servicing branch still supported, and it is what a
+         clinical acquisition rig on a long-term channel is most likely to be running.
+         WebView2 is deliberately not declared as a package dependency: the Evergreen
+         runtime ships with Windows 11 and reached Windows 10 through Windows Update, and
+         declaring it has documented field failures that leave a reader with an install
+         error naming a package they cannot find. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="plateforce" Executable="plateforce-desktop.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="plateforce"
+        Description="Reads a force trace, computes the variables the field reports, and records which published method produced each one."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- What every packaged desktop application declares. It is a restricted capability, so
+         the first submission carries a written justification in Submission Options. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
