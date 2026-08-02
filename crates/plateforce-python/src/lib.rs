@@ -49,6 +49,16 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
         analysis::jump_height_from_flight_time,
         module
     )?)?;
+    module.add_function(wrap_pyfunction!(
+        analysis::takeoff_by_landing_shape,
+        module
+    )?)?;
+    module.add_function(wrap_pyfunction!(analysis::classify_low_force_runs, module)?)?;
+    module.add_function(wrap_pyfunction!(analysis::rise_after_run, module)?)?;
+    module.add_function(wrap_pyfunction!(
+        analysis::rise_looks_like_a_landing,
+        module
+    )?)?;
     module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
 
     errors::register(module)

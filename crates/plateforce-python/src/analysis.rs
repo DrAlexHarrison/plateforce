@@ -646,3 +646,134 @@ pub fn jump_height_from_flight_time(
         Vec::new(),
     )
 }
+
+/// Takeoff by the shape of the rise out of each low-force run, and how many landings the
+/// recording holds.
+///
+/// The rule that tells a landing apart from the reweighting into propulsion. Exposed here
+/// because the research harness that ruled and measured it has to call this implementation
+/// rather than keeping its own: two implementations of one quantity is the finding this
+/// project exists to publish.
+///
+/// Returns the sample takeoff was placed on, or `None` when the recording closes no run with
+/// a landing, and the number of landings found so a caller can say when there was more than
+/// one rather than silently reporting the first.
+#[pyfunction]
+#[pyo3(signature = (
+    vertical_force_newtons,
+    system_weight_newtons,
+    threshold_newtons,
+    sample_rate_hz,
+))]
+pub fn takeoff_by_landing_shape(
+    vertical_force_newtons: Vec<f64>,
+    system_weight_newtons: f64,
+    threshold_newtons: f64,
+    sample_rate_hz: f64,
+) -> (Option<usize>, usize) {
+    plateforce_core::takeoff::landing_shape::takeoff_by_landing_shape(
+        &vertical_force_newtons,
+        system_weight_newtons,
+        threshold_newtons,
+        sample_rate_hz,
+        &plateforce_core::takeoff::landing_shape::LandingShapeSpec::default(),
+    )
+}
+
+/// Every low-force run in a trace, with the shape of the rise out of it and the verdict that
+/// follows. The diagnostic view behind `takeoff_by_landing_shape`, exposed so the research
+/// harness can report on the rule without reimplementing it.
+#[pyfunction]
+#[pyo3(signature = (
+    vertical_force_newtons,
+    system_weight_newtons,
+    threshold_newtons,
+    sample_rate_hz,
+))]
+pub fn classify_low_force_runs(
+    python: Python<'_>,
+    vertical_force_newtons: Vec<f64>,
+    system_weight_newtons: f64,
+    threshold_newtons: f64,
+    sample_rate_hz: f64,
+) -> PyResult<Vec<Py<PyAny>>> {
+    use plateforce_core::takeoff::landing_shape::{classify_runs, LandingShapeSpec};
+    classify_runs(
+        &vertical_force_newtons,
+        system_weight_newtons,
+        threshold_newtons,
+        sample_rate_hz,
+        &LandingShapeSpec::default(),
+    )
+    .into_iter()
+    .map(|run| {
+        let entry = pyo3::types::PyDict::new(python);
+        entry.set_item("start_sample", run.start_sample)?;
+        entry.set_item("end_sample", run.end_sample)?;
+        entry.set_item("duration_seconds", run.duration_seconds)?;
+        entry.set_item("ends_the_recording", run.ends_the_recording)?;
+        entry.set_item("is_flight", run.is_flight)?;
+        entry.set_item(
+            "shape",
+            run.shape
+                .map(|shape| shape_as_dict(python, shape))
+                .transpose()?,
+        )?;
+        Ok(entry.into_any().unbind())
+    })
+    .collect()
+}
+
+fn shape_as_dict(
+    python: Python<'_>,
+    shape: plateforce_core::takeoff::landing_shape::RiseShape,
+) -> PyResult<Py<PyAny>> {
+    let entry = pyo3::types::PyDict::new(python);
+    entry.set_item("rise_fullness", shape.rise_fullness)?;
+    entry.set_item(
+        "peak_rise_rate_bodyweights_per_second",
+        shape.peak_rise_rate_bodyweights_per_second,
+    )?;
+    entry.set_item("peak_bodyweights", shape.peak_bodyweights)?;
+    entry.set_item("rise_seconds", shape.rise_seconds)?;
+    entry.set_item("peak_sample", shape.peak_sample)?;
+    Ok(entry.into_any().unbind())
+}
+
+/// The shape numbers for the rise out of one run, or nothing when there is no rise to read.
+#[pyfunction]
+#[pyo3(signature = (
+    vertical_force_newtons,
+    run_end_sample,
+    system_weight_newtons,
+    sample_rate_hz,
+))]
+pub fn rise_after_run(
+    python: Python<'_>,
+    vertical_force_newtons: Vec<f64>,
+    run_end_sample: usize,
+    system_weight_newtons: f64,
+    sample_rate_hz: f64,
+) -> PyResult<Option<Py<PyAny>>> {
+    use plateforce_core::takeoff::landing_shape::{rise_after, LandingShapeSpec};
+    rise_after(
+        &vertical_force_newtons,
+        run_end_sample,
+        system_weight_newtons,
+        sample_rate_hz,
+        &LandingShapeSpec::default(),
+    )
+    .map(|shape| shape_as_dict(python, shape))
+    .transpose()
+}
+
+/// Whether a rise read by `rise_after_run` is a collision rather than a muscular push.
+#[pyfunction]
+pub fn rise_looks_like_a_landing(
+    peak_rise_rate_bodyweights_per_second: f64,
+    peak_bodyweights: f64,
+) -> bool {
+    let spec = plateforce_core::takeoff::landing_shape::LandingShapeSpec::default();
+    peak_rise_rate_bodyweights_per_second >= spec.landing_rise_rate_floor_bodyweights_per_second
+        && peak_bodyweights >= spec.landing_peak_floor_bodyweights
+}
