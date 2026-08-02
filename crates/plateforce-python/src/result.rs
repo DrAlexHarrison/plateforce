@@ -36,7 +36,7 @@ impl Provenance {
     #[getter]
     fn bound_parameters<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let bound = PyDict::new(python);
-        for (name, value) in &self.chain.provenance.bound_parameters {
+        for (name, value) in &self.chain.provenance.bound_parameters() {
             bound.set_item(name, value)?;
         }
         Ok(bound)
@@ -120,7 +120,7 @@ impl Provenance {
         format!(
             "Provenance(method_id='{}', bound_parameters={}, registry_version={}, registry_digest={}, acquisition_complete={})",
             self.chain.provenance.method_id,
-            format_parameters(&self.chain.provenance.bound_parameters),
+            format_parameters(&self.chain.provenance.bound_parameters()),
             optional(self.chain.provenance.registry_version.as_deref()),
             optional(self.chain.provenance.registry_digest.as_deref()),
             if self.chain.provenance.acquisition_complete {

@@ -52,7 +52,20 @@ pub use gravity::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Provenance {
     pub method_id: String,
-    pub bound_parameters: Vec<(String, f64)>,
+    /// Where the method itself came from: chosen by the caller, or accepted from the
+    /// registry's recommendation. A bulk acceptance and a considered pick used to produce
+    /// byte-identical records.
+    pub method_source: crate::provenance::ParameterSource,
+    /// Every numeric value the rule read, each carrying where it came from. A value the
+    /// caller typed and one the interface pre-filled move the number identically, so the
+    /// record has to keep them apart.
+    pub parameters: Vec<crate::provenance::ParameterRecord>,
+    /// Choices between named alternatives, which move the number as far as the numbers do.
+    pub choices: Vec<crate::provenance::ChoiceRecord>,
+    /// The provenance of each result this one was computed from. Jump height moves with the
+    /// onset rule and the weighing epoch, so a record naming only the last step understates
+    /// what produced it.
+    pub depends_on: Vec<Provenance>,
     /// The revision a caller pinned, and None when they pinned none.
     pub registry_version: Option<String>,
     /// Digest of the registry files that were read, measured rather than declared, so it
@@ -61,6 +74,58 @@ pub struct Provenance {
     /// False when the acquisition block could not be filled, in which case this result
     /// must never be declared to match another lab's.
     pub acquisition_complete: bool,
+    /// Names the request carried that this rule does not read, reported rather than dropped.
+    pub not_read: Vec<String>,
+    /// Set when a marker was dragged. The strongest provenance fact a record can carry, and
+    /// an export that lost it would be exportable and wrong.
+    pub manual_override: bool,
+    /// False when no registry row carries this id.
+    pub registry_entry: bool,
+    /// The entry this rule composes, when it is a composition rather than an entry.
+    pub composed_from: Option<String>,
+}
+
+impl Provenance {
+    /// A step with nothing bound to it, for a caller filling the fields it has.
+    pub fn of(method_id: impl Into<String>) -> Self {
+        Self {
+            method_id: method_id.into(),
+            method_source: crate::provenance::ParameterSource::Stated,
+            parameters: Vec::new(),
+            choices: Vec::new(),
+            depends_on: Vec::new(),
+            registry_version: None,
+            registry_digest: None,
+            acquisition_complete: false,
+            not_read: Vec::new(),
+            manual_override: false,
+            registry_entry: true,
+            composed_from: None,
+        }
+    }
+
+    /// The values this rule read, as the pairs the older shape carried. Reading them back
+    /// out drops the source, which is why it is a named call and not the field itself.
+    pub fn bound_parameters(&self) -> Vec<(String, f64)> {
+        self.parameters
+            .iter()
+            .map(|record| (record.name.clone(), record.value))
+            .collect()
+    }
+
+    /// This step and every one upstream of it, depth first.
+    pub fn flattened(&self) -> Vec<&Provenance> {
+        let mut collected = Vec::new();
+        self.collect_into(&mut collected);
+        collected
+    }
+
+    fn collect_into<'a>(&'a self, into: &mut Vec<&'a Provenance>) {
+        into.push(self);
+        for input in &self.depends_on {
+            input.collect_into(into);
+        }
+    }
 }
 
 /// A value and the choices that produced it. Nothing user-facing returns a bare f64.
