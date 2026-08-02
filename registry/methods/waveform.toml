@@ -164,6 +164,12 @@ default_source = "richter2014"
 required = true
 notes = "The retention rule and the rotation are both choices that change which phases are named, and the paper reports sensitivity to neither."
 
+[[method.parameter]]
+name = "phase_loading_threshold"
+unit = "fraction"
+required = true
+notes = "Where a phase ends: the share of its own component's peak loading below which the curve has left that phase. It sets every reported phase width, and no value for it is obtainable from the two of six pages of the source held here. Reading the source's methods section would settle it."
+
 [[method.citation]]
 key = "richter2014"
 role = "proposes"

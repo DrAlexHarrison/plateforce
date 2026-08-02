@@ -27,6 +27,10 @@ pub enum WaveformError {
     VarianceShareOutsideRange { value: f64 },
     #[error("the decomposition did not converge in {sweeps} sweeps")]
     DecompositionDidNotConverge { sweeps: usize },
+    #[error("phase_loading_threshold is {value} and a share of a component's peak loading lies in (0, 1]")]
+    LoadingThresholdOutsideRange { value: f64 },
+    #[error("the b-spline expansion this rule normalises with: {0}")]
+    BasisExpansion(#[from] crate::bspline::BSplineError),
 }
 
 /// Eigenvalues descending, each with its eigenvector.
@@ -57,10 +61,7 @@ impl Eigendecomposition {
     ///
     /// At least one, so a rule that asks for a share smaller than the first component still
     /// gets the component it would have reported.
-    pub fn components_for_variance_share(
-        &self,
-        retained_pct: f64,
-    ) -> Result<usize, WaveformError> {
+    pub fn components_for_variance_share(&self, retained_pct: f64) -> Result<usize, WaveformError> {
         if !(retained_pct > 0.0 && retained_pct <= 100.0) {
             return Err(WaveformError::VarianceShareOutsideRange {
                 value: retained_pct,
@@ -96,11 +97,7 @@ pub fn symmetric_eigendecomposition(
     }
     let mut working: Vec<Vec<f64>> = matrix.to_vec();
     let mut rotations: Vec<Vec<f64>> = (0..width)
-        .map(|row| {
-            (0..width)
-                .map(|column| f64::from(row == column))
-                .collect()
-        })
+        .map(|row| (0..width).map(|column| f64::from(row == column)).collect())
         .collect();
 
     let scale: f64 = matrix
@@ -180,11 +177,7 @@ pub fn symmetric_eigendecomposition(
 
 fn identity_rows(width: usize) -> Vec<Vec<f64>> {
     (0..width)
-        .map(|row| {
-            (0..width)
-                .map(|column| f64::from(row == column))
-                .collect()
-        })
+        .map(|row| (0..width).map(|column| f64::from(row == column)).collect())
         .collect()
 }
 
@@ -414,6 +407,294 @@ pub fn varimax(
     Ok(rotated)
 }
 
+/// Each curve expanded in a b-spline basis, with what the expansion cost.
+///
+/// The basis size and the penalty are settings that move the answer, so they are fields on
+/// the result rather than arguments a caller can forget it supplied. A component read off a
+/// 20-function basis is not the same component as one read off a 60-function basis.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BasisExpansion {
+    /// `coefficients[curve][function]`.
+    pub coefficients: Vec<Vec<f64>>,
+    /// Each curve as the basis reconstructs it, on the point grid it came in on.
+    pub smoothed: Vec<Vec<f64>>,
+    pub basis_size: usize,
+    pub basis_degree: usize,
+    pub penalty_weight: f64,
+    /// How many free parameters the fit spent per curve, which is the number that means
+    /// something to a reader where the penalty weight does not.
+    pub effective_degrees_of_freedom: Vec<f64>,
+}
+
+/// Expand a curve set in a common b-spline basis.
+///
+/// This is the normalisation the characterising-phase rule names in place of resampling
+/// onto a percentage grid, and the one the functional rule expands into before it
+/// decomposes anything.
+pub fn expand_in_basis(
+    curves: &[Vec<f64>],
+    basis_size: usize,
+    basis_degree: usize,
+    penalty_weight: f64,
+) -> Result<BasisExpansion, WaveformError> {
+    checked_curve_set(curves)?;
+    let basis = crate::bspline::Basis::clamped_uniform(basis_size, basis_degree)?;
+    let mut coefficients = Vec::with_capacity(curves.len());
+    let mut smoothed = Vec::with_capacity(curves.len());
+    let mut effective_degrees_of_freedom = Vec::with_capacity(curves.len());
+    for curve in curves {
+        let fit = basis.fit_penalised(curve, penalty_weight)?;
+        coefficients.push(fit.coefficients);
+        smoothed.push(fit.fitted);
+        effective_degrees_of_freedom.push(fit.effective_degrees_of_freedom);
+    }
+    Ok(BasisExpansion {
+        coefficients,
+        smoothed,
+        basis_size,
+        basis_degree,
+        penalty_weight,
+        effective_degrees_of_freedom,
+    })
+}
+
+/// A component-based reduction of a curve set, with what produced it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComponentModel {
+    /// `components[component][element]`, in whatever space the rule decomposed.
+    pub components: Vec<Vec<f64>>,
+    /// The share of total variance each retained component carries, after any rotation.
+    pub variance_shares: Vec<f64>,
+    /// `scores[curve][component]`, the projection of each centred curve onto each
+    /// component.
+    pub scores: Vec<Vec<f64>>,
+    pub mean: Vec<f64>,
+    pub expansion: BasisExpansion,
+}
+
+fn centred_rows(rows: &[Vec<f64>], mean: &[f64]) -> Vec<Vec<f64>> {
+    rows.iter()
+        .map(|row| {
+            row.iter()
+                .zip(mean)
+                .map(|(value, centre)| value - centre)
+                .collect()
+        })
+        .collect()
+}
+
+fn project(centred: &[Vec<f64>], components: &[Vec<f64>]) -> Vec<Vec<f64>> {
+    centred
+        .iter()
+        .map(|row| {
+            components
+                .iter()
+                .map(|component| {
+                    let terms: Vec<f64> = row
+                        .iter()
+                        .zip(component)
+                        .map(|(value, loading)| value * loading)
+                        .collect();
+                    compensated_sum(&terms)
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// The share of variance each component carries, taken from the loadings themselves.
+///
+/// After a rotation the eigenvalues no longer describe the components, because a rotation
+/// redistributes variance between them while preserving the total. Summing squared loadings
+/// gives the share that survives the rotation.
+fn shares_from_loadings(components: &[Vec<f64>], total_variance: f64) -> Vec<f64> {
+    if total_variance <= 0.0 || !total_variance.is_finite() {
+        return vec![0.0; components.len()];
+    }
+    components
+        .iter()
+        .map(|component| {
+            let squares: Vec<f64> = component.iter().map(|value| value * value).collect();
+            compensated_sum(&squares) / total_variance
+        })
+        .collect()
+}
+
+/// Functional principal components of a curve set, decomposed in the basis rather than on
+/// the sample grid.
+///
+/// The decomposition runs on the coefficient matrix, which is what makes this a functional
+/// method rather than a point-wise one: two curves that differ only by sampling density
+/// give the same coefficients and therefore the same scores.
+pub fn functional_principal_components(
+    curves: &[Vec<f64>],
+    basis_size: usize,
+    basis_degree: usize,
+    penalty_weight: f64,
+    variance_retained_pct: f64,
+) -> Result<ComponentModel, WaveformError> {
+    let expansion = expand_in_basis(curves, basis_size, basis_degree, penalty_weight)?;
+    let mean = mean_curve(&expansion.coefficients)?;
+    let covariance = covariance_matrix(&expansion.coefficients)?;
+    let decomposition = symmetric_eigendecomposition(&covariance)?;
+    let retained = decomposition.components_for_variance_share(variance_retained_pct)?;
+    let components: Vec<Vec<f64>> = decomposition
+        .eigenvectors
+        .into_iter()
+        .take(retained)
+        .collect();
+    let total: f64 = compensated_sum(&decomposition.eigenvalues);
+    let centred = centred_rows(&expansion.coefficients, &mean);
+    Ok(ComponentModel {
+        variance_shares: decomposition
+            .eigenvalues
+            .iter()
+            .take(retained)
+            .map(|value| if total > 0.0 { value / total } else { 0.0 })
+            .collect(),
+        scores: project(&centred, &components),
+        components,
+        mean,
+        expansion,
+    })
+}
+
+/// One characterising phase: the stretch of the curve a rotated component loads on.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CharacterisingPhase {
+    pub first_index: usize,
+    pub last_index: usize,
+    /// Where the component loads hardest, which is the instant the phase is named for.
+    pub peak_loading_index: usize,
+    pub variance_share: f64,
+    pub loadings: Vec<f64>,
+}
+
+/// Named phases with their variance share, and each curve's value inside each phase.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CharacterisingPhases {
+    pub phases: Vec<CharacterisingPhase>,
+    pub mean: Vec<f64>,
+    /// `magnitudes[curve][phase]`, each curve at that phase's peak-loading instant.
+    pub magnitudes: Vec<Vec<f64>>,
+    /// `scores[curve][phase]`, the projection onto the rotated component, which carries
+    /// magnitude and time together rather than either alone.
+    pub scores: Vec<Vec<f64>>,
+    pub variance_retained_pct: f64,
+    pub phase_loading_threshold: f64,
+    pub normalisation: VarimaxNormalisation,
+    pub expansion: BasisExpansion,
+}
+
+/// Characterising phases of a curve set, by b-spline normalisation then rotated components.
+///
+/// The phase boundary is where a component's loading falls below a stated share of its own
+/// peak, and that share is an argument because no value for it travels with the rule.
+#[allow(clippy::too_many_arguments)]
+pub fn characterising_phases(
+    curves: &[Vec<f64>],
+    basis_size: usize,
+    basis_degree: usize,
+    penalty_weight: f64,
+    variance_retained_pct: f64,
+    phase_loading_threshold: f64,
+    normalisation: VarimaxNormalisation,
+) -> Result<CharacterisingPhases, WaveformError> {
+    if !(phase_loading_threshold > 0.0 && phase_loading_threshold <= 1.0) {
+        return Err(WaveformError::LoadingThresholdOutsideRange {
+            value: phase_loading_threshold,
+        });
+    }
+    let expansion = expand_in_basis(curves, basis_size, basis_degree, penalty_weight)?;
+    let mean = mean_curve(&expansion.smoothed)?;
+    let covariance = covariance_matrix(&expansion.smoothed)?;
+    let decomposition = symmetric_eigendecomposition(&covariance)?;
+    let retained = decomposition.components_for_variance_share(variance_retained_pct)?;
+    let total: f64 = compensated_sum(&decomposition.eigenvalues);
+
+    // Varimax wants loadings as element by component, and the decomposition hands back
+    // component by element.
+    let point_count = mean.len();
+    let unrotated: Vec<Vec<f64>> = (0..point_count)
+        .map(|point| {
+            (0..retained)
+                .map(|component| {
+                    decomposition.eigenvectors[component][point]
+                        * decomposition.eigenvalues[component].max(0.0).sqrt()
+                })
+                .collect()
+        })
+        .collect();
+    let rotated = varimax(&unrotated, normalisation)?;
+    let mut components: Vec<Vec<f64>> = (0..retained)
+        .map(|component| {
+            (0..point_count)
+                .map(|point| rotated[point][component])
+                .collect()
+        })
+        .collect();
+    for component in components.iter_mut() {
+        fix_sign(component);
+    }
+
+    let shares = shares_from_loadings(&components, total);
+    let phases: Vec<CharacterisingPhase> = components
+        .iter()
+        .zip(&shares)
+        .map(|(loadings, share)| {
+            let peak = loadings
+                .iter()
+                .enumerate()
+                .max_by(|left, right| {
+                    left.1
+                        .abs()
+                        .partial_cmp(&right.1.abs())
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|(index, _)| index)
+                .unwrap_or(0);
+            let floor = loadings[peak].abs() * phase_loading_threshold;
+            let mut first = peak;
+            while first > 0 && loadings[first - 1].abs() >= floor {
+                first -= 1;
+            }
+            let mut last = peak;
+            while last + 1 < loadings.len() && loadings[last + 1].abs() >= floor {
+                last += 1;
+            }
+            CharacterisingPhase {
+                first_index: first,
+                last_index: last,
+                peak_loading_index: peak,
+                variance_share: *share,
+                loadings: loadings.clone(),
+            }
+        })
+        .collect();
+
+    let centred = centred_rows(&expansion.smoothed, &mean);
+    let magnitudes = expansion
+        .smoothed
+        .iter()
+        .map(|curve| {
+            phases
+                .iter()
+                .map(|phase| curve[phase.peak_loading_index])
+                .collect()
+        })
+        .collect();
+    Ok(CharacterisingPhases {
+        scores: project(&centred, &components),
+        phases,
+        mean,
+        magnitudes,
+        variance_retained_pct,
+        phase_loading_threshold,
+        normalisation,
+        expansion,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -424,8 +705,9 @@ mod tests {
             .map(|row| {
                 (0..right[0].len())
                     .map(|column| {
-                        let terms: Vec<f64> =
-                            (0..inner).map(|k| left[row][k] * right[k][column]).collect();
+                        let terms: Vec<f64> = (0..inner)
+                            .map(|k| left[row][k] * right[k][column])
+                            .collect();
                         compensated_sum(&terms)
                     })
                     .collect()
@@ -462,7 +744,11 @@ mod tests {
             })
             .collect();
         let transposed: Vec<Vec<f64>> = (0..4)
-            .map(|row| (0..4).map(|column| vectors_as_columns[column][row]).collect())
+            .map(|row| {
+                (0..4)
+                    .map(|column| vectors_as_columns[column][row])
+                    .collect()
+            })
             .collect();
         let reconstructed = multiply(&scaled, &transposed);
         for row in 0..4 {
@@ -492,8 +778,7 @@ mod tests {
             let norm: Vec<f64> = left.iter().map(|value| value * value).collect();
             assert!((compensated_sum(&norm) - 1.0).abs() < 1e-12);
             for right in decomposition.eigenvectors.iter().skip(first + 1) {
-                let products: Vec<f64> =
-                    left.iter().zip(right).map(|(a, b)| a * b).collect();
+                let products: Vec<f64> = left.iter().zip(right).map(|(a, b)| a * b).collect();
                 assert!(compensated_sum(&products).abs() < 1e-10);
             }
         }
@@ -527,9 +812,17 @@ mod tests {
     #[test]
     fn every_component_the_decomposition_returns_obeys_the_sign_convention() {
         let matrices = vec![
-            vec![vec![3.0, -1.0, 0.0], vec![-1.0, 3.0, 0.0], vec![0.0, 0.0, 8.0]],
+            vec![
+                vec![3.0, -1.0, 0.0],
+                vec![-1.0, 3.0, 0.0],
+                vec![0.0, 0.0, 8.0],
+            ],
             vec![vec![2.0, -3.0], vec![-3.0, 5.0]],
-            vec![vec![5.0, 4.0, 1.0], vec![4.0, 5.0, 1.0], vec![1.0, 1.0, 2.0]],
+            vec![
+                vec![5.0, 4.0, 1.0],
+                vec![4.0, 5.0, 1.0],
+                vec![1.0, 1.0, 2.0],
+            ],
         ];
         for matrix in &matrices {
             for vector in symmetric_eigendecomposition(matrix).unwrap().eigenvectors {
@@ -537,7 +830,11 @@ mod tests {
                     .iter()
                     .copied()
                     .fold(0.0f64, |largest, value| largest.max(value.abs()));
-                let leading = vector.iter().copied().find(|v| v.abs() == dominant).unwrap();
+                let leading = vector
+                    .iter()
+                    .copied()
+                    .find(|v| v.abs() == dominant)
+                    .unwrap();
                 assert!(leading >= 0.0, "{vector:?} leads negative");
             }
         }
@@ -546,7 +843,9 @@ mod tests {
         // [-r, r, 0], measured, so without the convention the loop above has nothing to
         // catch and passes on every matrix in the list.
         let root_half = 0.5f64.sqrt();
-        let flipped = &symmetric_eigendecomposition(&matrices[0]).unwrap().eigenvectors[1];
+        let flipped = &symmetric_eigendecomposition(&matrices[0])
+            .unwrap()
+            .eigenvectors[1];
         assert!((flipped[0] - root_half).abs() < 1e-12, "{flipped:?}");
         assert!((flipped[1] + root_half).abs() < 1e-12, "{flipped:?}");
     }
@@ -557,10 +856,22 @@ mod tests {
             eigenvalues: vec![7.0, 2.0, 1.0],
             eigenvectors: vec![vec![1.0], vec![1.0], vec![1.0]],
         };
-        assert_eq!(decomposition.components_for_variance_share(70.0).unwrap(), 1);
-        assert_eq!(decomposition.components_for_variance_share(80.0).unwrap(), 2);
-        assert_eq!(decomposition.components_for_variance_share(99.0).unwrap(), 3);
-        assert_eq!(decomposition.components_for_variance_share(100.0).unwrap(), 3);
+        assert_eq!(
+            decomposition.components_for_variance_share(70.0).unwrap(),
+            1
+        );
+        assert_eq!(
+            decomposition.components_for_variance_share(80.0).unwrap(),
+            2
+        );
+        assert_eq!(
+            decomposition.components_for_variance_share(99.0).unwrap(),
+            3
+        );
+        assert_eq!(
+            decomposition.components_for_variance_share(100.0).unwrap(),
+            3
+        );
         assert!(decomposition.components_for_variance_share(0.0).is_err());
         assert!(decomposition.components_for_variance_share(101.0).is_err());
     }
@@ -632,7 +943,10 @@ mod tests {
         let rotated = varimax(&loadings, VarimaxNormalisation::Raw).unwrap();
         for (before, after) in loadings.iter().zip(&rotated) {
             for (left, right) in before.iter().zip(after) {
-                assert!((left - right).abs() < 1e-8, "a simple structure was rotated");
+                assert!(
+                    (left - right).abs() < 1e-8,
+                    "a simple structure was rotated"
+                );
             }
         }
     }
@@ -698,5 +1012,214 @@ mod tests {
             error,
             WaveformError::RaggedCurveSet { index: 1, .. }
         ));
+    }
+
+    /// Curves built from two bumps whose heights vary independently, so the covariance has
+    /// two directions to find and a phase rule has something to separate.
+    fn correlated_bump_curves() -> Vec<Vec<f64>> {
+        let bump = |centre: f64, position: f64| (-((position - centre) / 6.0).powi(2)).exp();
+        let shared = [-1.0, -1.0, -0.5, -0.5, 0.5, 0.5, 1.0, 1.0];
+        let apart = [1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0];
+        shared.iter().zip(apart.iter()).map(|(common, split)| {
+            let early = 1.0 + 0.6 * common + 0.15 * split;
+            let late = 1.0 + 0.6 * common - 0.15 * split;
+            (0..60).map(|point| {
+                let position = point as f64;
+                early * bump(15.0, position) + late * bump(45.0, position)
+            }).collect()
+        }).collect()
+    }
+
+    fn two_bump_curves() -> Vec<Vec<f64>> {
+        let bump = |centre: f64, position: f64| (-((position - centre) / 6.0).powi(2)).exp();
+        // A factorial over the two heights. Amplitudes that traded off against each other
+        // would put all the variance in one direction and give one phase for two bumps.
+        [
+            (0.5, 0.5),
+            (1.5, 0.5),
+            (0.5, 1.5),
+            (1.5, 1.5),
+            (1.0, 0.5),
+            (0.5, 1.0),
+            (1.5, 1.0),
+            (1.0, 1.5),
+        ]
+        .iter()
+        .map(|(early, late)| {
+            (0..60)
+                .map(|point| {
+                    let position = point as f64;
+                    early * bump(15.0, position) + late * bump(45.0, position)
+                })
+                .collect()
+        })
+        .collect()
+    }
+
+    /// Three bumps whose heights vary by clearly decreasing amounts, so the components come
+    /// out in a known order of size and a share cutoff has something to cut between.
+    fn graded_variance_curves() -> Vec<Vec<f64>> {
+        let bump = |centre: f64, position: f64| (-((position - centre) / 5.0).powi(2)).exp();
+        let design = [
+            (1.0, 1.0, 1.0),
+            (1.0, 1.0, -1.0),
+            (1.0, -1.0, 1.0),
+            (1.0, -1.0, -1.0),
+            (-1.0, 1.0, 1.0),
+            (-1.0, 1.0, -1.0),
+            (-1.0, -1.0, 1.0),
+            (-1.0, -1.0, -1.0),
+        ];
+        design
+            .iter()
+            .map(|(first, second, third)| {
+                (0..60)
+                    .map(|point| {
+                        let position = point as f64;
+                        (1.0 + 0.6 * first) * bump(12.0, position)
+                            + (1.0 + 0.2 * second) * bump(30.0, position)
+                            + (1.0 + 0.05 * third) * bump(48.0, position)
+                    })
+                    .collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn an_expansion_carries_the_basis_and_penalty_that_produced_it() {
+        let expansion = expand_in_basis(&two_bump_curves(), 14, 3, 0.5).unwrap();
+        assert_eq!(expansion.basis_size, 14);
+        assert_eq!(expansion.basis_degree, 3);
+        assert_eq!(expansion.penalty_weight, 0.5);
+        assert_eq!(expansion.effective_degrees_of_freedom.len(), 8);
+        assert_eq!(expansion.smoothed[0].len(), 60);
+    }
+
+    #[test]
+    fn a_heavier_penalty_spends_fewer_degrees_of_freedom() {
+        let curves = two_bump_curves();
+        let light = expand_in_basis(&curves, 14, 3, 0.0).unwrap();
+        let heavy = expand_in_basis(&curves, 14, 3, 100.0).unwrap();
+        assert!(
+            heavy.effective_degrees_of_freedom[0] < light.effective_degrees_of_freedom[0],
+            "the penalty bought nothing: {} against {}",
+            heavy.effective_degrees_of_freedom[0],
+            light.effective_degrees_of_freedom[0]
+        );
+    }
+
+    #[test]
+    fn the_variance_share_decides_how_many_components_come_back() {
+        let curves = graded_variance_curves();
+        let narrow = functional_principal_components(&curves, 14, 3, 0.0, 60.0).unwrap();
+        let wide = functional_principal_components(&curves, 14, 3, 0.0, 99.5).unwrap();
+        assert!(
+            wide.components.len() > narrow.components.len(),
+            "the retained share changed nothing: {} against {}",
+            wide.components.len(),
+            narrow.components.len()
+        );
+        assert_eq!(narrow.scores.len(), curves.len());
+        assert_eq!(narrow.scores[0].len(), narrow.components.len());
+    }
+
+    #[test]
+    fn the_basis_size_moves_the_components_it_is_required_to_report() {
+        let curves = two_bump_curves();
+        let small = functional_principal_components(&curves, 8, 3, 0.0, 95.0).unwrap();
+        let large = functional_principal_components(&curves, 20, 3, 0.0, 95.0).unwrap();
+        assert_eq!(small.expansion.basis_size, 8);
+        assert_eq!(large.expansion.basis_size, 20);
+        assert_ne!(
+            small.components[0].len(),
+            large.components[0].len(),
+            "the basis size did not reach the decomposition"
+        );
+    }
+
+    #[test]
+    fn the_rotation_separates_components_that_would_otherwise_share_a_bump() {
+        let phases = characterising_phases(
+            &correlated_bump_curves(),
+            14,
+            3,
+            0.0,
+            95.0,
+            0.5,
+            VarimaxNormalisation::Raw,
+        )
+        .unwrap();
+        assert!(phases.phases.len() >= 2, "one phase for two bumps");
+        let first = phases.phases[0].peak_loading_index;
+        let second = phases.phases[1].peak_loading_index;
+        // The bump heights are correlated, so the unrotated components are the sum and the
+        // difference directions and both peak on the first bump, measured at index 15 and
+        // 15. The rotation is what puts one component on each bump.
+        assert!(
+            first.abs_diff(second) > 15,
+            "both phases landed on one bump, at {first} and {second}"
+        );
+        for phase in phases.phases.iter().take(2) {
+            assert!(phase.first_index <= phase.peak_loading_index);
+            assert!(phase.peak_loading_index <= phase.last_index);
+        }
+        assert_eq!(phases.magnitudes.len(), 8);
+        assert_eq!(phases.magnitudes[0].len(), phases.phases.len());
+    }
+
+    #[test]
+    fn the_loading_threshold_moves_the_phase_boundary() {
+        let curves = two_bump_curves();
+        let run = |threshold: f64| {
+            characterising_phases(
+                &curves,
+                14,
+                3,
+                0.0,
+                95.0,
+                threshold,
+                VarimaxNormalisation::Raw,
+            )
+            .unwrap()
+        };
+        let permissive = run(0.1);
+        let strict = run(0.9);
+        let width =
+            |set: &CharacterisingPhases| set.phases[0].last_index - set.phases[0].first_index;
+        assert!(
+            width(&permissive) > width(&strict),
+            "the threshold changed no boundary: {} against {}",
+            width(&permissive),
+            width(&strict)
+        );
+        assert_eq!(strict.phase_loading_threshold, 0.9);
+    }
+
+    #[test]
+    fn a_threshold_outside_its_range_is_refused_rather_than_clamped() {
+        let curves = two_bump_curves();
+        for threshold in [0.0, -0.2, 1.5] {
+            let error = characterising_phases(
+                &curves,
+                14,
+                3,
+                0.0,
+                95.0,
+                threshold,
+                VarimaxNormalisation::Raw,
+            )
+            .unwrap_err();
+            assert!(matches!(
+                error,
+                WaveformError::LoadingThresholdOutsideRange { .. }
+            ));
+        }
+    }
+
+    #[test]
+    fn a_basis_larger_than_the_data_is_named_rather_than_guessed_at() {
+        let curves = vec![vec![1.0, 2.0, 3.0, 4.0], vec![2.0, 3.0, 4.0, 5.0]];
+        let error = expand_in_basis(&curves, 12, 3, 0.0).unwrap_err();
+        assert!(matches!(error, WaveformError::BasisExpansion(_)));
     }
 }
