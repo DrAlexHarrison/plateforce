@@ -100,3 +100,20 @@ fn an_optional_parameter_carries_no_statement_about_its_absence() {
     assert!(!line.contains("optional"), "{line}");
     assert!(!line.contains("not "), "{line}");
 }
+
+/// A parameter whose options are named rather than numbered, which the registry began
+/// carrying after this renderer learned to read both shapes.
+///
+/// The branch was written before any entry exercised it, and reported as untested rather
+/// than claimed as covered. This is the entry that exercises it.
+#[test]
+fn a_default_chosen_by_name_is_shown_by_name() {
+    // The whole entry rather than the parameter lines alone: a long parameter wraps, and
+    // the continuation carries no "parameter" label to filter on.
+    let output = show("phase.braking_start.zero_net_force");
+    let said = String::from_utf8(output.stdout).expect("the entry is UTF-8");
+    println!("{said}");
+    assert!(said.contains("search_signal = velocity_argmin"), "{said}");
+    // Both options, so the reader sees what they may choose instead of the default.
+    assert!(said.contains("force_bw_crossing"), "{said}");
+}
