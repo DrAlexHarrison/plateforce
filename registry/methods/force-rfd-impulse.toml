@@ -466,6 +466,32 @@ status = "accepted"
 confidence = "medium"
 debate = "single_position"
 
+[[method.parameter]]
+name = "reference_basis"
+unit = "enumeration"
+required = true
+notes = """
+absolute or fraction_of_mvc. The same pair of numbers picks a different force range under the two
+bases, so the interval and its reciprocal slope are two different quantities depending on which was
+meant. A fraction of maximal voluntary contraction is read from a separate maximal trial.
+"""
+
+[[method.parameter]]
+name = "lower_level"
+unit = "newtons"
+required = true
+notes = """
+The force the interval starts at, in newtons under the absolute basis and as a percentage of the
+maximal voluntary contraction under the other. No published pair was located, and a pair invented
+here would be a silent default sitting where the method's whole content is.
+"""
+
+[[method.parameter]]
+name = "upper_level"
+unit = "newtons"
+required = true
+notes = "The force the interval ends at, read on the same basis as the lower level."
+
 [[method.citation]]
 key = "maffiuletti2016"
 role = "evaluates"
