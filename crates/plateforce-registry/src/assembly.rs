@@ -40,7 +40,9 @@ pub enum AssemblyError {
         #[source]
         source: toml::de::Error,
     },
-    #[error("no population owns {path}: entries live in constructs.toml, methods/ or protocols/")]
+    #[error(
+        "no population owns {path}: entries live in constructs.toml, methods/, protocols/ or presets/"
+    )]
     Unplaced { path: String },
     #[error("the registry holds no methods")]
     NoMethods,
@@ -91,6 +93,14 @@ pub fn assemble<'a>(
             for protocol in file.protocols {
                 let id = protocol.id.clone();
                 if registry.protocols.insert(id.clone(), protocol).is_some() {
+                    duplicated.push(id);
+                }
+            }
+        } else if path.starts_with("presets/") {
+            let file: crate::preset::PresetFile = toml::from_str(contents).map_err(parse_failed)?;
+            for preset in file.presets {
+                let id = preset.id.clone();
+                if registry.presets.insert(id.clone(), preset).is_some() {
                     duplicated.push(id);
                 }
             }
