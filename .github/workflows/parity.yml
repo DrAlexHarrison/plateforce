@@ -1,0 +1,71 @@
+name: every surface says the same about itself
+
+# The manifest asserts over surfaces, so a job that builds one of them proves nothing. Every
+# row in scripts/capability-surfaces.txt is asked here, which is why this job installs the R
+# package rather than only compiling the workspace. A surface that cannot answer fails the
+# job and is never skipped, so a missing install cannot let the gate pass with fewer surfaces
+# than it names.
+#
+# Every input the answers depend on, including this file, so a push that edits only the gate
+# still has to meet it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CAPABILITY.json'
+      - 'scripts/capability*'
+      - 'bindings/r/**'
+      - 'crates/**'
+      - 'registry/**'
+      - '.github/workflows/parity.yml'
+  pull_request:
+    paths:
+      - 'CAPABILITY.json'
+      - 'scripts/capability*'
+      - 'bindings/r/**'
+      - 'crates/**'
+      - 'registry/**'
+      - '.github/workflows/parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capability:
+    name: what each surface reports about itself
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: parity-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            parity-
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: bindings/r
+
+      # The package vendors a copy of the engine, and its own vendoring step refreshes that
+      # copy only when it is absent. Asking for it here is what makes the R row report this
+      # commit's engine rather than whichever one was copied first.
+      - name: Copy the engine and the registry into the package
+        run: bash bindings/r/tools/sync-engine.sh
+
+      - name: Install the R package, so its row can answer
+        run: R CMD INSTALL bindings/r
+
+      - name: Every listed surface reports, and every answer meets the obligation
+        run: ./scripts/capability.sh --check

@@ -71,7 +71,9 @@ fn this_surface_reports_what_is_committed_for_it() {
 #[test]
 fn the_manifest_names_one_method_per_rule_this_build_runs() {
     let committed = committed();
-    let methods = committed["methods"].as_array().expect("methods is an array");
+    let methods = committed["methods"]
+        .as_array()
+        .expect("methods is an array");
     println!(
         "methods in the manifest: {} of {} bindings",
         methods.len(),
