@@ -23,5 +23,8 @@ export const state = {
   envelope: null,
   analysis: null,
   chart: null,
-  spread: { quantity: 'time_to_takeoff_seconds', axes: new Set() },
+  /* The panel opens on jump height because that is what the audience was set. Five of six
+   * course documents ask a student to compute it two or three ways and explain why the
+   * answers differ, and none of them asks that about time to takeoff. */
+  spread: { quantity: 'jump_height_from_takeoff_meters', axes: new Set() },
 };

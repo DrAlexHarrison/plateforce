@@ -16,13 +16,13 @@ export const SLOTS = [
   {
     key: 'weighing',
     construct: 'system_weight',
-    title: 'Weighing epoch',
+    title: 'Standing still, before the jump',
     why: 'Sets system weight, and with it the onset band and every impulse below.',
   },
   {
     key: 'onset',
     construct: 'movement_onset',
-    title: 'Movement onset',
+    title: 'Start of the jump',
     why: 'Net impulse reliability runs from 0.984 to 0.479 across published onset rules on identical data.',
   },
   {

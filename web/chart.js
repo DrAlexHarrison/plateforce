@@ -245,7 +245,7 @@ export class TraceChart {
       trace: readColour('--trace'),
       accent: readColour('--accent'),
       border: readColour('--border-strong'),
-      danger: readColour('--danger'),
+      threshold: readColour('--mark-threshold'),
     };
 
     this.drawWeighingWindow(context, colours);
@@ -361,7 +361,7 @@ export class TraceChart {
     if (!this.analysis) return;
     const entries = [
       { value: this.analysis.levels.system_weight_newtons, colour: colours.accent, dash: [] },
-      { value: this.analysis.levels.takeoff_threshold_newtons, colour: colours.danger, dash: [6, 4] },
+      { value: this.analysis.levels.takeoff_threshold_newtons, colour: colours.threshold, dash: [6, 4] },
     ];
     context.save();
     context.lineWidth = 1.5;
