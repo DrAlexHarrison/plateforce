@@ -65,6 +65,19 @@ pub struct Args {
     pub provenance: bool,
 }
 
+/// The number a file writes where it has no sample, for a reader that takes the value
+/// rather than the word.
+///
+/// One vocabulary for both commands. A word that means one thing under `analyse` and
+/// another under `batch` is the flag whose meaning depends on where it appears.
+pub(crate) fn marker_value(convention: SentinelConvention) -> Option<f64> {
+    match convention {
+        SentinelConvention::Zero => Some(0.0),
+        SentinelConvention::NegativeOne => Some(-1.0),
+        SentinelConvention::None => None,
+    }
+}
+
 /// The constructs a jump height is reached through, in the order the pipeline runs them.
 pub const PATH: [&str; 3] = [WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT];
 

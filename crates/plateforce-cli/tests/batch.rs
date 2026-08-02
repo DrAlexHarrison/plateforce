@@ -22,6 +22,8 @@ fn batch(out_dir: &std::path::Path, extra: &[&str]) -> Output {
         "0",
         "--sample-rate-hz",
         "1200",
+        "--sentinel",
+        "none",
         "--weighing",
         "bwepoch.fixed_window",
         "--onset",
@@ -120,5 +122,72 @@ fn an_assignment_this_command_cannot_read_is_refused_before_a_trial_is() {
         !out.join("results.csv").exists(),
         "no trial was read before the refusal"
     );
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// A marker read as force moves system weight, and system weight carries into every
+/// impulse, velocity and height a run reports. There is no default because there is no
+/// answer the software could pick that is not a guess about somebody else's export.
+#[test]
+fn a_folder_run_cannot_proceed_without_saying_how_a_missing_sample_is_written() {
+    let out = scratch("nosentinel");
+    let named = out.display().to_string();
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_plateforce"))
+        .args([
+            "--registry",
+            "../../registry",
+            "batch",
+            "../plateforce-conformance/fixtures",
+            "--out-dir",
+            &named,
+            "--trial-suffix",
+            ".force.txt",
+            "--column",
+            "0",
+            "--sample-rate-hz",
+            "1200",
+            "--weighing",
+            "bwepoch.fixed_window",
+            "--onset",
+            "onset.threshold.noise_relative",
+            "--takeoff",
+            "takeoff.threshold.absolute_force",
+        ])
+        .env("NO_COLOR", "1")
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .expect("the built binary runs");
+    let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
+    println!("{}", said.lines().next().unwrap_or_default());
+    assert_eq!(output.status.code(), Some(64));
+    assert!(said.contains("--sentinel"), "{said}");
+    assert!(
+        !out.join("results.csv").exists(),
+        "no trial was read before the refusal"
+    );
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// The record says how the folder was read, so two runs that read one folder differently
+/// are two runs rather than one with a number that moved.
+#[test]
+fn the_record_names_the_convention_the_run_applied() {
+    let out = scratch("recorded");
+    assert_eq!(batch(&out, &[]).status.code(), Some(0));
+    let run: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("run.json")).expect("a record"))
+            .expect("the record parses");
+    for named in [
+        "sentinel",
+        "delimiter",
+        "force_column_index",
+        "sample_rate_hz",
+    ] {
+        assert!(
+            run.get(named).is_some(),
+            "the record carries {named}: {run}"
+        );
+    }
+    println!("the run records {:?}", run["sentinel"]);
     let _ = std::fs::remove_dir_all(&out);
 }

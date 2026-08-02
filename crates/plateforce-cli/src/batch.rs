@@ -52,6 +52,11 @@ pub struct Args {
     /// The character between columns
     #[arg(long, value_name = "CHAR")]
     pub delimiter: Option<char>,
+    /// How these files write a sample they do not have. The same answer covers every trial
+    /// in the folder, and there is no default: a marker read as force moves system weight
+    /// and everything downstream of it
+    #[arg(long, value_enum)]
+    pub sentinel: crate::analyse::SentinelConvention,
     /// A template such as AT{subject}_{trial}, which gives the run a subject as well
     #[arg(long, value_name = "TEMPLATE")]
     pub pattern: Option<String>,
@@ -150,6 +155,7 @@ pub fn run(
         force_column_index: args.column,
         sample_rate_hz: args.sample_rate_hz,
         trial_file_suffixes: args.trial_suffixes.clone(),
+        sentinel: crate::analyse::marker_value(args.sentinel),
     };
     let identity = match &args.pattern {
         Some(template) => TrialIdentity::DeclaredPattern {
