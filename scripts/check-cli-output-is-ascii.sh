@@ -29,6 +29,24 @@ if [ ! -x "$binary" ]; then
     exit 3
 fi
 
+# `grep -P` is GNU-only, and a grep that rejects it exits 2 with a usage error, which
+# `grep -q` reports the same way as finding nothing. Without this the whole check certifies
+# a non-ASCII input as clean on any machine carrying BSD grep. Proven by shadowing grep with
+# a wrapper that rejects -P: every command read as ASCII while emitting two-byte characters.
+if ! printf 'caf\303\251\n' | LC_ALL=C grep -qP '[^\x00-\x7F]' 2>/dev/null; then
+    echo "plateforce: this grep cannot match a non-ASCII byte with -P, so nothing below" \
+         "would be measured. Install GNU grep, or run this where one exists" >&2
+    exit 3
+fi
+
+# The control's mirror: the same pattern must find nothing in plain ASCII, or it matches
+# everything and every command would read as a violation.
+if printf 'cafe\n' | LC_ALL=C grep -qP '[^\x00-\x7F]' 2>/dev/null; then
+    echo "plateforce: this grep matches a non-ASCII byte in plain ASCII text, so its" \
+         "verdict means nothing" >&2
+    exit 3
+fi
+
 trial=crates/plateforce-conformance/fixtures/subject01_trial1.force.txt
 
 # Each entry is a label and the arguments. The set spans a document, a manifest, the
@@ -74,8 +92,21 @@ for entry in "${runs[@]}"; do
     cat "$work/$label.out" "$work/$label.err" >"$work/$label.all"
     bytes=$(wc -c <"$work/$label.all")
 
-    if [ "$status" -ge 126 ]; then
-        echo "plateforce: $label could not run, exit $status. This check did not measure it" >&2
+    # A refusal is an expected exit code and is part of what this check reads. Anything else
+    # is the command failing rather than declining, and a panic's ASCII backtrace clears the
+    # byte floor below, so without this a binary that crashes on every command certifies
+    # clean. Proven with a stub emitting ASCII and exiting 101.
+    # A refusal is an answer and its sentence is the line most likely to carry a typographic
+    # quotation mark, so `analyse` declining a forced decision counts as measured. What does
+    # not count is a code no command here can legitimately return.
+    case "$label" in
+        refuse-*) expected="64 65 66 78" ;;
+        analyse)  expected="0 64" ;;
+        *)        expected="0" ;;
+    esac
+    if [ "$status" -ge 126 ] || ! printf '%s\n' $expected | grep -qx "$status"; then
+        echo "plateforce: $label exited $status, expected one of [$expected]," \
+             "so it failed rather than answered and this check did not measure it" >&2
         unchecked=$((unchecked + 1))
         continue
     fi
