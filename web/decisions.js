@@ -2,10 +2,20 @@
 
 import { $, state } from './state.js';
 import { element } from './format.js';
-import { rankCandidates, initialParameters } from './registry.js';
+import { rankCandidates, initialParameters, findMethod } from './registry.js';
 import { candidateFor } from './startup.js';
-import { runAnalysis } from './analysis.js';
+import { runAnalysis, boundValueText } from './analysis.js';
 import { openDrawer } from './drawer.js';
+
+/*
+ * Two of the registry's surfacing verdicts oblige the interface to say something about a
+ * rule nobody was asked about, and they differ in what is owed. `default_and_show` is
+ * displayed unasked. `surface_on_demand` is named, with its alternatives one interaction
+ * away. A value the rule chose for itself, under a verdict that says show it, that the
+ * interface never shows, is a defect in the interface rather than in the record.
+ */
+const SHOWS_UNASKED = 'default_and_show';
+const NAMES_ITS_ALTERNATIVES = 'surface_on_demand';
 
 export function unresolvedDecisions() {
   const pending = [];
@@ -38,15 +48,30 @@ function renderSlot(slot) {
   const selection = state.selection[slot.key];
   const wrap = element('div', 'decision');
 
+  /*
+   * Two different questions, and collapsing them is the bug. How the row is presented
+   * comes from the entry bound to it now. Whether it is still a decision comes from the
+   * construct, because one unresolved entry anywhere in the construct leaves every value
+   * below it provisional.
+   */
+  const bound = selection.methodId ? candidateFor(slot.key, selection.methodId) : null;
+  const decisionPending = slot.forcesDecision && !selection.methodId && slot.available.length > 0;
+
   const head = element('div', 'decision__head');
   head.append(element('span', 'decision__title', slot.title));
-  if (slot.forcesDecision) head.append(element('span', 'tag tag--decide', 'decide'));
-  else if (slot.surfacing === 'default_and_hide') head.append(element('span', 'tag tag--advanced', 'advanced'));
+  if (decisionPending) {
+    wrap.classList.add('decision--provisional');
+    head.append(element('span', 'tag tag--provisional', 'provisional'));
+  } else if (bound?.surfacing === 'default_and_hide') {
+    head.append(element('span', 'tag tag--advanced', 'advanced'));
+  }
   wrap.append(head);
   wrap.append(element('p', 'decision__why', slot.why));
 
   const select = document.createElement('select');
   select.setAttribute('aria-label', `${slot.title} method`);
+  // The construct is the row's identity, and it stays readable when the label changes.
+  select.dataset.construct = slot.construct;
   if (!selection.methodId) {
     const placeholder = element('option', null, 'Choose a method');
     placeholder.value = '';
@@ -71,7 +96,7 @@ function renderSlot(slot) {
   });
   wrap.append(select);
 
-  const candidate = selection.methodId ? candidateFor(slot.key, selection.methodId) : null;
+  const candidate = bound;
   if (candidate) {
     const failure = candidate.method?.failure;
     if (failure) {
@@ -93,9 +118,38 @@ function renderSlot(slot) {
       row.append(inspect);
       wrap.append(row);
     }
+    wrap.append(renderRulesThatRanBeside(slot, candidate));
   }
 
   return wrap;
+}
+
+/*
+ * The rules that ran inside this one and were never asked about. The registry's verdict on
+ * each decides whether it appears here at all, so the list follows the data and no id is
+ * named in this file.
+ */
+function renderRulesThatRanBeside(slot, candidate) {
+  const host = element('div', 'ran-beside');
+  for (const bound of state.analysis?.bound_methods || []) {
+    if (bound.method_id === candidate.id) continue;
+    const method = findMethod(state.registry, bound.method_id);
+    if (!method || method.construct !== slot.construct) continue;
+    const verdict = method.gui?.surfacing;
+    if (verdict !== SHOWS_UNASKED && verdict !== NAMES_ITS_ALTERNATIVES) continue;
+
+    const row = element('div', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
+    row.append(element('span', 'ran-beside__title', method.title));
+    const values = boundValueText(bound, ' ').join(', ');
+    if (values) row.append(element('span', 'ran-beside__value', values));
+
+    const open = element('button', 'chip chip--quiet', verdict === NAMES_ITS_ALTERNATIVES ? 'Rule and its alternatives' : 'Rule and citations');
+    open.type = 'button';
+    open.addEventListener('click', () => openDrawer(method, bound.method_id, bound));
+    row.append(open);
+    host.append(row);
+  }
+  return host;
 }
 
 function renderParameters(slot, candidate, selection) {

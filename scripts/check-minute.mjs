@@ -142,11 +142,30 @@ check('the spread panel is populated on that same first paint',
 // The sweep checks below are about which setting the panel varies and whether varying it
 // reaches the engine. They are independent of whether a decision has been resolved, so
 // they are read after resolving one if the run stopped for one.
-if (paint.wall) {
-  await evaluate(`[...document.querySelectorAll('#analysis-warnings button')]
-    .find((b) => b.textContent.startsWith('Take the recommended'))?.click()`);
-  await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid');
-}
+const resolveAnyWall = async () => {
+  const wall = await evaluate(`(() => {
+    const button = [...document.querySelectorAll('#analysis-warnings button')]
+      .find((b) => b.textContent.startsWith('Take the recommended'));
+    if (button) button.click();
+    return Boolean(button);
+  })()`);
+  if (wall) await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid');
+};
+await resolveAnyWall();
+
+// Owen et al. 2014's onset rule, which is the one every measurement in this workstream's
+// plan was taken on, and which runs sub-rules the reader was never asked about.
+const OWEN_ONSET = 'onset.threshold.noise_relative';
+await evaluate(`(() => {
+  const select = document.querySelector('#decision-list select[data-construct="movement_onset"]');
+  if (!select) return false;
+  select.value = ${JSON.stringify(OWEN_ONSET)};
+  select.dispatchEvent(new Event('change'));
+  return true;
+})()`);
+// A rule picked on a forcing slot leaves its multi-valued parameters unresolved, which is
+// the wall again. Taking the recommendation fills those and keeps the rule just picked.
+await resolveAnyWall();
 
 const sweep = await evaluate(`(() => ({
   opening: document.getElementById('spread-opening')?.textContent ?? '',
@@ -155,8 +174,24 @@ const sweep = await evaluate(`(() => ({
   })),
   spreadRows: [...document.querySelectorAll('#spread-result table.data tbody tr')].map((r) =>
     [...r.children].map((c) => c.textContent.trim())),
+  ranBeside: [...document.querySelectorAll('#decision-list .ran-beside__row')].map((r) => ({
+    kind: [...r.classList].find((c) => c.startsWith('ran-beside__row--')) ?? '',
+    text: r.textContent.replace(/\\s+/g, ' ').trim(),
+  })),
 }))()`);
 Object.assign(paint, sweep);
+
+// A default is legal under both these verdicts, and each owes the reader something the
+// interface expressed nowhere before: displayed unasked, or named with its alternatives
+// one interaction away.
+const shown = paint.ranBeside.filter((row) => row.kind.endsWith('default-and-show'));
+const onDemand = paint.ranBeside.filter((row) => row.kind.endsWith('surface-on-demand'));
+check('a rule the registry says to display unasked is on screen with the value it used',
+  shown.length > 0,
+  shown.map((row) => row.text).join(' / ') || 'nothing displayed');
+check('a rule the registry says to name is on screen with its alternatives one interaction away',
+  onDemand.length > 0,
+  onDemand.map((row) => row.text).join(' / ') || 'nothing named');
 
 const ticked = paint.axes.filter((axis) => axis.ticked);
 check('the setting the panel opened on is named on screen',

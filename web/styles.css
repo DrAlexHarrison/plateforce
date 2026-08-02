@@ -494,6 +494,38 @@ select { cursor: pointer; }
 .metric__value small { font-size: var(--text-md); font-weight: 500; color: var(--text-secondary); margin-left: var(--space-1); }
 .metric__value--absent { font-size: var(--text-md); color: var(--text-tertiary); font-family: var(--font-body); font-weight: 500; }
 .metric__note { font-size: var(--text-xs); color: var(--text-secondary); }
+
+/* A state of its own, and it is neither a warning nor an error: nothing has gone wrong,
+   nobody has chosen yet. It borrows no status colour, because every one of those is spoken
+   for by a meaning, and reads as ink on a quieter surface with a rule down its edge. */
+.metric--provisional { background: var(--surface-sunken); border-style: dashed; }
+.metric__provisional {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  border-left: 3px solid var(--border-strong);
+  padding-left: var(--space-3);
+}
+.metric__provisional strong { color: var(--text); font-weight: 600; }
+.metric__provisional code { font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+
+/* The signal sits beside the number it is about rather than in a panel of its own, which
+   is the whole of the pattern: the reader meets it where they read the value. */
+.metric__signal {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--warning-quiet);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+}
+.metric__signal--incomparable { background: var(--surface-inset); border-color: var(--border); }
+.metric__signal-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--warning); font-weight: 600; }
+.metric__signal--incomparable .metric__signal-figure { color: var(--text-secondary); }
+.metric__signal-remedy { color: var(--text); }
+
 .metric__provenance {
   display: grid;
   /* An implicit grid column sizes to max-content, which puts a long method title past the
@@ -579,6 +611,24 @@ select { cursor: pointer; }
 .decision__why { font-size: var(--text-xs); color: var(--text-secondary); margin-top: var(--space-1); }
 .decision > select, .decision__params { margin-top: var(--space-2); width: 100%; }
 .decision__params { display: grid; gap: var(--space-2); }
+.decision--provisional { border-left: 3px solid var(--border-strong); padding-left: var(--space-3); }
+
+/* Rules that ran inside the chosen one and were never asked about. Displayed because the
+   registry says to display them, quiet because nobody asked a question here. */
+.ran-beside { display: grid; gap: var(--space-1); margin-top: var(--space-2); }
+.ran-beside__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  padding-top: var(--space-1);
+  border-top: 1px dashed var(--border);
+}
+.ran-beside__title { color: var(--text); }
+.ran-beside__value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.chip--quiet { border-style: dashed; color: var(--text-tertiary); }
 
 .tag {
   display: inline-flex;
@@ -593,6 +643,7 @@ select { cursor: pointer; }
 }
 .tag--decide { color: var(--warning); background: var(--warning-quiet); border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent); }
 .tag--advanced { color: var(--text-secondary); background: var(--surface-inset); }
+.tag--provisional { color: var(--text-secondary); background: var(--surface-sunken); border: 1px dashed var(--border-strong); }
 .tag--fails { color: var(--danger); background: var(--danger-quiet); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); }
 
 .undecided--clamped {
