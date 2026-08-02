@@ -7,14 +7,48 @@ import { availableAxes, GRAVITY_AXIS } from './registry.js';
 import { candidateFor } from './startup.js';
 import { notice, buildRequest, methodTitle } from './analysis.js';
 
+/* A slot is identified by the construct it stands for, on every surface and in the request
+ * the engine reads. The interface key a slot happens to carry is not that identity, so an
+ * axis records the construct it varies and nothing here matches on a slot's key. */
 function currentAxes() {
   const axes = [];
   for (const slot of state.slots) {
     const candidate = candidateFor(slot.key, state.selection[slot.key]?.methodId);
-    axes.push(...availableAxes(slot, candidate));
+    for (const axis of availableAxes(slot, candidate)) axes.push({ ...axis, construct: slot.construct });
   }
   axes.push(GRAVITY_AXIS);
   return axes;
+}
+
+const MOVEMENT_ONSET = 'movement_onset';
+
+const variesTheRule = (axis) => Boolean(axis.methodIds?.length);
+
+/*
+ * What the panel varies before anyone has asked it to vary anything.
+ *
+ * Net impulse reliability runs from 0.984 to 0.479 across published rules for the start of
+ * the movement on identical data, the widest published disagreement of the three constructs
+ * a jump height passes through, so that is where the panel opens. Exported because it is
+ * the one choice on this screen nobody makes explicitly, which is what a guard has to be
+ * able to reach.
+ *
+ * There is no substitute construct. A panel that quietly opened on a different one would
+ * report a spread over a setting the reader never chose, under a heading that says the
+ * spread is what choosing costs them, and it would read exactly like a working panel.
+ * Returning nothing is visible; substituting is not.
+ */
+export function openingAxes(axes) {
+  const onTheConstruct = axes.filter((axis) => axis.construct === MOVEMENT_ONSET);
+  const chosen = onTheConstruct.find(variesTheRule) || onTheConstruct[0];
+  return chosen ? [chosen] : [];
+}
+
+function openingSummary(axes) {
+  if (!axes.length) {
+    return 'Nothing is varying yet. Tick a setting below to see how far the number moves across its published values.';
+  }
+  return `Opening on ${axes.map((axis) => `${axis.label.toLowerCase()}, ${axis.display}`).join('; ')}.`;
 }
 
 export function renderSpreadControls() {
@@ -36,18 +70,27 @@ export function renderSpreadControls() {
   };
 
   const axes = currentAxes();
+  const opening = openingAxes(axes);
   if (!state.spread.initialised) {
-    const methodAxis = axes.find((axis) => axis.id === 'onset:__method__');
-    if (methodAxis) state.spread.axes.add(methodAxis.id);
-    else for (const axis of axes) if (axis.slot === 'onset') state.spread.axes.add(axis.id);
-    if (!state.spread.axes.size && axes.length) state.spread.axes.add(axes[0].id);
+    for (const axis of opening) state.spread.axes.add(axis.id);
+    state.spread.opened = opening.map((axis) => axis.id);
     state.spread.initialised = true;
   }
+
+  // The opening setting is the one choice on this panel nobody made, so it is named until
+  // the reader changes it, after which the tick boxes say what is varying.
+  const untouched =
+    state.spread.opened?.length === state.spread.axes.size &&
+    state.spread.opened.every((id) => state.spread.axes.has(id));
+  $('spread-opening').textContent = untouched ? openingSummary(opening) : '';
 
   const host = $('spread-axis-list');
   host.replaceChildren();
   for (const axis of axes) {
     const label = element('label');
+    // The construct is the axis's identity. The text beside it is the label a reader
+    // sees, and the two are allowed to be edited independently.
+    if (axis.construct) label.dataset.construct = axis.construct;
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = state.spread.axes.has(axis.id);
