@@ -64,7 +64,7 @@ impl Preset {
     }
 }
 
-/// Four rules, checked against the registry the preset names into.
+/// The preset population's rules, checked against the registry the preset names into.
 ///
 /// A preset naming a method the registry does not carry is a load-time violation. A preset
 /// naming a method that exists but has no rule behind it is not: that would make the
@@ -81,6 +81,20 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                     preset: preset.id.clone(),
                 },
             });
+        }
+
+        // Against the declared constructs rather than the slots that run today, because a
+        // source may legitimately be silent about a construct nothing executes yet.
+        for construct in &preset.states_nothing_about {
+            if !registry.constructs.contains_key(construct) {
+                violations.push(Violation {
+                    entry: preset.id.clone(),
+                    kind: ViolationKind::PresetSilentAboutUnknownConstruct {
+                        preset: preset.id.clone(),
+                        construct: construct.clone(),
+                    },
+                });
+            }
         }
 
         let mut seen_constructs: Vec<&str> = Vec::new();
