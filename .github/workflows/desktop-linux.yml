@@ -88,6 +88,12 @@ jobs:
           echo "outbound-request patterns in the hand-written interface: $found"
           test "$found" -eq 0
 
+      # What the shell promises a reader: that dropping a file works, that installing needs no
+      # administrator, that an upgrade recognises the copy already on the machine. None of
+      # those fails loudly when a configuration key moves.
+      - name: The shell ships what it declares
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test the_shell_ships_what_it_declares
+
       - name: Build the bundles
         run: cargo tauri build --bundles deb,rpm,appimage
 
