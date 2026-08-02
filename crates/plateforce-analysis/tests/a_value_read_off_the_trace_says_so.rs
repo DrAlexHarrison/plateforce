@@ -46,6 +46,11 @@ fn trial(system_weight_newtons: f64, sample_rate_hz: f64, stance_seconds: f64) -
     Trial::new(force, sample_rate_hz).expect("the fixture is a well formed trial")
 }
 
+/// A sample index the caller states, which means a different number of seconds on recordings
+/// at different rates. Stating it exercises the branch where a rule turns a caller's index
+/// into a time, which is the caller's choice and the recording's arithmetic together.
+const STATED_WEIGHING_START_INDEX: usize = 300;
+
 /// Nothing stated beyond the rule under test, so every value in the record came from the rule
 /// rather than from the caller.
 fn request_for(slot: &str, method_id: &str) -> AnalysisRequest {
@@ -98,18 +103,25 @@ fn request_for(slot: &str, method_id: &str) -> AnalysisRequest {
 fn record_over(trial: &Trial) -> BTreeMap<(String, String), (String, ParameterSource)> {
     let mut recorded = BTreeMap::new();
     for binding in BINDINGS {
-        let Ok(response) = run(trial, &request_for(binding.slot, binding.id)) else {
-            continue;
-        };
-        for bound in &response.bound_methods {
-            for (name, shown) in &bound.bound_parameters {
-                let Some(source) = bound.parameter_sources.get(name) else {
-                    continue;
-                };
-                recorded.insert(
-                    (bound.method_id.clone(), name.clone()),
-                    (shown.clone(), *source),
-                );
+        // Both branches of every rule that behaves differently when the caller anchors it,
+        // because a rule can be honest about a value it chose and wrong about one it derived
+        // from the caller's.
+        for start_index in [None, Some(STATED_WEIGHING_START_INDEX)] {
+            let mut request = request_for(binding.slot, binding.id);
+            request.weighing.start_index = start_index;
+            let Ok(response) = run(trial, &request) else {
+                continue;
+            };
+            for bound in &response.bound_methods {
+                for (name, shown) in &bound.bound_parameters {
+                    let Some(source) = bound.parameter_sources.get(name) else {
+                        continue;
+                    };
+                    recorded.insert(
+                        (bound.method_id.clone(), name.clone()),
+                        (shown.clone(), *source),
+                    );
+                }
             }
         }
     }
