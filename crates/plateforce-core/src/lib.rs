@@ -25,6 +25,7 @@ pub mod resample;
 pub mod signal;
 pub mod smoothing;
 pub mod spectrum;
+pub mod stabilisation;
 pub mod statistics;
 pub mod takeoff;
 pub mod trial;
