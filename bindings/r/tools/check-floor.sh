@@ -25,11 +25,17 @@ fi
 
 # Kept apart from the comparison below so a cargo that cannot resolve the tree reports
 # that, rather than handing an empty document to the reader and failing as a parse error.
-if ! metadata=$(cd "$crate" && cargo metadata --format-version 1 2>&1); then
+# Cargo's progress lines go to stderr and are held apart from the document rather than
+# merged into it, which on a cold index puts "Updating crates.io index" where the JSON
+# should start.
+resolve_errors=$(mktemp)
+if ! metadata=$(cd "$crate" && cargo metadata --format-version 1 2>"$resolve_errors"); then
     printf 'cargo cannot resolve %s, so the dependency floor is unread\n' "$crate" >&2
-    printf '%s\n' "$metadata" >&2
+    cat "$resolve_errors" >&2
+    rm -f "$resolve_errors"
     exit 1
 fi
+rm -f "$resolve_errors"
 
 highest=$(printf '%s' "$metadata" | python3 -c '
 import json, sys

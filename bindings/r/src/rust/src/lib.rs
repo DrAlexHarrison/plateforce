@@ -551,7 +551,7 @@ fn descriptions_of(
             .collect();
 
         let own = Provenance {
-            method_id: metric.computed_by.unwrap_or_default().to_string(),
+            method_id: metric.computed_by.clone().unwrap_or_default(),
             bound_parameters: Vec::new(),
             registry_version: None,
             registry_digest: registry_digest.clone(),
@@ -559,15 +559,30 @@ fn descriptions_of(
             // fill one fingerprints as incomplete rather than as matching.
             acquisition_complete: false,
         };
+        let Some(unit) = declared_unit(metric) else {
+            continue;
+        };
         let measured = Measured {
             value,
-            unit: metric.unit,
+            unit,
             provenance: own.clone(),
         };
         let chain = ProvenanceChain::with_inputs(own, inputs);
         accounts.insert(metric.key.to_string(), describe(&measured, &chain));
     }
     accounts
+}
+
+/// The unit a metric reports, taken from the one declaration that spells it, and only when
+/// the metric agrees with that declaration.
+///
+/// A metric owns its unit so a quantity can take one from the registry, and `Measured` holds
+/// a static one. Reading the declaration instead of the metric would print a unit the number
+/// does not carry the moment those two differ, which `unit_of_every_metric_is_the_declared_one`
+/// is what stops.
+fn declared_unit(metric: &plateforce_analysis::Metric) -> Option<&'static str> {
+    let declared = plateforce_analysis::response::quantity(&metric.key)?;
+    (declared.unit == metric.unit).then_some(declared.unit)
 }
 
 fn provenance_of(
