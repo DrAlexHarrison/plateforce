@@ -60,6 +60,9 @@ enum Command {
     #[command(subcommand)]
     Registry(registry_cmd::Command),
     /// Serve the browser interface to this machine
+    // Help is answered by the server, which owns the options, so this level does not
+    // intercept the flag on its way there.
+    #[command(disable_help_flag = true)]
     Serve {
         /// Passed to the server: --port <PORT>, --port=<PORT>, --open
         #[arg(
