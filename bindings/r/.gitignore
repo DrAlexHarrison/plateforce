@@ -4,6 +4,8 @@ src/rust/crates/
 src/rust/target/
 src/rust/vendor/
 src/rust/vendor.tar.xz
+src/rust/vendor.tar
+src/rust/vendor.members
 src/rust/vendor-config.toml
 src/Makevars
 src/Makevars.win

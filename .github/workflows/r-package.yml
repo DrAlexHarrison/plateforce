@@ -75,8 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Rscript -e 'install.packages(".", repos = NULL, type = "source")' \
-            --vanilla || R CMD INSTALL bindings/r
+          R CMD INSTALL bindings/r
           Rscript -e 'cat(plateforce::pf_version(), "\n")'
           Rscript -e 'print(plateforce::pf_registry()@census)'
           Rscript -e 'writeLines(plateforce:::rust_registry_json(system.file("registry", package = "plateforce")))' \

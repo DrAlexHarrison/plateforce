@@ -17,7 +17,11 @@ $(SHLIB): $(STATLIB)
 # nothing into the user's home.
 $(STATLIB):
 	if [ -f ./rust/vendor.tar.xz ]; then \
-		tar -xf ./rust/vendor.tar.xz -C ./rust && \
+		tar -xf ./rust/vendor.tar.xz -C ./rust; \
+		if [ ! -d "$(VENDOR_DIR)" ]; then \
+			echo "rust/vendor.tar.xz carries no vendor directory" >&2; \
+			exit 1; \
+		fi; \
 		mkdir -p "$(CARGO_HOME_DIR)" && \
 		sed 's|@VENDOR_DIR@|$(VENDOR_DIR)|' ./rust/vendor-config.toml \
 			> "$(CARGO_HOME_DIR)/config.toml"; \
@@ -27,8 +31,10 @@ $(STATLIB):
 	cargo build --lib --release -j 2 \
 		--manifest-path=./rust/Cargo.toml --target-dir="$(TARGET_DIR)" @TARGET@
 
+# The static library and the rest of the target tree are inputs to the shared object
+# rather than parts of an installed package.
 rust_clean: $(SHLIB)
-	rm -Rf "$(CARGO_HOME_DIR)" "$(VENDOR_DIR)"
+	rm -Rf "$(CARGO_HOME_DIR)" "$(VENDOR_DIR)" "$(TARGET_DIR)"
 
 clean:
 	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) "$(TARGET_DIR)" "$(VENDOR_DIR)" "$(CARGO_HOME_DIR)"

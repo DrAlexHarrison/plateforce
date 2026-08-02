@@ -15,13 +15,10 @@ if [ ! -d "$crate/crates/plateforce-core" ]; then
     sh "$here/sync-engine.sh" >/dev/null
 fi
 
-# The mtime every member is stamped with. Taken from the package rather than from the
-# clock, so two builds of one version produce one bundle.
 stamp=$(sed -n 's/^Version: *//p' "$package_root/DESCRIPTION" | head -1)
-mtime="2026-01-01 00:00:00Z"
 
 cd "$crate"
-rm -rf vendor vendor.tar.xz
+rm -rf vendor vendor.tar.xz vendor.tar vendor.members
 cargo vendor --versioned-dirs vendor > /dev/null
 
 # The directory is written as a placeholder rather than as a path, because cargo resolves
@@ -35,9 +32,20 @@ replace-with = "vendored-sources"
 directory = "@VENDOR_DIR@"
 CONFIG
 
-tar --sort=name --mtime="$mtime" --owner=0 --group=0 --numeric-owner \
-    --format=gnu -cf - vendor | xz -T0 -9 > vendor.tar.xz
-rm -rf vendor
+# One mtime and one member order, expressed through touch and a sorted member list
+# rather than through --mtime and --sort, which macOS's tar does not carry. The container
+# is ustar because pax records an access and a change time to the nanosecond, which no
+# two runs share; a path ustar cannot hold makes tar say so and stops the build.
+find vendor -exec touch -t 202601010000 {} +
+find vendor -print | LC_ALL=C sort > vendor.members
+
+# A compressor succeeds on empty input, so a tar read through a pipe leaves a file that
+# reads as a bundle whatever tar did. Each step is taken on its own status, and the
+# bundle takes its name only once it is whole.
+tar -cf vendor.tar --format=ustar --numeric-owner -T vendor.members
+xz -T0 -9 < vendor.tar > vendor.tar.part
+mv -f vendor.tar.part vendor.tar.xz
+rm -rf vendor vendor.tar vendor.members
 
 printf 'vendor.tar.xz for %s: %s bytes, %s crates\n' \
     "$stamp" \
