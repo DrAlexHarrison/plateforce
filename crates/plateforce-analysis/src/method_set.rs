@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
 use crate::request::{AnalysisRequest, MethodChoice, WeighingChoice};
+use plateforce_registry::Preset;
 
 /// Written into every document and checked on every read. It gets committed to strangers'
 /// repositories, so it is a permanent string from the first release.
@@ -107,6 +108,61 @@ impl MethodSet {
             preset: None,
             bindings,
         }
+    }
+
+    /// The document a named published pipeline resolves to.
+    ///
+    /// Every binding the source states is written out in full, so the file reads the same
+    /// whether a preset produced it or somebody typed it, and a reviewer sees the pipeline
+    /// rather than a name they have to look up.
+    ///
+    /// A slot the source is silent about is absent, and is left to the software's normal
+    /// resolution. That is a fact about the source rather than about this build, so it is
+    /// not a refusal and the preset is never credited with the choice.
+    ///
+    /// A bound method the registry carries and no rule here runs refuses, naming the
+    /// method and the step, rather than the registry declining to load. A preset citing a
+    /// rule that has not landed would otherwise freeze every surface behind preset
+    /// maintenance.
+    ///
+    /// The preset is taken already looked up. The shared refusal has no sentence for an id
+    /// that names no preset, and the surface that reads the flag is the one holding the
+    /// list of ids it could suggest instead.
+    pub fn from_preset(
+        preset: &Preset,
+        plateforce_version: impl Into<String>,
+        registry_digest: impl Into<String>,
+        registry_version: Option<String>,
+    ) -> Result<Self, Box<Refusal>> {
+        let mut bindings = Vec::new();
+        for binding in &preset.bindings {
+            if !crate::binding::bindings_for_construct(&binding.construct)
+                .any(|runnable| runnable.id == binding.method_id)
+            {
+                return Err(Box::new(Refusal::method_not_implemented(
+                    binding.method_id.clone(),
+                    binding.construct.clone(),
+                    crate::binding::bindings_for_construct(&binding.construct)
+                        .map(|runnable| runnable.id.to_string())
+                        .collect(),
+                )));
+            }
+            bindings.push(MethodSetBinding {
+                construct: binding.construct.clone(),
+                method_id: binding.method_id.clone(),
+                parameters: binding.parameters.clone(),
+                options: binding.options.clone(),
+            });
+        }
+
+        Ok(Self {
+            schema: METHOD_SET_SCHEMA.to_string(),
+            plateforce_version: plateforce_version.into(),
+            registry_digest: registry_digest.into(),
+            registry_version,
+            preset: Some(preset.id.clone()),
+            bindings,
+        })
     }
 
     /// The schema this document declares, checked before anything else is read from it.
