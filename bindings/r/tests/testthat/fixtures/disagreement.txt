@@ -1,10 +1,10 @@
-agreeing_signal_count 0
-signal_count 1
-status disagrees
-value 66.287837687299444
-threshold 20
-unit percent
-remedy_construct movement_onset
-qualifies jump_height_from_takeoff_meters jump_height_from_flight_time_meters
-jump_height_from_takeoff_meters 0.7317899878372548
-jump_height_from_flight_time_meters 0.44007427002170146
+first_rule onset.threshold.noise_relative
+first_signal_count 0
+first_takeoff_meters 0.41051766027242942
+first_flight_meters 0.44007427002170146
+first_percent 6.7162776291862087
+second_rule onset.threshold.last_within_band
+second_signal_count 0
+second_takeoff_meters 0.41048371429404634
+second_flight_meters 0.44007427002170146
+second_percent 6.7239913222365661

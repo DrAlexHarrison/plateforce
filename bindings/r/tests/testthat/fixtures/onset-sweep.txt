@@ -1,0 +1,4 @@
+variants 5
+failed 0
+spread_absolute_meters 0.019239414533092636
+furthest_from_median_meters 0.018962344647127594
