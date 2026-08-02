@@ -17,13 +17,14 @@ trial <- plateforce::pf_read_force_file(
   sentinel_convention = asked$sentinel_convention
 )
 
-slot_of <- function(named) {
-  list(method_id = named$method_id, parameters = named$parameters)
-}
-
-cat(plateforce:::rust_analyse_json(trial@handle, plateforce:::request_of(
-  weighing = slot_of(asked$weighing),
-  onset = slot_of(asked$onset),
-  takeoff = slot_of(asked$takeoff),
-  registry_digest = plateforce:::registry_digest(NULL)
+# The builder a user's own call goes through, rather than one assembled here. An arm that
+# wrote its own request would send a document nobody sends, and the comparison would be
+# measuring that document instead of the product's.
+cat(plateforce:::rust_analyse_json(trial@handle, plateforce:::analysis_request_of(
+  weighing = asked$weighing$method_id,
+  onset = asked$onset$method_id,
+  takeoff = asked$takeoff$method_id,
+  weighing_parameters = asked$weighing$parameters,
+  onset_parameters = asked$onset$parameters,
+  takeoff_parameters = asked$takeoff$parameters
 )))

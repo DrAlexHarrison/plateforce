@@ -25,6 +25,10 @@
           [
             "start_seconds",
             "0.0000"
+          ],
+          [
+            "window_anchor",
+            "trial_start"
           ]
         ],
         "manual_override": false,
@@ -33,7 +37,8 @@
           "centre": "assumed",
           "dispersion": "assumed",
           "duration": "stated",
-          "start_seconds": "measured"
+          "start_seconds": "measured",
+          "window_anchor": "assumed"
         },
         "registry_backed": true,
         "unread_parameters": []

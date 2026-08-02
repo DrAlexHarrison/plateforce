@@ -19,7 +19,13 @@ import sys
 
 # A floor rather than the exact count, which would fail every time a metric is added. It is
 # here because a comparison that agreed on an empty document would report success.
-NUMBERS_A_RESULT_CARRIES = 40
+#
+# Measured rather than picked: the compared fields carry 16 numbers on the committed
+# request, 11 metric values and 5 levels. `bound_methods` contributes none, because a bound
+# parameter travels as the text beside its name. The floor sits below that so a metric
+# coming or going is not an alarm, and far enough above zero to catch a projection that
+# collapsed.
+NUMBERS_A_RESULT_CARRIES = 10
 
 
 def canonical(value):
