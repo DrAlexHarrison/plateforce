@@ -78,6 +78,12 @@
           "slot": "takeoff"
         },
         {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.landing_shape",
+          "slot": "takeoff"
+        },
+        {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
@@ -244,6 +250,12 @@
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.flight_noise_k_sd",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.landing_shape",
           "slot": "takeoff"
         },
         {
