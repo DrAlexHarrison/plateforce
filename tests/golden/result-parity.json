@@ -274,7 +274,7 @@
         "note": "Net impulse over system mass. An identity, not an estimate.",
         "unit": "meters_per_second",
         "unit_symbol": "m/s",
-        "value": 2.8375352026400016
+        "value": 2.8375352026400025
       },
       {
         "computed_by": "impulse.net_vertical.as_performance_determinant",
@@ -312,7 +312,7 @@
         "note": "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction.",
         "unit": "meters",
         "unit_symbol": "m",
-        "value": 0.4105176602724292
+        "value": 0.4105176602724294
       },
       {
         "computed_by": "jumpheight.takeoff.flight_time",
@@ -343,7 +343,7 @@
         "note": "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number.",
         "unit": "meters_per_second",
         "unit_symbol": "m/s",
-        "value": 0.5337174348070586
+        "value": 0.5337174348070588
       }
     ],
     "signals": [],
