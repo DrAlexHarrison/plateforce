@@ -4,50 +4,14 @@
 //! without its method attached is the failure this package exists to make impossible, so
 //! reaching the bare value is an explicit `.value`.
 
-use plateforce_core::{
-    Exclusions as CoreExclusions, Measured as CoreMeasured, Provenance as CoreProvenance,
-};
+use plateforce_core::reporting::{describe, format_parameters};
+use plateforce_core::{Exclusions as CoreExclusions, Measured as CoreMeasured};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-/// A provenance and the provenances of the results it was computed from.
-///
-/// Jump height moves with the onset rule and the weighing epoch as well as with the
-/// jump-height formula, so a result that named only the last step would understate what
-/// produced it. Core's `Provenance` has no field for upstream steps, so the chain is
-/// assembled here around core values rather than replacing them.
-#[derive(Clone)]
-pub struct ProvenanceChain {
-    pub provenance: CoreProvenance,
-    /// Choices that select between named alternatives rather than between numbers, such
-    /// as population against sample standard deviation. Core's `bound_parameters` is a
-    /// list of `(String, f64)` and cannot hold one, so they are carried here.
-    pub enumerated_choices: Vec<(String, String)>,
-    pub depends_on: Vec<ProvenanceChain>,
-}
-
-impl ProvenanceChain {
-    pub fn leaf(provenance: CoreProvenance) -> Self {
-        Self {
-            provenance,
-            enumerated_choices: Vec::new(),
-            depends_on: Vec::new(),
-        }
-    }
-
-    pub fn with_inputs(provenance: CoreProvenance, depends_on: Vec<ProvenanceChain>) -> Self {
-        Self {
-            provenance,
-            enumerated_choices: Vec::new(),
-            depends_on,
-        }
-    }
-
-    pub fn choosing(mut self, choices: Vec<(String, String)>) -> Self {
-        self.enumerated_choices = choices;
-        self
-    }
-}
+/// The chain lives in the core, where every surface can reach it. R links the engine
+/// crates and cannot link this extension module.
+pub use plateforce_core::ProvenanceChain;
 
 #[pyclass(
     frozen,
@@ -126,9 +90,13 @@ impl Provenance {
     /// The parameter that moved a downstream number usually sits on an upstream step: the
     /// k that placed onset is on the onset entry, not on the time to takeoff derived from it.
     fn flattened(&self) -> Vec<Provenance> {
-        let mut collected = Vec::new();
-        collect(&self.chain, &mut collected);
-        collected
+        self.chain
+            .flattened()
+            .into_iter()
+            .map(|step| Provenance {
+                chain: step.clone(),
+            })
+            .collect()
     }
 
     /// The parameters bound to a named method anywhere in this chain, or None when the
@@ -138,14 +106,14 @@ impl Provenance {
         python: Python<'py>,
         method_id: &str,
     ) -> PyResult<Option<Bound<'py, PyDict>>> {
-        let mut collected = Vec::new();
-        collect(&self.chain, &mut collected);
-        for provenance in collected {
-            if provenance.chain.provenance.method_id == method_id {
-                return provenance.bound_parameters(python).map(Some);
+        match self.chain.step_of(method_id) {
+            Some(step) => Provenance {
+                chain: step.clone(),
             }
+            .bound_parameters(python)
+            .map(Some),
+            None => Ok(None),
         }
-        Ok(None)
     }
 
     fn __repr__(&self) -> String {
@@ -162,27 +130,6 @@ impl Provenance {
             }
         )
     }
-}
-
-fn collect(chain: &ProvenanceChain, into: &mut Vec<Provenance>) {
-    into.push(Provenance {
-        chain: chain.clone(),
-    });
-    for input in &chain.depends_on {
-        collect(input, into);
-    }
-}
-
-fn format_parameters(parameters: &[(String, f64)]) -> String {
-    if parameters.is_empty() {
-        return "{}".to_string();
-    }
-    let body = parameters
-        .iter()
-        .map(|(name, value)| format!("'{name}': {value}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    format!("{{{body}}}")
 }
 
 /// A value, its unit, and the choices that produced it.
@@ -243,15 +190,7 @@ impl Measured {
 
     /// Multi-line account of the value and every choice behind it, upstream steps included.
     fn describe(&self) -> String {
-        let mut lines = vec![format!("{} {}", self.inner.value, self.inner.unit)];
-        describe_chain(&self.chain(), 0, &mut lines);
-        if !self.inner.provenance.acquisition_complete {
-            lines.push(
-                "  acquisition block incomplete, so this result cannot be declared to match another lab's"
-                    .to_string(),
-            );
-        }
-        lines.join("\n")
+        describe(&self.inner, &self.chain())
     }
 
     fn __repr__(&self) -> String {
@@ -266,40 +205,6 @@ impl Measured {
             "{} {} by {}",
             self.inner.value, self.inner.unit, self.inner.provenance.method_id
         )
-    }
-}
-
-fn describe_chain(chain: &ProvenanceChain, depth: usize, lines: &mut Vec<String>) {
-    let indent = "  ".repeat(depth + 1);
-    lines.push(format!(
-        "{indent}{} {}",
-        chain.provenance.method_id,
-        format_parameters(&chain.provenance.bound_parameters)
-    ));
-    for (name, value) in &chain.enumerated_choices {
-        lines.push(format!("{indent}  {name} = {value}"));
-    }
-    if depth == 0 {
-        if let Some(named) = registry_line(&chain.provenance) {
-            lines.push(format!("{indent}{named}"));
-        }
-    }
-    for input in &chain.depends_on {
-        describe_chain(input, depth + 1, lines);
-    }
-}
-
-/// Names the registry behind a result: the pinned revision, the measured digest, or both.
-/// None when the result was computed without reading a registry.
-fn registry_line(provenance: &CoreProvenance) -> Option<String> {
-    match (
-        provenance.registry_version.as_deref(),
-        provenance.registry_digest.as_deref(),
-    ) {
-        (Some(version), Some(digest)) => Some(format!("registry {version} ({digest})")),
-        (Some(version), None) => Some(format!("registry {version}")),
-        (None, Some(digest)) => Some(format!("registry {digest}")),
-        (None, None) => None,
     }
 }
 
