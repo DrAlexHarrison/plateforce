@@ -8,18 +8,20 @@
 
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const bundle = join(root, "web", "pkg");
 
-const module = await import(join(bundle, "plateforce_wasm.js")).catch((error) => {
-  process.stderr.write(
-    `the browser's bundle is not built at web/pkg: ${error.message}\n` +
-      "build it with scripts/build-web.sh release\n",
-  );
-  process.exit(1);
-});
+const module = await import(pathToFileURL(join(bundle, "plateforce_wasm.js"))).catch(
+  (error) => {
+    process.stderr.write(
+      `the browser's bundle is not built at web/pkg: ${error.message}\n` +
+        "build it with scripts/build-web.sh release\n",
+    );
+    process.exit(1);
+  },
+);
 
 // `--target web` resolves its own wasm by fetch, which node has no page to fetch from, so
 // the bytes are handed over directly.

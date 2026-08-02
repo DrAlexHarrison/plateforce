@@ -17,6 +17,7 @@ on:
       - 'bindings/r/**'
       - 'crates/**'
       - 'registry/**'
+      - 'scripts/build-web.sh'
       - '.github/workflows/parity.yml'
   pull_request:
     paths:
@@ -25,6 +26,7 @@ on:
       - 'bindings/r/**'
       - 'crates/**'
       - 'registry/**'
+      - 'scripts/build-web.sh'
       - '.github/workflows/parity.yml'
   workflow_dispatch:
 
@@ -67,13 +69,6 @@ jobs:
 
       - name: Install the R package, so its row can answer
         run: R CMD INSTALL bindings/r
-
-      # The browser's row asks the built bundle rather than the crate it was built from,
-      # because a bundle can be older than its source and that is the drift this gate
-      # exists to catch. wasm-bindgen-cli is pinned by the build script and restored from
-      # the cache above when its version has not moved.
-      - name: Build the browser bundle, so its row can answer
-        run: bash scripts/build-web.sh release
 
       - name: Every listed surface reports, and every answer meets the obligation
         run: ./scripts/capability.sh --check
