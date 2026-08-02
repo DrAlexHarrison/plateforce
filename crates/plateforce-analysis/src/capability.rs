@@ -1,11 +1,11 @@
 //! What this software can do, reported by whoever was asked.
 //!
-//! Every surface serialises this and the results are compared against one committed file, so
-//! a surface that cannot do what the file lists fails the build. Two of the arrays are
-//! therefore not generated here: a surface passes the operations it actually dispatches and
-//! the container formats it can actually write, because those are facts about that surface.
-//! The rest come from tables every surface links, so they agree by construction and the
-//! comparison is about the surfaces rather than about the build.
+//! Every surface serialises this and its answer is recorded under its own name in one
+//! committed file. Two of the arrays are therefore not generated here: a surface passes the
+//! operations it actually dispatches and the container formats it can actually write, because
+//! those are facts about that surface and they differ between surfaces by design. The rest
+//! come from tables every surface links, so a difference in one of them is a stale build
+//! rather than a capability.
 //!
 //! Nothing here serialises. Each surface reaches for its own writer, and this crate stays
 //! free of both a JSON dependency and any knowledge of which surface asked.

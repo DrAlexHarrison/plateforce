@@ -9,3 +9,4 @@
 # built from, so a check against one certifies a binary that may predate the change under
 # review, and reports a match while doing it.
 cli	cargo run -q -p plateforce-cli -- capability --format json
+r	Rscript -e 'cat(plateforce::capability_json())'

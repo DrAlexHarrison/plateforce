@@ -1,1 +1,319 @@
-{"ok":{"methods":[{"composed_from":null,"construct":"system_weight","id":"bwepoch.adaptive_lowest_variance","slot":"weighing"},{"composed_from":null,"construct":"system_weight","id":"bwepoch.fixed_window","slot":"weighing"},{"composed_from":null,"construct":"system_weight","id":"bwepoch.manual_placement","slot":"weighing"},{"composed_from":null,"construct":"movement_onset","id":"onset.threshold.absolute_force","slot":"onset"},{"composed_from":null,"construct":"movement_onset","id":"onset.threshold.adaptive_trailing_window","slot":"onset"},{"composed_from":"onset.threshold.noise_relative","construct":"movement_onset","id":"onset.threshold.last_within_band","slot":"onset"},{"composed_from":null,"construct":"movement_onset","id":"onset.threshold.noise_relative","slot":"onset"},{"composed_from":null,"construct":"movement_onset","id":"onset.threshold.relative_to_system_weight","slot":"onset"},{"composed_from":null,"construct":"takeoff","id":"takeoff.threshold.absolute_force","slot":"takeoff"},{"composed_from":"takeoff.threshold.absolute_force","construct":"takeoff","id":"takeoff.threshold.descending_crossing","slot":"takeoff"},{"composed_from":null,"construct":"takeoff","id":"takeoff.threshold.flight_noise_k_sd","slot":"takeoff"},{"composed_from":"takeoff.threshold.absolute_force","construct":"takeoff","id":"takeoff.threshold.longest_run","slot":"takeoff"}],"operations":["analyse","batch","capability","compare","parse_force_file","registry_census","registry_show","registry_validate","spread","version"],"output_formats":["json","text"],"plateforce_version":"0.1.0","refusal_codes":[{"code":"ambiguous_force_channels","exit_code":65},{"code":"collapsed_band","exit_code":65},{"code":"column_not_found","exit_code":65},{"code":"decision_not_made","exit_code":64},{"code":"method_not_implemented","exit_code":64},{"code":"no_crossing","exit_code":65},{"code":"parameter_not_finite","exit_code":64},{"code":"plate_not_level","exit_code":64},{"code":"registry_invalid","exit_code":78},{"code":"required_parameter_unstated","exit_code":64},{"code":"schema_unsupported","exit_code":65},{"code":"sentinel_convention_unknown","exit_code":64},{"code":"trace_too_short","exit_code":65},{"code":"trial_identity_unparsed","exit_code":65},{"code":"unknown_parameter","exit_code":64}],"schema":"plateforce.capability/1"}}
+{
+  "required_operations": [
+    "analyse",
+    "capability",
+    "parse_force_file",
+    "registry_census",
+    "registry_show",
+    "spread",
+    "version"
+  ],
+  "surfaces": {
+    "cli": {
+      "methods": [
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.adaptive_lowest_variance",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.fixed_window",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.manual_placement",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.absolute_force",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.adaptive_trailing_window",
+          "slot": "onset"
+        },
+        {
+          "composed_from": "onset.threshold.noise_relative",
+          "construct": "movement_onset",
+          "id": "onset.threshold.last_within_band",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.noise_relative",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.relative_to_system_weight",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.absolute_force",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": "takeoff.threshold.absolute_force",
+          "construct": "takeoff",
+          "id": "takeoff.threshold.descending_crossing",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.flight_noise_k_sd",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": "takeoff.threshold.absolute_force",
+          "construct": "takeoff",
+          "id": "takeoff.threshold.longest_run",
+          "slot": "takeoff"
+        }
+      ],
+      "operations": [
+        "analyse",
+        "batch",
+        "capability",
+        "compare",
+        "parse_force_file",
+        "registry_census",
+        "registry_show",
+        "registry_validate",
+        "spread",
+        "version"
+      ],
+      "output_formats": [
+        "json",
+        "text"
+      ],
+      "plateforce_version": "0.1.0",
+      "refusal_codes": [
+        {
+          "code": "ambiguous_force_channels",
+          "exit_code": 65
+        },
+        {
+          "code": "collapsed_band",
+          "exit_code": 65
+        },
+        {
+          "code": "column_not_found",
+          "exit_code": 65
+        },
+        {
+          "code": "decision_not_made",
+          "exit_code": 64
+        },
+        {
+          "code": "method_not_implemented",
+          "exit_code": 64
+        },
+        {
+          "code": "no_crossing",
+          "exit_code": 65
+        },
+        {
+          "code": "parameter_not_finite",
+          "exit_code": 64
+        },
+        {
+          "code": "plate_not_level",
+          "exit_code": 64
+        },
+        {
+          "code": "registry_invalid",
+          "exit_code": 78
+        },
+        {
+          "code": "required_parameter_unstated",
+          "exit_code": 64
+        },
+        {
+          "code": "schema_unsupported",
+          "exit_code": 65
+        },
+        {
+          "code": "sentinel_convention_unknown",
+          "exit_code": 64
+        },
+        {
+          "code": "trace_too_short",
+          "exit_code": 65
+        },
+        {
+          "code": "trial_identity_unparsed",
+          "exit_code": 65
+        },
+        {
+          "code": "unknown_parameter",
+          "exit_code": 64
+        }
+      ],
+      "schema": "plateforce.capability/1"
+    },
+    "r": {
+      "methods": [
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.adaptive_lowest_variance",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.fixed_window",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.manual_placement",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.absolute_force",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.adaptive_trailing_window",
+          "slot": "onset"
+        },
+        {
+          "composed_from": "onset.threshold.noise_relative",
+          "construct": "movement_onset",
+          "id": "onset.threshold.last_within_band",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.noise_relative",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.relative_to_system_weight",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.absolute_force",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": "takeoff.threshold.absolute_force",
+          "construct": "takeoff",
+          "id": "takeoff.threshold.descending_crossing",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.flight_noise_k_sd",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": "takeoff.threshold.absolute_force",
+          "construct": "takeoff",
+          "id": "takeoff.threshold.longest_run",
+          "slot": "takeoff"
+        }
+      ],
+      "operations": [
+        "analyse",
+        "capability",
+        "parse_force_file",
+        "registry_census",
+        "registry_show",
+        "spread",
+        "version"
+      ],
+      "output_formats": [],
+      "plateforce_version": "0.1.0",
+      "refusal_codes": [
+        {
+          "code": "ambiguous_force_channels",
+          "exit_code": 65
+        },
+        {
+          "code": "collapsed_band",
+          "exit_code": 65
+        },
+        {
+          "code": "column_not_found",
+          "exit_code": 65
+        },
+        {
+          "code": "decision_not_made",
+          "exit_code": 64
+        },
+        {
+          "code": "method_not_implemented",
+          "exit_code": 64
+        },
+        {
+          "code": "no_crossing",
+          "exit_code": 65
+        },
+        {
+          "code": "parameter_not_finite",
+          "exit_code": 64
+        },
+        {
+          "code": "plate_not_level",
+          "exit_code": 64
+        },
+        {
+          "code": "registry_invalid",
+          "exit_code": 78
+        },
+        {
+          "code": "required_parameter_unstated",
+          "exit_code": 64
+        },
+        {
+          "code": "schema_unsupported",
+          "exit_code": 65
+        },
+        {
+          "code": "sentinel_convention_unknown",
+          "exit_code": 64
+        },
+        {
+          "code": "trace_too_short",
+          "exit_code": 65
+        },
+        {
+          "code": "trial_identity_unparsed",
+          "exit_code": 65
+        },
+        {
+          "code": "unknown_parameter",
+          "exit_code": 64
+        }
+      ],
+      "schema": "plateforce.capability/1"
+    }
+  }
+}
