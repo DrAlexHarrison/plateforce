@@ -248,6 +248,20 @@ pub fn savitzky_golay_interpolated_edges(
     Ok(smoothed)
 }
 
+/// A centred rectangular moving average, which is this filter at polynomial order zero.
+///
+/// Fitting a degree-zero polynomial over a window and evaluating it at the centre is the
+/// window's arithmetic mean, so the boxcar is a named entry point onto the filter above
+/// rather than a convolution of its own. Two implementations would disagree at the ends,
+/// where this one continues the edge fit and a hand-written boxcar would truncate the
+/// window and silently change the divisor.
+pub fn moving_average_boxcar(
+    values: &[f64],
+    window_length: usize,
+) -> Result<Vec<f64>, SmoothingError> {
+    savitzky_golay_interpolated_edges(values, window_length, 0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -352,6 +366,77 @@ mod tests {
             assert!(
                 (got - 665.430_3).abs() < 1e-11,
                 "edge sample {index} came back as {got}"
+            );
+        }
+    }
+
+    /// The boxcar is held to the arithmetic mean over the window, computed here rather
+    /// than taken from the filter it calls, so the check is against the definition and not
+    /// against itself. An odd window is centred on its own sample.
+    #[test]
+    fn the_boxcar_is_the_arithmetic_mean_over_an_odd_window() {
+        let values: Vec<f64> = (0..500)
+            .map(|i| cubic(i as f64) + ((i % 7) as f64) * 0.3)
+            .collect();
+        let width = 41usize;
+        let averaged = moving_average_boxcar(&values, width).unwrap();
+        for centre in width..500 - width {
+            let window = &values[centre - width / 2..=centre + width / 2];
+            let mean = window.iter().sum::<f64>() / width as f64;
+            assert!(
+                (averaged[centre] - mean).abs() < 1e-9,
+                "sample {centre}: {} against {mean}",
+                averaged[centre]
+            );
+        }
+    }
+
+    /// Every jump tool in this corpus reaches a moving average with an even window,
+    /// because a width in seconds times a sample rate in hundreds is even. An even window
+    /// has no centre sample, so the mean it returns is the one taken half a sample later.
+    #[test]
+    fn an_even_boxcar_window_returns_the_mean_taken_half_a_sample_later() {
+        let values: Vec<f64> = (0..500)
+            .map(|i| cubic(i as f64) + ((i % 7) as f64) * 0.3)
+            .collect();
+        let width = 40usize;
+        let averaged = moving_average_boxcar(&values, width).unwrap();
+        for centre in width..500 - width {
+            let window = &values[centre - width / 2 + 1..=centre + width / 2];
+            let mean = window.iter().sum::<f64>() / width as f64;
+            assert!(
+                (averaged[centre] - mean).abs() < 1e-9,
+                "sample {centre}: {} against {mean}",
+                averaged[centre]
+            );
+        }
+    }
+
+    /// The interior kernels of order zero and order one are the same arithmetic, because a
+    /// least-squares line evaluated at the centre of a symmetric window is that window's
+    /// mean. The two part company at the ends, where order zero holds the leading half
+    /// window at one level and order one runs a slope through it. So the edge is where the
+    /// boxcar's policy is actually pinned, and an interior check alone cannot tell a
+    /// boxcar from a local linear fit.
+    #[test]
+    fn the_leading_and_trailing_half_windows_hold_one_level() {
+        let values: Vec<f64> = (0..500).map(|i| cubic(i as f64)).collect();
+        let width = 41usize;
+        let averaged = moving_average_boxcar(&values, width).unwrap();
+
+        let leading_mean = values[..width].iter().sum::<f64>() / width as f64;
+        for (index, &got) in averaged.iter().enumerate().take(width / 2) {
+            assert!(
+                (got - leading_mean).abs() < 1e-9,
+                "leading sample {index} came back as {got} against {leading_mean}"
+            );
+        }
+
+        let trailing_mean = values[500 - width..].iter().sum::<f64>() / width as f64;
+        for (index, &got) in averaged.iter().enumerate().skip(500 - width / 2) {
+            assert!(
+                (got - trailing_mean).abs() < 1e-9,
+                "trailing sample {index} came back as {got} against {trailing_mean}"
             );
         }
     }

@@ -7,16 +7,21 @@
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
 
+pub mod butterworth;
 pub mod gravity;
 pub mod onset;
 pub mod phases;
+pub mod provenance;
+pub mod rate;
 pub mod read;
+pub mod reporting;
 pub mod signal;
 pub mod smoothing;
 pub mod statistics;
 pub mod takeoff;
 pub mod trial;
 
+pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};
 pub use signal::{Sentinel, Trial, TrialError};
 pub use statistics::{DispersionEstimator, VarianceAccumulation};

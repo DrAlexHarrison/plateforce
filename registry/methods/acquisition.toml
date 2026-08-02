@@ -87,8 +87,9 @@ group = "A"
 title = "Zero-lag dual-pass Butterworth with Winter's correction"
 rule = """
 Two identical passes of the same order, forward then backward, with the dual-pass correction
-C = (2^(1/passes) - 1)^0.25 applied so the effective combined minus 3 dB point equals the nominal
-cutoff, and reflected end padding.
+C = (2^(1/passes) - 1)^(1/(2*order)) applied so the effective combined minus 3 dB point equals the
+nominal cutoff, and reflected end padding. At second order that is the quarter-power form Winter
+states, 0.8022.
 """
 status = "accepted"
 confidence = "high"
@@ -101,6 +102,11 @@ published_values = [2.0, 4.0]
 default = 2.0
 default_source = "winter2009"
 required = true
+notes = """
+The correction carries the order. Winter states the quarter-power form for a second-order filter,
+and applying that same factor at fourth order leaves the combined half-power point near 56 Hz when
+50 Hz was asked for.
+"""
 
 [[method.parameter]]
 name = "cutoff_hz"
