@@ -1,0 +1,269 @@
+//! Where the jump starts. Net impulse reliability runs from 0.984 to 0.479 across published
+//! rules on identical data, which is why this slot's every operator is recorded.
+
+pub mod absolute_force;
+pub mod adaptive_trailing_window;
+pub mod last_within_band;
+pub mod noise_relative;
+pub mod relative_to_system_weight;
+
+use std::collections::BTreeMap;
+
+use plateforce_core::onset::{backtrack, CrossingSearch, CrossingSelection};
+use plateforce_core::{Trial, WeighingEpoch};
+
+use crate::binding::unbound_method_message;
+use crate::request::{AnalysisRequest, MethodChoice};
+use crate::resolution::{
+    bound_method, format_number, BoundMethod, BoundValues, Resolution, RuleRefusal,
+};
+
+/// Which sign of departure from the reference counts as onset. `above_only` is a genuine
+/// fork for a squat jump or an isometric pull, which only rise, and is refused here rather
+/// than mapped onto a neighbour.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum OnsetDirection {
+    BelowOnly,
+    TwoSided,
+}
+
+/// `onset.op.direction`, in the vocabulary the registry publishes for it. A
+/// countermovement jump always unweights first, and counting a departure in either
+/// direction lets the upward excursion of rising onto the toes register as onset: net
+/// impulse ICC 0.479 either-direction against 0.790 below-only.
+pub(crate) fn direction(resolved: &mut Resolution) -> Result<OnsetDirection, RuleRefusal> {
+    match resolved.option("direction", "below_only").as_str() {
+        "below_only" => Ok(OnsetDirection::BelowOnly),
+        "two_sided" => Ok(OnsetDirection::TwoSided),
+        "above_only" => Err(RuleRefusal::Stated(
+            "onset.op.direction(above_only) counts departures above the \
+             reference, and a countermovement jump unweights first, so its onset is \
+             below_only or two_sided"
+                .to_string(),
+        )),
+        other => Err(RuleRefusal::Stated(format!(
+            "onset.op.direction({other}) is not one of below_only, above_only, two_sided"
+        ))),
+    }
+}
+
+/// The registry files both names on the onset row, and in this build the weighing window
+/// settles both: the spread the threshold is scaled by is that window's, taken over quiet
+/// stance. A rule that read them from its own request would report a convention that did
+/// not produce the number.
+pub(crate) fn record_inherited_spread(resolved: &mut Resolution, inherited_spread: (&str, bool)) {
+    let (convention, stated) = inherited_spread;
+    resolved.record("sd_convention", convention.to_string(), !stated);
+    resolved.record("reference_distribution", "quiet_stance_force".into(), true);
+}
+
+pub(crate) fn onset_search(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    resolved: &mut Resolution,
+) -> Result<CrossingSearch, RuleRefusal> {
+    let rate = trial.sample_rate_hz();
+    // Two different operators, and which one ran decides what the record may call it. A
+    // stated time is the deprecated fixed floor. Unstated, the search starts where the
+    // weighing window ended, which the weighing rule decided and no caller chose, so it is
+    // recorded as the derived bound it is rather than as a time nobody stated.
+    let start_index = match resolved.stated("floor_seconds") {
+        Some(seconds) => {
+            resolved.record_measured("floor_seconds", seconds, format_number(seconds), false);
+            (seconds * rate).round() as usize
+        }
+        None => {
+            resolved.record_measured(
+                "weighing_epoch_end_seconds",
+                trial.time_at(epoch.end_index),
+                format!("{:.4}", trial.time_at(epoch.end_index)),
+                true,
+            );
+            epoch.end_index
+        }
+    };
+    Ok(CrossingSearch {
+        start_index,
+        end_index: trial.len(),
+        persistence_samples: resolved
+            .milliseconds_as_samples("span_ms", 30.0, rate)
+            .max(1),
+        selection: resolved.enumerated(
+            "selection",
+            "first",
+            &[
+                ("first", CrossingSelection::First),
+                ("last", CrossingSelection::Last),
+            ],
+        )?,
+    })
+}
+
+pub(crate) struct OnsetOutcome {
+    pub index: Option<usize>,
+    pub bound: BoundValues,
+    pub refusal: Option<RuleRefusal>,
+}
+
+/// Which core function the onset id names, and what it was given.
+fn crossing(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    choice: &MethodChoice,
+    inherited_spread: (&str, bool),
+    resolved: &mut Resolution,
+    warnings: &mut Vec<String>,
+) -> Result<usize, RuleRefusal> {
+    match choice.method_id.as_str() {
+        "onset.threshold.relative_to_system_weight" => {
+            relative_to_system_weight::crossing(trial, epoch, resolved)
+        }
+        "onset.threshold.absolute_force" => absolute_force::crossing(trial, epoch, resolved),
+        "onset.threshold.last_within_band" => {
+            last_within_band::crossing(trial, epoch, inherited_spread, resolved, warnings)
+        }
+        "onset.threshold.adaptive_trailing_window" => {
+            adaptive_trailing_window::crossing(trial, resolved)
+        }
+        "onset.threshold.noise_relative" => {
+            noise_relative::crossing(trial, epoch, inherited_spread, resolved)
+        }
+        other => Err(RuleRefusal::Stated(unbound_method_message(other, "onset"))),
+    }
+}
+
+/// Whether the backward-offset operator is composed onto this rule here. The trailing-window
+/// and last-within-band rules resolve their own backtrack.
+fn applies_backtrack(method_id: &str) -> bool {
+    match method_id {
+        "onset.threshold.noise_relative" => noise_relative::APPLIES_BACKTRACK,
+        "onset.threshold.relative_to_system_weight" => relative_to_system_weight::APPLIES_BACKTRACK,
+        "onset.threshold.absolute_force" => absolute_force::APPLIES_BACKTRACK,
+        "onset.threshold.last_within_band" => last_within_band::APPLIES_BACKTRACK,
+        "onset.threshold.adaptive_trailing_window" => adaptive_trailing_window::APPLIES_BACKTRACK,
+        _ => false,
+    }
+}
+
+pub(crate) fn resolve(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    choice: &MethodChoice,
+    inherited_spread: (&str, bool),
+    warnings: &mut Vec<String>,
+) -> OnsetOutcome {
+    let rate = trial.sample_rate_hz();
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options);
+    let found = crossing(
+        trial,
+        epoch,
+        choice,
+        inherited_spread,
+        &mut resolved,
+        warnings,
+    );
+
+    let mut refusal = None;
+    let index = match found {
+        Ok(index) => {
+            if applies_backtrack(&choice.method_id) {
+                let back_offset_samples = resolved.milliseconds_as_samples("offset_ms", 30.0, rate);
+                let outcome = backtrack(index, back_offset_samples);
+                if outcome.clamped_at_start {
+                    warnings.push(
+                        "the onset backtrack ran off the front of the recording and was clamped at sample zero".into(),
+                    );
+                }
+                Some(outcome.index)
+            } else {
+                Some(index)
+            }
+        }
+        Err(rejected) => {
+            warnings.push(rejected.to_string());
+            refusal = Some(rejected);
+            None
+        }
+    };
+
+    OnsetOutcome {
+        index,
+        bound: resolved.finish(),
+        refusal,
+    }
+}
+
+/// The entries this build composes onto an onset threshold rule. Each is a registry entry
+/// in its own right, with its own citation, default and published values.
+pub const ONSET_OPERATOR_IDS: &[&str] = &[
+    "onset.op.backward_offset_fixed",
+    "onset.op.crossing_selection",
+    "onset.op.direction",
+    "onset.op.persistence",
+    "onset.op.search_floor",
+    "onset.op.search_floor_at_weighing_epoch_end",
+];
+
+/// Which registry entry carries each name an onset rule reads.
+///
+/// A threshold rule carries its own threshold and the convention its spread was taken
+/// under. Every other value is an operator the registry files as an entry in its own right,
+/// so recording one against the threshold rule puts a parameter on a row that does not have
+/// it, and a reader who looks the id up does not find the value that moved the number.
+fn operator_for(name: &str) -> Option<&'static str> {
+    match name {
+        "offset_ms" => Some("onset.op.backward_offset_fixed"),
+        "span_ms" => Some("onset.op.persistence"),
+        "floor_seconds" => Some("onset.op.search_floor"),
+        "weighing_epoch_end_seconds" => Some("onset.op.search_floor_at_weighing_epoch_end"),
+        "direction" => Some("onset.op.direction"),
+        "selection" => Some("onset.op.crossing_selection"),
+        _ => None,
+    }
+}
+
+/// The threshold rule, then each operator composed onto it, as separate entries.
+///
+/// `onset.op.backward_offset_fixed` is the one the registry is most explicit about: it is
+/// an entry with its own citation and its own default, its notes say omitting it "is not
+/// choosing 0 ms, it is failing to implement the cited method", and a composition that
+/// hides it inside the threshold rule reports neither.
+pub(crate) fn bound_methods(
+    method_id: &str,
+    values: BoundValues,
+    request: &AnalysisRequest,
+    manual_override: bool,
+) -> Vec<BoundMethod> {
+    let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
+    let mut threshold = BoundValues {
+        unread: values.unread,
+        ..Default::default()
+    };
+
+    for (name, shown) in values.parameters {
+        let carried_by = match operator_for(&name) {
+            Some(operator) => composed.entry(operator).or_default(),
+            None => &mut threshold,
+        };
+        if values.assumed.contains(&name) {
+            carried_by.assumed.push(name.clone());
+        }
+        if let Some(number) = values.numbers.get(&name) {
+            carried_by.numbers.insert(name.clone(), *number);
+        }
+        carried_by.parameters.push((name, shown));
+    }
+
+    let mut bound = vec![bound_method(
+        method_id,
+        threshold,
+        request.is_backed(method_id),
+        manual_override,
+    )];
+    bound.extend(
+        composed.into_iter().map(|(operator, read)| {
+            bound_method(operator, read, request.is_backed(operator), false)
+        }),
+    );
+    bound
+}

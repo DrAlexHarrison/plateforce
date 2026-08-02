@@ -1,0 +1,1410 @@
+//! One analysis, from a validated request to the numbers and the record of what produced
+//! them.
+
+use plateforce_core::{
+    flight_time_seconds, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
+    reactive_strength_index_modified, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
+    Landmarks, Trial,
+};
+
+use crate::binding::expect_bound;
+use crate::request::AnalysisRequest;
+use crate::resolution::{bound_method, RuleRefusal};
+use crate::response::{unit_symbol, AnalysisResponse, Levels, Metric};
+use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
+
+pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse, String> {
+    expect_bound(&request.weighing.method_id, "weighing")?;
+    expect_bound(&request.onset.method_id, "onset")?;
+    expect_bound(&request.takeoff.method_id, "takeoff")?;
+
+    let mut warnings = Vec::new();
+    let gravity = request.gravity_meters_per_second_squared;
+    let weighing = system_weight::resolve(trial, &request.weighing, &mut warnings)?;
+    let epoch = weighing.epoch;
+    let inherited_spread = (
+        weighing.standard_deviation_convention,
+        weighing.standard_deviation_convention_stated,
+    );
+
+    let mut bound_methods = vec![bound_method(
+        &request.weighing.method_id,
+        weighing.bound,
+        request.is_backed(&request.weighing.method_id),
+        request.weighing.start_index.is_some_and(|start| start != 0),
+    )];
+
+    let mut refusals: Vec<(&'static str, RuleRefusal)> = Vec::new();
+    let (onset_index, onset_bound) = match request.onset.manual_index {
+        // A dragged marker stands in for the rule, so no value the rule reads produced it.
+        Some(index) => (
+            Some(index.min(trial.len() - 1)),
+            crate::resolution::BoundValues::default(),
+        ),
+        None => {
+            let outcome = movement_onset::resolve(
+                trial,
+                &epoch,
+                &request.onset,
+                inherited_spread,
+                &mut warnings,
+            );
+            if let Some(rejected) = outcome.refusal {
+                refusals.push(("onset", rejected));
+            }
+            (outcome.index, outcome.bound)
+        }
+    };
+    let onset_methods = movement_onset::bound_methods(
+        &request.onset.method_id,
+        onset_bound,
+        request,
+        request.onset.manual_index.is_some(),
+    );
+    let onset_ids: Vec<String> = onset_methods
+        .iter()
+        .map(|bound| bound.method_id.clone())
+        .collect();
+    bound_methods.extend(onset_methods);
+
+    // The takeoff rule runs even under a dragged marker, because the threshold it resolves
+    // is what touchdown is found against.
+    let mut takeoff = takeoff_slot::resolve(trial, &epoch, &request.takeoff, &mut warnings);
+    if let Some(rejected) = takeoff.refusal.take() {
+        refusals.push(("takeoff", rejected));
+    }
+    let takeoff_index = match request.takeoff.manual_index {
+        Some(index) => Some(index.min(trial.len() - 1)),
+        None => takeoff.index,
+    };
+    bound_methods.push(bound_method(
+        &request.takeoff.method_id,
+        takeoff.bound,
+        request.is_backed(&request.takeoff.method_id),
+        request.takeoff.manual_index.is_some(),
+    ));
+
+    // Touchdown is the return above the threshold that defined takeoff, so it is not an
+    // independent choice and it is not offered as one.
+    let touchdown_index = request.touchdown_index.or_else(|| {
+        takeoff_index.and_then(|from| {
+            trial.force()[from..]
+                .iter()
+                .position(|&force| force > takeoff.threshold_newtons)
+                .map(|offset| offset + from)
+        })
+    });
+
+    if let (Some(onset), Some(takeoff_at)) = (onset_index, takeoff_index) {
+        if onset >= takeoff_at {
+            warnings.push(
+                "onset is at or after takeoff, so every interval below is meaningless".into(),
+            );
+        }
+    }
+
+    // The band drawn on the trace is k SD wide whichever onset rule ran, so it is not part
+    // of any one rule's binding.
+    let onset_band = request.onset.parameters.get("k").copied().unwrap_or(5.0)
+        * epoch.standard_deviation_newtons;
+    let landmarks = match (onset_index, takeoff_index) {
+        (Some(onset), Some(takeoff_at)) if takeoff_at > onset => Some(Landmarks {
+            onset_index: onset,
+            takeoff_index: takeoff_at,
+            touchdown_index: touchdown_index.unwrap_or(trial.len() - 1),
+        }),
+        _ => None,
+    };
+
+    let mut interval = onset_ids.clone();
+    interval.push(request.takeoff.method_id.clone());
+    let weighing_ids = vec![request.weighing.method_id.clone()];
+    let takeoff_ids = vec![request.takeoff.method_id.clone()];
+    let mut full = vec![request.weighing.method_id.clone()];
+    full.extend(onset_ids.clone());
+    full.push(request.takeoff.method_id.clone());
+
+    let interval_seconds = landmarks
+        .as_ref()
+        .map(|marks| time_to_takeoff_seconds(marks, trial.sample_interval_seconds()));
+    let flight = landmarks.as_ref().and_then(|marks| {
+        touchdown_index.map(|_| flight_time_seconds(marks, trial.sample_interval_seconds()))
+    });
+    let velocity = landmarks
+        .as_ref()
+        .map(|marks| takeoff_velocity_meters_per_second(trial, &epoch, marks, gravity));
+    let height_takeoff = velocity.map(|v| jump_height_from_takeoff_velocity(v, gravity));
+
+    let metrics = vec![
+        Metric {
+            key: "system_weight_newtons",
+            label: "System weight",
+            value: Some(epoch.system_weight_newtons),
+            unit: "newtons",
+            unit_symbol: unit_symbol("newtons"),
+            contributing_method_ids: weighing_ids.clone(),
+            computed_by: None,
+            note: Some("Includes any external load. System weight is not bodyweight.".into()),
+        },
+        Metric {
+            key: "system_mass_kilograms",
+            label: "System mass",
+            value: Some(epoch.system_mass_kilograms(gravity)),
+            unit: "kilograms",
+            unit_symbol: unit_symbol("kilograms"),
+            contributing_method_ids: weighing_ids,
+            computed_by: None,
+            note: Some(format!("At g = {gravity} m/s2, which is itself a bound choice.")),
+        },
+        Metric {
+            key: "onset_time_seconds",
+            label: "Movement onset",
+            value: onset_index.map(|index| trial.time_at(index)),
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
+            contributing_method_ids: onset_ids.clone(),
+            computed_by: None,
+            note: None,
+        },
+        Metric {
+            key: "takeoff_time_seconds",
+            label: "Takeoff",
+            value: takeoff_index.map(|index| trial.time_at(index)),
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
+            contributing_method_ids: takeoff_ids.clone(),
+            computed_by: None,
+            note: None,
+        },
+        Metric {
+            key: "time_to_takeoff_seconds",
+            label: "Time to takeoff",
+            value: interval_seconds,
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
+            contributing_method_ids: interval.clone(),
+            computed_by: None,
+            note: Some(
+                "Bounded by two threshold crossings, which is why it is the least reproducible number here."
+                    .into(),
+            ),
+        },
+        Metric {
+            key: "flight_time_seconds",
+            label: "Flight time",
+            value: flight,
+            unit: "seconds",
+            unit_symbol: unit_symbol("seconds"),
+            contributing_method_ids: takeoff_ids,
+            computed_by: None,
+            note: None,
+        },
+        Metric {
+            key: "takeoff_velocity_meters_per_second",
+            label: "Takeoff velocity",
+            value: velocity,
+            unit: "meters_per_second",
+            unit_symbol: unit_symbol("meters_per_second"),
+            contributing_method_ids: full.clone(),
+            // One entry covers both this and the impulse below: its rule is the integration and
+            // the division by mass in one sentence.
+            computed_by: Some("impulse.net_vertical.as_performance_determinant"),
+            note: Some("Net impulse over system mass. An identity, not an estimate.".into()),
+        },
+        Metric {
+            key: "net_impulse_newton_seconds",
+            label: "Net impulse",
+            value: landmarks.as_ref().map(|marks| {
+                trial.integrate_offset_newton_seconds(
+                    marks.onset_index,
+                    marks.takeoff_index,
+                    epoch.system_weight_newtons,
+                )
+            }),
+            unit: "newton_seconds",
+            unit_symbol: unit_symbol("newton_seconds"),
+            contributing_method_ids: full.clone(),
+            computed_by: Some("impulse.net_vertical.as_performance_determinant"),
+            note: None,
+        },
+        Metric {
+            key: "jump_height_from_takeoff_meters",
+            label: "Jump height, takeoff frame",
+            value: height_takeoff,
+            unit: "meters",
+            unit_symbol: unit_symbol("meters"),
+            contributing_method_ids: full.clone(),
+            computed_by: Some("jumpheight.takeoff.impulse_momentum"),
+            note: Some(
+                "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
+                    .into(),
+            ),
+        },
+        Metric {
+            key: "jump_height_from_flight_time_meters",
+            label: "Jump height, flight time",
+            value: flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
+            unit: "meters",
+            unit_symbol: unit_symbol("meters"),
+            contributing_method_ids: vec![request.takeoff.method_id.clone()],
+            computed_by: Some("jumpheight.takeoff.flight_time"),
+            note: Some(
+                "A different construct from the takeoff frame figure above, not a different way of computing it."
+                    .into(),
+            ),
+        },
+        Metric {
+            key: "reactive_strength_index_modified",
+            label: "RSI modified",
+            value: match (height_takeoff, interval_seconds) {
+                (Some(height), Some(seconds)) => reactive_strength_index_modified(height, seconds),
+                _ => None,
+            },
+            unit: "meters_per_second",
+            unit_symbol: unit_symbol("meters_per_second"),
+            contributing_method_ids: full,
+            // The registry carries two numerators for this quantity and marks the choice
+            // force_a_decision. This build runs the impulse-momentum one, and naming it is the
+            // difference between a reader knowing which of the two they are holding and not.
+            computed_by: Some("rsimod.jh_tov_over_ttt"),
+            note: Some(
+                "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number."
+                    .into(),
+            ),
+        },
+    ];
+
+    Ok(AnalysisResponse {
+        weighing_start_index: epoch.start_index,
+        weighing_end_index: epoch.end_index,
+        onset_index,
+        takeoff_index,
+        touchdown_index,
+        levels: Levels {
+            system_weight_newtons: epoch.system_weight_newtons,
+            weighing_standard_deviation_newtons: epoch.standard_deviation_newtons,
+            onset_band_lower_newtons: Some(epoch.system_weight_newtons - onset_band),
+            onset_band_upper_newtons: Some(epoch.system_weight_newtons + onset_band),
+            takeoff_threshold_newtons: Some(takeoff.threshold_newtons),
+        },
+        bound_methods,
+        metrics,
+        weighing_epoch_tied_window_count: epoch.tied_window_count,
+        warnings,
+        refusals,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use plateforce_core::trial::CentralTendency;
+    use plateforce_core::{DispersionEstimator, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
+
+    use super::*;
+    use crate::binding::BINDINGS;
+    use crate::request::{MethodChoice, WeighingChoice};
+    use crate::slots::system_weight::{weighing_epoch_at, window_length_parameter};
+
+    fn synthetic() -> Trial {
+        let mut force = vec![600.0; 1200];
+        for (index, value) in force.iter_mut().enumerate() {
+            *value += ((index % 17) as f64 - 8.0) * 0.4;
+        }
+        force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
+        force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
+        force.extend(std::iter::repeat_n(0.0, 600));
+        force.extend(std::iter::repeat_n(1400.0, 240));
+        Trial::new(force, 1200.0).unwrap()
+    }
+
+    fn weighing(
+        method_id: &str,
+        start_index: Option<usize>,
+        duration_seconds: f64,
+    ) -> WeighingChoice {
+        WeighingChoice {
+            method_id: method_id.into(),
+            start_index,
+            parameters: BTreeMap::from([(
+                window_length_parameter(method_id).to_string(),
+                duration_seconds,
+            )]),
+            options: BTreeMap::new(),
+        }
+    }
+
+    fn request(onset_id: &str, takeoff_id: &str) -> AnalysisRequest {
+        AnalysisRequest {
+            weighing: weighing("bwepoch.fixed_window", None, 0.8),
+            onset: MethodChoice {
+                method_id: onset_id.into(),
+                ..Default::default()
+            },
+            takeoff: MethodChoice {
+                method_id: takeoff_id.into(),
+                ..Default::default()
+            },
+            touchdown_index: None,
+            gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+            registry_backed_ids: vec!["onset.threshold.noise_relative".into()],
+        }
+    }
+
+    #[test]
+    fn every_binding_this_build_advertises_actually_runs() {
+        let trial = synthetic();
+        for binding in BINDINGS {
+            if binding.slot == "weighing" {
+                continue;
+            }
+            let mut candidate = request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            );
+            if binding.slot == "onset" {
+                candidate.onset.method_id = binding.id.to_string();
+            } else {
+                candidate.takeoff.method_id = binding.id.to_string();
+            }
+            let response = run(&trial, &candidate)
+                .unwrap_or_else(|error| panic!("{} failed to run: {error}", binding.id));
+            assert!(
+                !response.metrics.is_empty(),
+                "{} produced no metrics",
+                binding.id
+            );
+        }
+    }
+
+    #[test]
+    fn the_weighing_bindings_all_produce_a_window() {
+        let trial = synthetic();
+        for method_id in ["bwepoch.fixed_window", "bwepoch.adaptive_lowest_variance"] {
+            let mut candidate = request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            );
+            candidate.weighing.method_id = method_id.to_string();
+            let response = run(&trial, &candidate).unwrap();
+            assert!(
+                response.weighing_end_index > response.weighing_start_index,
+                "{method_id}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_moved_weighing_window_keeps_the_weight_and_restates_the_indices() {
+        let trial = synthetic();
+        let anchored = weighing_epoch_at(
+            &trial,
+            0,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let moved = weighing_epoch_at(
+            &trial,
+            240,
+            0.5,
+            CentralTendency::Mean,
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        assert_eq!(moved.start_index, 240);
+        assert_eq!(moved.end_index, 240 + 600);
+        assert!((moved.system_weight_newtons - anchored.system_weight_newtons).abs() < 5.0);
+    }
+
+    #[test]
+    fn every_metric_names_the_methods_that_produced_it() {
+        let response = run(
+            &synthetic(),
+            &request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            ),
+        )
+        .unwrap();
+        for metric in &response.metrics {
+            assert!(
+                !metric.contributing_method_ids.is_empty(),
+                "{} carries no provenance",
+                metric.key
+            );
+        }
+    }
+
+    #[test]
+    fn a_method_absent_from_the_registry_is_marked_unbacked_rather_than_hidden() {
+        let response = run(
+            &synthetic(),
+            &request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            ),
+        )
+        .unwrap();
+        let takeoff = response
+            .bound_methods
+            .iter()
+            .find(|m| m.method_id.starts_with("takeoff."))
+            .unwrap();
+        assert!(!takeoff.registry_backed);
+    }
+
+    #[test]
+    fn dragging_a_marker_is_recorded_as_an_override() {
+        let mut candidate = request(
+            "onset.threshold.noise_relative",
+            "takeoff.threshold.absolute_force",
+        );
+        candidate.onset.manual_index = Some(1100);
+        let response = run(&synthetic(), &candidate).unwrap();
+        assert_eq!(response.onset_index, Some(1100));
+        assert!(response.bound_methods.iter().any(|m| m.manual_override));
+    }
+
+    /// The picker cannot reach an id with no rule behind it, and the module surface can. A
+    /// rule run under somebody else's id would put that author's citation on the answer.
+    #[test]
+    fn an_id_with_no_rule_behind_it_is_refused_rather_than_run_as_something_else() {
+        let trial = synthetic();
+        for (slot, method_id) in [
+            ("weighing", "bwepoch.robust_estimator"),
+            ("onset", "onset.yank_inflection.sahrom2020"),
+            ("takeoff", "takeoff.system_weight_decrease.pinto2024"),
+        ] {
+            let mut candidate = request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            );
+            match slot {
+                "weighing" => candidate.weighing.method_id = method_id.to_string(),
+                "onset" => candidate.onset.method_id = method_id.to_string(),
+                _ => candidate.takeoff.method_id = method_id.to_string(),
+            }
+            let error = run(&trial, &candidate)
+                .expect_err(&format!("{method_id} ran under a rule that is not it"));
+            assert!(error.contains(method_id), "{error}");
+            assert!(error.contains(slot), "{error}");
+        }
+    }
+
+    /// A dragged marker still leaves the id to be honoured, so the refusal has to happen
+    /// before the override is read.
+    #[test]
+    fn an_unbound_id_is_refused_even_when_a_marker_was_dragged() {
+        let mut candidate = request(
+            "onset.yank_inflection.sahrom2020",
+            "takeoff.threshold.absolute_force",
+        );
+        candidate.onset.manual_index = Some(1100);
+        assert!(run(&synthetic(), &candidate).is_err());
+    }
+
+    fn two_flight_phases() -> Trial {
+        let mut force = vec![600.0; 1200];
+        force.extend(std::iter::repeat_n(0.0, 400));
+        force.extend(std::iter::repeat_n(600.0, 300));
+        force.extend(std::iter::repeat_n(0.0, 1200));
+        Trial::new(force, 1200.0).unwrap()
+    }
+
+    /// A weight shift above system weight before the countermovement, the only shape on
+    /// which a band open on both sides and one open below disagree.
+    fn pre_movement_bump() -> Trial {
+        let mut force = vec![600.0; 1000];
+        for (index, sample) in force.iter_mut().enumerate() {
+            *sample += ((index % 17) as f64 - 8.0) * 0.4;
+        }
+        force.extend(std::iter::repeat_n(680.0, 120));
+        force.extend(std::iter::repeat_n(600.0, 240));
+        force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
+        force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
+        force.extend(std::iter::repeat_n(0.0, 600));
+        force.extend(std::iter::repeat_n(1400.0, 240));
+        Trial::new(force, 1200.0).unwrap()
+    }
+
+    /// The rule that skips past the first qualifying flight phase has to say so. Two open
+    /// tools do this on 155 of 244 trials and report nothing.
+    #[test]
+    fn the_longest_run_rule_warns_when_it_skips_the_first_flight_phase() {
+        let trial = two_flight_phases();
+
+        let mut candidate = request(
+            "onset.threshold.noise_relative",
+            "takeoff.threshold.longest_run",
+        );
+        candidate.weighing = weighing(&candidate.weighing.method_id.clone(), None, 0.5);
+        let response = run(&trial, &candidate).unwrap();
+        assert!(
+            response
+                .warnings
+                .iter()
+                .any(|w| w.contains("qualifying flight phases")),
+            "silent misplacement went unreported: {:?}",
+            response.warnings
+        );
+    }
+
+    type CaseParameters = &'static [(&'static str, f64)];
+    type CaseOptions = &'static [(&'static str, &'static str)];
+    /// Name, rule, where the window starts, how long it runs, and what else was stated.
+    type WeighingCase = (
+        &'static str,
+        &'static str,
+        Option<usize>,
+        f64,
+        CaseParameters,
+        CaseOptions,
+    );
+
+    const ONSET_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
+        (
+            "noise_relative bare",
+            "onset.threshold.noise_relative",
+            &[],
+            &[],
+        ),
+        (
+            "noise_relative k",
+            "onset.threshold.noise_relative",
+            &[("k", 2.0)],
+            &[],
+        ),
+        (
+            "noise_relative direction below_only",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "noise_relative direction two_sided",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "noise_relative selection last",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("selection", "last")],
+        ),
+        (
+            "noise_relative selection first",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("selection", "first")],
+        ),
+        (
+            "noise_relative persistence",
+            "onset.threshold.noise_relative",
+            &[("span_ms", 10.0)],
+            &[],
+        ),
+        (
+            "noise_relative search floor",
+            "onset.threshold.noise_relative",
+            &[("floor_seconds", 0.9)],
+            &[],
+        ),
+        (
+            "noise_relative back offset",
+            "onset.threshold.noise_relative",
+            &[("offset_ms", 50.0)],
+            &[],
+        ),
+        (
+            "noise_relative degenerate fraction",
+            "onset.threshold.noise_relative",
+            &[("degenerate_fraction", 0.2)],
+            &[],
+        ),
+        (
+            "noise_relative every value stated",
+            "onset.threshold.noise_relative",
+            &[
+                ("k", 3.0),
+                ("span_ms", 5.0),
+                ("floor_seconds", 0.85),
+                ("offset_ms", 20.0),
+                ("degenerate_fraction", 0.1),
+            ],
+            &[("direction", "below_only"), ("selection", "last")],
+        ),
+        (
+            "noise_relative names another rule carries",
+            "onset.threshold.noise_relative",
+            &[("threshold_n", 50.0), ("pct", 1.0)],
+            &[],
+        ),
+        (
+            "relative_to_system_weight bare",
+            "onset.threshold.relative_to_system_weight",
+            &[],
+            &[],
+        ),
+        (
+            "relative_to_system_weight pct",
+            "onset.threshold.relative_to_system_weight",
+            &[("pct", 5.0)],
+            &[],
+        ),
+        (
+            "relative_to_system_weight superseded spelling",
+            "onset.threshold.relative_to_system_weight",
+            &[("percent", 5.0)],
+            &[],
+        ),
+        (
+            "relative_to_system_weight every value stated",
+            "onset.threshold.relative_to_system_weight",
+            &[
+                ("pct", 10.0),
+                ("floor_seconds", 0.85),
+                ("span_ms", 4.0),
+                ("offset_ms", 10.0),
+            ],
+            &[("selection", "last")],
+        ),
+        (
+            "absolute_force bare",
+            "onset.threshold.absolute_force",
+            &[],
+            &[],
+        ),
+        (
+            "absolute_force threshold",
+            "onset.threshold.absolute_force",
+            &[("threshold_n", 50.0)],
+            &[],
+        ),
+        (
+            "absolute_force superseded spelling",
+            "onset.threshold.absolute_force",
+            &[("threshold_newtons", 50.0)],
+            &[],
+        ),
+        (
+            "absolute_force direction two_sided",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "absolute_force direction below_only",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "absolute_force every value stated",
+            "onset.threshold.absolute_force",
+            &[
+                ("threshold_n", 40.0),
+                ("floor_seconds", 0.82),
+                ("span_ms", 6.0),
+                ("offset_ms", 40.0),
+            ],
+            &[("direction", "two_sided"), ("selection", "last")],
+        ),
+        (
+            "last_within_band bare",
+            "onset.threshold.last_within_band",
+            &[],
+            &[],
+        ),
+        (
+            "last_within_band k",
+            "onset.threshold.last_within_band",
+            &[("k", 3.0)],
+            &[],
+        ),
+        (
+            "last_within_band inverse lookback",
+            "onset.threshold.last_within_band",
+            &[("inverse_lookback", 0.25)],
+            &[],
+        ),
+        (
+            "last_within_band back offset",
+            "onset.threshold.last_within_band",
+            &[("offset_ms", 50.0)],
+            &[],
+        ),
+        (
+            "last_within_band every value stated",
+            "onset.threshold.last_within_band",
+            &[("k", 2.0), ("inverse_lookback", 0.75), ("offset_ms", 10.0)],
+            &[("selection", "last")],
+        ),
+        (
+            "adaptive_trailing_window bare",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window window",
+            "onset.threshold.adaptive_trailing_window",
+            &[("window_seconds", 0.25)],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window k",
+            "onset.threshold.adaptive_trailing_window",
+            &[("k", 3.0)],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window population",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "adaptive_trailing_window sample",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[("dispersion", "sample")],
+        ),
+        (
+            "adaptive_trailing_window every value stated",
+            "onset.threshold.adaptive_trailing_window",
+            &[("window_seconds", 0.75), ("k", 4.0), ("offset_ms", 50.0)],
+            &[("dispersion", "population")],
+        ),
+    ];
+
+    const BUMP_ONSET_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
+        (
+            "absolute_force bare",
+            "onset.threshold.absolute_force",
+            &[],
+            &[],
+        ),
+        (
+            "absolute_force direction below_only",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "absolute_force direction two_sided",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "absolute_force both and last",
+            "onset.threshold.absolute_force",
+            &[],
+            &[("direction", "two_sided"), ("selection", "last")],
+        ),
+        (
+            "noise_relative bare",
+            "onset.threshold.noise_relative",
+            &[],
+            &[],
+        ),
+        (
+            "noise_relative direction below_only",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "below_only")],
+        ),
+        (
+            "noise_relative direction two_sided",
+            "onset.threshold.noise_relative",
+            &[],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "noise_relative persistence",
+            "onset.threshold.noise_relative",
+            &[("span_ms", 200.0)],
+            &[("direction", "two_sided")],
+        ),
+        (
+            "relative_to_system_weight bare",
+            "onset.threshold.relative_to_system_weight",
+            &[],
+            &[],
+        ),
+        (
+            "last_within_band bare",
+            "onset.threshold.last_within_band",
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_trailing_window bare",
+            "onset.threshold.adaptive_trailing_window",
+            &[],
+            &[],
+        ),
+    ];
+
+    const TAKEOFF_CASES: &[(&str, &str, CaseParameters, CaseOptions)] = &[
+        (
+            "absolute_force bare",
+            "takeoff.threshold.absolute_force",
+            &[],
+            &[],
+        ),
+        (
+            "absolute_force threshold",
+            "takeoff.threshold.absolute_force",
+            &[("threshold_n", 25.0)],
+            &[],
+        ),
+        (
+            "absolute_force superseded spelling",
+            "takeoff.threshold.absolute_force",
+            &[("threshold_newtons", 30.0), ("minimum_flight", 0.03)],
+            &[],
+        ),
+        (
+            "absolute_force persistence",
+            "takeoff.threshold.absolute_force",
+            &[("persistence_ms", 50.0)],
+            &[],
+        ),
+        (
+            "absolute_force magnitude",
+            "takeoff.threshold.absolute_force",
+            &[],
+            &[("comparison", "magnitude")],
+        ),
+        (
+            "absolute_force signed",
+            "takeoff.threshold.absolute_force",
+            &[],
+            &[("comparison", "signed")],
+        ),
+        (
+            "absolute_force every value stated",
+            "takeoff.threshold.absolute_force",
+            &[("threshold_n", 30.0), ("persistence_ms", 200.0)],
+            &[("comparison", "magnitude")],
+        ),
+        (
+            "longest_run bare",
+            "takeoff.threshold.longest_run",
+            &[],
+            &[],
+        ),
+        (
+            "longest_run filter then rank",
+            "takeoff.threshold.longest_run",
+            &[],
+            &[("short_run_handling", "filter_then_rank")],
+        ),
+        (
+            "longest_run rank then filter",
+            "takeoff.threshold.longest_run",
+            &[],
+            &[("short_run_handling", "rank_then_filter")],
+        ),
+        (
+            "longest_run every value stated",
+            "takeoff.threshold.longest_run",
+            &[("threshold_n", 25.0), ("persistence_ms", 50.0)],
+            &[
+                ("comparison", "magnitude"),
+                ("short_run_handling", "filter_then_rank"),
+            ],
+        ),
+        (
+            "descending_crossing bare",
+            "takeoff.threshold.descending_crossing",
+            &[],
+            &[],
+        ),
+        (
+            "descending_crossing confirmation",
+            "takeoff.threshold.descending_crossing",
+            &[("persistence_ms", 50.0)],
+            &[],
+        ),
+        (
+            "descending_crossing threshold",
+            "takeoff.threshold.descending_crossing",
+            &[("threshold_n", 25.0)],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd bare",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd trim",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[("trim_fraction", 0.4)],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd k",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[("k", 3.0)],
+            &[],
+        ),
+        (
+            "flight_noise_k_sd population",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "flight_noise_k_sd every value stated",
+            "takeoff.threshold.flight_noise_k_sd",
+            &[
+                ("trim_fraction", 0.1),
+                ("k", 8.0),
+                ("bounding_threshold_n", 20.0),
+            ],
+            &[("dispersion", "population")],
+        ),
+    ];
+
+    const WEIGHING_CASES: &[WeighingCase] = &[
+        (
+            "fixed_window bare",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[],
+        ),
+        (
+            "fixed_window half second",
+            "bwepoch.fixed_window",
+            None,
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "fixed_window moved",
+            "bwepoch.fixed_window",
+            Some(240),
+            0.8,
+            &[],
+            &[],
+        ),
+        (
+            "fixed_window median",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("centre", "median")],
+        ),
+        (
+            "fixed_window mean",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("centre", "mean")],
+        ),
+        (
+            "fixed_window population",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "fixed_window sample",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[],
+            &[("dispersion", "sample")],
+        ),
+        (
+            "fixed_window superseded spelling",
+            "bwepoch.fixed_window",
+            None,
+            0.8,
+            &[("duration_seconds", 0.2)],
+            &[],
+        ),
+        (
+            "fixed_window every value stated",
+            "bwepoch.fixed_window",
+            Some(120),
+            0.6,
+            &[],
+            &[("centre", "median"), ("dispersion", "population")],
+        ),
+        (
+            "manual_placement moved",
+            "bwepoch.manual_placement",
+            Some(240),
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "manual_placement anchored",
+            "bwepoch.manual_placement",
+            None,
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_lowest_variance bare",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_lowest_variance cumulative",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[("accumulation", "cumulative_sum_of_squares")],
+        ),
+        (
+            "adaptive_lowest_variance two pass",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[("accumulation", "two_pass")],
+        ),
+        (
+            "adaptive_lowest_variance population",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[],
+            &[("dispersion", "population")],
+        ),
+        (
+            "adaptive_lowest_variance moved",
+            "bwepoch.adaptive_lowest_variance",
+            Some(240),
+            0.8,
+            &[],
+            &[("centre", "median")],
+        ),
+        (
+            "adaptive_lowest_variance half second",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.5,
+            &[],
+            &[],
+        ),
+        (
+            "adaptive_lowest_variance floor published",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[("variance_floor_pct_bodyweight", 0.5)],
+            &[],
+        ),
+        (
+            "adaptive_lowest_variance floor binding",
+            "bwepoch.adaptive_lowest_variance",
+            None,
+            0.8,
+            &[("variance_floor_pct_bodyweight", 2.0)],
+            &[],
+        ),
+    ];
+
+    struct CharacterisationCase {
+        name: String,
+        trial: &'static str,
+        request: AnalysisRequest,
+    }
+
+    fn case_parameters(pairs: CaseParameters) -> BTreeMap<String, f64> {
+        pairs
+            .iter()
+            .map(|(name, value)| ((*name).to_string(), *value))
+            .collect()
+    }
+
+    fn case_options(pairs: CaseOptions) -> BTreeMap<String, String> {
+        pairs
+            .iter()
+            .map(|(name, value)| ((*name).to_string(), (*value).to_string()))
+            .collect()
+    }
+
+    fn characterisation_cases() -> Vec<CharacterisationCase> {
+        let mut cases = Vec::new();
+        let baseline = || {
+            request(
+                "onset.threshold.noise_relative",
+                "takeoff.threshold.absolute_force",
+            )
+        };
+
+        for (name, method_id, parameters, options) in ONSET_CASES {
+            let mut candidate = baseline();
+            candidate.onset = MethodChoice {
+                method_id: (*method_id).into(),
+                parameters: case_parameters(parameters),
+                options: case_options(options),
+                manual_index: None,
+            };
+            cases.push(CharacterisationCase {
+                name: format!("onset {name}"),
+                trial: "synthetic",
+                request: candidate,
+            });
+        }
+
+        for (name, method_id, parameters, options) in TAKEOFF_CASES {
+            let mut candidate = baseline();
+            candidate.takeoff = MethodChoice {
+                method_id: (*method_id).into(),
+                parameters: case_parameters(parameters),
+                options: case_options(options),
+                manual_index: None,
+            };
+            cases.push(CharacterisationCase {
+                name: format!("takeoff {name}"),
+                trial: "synthetic",
+                request: candidate,
+            });
+        }
+
+        for (name, method_id, start_index, duration_seconds, parameters, options) in WEIGHING_CASES
+        {
+            let mut candidate = baseline();
+            let mut values = case_parameters(parameters);
+            values.insert(
+                window_length_parameter(method_id).to_string(),
+                *duration_seconds,
+            );
+            candidate.weighing = WeighingChoice {
+                method_id: (*method_id).into(),
+                start_index: *start_index,
+                parameters: values,
+                options: case_options(options),
+            };
+            cases.push(CharacterisationCase {
+                name: format!("weighing {name}"),
+                trial: "synthetic",
+                request: candidate,
+            });
+        }
+
+        let mut low_gravity = baseline();
+        low_gravity.gravity_meters_per_second_squared = 9.8;
+        cases.push(CharacterisationCase {
+            name: "gravity 9.8".into(),
+            trial: "synthetic",
+            request: low_gravity,
+        });
+
+        let mut high_gravity = baseline();
+        high_gravity.gravity_meters_per_second_squared = 9.81;
+        cases.push(CharacterisationCase {
+            name: "gravity 9.81".into(),
+            trial: "synthetic",
+            request: high_gravity,
+        });
+
+        let mut stated_touchdown = baseline();
+        stated_touchdown.touchdown_index = Some(2300);
+        cases.push(CharacterisationCase {
+            name: "touchdown stated".into(),
+            trial: "synthetic",
+            request: stated_touchdown,
+        });
+
+        let mut dragged_onset = baseline();
+        dragged_onset.onset.manual_index = Some(1100);
+        dragged_onset.onset.parameters = case_parameters(&[("k", 3.0)]);
+        cases.push(CharacterisationCase {
+            name: "onset dragged".into(),
+            trial: "synthetic",
+            request: dragged_onset,
+        });
+
+        let mut dragged_takeoff = baseline();
+        dragged_takeoff.takeoff.manual_index = Some(2100);
+        dragged_takeoff.takeoff.parameters = case_parameters(&[("threshold_n", 25.0)]);
+        cases.push(CharacterisationCase {
+            name: "takeoff dragged".into(),
+            trial: "synthetic",
+            request: dragged_takeoff,
+        });
+
+        let mut both_dragged = baseline();
+        both_dragged.onset.manual_index = Some(1150);
+        both_dragged.takeoff.manual_index = Some(2050);
+        cases.push(CharacterisationCase {
+            name: "both dragged".into(),
+            trial: "synthetic",
+            request: both_dragged,
+        });
+
+        let mut inverted = baseline();
+        inverted.onset.manual_index = Some(2200);
+        inverted.takeoff.manual_index = Some(1300);
+        cases.push(CharacterisationCase {
+            name: "onset after takeoff".into(),
+            trial: "synthetic",
+            request: inverted,
+        });
+
+        let mut unbacked = baseline();
+        unbacked.registry_backed_ids = Vec::new();
+        cases.push(CharacterisationCase {
+            name: "nothing registry backed".into(),
+            trial: "synthetic",
+            request: unbacked,
+        });
+
+        let mut everything_backed = baseline();
+        everything_backed.registry_backed_ids = BINDINGS
+            .iter()
+            .map(|binding| binding.id.to_string())
+            .collect();
+        cases.push(CharacterisationCase {
+            name: "everything registry backed".into(),
+            trial: "synthetic",
+            request: everything_backed,
+        });
+
+        for (name, method_id, parameters, options) in BUMP_ONSET_CASES {
+            let mut candidate = baseline();
+            candidate.onset = MethodChoice {
+                method_id: (*method_id).into(),
+                parameters: case_parameters(parameters),
+                options: case_options(options),
+                manual_index: None,
+            };
+            cases.push(CharacterisationCase {
+                name: format!("bump onset {name}"),
+                trial: "pre_movement_bump",
+                request: candidate,
+            });
+        }
+
+        for (name, takeoff_id) in [
+            ("first sustained run", "takeoff.threshold.absolute_force"),
+            ("longest run", "takeoff.threshold.longest_run"),
+            (
+                "descending crossing",
+                "takeoff.threshold.descending_crossing",
+            ),
+            ("flight noise", "takeoff.threshold.flight_noise_k_sd"),
+        ] {
+            let mut candidate = baseline();
+            candidate.weighing = weighing(&candidate.weighing.method_id.clone(), None, 0.5);
+            candidate.takeoff.method_id = takeoff_id.into();
+            cases.push(CharacterisationCase {
+                name: format!("two flight phases {name}"),
+                trial: "two_flight_phases",
+                request: candidate,
+            });
+        }
+
+        cases
+    }
+
+    fn characterisation_report() -> String {
+        let synthetic_trial = synthetic();
+        let two_phase_trial = two_flight_phases();
+        let bump_trial = pre_movement_bump();
+        let mut report = String::new();
+
+        for case in characterisation_cases() {
+            let trial = match case.trial {
+                "two_flight_phases" => &two_phase_trial,
+                "pre_movement_bump" => &bump_trial,
+                _ => &synthetic_trial,
+            };
+            report.push_str(&format!("case {} on {}\n", case.name, case.trial));
+            match run(trial, &case.request) {
+                Ok(response) => {
+                    report.push_str(&format!(
+                        "  window {}..{}\n  onset {:?}\n  takeoff {:?}\n  touchdown {:?}\n",
+                        response.weighing_start_index,
+                        response.weighing_end_index,
+                        response.onset_index,
+                        response.takeoff_index,
+                        response.touchdown_index
+                    ));
+                    report.push_str(&format!(
+                        "  levels {:?} {:?} {:?} {:?} {:?}\n",
+                        response.levels.system_weight_newtons,
+                        response.levels.weighing_standard_deviation_newtons,
+                        response.levels.onset_band_lower_newtons,
+                        response.levels.onset_band_upper_newtons,
+                        response.levels.takeoff_threshold_newtons
+                    ));
+                    for metric in &response.metrics {
+                        report.push_str(&format!("  metric {} {:?}\n", metric.key, metric.value));
+                    }
+                    for method in &response.bound_methods {
+                        report.push_str(&format!(
+                            "  method {} backed {} override {}\n",
+                            method.method_id, method.registry_backed, method.manual_override
+                        ));
+                    }
+                    for warning in &response.warnings {
+                        report.push_str(&format!("  warning {warning}\n"));
+                    }
+                }
+                Err(error) => report.push_str(&format!("  error {error}\n")),
+            }
+        }
+        report
+    }
+
+    /// Records the report over the baseline when asked, and does nothing otherwise. The
+    /// file below is a record of what this build does, not a statement of what it should
+    /// do, so every number that moved is accounted for before this is run.
+    #[test]
+    fn the_baseline_is_rewritten_only_when_asked() {
+        if std::env::var("PLATEFORCE_REGENERATE").is_ok() {
+            std::fs::write(
+                concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/tests/resolved-values-baseline.txt"
+                ),
+                characterisation_report(),
+            )
+            .unwrap();
+        }
+    }
+
+    /// The file this compares against was recorded before the fingerprint was built from
+    /// the resolution, so a number that moved shows up as a changed line.
+    #[test]
+    fn recording_what_each_rule_resolved_moved_no_number() {
+        let expected = include_str!("../tests/resolved-values-baseline.txt");
+        let found = characterisation_report();
+        for (offset, (want, got)) in expected.lines().zip(found.lines()).enumerate() {
+            assert_eq!(want, got, "baseline line {} moved", offset + 1);
+        }
+        assert_eq!(
+            expected.lines().count(),
+            found.lines().count(),
+            "the case list is no longer the one the baseline was recorded from"
+        );
+    }
+}
