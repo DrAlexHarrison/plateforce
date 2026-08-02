@@ -72,6 +72,22 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
     found
 }
 
+/// Whether these signals give the software reason to leave a value out of a figure taken
+/// over rules that agree with one another.
+///
+/// `Disagrees` does. Two routes to one quantity that disagree past the published
+/// difference between them means at least one of the two is wrong, and a spread that
+/// counted it would report the wrong one as the cost of choosing a method.
+///
+/// `Incomparable` does not. A check that could not run is not evidence against the value
+/// it could not check, and treating it as evidence would drop every truncated trace from
+/// its own spread without anything having gone wrong.
+pub fn distrusted(signals: &[QualitySignal]) -> bool {
+    signals
+        .iter()
+        .any(|signal| signal.status == QualityStatus::Disagrees)
+}
+
 fn metric(response: &AnalysisResponse, key: &str) -> Option<f64> {
     response
         .metrics
