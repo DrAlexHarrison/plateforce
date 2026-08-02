@@ -62,6 +62,10 @@ pub enum ViolationKind {
         preset: String,
         construct: String,
     },
+    PresetSilentAboutUnknownConstruct {
+        preset: String,
+        construct: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -164,6 +168,10 @@ impl fmt::Display for Violation {
             PresetBindsOneConstructTwice { preset, construct } => write!(
                 f,
                 "{preset}: binds construct '{construct}' more than once, so one binding replaced another"
+            ),
+            PresetSilentAboutUnknownConstruct { preset, construct } => write!(
+                f,
+                "{preset}: states its source says nothing about '{construct}', which is not in constructs.toml"
             ),
         }
     }

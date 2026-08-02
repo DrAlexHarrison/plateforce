@@ -13,6 +13,11 @@ unit = "newtons"
 id = "movement_onset"
 title = "Movement onset"
 unit = "seconds"
+
+[[construct]]
+id = "takeoff"
+title = "Takeoff"
+unit = "seconds"
 "#;
 
 const METHODS: &str = r#"
@@ -100,22 +105,29 @@ fn a_preset_is_counted_on_its_own_denominator_and_never_added_to_another() {
     let census = assembled.registry.census();
     assert_eq!(census.preset_entries, 1);
     assert_eq!(census.computation_entries, 2);
-    assert_eq!(census.constructs, 2);
+    assert_eq!(census.constructs, 3);
     assert_eq!(census.protocol_entries, 0);
 }
 
 #[test]
 fn a_preset_naming_a_rule_the_registry_does_not_carry_is_refused() {
-    let kinds = kinds_of(&SOUND_PRESET.replace(
+    let broken = SOUND_PRESET.replace(
         "method_id = \"bwepoch.fixed_window\"",
         "method_id = \"bwepoch.no_such_rule\"",
-    ));
+    );
     assert!(
-        kinds.contains(&ViolationKind::PresetBindsUnknownMethod {
+        kinds_of(&broken).contains(&ViolationKind::PresetBindsUnknownMethod {
             preset: "owen2014".to_string(),
             method_id: "bwepoch.no_such_rule".to_string(),
         }),
-        "{kinds:?}"
+        "{:?}",
+        kinds_of(&broken)
+    );
+    assert_eq!(
+        violations_of(&broken),
+        vec![
+            "owen2014: binds 'bwepoch.no_such_rule', which the registry does not carry".to_string()
+        ]
     );
 }
 
@@ -140,29 +152,77 @@ fn a_preset_binding_a_rule_under_another_construct_is_refused_and_names_both() {
 #[test]
 fn a_preset_stating_a_pipeline_with_no_source_for_it_is_refused() {
     let citation_removed = SOUND_PRESET.split("[[preset.citation]]").next().unwrap();
-    let kinds = kinds_of(citation_removed);
     assert!(
-        kinds.contains(&ViolationKind::PresetWithoutCitation {
+        kinds_of(citation_removed).contains(&ViolationKind::PresetWithoutCitation {
             preset: "owen2014".to_string(),
         }),
-        "{kinds:?}"
+        "{:?}",
+        kinds_of(citation_removed)
     );
+    assert_eq!(
+        violations_of(citation_removed),
+        vec!["owen2014: states a pipeline and cites no source for it".to_string()]
+    );
+}
+
+/// A preset asserting silence about a construct nobody declared would read as a source that
+/// says nothing about it, and the software would agree.
+#[test]
+fn a_preset_silent_about_a_construct_the_registry_does_not_carry_is_refused() {
+    let broken = SOUND_PRESET.replace(
+        "description = \"The pairing that paper states.\"",
+        "description = \"The pairing that paper states.\"\nstates_nothing_about = [\"takoff\"]",
+    );
+    assert!(
+        kinds_of(&broken).contains(&ViolationKind::PresetSilentAboutUnknownConstruct {
+            preset: "owen2014".to_string(),
+            construct: "takoff".to_string(),
+        }),
+        "{:?}",
+        kinds_of(&broken)
+    );
+    assert_eq!(
+        violations_of(&broken),
+        vec![
+            "owen2014: states its source says nothing about 'takoff', which is not in constructs.toml"
+                .to_string()
+        ]
+    );
+}
+
+/// Silence about a construct that exists is a fact about the source, and the rule that
+/// catches the misspelling must not catch this.
+#[test]
+fn a_preset_silent_about_a_declared_construct_raises_nothing() {
+    let silent = SOUND_PRESET.replace(
+        "description = \"The pairing that paper states.\"",
+        "description = \"The pairing that paper states.\"\nstates_nothing_about = [\"takeoff\"]",
+    );
+    assert_eq!(violations_of(&silent), Vec::<String>::new());
 }
 
 /// Two bindings for one construct leave a preset whose stated pipeline is not the one it
 /// would run, and the surviving binding is decided by file order.
 #[test]
 fn a_preset_binding_one_construct_twice_is_refused() {
-    let kinds = kinds_of(&SOUND_PRESET.replace(
+    let broken = SOUND_PRESET.replace(
         "construct = \"movement_onset\"\nmethod_id = \"onset.threshold.noise_relative\"",
         "construct = \"system_weight\"\nmethod_id = \"bwepoch.fixed_window\"",
-    ));
+    );
     assert!(
-        kinds.contains(&ViolationKind::PresetBindsOneConstructTwice {
+        kinds_of(&broken).contains(&ViolationKind::PresetBindsOneConstructTwice {
             preset: "owen2014".to_string(),
             construct: "system_weight".to_string(),
         }),
-        "{kinds:?}"
+        "{:?}",
+        kinds_of(&broken)
+    );
+    assert_eq!(
+        violations_of(&broken),
+        vec![
+            "owen2014: binds construct 'system_weight' more than once, so one binding replaced another"
+                .to_string()
+        ]
     );
 }
 
