@@ -32,6 +32,21 @@ fn main() {
     }
     generated.push_str("];\n");
 
+    // The walk filters on the toml extension, so the revision the registry names itself is
+    // not among the sources and the browser would be the one surface unable to report it.
+    let version_file = registry_root.join("VERSION");
+    println!("cargo:rerun-if-changed={}", version_file.display());
+    let declared = std::fs::read_to_string(&version_file)
+        .ok()
+        .map(|named| named.trim().to_string())
+        .filter(|named| !named.is_empty());
+    generated.push_str(&match declared {
+        Some(version) => format!(
+            "pub static EMBEDDED_REGISTRY_VERSION: Option<&str> = Some({version:?});\n"
+        ),
+        None => "pub static EMBEDDED_REGISTRY_VERSION: Option<&str> = None;\n".to_string(),
+    });
+
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("embedded_registry.rs");
     std::fs::write(out, generated).unwrap();
 }

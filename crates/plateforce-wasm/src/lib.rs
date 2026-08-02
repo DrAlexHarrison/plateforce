@@ -29,6 +29,9 @@ pub fn version() -> &'static str {
 #[derive(Serialize)]
 struct BuildInfo {
     version: &'static str,
+    /// The revision the registry names itself, so a document written here cites the same
+    /// name the terminal and the wheel do rather than a null.
+    registry_version: Option<String>,
     registry_digest: String,
     registry_file_count: usize,
     registry_valid: bool,
@@ -46,6 +49,7 @@ pub fn build_info_json() -> Result<String, JsError> {
     let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
     to_json(&BuildInfo {
         version: version(),
+        registry_version: loaded.registry.declared_version.clone(),
         registry_digest: loaded.digest.clone(),
         registry_file_count: loaded.file_count,
         registry_valid: loaded.is_valid(),

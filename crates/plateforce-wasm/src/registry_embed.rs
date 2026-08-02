@@ -37,9 +37,11 @@ pub fn load() -> Result<LoadedRegistry, AssemblyError> {
 
 fn load_files(files: &[(&str, &str)]) -> Result<LoadedRegistry, AssemblyError> {
     let assembled = assemble(files.iter().copied())?;
+    let mut registry = assembled.registry;
+    registry.declared_version = EMBEDDED_REGISTRY_VERSION.map(str::to_string);
     Ok(LoadedRegistry {
-        digest: assembled.registry.content_digest.clone(),
-        registry: assembled.registry,
+        digest: registry.content_digest.clone(),
+        registry,
         file_count: files.len(),
         violations: assembled.violations,
     })
@@ -50,6 +52,19 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use plateforce_registry::{content_digest, read_sources, Registry, RegistryError, Source};
+
+    /// The browser reports the revision the registry directory names, so a method-set
+    /// document written in a tab cites the same name the terminal and the wheel write.
+    #[test]
+    fn the_browser_names_the_revision_the_registry_declares() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../registry");
+        let on_disk = Registry::declared_version_at(&root);
+        assert_eq!(super::load().unwrap().registry.declared_version, on_disk);
+        assert!(
+            on_disk.is_some(),
+            "the shipped registry names a revision, so this build has one to report"
+        );
+    }
 
     /// One registry, in the two forms the two surfaces receive it: strings for the browser,
     /// and the same strings written to a directory for the desktop.
