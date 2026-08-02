@@ -87,11 +87,49 @@ identifier = re.compile(r"\b[a-z_]+(\.[a-z_0-9]+)+\b")
 
 labelled = []
 
+# Each kind is matched over the whole file rather than line by line, for the reason the
+# JavaScript half below already carries: an element whose text sits on the next line reads
+# exactly like a file with nothing to find. Three banned words in a wrapped heading were
+# invisible, and the label count did not move.
+#
+# An attribute a reader hears or reads is a label even when it is not element text, so
+# placeholder and aria-label are here beside the elements. `option` is the one a first-year
+# meets most often, in a list they are choosing from.
+#
+# Each kind carries the shape that says it is present at all, so a kind the interface does
+# not use is told apart from a pattern that cannot read the kind it names. Flagging the
+# first would leave this rule permanently red on an interface with no tables, which is
+# worse than the narrowing it was written to catch.
+MARKUP_LABELS = (
+    (r"<h[1-4]\b", r"<h[1-4]\b[^>]*>([^<]+)", "a heading"),
+    (r"<label\b", r"<label\b[^>]*>([^<]+)", "a label element"),
+    (r"<legend\b", r"<legend\b[^>]*>([^<]+)", "a legend"),
+    (r"<button\b", r"<button\b[^>]*>([^<]+)", "a button"),
+    (r"<summary\b", r"<summary\b[^>]*>([^<]+)", "a summary"),
+    (r"<option\b", r"<option\b[^>]*>([^<]+)", "an option"),
+    (r"<th\b", r"<th\b[^>]*>([^<]+)", "a table heading"),
+    (r"\bplaceholder=", r"\bplaceholder=\"([^\"]+)\"", "a placeholder"),
+    (r"\baria-label=", r"\baria-label=\"([^\"]+)\"", "an aria-label"),
+)
+
+# What counts as a label, kept apart from how each one is read. Reporting coverage as
+# "N of len(MARKUP_LABELS)" moves both sides together, so narrowing the scanner shrinks its
+# own denominator and still reads as full coverage. This is the list the scanner is checked
+# against, the way rule 3 checks its phrases against CONVENTIONS.md rather than itself.
+READER_MEETS = (
+    (r"<h[1-4]\b", "a heading"),
+    (r"<label\b", "a label element"),
+    (r"<legend\b", "a legend"),
+    (r"<button\b", "a button"),
+    (r"<summary\b", "a summary"),
+    (r"<option\b", "an option"),
+    (r"<th\b", "a table heading"),
+    (r"\bplaceholder=", "a placeholder"),
+    (r"\baria-label=", "an aria-label"),
+)
+
 markup = Path("web/index.html")
-for number, line in enumerate(markup.read_text().splitlines(), start=1):
-    for tag, text in re.findall(r"<(h[1-4]|label|legend|button|summary)\b[^>]*>([^<]+)", line):
-        if text.strip():
-            labelled.append((f"{markup}:{number}", text.strip()))
+markup_text = markup.read_text()
 
 # The rail's slot titles, the trace legend and every notice heading are JavaScript literals
 # rather than markup, and the words that fail this rule are in them, so the check reaches
@@ -110,6 +148,36 @@ NOTICE_HEADING = r"\bnotice\(\s*'[a-z]+',\s*'([^']*)'"
 notice_sources = sorted(path for path in Path("web").glob("*.js"))
 
 blind_patterns = []
+
+# Per kind rather than per rule. One surviving witness in one category vouches for
+# categories that are no longer scanned: narrowing this set from five kinds to one dropped
+# eleven labels and still passed, because the control string is a heading and headings
+# stayed. A list a guard iterates is a denominator.
+markup_kinds_read = 0
+labels_from_markup = 0
+for present, pattern, what in MARKUP_LABELS:
+    found = list(re.finditer(pattern, markup_text))
+    if found:
+        markup_kinds_read += 1
+    elif re.search(present, markup_text):
+        blind_patterns.append(f"{markup} for {what}, which the file contains")
+    for match in found:
+        if not match.group(1).strip():
+            continue
+        labels_from_markup += 1
+        number = markup_text.count("\n", 0, match.start()) + 1
+        labelled.append((f"{markup}:{number}", match.group(1).strip()))
+
+# A kind the reader meets, present in the file, that no scanner pattern claims. Dropping a
+# pattern is what this catches, and it cannot be hidden by dropping the pattern's own
+# presence probe alongside it.
+scanned_probes = {probe for probe, _, _ in MARKUP_LABELS}
+for probe, what in READER_MEETS:
+    if probe not in scanned_probes and re.search(probe, markup_text):
+        blind_patterns.append(
+            f"{markup} for {what}, which the reader meets and no pattern here reads"
+        )
+
 for source, pattern, what in JAVASCRIPT_LABELS:
     if not source.exists():
         continue
@@ -150,8 +218,10 @@ if not control:
 for blind in blind_patterns:
     report("rule 2", f"read nothing from {blind}, so it is not checking what it claims to")
 if control and not blind_patterns and not vocabulary_failures:
-    print(f"pass  rule 2, {len(labelled)} headings, labels, legends, buttons and notices "
-          f"use the words the audience uses")
+    print(f"pass  rule 2, {len(labelled)} labels the audience reads use the words the "
+          f"audience uses, across {markup_kinds_read} of {len(READER_MEETS)} markup kinds "
+          f"the reader meets, {len(JAVASCRIPT_LABELS)} javascript label sources and "
+          f"{notices} notice headings")
 
 
 # --------------------------------------------------- 3. strings about the software
