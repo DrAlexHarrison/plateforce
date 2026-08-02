@@ -69,7 +69,7 @@ pub fn declared_weight_newtons(
         && declared_mass_kilograms > 0.0
         && gravity_meters_per_second_squared.is_finite()
         && gravity_meters_per_second_squared > 0.0)
-        .then(|| declared_mass_kilograms * gravity_meters_per_second_squared)
+        .then_some(declared_mass_kilograms * gravity_meters_per_second_squared)
 }
 
 #[cfg(test)]
