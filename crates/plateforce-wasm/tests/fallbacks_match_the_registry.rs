@@ -33,6 +33,7 @@ fn base_request() -> AnalysisRequest {
             start_index: None,
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
             options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: "onset.threshold.noise_relative".into(),
@@ -79,7 +80,7 @@ fn values_the_rules_assumed() -> BTreeMap<String, BTreeMap<String, String>> {
         for bound in &response.bound_methods {
             let entry = assumed.entry(bound.method_id.clone()).or_default();
             for (name, shown) in &bound.bound_parameters {
-                if bound.assumed_parameters.contains(name) {
+                if bound.assumed_parameters().contains(name) {
                     entry.insert(name.clone(), shown.clone());
                 }
             }

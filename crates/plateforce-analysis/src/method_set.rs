@@ -151,6 +151,7 @@ impl MethodSet {
                         start_index: None,
                         parameters: binding.parameters.clone(),
                         options: binding.options.clone(),
+                        ..Default::default()
                     }
                 }
                 "onset" => {
@@ -159,6 +160,7 @@ impl MethodSet {
                         parameters: binding.parameters.clone(),
                         options: binding.options.clone(),
                         manual_index: None,
+                        ..Default::default()
                     }
                 }
                 _ => {
@@ -167,6 +169,7 @@ impl MethodSet {
                         parameters: binding.parameters.clone(),
                         options: binding.options.clone(),
                         manual_index: None,
+                        ..Default::default()
                     }
                 }
             }

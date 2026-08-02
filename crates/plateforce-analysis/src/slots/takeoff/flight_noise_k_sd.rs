@@ -1,6 +1,7 @@
 //! `takeoff.threshold.flight_noise_k_sd`: the threshold re-estimated from the flight phase
 //! the seed threshold found.
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::takeoff::takeoff_reestimated_flight_threshold;
 use plateforce_core::{Trial, WeighingEpoch};
 
@@ -38,7 +39,7 @@ pub(crate) fn crossing(
             "reestimated_threshold_newtons",
             flight.threshold_newtons,
             format!("{:.4}", flight.threshold_newtons),
-            false,
+            ParameterSource::Measured,
         );
         flight.takeoff_index
     })

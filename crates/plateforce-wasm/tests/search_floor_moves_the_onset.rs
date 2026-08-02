@@ -20,6 +20,7 @@ fn request_with(onset_parameters: &[(&str, f64)]) -> AnalysisRequest {
             start_index: None,
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
             options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: "onset.threshold.noise_relative".into(),
@@ -86,7 +87,7 @@ fn the_stated_floor_is_recorded_against_its_own_operator() {
     assert_eq!(shown, "3.5");
     assert!(
         !operator
-            .assumed_parameters
+            .assumed_parameters()
             .contains(&"floor_seconds".to_string()),
         "a value the caller stated came back marked as one the rule assumed"
     );

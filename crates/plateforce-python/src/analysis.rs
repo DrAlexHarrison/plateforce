@@ -85,6 +85,7 @@ fn choice_of(
         parameters: quantities_of(method, parameters),
         options: options.unwrap_or_default(),
         manual_index: None,
+        ..Default::default()
     }
 }
 
@@ -457,6 +458,7 @@ pub fn analyse_countermovement_jump(
             start_index: weighing_start_index,
             parameters: quantities_of(weighing_epoch, weighing_parameters),
             options: weighing_options.unwrap_or_default(),
+            ..Default::default()
         },
         onset: MethodChoice {
             manual_index: onset_index,
@@ -628,7 +630,7 @@ pub fn analyse_countermovement_jump(
         assumed_parameters: response
             .bound_methods
             .iter()
-            .flat_map(|bound| bound.assumed_parameters.iter().cloned())
+            .flat_map(|bound| bound.assumed_parameters())
             .collect(),
         warnings: response.warnings.clone(),
     })

@@ -297,18 +297,21 @@ fn build_request(
             start_index: None,
             parameters: parameters(WEIGHING_CONSTRUCT),
             options: BTreeMap::new(),
+            ..Default::default()
         },
         onset: MethodChoice {
             method_id: id(ONSET_CONSTRUCT),
             parameters: parameters(ONSET_CONSTRUCT),
             options: BTreeMap::new(),
             manual_index: None,
+            ..Default::default()
         },
         takeoff: MethodChoice {
             method_id: id(TAKEOFF_CONSTRUCT),
             parameters: parameters(TAKEOFF_CONSTRUCT),
             options: BTreeMap::new(),
             manual_index: None,
+            ..Default::default()
         },
         touchdown_index: None,
         gravity_meters_per_second_squared:
@@ -467,7 +470,13 @@ fn describe_bound(
     let shown: Vec<String> = bound
         .bound_parameters
         .iter()
-        .filter(|(name, _)| provenance || !(hidden && bound.assumed_parameters.contains(name)))
+        .filter(|(name, _)| {
+            let assumed = matches!(
+                bound.parameter_sources.get(name),
+                Some(plateforce_core::provenance::ParameterSource::Assumed)
+            );
+            provenance || !(hidden && assumed)
+        })
         .map(|(name, value)| format!("{name} = {value}"))
         .collect();
 

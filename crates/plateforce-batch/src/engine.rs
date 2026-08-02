@@ -546,11 +546,18 @@ fn rows_for_bound_method(metric: &Metric, bound: &BoundMethod, depth: usize) -> 
             method_id: bound.method_id.clone(),
             parameter: parameter.clone(),
             value: value.clone(),
-            source: if bound.assumed_parameters.contains(parameter) {
-                "assumed".to_string()
-            } else {
-                "stated".to_string()
-            },
+            // The rule recorded where each value came from; deriving it again here could
+            // only ever spell two of the five sources.
+            source: bound
+                .parameter_sources
+                .get(parameter)
+                .map(|source| {
+                    serde_json::to_value(source)
+                        .ok()
+                        .and_then(|value| value.as_str().map(str::to_string))
+                        .unwrap_or_else(|| "assumed".to_string())
+                })
+                .unwrap_or_else(|| "assumed".to_string()),
         })
         .collect()
 }

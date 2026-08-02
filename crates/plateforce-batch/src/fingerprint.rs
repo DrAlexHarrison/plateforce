@@ -56,6 +56,9 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         start_index,
         parameters: weighing_parameters,
         options: weighing_options,
+        recommended: weighing_recommended,
+        method_from_recommendation: weighing_method_from_recommendation,
+        from_registry_default: weighing_from_registry_default,
     } = weighing;
     let mut backed = registry_backed_ids.clone();
     backed.sort();
@@ -66,6 +69,9 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
             "start_index": start_index,
             "parameters": weighing_parameters,
             "options": weighing_options,
+            "recommended": weighing_recommended,
+            "method_from_recommendation": weighing_method_from_recommendation,
+            "from_registry_default": weighing_from_registry_default,
         },
         "onset": method_choice(onset),
         "takeoff": method_choice(takeoff),
@@ -83,11 +89,17 @@ fn method_choice(choice: &MethodChoice) -> Value {
         parameters,
         options,
         manual_index,
+        recommended,
+        method_from_recommendation,
+        from_registry_default,
     } = choice;
     json!({
         "method_id": method_id,
         "parameters": parameters,
         "options": options,
+        "recommended": recommended,
+        "method_from_recommendation": method_from_recommendation,
+        "from_registry_default": from_registry_default,
         "manual_index": manual_index,
     })
 }
