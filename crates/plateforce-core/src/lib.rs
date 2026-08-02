@@ -45,8 +45,9 @@ pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};
 pub use refusal::{exit_code, Refusal, RefusalCode};
 pub use series::{
-    centre_of_mass_velocity_meters_per_second, CentreOfMassHeightTable, IntegrationAnchor,
-    IntegrationDirection, IntegrationSpec, IntegrationStart, QuadratureRule, VelocitySeries,
+    centre_of_mass_displacement_meters, centre_of_mass_velocity_meters_per_second,
+    CentreOfMassHeightTable, DisplacementSeries, IntegrationAnchor, IntegrationDirection,
+    IntegrationSpec, IntegrationStart, QuadratureRule, VelocitySeries,
 };
 pub use signal::{Sentinel, Trial, TrialError};
 pub use statistics::{DispersionEstimator, VarianceAccumulation};

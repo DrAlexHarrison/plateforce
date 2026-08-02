@@ -74,12 +74,25 @@ impl CentreOfMassHeightTable {
 
 /// Where the constants of integration are pinned, `integration.anchor.*`.
 ///
-/// The three published anchors constrain different numbers of instants, so a scalar
-/// expresses one of them and approximates the other two.
+/// The published anchors constrain different numbers of instants, so a scalar expresses one
+/// of them and approximates the rest.
 #[derive(Debug, Clone, PartialEq)]
 pub enum IntegrationAnchor {
     /// Velocity is zero at one stated instant.
     SinglePoint { index: usize },
+    /// The integrated quantity takes a stated non-zero value at one stated instant, which is
+    /// how the landing frame is reconstructed: `phase.landing_end.zero_com_velocity`
+    /// integrates from landing acceleration with the negative takeoff velocity as its initial
+    /// value. `value` is in the unit of the series being anchored, which its type states.
+    ///
+    /// `integration.anchor.*` carries no entry for this, because the value is stated by the
+    /// rule that needs it rather than by an anchor rule. That rule's id travels here so the
+    /// record names whoever chose the value instead of crediting an anchor entry that did not.
+    SinglePointAtValue {
+        index: usize,
+        value: f64,
+        stated_by_method_id: String,
+    },
     /// Velocity is zero at both ends, which requires the subject to stand still and in the
     /// same position at each. A two-ended constraint, not a starting value.
     TwoPoint {
@@ -106,7 +119,7 @@ pub struct IntegrationSpec {
 impl IntegrationSpec {
     /// The registry ids this spec names, in the order the constructs are declared. Every
     /// caller that records provenance needs the same four, so they are spelled once.
-    pub fn method_ids(&self) -> [&'static str; 4] {
+    pub fn method_ids(&self) -> [&str; 4] {
         [
             match self.quadrature {
                 QuadratureRule::Trapezoid => "integration.rule.trapezoid",
@@ -121,8 +134,12 @@ impl IntegrationSpec {
                 IntegrationStart::TrialStart => "integration.start.trial_start",
                 IntegrationStart::DetectedOnset { .. } => "integration.start.detected_onset",
             },
-            match self.anchor {
+            match &self.anchor {
                 IntegrationAnchor::SinglePoint { .. } => "integration.anchor.single_point",
+                IntegrationAnchor::SinglePointAtValue {
+                    stated_by_method_id,
+                    ..
+                } => stated_by_method_id,
                 IntegrationAnchor::TwoPoint { .. } => "integration.anchor.two_point.kistler",
                 IntegrationAnchor::PerJumpMidflight { .. } => {
                     "integration.anchor.per_jump_midflight.kistler"
@@ -142,6 +159,7 @@ pub struct VelocitySeries {
     meters_per_second: Vec<f64>,
     spec: IntegrationSpec,
     first_integrated_index: usize,
+    sample_interval_seconds: f64,
 }
 
 impl VelocitySeries {
@@ -151,6 +169,12 @@ impl VelocitySeries {
 
     pub fn spec(&self) -> &IntegrationSpec {
         &self.spec
+    }
+
+    /// Carried so a second integration cannot be handed a different interval from the one
+    /// this series was built at.
+    pub fn sample_interval_seconds(&self) -> f64 {
+        self.sample_interval_seconds
     }
 
     /// The index the integral started from. Samples before it were not integrated and
@@ -212,6 +236,81 @@ pub fn centre_of_mass_velocity_meters_per_second(
         meters_per_second: apply_anchor(integrated, &spec.anchor),
         spec: spec.clone(),
         first_integrated_index,
+        sample_interval_seconds,
+    }
+}
+
+/// Centre-of-mass displacement in metres, one sample per sample of the trial, with the spec
+/// that produced it and the spec of the velocity it was integrated from.
+///
+/// Both travel because displacement inherits every choice the velocity made and adds four of
+/// its own, so a record naming only the second integration understates what produced it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DisplacementSeries {
+    meters: Vec<f64>,
+    spec: IntegrationSpec,
+    velocity_spec: IntegrationSpec,
+}
+
+impl DisplacementSeries {
+    pub fn meters(&self) -> &[f64] {
+        &self.meters
+    }
+
+    pub fn spec(&self) -> &IntegrationSpec {
+        &self.spec
+    }
+
+    /// The choices behind the velocity this was integrated from.
+    pub fn velocity_spec(&self) -> &IntegrationSpec {
+        &self.velocity_spec
+    }
+
+    pub fn at(&self, index: usize) -> Option<f64> {
+        self.meters.get(index).copied()
+    }
+
+    pub fn len(&self) -> usize {
+        self.meters.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.meters.is_empty()
+    }
+}
+
+/// Centre-of-mass displacement, integrated from a velocity series under its own four choices.
+///
+/// Anchored at quiet standing, the value at takeoff is the heel-rise term and the apex is the
+/// height in the standing frame, which is a different quantity from the takeoff frame rather
+/// than a different method of computing it.
+pub fn centre_of_mass_displacement_meters(
+    velocity: &VelocitySeries,
+    spec: &IntegrationSpec,
+) -> DisplacementSeries {
+    let samples = velocity.meters_per_second();
+    let first_integrated_index = match spec.start {
+        IntegrationStart::TrialStart => 0,
+        IntegrationStart::DetectedOnset { index } => index.min(samples.len()),
+    };
+    let integrated = match spec.direction {
+        IntegrationDirection::Forward => integrate_forward(
+            samples,
+            first_integrated_index,
+            velocity.sample_interval_seconds(),
+            spec.quadrature,
+        ),
+        IntegrationDirection::Backward => integrate_backward(
+            samples,
+            first_integrated_index,
+            velocity.sample_interval_seconds(),
+            spec.quadrature,
+        ),
+    };
+    DisplacementSeries {
+        meters: apply_anchor(integrated, &spec.anchor),
+        spec: spec.clone(),
+        velocity_spec: velocity.spec().clone(),
     }
 }
 
@@ -295,6 +394,16 @@ fn apply_anchor(mut velocity: Vec<f64>, anchor: &IntegrationAnchor) -> Vec<f64> 
             let Some(offset) = velocity.get(*index).copied() else {
                 return velocity;
             };
+            for value in velocity.iter_mut() {
+                *value -= offset;
+            }
+            velocity
+        }
+        IntegrationAnchor::SinglePointAtValue { index, value, .. } => {
+            let Some(at_anchor) = velocity.get(*index).copied() else {
+                return velocity;
+            };
+            let offset = at_anchor - value;
             for value in velocity.iter_mut() {
                 *value -= offset;
             }
@@ -474,5 +583,117 @@ mod tests {
                 integrated[1200]
             );
         }
+    }
+
+    /// The landing frame's initial value, which every other anchor pins to zero.
+    #[test]
+    fn an_anchor_at_a_stated_value_holds_that_value_rather_than_zero() {
+        let (trial, epoch, onset_index) = trial_and_epoch();
+        let stated = -2.47;
+        let mut settings = spec(IntegrationStart::TrialStart);
+        settings.anchor = IntegrationAnchor::SinglePointAtValue {
+            index: onset_index,
+            value: stated,
+            stated_by_method_id: "phase.landing_end.zero_com_velocity".to_string(),
+        };
+        let series = centre_of_mass_velocity_meters_per_second(
+            &trial,
+            &epoch,
+            &settings,
+            crate::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+        );
+        let at_anchor = series.at(onset_index).expect("in range");
+        assert!(
+            (at_anchor - stated).abs() < 1e-12,
+            "the series reads {at_anchor} at the anchor where {stated} was stated"
+        );
+    }
+
+    /// A value an anchor entry never stated is credited to the rule that did state it.
+    #[test]
+    fn an_anchor_at_a_stated_value_names_the_rule_that_stated_it() {
+        let mut settings = spec(IntegrationStart::TrialStart);
+        settings.anchor = IntegrationAnchor::SinglePointAtValue {
+            index: 0,
+            value: -2.47,
+            stated_by_method_id: "phase.landing_end.zero_com_velocity".to_string(),
+        };
+        assert_eq!(
+            settings.method_ids()[3],
+            "phase.landing_end.zero_com_velocity"
+        );
+    }
+
+    #[test]
+    fn displacement_returns_to_the_standing_frame_it_was_anchored_in() {
+        let (trial, epoch, onset_index) = trial_and_epoch();
+        let velocity = centre_of_mass_velocity_meters_per_second(
+            &trial,
+            &epoch,
+            &spec(IntegrationStart::DetectedOnset { index: onset_index }),
+            crate::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+        );
+        let displacement = centre_of_mass_displacement_meters(
+            &velocity,
+            &spec(IntegrationStart::DetectedOnset { index: onset_index }),
+        );
+
+        assert!(
+            displacement.at(onset_index).expect("in range").abs() < 1e-12,
+            "displacement is not zero where it was anchored"
+        );
+
+        // The centre of mass keeps descending for as long as velocity is negative, so
+        // displacement reaches its lowest point where velocity crosses back up through zero,
+        // well after velocity reached its own minimum. The two coincide only if this series
+        // is the velocity rather than its integral.
+        let window = onset_index..onset_index + 720;
+        let lowest_of = |samples: &[f64]| {
+            samples[window.clone()]
+                .iter()
+                .enumerate()
+                .min_by(|left, right| left.1.total_cmp(right.1))
+                .map(|(offset, _)| onset_index + offset)
+                .expect("the window is not empty")
+        };
+        let slowest_index = lowest_of(velocity.meters_per_second());
+        let deepest_index = lowest_of(displacement.meters());
+        assert!(
+            deepest_index > slowest_index + 60,
+            "the centre of mass was lowest at sample {deepest_index} and slowest at \
+             {slowest_index}; an integral bottoms out after its integrand does"
+        );
+        assert!(
+            velocity.at(deepest_index).expect("in range").abs()
+                < velocity.at(slowest_index).expect("in range").abs() / 4.0,
+            "velocity has not returned toward zero where displacement is lowest"
+        );
+    }
+
+    /// Displacement inherits every choice the velocity made, so both specs travel with it.
+    #[test]
+    fn displacement_carries_the_velocity_choices_it_rests_on() {
+        let (trial, epoch, onset_index) = trial_and_epoch();
+        let velocity_settings = spec(IntegrationStart::DetectedOnset { index: onset_index });
+        let velocity = centre_of_mass_velocity_meters_per_second(
+            &trial,
+            &epoch,
+            &velocity_settings,
+            crate::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+        );
+        let mut displacement_settings = spec(IntegrationStart::TrialStart);
+        displacement_settings.quadrature = QuadratureRule::Simpson;
+        let displacement = centre_of_mass_displacement_meters(&velocity, &displacement_settings);
+
+        assert_eq!(displacement.velocity_spec(), &velocity_settings);
+        assert_eq!(displacement.spec(), &displacement_settings);
+        assert_eq!(
+            displacement.velocity_spec().method_ids()[2],
+            "integration.start.detected_onset"
+        );
+        assert_eq!(
+            displacement.spec().method_ids()[0],
+            "integration.rule.simpson"
+        );
     }
 }
