@@ -55,6 +55,88 @@ fn jump_followed_by_the_athlete_stepping_mostly_off() -> Trial {
     Trial::new(force, rate).expect("the modified trace is still a trial")
 }
 
+/// The system weight the demonstration trace stands at, which every trace below scales its
+/// inserted forces by.
+fn standing_newtons(force: &[f64], rate: f64) -> f64 {
+    force[..rate as usize].iter().sum::<f64>() / rate
+}
+
+/// The demonstration jump with a brief airborne-shaped event before it: the plate unloads for
+/// ten milliseconds and force returns through a collision rather than through a push.
+///
+/// A rule that filters runs by length has nothing to decide unless a short run would otherwise
+/// be taken, and the trace above cannot supply one: its dip returns through the countermovement,
+/// which rises at 7.6 bodyweights per second and is rejected on shape whatever its length. Here
+/// the short run is landing-shaped, so length is the only thing left deciding.
+fn jump_after_a_short_run_that_ends_in_a_collision() -> Trial {
+    let demonstration = synthetic_countermovement_jump();
+    let rate = demonstration.sample_rate_hz();
+    let mut force = demonstration.force().to_vec();
+    let standing = standing_newtons(&force, rate);
+    let unloaded_start = (1.5 * rate) as usize;
+    let unloaded_samples = (0.010 * rate) as usize;
+    let rise_samples = (0.020 * rate) as usize;
+    for offset in 0..unloaded_samples {
+        force[unloaded_start + offset] = 0.0;
+    }
+    for offset in 0..rise_samples {
+        let fraction = (offset + 1) as f64 / rise_samples as f64;
+        force[unloaded_start + unloaded_samples + offset] = 3.0 * standing * fraction;
+    }
+    for offset in 0..rise_samples {
+        let fraction = (offset + 1) as f64 / rise_samples as f64;
+        force[unloaded_start + unloaded_samples + rise_samples + offset] =
+            standing + (3.0 * standing - standing) * (1.0 - fraction);
+    }
+    Trial::new(force, rate).expect("the modified trace is still a trial")
+}
+
+/// The demonstration jump whose flight begins with the unloaded plate chattering back across
+/// the threshold for four milliseconds.
+///
+/// Bridged, the flight is one run and takeoff sits where the plate first unloaded. Unbridged it
+/// is two, the first is too short to be a flight phase at all, and takeoff moves ten samples
+/// later to the second. The chatter is brief enough and small enough to sit inside one probe of
+/// each bridging parameter and outside the other, so each decides on its own.
+fn jump_whose_flight_opens_with_chatter() -> Trial {
+    let demonstration = synthetic_countermovement_jump();
+    let rate = demonstration.sample_rate_hz();
+    let mut force = demonstration.force().to_vec();
+    let unloads_at = force
+        .iter()
+        .position(|newtons| *newtons < 20.0)
+        .expect("the demonstration trace holds a flight phase");
+    for offset in 0..5 {
+        force[unloads_at + 5 + offset] = 25.0;
+    }
+    Trial::new(force, rate).expect("the modified trace is still a trial")
+}
+
+/// The demonstration jump whose landing rises slowly enough that a short window cannot see its
+/// peak.
+///
+/// The rise reaches three bodyweights over 120 ms, which clears the rate floor and the height
+/// floor. Read through a window of a few milliseconds it reaches under half a bodyweight, falls
+/// below the height floor, and the landing stops being one, which is the reason the window has a
+/// length at all.
+fn jump_whose_landing_rises_slowly() -> Trial {
+    let demonstration = synthetic_countermovement_jump();
+    let rate = demonstration.sample_rate_hz();
+    let mut force = demonstration.force().to_vec();
+    let standing = standing_newtons(&force, rate);
+    let landing_start = (4.76 * rate) as usize;
+    let rise_samples = (0.120 * rate) as usize;
+    for offset in landing_start..force.len() {
+        let elapsed = offset - landing_start;
+        force[offset] = if elapsed < rise_samples {
+            3.0 * standing * (elapsed + 1) as f64 / rise_samples as f64
+        } else {
+            3.0 * standing
+        };
+    }
+    Trial::new(force, rate).expect("the modified trace is still a trial")
+}
+
 /// One control the interface draws, and the values this file drives it through.
 struct OfferedParameter {
     slot: &'static str,
@@ -225,6 +307,18 @@ fn every_parameter_a_control_offers_moves_a_number() {
         (
             "a jump followed by the athlete stepping mostly off",
             jump_followed_by_the_athlete_stepping_mostly_off(),
+        ),
+        (
+            "a jump after a short run that ends in a collision",
+            jump_after_a_short_run_that_ends_in_a_collision(),
+        ),
+        (
+            "a jump whose flight opens with chatter",
+            jump_whose_flight_opens_with_chatter(),
+        ),
+        (
+            "a jump whose landing rises slowly",
+            jump_whose_landing_rises_slowly(),
         ),
     ];
 
