@@ -45,9 +45,10 @@ pub struct ColumnReadReport {
 
 /// Read one numeric column out of delimited text.
 ///
-/// Fields are trimmed before parsing because these exports carry the carriage return
-/// of the machine that wrote them, and a trailing return turns the last column of
-/// every row into a parse failure.
+/// Each field is trimmed because exports pad their columns to a fixed width, and each
+/// line is trimmed because the lines separating blocks can carry spaces rather than being
+/// empty. A trailing carriage return is removed by either one, so it survives the loss of
+/// the other and is not what holds this together.
 pub fn read_delimited_column(
     text: &str,
     delimiter: char,
@@ -125,6 +126,27 @@ mod tests {
         assert_eq!(values, vec![584.3485, 585.0]);
         assert_eq!(report.rows_read, 2);
         assert_eq!(report.columns_per_row, 3);
+    }
+
+    /// Columns padded to a fixed width, which is what the carriage-return test above cannot
+    /// tell you about: the line trim removes a trailing return on its own, so that test
+    /// passes whether or not fields are trimmed.
+    #[test]
+    fn a_column_padded_to_a_fixed_width_reads_as_a_number() {
+        let text = "     1.0\t     2.0\t 584.3485\n     1.0\t     2.0\t 585.0000\n";
+        let (values, report) = read_delimited_column(text, '\t', 2).unwrap();
+        assert_eq!(values, vec![584.3485, 585.0]);
+        assert_eq!(report.rows_read, 2);
+    }
+
+    /// A separator line carrying spaces rather than being empty. Without the line trim it
+    /// splits into one field and the row is short rather than blank.
+    #[test]
+    fn a_line_of_whitespace_is_blank_rather_than_a_row_with_one_column() {
+        let text = "1.0\t2.0\t584.3485\n   \n1.0\t2.0\t585.0\n";
+        let (values, report) = read_delimited_column(text, '\t', 2).unwrap();
+        assert_eq!(values, vec![584.3485, 585.0]);
+        assert_eq!(report.blank_lines_skipped, 1);
     }
 
     #[test]

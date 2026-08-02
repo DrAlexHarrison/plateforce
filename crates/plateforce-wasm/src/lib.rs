@@ -18,6 +18,7 @@ pub mod registry_embed;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+use plateforce_analysis::capability::{capability, Operation, OutputFormat};
 use plateforce_analysis::{spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
 use plateforce_core::signal::{partition_sentinels, Sentinel};
@@ -65,6 +66,7 @@ struct Census {
     constructs: usize,
     computation_entries: usize,
     protocol_entries: usize,
+    preset_entries: usize,
 }
 
 #[derive(Serialize)]
@@ -95,8 +97,75 @@ pub fn registry_json() -> Result<String, JsError> {
             constructs: census.constructs,
             computation_entries: census.computation_entries,
             protocol_entries: census.protocol_entries,
+            preset_entries: census.preset_entries,
         },
     })
+}
+
+/// Every entry point this crate hands JavaScript, and what each can be asked to do.
+///
+/// Keyed by the name JavaScript calls, so an export that goes away takes its operations
+/// with it. The tab reaches `plateforce_batch::analyse` and not `compare`, so `batch`
+/// appears here and `compare` does not.
+/// None for a name with no arm, which the test below refuses, so an export reaching the
+/// list without reaching this table cannot pass as one that dispatches nothing.
+fn operations_named(export: &str) -> Option<&'static [Operation]> {
+    match export {
+        "analyse" => Some(&[Operation::Analyse, Operation::Spread]),
+        "spread" => Some(&[Operation::Spread]),
+        "parse" => Some(&[Operation::ParseForceFile]),
+        "batchJson" | "batchCoverage" => Some(&[Operation::Batch]),
+        "capabilityJson" => Some(&[Operation::Capability]),
+        // One call answers all three: it returns the census, every entry in full, and
+        // whether the registry it was compiled against passes its own validator.
+        "registryJson" => Some(&[
+            Operation::RegistryCensus,
+            Operation::RegistryShow,
+            Operation::RegistryValidate,
+        ]),
+        "buildInfoJson" => Some(&[Operation::Version, Operation::RegistryValidate]),
+        // Loading a trial, drawing it, and describing what was loaded. None of the four is
+        // a computation this manifest asserts over.
+        "fromForceFile" | "demonstration" | "infoJson" | "envelopeJson" | "summaryJson" => {
+            Some(&[])
+        }
+        _ => None,
+    }
+}
+
+/// Every name this crate exposes to JavaScript. The test below reads the same names out of
+/// the source, so an export added or removed without reaching this list fails there.
+const EXPORTS: &[&str] = &[
+    "analyse",
+    "batchCoverage",
+    "batchJson",
+    "buildInfoJson",
+    "capabilityJson",
+    "demonstration",
+    "envelopeJson",
+    "fromForceFile",
+    "infoJson",
+    "parse",
+    "registryJson",
+    "spread",
+    "summaryJson",
+];
+
+/// What this surface can be asked to do, reported by this surface.
+///
+/// The browser answers the same question the terminal and the wheel answer, in the same
+/// shape. Nothing here reports a build digest: the same commit produces three different
+/// wasm digests on three runners, so a digest would make this a comparison that can only
+/// fail. Every field is semantic, ids and slots and constructs and refusal codes.
+#[wasm_bindgen(js_name = capabilityJson)]
+pub fn capability_json() -> Result<String, JsError> {
+    let operations: Vec<Operation> = EXPORTS
+        .iter()
+        .filter_map(|export| operations_named(export))
+        .flatten()
+        .copied()
+        .collect();
+    to_json(&capability(&operations, &[OutputFormat::Json]))
 }
 
 /// A parsed force file, before any column has been declared to be the force channel.
@@ -294,4 +363,75 @@ struct Envelope {
 
 fn to_json<T: Serialize>(value: &T) -> Result<String, JsError> {
     serde_json::to_string(value).map_err(|e| JsError::new(&e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every `js_name` in this crate's source, so the list the manifest is built from is
+    /// checked against what the crate actually exposes rather than trusted.
+    fn exports_in_the_source() -> Vec<String> {
+        let marker = concat!("js_name", " = ");
+        let mut found: Vec<String> = [include_str!("lib.rs"), include_str!("batch.rs")]
+            .iter()
+            .flat_map(|source| source.split(marker).skip(1))
+            .filter_map(|tail| tail.split(')').next())
+            .map(|name| name.trim().to_string())
+            .filter(|name| {
+                !name.is_empty()
+                    && name
+                        .chars()
+                        .all(|character| character.is_ascii_alphanumeric() || character == '_')
+            })
+            .collect();
+        found.sort();
+        found.dedup();
+        found
+    }
+
+    #[test]
+    fn the_manifest_is_built_from_the_entry_points_this_crate_exposes() {
+        let mut declared: Vec<String> = EXPORTS.iter().map(|name| name.to_string()).collect();
+        declared.sort();
+        let found = exports_in_the_source();
+        assert!(
+            found.len() >= 12,
+            "the source scan found {} names, so it is matching nothing",
+            found.len()
+        );
+        assert_eq!(declared, found);
+    }
+
+    /// An export reaching the list with no arm in the table would contribute nothing and
+    /// read exactly like one that dispatches nothing on purpose.
+    #[test]
+    fn every_entry_point_states_what_it_dispatches() {
+        let unstated: Vec<&&str> = EXPORTS
+            .iter()
+            .filter(|export| operations_named(export).is_none())
+            .collect();
+        assert!(unstated.is_empty(), "{unstated:?}");
+    }
+
+    /// A surface claiming what it cannot do is the one failure this manifest exists to make
+    /// visible, so the two the tab does not reach are named rather than left to the diff.
+    #[test]
+    fn the_browser_claims_neither_compare_nor_reach() {
+        let manifest = capability_json().expect("the manifest serialises");
+        assert!(!manifest.contains("\"compare\""), "{manifest}");
+        assert!(!manifest.contains("\"reach\""), "{manifest}");
+        assert!(manifest.contains("\"batch\""), "{manifest}");
+    }
+
+    /// JSON strings are the whole boundary of this crate, so a container format arriving
+    /// here without a writer behind it would be a claim about nobody's code.
+    #[test]
+    fn the_only_container_the_tab_writes_is_json() {
+        let manifest = capability_json().expect("the manifest serialises");
+        assert!(
+            manifest.contains("\"output_formats\":[\"json\"]"),
+            "{manifest}"
+        );
+    }
 }

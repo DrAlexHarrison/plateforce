@@ -304,3 +304,64 @@ fn the_coverage_line_names_every_count_against_one_denominator() {
     );
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// A trace of forces carries nothing about the plate that wrote it, so a run reports every
+/// trial's capture as unrecorded until a caller states one. Datasets that cannot fill the
+/// block fingerprint as incomplete rather than as matching, which is the whole reason the
+/// block is on the record.
+#[test]
+fn a_run_that_states_nothing_about_its_capture_claims_no_complete_acquisition() {
+    let directory = tempdir("acquisition-unstated");
+    let copied = copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+
+    let silent = analyse(&set, &bound_request(), &registry()).unwrap();
+    println!(
+        "unstated: {} of {} trials report a complete capture",
+        silent.run.acquisition_complete_count, silent.run.computed_count
+    );
+    assert_eq!(silent.run.acquisition_complete_count, 0);
+    assert_eq!(silent.run.computed_count, copied);
+
+    let described = analyse(
+        &set,
+        &bound_request().describing(plateforce_core::Acquisition {
+            filter_at_capture: Some("none".to_string()),
+            tare_state: Some("tared_before_trial".to_string()),
+            plate_natural_frequency_hz: Some(400.0),
+            floor_surface: Some("concrete".to_string()),
+            firmware_version: Some("2.4.1".to_string()),
+        }),
+        &registry(),
+    )
+    .unwrap();
+    println!(
+        "described: {} of {} trials report a complete capture",
+        described.run.acquisition_complete_count, described.run.computed_count
+    );
+    assert_eq!(described.run.acquisition_complete_count, copied);
+
+    // A block missing one member is not a complete one, which is the distinction the count
+    // exists to make.
+    let partial = analyse(
+        &set,
+        &bound_request().describing(plateforce_core::Acquisition {
+            filter_at_capture: Some("none".to_string()),
+            tare_state: Some("tared_before_trial".to_string()),
+            plate_natural_frequency_hz: Some(400.0),
+            floor_surface: Some("concrete".to_string()),
+            firmware_version: None,
+        }),
+        &registry(),
+    )
+    .unwrap();
+    assert_eq!(
+        partial.run.acquisition_complete_count, 0,
+        "one member short is not complete"
+    );
+
+    // And the record tells the three runs apart.
+    assert_ne!(silent.run.run_fingerprint, described.run.run_fingerprint);
+    assert_ne!(described.run.run_fingerprint, partial.run.run_fingerprint);
+    std::fs::remove_dir_all(&directory).ok();
+}

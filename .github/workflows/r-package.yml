@@ -82,6 +82,13 @@ jobs:
             > capability-from-r.json
           test -s capability-from-r.json
 
+      # `R CMD check` unpacks the package on its own, away from the recorded trial and the
+      # sources, so the assertions that recompute from that trial and scan those sources
+      # skip there. Run beside the checkout they need, they run.
+      - name: Hold the surface to the recorded trial
+        shell: bash
+        run: Rscript bindings/r/tools/run-suite.R bindings/r
+
       - name: The boundary cost, measured
         shell: bash
         run: bash bindings/r/tools/framework-seam.sh
