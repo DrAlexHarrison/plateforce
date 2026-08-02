@@ -31,3 +31,26 @@ corpus is. Point the gated test at it:
     cargo test -p plateforce-conformance
 
 or get the per column table from `plateforce-conformance --reference ... --corpus ...`.
+
+## `synthetic_untrimmed_step_off.force.txt`
+
+Synthetic, and named so. One column of vertical force at 1200 Hz: a second of quiet standing,
+a step off the plate and back on, a settle, then a countermovement jump with its flight and
+its landing. No athlete produced it.
+
+It exists because `MISSION.md` P5 names an untrimmed recording as a pillar's own test and the
+corpus cannot supply one. Surveyed across the 242 trials the shipped rules place a takeoff
+on, 0 return a time to takeoff under 150 ms, because every corpus recording was trimmed to a
+single jump before it was archived.
+
+On this trace the shipped takeoff rules place takeoff on the step-off and report 58.3 ms;
+`takeoff.threshold.landing_shape` places it on the jump and reports 2269.2 ms.
+
+## `landing_shape_placements_subject01.tsv`
+
+Where the reference implementation of the landing-shape rule placed takeoff on subject 01's
+six trials, as `subject`, `trial`, the weighing figure it used, the sample index, and how many
+landings it found. An empty index is a recording that closes no run with a landing.
+
+Only subject 01 is ever public, so the same placements for the rest of the corpus are named
+by `PLATEFORCE_REFERENCE_PLACEMENTS` rather than committed.
