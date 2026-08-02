@@ -1,0 +1,32 @@
+name: the committed tree is the tree
+
+# A module declared but not committed compiles for everyone who has the file sitting
+# untracked beside them, and fails for anyone who clones. Several agents share one checkout
+# and all have the file; CI and a new contributor do not.
+#
+# Measured over the 40 commits before this job existed: 16 of them did not build from a clean
+# checkout, across two outages, one of 9 commits and one of 7. Every local tree was green
+# throughout both.
+#
+# This runs in seconds and reads only what git holds, so it can also be run before a push:
+#
+#   python3 scripts/verify-committed-tree.py HEAD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  declared-modules-are-committed:
+    name: every declared module is committed
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the ref rather than the working tree
+        run: python3 scripts/verify-committed-tree.py HEAD
