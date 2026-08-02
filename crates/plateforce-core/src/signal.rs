@@ -33,6 +33,51 @@ pub enum TrialError {
     },
 }
 
+/// The one mapping from the older error onto the refusal every surface reads.
+///
+/// Written as a conversion rather than a replacement so each caller can move when it suits
+/// it. Five crates read `TrialError`, and one commit retiring it across all of them would
+/// have to land in every workstream at once.
+impl From<TrialError> for crate::Refusal {
+    fn from(error: TrialError) -> Self {
+        match error {
+            TrialError::Empty => crate::Refusal::empty_trace(""),
+            TrialError::BadSampleRate(value) => {
+                crate::Refusal::parameter_not_finite("", "sample_rate_hz", value)
+            }
+            TrialError::NoCrossing {
+                method_id,
+                parameter,
+                value,
+                search_bound_seconds,
+            } => crate::Refusal::no_crossing(method_id, parameter, value, search_bound_seconds),
+            TrialError::CollapsedBand {
+                method_id,
+                parameter,
+                value,
+                dispersion_newtons,
+                threshold_newtons,
+            } => crate::Refusal::collapsed_band(
+                method_id,
+                parameter,
+                value,
+                dispersion_newtons,
+                threshold_newtons,
+            ),
+            TrialError::EpochTooLong {
+                requested_seconds,
+                start_seconds,
+                available_seconds,
+            } => crate::Refusal::epoch_does_not_fit(
+                "",
+                requested_seconds,
+                start_seconds,
+                available_seconds,
+            ),
+        }
+    }
+}
+
 /// A single trial. Force is vertical ground reaction force in newtons, already in the
 /// sign convention where standing quietly reads positive and equal to system weight.
 #[derive(Debug, Clone)]
@@ -153,6 +198,68 @@ pub fn partition_sentinels(values: &[f64], sentinel: Sentinel) -> (Vec<f64>, Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every variant reaches a refusal carrying the same fields, and four of the five carry
+    /// the same sentence. A caller that migrates sees no copy change on those four.
+    #[test]
+    fn every_trial_error_becomes_a_refusal_that_says_the_same_thing() {
+        use crate::{Refusal, RefusalCode};
+
+        let refused: Refusal = TrialError::NoCrossing {
+            method_id: "onset.threshold.noise_relative".to_string(),
+            parameter: "k".to_string(),
+            value: 5.0,
+            search_bound_seconds: 2.5,
+        }
+        .into();
+        assert_eq!(refused.code, RefusalCode::NoCrossing);
+        assert_eq!(
+            refused.message(),
+            "onset.threshold.noise_relative(k = 5) found no crossing within the search bound of 2.5 s"
+        );
+        assert_eq!(refused.detail["search_bound_seconds"], 2.5);
+
+        let collapsed: Refusal = TrialError::CollapsedBand {
+            method_id: "onset.threshold.noise_relative".to_string(),
+            parameter: "k".to_string(),
+            value: 5.0,
+            dispersion_newtons: 0.4,
+            threshold_newtons: 812.1,
+        }
+        .into();
+        assert_eq!(collapsed.code, RefusalCode::CollapsedBand);
+        assert_eq!(
+            collapsed.message(),
+            TrialError::CollapsedBand {
+                method_id: "onset.threshold.noise_relative".to_string(),
+                parameter: "k".to_string(),
+                value: 5.0,
+                dispersion_newtons: 0.4,
+                threshold_newtons: 812.1,
+            }
+            .to_string()
+        );
+
+        let empty: Refusal = TrialError::Empty.into();
+        assert_eq!(empty.code, RefusalCode::TraceTooShort);
+        assert_eq!(empty.message(), TrialError::Empty.to_string());
+
+        let epoch: Refusal = TrialError::EpochTooLong {
+            requested_seconds: 2.0,
+            start_seconds: 1.5,
+            available_seconds: 3.0,
+        }
+        .into();
+        assert_eq!(epoch.code, RefusalCode::TraceTooShort);
+        assert_eq!(epoch.detail["available_seconds"], 3.0);
+
+        // The one sentence that changes. The older text said "sample rate"; the refusal names
+        // the parameter as a caller spells it, which is the name they would set.
+        let rate: Refusal = TrialError::BadSampleRate(0.0).into();
+        assert_eq!(rate.code, RefusalCode::ParameterNotFinite);
+        assert_eq!(rate.parameter.as_deref(), Some("sample_rate_hz"));
+        assert_eq!(rate.message(), "sample_rate_hz must be positive, got 0");
+    }
 
     #[test]
     fn integrating_a_constant_force_gives_force_times_duration() {
