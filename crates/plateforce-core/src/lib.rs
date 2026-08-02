@@ -8,6 +8,7 @@
 //! registry and gets a result carrying what produced it.
 
 pub mod agreement;
+pub mod baseline_offset;
 pub mod bspline;
 pub mod butterworth;
 pub mod calibration;
