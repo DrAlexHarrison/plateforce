@@ -118,7 +118,34 @@ analyse_countermovement_jump <- function(trial,
                                         takeoff_index = NULL,
                                         touchdown_index = NULL,
                                         registry = NULL) {
-  request <- request_of(
+  request <- analysis_request_of(
+    weighing = weighing, onset = onset, takeoff = takeoff,
+    gravity_meters_per_second_squared = gravity_meters_per_second_squared,
+    weighing_parameters = weighing_parameters, onset_parameters = onset_parameters,
+    takeoff_parameters = takeoff_parameters,
+    weighing_options = weighing_options, onset_options = onset_options,
+    takeoff_options = takeoff_options,
+    weighing_start_index = weighing_start_index, onset_index = onset_index,
+    takeoff_index = takeoff_index, touchdown_index = touchdown_index,
+    registry = registry
+  )
+  response <- unwrap(decode(rust_analyse_json(trial@handle, request)))
+  jump_from_response(response)
+}
+
+# The one place a request is written. A caller that wrote its own would send a document
+# that differs from the one a user's call sends, and a comparison over that document would
+# be measuring a request nobody makes.
+analysis_request_of <- function(weighing, onset, takeoff,
+                                gravity_meters_per_second_squared = NULL,
+                                weighing_parameters = NULL, onset_parameters = NULL,
+                                takeoff_parameters = NULL,
+                                weighing_options = NULL, onset_options = NULL,
+                                takeoff_options = NULL,
+                                weighing_start_index = NULL, onset_index = NULL,
+                                takeoff_index = NULL, touchdown_index = NULL,
+                                registry = NULL) {
+  request_of(
     weighing = drop_empty(list(
       method_id = weighing,
       start_index = as_index(weighing_start_index),
@@ -142,8 +169,6 @@ analyse_countermovement_jump <- function(trial,
     registry_digest = registry_digest(registry),
     registry_backed_ids = registry_backed_among(c(weighing, onset, takeoff), registry)
   )
-  response <- unwrap(decode(rust_analyse_json(trial@handle, request)))
-  jump_from_response(response)
 }
 
 drop_empty <- function(fields) fields[!vapply(fields, is.null, logical(1))]
