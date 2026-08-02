@@ -347,7 +347,7 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
             .unwrap_or_default();
 
         let trial = match entry.source.read(&set.format) {
-            Ok((trial, _)) => trial,
+            Ok((trial, _, _)) => trial,
             Err(error) => {
                 refusals.push(RefusalRow {
                     trial_id: trial_id.clone(),

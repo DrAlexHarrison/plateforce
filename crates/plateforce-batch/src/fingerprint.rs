@@ -172,6 +172,11 @@ mod tests {
             gates_applied: 0,
             distinct_provenance_count: 2,
             trial_identity: "file_stem".to_string(),
+            delimiter: "\t".to_string(),
+            force_column_index: 0,
+            sample_rate_hz: 1200.0,
+            sentinel: String::new(),
+            sentinel_rows_dropped: 0,
             run_fingerprint: String::new(),
         }
     }

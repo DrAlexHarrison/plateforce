@@ -7,6 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use plateforce_core::signal::{partition_sentinels, Sentinel};
 use plateforce_core::{read_delimited_column, ColumnReadReport, ReadError, Trial};
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,11 @@ pub struct SourceFormat {
     pub delimiter: char,
     pub force_column_index: usize,
     pub sample_rate_hz: f64,
+    /// The value this export writes where a sample is missing. `None` is the statement that
+    /// it writes none, not the absence of a choice: the field has no default, so a run cannot
+    /// begin without the caller saying which it is. Carried as the value rather than as a
+    /// named set, because exports use 0, -1 and 9999 and a fixed set cannot spell the third.
+    pub sentinel: Option<f64>,
     /// Which names in the directory are trials, matched against the end of the file name so
     /// a compound suffix like `force.txt` is expressible. No default, because a walk that
     /// filtered silently would drop files out of the denominator with nothing recording it,
@@ -110,7 +116,11 @@ impl TrialSource {
         }
     }
 
-    pub fn read(&self, format: &SourceFormat) -> Result<(Trial, ColumnReadReport), ReadError> {
+    /// The trace, what the reader saw, and how many samples the declared sentinel removed.
+    pub fn read(
+        &self,
+        format: &SourceFormat,
+    ) -> Result<(Trial, ColumnReadReport, usize), ReadError> {
         let text = match self {
             TrialSource::Path(path) => {
                 std::fs::read_to_string(path).map_err(|source| ReadError::Io {
@@ -122,7 +132,15 @@ impl TrialSource {
         };
         let (values, report) =
             read_delimited_column(&text, format.delimiter, format.force_column_index)?;
-        Ok((Trial::new(values, format.sample_rate_hz)?, report))
+        let (kept, dropped) = match format.sentinel {
+            Some(missing) => partition_sentinels(&values, Sentinel::Value(missing)),
+            None => (values, Vec::new()),
+        };
+        Ok((
+            Trial::new(kept, format.sample_rate_hz)?,
+            report,
+            dropped.len(),
+        ))
     }
 }
 
@@ -542,6 +560,7 @@ mod tests {
             force_column_index: 0,
             sample_rate_hz: 1200.0,
             trial_file_suffixes: vec!["txt".to_string(), "force.txt".to_string()],
+            sentinel: None,
         };
         assert_eq!(
             format.matching_suffix("subject01_trial1.force.txt"),

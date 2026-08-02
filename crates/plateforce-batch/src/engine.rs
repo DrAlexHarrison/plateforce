@@ -172,6 +172,7 @@ pub fn analyse(
     let mut exclusions: Vec<PopulationExclusion> = Vec::new();
     let mut computed = 0usize;
     let mut refused = 0usize;
+    let mut sentinel_rows_total = 0usize;
 
     for unidentified in &set.unidentified {
         refusals.push(unidentified_row(unidentified, refusals.len()));
@@ -186,8 +187,8 @@ pub fn analyse(
         let ordinal =
             |rows: &[RefusalRow]| rows.iter().filter(|row| row.trial_id == *trial_id).count();
 
-        let trial = match entry.source.read(&set.format) {
-            Ok((trial, _report)) => trial,
+        let (trial, sentinel_rows) = match entry.source.read(&set.format) {
+            Ok((trial, _report, dropped)) => (trial, dropped),
             Err(error) => {
                 let code = RefusalCode::from(&error).wire_name();
                 refusals.push(RefusalRow {
@@ -249,6 +250,20 @@ pub fn analyse(
                 trial_id: trial_id.clone(),
                 ordinal: index,
                 message: sentence.clone(),
+            });
+        }
+        // What the reader treated as missing travels with the trial it was taken from, not
+        // only as a run total, because a run of 244 that dropped 30 rows in one trace and a
+        // run that dropped one row in each are different data and sum the same.
+        sentinel_rows_total += sentinel_rows;
+        if sentinel_rows > 0 {
+            warnings.push(WarningRow {
+                trial_id: trial_id.clone(),
+                ordinal: response.warnings.len(),
+                message: format!(
+                    "{sentinel_rows} of {} samples matched the declared missing value and were not read as force",
+                    sentinel_rows + trial.len()
+                ),
             });
         }
 
@@ -338,6 +353,15 @@ pub fn analyse(
         gates_applied: request.gates.applied_count(),
         distinct_provenance_count: provenance_ids.len(),
         trial_identity: set.identity.describe(),
+        delimiter: set.format.delimiter.to_string(),
+        force_column_index: set.format.force_column_index,
+        sample_rate_hz: set.format.sample_rate_hz,
+        sentinel: set
+            .format
+            .sentinel
+            .map(crate::relations::format_value)
+            .unwrap_or_default(),
+        sentinel_rows_dropped: sentinel_rows_total,
         run_fingerprint: String::new(),
     };
     run.run_fingerprint = run_fingerprint(&run, &provenance_ids);

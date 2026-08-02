@@ -14,6 +14,7 @@ fn committed_format() -> SourceFormat {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["force.txt".to_string()],
+        sentinel: None,
     }
 }
 
@@ -57,7 +58,7 @@ fn reads_every_committed_fixture() {
     assert!(on_disk > set.files_found);
 
     for (trial_id, entry) in set.iter() {
-        let (trial, report) = entry
+        let (trial, report, _) = entry
             .source
             .read(&format)
             .unwrap_or_else(|error| panic!("{trial_id}: {error}"));
@@ -73,6 +74,7 @@ fn a_declared_pattern_parses_what_the_conformance_crate_parses() {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
+        sentinel: None,
     };
     let identity = TrialIdentity::DeclaredPattern {
         template: "AT{subject}_{trial}".to_string(),
@@ -115,6 +117,7 @@ fn a_file_the_pattern_does_not_match_is_refused_by_name_rather_than_skipped() {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
+        sentinel: None,
     };
     let identity = TrialIdentity::DeclaredPattern {
         template: "AT{subject}_{trial}".to_string(),
@@ -224,6 +227,7 @@ fn a_declared_pattern_groups_one_subjects_trials_from_one_occasion() {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
+        sentinel: None,
     };
     let identity = TrialIdentity::DeclaredPattern {
         template: "AT{subject}_{trial}".to_string(),
@@ -254,6 +258,7 @@ fn a_run_that_declares_no_trial_names_is_refused_rather_than_given_a_default() {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: Vec::new(),
+        sentinel: None,
     };
     let error = TrialSet::walk(
         std::path::Path::new(FIXTURES),

@@ -254,8 +254,12 @@ pub fn batch_result_from_json(text: &str) -> PyResult<BatchResult> {
 }
 
 /// Run one analysis over every trial under a directory.
+///
+/// `sentinel` is the value this export writes where a sample is missing, or `None` to state
+/// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
+/// reading a vendor's missing marker as a force.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -263,6 +267,7 @@ pub fn batch(
     weighing: &str,
     onset: &str,
     takeoff: &str,
+    sentinel: Option<f64>,
     delimiter: &str,
     force_column_index: usize,
     sample_rate_hz: f64,
@@ -287,6 +292,7 @@ pub fn batch(
         force_column_index,
         sample_rate_hz,
         trial_file_suffixes: suffixes,
+        sentinel,
     };
     let identity = match pattern {
         Some(template) => CoreTrialIdentity::DeclaredPattern {

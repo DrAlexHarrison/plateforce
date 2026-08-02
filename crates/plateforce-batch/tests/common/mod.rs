@@ -29,6 +29,7 @@ pub fn committed_format() -> SourceFormat {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["force.txt".to_string()],
+        sentinel: None,
     }
 }
 
@@ -38,6 +39,7 @@ pub fn synthetic_format() -> SourceFormat {
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
+        sentinel: None,
     }
 }
 

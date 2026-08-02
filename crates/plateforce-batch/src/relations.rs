@@ -208,6 +208,16 @@ pub struct RunRow {
     /// reader has to answer before pooling and which is otherwise a diff rather than a query.
     pub distinct_provenance_count: usize,
     pub trial_identity: String,
+    /// How every file in the run was read. A request digest says two runs differ; these say
+    /// how, and three of the four are stated by the caller and were otherwise lost.
+    pub delimiter: String,
+    pub force_column_index: usize,
+    pub sample_rate_hz: f64,
+    /// The value the run read as missing, or empty when the caller declared none. Empty is a
+    /// declaration here, because the format field it comes from has no default.
+    pub sentinel: String,
+    /// Samples the declared sentinel removed, across every trial the run read.
+    pub sentinel_rows_dropped: usize,
     pub run_fingerprint: String,
 }
 
@@ -367,6 +377,11 @@ mod tests {
             gates_applied: 0,
             distinct_provenance_count: 1,
             trial_identity: "file_stem".to_string(),
+            delimiter: "\t".to_string(),
+            force_column_index: 0,
+            sample_rate_hz: 1200.0,
+            sentinel: String::new(),
+            sentinel_rows_dropped: 0,
             run_fingerprint: String::new(),
         }
     }
