@@ -31,18 +31,37 @@ test_that("a value a rule did compute carries the rule and what it was bound to"
     c("stated", "assumed", "measured", "provisional")))
 })
 
-test_that("a parameter the caller stated is recorded as stated, not as assumed", {
+weighed <- function(...) {
   result <- analyse_countermovement_jump(
     quiet_trial(),
     weighing = "bwepoch.fixed_window",
-    weighing_parameters = list(duration = 0.5),
     onset = "onset.threshold.noise_relative",
-    takeoff = "takeoff.threshold.absolute_force"
+    takeoff = "takeoff.threshold.absolute_force",
+    ...
   )
-  bound <- pf_value(result, "system_weight_newtons")@provenance@depends_on[[1]]@parameters
-  duration <- bound[bound[["name"]] == "duration", , drop = FALSE]
+  pf_value(result, "system_weight_newtons")@provenance@depends_on[[1]]@parameters
+}
 
-  expect_identical(duration[["source"]], "stated")
+source_of <- function(bound, name) bound[bound[["name"]] == name, "source"]
+
+test_that("stating a value is what makes the record say the caller stated it", {
+  # Two runs alike in everything except whether the caller stated the duration. Asserting
+  # only that a stated value reads stated passes just as well when every value does.
+  stated <- weighed(weighing_parameters = list(duration = 0.5))
+  unstated <- weighed()
+
+  expect_identical(source_of(stated, "duration"), "stated")
+  expect_identical(source_of(unstated, "duration"), "assumed")
+  expect_identical(source_of(stated, "centre"), source_of(unstated, "centre"))
+  expect_false(source_of(unstated, "centre") == "stated")
+})
+
+test_that("a value the rule measured off this trace is not recorded as one it assumed", {
+  bound <- weighed()
+
+  # The weighing epoch's start is read from the trace rather than defaulted, and a record
+  # that called it assumed would name a source no author chose.
+  expect_identical(source_of(bound, "start_seconds"), "measured")
 })
 
 test_that("a dataset with no acquisition block fingerprints as incomplete", {

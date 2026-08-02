@@ -46,15 +46,28 @@ binding_frame <- function(names, values, sources) {
   )
 }
 
-# The engine reports what each rule was bound to and which of those names it supplied
-# itself. A name the caller stated and a name the rule chose are different facts about the
-# number, and the record is where the difference has to survive.
+# The engine records a source per name as the rule reads it, and that record is taken
+# here rather than worked back out. Deriving it from a second field is a second answer to
+# where a value came from, and the two say different things the moment either moves: a
+# value the caller typed, one the rule fell back to, and one it measured off this trace
+# move the number identically.
 provenance_from_bound_method <- function(bound, registry_digest, acquisition_complete) {
-  assumed <- as.character(unlist(bound[["assumed_parameters"]]))
+  recorded <- bound[["parameter_sources"]]
   pairs <- bound[["bound_parameters"]]
   names <- vapply(pairs, function(pair) as.character(pair[[1]]), character(1))
   values <- vapply(pairs, function(pair) as.character(pair[[2]]), character(1))
-  sources <- ifelse(names %in% assumed, "assumed", "stated")
+  sources <- vapply(names, function(name) {
+    said <- recorded[[name]]
+    if (is.null(said)) {
+      refuse_here(
+        "parameter_source_unrecorded",
+        "this rule's record does not say where the value came from",
+        method_id = as.character(bound[["method_id"]]),
+        parameter = name
+      )
+    }
+    as.character(said)
+  }, character(1), USE.NAMES = FALSE)
 
   provenance(
     method_id = bound[["method_id"]],
