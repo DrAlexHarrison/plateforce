@@ -5,7 +5,7 @@
 //! after the fact that their mean was taken over 217 trials and not 244. Applying a gate is a
 //! request field recorded in provenance like any other choice, never a constant in a build.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::AnalysisResponse;
 use serde::{Deserialize, Serialize};
@@ -29,8 +29,7 @@ pub struct PopulationExclusion {
 
 /// A rule that decides whether a trial belongs in a population.
 ///
-/// WS-C ships the channel and the validity rules arrive from the workstreams that own them.
-/// An empty channel is the correct state of a run that bound no gate.
+/// A registry holding no gate is the correct state of a run that bound none.
 pub trait ValidityGate {
     /// The registry id this gate is bound to.
     fn method_id(&self) -> &str;
@@ -78,15 +77,13 @@ pub struct GateFinding {
 #[derive(Default)]
 pub struct GateRegistry {
     gates: Vec<Box<dyn ValidityGate>>,
-    /// Ids the request asked to apply. Every other gate reports and removes nothing.
-    applied: BTreeMap<String, bool>,
+    /// Ids the request asked to apply. A gate absent from this set reports and removes
+    /// nothing, which is the only place that choice is expressed.
+    applied: BTreeSet<String>,
 }
 
 impl GateRegistry {
     pub fn register(&mut self, gate: Box<dyn ValidityGate>) {
-        self.applied
-            .entry(gate.method_id().to_string())
-            .or_insert(false);
         self.gates.push(gate);
     }
 
@@ -96,7 +93,7 @@ impl GateRegistry {
     /// it ran unscoped, so a build that applied gates by default could return an empty set
     /// and report success.
     pub fn apply(&mut self, method_id: &str) {
-        self.applied.insert(method_id.to_string(), true);
+        self.applied.insert(method_id.to_string());
     }
 
     pub fn len(&self) -> usize {
@@ -108,7 +105,7 @@ impl GateRegistry {
     }
 
     pub fn applied_count(&self) -> usize {
-        self.applied.values().filter(|applied| **applied).count()
+        self.applied.len()
     }
 
     pub fn reporting_count(&self) -> usize {
@@ -127,7 +124,7 @@ impl GateRegistry {
                         parameter: finding.parameter,
                         value: finding.value,
                         criterion: finding.criterion,
-                        applied: self.applied.get(gate.method_id()).copied().unwrap_or(false),
+                        applied: self.applied.contains(gate.method_id()),
                     })
             })
             .collect()

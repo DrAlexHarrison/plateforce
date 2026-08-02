@@ -36,21 +36,40 @@ fn both_renderings_record_the_same_provenance() {
     println!("long header:  {}", long.header.join(", "));
     println!("short header: {}", short.header.join(", "));
 
-    // Both renderings are views of one result, so the record behind them is one record.
-    let long_out = directory.join("long");
-    let short_out = directory.join("short");
-    result.write_csv(&long_out).unwrap();
-    result.write_csv(&short_out).unwrap();
-    let long_provenance = std::fs::read_to_string(long_out.join("provenance.csv")).unwrap();
-    let short_provenance = std::fs::read_to_string(short_out.join("provenance.csv")).unwrap();
-    assert_eq!(long_provenance, short_provenance);
-    assert!(
-        !long_provenance.trim().is_empty(),
-        "and it is not empty in either"
-    );
+    // Anchored to the result that entered the rendering rather than to a second rendering
+    // pass, because two passes through one writer agree even when both are wrong.
+    let written = directory.join("record");
+    result.write_csv(&written).unwrap();
+    let provenance = std::fs::read_to_string(written.join("provenance.csv")).unwrap();
+    assert!(!provenance.trim().is_empty(), "the record is not empty");
+
+    let chains: Vec<&String> = result
+        .results
+        .iter()
+        .map(|row| &row.provenance_id)
+        .filter(|id| !id.is_empty())
+        .collect();
+    assert!(!chains.is_empty(), "and the rows reach it");
+    for id in &chains {
+        assert!(
+            provenance.contains(id.as_str()),
+            "{id} names a chain the record does not carry"
+        );
+    }
+
+    // Neither rendering may lose a trial the record accounts for.
+    for (name, rendered) in [("long", &long), ("short", &short)] {
+        assert_eq!(
+            rendered.rows.len(),
+            result.results.len(),
+            "the {name} rendering shows every row the record carries"
+        );
+    }
     println!(
-        "provenance rows recorded under both renderings: {}",
-        long_provenance.lines().count() - 1
+        "provenance rows recorded: {}, chains reaching them: {} of {} result rows",
+        provenance.lines().count() - 1,
+        chains.len(),
+        result.results.len()
     );
     std::fs::remove_dir_all(&directory).ok();
 }

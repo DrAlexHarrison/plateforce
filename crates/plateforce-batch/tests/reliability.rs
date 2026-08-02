@@ -135,13 +135,9 @@ fn an_intraclass_figure_also_carries_its_interval() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
-// Task 5.7's compile-failure check. Uncomment and run
-// `cargo build -p plateforce-batch --tests` to confirm the interval cannot be omitted: the
-// error must name the missing argument rather than a type mismatch, because a field with a
-// fallback would compile.
-// Run once and recorded: the build fails with E0061, "argument #3 of type
-// ReliabilityInterval is missing", which names the missing argument rather than a type
-// mismatch, because a field carrying a fallback would have compiled.
+// Uncommenting this block must fail `cargo build -p plateforce-batch --tests` with E0061,
+// "argument #3 of type ReliabilityInterval is missing". The error names a missing argument
+// rather than a type mismatch, because an interval carrying a fallback would compile.
 //
 // #[test]
 // fn a_reliability_figure_without_an_interval_does_not_build() {

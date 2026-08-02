@@ -58,8 +58,8 @@ pub enum WriteRefusal {
 }
 
 impl BatchResult {
-    /// Every relation, with the record. The four names §6 prints plus the two this run has a
-    /// state for: warnings, and aggregates when a rule was bound.
+    /// Every relation, with the record: results, provenance, refusals and the run block, plus
+    /// warnings, and aggregates when a rule was bound.
     pub fn write_csv(&self, directory: &Path) -> Result<Vec<PathBuf>, WriteRefusal> {
         self.write_csv_selection(directory, EVERY_RELATION)
     }

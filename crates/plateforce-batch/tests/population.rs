@@ -162,8 +162,8 @@ fn an_empty_channel_is_the_correct_state_of_a_run_that_bound_no_gate() {
 fn the_baseline_records_what_each_gate_would_remove_and_fails_when_it_moves() {
     let (directory, set) = synthetic_run("population-baseline", 5, 4);
     let mut request = bound_request();
-    // The three gates whose ids WS-E1 and WS-E2 will fill. Each is bound here reporting, so
-    // the baseline records the shipped default rather than a state a test invented.
+    // Each gate is bound reporting, so the baseline records the shipped default rather than
+    // a state a test invented.
     for id in [
         "trial.gate.between_trial_agreement.kraska2009",
         "qc.countermovement_contamination.chavda2020",
