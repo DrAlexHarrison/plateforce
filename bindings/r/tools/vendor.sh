@@ -31,16 +31,24 @@ directory = "@VENDOR_DIR@"
 CONFIG
 
 # One mtime and one member order, expressed through touch and a sorted member list
-# rather than through --mtime and --sort, which macOS's tar does not carry. The container
-# is ustar because pax records an access and a change time to the nanosecond, which no
-# two runs share; a path ustar cannot hold makes tar say so and stops the build.
+# rather than through --mtime and --sort, which macOS's tar does not carry.
 find vendor -exec touch -t 202601010000 {} +
 find vendor -print | LC_ALL=C sort > vendor.members
+
+# The container holds a hard link's target in a field ustar caps at 100 bytes, and a
+# vendored crate ships test fixtures linked past it. pax holds them and records an access
+# and a change time to the nanosecond, which no two runs share. The two tars spell this one
+# container differently, so the name is probed rather than read off a version string.
+if tar --format=gnu -cf /dev/null --files-from /dev/null 2>/dev/null; then
+    container=gnu
+else
+    container=gnutar
+fi
 
 # A compressor succeeds on empty input, so a tar read through a pipe leaves a file that
 # reads as a bundle whatever tar did. Each step is taken on its own status, and the
 # bundle takes its name only once it is whole.
-tar -cf vendor.tar --format=ustar --numeric-owner -T vendor.members
+tar -cf vendor.tar --format="$container" --numeric-owner -T vendor.members
 xz -T0 -9 < vendor.tar > vendor.tar.part
 mv -f vendor.tar.part vendor.tar.xz
 rm -rf vendor vendor.tar vendor.members
