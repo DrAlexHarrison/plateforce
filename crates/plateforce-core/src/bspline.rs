@@ -125,39 +125,43 @@ impl Basis {
         }
 
         for column in 0..self.basis_count {
-            let mut pivot = normal[column][column];
-            for earlier in 0..column {
-                pivot -= normal[column][earlier] * normal[column][earlier];
-            }
+            let settled: Vec<f64> = normal[column][..column].to_vec();
+            let pivot =
+                normal[column][column] - settled.iter().map(|value| value * value).sum::<f64>();
             if !(pivot.is_finite() && pivot > 0.0) {
                 return Err(BSplineError::RankDeficient { index: column });
             }
             let root = pivot.sqrt();
             normal[column][column] = root;
-            for row in column + 1..self.basis_count {
-                let mut accumulated = normal[row][column];
-                for earlier in 0..column {
-                    accumulated -= normal[row][earlier] * normal[column][earlier];
-                }
-                normal[row][column] = accumulated / root;
+            for row_values in normal.iter_mut().skip(column + 1) {
+                let crossed: f64 = row_values[..column]
+                    .iter()
+                    .zip(&settled)
+                    .map(|(left, right)| left * right)
+                    .sum();
+                row_values[column] = (row_values[column] - crossed) / root;
             }
         }
 
-        let mut intermediate = vec![0.0f64; self.basis_count];
-        for row in 0..self.basis_count {
-            let mut accumulated = projected[row];
-            for earlier in 0..row {
-                accumulated -= normal[row][earlier] * intermediate[earlier];
-            }
-            intermediate[row] = accumulated / normal[row][row];
+        let mut intermediate: Vec<f64> = Vec::with_capacity(self.basis_count);
+        for (row_values, &projection) in normal.iter().zip(&projected) {
+            let solved_so_far = intermediate.len();
+            let crossed: f64 = row_values[..solved_so_far]
+                .iter()
+                .zip(&intermediate)
+                .map(|(factor, solved)| factor * solved)
+                .sum();
+            intermediate.push((projection - crossed) / row_values[solved_so_far]);
         }
+
         let mut coefficients = vec![0.0f64; self.basis_count];
         for row in (0..self.basis_count).rev() {
-            let mut accumulated = intermediate[row];
-            for later in row + 1..self.basis_count {
-                accumulated -= normal[later][row] * coefficients[later];
-            }
-            coefficients[row] = accumulated / normal[row][row];
+            let crossed: f64 = normal[row + 1..]
+                .iter()
+                .zip(&coefficients[row + 1..])
+                .map(|(later_row, solved)| later_row[row] * solved)
+                .sum();
+            coefficients[row] = (intermediate[row] - crossed) / normal[row][row];
         }
         Ok(coefficients)
     }

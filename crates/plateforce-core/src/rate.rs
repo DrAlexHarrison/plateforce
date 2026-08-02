@@ -171,8 +171,8 @@ mod tests {
     /// chord has a known value and a known location.
     fn one_steep_stretch() -> Vec<f64> {
         let mut values = vec![600.0f64; 2400];
-        for index in 1000..1240 {
-            values[index] = 600.0 + 3000.0 * (index - 1000) as f64 * SAMPLE_INTERVAL_SECONDS;
+        for (offset, value) in values.iter_mut().skip(1000).take(240).enumerate() {
+            *value = 600.0 + 3000.0 * offset as f64 * SAMPLE_INTERVAL_SECONDS;
         }
         for value in values.iter_mut().skip(1240) {
             *value = 600.0 + 3000.0 * 239.0 * SAMPLE_INTERVAL_SECONDS;
@@ -194,8 +194,8 @@ mod tests {
     #[test]
     fn the_search_interval_bounds_the_steepest_chord() {
         let mut values = vec![600.0f64; 2400];
-        for index in 1200..2400 {
-            values[index] = 600.0 + 9000.0 * (index - 1200) as f64 * SAMPLE_INTERVAL_SECONDS;
+        for (offset, value) in values.iter_mut().skip(1200).enumerate() {
+            *value = 600.0 + 9000.0 * offset as f64 * SAMPLE_INTERVAL_SECONDS;
         }
         let inside = steepest_chord(&values, 24, 0, 1100, SAMPLE_INTERVAL_SECONDS).unwrap();
         assert_eq!(inside.rate_newtons_per_second(), 0.0);
