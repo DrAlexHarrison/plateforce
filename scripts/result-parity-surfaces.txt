@@ -1,0 +1,8 @@
+# One surface per line: a name, then the command that makes that surface compute the one
+# committed request. The harness names the request file in PLATEFORCE_PARITY_REQUEST, so
+# every arm asks the same question and two arms cannot drift into asking different ones.
+#
+# A surface listed here and unreachable is a failure of this check, never a skip. A row is
+# added in the same commit as the entry point it calls.
+cli	scripts/result-from-cli.sh
+r	Rscript --vanilla scripts/result-from-r.R
