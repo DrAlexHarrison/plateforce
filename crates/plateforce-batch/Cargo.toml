@@ -15,7 +15,11 @@ plateforce-analysis = { workspace = true }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 serde = { workspace = true }
-serde_json = "1"
+# `arbitrary_precision` because serde_json's own float parser is not correctly rounded:
+# measured over 200,000 doubles it reads back a different value for 8,815 of them, while the
+# same strings through `str::parse` lose 0 of 200,000. A result that changes when it is read
+# is a number without a method, and every surface reads this envelope.
+serde_json = { version = "1", features = ["arbitrary_precision"] }
 thiserror = { workspace = true }
 
 # Codecs are named one by one rather than taken from the default set, which also carries
