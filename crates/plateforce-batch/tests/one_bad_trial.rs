@@ -165,6 +165,62 @@ fn a_trial_that_computed_and_declined_two_landmarks_carries_a_row_for_each() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
+/// Every code a run publishes has to be one the vocabulary carries, and has to be the one
+/// that names what went wrong. A file the identity pattern could not parse reported a missing
+/// column until `TrialIdentityUnparsed` existed, which sent a reader looking at their columns.
+#[test]
+fn every_refusal_carries_a_published_code_that_names_its_fault() {
+    let published: std::collections::BTreeSet<String> = plateforce_core::RefusalCode::ALL
+        .iter()
+        .map(|code| {
+            serde_json::to_value(code)
+                .ok()
+                .and_then(|value| value.as_str().map(str::to_string))
+                .expect("a code spells itself")
+        })
+        .collect();
+
+    let directory = tempdir("published-codes");
+    plateforce_batch::synthetic::write_corpus(&directory, 2, 2, 7).unwrap();
+    // One name the pattern cannot read, and one it can read whose trace it cannot, so more
+    // than one kind of fault is on the table.
+    std::fs::write(directory.join("notes.txt"), "0\n0\n0\n").unwrap();
+    std::fs::write(directory.join("AT09_1.txt"), "").unwrap();
+    let set = TrialSet::walk(&directory, &synthetic_format(), &declared_pattern()).unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).expect("every choice was made");
+
+    let seen: std::collections::BTreeSet<&str> = result
+        .refusals
+        .iter()
+        .map(|row| row.code.as_str())
+        .collect();
+    println!("codes this run published: {seen:?}");
+    assert!(!seen.is_empty(), "the run refused something");
+    for code in &seen {
+        assert!(
+            published.contains(*code),
+            "{code} is not one of the {} codes the vocabulary carries",
+            published.len()
+        );
+    }
+
+    let unparsed = result
+        .refusals
+        .iter()
+        .find(|row| row.parameter == "notes.txt")
+        .expect("the unparsed name keeps a row");
+    assert_eq!(
+        unparsed.code, "trial_identity_unparsed",
+        "a name the pattern could not read is an identity fault, not a column one"
+    );
+    assert!(
+        unparsed.available.contains("{subject}"),
+        "and it names the template that would resolve it: {}",
+        unparsed.available
+    );
+    std::fs::remove_dir_all(&directory).ok();
+}
+
 #[test]
 fn a_run_with_a_choice_still_open_reads_no_trial_at_all() {
     let directory = tempdir("unresolved-precondition");

@@ -370,13 +370,15 @@ fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
     RefusalRow {
         trial_id: String::new(),
         ordinal,
-        code: "column_not_found".to_string(),
+        code: "trial_identity_unparsed".to_string(),
         method_id: String::new(),
         slot: String::new(),
-        parameter: file.parameter(),
+        parameter: file.file_name.clone(),
         value: String::new(),
-        detail: file.file_name.clone(),
-        available: String::new(),
+        detail: String::new(),
+        // The template that did not match, or the id two files landed on: in both cases the
+        // thing a caller changes to resolve it.
+        available: file.parameter(),
         message: file.message(),
     }
 }
