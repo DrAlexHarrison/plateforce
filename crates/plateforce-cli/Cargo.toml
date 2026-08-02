@@ -13,5 +13,11 @@ name = "plateforce"
 path = "src/main.rs"
 
 [dependencies]
+plateforce-analysis = { workspace = true }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
+clap = { version = "4.6", features = ["derive"] }
+anstream = "1"
+anstyle-query = "1.1"
+terminal_size = "0.4"
+serde_json = "1"
