@@ -14,5 +14,4 @@ src/*.so
 src/*.dll
 inst/AUTHORS
 inst/registry/
-../../plateforce_*.tar.gz
 src/rust/ENGINE-SOURCE
