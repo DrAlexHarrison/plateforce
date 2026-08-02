@@ -241,6 +241,25 @@ impl Refusal {
         .in_slot(slot)
     }
 
+    /// A document named a construct this build runs no step for.
+    ///
+    /// Shares `MethodNotImplemented` rather than taking a code of its own: the class is the
+    /// same, a request asking for something not on offer, and a code minted for this would
+    /// reach a manifest and an R condition class before the slot map retires the case.
+    pub fn construct_not_on_the_path(
+        construct_id: impl Into<String>,
+        constructs_this_build_runs: Vec<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::MethodNotImplemented,
+            construct_id,
+            None,
+            None,
+            BTreeMap::new(),
+            constructs_this_build_runs,
+        )
+    }
+
     pub fn unknown_parameter(
         method_id: impl Into<String>,
         parameter: impl Into<String>,
@@ -399,7 +418,7 @@ fn sentence(
                 "'{method_id}' was passed as the {step} method, and the rules available for that step are {available:?}"
             ),
             None => format!(
-                "'{method_id}' has no rule behind it, and the rules available are {available:?}"
+                "'{method_id}' is not a step this build runs, and the steps it runs are {available:?}"
             ),
         },
         RefusalCode::UnknownParameter => format!(
@@ -553,6 +572,38 @@ mod tests {
         );
         assert!(wire.contains("\"slot\":\"onset\""));
         assert!(wire.contains("\"message\":"));
+    }
+
+    /// The value a rule declined on has to come back the same double it went out as.
+    ///
+    /// Asserted on the bits rather than with `==`, because the two doubles either side of a
+    /// mis-parse compare equal under every approximate check and differ in the last place.
+    /// `serde_json`'s writer emits the shortest string that round-trips and its parser was
+    /// not correctly rounded, so the text on the wire is right and the number read back is
+    /// wrong, which is invisible to anyone reading the file.
+    #[test]
+    fn a_declined_value_survives_the_wire_bit_for_bit() {
+        let awkward = 10.106284223733105_f64;
+        let refused = Refusal::no_crossing(
+            "onset.threshold.noise_relative",
+            "k",
+            awkward,
+            3.6408148087849357,
+        );
+        let read_back: Refusal = serde_json::from_str(&serde_json::to_string(&refused).unwrap())
+            .expect("a refusal reads back");
+
+        assert_eq!(
+            read_back.value.unwrap().to_bits(),
+            awkward.to_bits(),
+            "wrote {awkward:?}, read {:?}",
+            read_back.value.unwrap()
+        );
+        assert_eq!(
+            read_back.detail["search_bound_seconds"].to_bits(),
+            3.6408148087849357_f64.to_bits()
+        );
+        assert_eq!(read_back.message(), refused.message());
     }
 
     #[test]
