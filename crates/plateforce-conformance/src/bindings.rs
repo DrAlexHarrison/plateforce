@@ -13,8 +13,11 @@ use plateforce_core::onset::{
 };
 use plateforce_core::phases::{
     braking_start_by_force_minimum, braking_start_by_force_return,
-    braking_start_by_velocity_minimum, center_of_mass_acceleration, cumulative_trapezoid,
-    velocity_zero_crossing,
+    braking_start_by_velocity_minimum, velocity_zero_crossing,
+};
+use plateforce_core::series::{
+    centre_of_mass_velocity_meters_per_second, IntegrationAnchor, IntegrationDirection,
+    IntegrationSpec, IntegrationStart, QuadratureRule,
 };
 use plateforce_core::smoothing::savitzky_golay_interpolated_edges;
 use plateforce_core::statistics::{
@@ -292,18 +295,42 @@ pub fn analyse(
     );
     let takeoff = takeoff_family(force, bindings, peak_index, &weight, &flight_fraction);
 
-    let mass = lowest_variance_mass(weight[0], bindings);
-    let acceleration = center_of_mass_acceleration(force, weight[0], mass);
-    let velocity = cumulative_trapezoid(&acceleration, trial.sample_interval_seconds());
+    // The reference integrates the whole recording from sample zero with velocity zero
+    // there, which is `integration.start.trial_start`. That entry is deprecated and
+    // `integration.start.detected_onset` is recommended, and both force a decision, so the
+    // start is stated here as the value this pipeline used rather than left to whatever a
+    // caller would otherwise inherit.
+    let weighing = WeighingEpoch {
+        start_index: 0,
+        end_index: samples(bindings.quiet_window_seconds[0], bindings),
+        system_weight_newtons: weight[0],
+        standard_deviation_newtons: deviation[0],
+        tied_window_count: 1,
+        tied_weight_low_newtons: weight[0],
+        tied_weight_high_newtons: weight[0],
+    };
+    let integration = IntegrationSpec {
+        quadrature: QuadratureRule::Trapezoid,
+        direction: IntegrationDirection::Forward,
+        start: IntegrationStart::TrialStart,
+        anchor: IntegrationAnchor::SinglePoint { index: 0 },
+    };
+    let velocity_series = centre_of_mass_velocity_meters_per_second(
+        trial,
+        &weighing,
+        &integration,
+        bindings.gravity_meters_per_second_squared,
+    );
+    let velocity = velocity_series.meters_per_second();
     let onset_for_phases = onset[0].filter(|&index| index > 0).unwrap_or(0);
-    let velocity_zero = velocity_zero_crossing(&velocity, onset_for_phases, takeoff_jm);
+    let velocity_zero = velocity_zero_crossing(velocity, onset_for_phases, takeoff_jm);
 
     let braking_reference_newtons = match bindings.braking_start_reference {
         BrakingStartReference::ForceAtOnset => force[onset_for_phases],
         BrakingStartReference::SystemWeight => weight[0],
     };
     let unweighting_end = [
-        braking_start_by_velocity_minimum(&velocity, onset_for_phases, takeoff_jm),
+        braking_start_by_velocity_minimum(velocity, onset_for_phases, takeoff_jm),
         braking_start_by_force_return(
             force,
             onset_for_phases,
@@ -401,10 +428,6 @@ fn tied_weighing_window_height_span(
         ) * 100.0
     };
     (height_at(epoch.tied_weight_high_newtons) - height_at(epoch.tied_weight_low_newtons)).abs()
-}
-
-fn lowest_variance_mass(weight_newtons: f64, bindings: &ReferenceBindings) -> f64 {
-    weight_newtons / bindings.gravity_meters_per_second_squared
 }
 
 #[allow(clippy::too_many_arguments)]
