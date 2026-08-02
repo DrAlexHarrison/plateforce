@@ -138,7 +138,8 @@ jobs:
       # mount needs privileges CI does not have, hence the extraction.
       - name: The capability report runs with no display at all
         run: |
-          appimage=$(ls artefacts/*.AppImage)
+          appimage=$(find artefacts -name "*.AppImage" | head -1)
+          test -n "$appimage"
           chmod +x "$appimage"
           reported=$("$appimage" --appimage-extract-and-run --capability)
           echo "appimage smoke: capability reported on debian:12 as $reported"
@@ -148,7 +149,7 @@ jobs:
       # application does: no route to anywhere, and it still reaches a painted window.
       - name: The application starts with no network route
         run: |
-          appimage=$(ls artefacts/*.AppImage)
+          appimage=$(find artefacts -name "*.AppImage" | head -1)
           unshare --map-root-user --net -- \
             xvfb-run -a "$appimage" --appimage-extract-and-run &
           started=$!
