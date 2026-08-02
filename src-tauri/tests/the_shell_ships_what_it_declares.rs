@@ -21,7 +21,7 @@ fn configuration() -> serde_json::Value {
 /// already installed, with no upgrade path, so it changes only deliberately.
 #[test]
 fn the_identifier_is_the_one_installed_copies_were_keyed_on() {
-    assert_eq!(configuration()["identifier"], "fit.saturday.plateforce");
+    assert_eq!(configuration()["identifier"], "dev.aphd.plateforce");
     assert_eq!(configuration()["productName"], "plateforce");
 }
 
