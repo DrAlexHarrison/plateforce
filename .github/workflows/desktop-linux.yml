@@ -98,7 +98,7 @@ jobs:
         run: bash scripts/verify-release-artefacts.sh --bundle-wasm-only
 
       - name: The glibc floor
-        run: bash scripts/verify-glibc-floor.sh src-tauri/target/release/plateforce
+        run: bash scripts/verify-glibc-floor.sh src-tauri/target/release/plateforce-desktop
 
       - uses: actions/upload-artifact@v4
         with:
