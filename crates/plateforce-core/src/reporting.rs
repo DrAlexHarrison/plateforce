@@ -27,7 +27,7 @@ fn describe_step(chain: &ProvenanceChain, depth: usize, lines: &mut Vec<String>)
     lines.push(format!(
         "{indent}{} {}",
         chain.provenance.method_id,
-        format_parameters(&chain.provenance.bound_parameters)
+        format_parameters(&chain.provenance.bound_parameters())
     ));
     for (name, value) in &chain.enumerated_choices {
         lines.push(format!("{indent}  {name} = {value}"));
@@ -74,12 +74,20 @@ mod tests {
     use super::*;
 
     fn provenance(method_id: &str, bound_parameters: Vec<(String, f64)>) -> Provenance {
+        use crate::provenance::{ParameterRecord, ParameterSource};
         Provenance {
-            method_id: method_id.to_string(),
-            bound_parameters,
+            parameters: bound_parameters
+                .into_iter()
+                .map(|(name, value)| ParameterRecord {
+                    name,
+                    value,
+                    source: ParameterSource::Stated,
+                })
+                .collect(),
             registry_version: Some("fixture-1".to_string()),
             registry_digest: Some("content-abc".to_string()),
             acquisition_complete: true,
+            ..Provenance::of(method_id)
         }
     }
 

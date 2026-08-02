@@ -96,16 +96,51 @@ fn chain_of(
     acquisition_complete: bool,
     depends_on: Vec<ProvenanceChain>,
 ) -> ProvenanceChain {
+    let provenance = resolved.into_provenance(
+        registry.version.clone(),
+        registry.digest.clone(),
+        acquisition_complete,
+        depends_on.iter().map(|input| input.provenance.clone()).collect(),
+    );
     ProvenanceChain {
-        provenance: CoreProvenance {
-            method_id: resolved.method_id.clone(),
-            bound_parameters: resolved.quantities(),
-            registry_version: registry.version.clone(),
-            registry_digest: registry.digest.clone(),
-            acquisition_complete,
-        },
-        enumerated_choices: resolved.enumerated_choices(),
+        enumerated_choices: provenance
+            .choices
+            .iter()
+            .map(|choice| (choice.name.clone(), choice.value.clone()))
+            .collect(),
+        provenance,
         depends_on,
+    }
+}
+
+/// A step the software performs over values it already computed, rather than a rule the
+/// registry describes. Its inputs were measured from the trace, not supplied by a caller.
+fn measured_records(
+    pairs: Vec<(String, f64)>,
+) -> Vec<plateforce_core::provenance::ParameterRecord> {
+    use plateforce_core::provenance::{ParameterRecord, ParameterSource};
+    pairs
+        .into_iter()
+        .map(|(name, value)| ParameterRecord {
+            name,
+            value,
+            source: ParameterSource::Measured,
+        })
+        .collect()
+}
+
+fn software_step(
+    method_id: &str,
+    bound_parameters: Vec<(String, f64)>,
+    registry: &RegistryIdentity,
+    acquisition_complete: bool,
+) -> CoreProvenance {
+    CoreProvenance {
+        parameters: measured_records(bound_parameters),
+        registry_version: registry.version.clone(),
+        registry_digest: registry.digest.clone(),
+        acquisition_complete,
+        ..CoreProvenance::of(method_id)
     }
 }
 
@@ -172,13 +207,12 @@ impl Derived<'_> {
                 CoreMeasured {
                     value,
                     unit: self.unit(key),
-                    provenance: CoreProvenance {
-                        method_id: method_id.to_string(),
+                    provenance: software_step(
+                        method_id,
                         bound_parameters,
-                        registry_version: self.registry.version.clone(),
-                        registry_digest: self.registry.digest.clone(),
-                        acquisition_complete: self.acquisition_complete,
-                    },
+                        &self.registry,
+                        self.acquisition_complete,
+                    ),
                 },
                 Vec::new(),
                 depends_on,
@@ -553,7 +587,7 @@ pub fn analyse_countermovement_jump(
             value: derived.value("system_mass_kilograms").unwrap_or_default(),
             unit: derived.unit("system_mass_kilograms"),
             provenance: CoreProvenance {
-                bound_parameters: gravity_parameter,
+                parameters: measured_records(gravity_parameter),
                 ..epoch_chain.provenance.clone()
             },
         },
@@ -629,17 +663,16 @@ pub fn jump_height_from_flight_time(
             ),
             unit: "meters",
             provenance: CoreProvenance {
-                method_id: JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID.to_string(),
-                bound_parameters: vec![
+                parameters: measured_records(vec![
                     ("flight_time_seconds".to_string(), flight_time_seconds),
                     (
                         "gravity_meters_per_second_squared".to_string(),
                         gravity_meters_per_second_squared,
                     ),
-                ],
+                ]),
                 registry_version,
-                registry_digest: None,
                 acquisition_complete,
+                ..CoreProvenance::of(JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID)
             },
         },
         Vec::new(),
