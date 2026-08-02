@@ -45,6 +45,9 @@ jobs:
             \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.dmg' \
                -o -name '*-setup.exe' -o -name 'plateforce-*-linux-static' \) \
             -exec cp {} dist/ \;
+          # An artefact is zipped in transit and comes back without its executable bit, so
+          # the programs below arrive whole and refuse to run.
+          chmod +x dist/plateforce-*-linux-static dist/*.AppImage
           ls -la dist/
 
       # Counted against a declared list rather than inspected one by one, and the two

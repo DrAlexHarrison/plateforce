@@ -139,8 +139,15 @@ check_versions() {
 # to it later is covered without this being edited.
 check_documented_commands() {
   local binary="${1}/plateforce-x86_64-linux-static"
-  if [ ! -x "$binary" ]; then
+  if [ ! -f "$binary" ]; then
     echo "no static binary to ask, so the documented routes are unchecked" >&2
+    return 1
+  fi
+  # A zipped artefact comes back without its executable bit, so the file arrives whole and
+  # will not run. Saying it is absent sends a reader looking for a build that did happen.
+  if [ ! -x "$binary" ]; then
+    echo "the static binary is here and not executable, so the documented routes are" >&2
+    echo "unchecked. Whatever carried it dropped the executable bit." >&2
     return 1
   fi
 
