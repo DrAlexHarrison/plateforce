@@ -11,8 +11,13 @@ use plateforce_analysis::spread::{run as sweep, Axis, SpreadRequest, SpreadRespo
 use plateforce_analysis::{bindings_for, AnalysisRequest};
 use plateforce_core::Trial;
 
+use std::path::Path;
+
 use crate::analyse::PATH;
 use crate::decisions::slot_of;
+use crate::exit::{Fault, Outcome};
+use crate::out::Format;
+use crate::registry_cmd::canonical;
 use crate::render::{Renderer, Role};
 
 /// The quantity `analyse` reports the spread for without being asked. Jump height is what the
@@ -21,6 +26,53 @@ pub const HEADLINE_QUANTITY: &str = "jump_height_from_takeoff_meters";
 
 /// One axis per construct on the path, holding every rule this build can run for it. The
 /// sweep varies the choice a user would otherwise make once and never revisit.
+#[derive(Debug, clap::Args)]
+#[group(skip)]
+pub struct Args {
+    #[command(flatten)]
+    pub analysis: crate::analyse::Args,
+    /// The quantity to sweep. Absent takes the one `analyse` reports without being asked
+    #[arg(long, value_name = "KEY")]
+    pub quantity: Option<String>,
+}
+
+pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
+    let prepared = match crate::analyse::prepare(&args.analysis, registry_directory, renderer) {
+        Ok(prepared) => prepared,
+        Err(outcome) => return outcome,
+    };
+    let quantity = args.quantity.as_deref().unwrap_or(HEADLINE_QUANTITY);
+
+    // Asked of the analysis rather than of a list kept beside it. A key nothing computes
+    // sweeps every combination, fails every one, and reports an empty spread with exit 0,
+    // so a misspelling reads as a run that worked.
+    let reported = match plateforce_analysis::run(&prepared.trial.trial, &prepared.request) {
+        Ok(response) => response.metrics,
+        Err(message) => return Outcome::declined(Fault::Request, message),
+    };
+    if !reported.iter().any(|metric| metric.key == quantity) {
+        let names: Vec<&str> = reported.iter().map(|metric| metric.key.as_str()).collect();
+        return Outcome::declined(
+            Fault::Request,
+            format!("'{quantity}' is not a quantity this build reports, and it reports {names:?}"),
+        );
+    }
+
+    match measure(&prepared.trial.trial, &prepared.request, quantity) {
+        Err(message) => Outcome::declined(Fault::Request, message),
+        Ok(response) => {
+            let document = match format {
+                Format::Json => match serde_json::to_value(&response) {
+                    Ok(value) => canonical(&value),
+                    Err(error) => return Outcome::declined(Fault::Internal, format!("{error}")),
+                },
+                Format::Text => describe(&response, renderer),
+            };
+            Outcome::complete(document)
+        }
+    }
+}
+
 pub fn axes_over_every_rule() -> Vec<Axis> {
     PATH.iter()
         .map(|construct| {
