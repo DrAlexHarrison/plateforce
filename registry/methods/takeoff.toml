@@ -788,8 +788,10 @@ published_values = [0.6]
 default = 0.6
 default_source = "plateforce_corpus_fit"
 notes = """
-A landing turns over inside about 100 ms and reweighting takes longer, so the window has to contain
-the slow case. Truncated, the slow case's peak is cut off and it reads as fast.
+The peak the verdict reads is found inside this window, so the window has to contain the rise it is
+measuring. A landing turns over inside about 100 ms and a reweighting takes longer. Truncated to a
+few milliseconds, a real landing's peak is cut off before it clears landing_peak_floor_bodyweights
+and the run stops counting as a flight phase.
 """
 
 [[method.parameter]]
