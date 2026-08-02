@@ -16,17 +16,48 @@ pub use assets::{asset_for, assets, carries_the_browser_bundle, not_part_of_the_
 pub use content_types::content_type_for;
 pub use http::{listen, serve};
 
+// The codes `crates/plateforce-cli/src/exit.rs` declares. They are repeated rather than
+// imported, because that crate depends on this one and the dependency cannot run both ways.
+// A caller cannot tell a mistyped option from a port somebody else is already using, so this
+// is the only place that can report them as different faults.
+const A_REQUEST_THAT_CANNOT_BE_HONOURED: u8 = 64;
+const AN_INVARIANT_THIS_SOFTWARE_BREAKS: u8 = 70;
+
+const WHAT_SERVE_TAKES: &str = "\
+plateforce serve - serve the browser interface to this machine only
+
+USAGE:
+    plateforce serve [OPTIONS]
+
+OPTIONS:
+    --port <PORT>    the port to listen on, written either as two words or as
+                     --port=<PORT>. Left out, the operating system picks a free
+                     one and the address is printed
+    --open           open the printed address in a browser as well as printing it
+";
+
 struct Options {
     port: u16,
     open_a_browser: bool,
 }
 
 pub fn run(arguments: &[&str]) -> ExitCode {
+    // Answered before anything else, so asking what the options are works on a machine where
+    // the port is taken and on a build that carries no interface.
+    if arguments
+        .iter()
+        .any(|word| *word == "--help" || *word == "-h")
+    {
+        print!("{WHAT_SERVE_TAKES}");
+        return ExitCode::SUCCESS;
+    }
+
     let options = match parse_options(arguments) {
         Ok(options) => options,
         Err(message) => {
             eprintln!("plateforce: {message}");
-            return ExitCode::FAILURE;
+            eprint!("{WHAT_SERVE_TAKES}");
+            return ExitCode::from(A_REQUEST_THAT_CANNOT_BE_HONOURED);
         }
     };
 
@@ -35,7 +66,7 @@ pub fn run(arguments: &[&str]) -> ExitCode {
     if !carries_the_browser_bundle() {
         eprintln!("plateforce: this program carries no browser interface to serve");
         eprintln!("run scripts/build-web.sh release, then build plateforce again");
-        return ExitCode::FAILURE;
+        return ExitCode::from(AN_INVARIANT_THIS_SOFTWARE_BREAKS);
     }
 
     let listener = match listen(options.port) {
@@ -45,7 +76,7 @@ pub fn run(arguments: &[&str]) -> ExitCode {
                 "plateforce: cannot listen on port {}: {error}",
                 options.port
             );
-            return ExitCode::FAILURE;
+            return ExitCode::from(AN_INVARIANT_THIS_SOFTWARE_BREAKS);
         }
     };
     let address = match listener.local_addr() {
@@ -181,5 +212,33 @@ mod tests {
     fn an_option_this_command_does_not_have_is_named_rather_than_dropped() {
         let refusal = options(&["--verbose"]).unwrap_err();
         assert!(refusal.contains("--verbose"), "{refusal}");
+    }
+
+    /// A mistyped option and a port somebody else is already using are different faults, and
+    /// the codes are the ones the command line declares for the whole binary. Reported as
+    /// one, a script cannot tell a typo from a machine that is busy.
+    #[test]
+    fn a_usage_error_and_a_runtime_failure_carry_different_codes() {
+        assert_eq!(A_REQUEST_THAT_CANNOT_BE_HONOURED, 64);
+        assert_eq!(AN_INVARIANT_THIS_SOFTWARE_BREAKS, 70);
+        assert_ne!(
+            A_REQUEST_THAT_CANNOT_BE_HONOURED,
+            AN_INVARIANT_THIS_SOFTWARE_BREAKS
+        );
+    }
+
+    /// What the server takes, not what the command line around it takes. A reader asking a
+    /// running server what it accepts is asking about ports and browsers.
+    #[test]
+    fn the_usage_names_the_options_this_command_reads() {
+        for option in ["--port", "--open"] {
+            assert!(WHAT_SERVE_TAKES.contains(option), "{option} is unnamed");
+        }
+        for elsewhere in ["--registry", "--format", "--out", "--color"] {
+            assert!(
+                !WHAT_SERVE_TAKES.contains(elsewhere),
+                "{elsewhere} is not this command's to offer"
+            );
+        }
     }
 }
