@@ -36,7 +36,12 @@ fn owen_request() -> AnalysisRequest {
 }
 
 fn document_of(request: &AnalysisRequest) -> MethodSet {
-    MethodSet::of(request, "0.1.0", "fnv1a-deadbeef", Some("2026-07-25".into()))
+    MethodSet::of(
+        request,
+        "0.1.0",
+        "fnv1a-deadbeef",
+        Some("2026-07-25".into()),
+    )
 }
 
 /// Every binding of the request, as a comparable list.
@@ -44,7 +49,14 @@ fn document_of(request: &AnalysisRequest) -> MethodSet {
 /// The round trip is anchored to the request rather than to a second document, because
 /// comparing two documents compares two outputs of the same function: a writer that drops a
 /// parameter drops it from both sides and the comparison passes.
-fn stated(request: &AnalysisRequest) -> Vec<(String, String, BTreeMap<String, f64>, BTreeMap<String, String>)> {
+fn stated(
+    request: &AnalysisRequest,
+) -> Vec<(
+    String,
+    String,
+    BTreeMap<String, f64>,
+    BTreeMap<String, String>,
+)> {
     vec![
         (
             "system_weight".into(),
@@ -83,7 +95,11 @@ fn a_request_writes_a_document_that_reads_back_as_the_same_request() {
         stated(&request),
         "a value the caller stated did not come back"
     );
-    assert_eq!(original.bindings.len(), 3, "every stated slot is written out");
+    assert_eq!(
+        original.bindings.len(),
+        3,
+        "every stated slot is written out"
+    );
 }
 
 #[test]
@@ -120,11 +136,29 @@ fn a_construct_this_build_runs_no_slot_for_is_refused_by_name() {
         parameters: BTreeMap::new(),
         options: BTreeMap::new(),
     });
-    let refusal = document.resolve().expect_err("an unrunnable construct is refused");
+    let refusal = document
+        .resolve()
+        .expect_err("an unrunnable construct is refused");
     println!("{}", refusal.message());
     assert!(refusal.message().contains("phase_model"));
     // What it could have asked for instead, so the reader is not left guessing.
-    assert!(refusal.available.iter().any(|name| name == "movement_onset"));
+    assert!(refusal
+        .available
+        .iter()
+        .any(|name| name == "movement_onset"));
+}
+
+#[test]
+fn a_document_from_a_later_version_is_refused_as_a_version() {
+    let mut document = document_of(&owen_request());
+    document.schema = "plateforce.method-set/2".into();
+    let refusal = document.resolve().expect_err("a later schema is refused");
+    println!("{}", refusal.message());
+    // The reader is told to upgrade rather than handed a list of things to ask for
+    // instead: there is nothing else this file could have been.
+    assert!(refusal.message().contains("plateforce.method-set/2"));
+    assert!(refusal.message().contains(METHOD_SET_SCHEMA));
+    assert!(document.readable().is_err());
 }
 
 #[test]

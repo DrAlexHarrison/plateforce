@@ -121,6 +121,21 @@ impl MethodSet {
         }
     }
 
+    /// The schema this document declares, checked before anything else is read from it.
+    ///
+    /// A file written by a later `plateforce` is refused as a version rather than as a
+    /// corrupt file, because the two have different answers: there is nothing else the
+    /// reader could have asked for, and the remedy is a newer build.
+    pub fn readable(&self) -> Result<(), Refusal> {
+        if self.schema == METHOD_SET_SCHEMA {
+            return Ok(());
+        }
+        Err(Refusal::schema_unsupported(
+            self.schema.clone(),
+            METHOD_SET_SCHEMA,
+        ))
+    }
+
     /// The request this document asks for.
     ///
     /// A construct this build runs no slot for is refused naming the construct and what is
@@ -137,6 +152,7 @@ impl MethodSet {
             registry_backed_ids: Vec::new(),
         };
 
+        self.readable()?;
         for binding in &self.bindings {
             let Some(slot) = slot_for(&binding.construct) else {
                 return Err(Refusal::construct_not_on_the_path(
