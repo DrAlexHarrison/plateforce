@@ -95,12 +95,21 @@ await send('Runtime.enable');
 await send('Log.enable');
 await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
 
+// A probe that reads through an element the page has not parsed yet raises rather than
+// returning false, and a raise escapes the loop instead of being the "not yet" it means.
+// The last one is kept so a genuine failure still names itself rather than reading as a
+// timeout with no cause.
 const settle = async (expression, label) => {
+  let lastRaise = null;
   for (let attempt = 0; attempt < 80; attempt += 1) {
-    if (await evaluate(expression)) return;
+    try {
+      if (await evaluate(expression)) return;
+    } catch (raised) {
+      lastRaise = raised;
+    }
     await new Promise((resolve) => setTimeout(resolve, 125));
   }
-  throw new Error(`timed out waiting for ${label}`);
+  throw new Error(`timed out waiting for ${label}${lastRaise ? `, last raise: ${lastRaise.message}` : ''}`);
 };
 
 const results = [];
@@ -209,6 +218,36 @@ check('a rule the registry says to display unasked is on screen with the value i
 check('a rule the registry says to name is on screen',
   onDemand.length > 0,
   onDemand.map((row) => row.text).join(' / ') || 'nothing named');
+
+// The two checks above ask whether the treatment appears at all. This one asks whether it
+// reached every rule entitled to it, which is a different question and the one that goes
+// wrong quietly.
+//
+// The rail is built from three hardcoded slots, and a rule is drawn beside the slot whose
+// construct it shares, so a rule bound under any fourth construct renders nowhere and says
+// nothing about it. That is guaranteed the first time a rule lands outside the three, and
+// invisible to a check that only asks whether the treatment exists somewhere.
+const surfaced = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const verdict = new Map(state.registry.methods.map((m) => [m.id, [m.gui?.surfacing, m.title]]));
+  const OWED = new Set(['surface_on_demand', 'default_and_show']);
+  const drawn = [...document.querySelectorAll('#decision-list .ran-beside__title')]
+    .map((node) => node.textContent.trim());
+  const owed = [], missing = [];
+  for (const bound of state.analysis?.bound_methods ?? []) {
+    const [surfacing, title] = verdict.get(bound.method_id) ?? [];
+    if (!OWED.has(surfacing)) continue;
+    owed.push(bound.method_id);
+    if (!drawn.includes(title)) missing.push(bound.method_id + ' (' + surfacing + ')');
+  }
+  return { owed, missing, drawn: drawn.length };
+})()`);
+check('every rule the registry entitles to a place on screen has one',
+  surfaced.owed.length > 0 && surfaced.missing.length === 0,
+  surfaced.owed.length === 0
+    ? 'no bound rule carries either verdict, so this check compared nothing'
+    : `${surfaced.owed.length - surfaced.missing.length} of ${surfaced.owed.length} entitled rules are drawn` +
+      (surfaced.missing.length ? `; nowhere on screen: ${surfaced.missing.join(', ')}` : ''));
 
 // The row existing is half the verdict. The other half is that the alternatives are one
 // interaction away, so the check takes the interaction rather than reading the row and
