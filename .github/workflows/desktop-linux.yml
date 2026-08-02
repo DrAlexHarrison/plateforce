@@ -67,6 +67,8 @@ jobs:
             target
             src-tauri/target
           key: desktop-linux-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+          restore-keys: |
+            desktop-linux-${{ env.TAURI_CLI_VERSION }}-
 
       - name: Install the Tauri CLI
         run: |
@@ -173,6 +175,8 @@ jobs:
             ~/.cargo/bin/wasm-bindgen
             target
           key: serve-static-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            serve-static-
 
       - name: Build both architectures
         run: bash scripts/build-serve-binaries.sh

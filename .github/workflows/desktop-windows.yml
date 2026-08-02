@@ -40,6 +40,8 @@ jobs:
             target
             src-tauri/target
           key: desktop-windows-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+          restore-keys: |
+            desktop-windows-${{ env.TAURI_CLI_VERSION }}-
 
       - name: Install the Tauri CLI
         shell: bash
@@ -89,6 +91,8 @@ jobs:
             target
             src-tauri/target
           key: desktop-windows-${{ env.TAURI_CLI_VERSION }}-${{ hashFiles('src-tauri/Cargo.lock', 'Cargo.lock') }}
+          restore-keys: |
+            desktop-windows-${{ env.TAURI_CLI_VERSION }}-
 
       - name: Install the Tauri CLI
         shell: bash
