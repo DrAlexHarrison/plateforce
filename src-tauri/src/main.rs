@@ -15,6 +15,10 @@ use tauri::plugin::Builder as PluginBuilder;
 /// The module the page instantiates, addressed as the bundle carries it.
 const THE_MODULE_INSIDE_THE_BUNDLE: &str = "pkg/plateforce_wasm_bg.wasm";
 
+/// The page itself, which every bundle carries and which separates a bundle missing the
+/// browser build from a binary that embedded nothing.
+const THE_PAGE_INSIDE_THE_BUNDLE: &str = "index.html";
+
 fn main() {
     let context = tauri::generate_context!();
 
@@ -37,15 +41,24 @@ fn main() {
 }
 
 fn report_what_this_bundle_carries(context: &tauri::Context) -> i32 {
-    match context.assets().get(&THE_MODULE_INSIDE_THE_BUNDLE.into()) {
-        Some(module) => {
-            println!("sha256:{:x}", Sha256::digest(&module));
-            0
-        }
-        None => {
-            eprintln!("plateforce: this bundle carries no browser module");
-            eprintln!("the build skipped scripts/build-web.sh, so there is no interface in it");
-            1
-        }
+    if let Some(module) = context.assets().get(&THE_MODULE_INSIDE_THE_BUNDLE.into()) {
+        println!("sha256:{:x}", Sha256::digest(&module));
+        return 0;
     }
+
+    // Tauri embeds the interface only under `custom-protocol`, which `cargo tauri build`
+    // sets and a plain `cargo build` does not, so an empty table is its own situation.
+    if context
+        .assets()
+        .get(&THE_PAGE_INSIDE_THE_BUNDLE.into())
+        .is_none()
+    {
+        eprintln!("plateforce: this binary carries no interface at all.");
+        eprintln!("cargo tauri build produces one that does.");
+        return 1;
+    }
+
+    eprintln!("plateforce: this bundle carries the interface and no browser module.");
+    eprintln!("scripts/build-web.sh did not run before it was packed.");
+    1
 }

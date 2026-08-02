@@ -29,10 +29,28 @@ print(next(p['version'] for p in packages if p['name'] == wanted))" "$2"
 # A bundle embeds the browser build inside its executable rather than shipping it as a file
 # beside one, so there is nothing to extract and compare. The bundle reports the digest of
 # the module it carries by executing itself, and that is what is compared here.
+#
+# A bundle that answers nothing and a bundle that answers a different digest are different
+# faults, and reading an empty answer as a mismatched one sends a reader looking for a stale
+# browser build in a bundle that carries none.
 bundle_payload_digest() {
   local executable="$1"
-  local reported
+  local reported status
+  set +e
   reported="$("$executable" --capability)"
+  status=$?
+  set -e
+  if [ "$status" -ne 0 ]; then
+    echo "the bundle could not say what it carries, and said why above" >&2
+    exit 1
+  fi
+  case "$reported" in
+    sha256:????????????????????????????????????????????????????????????????) ;;
+    *)
+      echo "the bundle answered something that is not a digest: $reported" >&2
+      exit 1
+      ;;
+  esac
   echo "${reported#sha256:}"
 }
 
