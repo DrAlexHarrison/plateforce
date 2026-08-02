@@ -17,9 +17,13 @@ const HOW_LONG_A_RESPONSE_MAY_TAKE: Duration = Duration::from_secs(30);
 
 /// `connect-src 'self'` is what makes the claim that nothing leaves the machine something
 /// the browser enforces rather than something this code promises. `wasm-unsafe-eval` is
-/// what a WebAssembly module needs to instantiate at all.
-const CONTENT_SECURITY_POLICY: &str =
-    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'";
+/// what a WebAssembly module needs to instantiate at all, and `img-src data:` is the
+/// document's own inline mark, which the fallback to `default-src` blocks: measured in
+/// Chrome, which dropped the favicon and wrote the reason to a console nobody reads.
+const CONTENT_SECURITY_POLICY: &str = "default-src 'self'; \
+     script-src 'self' 'wasm-unsafe-eval'; \
+     img-src 'self' data:; \
+     connect-src 'self'";
 
 const PLAIN_TEXT: &str = "text/plain; charset=utf-8";
 
@@ -269,5 +273,21 @@ mod tests {
         assert!(head.contains("wasm-unsafe-eval"));
         assert!(head.contains("Cache-Control: no-store"));
         assert!(head.contains("X-Content-Type-Options: nosniff"));
+    }
+
+    /// A policy that blocks something the document itself carries breaks the page silently:
+    /// the browser drops the request and writes the reason to a console nobody is reading.
+    /// Read off the document rather than written down here, so a mark added or removed
+    /// later moves this test with it.
+    #[test]
+    fn the_policy_admits_what_the_document_carries_inline() {
+        let document = crate::asset_for("/").expect("no document is embedded");
+        if String::from_utf8_lossy(document.bytes).contains("data:image") {
+            assert!(
+                CONTENT_SECURITY_POLICY.contains("img-src")
+                    && CONTENT_SECURITY_POLICY.contains("data:"),
+                "the document carries an inline image and the policy blocks it"
+            );
+        }
     }
 }
