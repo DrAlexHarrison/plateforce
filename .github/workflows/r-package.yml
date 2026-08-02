@@ -59,10 +59,6 @@ jobs:
         shell: bash
         run: bash bindings/r/tools/check-engine-version.sh
 
-      - name: The floor clears CRAN's oldest check machine
-        shell: bash
-        run: bash bindings/r/tools/check-floor.sh
-
       - name: One file names the binding framework
         shell: bash
         env:
@@ -92,7 +88,7 @@ jobs:
         run: bash bindings/r/tools/framework-seam.sh
 
   floor:
-    name: Build on the declared floor toolchain
+    name: The floor the package declares
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,13 +101,17 @@ jobs:
         with:
           toolchain: ${{ steps.floor.outputs.version }}
 
+      # extendr-ffi reads the installed R's version and headers from its build script, so
+      # the binding crate does not compile on a machine without R.
+      - uses: r-lib/actions/setup-r@v2
+
       - name: Copy the engine and the registry into the package
         run: bash bindings/r/tools/sync-engine.sh
 
-      # The SystemRequirements claim is tested rather than asserted.
-      - name: Build the binding crate on the toolchain the package names
-        working-directory: bindings/r/src/rust
-        run: cargo build --lib --release
+      # The declared comparisons and the compile that tests the SystemRequirements claim
+      # both live here, because this is the job that installs the toolchain they measure.
+      - name: The floor is a measurement
+        run: bash bindings/r/tools/check-floor.sh
 
   lint:
     name: The R crate's own formatting and lints
@@ -121,6 +121,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      # extendr-ffi reads the installed R's version and headers from its build script, so
+      # clippy cannot check the crate on a machine without R.
+      - uses: r-lib/actions/setup-r@v2
 
       - name: Copy the engine and the registry into the package
         run: bash bindings/r/tools/sync-engine.sh

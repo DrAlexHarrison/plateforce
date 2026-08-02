@@ -23,7 +23,15 @@ if [ ! -d "$crate/crates/plateforce-core" ]; then
     sh "$here/sync-engine.sh" >/dev/null
 fi
 
-highest=$(cd "$crate" && cargo metadata --format-version 1 2>/dev/null | python3 -c '
+# Kept apart from the comparison below so a cargo that cannot resolve the tree reports
+# that, rather than handing an empty document to the reader and failing as a parse error.
+if ! metadata=$(cd "$crate" && cargo metadata --format-version 1 2>&1); then
+    printf 'cargo cannot resolve %s, so the dependency floor is unread\n' "$crate" >&2
+    printf '%s\n' "$metadata" >&2
+    exit 1
+fi
+
+highest=$(printf '%s' "$metadata" | python3 -c '
 import json, sys
 metadata = json.load(sys.stdin)
 members = set(metadata["workspace_members"])
