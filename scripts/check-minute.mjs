@@ -108,6 +108,10 @@ check('the first screen offers a file and a demonstration trial as peers',
 await evaluate("document.getElementById('load-demo').click()");
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
 await settle("document.querySelectorAll('#metric-grid .metric').length > 0 || document.querySelector('#analysis-warnings button')", 'the first paint');
+// The panel settles before it sweeps, so that it is not recomputing five alternatives on
+// every frame of a drag. It is a settling window rather than a gate: nothing about it is
+// conditioned on a decision.
+await settle("document.querySelectorAll('#spread-result table.data tbody tr').length > 0", 'the spread panel');
 
 const paint = await evaluate(`(() => {
   const card = [...document.querySelectorAll('#metric-grid .metric')]
@@ -150,6 +154,7 @@ const resolveAnyWall = async () => {
     return Boolean(button);
   })()`);
   if (wall) await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid');
+  await settle("document.querySelectorAll('#spread-result table.data tbody tr').length > 0", 'the spread panel');
 };
 await resolveAnyWall();
 
@@ -166,6 +171,7 @@ await evaluate(`(() => {
 // A rule picked on a forcing slot leaves its multi-valued parameters unresolved, which is
 // the wall again. Taking the recommendation fills those and keeps the rule just picked.
 await resolveAnyWall();
+await settle("document.querySelectorAll('#spread-result table.data tbody tr').length > 0", 'the spread panel');
 
 const sweep = await evaluate(`(() => ({
   opening: document.getElementById('spread-opening')?.textContent ?? '',
@@ -218,12 +224,17 @@ const recompute = await evaluate(`(async () => {
   const analysis = await import('./analysis.js');
   const onset = state.analysis.onset_index;
   const whole = [];
+  let saidSoMidDrag = null;
   for (const offset of [-200, -100, 100, 200]) {
     state.overrides.onset = onset + offset;
     const started = performance.now();
     analysis.runAnalysis();
     await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     whole.push(performance.now() - started);
+    const host = document.getElementById('spread-result');
+    if (host.dataset.forPreviousPosition === 'true') {
+      saidSoMidDrag = host.querySelector('.notice strong')?.textContent ?? 'marked';
+    }
   }
   state.overrides.onset = null;
   const request = JSON.stringify(analysis.buildRequest());
@@ -242,13 +253,19 @@ const recompute = await evaluate(`(async () => {
   for (let i = 0; i < 5; i += 1) state.loadedTrial.spread(sweep);
   const panel = (performance.now() - started) / 5;
   analysis.runAnalysis();
-  return { whole, one, panel, rules: axes[0].method_ids.length };
+  return { whole, one, panel, saidSoMidDrag, rules: axes[0].method_ids.length };
 })()`);
 const slowest = Math.max(...recompute.whole);
 check('the recompute a marker drag triggers lands inside 100 ms',
   slowest < 100,
   `slowest of ${recompute.whole.length} placements ${slowest.toFixed(1)} ms; one analysis ` +
   `${recompute.one.toFixed(1)} ms, the spread over ${recompute.rules} rules ${recompute.panel.toFixed(1)} ms`);
+
+// The budget is met by computing less, never by drawing something older without saying so.
+// While the marker is moving the panel holds figures for a position the reader has left.
+check('while the marker is moving the panel says which position its figures are for',
+  Boolean(recompute.saidSoMidDrag),
+  recompute.saidSoMidDrag || 'the panel kept drawing the previous figures as current');
 
 // The three landmark tracks are read back from the running page rather than from the
 // stylesheet, so what is checked is what renders, in the theme it renders in.

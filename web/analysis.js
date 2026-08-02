@@ -5,14 +5,32 @@ import { element, formatNumber, secondaryDisplay } from './format.js';
 import { rankCandidates, initialParameters, findMethod } from './registry.js';
 import { candidateFor } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
-import { renderSpreadControls, runSpread } from './spread.js';
+import { renderSpreadControls, scheduleSpread } from './spread.js';
 import { openDrawer } from './drawer.js';
 
-function boundMethodId(slotKey) {
-  return (
-    state.selection[slotKey]?.methodId ||
-    { weighing: 'bwepoch.fixed_window', onset: 'onset.threshold.noise_relative', takeoff: 'takeoff.threshold.absolute_force' }[slotKey]
-  );
+/*
+ * The rule a slot is running under right now.
+ *
+ * A slot nobody has resolved runs provisionally under the registry's own first-ranked
+ * runnable candidate, which is the same rule the recommendation offers. Three method ids
+ * written here instead would be a silent default in the one place the provisional state
+ * exists to prevent one, and the browser's provisional rule and its recommended rule could
+ * then differ with neither surface saying so.
+ */
+export function boundMethodId(slotKey) {
+  const chosen = state.selection[slotKey]?.methodId;
+  if (chosen) return chosen;
+  const slot = state.slots.find((entry) => entry.key === slotKey);
+  return rankCandidates(slot?.available || [])[0]?.id || null;
+}
+
+/* The slots running under a rule nobody picked, and therefore the values that carry the
+ * provisional state and the exports that refuse. */
+export function provisionallyBoundSlots() {
+  const seen = new Set();
+  return unresolvedDecisions()
+    .map(({ slot }) => slot)
+    .filter((slot) => !seen.has(slot.key) && seen.add(slot.key));
 }
 
 export function buildRequest() {
@@ -52,14 +70,25 @@ export function runAnalysis() {
   if (!state.loadedTrial) return;
   $('reset-markers').disabled = !Object.values(state.overrides).some((value) => value != null);
 
-  const pending = unresolvedDecisions();
-  if (pending.length) {
-    renderPendingDecisions(pending);
-    $('spread-controls-wrap').hidden = true;
-    state.analysis = null;
-    state.chart.setAnalysis(null);
-    state.chart.schedule();
-    renderDecisions();
+  /*
+   * A decision nobody has made does not stop the number arriving. It changes what the
+   * number is: it renders provisional, the rule that produced it is named beside it, the
+   * choice is one interaction away, and nothing carrying it can leave the building. The
+   * undergraduate meets their homework immediately; the graduate cannot ship a pipeline
+   * they never resolved, because the artifact they need is the one provisional withholds.
+   */
+  state.provisional = provisionallyBoundSlots();
+
+  const unbound = state.slots.filter((slot) => !boundMethodId(slot.key));
+  if (unbound.length) {
+    $('metric-grid').replaceChildren();
+    $('analysis-warnings').replaceChildren(
+      notice(
+        'danger',
+        'This trial cannot be analysed yet',
+        `No rule this build runs is published for ${unbound.map((slot) => slot.title).join(' or ')}.`,
+      ),
+    );
     return;
   }
 
@@ -75,7 +104,7 @@ export function runAnalysis() {
   state.chart.schedule();
   renderMetrics();
   renderSpreadControls();
-  runSpread();
+  scheduleSpread();
   renderDecisions();
 }
 
@@ -83,36 +112,6 @@ export function notice(kind, title, body) {
   const node = element('div', `notice notice--${kind}`);
   node.append(element('strong', null, title), element('p', null, body));
   return node;
-}
-
-function renderPendingDecisions(pending) {
-  const grid = $('metric-grid');
-  grid.replaceChildren();
-  const host = $('analysis-warnings');
-  host.replaceChildren();
-
-  const card = element('div', 'notice notice--warning');
-  card.append(element('strong', null, `${pending.length} decisions have to be made before there is a number`));
-  card.append(
-    element(
-      'p',
-      null,
-      'Published methods disagree here, so plateforce does not pick one for you. ' +
-        'Whichever you take travels with the number.',
-    ),
-  );
-  const list = element('ul');
-  for (const item of pending) {
-    list.append(element('li', null, `${item.slot.title}: ${item.what}`));
-  }
-  card.append(list);
-
-  const accept = element('button', 'button button--primary', 'Take the recommended method for each');
-  accept.type = 'button';
-  accept.addEventListener('click', acceptRecommended);
-  card.append(accept);
-  host.append(card);
-  $('spread-result').replaceChildren();
 }
 
 /* Resolving every forced decision at once is still an explicit act, and it is recorded as
@@ -142,7 +141,15 @@ function renderMetrics() {
   grid.replaceChildren();
 
   for (const metric of state.analysis.metrics) {
-    const card = element('div', `metric${HEADLINE.has(metric.key) ? ' metric--headline' : ''}`);
+    // Provisional taints its closure: a value rests on every rule that fed it, so a value
+    // fed by a slot nobody has chosen is itself still to be chosen.
+    const restingOn = state.provisional.filter((slot) =>
+      metric.contributing_method_ids.includes(boundMethodId(slot.key)),
+    );
+    const card = element(
+      'div',
+      `metric${HEADLINE.has(metric.key) ? ' metric--headline' : ''}${restingOn.length ? ' metric--provisional' : ''}`,
+    );
     card.append(element('span', 'metric__label', metric.label));
 
     const formatted = formatNumber(metric.value, metric.unit);
@@ -157,6 +164,7 @@ function renderMetrics() {
     }
 
     if (metric.note) card.append(element('p', 'metric__note', metric.note));
+    if (restingOn.length) card.append(stillToBeChosen(restingOn));
     card.append(provenanceRow(metric.contributing_method_ids));
     grid.append(card);
   }
@@ -166,6 +174,31 @@ function renderMetrics() {
   for (const warning of state.analysis.warnings) {
     host.append(notice('warning', 'The rule reported a problem', warning));
   }
+}
+
+/* Named beside the number rather than in a drawer, with the choice one interaction away.
+ * The rule that produced this one is named because it is what the value is: a different
+ * choice is a different number, which is the thing the reader is being asked to see. */
+function stillToBeChosen(slots) {
+  const line = element('p', 'metric__provisional');
+  line.append(element('strong', null, 'provisional'));
+  for (const slot of slots) {
+    const id = boundMethodId(slot.key);
+    const sentence = element('span');
+    sentence.append(document.createTextNode(`${slot.title} is still to be chosen. `));
+    sentence.append(element('code', null, id));
+    sentence.append(document.createTextNode(' produced this one.'));
+    line.append(sentence);
+  }
+  const choose = element('button', 'chip', slots.length > 1 ? 'Choose the rules' : 'Choose the rule');
+  choose.type = 'button';
+  choose.addEventListener('click', () => {
+    const select = document.querySelector(`#decision-list select[data-construct="${slots[0].construct}"]`);
+    select?.scrollIntoView({ block: 'center' });
+    select?.focus();
+  });
+  line.append(choose);
+  return line;
 }
 
 export function methodTitle(id) {

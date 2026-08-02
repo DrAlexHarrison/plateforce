@@ -105,8 +105,45 @@ export function renderSpreadControls() {
   }
 }
 
+/*
+ * The panel answers how much the method choice moves this number, which is a question read
+ * once the marker has come to rest. Recomputing every published alternative on each frame
+ * of a drag is work nobody asked for, and it is what puts the drag itself over its budget.
+ *
+ * Waiting for the trace to settle rather than for a pointer release covers the arrow keys
+ * too, which produce the same burst and no release event.
+ */
+const SETTLE_MILLISECONDS = 120;
+let settling = null;
+
+export function scheduleSpread() {
+  showPreviousPositionAsPrevious();
+  clearTimeout(settling);
+  settling = setTimeout(() => {
+    settling = null;
+    runSpread();
+  }, SETTLE_MILLISECONDS);
+}
+
+/* The figures on screen were computed for a position the reader has moved away from. A
+ * number that is no longer about what the reader is looking at, still drawn as though it
+ * is, is a confident wrong number, so it says which position it is for until it catches up. */
+function showPreviousPositionAsPrevious() {
+  const host = $('spread-result');
+  if (!host.firstChild || host.dataset.forPreviousPosition === 'true') return;
+  host.dataset.forPreviousPosition = 'true';
+  host.prepend(
+    notice(
+      'warning',
+      'These figures are for where the marker was',
+      'They were computed before you moved it, and they catch up when it comes to rest.',
+    ),
+  );
+}
+
 export function runSpread() {
   const host = $('spread-result');
+  delete host.dataset.forPreviousPosition;
   const axes = currentAxes().filter((axis) => state.spread.axes.has(axis.id));
   if (!axes.length) {
     host.replaceChildren(

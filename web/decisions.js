@@ -4,7 +4,7 @@ import { $, state } from './state.js';
 import { element } from './format.js';
 import { rankCandidates, initialParameters, findMethod } from './registry.js';
 import { candidateFor } from './startup.js';
-import { runAnalysis, boundValueText } from './analysis.js';
+import { runAnalysis, boundValueText, acceptRecommended } from './analysis.js';
 import { openDrawer } from './drawer.js';
 
 /*
@@ -35,8 +35,18 @@ export function renderDecisions() {
 
   const pending = unresolvedDecisions();
   $('decisions-sub').textContent = pending.length
-    ? `${pending.length} unresolved. Each one moves the number, so plateforce does not pick for you.`
-    : 'All resolved. Every choice below appears in the provenance of the numbers.';
+    ? `${pending.length} still to choose. Every number resting on one of them is marked provisional until you do.`
+    : 'Every choice below appears in the provenance of the numbers.';
+
+  // One act covering every open choice, which is a different act from choosing each and is
+  // recorded as the one it is. It sits with the choices rather than in front of the
+  // numbers, because the numbers are already there.
+  if (pending.length) {
+    const accept = element('button', 'button button--primary button--small', 'Take the recommended rule for each');
+    accept.type = 'button';
+    accept.addEventListener('click', acceptRecommended);
+    host.append(accept);
+  }
 
   for (const slot of state.slots) {
     if (!slot.available.length) continue;
