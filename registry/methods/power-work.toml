@@ -264,6 +264,9 @@ why peak force from a plate is robust while peak power from a transducer is not.
 surfacing = "default_and_hide"
 sensitivity = "very high; differentiating twice amplifies high-frequency noise quadratically"
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "power.combined_method"
 construct = "mechanical_power"
@@ -302,6 +305,9 @@ kind = "genuine"
 [method.gui]
 surfacing = "refuse"
 rationale = "Never offered; a warning on import. Retained because the majority of studies used it."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "power.barbell_displacement_only"
@@ -345,6 +351,9 @@ kind = "genuine"
 surfacing = "refuse"
 sensitivity = "very high and load-dependent"
 rationale = "Surface only as a label when importing historical data known to have been computed this way."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "power.phase_energy.garhammer1993"
@@ -394,6 +403,9 @@ method that works on competition footage, which is why the entire elite-weightli
 literature is built on it. It is energy-difference based, so it never forms an instantaneous power
 series and peak power does not exist in it: every value is a phase mean by construction.
 """
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "work.integral_power_dt"
@@ -650,6 +662,9 @@ surfacing = "force_a_decision"
 sensitivity = "large with respect to contact time, which is debounce-limited on a contact mat"
 rationale = "Hide it if it is the only drop-jump power offered; force the decision the moment a second is offered."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "power.dropjump_bosco_ratio"
 construct = "mechanical_power"
@@ -685,6 +700,9 @@ per unit mass. It circulated for years with no locatable source: the maintainer 
 recorded that the publication could not be found.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "power.repeated_jump.bosco1983"
 construct = "mechanical_power"
@@ -718,6 +736,10 @@ rationale = "Required for comparability with the entire repeated-jump protocol l
 
 # The seed names this entry "computed_on_object", the one identifier in the registry
 # without a dot. Namespaced here because the loader requires a dotted id; the bare name is the field's.
+
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "declaration.computed_on_object"
 construct = "mechanical_object"
@@ -866,6 +888,9 @@ field, is the clean design, and the published cross-modality comparison makes it
 agreement question this registry exists to represent.
 """
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "power.upper_body_ballistic.end_of_concentric.frost2010"
 construct = "propulsion_phase_end"
@@ -892,3 +917,6 @@ literature. In a bench throw the system mass is the bar plus the effective mass 
 athlete is supported by a bench, so a plate under the bench measures a different system than a plate
 under a jumper.
 """
+
+[method.reach]
+boundary = "both"

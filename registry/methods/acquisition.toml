@@ -1117,6 +1117,9 @@ The device must be a first-class field on every imported record, and mat-derived
 heights must never merge into one column.
 """
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "force.resultant_supported_bodyweight_component.chronojump"
 construct = "calibrated_force"
@@ -1169,3 +1172,6 @@ rationale = """
 Chronojump suppresses its time-constant annotation when the correction is active, because the
 model's zero is no longer the physical zero.
 """
+
+[method.reach]
+boundary = "equipment"

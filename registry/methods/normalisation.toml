@@ -200,6 +200,9 @@ development by 20 to 46 percent, that distinction is not academic. It requires a
 so the interface must know the session contains one.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "norm.voluntary_evoked_octet"
 construct = "normalisation_basis"
@@ -230,6 +233,9 @@ rate variability is neural rather than methodological, at CV 3.3 to 5.4 percent 
 percent voluntary. That inference is unavailable to any force-plate-only platform, and the registry
 should say so rather than silently not offering it.
 """
+
+[method.reach]
+boundary = "equipment"
 
 [[method]]
 id = "norm.dimensionless_hof"

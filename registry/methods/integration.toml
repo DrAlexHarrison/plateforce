@@ -495,3 +495,6 @@ kind = "genuine"
 surfacing = "surface_on_demand"
 sensitivity = "dominant on continuous-jump trials, which is the problem it was written to solve"
 rationale = "The vendor's own recommendation is that it be used only for intra-subject comparison and only within one jump type."
+
+[method.reach]
+boundary = "source"

@@ -244,6 +244,9 @@ party that did not copy the first, and aimed at a failure that silently inflates
 rate.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "qc.transient_peak_count.pedley2023"
 construct = "trial_validity"
@@ -536,6 +539,9 @@ silently skipped. It requires a maximal effort from another trial, so it inherit
 aggregation rule and validity gates: the gate on one trial depends on the aggregation applied to the
 others, and that dependency is unrecorded in both sources.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "aggregation.peak_of_average_vs_average_of_peaks"

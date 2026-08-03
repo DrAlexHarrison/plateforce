@@ -72,6 +72,9 @@ surfacing = "force_a_decision"
 sensitivity = "categorical, and it decides competitive outcomes"
 rationale = "The kinematic and kinetic definitions must never share a column heading."
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "falsestart.kinetic_vendor_threshold"
 construct = "false_start"
@@ -129,6 +132,9 @@ It is in force at every certified competition and it is not reproducible by anyb
 definition of a vendor rule and the reason it cannot be accepted.
 """
 
+[method.reach]
+boundary = "source"
+
 [[method]]
 id = "sprintstart.performance.block_velocity"
 construct = "sprint_start_performance"
@@ -168,6 +174,9 @@ note = "A genuine debate with a clear published winner, which makes it a settled
 surfacing = "default_and_hide"
 sensitivity = "it changes the ranking of athletes, which is the reviewing paper's own framing"
 rationale = "Shown only with its deprecation argument attached."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "sprintstart.performance.normalised_avg_horizontal_external_power"
@@ -218,6 +227,9 @@ registered under normalisation, and this registry does not assert that it is the
 used, because neither paper was read.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "sprint.mono_exponential_velocity_model"
 construct = "sprint_velocity_model"
@@ -257,6 +269,9 @@ With the fit and residuals plotted. It is structurally identical to the isometri
 same codebase, which is one model shape reused across two modalities and is worth recording as a
 lineage signature.
 """
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "sprint.fv_analytic_endpoints_vs_ols"
@@ -315,6 +330,9 @@ surfacing = "surface_on_demand"
 sensitivity = "moderate on the force intercept, larger on the slope and total on anything derived from it"
 rationale = "If both are computed both must be labelled. A column that is sometimes one and sometimes the other is the failure this registry exists to prevent."
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "cod.deficit"
 construct = "change_of_direction_deficit"
@@ -356,3 +374,6 @@ components is uninterpretable. It addresses a real confound, that total test tim
 linear speed, and it is the same shape of argument as block velocity against horizontal external
 power: an incumbent measure that can be improved by the wrong thing.
 """
+
+[method.reach]
+boundary = "both"
