@@ -18,6 +18,13 @@ pub enum ViolationKind {
         target: String,
     },
     BiasWithoutCriterion,
+    BiasCriterionUnresolved {
+        criterion: String,
+    },
+    SelfComparisonSweepsNoParameter,
+    DefinitionOfRecordCarriesADirection {
+        direction: String,
+    },
     BiasNamesUnknownParameter {
         parameter: String,
     },
@@ -119,6 +126,21 @@ impl fmt::Display for Violation {
             BiasWithoutCriterion => write!(
                 f,
                 "{}: a bias is stated with no criterion, so a reader cannot tell what it is a bias against",
+                self.entry
+            ),
+            BiasCriterionUnresolved { criterion } => write!(
+                f,
+                "{}: a bias is measured against '{criterion}', which is no entry, no construct and none of the external criteria the vocabulary declares",
+                self.entry
+            ),
+            SelfComparisonSweepsNoParameter => write!(
+                f,
+                "{}: a bias names this entry as its own criterion under a model comparison, which compares two settings of a parameter this entry does not declare",
+                self.entry
+            ),
+            DefinitionOfRecordCarriesADirection { direction } => write!(
+                f,
+                "{}: a bias names this entry as its own criterion under a visual comparison, which is the definition of record, and reports it as '{direction}' rather than as the reference's own spread",
                 self.entry
             ),
             BiasNamesUnknownParameter { parameter } => write!(
@@ -281,6 +303,52 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                     entry: entry.clone(),
                     kind: ViolationKind::BiasWithoutCriterion,
                 });
+            }
+
+            let criterion = bias.criterion.trim();
+            let against_itself = criterion == method.id;
+            let resolves = against_itself
+                || registry.methods.contains_key(criterion)
+                || registry.constructs.contains_key(criterion)
+                || EXTERNAL_CRITERIA.contains(&criterion);
+            if !criterion.is_empty() && !resolves {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::BiasCriterionUnresolved {
+                        criterion: bias.criterion.clone(),
+                    },
+                });
+            }
+
+            // An entry naming itself is three claims under one spelling and the kind says which:
+            // a model comparison sweeps this entry's own parameter, an instrument comparison is
+            // two implementations of it disagreeing, and a visual one is the definition of record,
+            // whose figure is the reference's own spread rather than a bias in a direction.
+            if against_itself {
+                match bias.criterion_kind {
+                    CriterionKind::Model if method.parameters.is_empty() => {
+                        violations.push(Violation {
+                            entry: entry.clone(),
+                            kind: ViolationKind::SelfComparisonSweepsNoParameter,
+                        });
+                    }
+                    CriterionKind::HumanVisual => {
+                        if let Some(direction) = bias
+                            .direction
+                            .as_deref()
+                            .map(str::trim)
+                            .filter(|direction| !matches!(*direction, "none" | "either"))
+                        {
+                            violations.push(Violation {
+                                entry: entry.clone(),
+                                kind: ViolationKind::DefinitionOfRecordCarriesADirection {
+                                    direction: direction.to_string(),
+                                },
+                            });
+                        }
+                    }
+                    _ => {}
+                }
             }
 
             // A bias that tracks a parameter is recorded at that parameter's default, so the

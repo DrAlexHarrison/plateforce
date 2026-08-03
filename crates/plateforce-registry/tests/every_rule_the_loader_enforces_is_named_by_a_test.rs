@@ -32,6 +32,7 @@ const SUITES: &[&str] = &[
     include_str!("a_preset_is_checked_against_the_registry_it_names_into.rs"),
     include_str!("a_parameter_that_varies_by_name_states_its_options.rs"),
     include_str!("an_entry_out_of_reach_states_what_stands_in_the_way.rs"),
+    include_str!("a_bias_names_something_a_reader_can_resolve.rs"),
     include_str!("every_rule_the_loader_enforces_fires_when_it_is_broken.rs"),
     include_str!("every_construct_speaks_the_fields_words.rs"),
     include_str!("the_shipped_registry_is_valid.rs"),
