@@ -240,7 +240,9 @@ fn request_with(offered: &OfferedParameter, value: f64) -> AnalysisRequest {
         // A rule reached by construct id, plus the first rule of every construct declared
         // before its own so anything it reads has been placed. Without that second half
         // every parameter on such a rule reads as inert here, because the rule declines
-        // identically at every value and the sweep sees one answer.
+        // identically at every value and the sweep sees one answer. Whatever an earlier
+        // entry states required with no default is answered for the same reason: a rule that
+        // declines for want of it places nothing, and everything downstream reads as inert.
         construct => {
             for earlier in plateforce_analysis::binding::derived_bindings() {
                 if earlier.construct == construct {
@@ -251,6 +253,10 @@ fn request_with(offered: &OfferedParameter, value: f64) -> AnalysisRequest {
                     .entry(earlier.construct.to_string())
                     .or_insert_with(|| MethodChoice {
                         method_id: earlier.id.to_string(),
+                        options: plateforce_analysis::binding::required_options(earlier.id)
+                            .iter()
+                            .map(|(name, value)| (name.to_string(), value.to_string()))
+                            .collect(),
                         ..Default::default()
                     });
             }

@@ -179,6 +179,25 @@ pub struct Landmarks {
     pub touchdown_index: usize,
 }
 
+/// The four choices the takeoff velocity is read under, as one value a caller can name.
+///
+/// Public because the number rests on them. `integration.start.trial_start` is deprecated and
+/// `integration.start.detected_onset` is recommended, they disagree on any recording carrying
+/// quiet stance ahead of the movement, and both force a decision, so a result reporting the
+/// velocity without naming these reports three of the rules behind it and hides four.
+pub fn takeoff_velocity_integration_spec(landmarks: &Landmarks) -> IntegrationSpec {
+    IntegrationSpec {
+        quadrature: QuadratureRule::Trapezoid,
+        direction: IntegrationDirection::Forward,
+        start: IntegrationStart::DetectedOnset {
+            index: landmarks.onset_index,
+        },
+        anchor: IntegrationAnchor::SinglePoint {
+            index: landmarks.onset_index,
+        },
+    }
+}
+
 /// Takeoff velocity by impulse-momentum, in metres per second.
 ///
 /// Net impulse from onset to takeoff divided by system mass. This is an identity, not
@@ -193,16 +212,7 @@ pub fn takeoff_velocity_meters_per_second(
     landmarks: &Landmarks,
     gravity_meters_per_second_squared: f64,
 ) -> f64 {
-    let spec = IntegrationSpec {
-        quadrature: QuadratureRule::Trapezoid,
-        direction: IntegrationDirection::Forward,
-        start: IntegrationStart::DetectedOnset {
-            index: landmarks.onset_index,
-        },
-        anchor: IntegrationAnchor::SinglePoint {
-            index: landmarks.onset_index,
-        },
-    };
+    let spec = takeoff_velocity_integration_spec(landmarks);
     let series = centre_of_mass_velocity_meters_per_second(
         trial,
         epoch,

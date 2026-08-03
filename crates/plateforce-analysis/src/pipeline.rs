@@ -3,8 +3,8 @@
 
 use plateforce_core::{
     flight_time_seconds, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
-    reactive_strength_index_modified, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
-    Landmarks, Trial,
+    reactive_strength_index_modified, takeoff_velocity_integration_spec,
+    takeoff_velocity_meters_per_second, time_to_takeoff_seconds, Landmarks, Trial,
 };
 
 use std::collections::BTreeMap;
@@ -149,6 +149,20 @@ pub fn run(
     let mut full = vec![request.weighing.method_id.clone()];
     full.extend(onset_ids.clone());
     full.push(request.takeoff.method_id.clone());
+    // Every number read off the integrated velocity series rests on the four integration
+    // entries as well as on the three landmark rules, and the two start rules give different
+    // velocities from one recording. Named here rather than left out, because a chain is what
+    // a reader compares two results by. The impulse below is integrated directly rather than
+    // read off the series, so it keeps the shorter chain.
+    let mut integrated = full.clone();
+    if let Some(marks) = landmarks.as_ref() {
+        integrated.extend(
+            takeoff_velocity_integration_spec(marks)
+                .method_ids()
+                .iter()
+                .map(|id| (*id).to_string()),
+        );
+    }
 
     let interval_seconds = landmarks
         .as_ref()
@@ -202,7 +216,7 @@ pub fn run(
         Metric::declared(
             "takeoff_velocity_meters_per_second",
             velocity,
-            full.clone(),
+            integrated.clone(),
             Some("Net impulse over system mass. An identity, not an estimate.".into()),
         ),
         Metric::declared(
@@ -220,7 +234,7 @@ pub fn run(
         Metric::declared(
             "jump_height_from_takeoff_meters",
             height_takeoff,
-            full.clone(),
+            integrated.clone(),
             Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
                     .into(),
@@ -241,7 +255,7 @@ pub fn run(
                 (Some(height), Some(seconds)) => reactive_strength_index_modified(height, seconds),
                 _ => None,
             },
-            full,
+            integrated,
             Some(
                 "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number."
                     .into(),
@@ -529,6 +543,17 @@ mod tests {
             "takeoff" => candidate.takeoff.method_id = binding.id.to_string(),
             "weighing" => candidate.weighing.method_id = binding.id.to_string(),
             _ => {
+                // Whatever an entry states required with no default is answered here. A rule
+                // that cannot run unasked is the entry working, and leaving it unanswered
+                // would make every rule downstream of it undemonstrable too.
+                let choosing = |chosen: &crate::binding::Binding| MethodChoice {
+                    method_id: chosen.id.to_string(),
+                    options: crate::binding::required_options(chosen.id)
+                        .iter()
+                        .map(|(name, value)| (name.to_string(), value.to_string()))
+                        .collect(),
+                    ..Default::default()
+                };
                 for earlier in crate::binding::derived_bindings() {
                     if earlier.construct == binding.construct {
                         break;
@@ -536,18 +561,11 @@ mod tests {
                     candidate
                         .derived
                         .entry(earlier.construct.to_string())
-                        .or_insert_with(|| MethodChoice {
-                            method_id: earlier.id.to_string(),
-                            ..Default::default()
-                        });
+                        .or_insert_with(|| choosing(earlier));
                 }
-                candidate.derived.insert(
-                    binding.construct.to_string(),
-                    MethodChoice {
-                        method_id: binding.id.to_string(),
-                        ..Default::default()
-                    },
-                );
+                candidate
+                    .derived
+                    .insert(binding.construct.to_string(), choosing(binding));
             }
         }
         candidate
@@ -582,6 +600,36 @@ mod tests {
         for binding in crate::binding::derived_bindings() {
             let response =
                 run(&trial, &request_reaching(binding)).expect("the request is well formed");
+            // The "or says why it did not" half. A rule may decline, and only for a reason
+            // that names something outside itself: a value only the caller supplies, an
+            // answer another construct owes it, or a search this recording gave nothing to.
+            // Any other code would be the rule failing rather than reporting.
+            if let Some(declined) = response
+                .refusals
+                .iter()
+                .find(|rule| rule.method_id == binding.id)
+            {
+                let crate::RuleRefusal::Refused(refusal) = &declined.refusal else {
+                    panic!(
+                        "{} declined with a trial error: {}",
+                        binding.id, declined.refusal
+                    )
+                };
+                assert!(
+                    matches!(
+                        refusal.code,
+                        plateforce_core::RefusalCode::RequiredParameterUnstated
+                            | plateforce_core::RefusalCode::DependencyUnresolved
+                            | plateforce_core::RefusalCode::DecisionNotMade
+                            | plateforce_core::RefusalCode::NoCrossing
+                    ),
+                    "{} declined under {:?}, which is the rule failing rather than reporting: {}",
+                    binding.id,
+                    refusal.code,
+                    declined.refusal
+                );
+                continue;
+            }
             for declared in binding.quantities {
                 let metric = response
                     .metrics
@@ -632,9 +680,17 @@ mod tests {
     /// The ordering is declaration order and nothing else, so a rule reading a sample another
     /// rule places has to be declared after it. Held by running each rule with only the rules
     /// declared before it available: a rule that needs a later one declines here.
+    ///
+    /// A decline is read by what the rule said it wanted, not by its code alone. Two declines
+    /// carry one code and mean opposite things: a rule wanting a construct this build runs a
+    /// rule for was handed every earlier one, so it is declared too early, while a rule wanting
+    /// a construct this build has no rule for at all is reporting coverage and says nothing
+    /// about order. Excluding the code would exclude the ordering fault with it, so the
+    /// constructs the refusal names are what decide.
     #[test]
     fn a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it() {
         let trial = synthetic();
+        let runnable = crate::binding::executable_constructs();
         for binding in crate::binding::derived_bindings() {
             let response =
                 run(&trial, &request_reaching(binding)).expect("the request is well formed");
@@ -646,8 +702,19 @@ mod tests {
                 .iter()
                 .filter(|rule| rule.method_id == binding.id)
                 .filter(|rule| {
-                    crate::document::refusal_from_rule(rule).code
-                        != RefusalCode::RequiredParameterUnstated
+                    let refusal = crate::document::refusal_from_rule(rule);
+                    match refusal.code {
+                        // A value only the caller can supply, which `required_options`
+                        // answers for every rule whose entry states one.
+                        RefusalCode::RequiredParameterUnstated => false,
+                        // A search this recording gave nothing to.
+                        RefusalCode::NoCrossing => false,
+                        RefusalCode::DependencyUnresolved | RefusalCode::DecisionNotMade => refusal
+                            .available
+                            .iter()
+                            .any(|construct| runnable.contains(&construct.as_str())),
+                        _ => true,
+                    }
                 })
                 .map(|rule| rule.method_id.as_str())
                 .collect();

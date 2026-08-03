@@ -54,8 +54,9 @@ pub use signal::{Sentinel, Trial, TrialError};
 pub use statistics::{DispersionEstimator, VarianceAccumulation};
 pub use trial::{
     flight_time_seconds, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
-    reactive_strength_index_modified, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
-    CentralTendency, Landmarks, WeighingEpoch,
+    reactive_strength_index_modified, takeoff_velocity_integration_spec,
+    takeoff_velocity_meters_per_second, time_to_takeoff_seconds, CentralTendency, Landmarks,
+    WeighingEpoch,
 };
 
 /// Standard gravity, re-exported from `gravity`, which also carries the location-dependent

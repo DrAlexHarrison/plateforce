@@ -181,6 +181,41 @@ impl<'a> Resolution<'a> {
             })
     }
 
+    /// The same, for a name its entry states required with no default.
+    ///
+    /// Absent, it is refused rather than filled from the value a neighbouring entry publishes.
+    /// The braking-start default rests on a 243-trial measurement made at the braking start,
+    /// and that measurement says nothing about which signal is steadier at any other boundary,
+    /// so borrowing it would carry a measurement onto a boundary it never touched.
+    pub(crate) fn required_enumerated<T: Copy>(
+        &mut self,
+        method_id: &str,
+        name: &str,
+        accepted: &[(&'static str, T)],
+    ) -> Result<T, RuleRefusal> {
+        self.consulted.insert(name.to_string());
+        let Some(chosen) = self.options.get(name).cloned() else {
+            return Err(RuleRefusal::Refused(Box::new(
+                plateforce_core::Refusal::required_parameter_unstated(method_id, name),
+            )));
+        };
+        let source = self.stated_source(name);
+        self.record(name, chosen.clone(), source);
+        accepted
+            .iter()
+            .find(|(label, _)| *label == chosen)
+            .map(|(_, value)| *value)
+            .ok_or_else(|| {
+                let offered: Vec<String> = accepted
+                    .iter()
+                    .map(|(label, _)| (*label).to_string())
+                    .collect();
+                RuleRefusal::Refused(Box::new(plateforce_core::Refusal::name_not_accepted(
+                    method_id, name, chosen, offered,
+                )))
+            })
+    }
+
     pub(crate) fn dispersion(&mut self) -> Result<DispersionEstimator, RuleRefusal> {
         self.enumerated(
             "dispersion",

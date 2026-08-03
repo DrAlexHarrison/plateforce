@@ -37,6 +37,21 @@ pub fn maximum_over(values: &[f64], start: usize, end: usize) -> Result<f64, Pea
         .fold(f64::NEG_INFINITY, f64::max))
 }
 
+/// Where the largest value sits, over the same half-open span and under the same clipping.
+///
+/// The span convention is stated once and both answers read it, so a rule asking where the
+/// peak is and a rule asking how large it is cannot disagree about which samples they read.
+/// Ties go to the earliest sample, which `index_of_maximum` fixes for every caller.
+pub fn index_of_maximum_over(values: &[f64], start: usize, end: usize) -> Result<usize, PeakError> {
+    let end = end.min(values.len());
+    if start >= end {
+        return Err(PeakError::EmptySpan { start, end });
+    }
+    crate::statistics::index_of_maximum(&values[start..end])
+        .map(|offset| start + offset)
+        .ok_or(PeakError::EmptySpan { start, end })
+}
+
 /// The largest value of a centred rectangular moving average over the same span.
 ///
 /// The average is taken over the whole series and the maximum over the span, never the
@@ -70,6 +85,24 @@ mod tests {
         // The sample at `end` is outside, which is the same boundary the integral uses.
         assert_eq!(maximum_over(&values, 0, 2).unwrap(), 9.0);
         assert_eq!(maximum_over(&values, 2, 4).unwrap(), 3.0);
+    }
+
+    /// The index and the value are one answer read two ways, so a span whose maximum is at
+    /// one sample cannot report the value from a different one.
+    #[test]
+    fn the_index_and_the_value_of_a_peak_name_the_same_sample() {
+        let values = [1.0, 9.0, 2.0, 3.0, 9.0];
+        for (start, end) in [(0usize, 2usize), (2, 4), (0, 5), (1, 99)] {
+            let index = index_of_maximum_over(&values, start, end).unwrap();
+            assert_eq!(values[index], maximum_over(&values, start, end).unwrap());
+            assert!((start..end.min(values.len())).contains(&index));
+        }
+        // Ties go to the earliest sample, and a span holding both maxima has to prove it.
+        assert_eq!(index_of_maximum_over(&values, 0, 5).unwrap(), 1);
+        assert_eq!(
+            index_of_maximum_over(&values, 1, 1),
+            Err(PeakError::EmptySpan { start: 1, end: 1 })
+        );
     }
 
     #[test]

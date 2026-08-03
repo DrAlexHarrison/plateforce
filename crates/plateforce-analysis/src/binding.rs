@@ -357,7 +357,139 @@ pub const BINDINGS: &[Binding] = &[
             crate::slots::jump_height_undeclared::minimum_of_two_routes::RULE,
         ),
     },
+    // The phase boundaries, in trace order, which is also dependency order: propulsion end
+    // reads what braking start placed under its force option, and the phase models read the
+    // propulsion boundaries.
+    Binding {
+        id: crate::slots::braking_phase_start::zero_net_force::ID,
+        slot: crate::slots::braking_phase_start::CONSTRUCT,
+        construct: crate::slots::braking_phase_start::CONSTRUCT,
+        title: "Net force crosses zero upward after the minimum",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::braking_phase_start::zero_net_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::zero_net_force::RULE),
+    },
+    Binding {
+        id: crate::slots::braking_phase_start::min_force::ID,
+        slot: crate::slots::braking_phase_start::CONSTRUCT,
+        construct: crate::slots::braking_phase_start::CONSTRUCT,
+        title: "The instant of minimum vertical force following onset",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::braking_phase_start::min_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::min_force::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::zero_velocity::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "Centre of mass velocity crosses zero from below",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::zero_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::zero_velocity::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::velocity_threshold::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "Centre of mass velocity first exceeds a small positive threshold",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::velocity_threshold::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::velocity_threshold::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::peak_grf::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "The instant of peak vertical force",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::peak_grf::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::peak_grf::RULE),
+    },
+    // Declared after braking start, which its force option reads and names.
+    Binding {
+        id: crate::slots::propulsion_phase_end::peak_com_velocity::ID,
+        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
+        title: "Propulsion ends at maximum centre of mass velocity rather than at takeoff",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
+    },
+    // Declared last of the phase rules: the two propulsion subdivisions read the boundaries
+    // the propulsion rules placed, so the interval they split is already settled here.
+    Binding {
+        id: crate::slots::phase_model::unweighting_single::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "One unweighting phase from onset to peak negative velocity",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::unweighting_single::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::unweighting_single::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::unloading_yielding_split::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Unloading and eccentric yielding split at the force minimum",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::unloading_yielding_split::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::unloading_yielding_split::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::time_epochs::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Fixed time epochs measured from contraction onset",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::time_epochs::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::time_epochs::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::propulsion_subdivision_by_time::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Split the propulsion phase at half its duration",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::propulsion_subdivision_by_time::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::propulsion_subdivision_by_time::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::propulsion_subdivision_by_force_crossing::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Split the propulsion phase where force descends through system weight",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::propulsion_subdivision_by_force_crossing::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::propulsion_subdivision_by_force_crossing::RULE),
+    },
 ];
+
+/// What a caller has to state before a rule will run, for the entries whose registry rows
+/// publish no default, each with one value that answers it.
+///
+/// A rule whose entry states a parameter required and publishes no default cannot be reached
+/// by a request that states nothing, and that is the entry working rather than the rule
+/// failing. Held beside the rules rather than inside each caller, so a surface asking the
+/// question and a check answering it read one list.
+pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static str)] {
+    match method_id {
+        crate::slots::propulsion_phase_end::peak_com_velocity::ID => {
+            crate::slots::propulsion_phase_end::peak_com_velocity::REQUIRED_OPTIONS
+        }
+        _ => &[],
+    }
+}
 
 /// Every rule reached by construct id through the request rather than by a named field.
 pub fn derived_bindings() -> impl Iterator<Item = &'static Binding> {

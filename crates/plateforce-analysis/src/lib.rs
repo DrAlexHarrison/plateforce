@@ -22,6 +22,7 @@
 //! directory per construct with one module per bound rule, and `pipeline` runs them.
 
 pub mod binding;
+pub mod boundaries;
 pub mod capability;
 pub(crate) mod centre_of_mass;
 pub mod derived;

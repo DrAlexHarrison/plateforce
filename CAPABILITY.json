@@ -139,6 +139,72 @@
         },
         {
           "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unloading_yielding_split.harry2020",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unweighting_single.mcmahon2018",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_force_crossing",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_time",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "slot": "takeoff"
@@ -416,6 +482,72 @@
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
           "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unloading_yielding_split.harry2020",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unweighting_single.mcmahon2018",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_force_crossing",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_time",
+          "slot": "phase_model"
         },
         {
           "composed_from": null,
@@ -700,6 +832,72 @@
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
           "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unloading_yielding_split.harry2020",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unweighting_single.mcmahon2018",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_force_crossing",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_time",
+          "slot": "phase_model"
         },
         {
           "composed_from": null,
