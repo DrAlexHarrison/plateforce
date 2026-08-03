@@ -37,11 +37,7 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        choice.claims(),
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let gravity = resolved.number(GRAVITY_PARAMETER, context.gravity_meters_per_second_squared);
 
     let Some(landmarks) = context.landmarks() else {

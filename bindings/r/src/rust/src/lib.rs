@@ -162,6 +162,9 @@ struct RegistryReport {
     method_ids: Vec<String>,
     construct_ids: Vec<String>,
     protocol_ids: Vec<String>,
+    /// The published pipelines this registry carries, so an R session can name one rather
+    /// than only count them.
+    preset_ids: Vec<String>,
 }
 
 /// The census, one row per population, each derived count beside the denominator it was
@@ -197,10 +200,17 @@ pub fn registry_json(root: &str) -> String {
                 genuine_debates: None,
                 can_find_wrong_event: None,
             },
+            CensusRow {
+                population: "preset_entries".to_string(),
+                count: census.preset_entries,
+                genuine_debates: None,
+                can_find_wrong_event: None,
+            },
         ],
         method_ids: registry.methods.keys().cloned().collect(),
         construct_ids: registry.constructs.keys().cloned().collect(),
         protocol_ids: registry.protocols.keys().cloned().collect(),
+        preset_ids: registry.presets.keys().cloned().collect(),
     })
 }
 
@@ -522,12 +532,49 @@ struct AnalyseRequest {
     registry_digest: Option<String>,
 }
 
+/// One analysis under a named published pipeline.
+///
+/// The pipeline is laid onto the request here, on the compiled side, because R writes
+/// requests and does not read them: handing the resolved request back would make R the
+/// second reader of a document this side already holds parsed. The record that comes back
+/// names the pipeline against each rule it bound.
+pub fn analyse_under_preset_json(
+    handle: &TrialHandle,
+    root: &str,
+    preset_id: &str,
+    request_json: &str,
+) -> String {
+    let registry = match Registry::load(root) {
+        Ok(registry) => registry,
+        Err(error) => {
+            return refuse::<AnalysisReport>(Refusal::of("registry_invalid", error.to_string()))
+        }
+    };
+    let mut request: AnalyseRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<AnalysisReport>(*refusal),
+    };
+    let refused = match plateforce_analysis::request::preset_named(&registry, preset_id) {
+        Err(refusal) => Some(refusal),
+        Ok(preset) => request.analysis.adopt(preset).err(),
+    };
+    if let Some(refusal) = refused {
+        return refuse::<AnalysisReport>(Refusal::from(*refusal));
+    }
+    run_and_report(handle, request)
+}
+
 pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
     let request: AnalyseRequest = match parse_request(request_json) {
         Ok(request) => request,
         Err(refusal) => return refuse::<AnalysisReport>(*refusal),
     };
+    run_and_report(handle, request)
+}
 
+/// One home for running a request and shaping the report, so a run under a pipeline and a
+/// run under rules the caller named produce the same document.
+fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
     let complete = handle.acquisition.is_complete();
     match run(&handle.trial, &request.analysis) {
         Ok(response) => ok(AnalysisReport {

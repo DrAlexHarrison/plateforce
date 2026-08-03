@@ -16,6 +16,10 @@ use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MethodChoice {
+    /// Empty when nothing has named a rule for this construct yet, which is what a request
+    /// naming a published pipeline sends before the pipeline is laid onto it. An empty id
+    /// reaches no rule and is refused by name rather than resolving to a neighbour.
+    #[serde(default)]
     pub method_id: String,
     #[serde(default)]
     pub parameters: BTreeMap<String, f64>,
@@ -70,6 +74,8 @@ pub struct Claims<'a> {
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct WeighingChoice {
+    /// Empty when nothing has named a rule for this construct yet. See `MethodChoice`.
+    #[serde(default)]
     pub method_id: String,
     #[serde(default)]
     pub start_index: Option<usize>,

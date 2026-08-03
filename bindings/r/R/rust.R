@@ -35,6 +35,10 @@ rust_analyse_json <- function(handle, request_json) {
   .Call(wrap__pf_analyse_json, handle, request_json)
 }
 
+rust_analyse_under_preset_json <- function(handle, root, preset_id, request_json) {
+  .Call(wrap__pf_analyse_under_preset_json, handle, root, preset_id, request_json)
+}
+
 rust_spread_json <- function(handle, request_json) {
   .Call(wrap__pf_spread_json, handle, request_json)
 }

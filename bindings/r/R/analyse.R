@@ -96,6 +96,10 @@ pf_value <- function(x, quantity) {
 #'   `list(peak_force = list(method_id = "force.peak.estimator",
 #'   parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
 #'   one placed declines by name when that construct was not named.
+#' @param preset Name of a published pipeline, which binds the rules and the values its
+#'   source states and leaves every construct that source is silent about to the caller.
+#'   Every value it supplies is recorded as cited, naming the pipeline, so a result reached
+#'   this way is a different record from one reached by typing the same numbers.
 #' @param registry Directory holding the registry, as in [pf_registry()].
 #' @return A [countermovement_jump].
 #' @export
@@ -110,9 +114,10 @@ pf_value <- function(x, quantity) {
 #' pf_value(result, "system_weight_newtons")@value
 #' result@warnings
 analyse_countermovement_jump <- function(trial,
-                                        weighing,
-                                        onset,
-                                        takeoff,
+                                        weighing = NULL,
+                                        onset = NULL,
+                                        takeoff = NULL,
+                                        preset = NULL,
                                         gravity_meters_per_second_squared = NULL,
                                         weighing_parameters = NULL,
                                         onset_parameters = NULL,
@@ -137,8 +142,15 @@ analyse_countermovement_jump <- function(trial,
     takeoff_index = takeoff_index, touchdown_index = touchdown_index,
     registry = registry
   )
-  response <- unwrap(decode(rust_analyse_json(trial@handle, request)))
-  jump_from_response(response)
+  # The pipeline is laid on by the engine rather than here. A second implementation of
+  # which values a pipeline supplied would be a second answer to the question this package
+  # exists to answer, and this package writes requests without ever reading one back.
+  reply <- if (is.null(preset)) {
+    rust_analyse_json(trial@handle, request)
+  } else {
+    rust_analyse_under_preset_json(trial@handle, registry_root(registry), preset, request)
+  }
+  jump_from_response(unwrap(decode(reply)))
 }
 
 # The one place a request is written. A caller that wrote its own would send a document
