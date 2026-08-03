@@ -6,13 +6,16 @@ build-backend = "maturin"
 name = "plateforce"
 description = "Force-plate kinetic analysis where every result carries the method that produced it."
 readme = "README.md"
-license = { file = "LICENSE" }
+# An SPDX expression rather than the table form, which PEP 639 replaced, and no
+# `License ::` classifier beside it, which the same specification retired. The pair is
+# what a package index reads to say what a user may do with this.
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{ name = "Alex Harrison" }]
 keywords = ["biomechanics", "force-plate", "countermovement-jump", "sports-science"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering",
@@ -25,8 +28,16 @@ classifiers = [
 requires-python = ">=3.11"
 dynamic = ["version"]
 
+# Every link a package index puts in its sidebar. A reader who arrives at the index page
+# from a citation follows these to check what produced a number, so the installation
+# routes and the schema the fingerprint is written against are named rather than left in
+# the repository for somebody to find.
 [project.urls]
+Homepage = "https://github.com/DrAlexHarrison/plateforce"
 Repository = "https://github.com/DrAlexHarrison/plateforce"
+Issues = "https://github.com/DrAlexHarrison/plateforce/issues"
+Documentation = "https://github.com/DrAlexHarrison/plateforce/blob/main/docs/schema.md"
+"Browser build" = "https://dralexharrison.github.io/plateforce"
 
 [tool.maturin]
 # One wheel per platform rather than one per interpreter. The extension links the

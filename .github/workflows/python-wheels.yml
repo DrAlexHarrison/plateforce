@@ -166,5 +166,16 @@ jobs:
           python -m venv /tmp/clean
           /tmp/clean/bin/pip install numpy wheelhouse/*.whl
 
-      - name: Analyse a trial with nothing but the wheel and the registry
+      # Handed nothing. The script moves to an empty directory before it loads anything, so
+      # a pass says the wheel carries its own registry rather than that this runner happened
+      # to have a checkout beside it. Passing `registry` here, which is what this step used
+      # to do, proves the wheel works when given files it did not ship.
+      - name: Analyse a trial with nothing but the wheel
+        run: /tmp/clean/bin/python scripts/smoke-installed-wheel.py
+
+      # And the registry it carries is this commit's, compared by digest. A wheel built
+      # against an older registry computes correct numbers and attributes them to bytes
+      # that are not the ones in this tree, which is the failure this project publishes
+      # about, in our own release.
+      - name: The registry in the wheel is the registry in this tree
         run: /tmp/clean/bin/python scripts/smoke-installed-wheel.py registry

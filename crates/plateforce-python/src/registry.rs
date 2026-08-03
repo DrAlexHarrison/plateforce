@@ -5,15 +5,48 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use plateforce_registry::{
-    Bias as CoreBias, Citation as CoreCitation, Construct as CoreConstruct,
-    Disagreement as CoreDisagreement, Failure as CoreFailure, Gui as CoreGui, Method as CoreMethod,
-    Parameter as CoreParameter, Registry as CoreRegistry,
+    assemble, AssemblyError, Bias as CoreBias, Citation as CoreCitation,
+    Construct as CoreConstruct, Disagreement as CoreDisagreement, Failure as CoreFailure,
+    Gui as CoreGui, Method as CoreMethod, Parameter as CoreParameter, Registry as CoreRegistry,
+    RegistryError as CoreRegistryError,
 };
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
 use crate::analysis::implemented_method_ids;
 use crate::errors::{map_registry_error, parameter_error, MethodError};
+
+// Written by build.rs. The registry travels inside the extension module, so an install
+// from PyPI reaches the methods without a clone of the repository beside it.
+include!(concat!(env!("OUT_DIR"), "/embedded_registry.rs"));
+
+/// The registry this wheel carries, assembled through the call the directory loader makes.
+///
+/// Strict in the same places: a set of files that loader refuses is refused here, because
+/// a wheel that quietly loads a registry the terminal would reject is two products.
+fn registry_this_build_carries() -> Result<CoreRegistry, CoreRegistryError> {
+    let assembled =
+        assemble(EMBEDDED_REGISTRY_FILES.iter().copied()).map_err(|error| match error {
+            AssemblyError::Parse { path, source } => CoreRegistryError::Parse {
+                path: path.into(),
+                source,
+            },
+            AssemblyError::Unplaced { path } => CoreRegistryError::Unplaced { path: path.into() },
+            AssemblyError::NoMethods => CoreRegistryError::Absent {
+                path: std::path::PathBuf::from("the registry compiled into plateforce"),
+                reason: "it holds no methods".to_string(),
+            },
+            AssemblyError::Duplicated(violations) => CoreRegistryError::Invalid(violations),
+        })?;
+    if !assembled.violations.is_empty() {
+        return Err(CoreRegistryError::Invalid(assembled.violations));
+    }
+    let mut registry = assembled.registry;
+    // The walk filters on the toml extension, so the revision the registry names itself is
+    // not among the files and build.rs carries it separately.
+    registry.declared_version = EMBEDDED_REGISTRY_VERSION.map(str::to_string);
+    Ok(registry)
+}
 
 /// Which registry a result came from: the digest of the files that were read, and the
 /// revision the caller pinned when they pinned one.
@@ -774,17 +807,29 @@ impl Registry {
 
 #[pymethods]
 impl Registry {
+    /// `path` names a registry directory to read. Naming none reads the registry this
+    /// build carries, which is the same set of files on every machine that installed the
+    /// same wheel, so the digest a result reports is a property of the release rather than
+    /// of the directory the caller happened to be sitting in.
+    ///
+    /// A named directory is read and never quietly replaced by the compiled-in copy: a
+    /// caller who names a directory and silently receives different bytes has been told a
+    /// result came from a registry it did not come from.
+    ///
     /// `version` pins which revision of the registry data produced a result, and a caller
     /// who pins nothing gets no version rather than a word standing in for one. Either
     /// way the result carries `digest`, taken from the files this call read.
     #[classmethod]
-    #[pyo3(signature = (path, version = None))]
+    #[pyo3(signature = (path = None, version = None))]
     fn load(
         _class: &Bound<'_, PyType>,
-        path: std::path::PathBuf,
+        path: Option<std::path::PathBuf>,
         version: Option<String>,
     ) -> PyResult<Self> {
-        let inner = CoreRegistry::load(&path).map_err(map_registry_error)?;
+        let inner = match path {
+            Some(directory) => CoreRegistry::load(&directory).map_err(map_registry_error)?,
+            None => registry_this_build_carries().map_err(map_registry_error)?,
+        };
         Ok(Self { inner, version })
     }
 
@@ -897,5 +942,61 @@ fn optional(value: Option<&str>) -> String {
     match value {
         Some(text) => format!("'{text}'"),
         None => "None".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use plateforce_registry::{content_digest, read_sources, Registry as CoreRegistry, Source};
+
+    /// The digest a wheel reports names the bytes the wheel carries.
+    ///
+    /// This is what makes a fingerprint in somebody's methods section checkable by a
+    /// stranger: they install the version it names and compare, rather than taking our
+    /// word that the registry we published is the registry we computed against.
+    #[test]
+    fn the_registry_in_the_wheel_is_the_registry_in_the_repository() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../registry");
+        let on_disk = read_sources(&root).unwrap();
+
+        let embedded_paths: Vec<&str> = super::EMBEDDED_REGISTRY_FILES
+            .iter()
+            .map(|(path, _)| *path)
+            .collect();
+        let disk_paths: Vec<&str> = on_disk.iter().map(|source| source.path.as_str()).collect();
+        assert_eq!(disk_paths, embedded_paths);
+
+        let carried = super::registry_this_build_carries().unwrap();
+        assert_eq!(
+            carried.content_digest,
+            content_digest(on_disk.iter().map(Source::pair))
+        );
+    }
+
+    /// A wheel that carries no methods refuses rather than handing back an empty registry
+    /// that every later call reports as valid.
+    #[test]
+    fn the_wheel_carries_methods() {
+        let carried = super::registry_this_build_carries().unwrap();
+        assert!(!carried.methods.is_empty());
+        assert!(!carried.constructs.is_empty());
+    }
+
+    /// The revision the registry names itself travels too, because the walk that collects
+    /// entries filters on the toml extension and would leave a wheel unable to say which
+    /// revision it holds.
+    #[test]
+    fn the_wheel_names_the_revision_the_registry_declares() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../registry");
+        let on_disk = CoreRegistry::declared_version_at(&root);
+        assert_eq!(
+            super::registry_this_build_carries()
+                .unwrap()
+                .declared_version,
+            on_disk
+        );
+        assert!(on_disk.is_some());
     }
 }
