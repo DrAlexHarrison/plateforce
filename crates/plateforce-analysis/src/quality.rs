@@ -12,9 +12,16 @@
 use serde::Serialize;
 
 use crate::response::AnalysisResponse;
+use crate::slots::movement_onset::{
+    BACKWARD_OFFSET_FIXED, FLOOR_SECONDS, OFFSET_MILLISECONDS, SEARCH_FLOOR,
+    SEARCH_FLOOR_AT_WEIGHING_EPOCH_END, WEIGHING_EPOCH_END_SECONDS,
+};
 
 const TAKEOFF_FRAME_HEIGHT: &str = "jump_height_from_takeoff_meters";
 const FLIGHT_TIME_HEIGHT: &str = "jump_height_from_flight_time_meters";
+const ONSET_TIME: &str = "onset_time_seconds";
+const TAKEOFF_TIME: &str = "takeoff_time_seconds";
+const TIME_TO_TAKEOFF: &str = "time_to_takeoff_seconds";
 
 /// How far the two routes to a jump height may differ before the difference is no longer
 /// the difference between the routes.
@@ -35,6 +42,12 @@ pub enum QualityStatus {
     /// One route produced no value, so the check could not run. Silence here would read
     /// exactly like a check that ran and found nothing wrong.
     Incomparable,
+    /// A rule returned the first instant it was permitted to examine, so the landmark it
+    /// reports is the boundary of its own search rather than anything it found in the trace.
+    ///
+    /// Not a fault in the rule and not a fault in the recording. The arithmetic is right and
+    /// the rule did what it publishes, which is why this reports rather than refuses.
+    AtSearchFloor,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +82,9 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
     if let Some(signal) = jump_height_routes_disagree(response) {
         found.push(signal);
     }
+    if let Some(signal) = onset_placed_at_its_search_floor(response) {
+        found.push(signal);
+    }
     found
 }
 
@@ -82,6 +98,12 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
 /// `Incomparable` does not. A check that could not run is not evidence against the value
 /// it could not check, and treating it as evidence would drop every truncated trace from
 /// its own spread without anything having gone wrong.
+///
+/// `AtSearchFloor` does not either, and this one is a decision rather than a consequence. A
+/// rule that returns its own boundary has still done what it publishes, on a recording where
+/// that is what it does. The distance between it and the rules that found a departure is the
+/// disagreement between published methods, measured, and a spread that dropped the rule
+/// would report the methods as closer together than they are.
 pub fn distrusted(signals: &[QualitySignal]) -> bool {
     signals
         .iter()
@@ -93,6 +115,128 @@ fn metric(response: &AnalysisResponse, key: &str) -> Option<f64> {
         .metric(key)
         .and_then(|entry| entry.value)
         .filter(|value| value.is_finite())
+}
+
+/// A value one bound rule read, at the precision it read it rather than the precision it is
+/// printed at.
+fn bound_value(response: &AnalysisResponse, method_id: &str, name: &str) -> Option<f64> {
+    response
+        .bound_methods
+        .iter()
+        .find(|bound| bound.method_id == method_id)
+        .and_then(|bound| bound.numeric_values.get(name).copied())
+        .filter(|value| value.is_finite())
+}
+
+/// The interval between two samples of this recording, in seconds.
+///
+/// A landmark's time is its index times this interval and nothing else, so any landmark the
+/// response carries returns the interval it was read at. Two are tried because either index
+/// can be zero, and the one that is would return an interval no recording has.
+fn sample_interval_seconds(response: &AnalysisResponse) -> Option<f64> {
+    [
+        (response.onset_index, ONSET_TIME),
+        (response.takeoff_index, TAKEOFF_TIME),
+    ]
+    .into_iter()
+    .find_map(|(index, key)| match index {
+        Some(index) if index > 0 => metric(response, key).map(|seconds| seconds / index as f64),
+        _ => None,
+    })
+    .filter(|interval| interval.is_finite() && *interval > 0.0)
+}
+
+/// The first sample an onset rule was permitted to examine, and which operator put it there.
+struct SearchFloor {
+    index: usize,
+    seconds: f64,
+    /// Whether the weighing rule settled this floor, which decides what the reader can move.
+    set_by_the_weighing_window: bool,
+}
+
+/// Two operators place this floor and the registry files them as separate entries, so which
+/// of the two ran is read off the record rather than assumed.
+///
+/// The weighing epoch's own end index is taken as the index rather than converted back from
+/// the seconds beside it, because that index is the one the search was given.
+fn onset_search_floor(
+    response: &AnalysisResponse,
+    sample_interval_seconds: f64,
+) -> Option<SearchFloor> {
+    if let Some(seconds) = bound_value(
+        response,
+        SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
+        WEIGHING_EPOCH_END_SECONDS,
+    ) {
+        return Some(SearchFloor {
+            index: response.weighing_end_index,
+            seconds,
+            set_by_the_weighing_window: true,
+        });
+    }
+    let seconds = bound_value(response, SEARCH_FLOOR, FLOOR_SECONDS)?;
+    Some(SearchFloor {
+        index: (seconds / sample_interval_seconds).round().max(0.0) as usize,
+        seconds,
+        set_by_the_weighing_window: false,
+    })
+}
+
+/// Whether the onset a rule reported is the first instant it was allowed to look at.
+///
+/// A forward search starts at its floor, so the crossing it returns is at or after that
+/// floor and the two are equal exactly when the search found nothing before returning. That
+/// is a comparison of two sample indices, both integers, so there is no tolerance to choose
+/// and no float to compare: the crossing is the reported onset with the composed backward
+/// offset put back, and the floor is the index the weighing rule or the caller set.
+///
+/// Measured on subject 01's first trial, where `onset.threshold.absolute_force` and
+/// `onset.threshold.relative_to_system_weight` both report index 1164 against a floor of
+/// 1200 and an offset of 36 samples, while the three rules that found a departure report
+/// 4090, 4091 and 4097.
+fn onset_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<QualitySignal> {
+    let onset_index = response.onset_index?;
+    let interval_seconds = sample_interval_seconds(response)?;
+    let floor = onset_search_floor(response, interval_seconds)?;
+    // A floor at the first sample of the recording forbids nothing, so a crossing there is
+    // the rule reading the whole trace rather than the rule reading its own boundary.
+    if floor.index == 0 {
+        return None;
+    }
+    let offset_samples = bound_value(response, BACKWARD_OFFSET_FIXED, OFFSET_MILLISECONDS)
+        .map(|milliseconds| (milliseconds / 1000.0 / interval_seconds).round().max(0.0) as usize)
+        .unwrap_or(0);
+    if onset_index + offset_samples != floor.index {
+        return None;
+    }
+
+    let lever = if floor.set_by_the_weighing_window {
+        "This rule begins searching where the weighing window ends"
+    } else {
+        "This rule begins searching at the floor this analysis set"
+    };
+    let second_lever = if floor.set_by_the_weighing_window {
+        "move the weighing window"
+    } else {
+        "lower the floor"
+    };
+    Some(QualitySignal {
+        label: "Movement onset, against the instant this rule's search begins".to_string(),
+        value: Some(floor.seconds),
+        unit: "seconds",
+        threshold: 0.0,
+        status: QualityStatus::AtSearchFloor,
+        remedy: format!(
+            "{lever}, at {:.4} s, and the trace was already outside its threshold there, so \
+             the onset it reports is the start of its own search rather than a departure it \
+             found in the recording. Time to takeoff, the impulse and everything drawn from \
+             them run from that instant. Compare the other published rules for the start of \
+             the jump, or {second_lever}, and watch this time change.",
+            floor.seconds
+        ),
+        remedy_construct: crate::ONSET_CONSTRUCT,
+        qualifies: vec![ONSET_TIME, TIME_TO_TAKEOFF],
+    })
 }
 
 /// The impulse route and the flight-time route answer the same question from different
