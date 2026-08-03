@@ -179,6 +179,10 @@ impl From<&crate::read::ReadError> for RefusalCode {
     }
 }
 
+/// Marks the pipeline case of `MethodNotImplemented` and carries the population it counts
+/// over, so the sentence names a denominator rather than a bare list.
+pub(crate) const PRESETS_CARRIED: &str = "presets_this_registry_carries";
+
 /// A declined result, carrying what a caller branches on and the sentence a person reads.
 ///
 /// `message` has no public constructor path of its own: every way of building a `Refusal`
@@ -511,6 +515,26 @@ impl Refusal {
         )
     }
 
+    /// A named published pipeline this registry does not carry, with the ones it does.
+    ///
+    /// Shares `MethodNotImplemented` for the reason `construct_not_on_the_path` does: the
+    /// class is one request asking for something not on offer, and a code minted here would
+    /// reach every surface's manifest and the R condition vocabulary for a single case.
+    ///
+    /// The count rides in `detail` so the sentence reports the population with its
+    /// denominator, and so this case is told apart from the two others under the same code
+    /// by a field rather than by reading the sentence back apart.
+    pub fn preset_not_shipped(preset_id: impl Into<String>, shipped: Vec<String>) -> Self {
+        Self::build(
+            RefusalCode::MethodNotImplemented,
+            preset_id,
+            None,
+            None,
+            BTreeMap::from([(PRESETS_CARRIED.to_string(), shipped.len() as f64)]),
+            shipped,
+        )
+    }
+
     pub fn unknown_parameter(
         method_id: impl Into<String>,
         parameter: impl Into<String>,
@@ -821,6 +845,11 @@ fn sentence(
                 ),
             }
         }
+        RefusalCode::MethodNotImplemented if detail.contains_key(PRESETS_CARRIED) => format!(
+            "'{method_id}' is not a published pipeline this registry carries, and the {} it carries {} {available:?}",
+            named(PRESETS_CARRIED),
+            if named(PRESETS_CARRIED) == 1.0 { "is" } else { "are" }
+        ),
         RefusalCode::MethodNotImplemented => match slot {
             Some(step) => format!(
                 "'{method_id}' was passed as the {step} method, and the rules available for that step are {available:?}"

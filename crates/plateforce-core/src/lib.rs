@@ -108,6 +108,11 @@ pub struct Provenance {
     /// The entry this rule composes, when it is a composition rather than an entry.
     #[serde(default)]
     pub composed_from: Option<String>,
+    /// The named published pipeline this rule and its values were adopted from, and None on
+    /// a step no pipeline spoke to. A pipeline binds the slots its source states, so a
+    /// result can carry it on some steps and not others.
+    #[serde(default)]
+    pub preset: Option<crate::provenance::PresetAttribution>,
 }
 
 /// A record that says nothing about how its method was chosen says the caller chose it, which
@@ -138,6 +143,7 @@ impl Provenance {
             manual_override: false,
             registry_entry: true,
             composed_from: None,
+            preset: None,
         }
     }
 

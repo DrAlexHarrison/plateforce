@@ -73,12 +73,7 @@ pub(crate) fn resolve(
     choice: &MethodChoice,
     warnings: &mut Vec<String>,
 ) -> TakeoffOutcome {
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let mut threshold_newtons = seed_threshold(&choice.method_id, &mut resolved);
     let index = crossing(
         trial,

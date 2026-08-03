@@ -47,12 +47,7 @@ fn place(
     choice: &MethodChoice,
     warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let length_seconds = resolved.number(LENGTH_PARAMETER, LENGTH_DEFAULT_SECONDS);
     let bound = resolved.finish();
 

@@ -69,6 +69,9 @@ pub struct Args {
     /// The rule that finds takeoff
     #[arg(long, value_name = "METHOD_ID")]
     pub takeoff: Option<String>,
+    /// A published pipeline to run over every trial in the folder
+    #[arg(long, value_name = "NAME")]
+    pub preset: Option<String>,
     /// A value for a rule, written <construct>.<name>=<value>. Repeatable, and it applies to
     /// every trial in the folder
     #[arg(long = "set", value_name = "ASSIGNMENT")]
@@ -163,27 +166,22 @@ pub fn run(
     // A run over a folder multiplies one unmade choice by the trial count, so it is refused
     // before a single trial is read, and it is refused the way one trial is: by naming the
     // choice and what can be passed, rather than by naming the flag that is missing.
-    let mut chosen = std::collections::BTreeMap::new();
-    for (construct, given) in [
-        (plateforce_analysis::WEIGHING_CONSTRUCT, &args.weighing),
-        (plateforce_analysis::ONSET_CONSTRUCT, &args.onset),
-        (plateforce_analysis::TAKEOFF_CONSTRUCT, &args.takeoff),
-    ] {
-        if let Some(id) = given {
-            chosen.insert(construct.to_string(), id.clone());
-        }
+    let stated = match crate::analyse::stated_parameters(&args.set, &[]) {
+        Ok(stated) => stated,
+        Err(declined) => return Outcome::declined(declined),
+    };
+    let mut built = request_for(args, &registry, &stated);
+    if let Err(declined) = crate::preset::adopt(&mut built, &registry, args.preset.as_ref()) {
+        return Outcome::declined(declined);
     }
+    let chosen = crate::preset::methods_in(&built);
     let open = crate::decisions::open(&registry, &crate::analyse::PATH, &chosen);
     if !open.is_empty() {
         return Outcome::declined(crate::analyse::open_decisions_refusal(&open, renderer));
     }
 
     let resolved: Vec<&str> = chosen.keys().map(String::as_str).collect();
-    let stated = match crate::analyse::stated_parameters(&args.set, &[]) {
-        Ok(stated) => stated,
-        Err(declined) => return Outcome::declined(declined),
-    };
-    let request = BatchRequest::new(request_for(args, &registry, &stated)).resolving(&resolved);
+    let request = BatchRequest::new(built).resolving(&resolved);
 
     match args.mode {
         Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format),

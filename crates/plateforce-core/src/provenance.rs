@@ -1,5 +1,7 @@
 //! The chain of methods behind one number, and where each value in it came from.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::Provenance;
@@ -56,6 +58,52 @@ impl ParameterSource {
     /// is adopting a published pipeline.
     pub fn taints_the_record(self) -> bool {
         matches!(self, ParameterSource::Provisional)
+    }
+}
+
+/// The named published pipeline a step's rule and values were adopted from.
+///
+/// Carried per step rather than per result, because a pipeline binds the slots its source
+/// states and nothing else. A step its source is silent about carries none of this, and
+/// attributing that step to the pipeline would be manufacturing provenance.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PresetAttribution {
+    /// The id the caller named, as the registry files it.
+    pub id: String,
+    /// Values this pipeline states for this rule that the caller replaced. `parameters` and
+    /// `choices` carry what ran, and these carry what the source published, so a reader sees
+    /// both numbers rather than having to look the pipeline up to learn what was displaced.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub superseded_parameters: BTreeMap<String, f64>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub superseded_options: BTreeMap<String, String>,
+}
+
+impl PresetAttribution {
+    pub fn of(id: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            superseded_parameters: BTreeMap::new(),
+            superseded_options: BTreeMap::new(),
+        }
+    }
+
+    /// Whether the caller replaced anything this pipeline states for this rule.
+    pub fn was_overridden(&self) -> bool {
+        !self.superseded_parameters.is_empty() || !self.superseded_options.is_empty()
+    }
+
+    /// Every name the caller replaced, sorted, so a surface listing them reads the same on
+    /// every run.
+    pub fn superseded_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .superseded_parameters
+            .keys()
+            .chain(self.superseded_options.keys())
+            .cloned()
+            .collect();
+        names.sort();
+        names
     }
 }
 

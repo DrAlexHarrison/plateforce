@@ -10,6 +10,7 @@ mod capability_cmd;
 mod decisions;
 mod exit;
 mod out;
+mod preset;
 mod reach;
 mod registry_cmd;
 mod registry_source;
