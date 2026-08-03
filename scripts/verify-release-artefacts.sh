@@ -120,17 +120,12 @@ check_bundle_payload() {
   echo "bundle wasm matches web/pkg: sha256 $in_the_bundle"
 }
 
+# Four manifests state the version and this used to compare two of them, so the R package
+# and the R crate could name a different release from the desktop and the terminal and
+# nothing said so. The comparison lives in one place now, and the tag is compared against
+# the same four at the top of the release route.
 check_versions() {
-  local workspace shell
-  workspace="$(version_from Cargo.toml plateforce-cli)"
-  shell="$(version_from src-tauri/Cargo.toml plateforce-desktop)"
-  if [ "$workspace" != "$shell" ]; then
-    echo "the two version homes disagree, so the artefacts would not name one release" >&2
-    echo "  Cargo.toml:           $workspace" >&2
-    echo "  src-tauri/Cargo.toml: $shell" >&2
-    return 1
-  fi
-  echo "version $workspace in both manifests"
+  python3 scripts/verify-version-homes.py
 }
 
 # The install documentation is the only place the routes are stated, so a command it names

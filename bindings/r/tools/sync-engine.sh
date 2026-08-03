@@ -66,6 +66,13 @@ for crate in plateforce-registry plateforce-core plateforce-analysis; do
         tar -C "$repository/crates/$crate" --exclude=target -cf - . \
             | tar -C "$destination/$crate" -xf -
     fi
+    # The engine's own suite runs in the repository, against the repository's fixtures, and
+    # no R check runs it. Carrying it costs the one thing a source tarball cannot spend:
+    # `R CMD check` reads six of these names as non-portable file paths, because a tar member
+    # is only required to hold 100 bytes and this project names a test after the sentence it
+    # proves. Removed after the copy rather than filtered during it, because the two tar
+    # dialects on the three check platforms spell an exclusion differently.
+    rm -rf "$destination/$crate/tests"
 done
 
 take registry "$registry"

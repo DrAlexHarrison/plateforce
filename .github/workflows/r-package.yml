@@ -59,6 +59,14 @@ jobs:
         shell: bash
         run: bash bindings/r/tools/check-engine-version.sh
 
+      # Runs after the sync, because the sync is what puts the engine's deep source tree
+      # inside the package and moves every path a prefix longer. Before the check rather
+      # than inside it, so the failure names the file rather than arriving as one NOTE among
+      # five on a queue that costs weeks to re-enter.
+      - name: Every path fits a tarball
+        shell: bash
+        run: sh bindings/r/tools/check-portable-paths.sh
+
       - name: One file names the binding framework
         shell: bash
         env:
