@@ -6,6 +6,12 @@ name: every surface says the same about itself
 # job and is never skipped, so a missing install cannot let the gate pass with fewer surfaces
 # than it names.
 #
+# Two questions, and they are not the same question. What a surface says it can do is the
+# manifest gate. What it computes is the result gate, and that is the claim a reader acts on:
+# the number pasted into a paper comes from one of these surfaces and a reader has no way to
+# tell which. They share this job because both need every surface built and the R package
+# installed, and running that twice buys nothing.
+#
 # Every input the answers depend on, including this file, so a push that edits only the gate
 # still has to meet it.
 on:
@@ -14,7 +20,9 @@ on:
     paths:
       - 'CAPABILITY.json'
       - 'scripts/capability*'
-      - 'bindings/r/**'
+      - 'scripts/result*'
+      - 'tests/golden/**'
+      - 'bindings/**'
       - 'crates/**'
       - 'registry/**'
       - 'scripts/build-web.sh'
@@ -23,7 +31,9 @@ on:
     paths:
       - 'CAPABILITY.json'
       - 'scripts/capability*'
-      - 'bindings/r/**'
+      - 'scripts/result*'
+      - 'tests/golden/**'
+      - 'bindings/**'
       - 'crates/**'
       - 'registry/**'
       - 'scripts/build-web.sh'
@@ -35,7 +45,7 @@ permissions:
 
 jobs:
   capability:
-    name: what each surface reports about itself
+    name: what each surface reports about itself, and what each one computes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,3 +82,9 @@ jobs:
 
       - name: Every listed surface reports, and every answer meets the obligation
         run: ./scripts/capability.sh --check
+
+      # The only gate here that compares a computed number rather than a manifest. Two
+      # surfaces can publish identical vocabularies and return different jump heights, and
+      # nothing above this line can see that.
+      - name: Every listed surface computes the one committed request to the same numbers
+        run: ./scripts/result-parity.sh --check
