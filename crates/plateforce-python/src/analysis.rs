@@ -18,6 +18,7 @@ use plateforce_core::{
 use pyo3::prelude::*;
 
 use crate::errors::{raise_refusal, MethodNotImplementedError, TrialError};
+use crate::quality::QualitySignal;
 use crate::registry::{BoundMethod, Preset, RegistryIdentity};
 use crate::result::{Exclusions, Measured, ProvenanceChain};
 use crate::trial::Trial;
@@ -361,6 +362,8 @@ pub struct CountermovementJump {
     unread_parameters: Vec<String>,
     assumed_parameters: Vec<String>,
     warnings: Vec<String>,
+    /// What the software noticed about the values above, as the records the engine raised.
+    signals: Vec<QualitySignal>,
     /// Every quantity the engine reported, by its own name for it, reached through
     /// `value()`. The getters above cover the eleven the spine has always produced; a rule
     /// bound for any other construct reports through this and needs no getter of its own.
@@ -501,6 +504,29 @@ impl CountermovementJump {
     #[getter]
     fn warnings(&self) -> Vec<String> {
         self.warnings.clone()
+    }
+
+    /// What the software noticed about the values above.
+    ///
+    /// A signal is not a refusal and not a warning: the number stands, and each one carries
+    /// the action a reader would take rather than a verdict about the trace. An empty list
+    /// is a result nothing was noticed about.
+    #[getter]
+    fn signals(&self) -> Vec<QualitySignal> {
+        self.signals.clone()
+    }
+
+    /// The signals about one quantity, by the engine's name for it.
+    ///
+    /// Each signal declares which quantities it qualifies, so this reads that declaration
+    /// rather than a lookup table kept beside it, and a signal cannot drift away from the
+    /// value it is about. The browser places its signals the same way.
+    fn signals_qualifying(&self, quantity: &str) -> Vec<QualitySignal> {
+        self.signals
+            .iter()
+            .filter(|signal| signal.qualifies_key(quantity))
+            .cloned()
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -973,6 +999,15 @@ pub fn analyse_countermovement_jump(
             .flat_map(|bound| bound.assumed_parameters())
             .collect(),
         warnings: response.warnings.clone(),
+        // The signals the analysis already raised. Raising them again here would run the
+        // same function over the same response a second time, and a signal that disagreed
+        // with the number it qualifies would be worse than no signal at all.
+        signals: response
+            .signals
+            .iter()
+            .cloned()
+            .map(QualitySignal::of)
+            .collect(),
         values: derived.every_value(),
     })
 }

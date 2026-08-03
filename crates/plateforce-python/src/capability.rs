@@ -58,6 +58,7 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
         | "Preset"
         | "Provenance"
         | "ProvenanceStep"
+        | "QualitySignal"
         | "ReadReport"
         | "Sentinel"
         | "SentinelPartition"
