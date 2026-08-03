@@ -336,31 +336,39 @@ check('a quantity already on the path is no longer offered',
 const swept = await evaluate(`(async () => {
   const { state } = await import('./state.js');
   const { buildRequest } = await import('./analysis.js');
+  const { reply } = await import('./format.js');
   const construct = ${JSON.stringify(searched.chosen)};
   const slot = state.slots.find((s) => s.construct === construct);
   if (!slot || slot.available.length < 2) return { skipped: slot ? slot.available.length : 0 };
   const quantity = state.build.bindings.find((b) => b.construct === construct && b.quantities.length)
     ?.quantities[0]?.key;
-  const response = JSON.parse(state.loadedTrial.spread(JSON.stringify({
+  // Read through the page's own unwrapper rather than parsing here. The engine answers every
+  // export in one envelope, {ok} or {refusal}, and a check that reaches past it reads undefined
+  // for every field and reports that as a sweep returning one value many times, which is a
+  // different fault from the one it would be describing.
+  const { ok, refusal } = reply(state.loadedTrial.spread(JSON.stringify({
     base: buildRequest(),
     axes: [{ slot: slot.key, parameter: null, values: [], method_ids: slot.available.map((c) => c.id) }],
     quantity_key: quantity,
     maximum_combinations: 512,
   })));
-  const values = (response.variants || []).map((v) => v.value).filter((v) => v != null);
+  if (!ok) return { quantity, rules: slot.available.length, refused: refusal?.code ?? 'a refusal carrying no code' };
+  const values = (ok.variants || []).map((v) => v.value).filter((v) => v != null);
   return {
     quantity,
     rules: slot.available.length,
-    succeeded: response.succeeded,
+    succeeded: ok.succeeded,
     distinct: new Set(values).size,
   };
 })()`);
 
 check('a sweep over a construct reached through derived varies the number rather than repeating it',
-  swept.skipped === undefined && swept.distinct > 1,
+  swept.skipped === undefined && swept.refused === undefined && swept.distinct > 1,
   swept.skipped !== undefined
     ? `skipped: the added construct has ${swept.skipped} runnable rules`
-    : `${swept.rules} rules over ${swept.quantity}, ${swept.succeeded} succeeded, ${swept.distinct} distinct values`);
+    : swept.refused !== undefined
+      ? `the sweep over ${swept.quantity} was declined: ${swept.refused}`
+      : `${swept.rules} rules over ${swept.quantity}, ${swept.succeeded} succeeded, ${swept.distinct} distinct values`);
 
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {
