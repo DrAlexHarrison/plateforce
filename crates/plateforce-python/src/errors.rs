@@ -159,6 +159,20 @@ pub fn raise_refusal(python: Python<'_>, refusal: &Refusal) -> PyErr {
     raised
 }
 
+/// A refusal a caller reads rather than catches, carrying the same fields under the same
+/// names and the same class they would have caught.
+///
+/// A rule declining while other numbers computed is a partial result, not a failed one, so
+/// it travels as an instance nobody raised. Built by the same function as a raised refusal,
+/// so the two cannot drift into two descriptions of one failure.
+pub fn refusal_object(python: Python<'_>, refusal: &Refusal) -> Py<PyAny> {
+    raise_refusal(python, refusal)
+        .value(python)
+        .clone()
+        .unbind()
+        .into_any()
+}
+
 /// Registry violations arrive as one multi-line message listing every rule broken, which
 /// is what the loader already produces.
 pub fn map_registry_error(error: CoreRegistryError) -> PyErr {

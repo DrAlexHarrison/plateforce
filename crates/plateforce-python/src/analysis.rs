@@ -513,6 +513,231 @@ impl CountermovementJump {
     }
 }
 
+/// The one place this surface writes an analysis request.
+///
+/// Every entry point that sends one goes through it: the shaped analysis, the engine
+/// document below it, and the sweep, whose unvaried combination has to be the request a
+/// user's own analysis call sends or the sweep is around a different result. A second
+/// builder beside this one would make the cross-surface comparison a statement about the
+/// second builder rather than about the product.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn analysis_request_of(
+    python: Python<'_>,
+    weighing_epoch: Option<&BoundMethod>,
+    onset: Option<&BoundMethod>,
+    takeoff: Option<&BoundMethod>,
+    preset: Option<&Preset>,
+    gravity_meters_per_second_squared: f64,
+    weighing_parameters: Option<BTreeMap<String, f64>>,
+    onset_parameters: Option<BTreeMap<String, f64>>,
+    takeoff_parameters: Option<BTreeMap<String, f64>>,
+    weighing_options: Option<BTreeMap<String, String>>,
+    onset_options: Option<BTreeMap<String, String>>,
+    takeoff_options: Option<BTreeMap<String, String>>,
+    weighing_start_index: Option<usize>,
+    onset_index: Option<usize>,
+    takeoff_index: Option<usize>,
+    touchdown_index: Option<usize>,
+    derived: Option<BTreeMap<String, Py<BoundMethod>>>,
+    derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+) -> PyResult<(AnalysisRequest, RegistryIdentity)> {
+    // A pipeline fills the constructs its source states, so a caller who named one leaves
+    // those arguments out. Whatever is still unnamed once it has been laid on is refused by
+    // name below rather than resolved to a neighbouring rule.
+    for (method, slot) in [
+        (weighing_epoch, "weighing"),
+        (onset, "onset"),
+        (takeoff, "takeoff"),
+    ] {
+        if let Some(method) = method {
+            expect_bound(python, method, slot)?;
+        }
+    }
+    // A `BoundMethod` reaches a signature as the Python object holding it, so each is
+    // borrowed once here and the request is built from plain values after that.
+    let derived: BTreeMap<String, BoundMethod> = derived
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(construct, method)| (construct, method.borrow(python).clone()))
+        .collect();
+    let derived_parameters = derived_parameters.unwrap_or_default();
+    expect_derived_bound(python, &derived)?;
+
+    // Every rule this call holds carries the registry it came from, and a pipeline carries
+    // one too, so the identity stamped on the record is the first of them that exists
+    // rather than a field only one argument could supply.
+    let registry = [
+        weighing_epoch.map(|m| m.registry_identity()),
+        onset.map(|m| m.registry_identity()),
+        takeoff.map(|m| m.registry_identity()),
+        preset.map(|p| &p.registry_identity),
+    ]
+    .into_iter()
+    .flatten()
+    .next()
+    .ok_or_else(|| {
+        MethodNotImplementedError::new_err(
+            "no rule and no published pipeline was named for this analysis".to_string(),
+        )
+    })?
+    .clone();
+
+    let mut request = AnalysisRequest {
+        weighing: match weighing_epoch {
+            Some(method) => WeighingChoice {
+                method_id: method.method_id().to_string(),
+                start_index: weighing_start_index,
+                parameters: quantities_of(method, weighing_parameters),
+                options: weighing_options.unwrap_or_default(),
+                ..Default::default()
+            },
+            None => WeighingChoice {
+                start_index: weighing_start_index,
+                parameters: weighing_parameters.unwrap_or_default(),
+                options: weighing_options.unwrap_or_default(),
+                ..Default::default()
+            },
+        },
+        onset: MethodChoice {
+            manual_index: onset_index,
+            ..unbound_or(onset, onset_parameters, onset_options)
+        },
+        takeoff: MethodChoice {
+            manual_index: takeoff_index,
+            ..unbound_or(takeoff, takeoff_parameters, takeoff_options)
+        },
+        touchdown_index,
+        gravity_meters_per_second_squared,
+        // What this registry carries. The binding composes operators onto the rule the
+        // caller named, and those are entries in their own right that have to be judged
+        // against the same list rather than assumed.
+        registry_backed_ids: registry.method_ids.as_ref().clone(),
+        derived: derived
+            .iter()
+            .map(|(construct, method)| {
+                (
+                    construct.clone(),
+                    choice_of(method, derived_parameters.get(construct).cloned(), None),
+                )
+            })
+            .collect(),
+        ..Default::default()
+    };
+
+    // Laid on after the caller's own values, so a value they stated keeps its place and the
+    // pipeline's is recorded beside it as the one it displaced.
+    if let Some(preset) = preset {
+        request
+            .adopt(&preset.inner)
+            .map_err(|refusal| raise_refusal(python, &refusal))?;
+    }
+
+    Ok((request, registry))
+}
+
+/// The engine's own document for one analysis, in the envelope every surface answers in.
+///
+/// Which registry the numbers came from travels beside them. It is read off the rules and
+/// the pipeline the call named rather than restated by the caller, so it cannot name a
+/// registry the rules did not come out of.
+#[derive(serde::Serialize)]
+struct AnalysisDocument<'a> {
+    #[serde(flatten)]
+    response: &'a AnalysisResponse,
+    registry_digest: Option<String>,
+    registry_version: Option<String>,
+    acquisition_complete: bool,
+}
+
+/// The engine's own record of one analysis, as the engine wrote it.
+///
+/// `analyse_countermovement_jump` reshapes that record into the classes a notebook reads and
+/// keeps no copy of it, so nothing on this surface could be handed to a comparison against
+/// another surface. This returns it whole, through the request builder that call uses. The
+/// same primitive sits behind R's `pf_analyse` and the browser's `analyse`, and is private
+/// here for the reason it is private there: the shaped answer is what a caller reads.
+///
+/// A rule that declines raises, carrying every field the record holds, because a caller
+/// meeting a refusal here meets the exception `analyse_countermovement_jump` raises rather
+/// than a second shape to parse.
+#[pyfunction]
+#[pyo3(name = "_analyse_json")]
+#[pyo3(signature = (
+    trial,
+    weighing_epoch = None,
+    onset = None,
+    takeoff = None,
+    preset = None,
+    gravity_meters_per_second_squared = STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    weighing_parameters = None,
+    onset_parameters = None,
+    takeoff_parameters = None,
+    weighing_options = None,
+    onset_options = None,
+    takeoff_options = None,
+    weighing_start_index = None,
+    onset_index = None,
+    takeoff_index = None,
+    touchdown_index = None,
+    derived = None,
+    derived_parameters = None,
+))]
+#[allow(clippy::too_many_arguments)]
+pub fn analyse_json(
+    python: Python<'_>,
+    trial: &Trial,
+    weighing_epoch: Option<&BoundMethod>,
+    onset: Option<&BoundMethod>,
+    takeoff: Option<&BoundMethod>,
+    preset: Option<&Preset>,
+    gravity_meters_per_second_squared: f64,
+    weighing_parameters: Option<BTreeMap<String, f64>>,
+    onset_parameters: Option<BTreeMap<String, f64>>,
+    takeoff_parameters: Option<BTreeMap<String, f64>>,
+    weighing_options: Option<BTreeMap<String, String>>,
+    onset_options: Option<BTreeMap<String, String>>,
+    takeoff_options: Option<BTreeMap<String, String>>,
+    weighing_start_index: Option<usize>,
+    onset_index: Option<usize>,
+    takeoff_index: Option<usize>,
+    touchdown_index: Option<usize>,
+    derived: Option<BTreeMap<String, Py<BoundMethod>>>,
+    derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+) -> PyResult<String> {
+    let (request, registry) = analysis_request_of(
+        python,
+        weighing_epoch,
+        onset,
+        takeoff,
+        preset,
+        gravity_meters_per_second_squared,
+        weighing_parameters,
+        onset_parameters,
+        takeoff_parameters,
+        weighing_options,
+        onset_options,
+        takeoff_options,
+        weighing_start_index,
+        onset_index,
+        takeoff_index,
+        touchdown_index,
+        derived,
+        derived_parameters,
+    )?;
+
+    let response = plateforce_analysis::run(&trial.inner, &request)
+        .map_err(|refusal| raise_refusal(python, &refusal))?;
+
+    let document = AnalysisDocument {
+        response: &response,
+        registry_digest: registry.digest.clone(),
+        registry_version: registry.version.clone(),
+        acquisition_complete: trial.acquisition_complete(),
+    };
+    serde_json::to_string(&serde_json::json!({ "ok": document }))
+        .map_err(|error| TrialError::new_err(error.to_string()))
+}
+
 /// Analyse one countermovement jump with the methods named.
 ///
 /// The three method arguments are bound registry entries and appear in the provenance of
@@ -566,97 +791,27 @@ pub fn analyse_countermovement_jump(
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
 ) -> PyResult<CountermovementJump> {
-    // A pipeline fills the constructs its source states, so a caller who named one leaves
-    // those arguments out. Whatever is still unnamed once it has been laid on is refused by
-    // name below rather than resolved to a neighbouring rule.
-    for (method, slot) in [
-        (weighing_epoch, "weighing"),
-        (onset, "onset"),
-        (takeoff, "takeoff"),
-    ] {
-        if let Some(method) = method {
-            expect_bound(python, method, slot)?;
-        }
-    }
-    // A `BoundMethod` reaches a signature as the Python object holding it, so each is
-    // borrowed once here and the request is built from plain values after that.
-    let derived: BTreeMap<String, BoundMethod> = derived
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(construct, method)| (construct, method.borrow(python).clone()))
-        .collect();
-    let derived_parameters = derived_parameters.unwrap_or_default();
-    expect_derived_bound(python, &derived)?;
-
-    // Every rule this call holds carries the registry it came from, and a pipeline carries
-    // one too, so the identity stamped on the record is the first of them that exists
-    // rather than a field only one argument could supply.
-    let registry = [
-        weighing_epoch.map(|m| m.registry_identity()),
-        onset.map(|m| m.registry_identity()),
-        takeoff.map(|m| m.registry_identity()),
-        preset.map(|p| &p.registry_identity),
-    ]
-    .into_iter()
-    .flatten()
-    .next()
-    .ok_or_else(|| {
-        MethodNotImplementedError::new_err(
-            "no rule and no published pipeline was named for this analysis".to_string(),
-        )
-    })?
-    .clone();
-    let acquisition_complete = trial.acquisition_complete();
-
-    let mut request = AnalysisRequest {
-        weighing: match weighing_epoch {
-            Some(method) => WeighingChoice {
-                method_id: method.method_id().to_string(),
-                start_index: weighing_start_index,
-                parameters: quantities_of(method, weighing_parameters),
-                options: weighing_options.unwrap_or_default(),
-                ..Default::default()
-            },
-            None => WeighingChoice {
-                start_index: weighing_start_index,
-                parameters: weighing_parameters.unwrap_or_default(),
-                options: weighing_options.unwrap_or_default(),
-                ..Default::default()
-            },
-        },
-        onset: MethodChoice {
-            manual_index: onset_index,
-            ..unbound_or(onset, onset_parameters, onset_options)
-        },
-        takeoff: MethodChoice {
-            manual_index: takeoff_index,
-            ..unbound_or(takeoff, takeoff_parameters, takeoff_options)
-        },
-        touchdown_index,
+    let (request, registry) = analysis_request_of(
+        python,
+        weighing_epoch,
+        onset,
+        takeoff,
+        preset,
         gravity_meters_per_second_squared,
-        // What this registry carries. The binding composes operators onto the rule the
-        // caller named, and those are entries in their own right that have to be judged
-        // against the same list rather than assumed.
-        registry_backed_ids: registry.method_ids.as_ref().clone(),
-        derived: derived
-            .iter()
-            .map(|(construct, method)| {
-                (
-                    construct.clone(),
-                    choice_of(method, derived_parameters.get(construct).cloned(), None),
-                )
-            })
-            .collect(),
-        ..Default::default()
-    };
-
-    // Laid on after the caller's own values, so a value they stated keeps its place and the
-    // pipeline's is recorded beside it as the one it displaced.
-    if let Some(preset) = preset {
-        request
-            .adopt(&preset.inner)
-            .map_err(|refusal| raise_refusal(python, &refusal))?;
-    }
+        weighing_parameters,
+        onset_parameters,
+        takeoff_parameters,
+        weighing_options,
+        onset_options,
+        takeoff_options,
+        weighing_start_index,
+        onset_index,
+        takeoff_index,
+        touchdown_index,
+        derived,
+        derived_parameters,
+    )?;
+    let acquisition_complete = trial.acquisition_complete();
 
     // The record the engine built, raised under the class its own code names. This used to
     // arrive as a sentence, so every one of these was a `TrialError` whatever it was about.

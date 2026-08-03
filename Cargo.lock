@@ -676,6 +676,7 @@ dependencies = [
  "plateforce-core",
  "plateforce-registry",
  "pyo3",
+ "serde",
  "serde_json",
 ]
 

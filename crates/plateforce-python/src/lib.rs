@@ -9,9 +9,11 @@
 
 mod analysis;
 mod batch;
+mod capability;
 mod errors;
 mod registry;
 mod result;
+mod spread;
 mod trial;
 
 use pyo3::prelude::*;
@@ -44,6 +46,9 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<result::Exclusions>()?;
     module.add_class::<analysis::CountermovementJump>()?;
 
+    module.add_class::<spread::Spread>()?;
+    module.add_class::<spread::SpreadVariant>()?;
+
     module.add_class::<batch::BatchResult>()?;
     module.add_class::<batch::BatchRun>()?;
     module.add_class::<batch::TrialIdentity>()?;
@@ -52,6 +57,9 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
         analysis::analyse_countermovement_jump,
         module
     )?)?;
+    // The engine's own document, which the shaped answer above is built from and does not
+    // keep. Private, because a caller reads the classes; the parity gate reads this.
+    module.add_function(wrap_pyfunction!(analysis::analyse_json, module)?)?;
     module.add_function(wrap_pyfunction!(
         analysis::jump_height_from_flight_time,
         module
@@ -68,6 +76,16 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
     module.add_function(wrap_pyfunction!(trial::read_force_file, module)?)?;
+
+    // The measurement this software exists to publish, beside the analysis rather than
+    // behind a switch, because it is the question the registry exists to answer.
+    module.add_function(wrap_pyfunction!(spread::spread_over, module)?)?;
+
+    module.add_function(wrap_pyfunction!(capability::capability_json, module)?)?;
+    module.add_function(wrap_pyfunction!(
+        capability::entry_points_with_no_operations_ruled,
+        module
+    )?)?;
 
     module.add_function(wrap_pyfunction!(batch::batch, module)?)?;
     // `BatchResult.__reduce__` reaches this by name on the module, so a result cannot be

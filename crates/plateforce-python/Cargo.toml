@@ -22,6 +22,10 @@ parquet = ["plateforce-batch/parquet"]
 plateforce-analysis = { workspace = true }
 plateforce-batch = { workspace = true, default-features = false }
 plateforce-core = { workspace = true }
+# The engine's own document reaches a comparison across surfaces as the engine wrote it,
+# which needs the derive rather than a value assembled here: a document built field by field
+# would drop a field the engine gained, and the comparison would never see it.
+serde = { workspace = true }
 serde_json = { workspace = true }
 plateforce-registry = { workspace = true }
 
