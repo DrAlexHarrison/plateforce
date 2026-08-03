@@ -9,8 +9,9 @@
 # the two sources agreed. The same reading passes a stale package off as a match whenever the
 # drift runs the other way.
 #
-# `R` resolves to another program on some machines, so the interpreter is spelled by path.
-# Set `R_LIBS` to install somewhere other than the default library.
+# R is found on the path and then asked to say what it is, because a name this short is one
+# some machines have given to something else, and a wrong program here would report a surface
+# that does not exist. Set `R_LIBS` to install somewhere other than the default library.
 #
 # The sync and the install write to the other stream, because the caller reads this one as
 # the surface's answer.
@@ -18,6 +19,11 @@ set -o errexit -o nounset -o pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if ! R --version 2>/dev/null | head -1 | grep -q '^R version'; then
+    echo "the R on this path is not R, so this surface could not be asked" >&2
+    exit 2
+fi
+
 bash "$root/bindings/r/tools/sync-engine.sh" >&2
-/usr/bin/R CMD INSTALL "$root/bindings/r" --no-byte-compile >&2
-exec /usr/bin/Rscript -e 'cat(plateforce::capability_json())'
+R CMD INSTALL "$root/bindings/r" --no-byte-compile >&2
+exec Rscript -e 'cat(plateforce::capability_json())'
