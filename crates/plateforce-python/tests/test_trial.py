@@ -1,6 +1,7 @@
 """Reading a trace in, and what the trial declares about what it read."""
 
 import array
+import os
 
 import numpy as np
 import pytest
@@ -207,3 +208,88 @@ def test_a_comma_separated_export_reads(tmp_path):
     path = a_three_column_export(tmp_path, [600.0, 601.0], delimiter=",")
     trial = pf.read_force_file(path, sample_rate_hz=100.0, delimiter=",", force_column=2)
     assert trial.force_newtons == [600.0, 601.0]
+
+
+# Counting a declared convention apart from a gap in the recording. One number over both
+# cannot tell a reader that most of what it counted is the athlete being in the air.
+
+
+def test_the_two_reasons_a_sample_is_reported_are_counted_apart():
+    values = [600.0, 0.0, float("nan"), 0.0, 602.0]
+    reported = pf.Trial(values, sample_rate_hz=100.0, sentinel=pf.Sentinel.zero()).exclusions
+    assert reported.samples_matching_the_convention == 2
+    assert reported.samples_carrying_no_number == 1
+    assert reported.dropped_samples == 3
+
+
+def test_the_two_counts_are_the_total_and_never_overlap():
+    """The denominator rule: a total nobody can decompose is a count without its parts, and
+    a sample counted under both would make the parts exceed it.
+
+    The last case is the one that can actually fail. Zero and minus one are finite, so no
+    sample can meet both descriptions under either, and a list holding only those two puts
+    the interesting case out of reach. A declared value of infinity is matched by the
+    convention and carries no number at the same time."""
+    for values, convention in (
+        ([600.0, 0.0, float("nan")], pf.Sentinel.zero()),
+        ([600.0, -1.0, float("inf")], pf.Sentinel.negative_one()),
+        ([600.0, 601.0, 602.0], pf.Sentinel.zero()),
+        ([600.0, float("nan"), float("nan")], None),
+        ([600.0, float("inf"), float("nan")], pf.Sentinel.value(float("inf"))),
+    ):
+        reported = pf.Trial(values, sample_rate_hz=100.0, sentinel=convention).exclusions
+        assert (
+            reported.samples_matching_the_convention + reported.samples_carrying_no_number
+            == reported.dropped_samples
+        ), values
+
+
+def test_a_trace_with_no_declared_convention_matches_nothing():
+    reported = pf.Trial([600.0, 0.0, float("nan")], sample_rate_hz=100.0).exclusions
+    assert reported.samples_matching_the_convention == 0
+    assert reported.samples_carrying_no_number == 1
+    assert reported.sentinel_convention is None
+
+
+def test_the_partition_reports_the_same_two_counts():
+    partition = pf.partition_sentinel_values([45.0, 0.0, float("nan"), 0.0], pf.Sentinel.zero())
+    assert partition.exclusions.samples_matching_the_convention == 2
+    assert partition.exclusions.samples_carrying_no_number == 1
+    assert partition.exclusions.dropped_samples == 3
+
+
+def test_the_zero_convention_matches_the_flight_phase_of_a_real_jump():
+    """The case the separated count exists for, on the trial it was found on.
+
+    A plate with nothing on it reads zero or one quantisation step, and a vendor writing 0.00
+    to mean "no measurement" writes the same bytes, so declaring the zero convention on a jump
+    trace marks the flight phase as missing. Every one of these is a correct reading, and a
+    caller told only a total cannot tell that from a gap in the recording."""
+    fixture = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "plateforce-conformance",
+        "fixtures",
+        "subject01_trial1.force.txt",
+    )
+    if not os.path.exists(fixture):
+        pytest.skip("this checkout carries no trial to read")
+    reported = pf.read_force_file(
+        fixture,
+        sample_rate_hz=1200.0,
+        delimiter="\t",
+        force_column=0,
+        sentinel=pf.Sentinel.zero(),
+    ).exclusions
+    assert reported.samples_carrying_no_number == 0, "the recording has no gap in it"
+    assert reported.samples_matching_the_convention == 157
+    assert reported.dropped_samples == 157
+
+
+def test_the_reason_names_both_counts_rather_than_their_sum():
+    reported = pf.Trial(
+        [600.0, 0.0, float("nan")], sample_rate_hz=100.0, sentinel=pf.Sentinel.zero()
+    ).exclusions
+    assert "1 sample(s) read the declared convention" in reported.reason
+    assert "1 carried no number" in reported.reason

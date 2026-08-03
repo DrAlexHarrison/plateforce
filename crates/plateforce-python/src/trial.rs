@@ -230,6 +230,7 @@ pub fn partition_sentinel_values(
     let values = read_float64_values(python, values, "values")?;
     let (kept, dropped_indices) = partition_sentinels(&values, sentinel.inner);
     let dropped_samples = dropped_indices.len();
+    let (matched, no_number) = counted_apart(&values, Some(sentinel.inner));
     Ok(SentinelPartition {
         kept,
         dropped_indices,
@@ -242,8 +243,33 @@ pub fn partition_sentinel_values(
                 )),
                 sentinel_convention: Some(sentinel_name(&sentinel.inner)),
             },
+            matched_the_convention: Some(matched),
+            carried_no_number: Some(no_number),
         },
     })
+}
+
+/// Samples matching the declared convention against samples carrying no number at all.
+///
+/// `partition_sentinels` reports one total over both, and one number cannot say which. The
+/// distinction is not academic on a force plate: the zero convention a vendor writes for a
+/// measurement it does not have is also the correct reading of a plate with nothing on it,
+/// so on a jump trace it matches the whole flight phase. A reader told only the total cannot
+/// tell a gap in the recording from the athlete being in the air.
+///
+/// A value that is not finite is counted there and nowhere else, so the two are disjoint and
+/// add up to the total the partition reports.
+fn counted_apart(values: &[f64], sentinel: Option<CoreSentinel>) -> (usize, usize) {
+    let mut matched = 0;
+    let mut no_number = 0;
+    for &value in values {
+        if !value.is_finite() {
+            no_number += 1;
+        } else if sentinel.is_some_and(|convention| convention.matches(value)) {
+            matched += 1;
+        }
+    }
+    (matched, no_number)
 }
 
 /// What the reader decided while turning a file into a trace.
@@ -309,22 +335,23 @@ impl Trial {
         sentinel: Option<Sentinel>,
         read_report: Option<ReadReport>,
     ) -> PyResult<Self> {
-        let convention = sentinel
-            .as_ref()
-            .map(|declared| declared.inner)
-            .unwrap_or(NON_FINITE_ONLY);
+        let declared = sentinel.as_ref().map(|declared| declared.inner);
+        let convention = declared.unwrap_or(NON_FINITE_ONLY);
         let (_, dropped_indices) = partition_sentinels(&values, convention);
+        let (matched, no_number) = counted_apart(&values, declared);
 
         let inner =
             CoreTrial::new(values, sample_rate_hz).map_err(|e| map_trial_error(python, e))?;
 
-        let reason = if dropped_indices.is_empty() {
-            None
-        } else {
-            Some(format!(
-                "{} sample(s) reported and kept in place: removing them would shift the time base",
-                dropped_indices.len()
-            ))
+        // The two counts rather than the total, because they are two facts. A convention
+        // matching a stretch of the recording is the caller's declaration meeting real data;
+        // a sample carrying no number is the recording itself.
+        let reason = match (matched, no_number) {
+            (0, 0) => None,
+            _ => Some(format!(
+                "{matched} sample(s) read the declared convention and {no_number} carried no \
+                 number, all kept in place: removing them would shift the time base"
+            )),
         };
         Ok(Self {
             inner,
@@ -335,6 +362,8 @@ impl Trial {
                     reason,
                     sentinel_convention: sentinel.as_ref().map(|s| sentinel_name(&s.inner)),
                 },
+                matched_the_convention: Some(matched),
+                carried_no_number: Some(no_number),
             },
             read_report,
         })

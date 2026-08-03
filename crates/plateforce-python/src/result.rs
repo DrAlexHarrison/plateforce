@@ -268,13 +268,39 @@ impl Measured {
 #[derive(Clone)]
 pub struct Exclusions {
     pub(crate) inner: CoreExclusions,
+    /// Samples matching the declared convention, counted apart from the samples that carry
+    /// no number at all. None where the two were never counted separately.
+    pub(crate) matched_the_convention: Option<usize>,
+    pub(crate) carried_no_number: Option<usize>,
 }
 
 #[pymethods]
 impl Exclusions {
+    /// Every sample this step reported, which is the two counts below added together.
     #[getter]
     fn dropped_samples(&self) -> usize {
         self.inner.dropped_samples
+    }
+
+    /// Samples reading the value the declared convention writes for a measurement that was
+    /// not taken.
+    ///
+    /// Reported apart from the count above because the two are not the same fact and one
+    /// number cannot carry both. A plate with nothing on it reads zero or one quantisation
+    /// step, and a vendor writing 0.00 to mean "no measurement" writes the same bytes, so on
+    /// a jump trace the zero convention matches the whole flight phase: 157 samples of one
+    /// real trial, every one of them a correct reading. A caller told only that 160 samples
+    /// were reported cannot tell that 157 of them are the flight.
+    #[getter]
+    fn samples_matching_the_convention(&self) -> Option<usize> {
+        self.matched_the_convention
+    }
+
+    /// Samples carrying no number, which is a gap in the recording rather than a convention
+    /// a reader could have declared differently.
+    #[getter]
+    fn samples_carrying_no_number(&self) -> Option<usize> {
+        self.carried_no_number
     }
 
     #[getter]
@@ -290,11 +316,20 @@ impl Exclusions {
 
     fn __repr__(&self) -> String {
         format!(
-            "Exclusions(dropped_samples={}, sentinel_convention={}, reason={})",
+            "Exclusions(dropped_samples={}, samples_matching_the_convention={}, samples_carrying_no_number={}, sentinel_convention={}, reason={})",
             self.inner.dropped_samples,
+            counted(self.matched_the_convention),
+            counted(self.carried_no_number),
             optional(self.inner.sentinel_convention.as_deref()),
             optional(self.inner.reason.as_deref())
         )
+    }
+}
+
+fn counted(value: Option<usize>) -> String {
+    match value {
+        Some(count) => count.to_string(),
+        None => "None".to_string(),
     }
 }
 

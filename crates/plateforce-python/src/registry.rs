@@ -923,9 +923,25 @@ impl Registry {
     }
 
     /// The revision this registry was pinned to, or None when nothing was pinned.
+    ///
+    /// A caller's declaration rather than the registry's, which is why it is separate from
+    /// the one below.
     #[getter]
     fn version(&self) -> Option<&str> {
         self.version.as_deref()
+    }
+
+    /// The revision the registry names about itself, from the `VERSION` file beside its
+    /// rules, or None where it names none.
+    ///
+    /// Distinct from `version` above, which is what a caller pinned. The two answer
+    /// different questions and either can be present without the other: a caller can pin a
+    /// revision a registry does not claim, and a registry can claim one nobody pinned. The
+    /// terminal and the browser both report this and no Python reader could reach it, so a
+    /// notebook was the one surface unable to say which revision of the data it ran.
+    #[getter]
+    fn declared_version(&self) -> Option<&str> {
+        self.inner.declared_version.as_deref()
     }
 
     /// Identifies the files that were loaded. Two registries differing by one edited rule
@@ -937,12 +953,20 @@ impl Registry {
 
     #[getter]
     fn census(&self) -> Census {
-        let census = self.inner.census();
+        // Destructured without a rest pattern, so a population added upstream is a compile
+        // error here rather than a row that quietly stops being reported. The terminal
+        // reached four populations while this surface reported three, and nothing said so.
+        let plateforce_registry::Census {
+            constructs,
+            computation_entries,
+            protocol_entries,
+            preset_entries,
+        } = self.inner.census();
         Census {
-            constructs: census.constructs,
-            computation_entries: census.computation_entries,
-            protocol_entries: census.protocol_entries,
-            preset_entries: census.preset_entries,
+            constructs,
+            computation_entries,
+            protocol_entries,
+            preset_entries,
         }
     }
 
