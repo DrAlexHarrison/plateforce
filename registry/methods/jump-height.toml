@@ -490,6 +490,9 @@ note = "A distinct rule: it changes both the error structure and the equipment r
 surfacing = "surface_on_demand"
 rationale = "Instrument-gated."
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "jumpheight.standing.flight_time_anthropometric_correction.wade2020"
 construct = "jump_height.standing_frame"
@@ -543,6 +546,12 @@ that it is not. The published evidence cuts both ways and neither is resolved.
 [method.gui]
 surfacing = "surface_on_demand"
 rationale = "For contact-mat and phone workflows. It fixes the heel rise but not inconsistent landing technique."
+
+[method.reach]
+boundary = "undetermined"
+query = """
+a recording carrying foot length, sole thickness and ankle height beside the trace, which decides whether the heel-rise constant is a measurement nobody took or an input the request has no field for
+"""
 
 [[method]]
 id = "jumpheight.standing.jump_and_reach"
@@ -598,6 +607,9 @@ Force the decision if a user tries to pool it with force-plate data; otherwise a
 metric. It is the metric volleyball and basketball care about and it is behind an enormous
 body of combine and normative data, and it should never be presented as interchangeable.
 """
+
+[method.reach]
+boundary = "equipment"
 
 [[method]]
 id = "jumpheight.motion_capture"
@@ -664,6 +676,9 @@ surfacing = "never_a_user_choice"
 sensitivity = "unquantified across models, which is a gap"
 rationale = "Out of scope except as an import format, and the model identity must travel with imported criterion data."
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "jumpheight.encoder_flight_displacement"
 construct = "jump_height.takeoff_frame"
@@ -710,6 +725,9 @@ The jump height reported by the encoder mode and the jump height reported by the
 different methods with the same name inside one program, and that must be visible.
 """
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "jumpheight.takeoff_velocity.resultant.amti"
 construct = "jump_height.takeoff_frame"
@@ -753,6 +771,12 @@ Under a reproduce-legacy option, never a default. This software produced the 201
 the validation corpus rests on, and it writes exactly 0.00 to jump height, time to takeoff and
 reactive strength index simultaneously on 3 of the 244 trials, which are missing values wearing the
 costume of a measurement and must be dropped before any comparison.
+"""
+
+[method.reach]
+boundary = "undetermined"
+query = """
+whether the plate recorded the two horizontal channels beside the vertical one, which decides whether a resultant takeoff velocity is a reading away or an instrument away
 """
 
 [[method]]
@@ -885,6 +909,9 @@ note = "Not defensible on the physics and not in the debatable category. Admitte
 surfacing = "refuse"
 rationale = "Appears only as a warning when importing data known to come from that pipeline."
 
+[method.reach]
+boundary = "source"
+
 [[method]]
 id = "jumpheight.flight_time.optical_offset"
 construct = "jump_height.landing_frame"
@@ -931,6 +958,9 @@ kind = "vendor_convention"
 [method.gui]
 surfacing = "default_and_hide"
 rationale = "Behind a device selection, with the offset shown as provenance. Never ask a coach to enter a beam height."
+
+[method.reach]
+boundary = "equipment"
 
 [[method]]
 id = "jumpheight.dj.two_plate_touchdown_velocity"
@@ -982,6 +1012,9 @@ kind = "genuine"
 surfacing = "surface_on_demand"
 rationale = "Requires two plates, which is why it cannot be a general default despite being the field's criterion."
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "jumpheight.dj.box_height_as_drop_height"
 construct = "jump_height.takeoff_frame"
@@ -1030,6 +1063,9 @@ surfacing = "force_a_decision"
 sensitivity = "propagates into every impulse-momentum drop-jump metric"
 rationale = "Deprecated and simultaneously a required vendor entry, because commercial software commonly implements it."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "jumpheight.dj.mcmahon_correction_factor"
 construct = "jump_height.takeoff_frame"
@@ -1072,6 +1108,9 @@ kind = "genuine"
 [method.gui]
 surfacing = "surface_on_demand"
 rationale = "The most practically valuable proposal in the drop-jump literature: it recovers the criterion's accuracy with one plate."
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "jumpheight.flight_time.ankle_angle_corrected"
@@ -1138,6 +1177,9 @@ otherwise. For a 40 cm athletic jump the correction is minor; for a 10 cm clinic
 it is up to 60 percent of the number, and silently defaulting there would be indefensible.
 """
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "jumpheight.dropjump.impact_velocity_differencing"
 construct = "jump_height.takeoff_frame"
@@ -1198,6 +1240,9 @@ rationale = """
 Gated on video availability: unavailable to most users, decisive for those who have the data. It is
 the only rebound-height method in the sweep validated against a double-force-platform reference.
 """
+
+[method.reach]
+boundary = "equipment"
 
 [[method]]
 id = "time_to_takeoff.onset_to_takeoff"

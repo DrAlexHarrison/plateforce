@@ -95,6 +95,16 @@ impl<'a> Resolution<'a> {
         self.parameters.get(name).copied()
     }
 
+    /// The request's value for a named choice, and a note that the rule asked either way.
+    ///
+    /// A rule whose entry marks a name required and publishes no default for it reads this and
+    /// declines when it is absent. `option` cannot express that: it takes a fallback, and a
+    /// fallback where the registry declares none is a decision the rule made for the caller.
+    pub(crate) fn stated_name(&mut self, name: &str) -> Option<String> {
+        self.consulted.insert(name.to_string());
+        self.options.get(name).cloned()
+    }
+
     pub(crate) fn number(&mut self, name: &str, fallback: f64) -> f64 {
         let stated = self.stated(name);
         let value = stated.unwrap_or(fallback);

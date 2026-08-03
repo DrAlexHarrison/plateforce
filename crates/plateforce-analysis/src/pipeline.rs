@@ -225,7 +225,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
             flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
             vec![request.takeoff.method_id.clone()],
             Some(
-                "A different construct from the takeoff frame figure above, not a different way of computing it."
+                "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load."
                     .into(),
             ),
         ),
@@ -244,6 +244,12 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     ];
 
     let mut metrics = metrics;
+    // A quantity the request bound a rule for is reported by that rule. Computed here as well
+    // it would put two values under one key, and the surfaces that look a key up resolve that
+    // in opposite directions: one takes the first match and one takes the last.
+    let bound_by_request = keys_the_request_bound(request);
+    metrics.retain(|metric| !bound_by_request.contains(&metric.key.as_str()));
+
     run_derived_phase(
         trial,
         request,
@@ -281,6 +287,23 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     // analysis produced against each other.
     response.signals = crate::quality::signals(&response);
     Ok(response)
+}
+
+/// Every quantity key a rule the request named will report.
+///
+/// Read off the binding rows rather than off what the rules produced, so a key is left out
+/// before anything computes it rather than deduplicated afterwards. Which of two values for
+/// one key survived a deduplication is an ordering fact nobody stated.
+fn keys_the_request_bound(request: &AnalysisRequest) -> Vec<&'static str> {
+    request
+        .derived
+        .iter()
+        .flat_map(|(construct, choice)| {
+            crate::binding::bindings_for_construct(construct)
+                .filter(move |binding| binding.id == choice.method_id)
+                .flat_map(|binding| binding.quantities.iter().map(|quantity| quantity.key))
+        })
+        .collect()
 }
 
 /// Every rule the request named for a construct computed from the landmarks, in the order
@@ -430,7 +453,9 @@ mod tests {
     use std::collections::BTreeMap;
 
     use plateforce_core::trial::CentralTendency;
-    use plateforce_core::{DispersionEstimator, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
+    use plateforce_core::{
+        DispersionEstimator, RefusalCode, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    };
 
     use super::*;
     use crate::binding::{BINDINGS, WEIGHING_CONSTRUCT};
@@ -568,6 +593,20 @@ mod tests {
                     binding.id,
                     declared.key
                 );
+                // And it reported it once. Two values under one key reach the surfaces that
+                // look a key up as two different answers, because one takes the first match
+                // and one takes the last.
+                assert_eq!(
+                    response
+                        .metrics
+                        .iter()
+                        .filter(|metric| metric.key == declared.key)
+                        .count(),
+                    1,
+                    "{} reported {} beside another value under the same key",
+                    binding.id,
+                    declared.key
+                );
                 assert!(
                     metric.value.is_some(),
                     "{} reported {} with no value and no refusal",
@@ -592,10 +631,17 @@ mod tests {
         for binding in crate::binding::derived_bindings() {
             let response =
                 run(&trial, &request_reaching(binding)).expect("the request is well formed");
+            // A value the caller never stated is a different fault from a rule that ran too
+            // early, and only the second is this guard's subject. Reading them as one would
+            // make a rule whose entry publishes no default for a required name unbindable.
             let declined: Vec<&str> = response
                 .refusals
                 .iter()
                 .filter(|rule| rule.method_id == binding.id)
+                .filter(|rule| {
+                    crate::document::refusal_from_rule(rule).code
+                        != RefusalCode::RequiredParameterUnstated
+                })
                 .map(|rule| rule.method_id.as_str())
                 .collect();
             assert!(

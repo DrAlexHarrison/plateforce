@@ -329,7 +329,7 @@
         ],
         "key": "jump_height_from_flight_time_meters",
         "label": "Jump height, flight time",
-        "note": "A different construct from the takeoff frame figure above, not a different way of computing it.",
+        "note": "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load.",
         "unit": "meters",
         "unit_symbol": "m",
         "value": 0.44007427002170146
