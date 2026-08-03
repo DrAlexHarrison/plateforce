@@ -53,29 +53,31 @@ fn main() {
     std::fs::write(out, generated).unwrap();
 }
 
-/// The copy inside this crate first, then the one the repository tracks.
+/// The registry beside the workspace, in a clone and inside a source distribution alike.
 ///
-/// A wheel is built from the source distribution with no checkout beside it, and the registry
-/// is not a crate, so maturin carries it only when `tools/vendor-registry.sh` has put a copy
-/// in here. A build in a clone finds no copy and reads the single tree every other surface
-/// validates against, so nobody has to run a script to compile the crate they just cloned.
+/// One path rather than two, which is the point. `tools/vendor-registry.sh` writes a copy into
+/// this crate so maturin's `include` can match it, and maturin then places those files at the
+/// root of the tarball, which is where this path already resolves from
+/// `crates/plateforce-python`. So the copy is what gets the registry into the sdist and is not
+/// what gets read out of it.
 ///
-/// Failing names both places it looked and the command that fixes it, because this panic
-/// previously read as a missing file with no indication that a copy step existed.
+/// Preferring the in-crate copy was tried and reverted the same hour. It builds and it ships,
+/// but it lets a copy taken before somebody edited the registry shadow the tree in every local
+/// build, so the wheel embeds one registry while the repository carries another. That is the
+/// drift this product exists to publish about, reproduced in our own build, and
+/// `the_registry_in_the_wheel_is_the_registry_in_the_repository` caught it within minutes.
+///
+/// Failing names the path and the command, because this panic previously read as a missing
+/// file with no indication that a copy step existed at all.
 fn registry_root(manifest: &Path) -> PathBuf {
-    let vendored = manifest.join("registry");
-    if vendored.is_dir() {
-        return vendored;
-    }
-    let tracked = manifest.join("../../registry");
-    if tracked.is_dir() {
-        return tracked;
+    let registry = manifest.join("../../registry");
+    if registry.is_dir() {
+        return registry;
     }
     panic!(
-        "no registry at {} and none at {}: a source distribution carries its own copy, \
-         written by crates/plateforce-python/tools/vendor-registry.sh",
-        vendored.display(),
-        tracked.display()
+        "no registry at {}: a source distribution carries one, written into it by \
+         crates/plateforce-python/tools/vendor-registry.sh before the tarball is built",
+        registry.display()
     );
 }
 
