@@ -2,7 +2,7 @@
 
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::statistics::median;
-use plateforce_core::{DispersionEstimator, Trial, VarianceAccumulation, WeighingEpoch};
+use plateforce_core::{DispersionEstimator, Refusal, Trial, VarianceAccumulation, WeighingEpoch};
 
 use crate::resolution::Resolution;
 
@@ -38,7 +38,7 @@ pub(crate) fn search(
     dispersion: DispersionEstimator,
     resolved: &mut Resolution,
     warnings: &mut Vec<String>,
-) -> Result<WeighingEpoch, String> {
+) -> Result<WeighingEpoch, Box<Refusal>> {
     let window_samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
     let accumulation = resolved
         .enumerated(
@@ -52,7 +52,7 @@ pub(crate) fn search(
                 ("two_pass", VarianceAccumulation::TwoPass),
             ],
         )
-        .map_err(|refused| refused.to_string())?;
+        .map_err(Refusal::from)?;
     // The unloaded plate is the quietest window in any recording, so the gate is taken
     // against the weight the trace carries for most of its length.
     let reject_at_or_below_fraction_of_weight = resolved.number(
@@ -76,7 +76,7 @@ pub(crate) fn search(
         accumulation,
         dispersion,
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(Refusal::from)?;
     // A minimum with exact ties does not identify one window, and on this corpus the
     // tie has run to 138 windows on the worst trial.
     if epoch.tied_window_count > 1 {

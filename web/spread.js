@@ -2,7 +2,7 @@
  * registry publishes. */
 
 import { $, state } from './state.js';
-import { element, formatNumber } from './format.js';
+import { element, formatNumber, reply } from './format.js';
 import { availableAxes, GRAVITY_AXIS } from './registry.js';
 import { candidateFor } from './startup.js';
 import { notice, buildRequest, methodTitle } from './analysis.js';
@@ -152,27 +152,26 @@ export function runSpread() {
     return;
   }
 
-  let result;
-  try {
-    result = JSON.parse(
-      state.loadedTrial.spread(
-        JSON.stringify({
-          base: buildRequest(),
-          axes: axes.map((axis) => ({
-            slot: axis.slot,
-            parameter: axis.parameter ?? null,
-            values: axis.values || [],
-            method_ids: axis.methodIds || [],
-          })),
-          quantity_key: state.spread.quantity,
-          maximum_combinations: 512,
-        }),
-      ),
-    );
-  } catch (error) {
-    host.replaceChildren(notice('danger', 'The sweep could not run', String(error.message || error)));
+  const answer = reply(
+    state.loadedTrial.spread(
+      JSON.stringify({
+        base: buildRequest(),
+        axes: axes.map((axis) => ({
+          slot: axis.slot,
+          parameter: axis.parameter ?? null,
+          values: axis.values || [],
+          method_ids: axis.methodIds || [],
+        })),
+        quantity_key: state.spread.quantity,
+        maximum_combinations: 512,
+      }),
+    ),
+  );
+  if (answer.refusal) {
+    host.replaceChildren(notice('danger', 'The sweep could not run', answer.refusal.message));
     return;
   }
+  const result = answer.ok;
 
   host.replaceChildren();
   const label = state.analysis.metrics.find((m) => m.key === result.quantity_key)?.label || result.quantity_key;
@@ -270,7 +269,7 @@ function spreadTable(result, label) {
     if (variant.value === result.maximum) row.dataset.extreme = 'high';
     row.append(element('td', null, readableLabel(variant)));
     if (variant.value == null) {
-      const cell = element('td', 'failed', variant.failure_reason || 'no value');
+      const cell = element('td', 'failed', variant.failure_reason?.message || 'no value');
       cell.colSpan = 2;
       row.append(cell);
     } else {

@@ -181,3 +181,39 @@ fn the_document_is_the_same_characters_after_a_round_trip() {
 fn the_same_request_twice_produces_the_same_document() {
     assert_eq!(result_json(), result_json());
 }
+
+/// A result names what produced it: which build, which registry, and where each landmark
+/// was placed. This surface assembled its own document and carried none of them, so a
+/// number pasted out of it could not be traced back to the software that made it.
+#[test]
+fn the_terminal_document_names_the_build_and_the_registry_that_produced_it() {
+    let parsed: serde_json::Value = serde_json::from_str(&result_json()).expect("it parses");
+    let result = &parsed["ok"];
+
+    assert_eq!(result["plateforce_version"], env!("CARGO_PKG_VERSION"));
+    assert!(
+        result["registry_version"].is_string(),
+        "the registry this ran against is unnamed: {}",
+        result["registry_version"]
+    );
+    assert!(result["registry_digest"].is_string());
+
+    // Every landmark the numbers rest on, so a reader can plot them or recompute from them.
+    for landmark in [
+        "weighing_start_index",
+        "weighing_end_index",
+        "onset_index",
+        "takeoff_index",
+        "touchdown_index",
+    ] {
+        assert!(
+            result[landmark].is_number(),
+            "{landmark} is not on the document: {}",
+            result[landmark]
+        );
+    }
+
+    // The file the trace came from, and what the reader had to be told about reading it.
+    assert!(result["trial"]["name"].is_string());
+    assert!(result["trial"]["rows_read"].as_u64().is_some_and(|n| n > 0));
+}

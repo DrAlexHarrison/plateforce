@@ -262,9 +262,11 @@ fn request_with(offered: &OfferedParameter, value: f64) -> AnalysisRequest {
 
 /// Everything the interface puts in front of a user, and nothing that restates the request.
 /// A parameter that only changes its own entry in the fingerprint has not changed a number.
-fn numbers(outcome: &Result<AnalysisResponse, String>) -> String {
+fn numbers(outcome: &Result<AnalysisResponse, Box<plateforce_core::Refusal>>) -> String {
     match outcome {
-        Err(message) => format!("refused: {message}"),
+        // The code as well as the sentence, so a parameter that moves a refusal from one
+        // class to another shows up here as a changed line.
+        Err(refusal) => format!("refused: {} {refusal}", refusal.code.wire_name()),
         Ok(response) => {
             let mut text = format!(
                 "{} {} {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}",

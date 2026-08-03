@@ -21,14 +21,39 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CEILING = ROOT / "scripts" / "refusal-vocabulary-ceiling.txt"
 
-# One entry per surface that builds a refusal code from a string rather than from
-# `RefusalCode`. A surface that names its codes through the enum cannot drift and is not
-# listed. The pattern tolerates a line wrap between the call and its first argument: a
-# pattern anchored to one line counted nine of these as four.
+# Every place a surface builds a refusal code from a string rather than from `RefusalCode`.
+# A surface that names its codes through the enum cannot drift and is not listed.
+#
+# Per surface, one group per body of source that can raise, because a surface raises from
+# more than one language. Reading a single file reported the R package at 7 codes outside
+# its vocabulary while its own `.R` sources raised 8 more that no manifest carries. A gate
+# corrected once for reading the wrong pattern had never been asked whether it reads the
+# right files, which is the same fault one level up.
+#
+# Every pattern tolerates a line wrap between a call and its first argument: a pattern
+# anchored to one line counted nine of these as four.
 SOURCES = {
     "r": (
-        ROOT / "bindings/r/src/rust/src/lib.rs",
-        re.compile(r'Refusal::(?:of|naming_parameter)\(\s*"([a-z_]+)"'),
+        # The Rust shim, which answers R with a JSON envelope carrying the code as a field.
+        (
+            "the Rust shim",
+            ["bindings/r/src/rust/src/lib.rs"],
+            [re.compile(r'Refusal::(?:of|naming_parameter)\(\s*"([a-z_]+)"')],
+        ),
+        # The package's own R sources, which raise a classed condition without crossing into
+        # Rust at all. Two shapes: the code as the first argument to this package's raiser,
+        # and the code as a named field on a condition built where it is raised.
+        (
+            "the R sources",
+            sorted(
+                str(path.relative_to(ROOT))
+                for path in (ROOT / "bindings/r/R").glob("*.R")
+            ),
+            [
+                re.compile(r'refuse_here\(\s*"([a-z_]+)"', re.S),
+                re.compile(r'\bcode\s*=\s*"([a-z_]+)"'),
+            ],
+        ),
     ),
 }
 
@@ -61,11 +86,27 @@ def main() -> int:
     measured: dict[str, int] = {}
     failures: list[str] = []
 
-    for surface, (path, pattern) in SOURCES.items():
+    for surface, groups in SOURCES.items():
         if surface not in vocabularies:
             failures.append(f"{surface} builds codes and the manifest carries no vocabulary for it")
             continue
-        built = set(pattern.findall(path.read_text()))
+        built: set[str] = set()
+        for label, paths, patterns in groups:
+            read: set[str] = set()
+            for name in paths:
+                text = (ROOT / name).read_text()
+                for pattern in patterns:
+                    read |= set(pattern.findall(text))
+            print(f"{surface}, {label}: {len(read)} codes across {len(paths)} files")
+            # A control per group, not per surface. A surface reads from several bodies of
+            # source, and one group still matching hides another that has stopped: the
+            # count then looks like a clean body of source rather than a blind one.
+            if not read:
+                failures.append(
+                    f"{surface}, {label}: matched no code at all across {len(paths)} files, "
+                    f"so the pattern is reading nothing rather than finding nothing"
+                )
+            built |= read
         inside = sorted(built & vocabularies[surface])
         outside = sorted(built - vocabularies[surface])
         measured[surface] = len(outside)
@@ -75,8 +116,8 @@ def main() -> int:
         )
         for code in outside:
             print(f"    {code}")
-        # A control that must return hits. Zero here means the pattern stopped matching and
-        # the run above measured an empty set rather than a clean surface.
+        # A second control, over the surface. Zero here means every pattern matched
+        # something that no manifest carries, which is a vocabulary nobody is reading.
         if not inside:
             failures.append(
                 f"{surface}: no code matched the published vocabulary, so the pattern is "

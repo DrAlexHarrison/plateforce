@@ -127,6 +127,10 @@ pub struct PairedRow {
     pub method_ids: Vec<String>,
     pub quantity: String,
     pub value: Option<f64>,
+    /// The code the rule declined under, beside the sentence it generated. A reader of this
+    /// export branches on the code the same way a caller of any other surface does, rather
+    /// than matching on the prose.
+    pub failure_code: String,
     pub failure_reason: String,
     pub provenance_id: String,
 }
@@ -140,6 +144,7 @@ impl PairedRow {
             "method_ids",
             "quantity",
             "value",
+            "failure_code",
             "failure_reason",
             "provenance_id",
         ]
@@ -158,6 +163,7 @@ impl PairedRow {
             self.value
                 .map(crate::relations::format_value)
                 .unwrap_or_default(),
+            self.failure_code.clone(),
             self.failure_reason.clone(),
             self.provenance_id.clone(),
         ]
@@ -406,23 +412,22 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                         value: variant.value,
                         // A variant that failed is listed with its reason and stays in the
                         // denominator, which the sweep already does and this must not undo.
-                        failure_reason: variant.failure_reason.unwrap_or_default(),
+                        failure_code: variant
+                            .failure_reason
+                            .as_ref()
+                            .map(|refusal| refusal.code.wire_name().to_string())
+                            .unwrap_or_default(),
+                        failure_reason: variant
+                            .failure_reason
+                            .map(|refusal| refusal.message().to_string())
+                            .unwrap_or_default(),
                         provenance_id: String::new(),
                     });
                 }
             }
-            Err(message) => refusals.push(RefusalRow {
-                trial_id: trial_id.clone(),
-                ordinal: 0,
-                code: "method_not_implemented".to_string(),
-                method_id: String::new(),
-                slot: request.slot.clone(),
-                parameter: String::new(),
-                value: String::new(),
-                detail: String::new(),
-                available: String::new(),
-                message,
-            }),
+            // The sweep says which code it declined under, so this row carries that rather
+            // than a code chosen here for every failure the sweep can have.
+            Err(declined) => refusals.push(crate::engine::refusal_row(trial_id, 0, &declined)),
         }
     }
 

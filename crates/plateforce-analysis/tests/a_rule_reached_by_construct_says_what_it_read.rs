@@ -317,8 +317,12 @@ fn a_construct_with_no_rule_behind_it_is_refused_by_name() {
     )
     .expect_err("a construct with no rule is refused");
     println!("{error}");
-    assert!(error.contains("mechanical_power"), "{error}");
-    assert!(error.contains("peak_force"), "{error}");
+    assert_eq!(error.code, RefusalCode::MethodNotImplemented);
+    assert_eq!(error.method_id, "mechanical_power");
+    assert!(
+        error.available.iter().any(|name| name == "peak_force"),
+        "{error}"
+    );
 }
 
 /// An id that is a real rule filed under a different construct is refused too. Named for the
@@ -331,8 +335,13 @@ fn an_id_filed_under_another_construct_is_refused_rather_than_skipped() {
     )
     .expect_err("an id filed elsewhere is refused");
     println!("{error}");
-    assert!(error.contains("window_end.takeoff.detected"), "{error}");
-    assert!(error.contains("force.peak.gross"), "{error}");
+    assert_eq!(error.code, RefusalCode::MethodNotImplemented);
+    assert_eq!(error.method_id, "window_end.takeoff.detected");
+    assert_eq!(error.slot.as_deref(), Some("peak_force"));
+    assert!(
+        error.available.iter().any(|id| id == "force.peak.gross"),
+        "{error}"
+    );
 }
 
 /// A construct is a sweep axis when the request carries it, which is what makes the spread
@@ -404,11 +413,26 @@ fn a_construct_the_request_did_not_name_is_refused_as_an_axis() {
     let refusal =
         sweep(&a_jump_that_lands(), &request).expect_err("an unnamed construct is refused");
     println!("{refusal}");
+    // The axis is the name nothing on this request reads, so it arrives in `parameter` and a
+    // caller reads it from there rather than out of the sentence.
+    assert_eq!(refusal.code, RefusalCode::UnknownParameter);
+    assert_eq!(
+        refusal.parameter.as_deref(),
+        Some("peak_force.averaging_window_seconds")
+    );
     assert!(
-        refusal.contains("peak_force.averaging_window_seconds"),
+        refusal
+            .available
+            .iter()
+            .any(|axis| axis == "analysis_window"),
         "{refusal}"
     );
-    assert!(refusal.contains("analysis_window"), "{refusal}");
+    // The count the sentence quotes is a number a caller branches on, and it is the
+    // denominator the list of axes is taken over.
+    assert_eq!(
+        refusal.detail["axes_offered"],
+        refusal.available.len() as f64
+    );
 }
 
 /// A refusal that cannot cross the wire is a result without its method.

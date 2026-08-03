@@ -5,7 +5,7 @@ pub mod fixed_window;
 pub mod manual_placement;
 
 use plateforce_core::trial::CentralTendency;
-use plateforce_core::{DispersionEstimator, Trial, WeighingEpoch};
+use plateforce_core::{DispersionEstimator, Refusal, Trial, WeighingEpoch};
 
 use crate::request::WeighingChoice;
 use crate::resolution::{dispersion_label, BoundValues, Resolution};
@@ -39,19 +39,19 @@ pub fn weighing_epoch_at(
     duration_seconds: f64,
     centre: CentralTendency,
     dispersion: DispersionEstimator,
-) -> Result<WeighingEpoch, String> {
+) -> Result<WeighingEpoch, Box<Refusal>> {
     if start_index == 0 {
         return WeighingEpoch::fixed_window(trial, duration_seconds, centre, dispersion)
-            .map_err(|e| e.to_string());
+            .map_err(|error| Box::new(Refusal::from(error)));
     }
     let start_index = start_index.min(trial.len().saturating_sub(2));
     let shifted = Trial::new(
         trial.force()[start_index..].to_vec(),
         trial.sample_rate_hz(),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(Refusal::from)?;
     let mut epoch = WeighingEpoch::fixed_window(&shifted, duration_seconds, centre, dispersion)
-        .map_err(|e| e.to_string())?;
+        .map_err(Refusal::from)?;
     epoch.start_index += start_index;
     epoch.end_index += start_index;
     Ok(epoch)
@@ -61,7 +61,7 @@ pub(crate) fn resolve(
     trial: &Trial,
     choice: &WeighingChoice,
     warnings: &mut Vec<String>,
-) -> Result<WeighingOutcome, String> {
+) -> Result<WeighingOutcome, Box<Refusal>> {
     let mut resolved = Resolution::over(
         &choice.parameters,
         &choice.options,
@@ -70,9 +70,7 @@ pub(crate) fn resolve(
     );
     let duration_seconds = resolved.number(window_length_parameter(&choice.method_id), 1.0);
     let standard_deviation_convention_stated = choice.options.contains_key("dispersion");
-    let dispersion = resolved
-        .dispersion()
-        .map_err(|refused| refused.to_string())?;
+    let dispersion = resolved.dispersion().map_err(Refusal::from)?;
     let standard_deviation_convention = dispersion_label(dispersion);
 
     // A window placed by hand is a placed window whichever rule named it, so the searching

@@ -165,7 +165,7 @@ pub fn capability_json() -> Result<String, JsError> {
         .flatten()
         .copied()
         .collect();
-    to_json(&capability(&operations, &[OutputFormat::Json]))
+    replied(&capability(&operations, &[OutputFormat::Json]))
 }
 
 /// A parsed force file, before any column has been declared to be the force channel.
@@ -309,14 +309,16 @@ impl LoadedTrial {
         })
     }
 
-    /// One analysis. Every number in the response names the methods that produced it.
+    /// One analysis. Every number in the response names the methods that produced it, and a
+    /// rule that declined arrives as the record it built rather than as a thrown sentence.
     #[wasm_bindgen(js_name = analyse)]
     pub fn analyse(&self, request_json: &str) -> Result<String, JsError> {
         let request: AnalysisRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
-        let response =
-            plateforce_analysis::run(&self.trial, &request).map_err(|e| JsError::new(&e))?;
-        to_json(&response)
+        match plateforce_analysis::run(&self.trial, &request) {
+            Ok(response) => replied(&response),
+            Err(refusal) => refused(&refusal),
+        }
     }
 
     /// Every defensible alternative for one quantity, and how far the number moves.
@@ -324,8 +326,10 @@ impl LoadedTrial {
     pub fn spread(&self, request_json: &str) -> Result<String, JsError> {
         let request: spread::SpreadRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
-        let response = spread::run(&self.trial, &request).map_err(|e| JsError::new(&e))?;
-        to_json(&response)
+        match spread::run(&self.trial, &request) {
+            Ok(response) => replied(&response),
+            Err(refusal) => refused(&refusal),
+        }
     }
 }
 
@@ -363,6 +367,21 @@ struct Envelope {
 
 fn to_json<T: Serialize>(value: &T) -> Result<String, JsError> {
     serde_json::to_string(value).map_err(|e| JsError::new(&e.to_string()))
+}
+
+/// The envelope every surface returns, `{"ok": ...}` or `{"refusal": {...}}`.
+///
+/// A reply that can carry a refusal record is written this way, because a thrown string
+/// loses every field a caller branches on: the code, the rule, the parameter and what could
+/// have been asked for instead. `batchJson` already answered in this shape, and the terminal
+/// and the R package answer in it too. The exports that stay on the throwing path are the
+/// ones whose only failure is this bundle being broken, where there is nothing to branch to.
+fn replied<T: Serialize>(value: &T) -> Result<String, JsError> {
+    to_json(&serde_json::json!({ "ok": value }))
+}
+
+fn refused(refusal: &plateforce_core::Refusal) -> Result<String, JsError> {
+    to_json(&serde_json::json!({ "refusal": refusal }))
 }
 
 #[cfg(test)]

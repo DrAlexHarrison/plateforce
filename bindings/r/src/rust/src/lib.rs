@@ -94,8 +94,8 @@ impl From<plateforce_core::Refusal> for Refusal {
     }
 }
 
-/// Boxed, because a refusal carrying every field a caller branches on is 208 bytes against
-/// an answer of nothing, and every reply in this package is one of these two.
+/// Boxed, because a refusal carrying every field a caller branches on is wide against an
+/// answer of nothing, and every reply in this package is one of these two.
 #[derive(Serialize)]
 #[serde(untagged)]
 enum Envelope<T: Serialize> {
@@ -536,7 +536,10 @@ pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
             registry_digest: request.registry_digest,
             acquisition_complete: complete,
         }),
-        Err(message) => refuse::<AnalysisReport>(Refusal::of("analysis_declined", message)),
+        // The code the engine decided it was declining under. This site used to wrap the
+        // sentence under `analysis_declined`, which this package's own manifest does not
+        // publish, so no caller could catch it by the class the manifest names.
+        Err(declined) => refuse::<AnalysisReport>(Refusal::from(*declined)),
     }
 }
 
@@ -551,7 +554,7 @@ pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
     };
     match spread::run(&handle.trial, &request) {
         Ok(response) => ok(response),
-        Err(message) => refuse::<SpreadResponse>(Refusal::of("spread_declined", message)),
+        Err(declined) => refuse::<SpreadResponse>(Refusal::from(*declined)),
     }
 }
 

@@ -67,12 +67,32 @@ test_that("every refusal code the manifest names carries a shell exit status", {
 SURFACE_ONLY_CODES <- c(
   "field_not_named_in_full",
   "force_not_double",
+  "parameter_source_unrecorded",
   "provenance_dropped",
   "quantity_not_reported",
   "registry_not_found",
   "slot_has_no_rules",
   "unknown_field"
 )
+
+# Every code the R sources raise, read off those sources rather than off whichever ones a
+# test happens to reach. Two shapes: the code as the first argument to this package's own
+# raiser, and the code as a named field on a condition built where it is raised. Both
+# tolerate a line wrap, because a pattern anchored to one line reads two of these as nine.
+codes_raised_in_the_r_sources <- function(root) {
+  text <- paste(
+    unlist(lapply(
+      list.files(root, pattern = "[.]R$", full.names = TRUE),
+      function(file) readLines(file, warn = FALSE)
+    )),
+    collapse = "\n"
+  )
+  matched <- c(
+    regmatches(text, gregexpr('refuse_here\\(\\s*"[a-z_]+"', text))[[1]],
+    regmatches(text, gregexpr('\\bcode = "[a-z_]+"', text))[[1]]
+  )
+  sort(unique(gsub('.*"([a-z_]+)".*', "\\1", matched)))
+}
 
 raised <- function(expression) {
   tryCatch(expression, plateforce_refusal = identity)
@@ -108,4 +128,36 @@ test_that("a refusal about how this surface is being used is declared as such", 
                 info = paste(condition[["code"]], "is neither a manifest code nor declared here"))
     expect_false(condition[["code"]] %in% codes)
   }
+})
+
+# The list above says it exists so a code drifting out of the engine's vocabulary has to be
+# added deliberately rather than arriving unnoticed. Two arrived unnoticed, because the only
+# assertion over it was that the codes a test happens to raise are members of it, and a list
+# is never short of the codes nobody exercised. The set is derived from the sources here, so
+# a code raised and not declared is a failure rather than a member nobody looked for.
+test_that("every code the R sources raise is either the engine's or declared here", {
+  root <- testthat::test_path("..", "..", "R")
+  if (!dir.exists(root)) root <- system.file("R", package = "plateforce")
+  skip_if_not(dir.exists(root), "the sources are not beside this test")
+
+  raised_codes <- codes_raised_in_the_r_sources(root)
+  # The control. A pattern that has stopped matching reads as a package that raises nothing,
+  # which is indistinguishable from a clean one.
+  expect_true(length(raised_codes) > 0)
+
+  published <- vapply(manifest()[["refusal_codes"]], function(r) r[["code"]], character(1))
+  undeclared <- setdiff(raised_codes, c(published, SURFACE_ONLY_CODES))
+  expect_identical(
+    undeclared, character(0),
+    info = sprintf("%d of %d codes raised in R/ are neither published nor declared: %s",
+                   length(undeclared), length(raised_codes),
+                   paste(undeclared, collapse = ", "))
+  )
+
+  # And the other direction, so the list cannot keep a name nothing raises any more.
+  stale <- setdiff(SURFACE_ONLY_CODES, raised_codes)
+  expect_identical(
+    stale, character(0),
+    info = paste("declared and raised nowhere:", paste(stale, collapse = ", "))
+  )
 })

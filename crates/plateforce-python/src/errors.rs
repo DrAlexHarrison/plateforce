@@ -5,6 +5,7 @@
 //! message is passed through verbatim and the same fields are attached to the instance.
 
 use plateforce_core::TrialError as CoreTrialError;
+use plateforce_core::{Refusal, RefusalCode};
 use plateforce_registry::RegistryError as CoreRegistryError;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
@@ -95,6 +96,67 @@ pub fn map_trial_error(python: Python<'_>, error: CoreTrialError) -> PyErr {
         }
         _ => TrialError::new_err(message),
     }
+}
+
+/// Which class a published refusal code is raised as, read off the same status the engine
+/// gives it rather than decided here.
+///
+/// The match takes no wildcard arm, so a new code has to be ruled on rather than falling
+/// through to whichever class happened to be last. Two codes take a class of their own
+/// because a caller catches them by name: a rule that found no crossing and a band that
+/// collapsed to nothing are the two a pipeline retries differently.
+fn class_of(code: RefusalCode) -> fn(String) -> PyErr {
+    match code {
+        RefusalCode::NoCrossing => NoCrossingError::new_err,
+        RefusalCode::CollapsedBand => CollapsedBandError::new_err,
+        RefusalCode::TraceTooShort
+        | RefusalCode::ColumnNotFound
+        | RefusalCode::TrialIdentityUnparsed
+        | RefusalCode::AmbiguousForceChannels
+        | RefusalCode::SchemaUnsupported
+        | RefusalCode::ObservationsNotPaired
+        | RefusalCode::NotEnoughObservations
+        | RefusalCode::DependencyUnresolved
+        | RefusalCode::FileNotRead => TrialError::new_err,
+        RefusalCode::MethodNotImplemented => MethodNotImplementedError::new_err,
+        RefusalCode::UnknownParameter
+        | RefusalCode::ParameterNotFinite
+        | RefusalCode::ValueNotAccepted
+        | RefusalCode::RequiredParameterUnstated => ParameterError::new_err,
+        RefusalCode::SentinelConventionUnknown
+        | RefusalCode::DecisionNotMade
+        | RefusalCode::PlateNotLevel
+        | RefusalCode::ConventionsNotComparable => MethodError::new_err,
+        RefusalCode::RegistryInvalid => RegistryError::new_err,
+    }
+}
+
+/// A refusal the engine recorded, raised with every field it carries.
+///
+/// The fields are the ones an R condition carries, under the same names and the same code,
+/// which is what makes a refusal one thing across the two languages rather than two. The
+/// class is chosen from the code so a caller that catches by type and one that reads `code`
+/// are reading one decision.
+pub fn raise_refusal(python: Python<'_>, refusal: &Refusal) -> PyErr {
+    let raised = class_of(refusal.code)(refusal.message().to_string());
+    let instance = raised.value(python);
+    // Everything the rule read while declining, reachable as a mapping and as an attribute
+    // each. The mapping is the shape an R condition carries, so a caller crossing the two
+    // languages reads one thing; the attributes are how a Python caller reaches a number
+    // without a lookup. Written before the named fields, so a name the two share resolves to
+    // the field rather than to a reading of the same name.
+    for (name, value) in &refusal.detail {
+        let _ = instance.setattr(name.as_str(), *value);
+    }
+    let _ = instance.setattr("detail", refusal.detail.clone());
+    let _ = instance.setattr("code", refusal.code.wire_name());
+    let _ = instance.setattr("method_id", refusal.method_id.clone());
+    let _ = instance.setattr("slot", refusal.slot.clone());
+    let _ = instance.setattr("parameter", refusal.parameter.clone());
+    let _ = instance.setattr("value", refusal.value);
+    let _ = instance.setattr("named_value", refusal.named_value.clone());
+    let _ = instance.setattr("available", refusal.available.clone());
+    raised
 }
 
 /// Registry violations arrive as one multi-line message listing every rule broken, which

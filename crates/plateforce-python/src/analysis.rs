@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod as ResolvedMethod, MethodChoice,
-    RuleRefusal, WeighingChoice, ONSET_OPERATOR_IDS,
+    WeighingChoice, ONSET_OPERATOR_IDS,
 };
 use plateforce_core::{
     jump_height_from_flight_time as core_jump_height_from_flight_time, Measured as CoreMeasured,
@@ -17,7 +17,7 @@ use plateforce_core::{
 };
 use pyo3::prelude::*;
 
-use crate::errors::{map_trial_error, MethodNotImplementedError, TrialError};
+use crate::errors::{raise_refusal, TrialError};
 use crate::registry::{BoundMethod, RegistryIdentity};
 use crate::result::{Exclusions, Measured, ProvenanceChain};
 use crate::trial::Trial;
@@ -53,16 +53,15 @@ pub fn implemented_method_ids() -> Vec<&'static str> {
         .collect()
 }
 
-/// The sentence comes from the one place that writes it, because this surface hand-wrote a
-/// copy of it and a copy is a second description of one failure.
-fn expect_bound(method: &BoundMethod, slot: &str) -> PyResult<()> {
+/// The record comes from the one place that builds it, because this surface hand-wrote a
+/// copy of the sentence and a copy is a second description of one failure.
+fn expect_bound(python: Python<'_>, method: &BoundMethod, slot: &str) -> PyResult<()> {
     if bindings_for(slot).any(|binding| binding.id == method.method_id()) {
         return Ok(());
     }
-    Err(MethodNotImplementedError::new_err(
-        plateforce_analysis::binding::unbound_method_refusal(method.method_id(), slot)
-            .message()
-            .to_string(),
+    Err(raise_refusal(
+        python,
+        &plateforce_analysis::binding::unbound_method_refusal(method.method_id(), slot),
     ))
 }
 
@@ -70,32 +69,33 @@ fn expect_bound(method: &BoundMethod, slot: &str) -> PyResult<()> {
 /// construct, are both refused here rather than reaching the engine. Either one alone would
 /// match no binding, and a request that matches nothing comes back missing the number it
 /// asked for with nothing said about it.
-fn expect_derived_bound(derived: &BTreeMap<String, BoundMethod>) -> PyResult<()> {
+fn expect_derived_bound(
+    python: Python<'_>,
+    derived: &BTreeMap<String, BoundMethod>,
+) -> PyResult<()> {
     let runs = plateforce_analysis::binding::derived_constructs();
     for (construct, method) in derived {
         if !runs.contains(&construct.as_str()) {
-            return Err(MethodNotImplementedError::new_err(
-                plateforce_core::Refusal::construct_not_on_the_path(
+            return Err(raise_refusal(
+                python,
+                &plateforce_core::Refusal::construct_not_on_the_path(
                     construct.clone(),
                     runs.iter().map(|name| (*name).to_string()).collect(),
-                )
-                .message()
-                .to_string(),
+                ),
             ));
         }
         if !plateforce_analysis::binding::bindings_for_construct(construct)
             .any(|binding| binding.id == method.method_id())
         {
-            return Err(MethodNotImplementedError::new_err(
-                plateforce_core::Refusal::method_not_implemented(
+            return Err(raise_refusal(
+                python,
+                &plateforce_core::Refusal::method_not_implemented(
                     method.method_id(),
                     construct.clone(),
                     plateforce_analysis::binding::bindings_for_construct(construct)
                         .map(|binding| binding.id.to_string())
                         .collect(),
-                )
-                .message()
-                .to_string(),
+                ),
             ));
         }
     }
@@ -203,16 +203,14 @@ fn refusal_of(python: Python<'_>, response: &AnalysisResponse, slot: &str) -> Py
         .iter()
         .find(|declined| declined.construct == construct)
     {
-        Some(declined) => match &declined.refusal {
-            RuleRefusal::Trial(error) => map_trial_error(python, error.clone()),
-            // The record the rule built, with the id it was reached by stamped on, so the
-            // sentence a Python caller sees is the sentence every other surface prints.
-            RuleRefusal::Refused(_) => TrialError::new_err(
-                plateforce_analysis::document::refusal_from_rule(declined)
-                    .message()
-                    .to_string(),
-            ),
-        },
+        // The record the rule built, with the id it was reached by and the construct it
+        // filled stamped on, so the code and the sentence a Python caller sees are the ones
+        // every other surface publishes. Both arms used to be told apart here, and the
+        // second of them threw its code away.
+        Some(declined) => raise_refusal(
+            python,
+            &plateforce_analysis::document::refusal_from_rule(declined),
+        ),
         None => TrialError::new_err(format!(
             "the {construct} rule placed no landmark and gave no reason"
         )),
@@ -361,15 +359,12 @@ impl CountermovementJump {
     /// it from a rule that ran and produced nothing.
     fn value(&self, quantity: &str) -> PyResult<Measured> {
         self.values.get(quantity).cloned().ok_or_else(|| {
-            MethodNotImplementedError::new_err(
-                plateforce_core::Refusal::unknown_parameter(
-                    "this analysis",
-                    quantity,
-                    self.values.keys().cloned().collect(),
-                )
-                .message()
-                .to_string(),
-            )
+            let refusal = plateforce_core::Refusal::unknown_parameter(
+                "this analysis",
+                quantity,
+                self.values.keys().cloned().collect(),
+            );
+            Python::attach(|python| raise_refusal(python, &refusal))
         })
     }
 
@@ -552,9 +547,9 @@ pub fn analyse_countermovement_jump(
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
 ) -> PyResult<CountermovementJump> {
-    expect_bound(weighing_epoch, "weighing")?;
-    expect_bound(onset, "onset")?;
-    expect_bound(takeoff, "takeoff")?;
+    expect_bound(python, weighing_epoch, "weighing")?;
+    expect_bound(python, onset, "onset")?;
+    expect_bound(python, takeoff, "takeoff")?;
     // A `BoundMethod` reaches a signature as the Python object holding it, so each is
     // borrowed once here and the request is built from plain values after that.
     let derived: BTreeMap<String, BoundMethod> = derived
@@ -563,7 +558,7 @@ pub fn analyse_countermovement_jump(
         .map(|(construct, method)| (construct, method.borrow(python).clone()))
         .collect();
     let derived_parameters = derived_parameters.unwrap_or_default();
-    expect_derived_bound(&derived)?;
+    expect_derived_bound(python, &derived)?;
 
     let registry = weighing_epoch.registry_identity().clone();
     let acquisition_complete = trial.acquisition_complete();
@@ -602,7 +597,10 @@ pub fn analyse_countermovement_jump(
         ..Default::default()
     };
 
-    let response = plateforce_analysis::run(&trial.inner, &request).map_err(TrialError::new_err)?;
+    // The record the engine built, raised under the class its own code names. This used to
+    // arrive as a sentence, so every one of these was a `TrialError` whatever it was about.
+    let response = plateforce_analysis::run(&trial.inner, &request)
+        .map_err(|refusal| raise_refusal(python, &refusal))?;
 
     let onset_index = response
         .onset_index

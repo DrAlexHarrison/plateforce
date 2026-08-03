@@ -29,8 +29,7 @@ await module.default({
   module_or_path: await readFile(join(bundle, "plateforce_wasm_bg.wasm")),
 });
 
-// Every surface's answer reaches the comparison inside the same envelope. This module
-// signals a refusal by throwing rather than by returning one, which is how a JavaScript
-// caller expects to be told, so the envelope is put on here rather than asked of it. What
-// the surface can do is untouched; only how it is carried.
-process.stdout.write(JSON.stringify({ ok: JSON.parse(module.capabilityJson()) }));
+// The surface's own bytes, forwarded rather than reshaped. This harness used to put the
+// envelope on here, which made the one gate that exists to compare the surfaces the reason
+// they appeared to agree.
+process.stdout.write(module.capabilityJson());

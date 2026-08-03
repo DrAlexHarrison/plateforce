@@ -526,6 +526,26 @@ impl Refusal {
         )
     }
 
+    /// A sweep axis the request it was asked of does not carry.
+    ///
+    /// The same code as a rule handed a name it does not read, because the fault is the same
+    /// one: a name was passed, nothing reads it, and the names that are read are listed.
+    /// `MethodNotImplemented` would say the build runs no such step, which for a construct
+    /// the build runs a rule for and this request did not name is false.
+    ///
+    /// `axes_offered` is the denominator the sentence quotes, and it is what tells this form
+    /// apart from a rule declining on a parameter name.
+    pub fn axis_not_in_this_request(axis: impl Into<String>, offered: Vec<String>) -> Self {
+        Self::build(
+            RefusalCode::UnknownParameter,
+            "",
+            Some(axis.into()),
+            None,
+            BTreeMap::from([("axes_offered".to_string(), offered.len() as f64)]),
+            offered,
+        )
+    }
+
     pub fn column_not_found(column: impl Into<String>, available: Vec<String>) -> Self {
         Self::build(
             RefusalCode::ColumnNotFound,
@@ -809,6 +829,14 @@ fn sentence(
                 "'{method_id}' is not a step this build runs, and the steps it runs are {available:?}"
             ),
         },
+        // A sweep axis is a name nothing on this request reads, which is the same fault as a
+        // rule handed a name it does not read. What differs is the subject: no rule read it,
+        // so the sentence names the request's axes instead of a rule's parameters.
+        RefusalCode::UnknownParameter if detail.contains_key("axes_offered") => format!(
+            "'{}' was passed as a sweep axis, and the {} axes this sweep can vary are {available:?}",
+            parameter.unwrap_or("that name"),
+            named("axes_offered")
+        ),
         RefusalCode::UnknownParameter => format!(
             "{method_id} does not read {}, and the names it reads are {available:?}",
             parameter.unwrap_or("that name")
@@ -860,6 +888,21 @@ fn sentence(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// What a refusal costs to carry, printed rather than asserted against a figure that
+    /// would go stale the next time a field is added. Two comments in this tree quoted this
+    /// number from memory and gave two different answers.
+    #[test]
+    fn a_refusal_reports_what_it_costs_to_carry() {
+        println!(
+            "Refusal is {} bytes, Box<Refusal> is {}",
+            std::mem::size_of::<Refusal>(),
+            std::mem::size_of::<Box<Refusal>>()
+        );
+        // The threshold the error-size lint holds a `Result` to, which is why every function
+        // returning one of these boxes it.
+        assert!(std::mem::size_of::<Refusal>() > 128);
+    }
 
     #[test]
     fn the_name_a_caller_reads_is_the_name_on_the_wire() {
