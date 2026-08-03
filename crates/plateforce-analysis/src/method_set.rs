@@ -186,15 +186,7 @@ impl MethodSet {
     /// declared, rather than dropped, because a binding silently ignored is a stated choice
     /// the run did not make.
     pub fn resolve(&self) -> Result<AnalysisRequest, Box<Refusal>> {
-        let mut request = AnalysisRequest {
-            weighing: WeighingChoice::default(),
-            onset: MethodChoice::default(),
-            takeoff: MethodChoice::default(),
-            touchdown_index: None,
-            gravity_meters_per_second_squared:
-                plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
-            registry_backed_ids: Vec::new(),
-        };
+        let mut request = AnalysisRequest::default();
 
         self.readable()?;
         // A construct with no step is refused by name rather than dropped, so the day a

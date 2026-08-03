@@ -50,6 +50,8 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         touchdown_index,
         gravity_meters_per_second_squared,
         registry_backed_ids,
+        derived,
+        body_mass_kilograms,
     } = request;
     let WeighingChoice {
         method_id: weighing_id,
@@ -78,6 +80,13 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         "touchdown_index": touchdown_index,
         "gravity_meters_per_second_squared": gravity_meters_per_second_squared,
         "registry_backed_ids": backed,
+        // Keyed by construct and already ordered, because the map is a `BTreeMap`: two runs
+        // stating one set of rules in two orders are one request and fingerprint alike.
+        "derived": derived
+            .iter()
+            .map(|(construct, choice)| (construct.clone(), method_choice(choice)))
+            .collect::<serde_json::Map<String, Value>>(),
+        "body_mass_kilograms": body_mass_kilograms,
         "registry_version": registry_version,
     });
     digest("request", &body)

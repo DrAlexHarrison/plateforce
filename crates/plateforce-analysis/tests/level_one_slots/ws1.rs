@@ -27,7 +27,7 @@ fn every_reported_quantity_carries_its_unit_or_the_registry_name_for_its_constru
     let mut by_construct_name = 0usize;
     let mut unnamed = Vec::new();
 
-    for quantity in QUANTITIES {
+    for quantity in QUANTITIES.iter() {
         if quantity.key.ends_with(quantity.unit) {
             by_unit += 1;
             continue;
@@ -111,7 +111,7 @@ fn every_arithmetic_a_quantity_names_resolves_in_the_registry() {
 
     let mut named = 0usize;
     let mut unresolved = Vec::new();
-    for quantity in QUANTITIES {
+    for quantity in QUANTITIES.iter() {
         let Some(id) = quantity.computed_by else {
             continue;
         };

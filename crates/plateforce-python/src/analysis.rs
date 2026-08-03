@@ -487,6 +487,7 @@ pub fn analyse_countermovement_jump(
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
         registry_backed_ids: registry.method_ids.as_ref().clone(),
+        ..Default::default()
     };
 
     let response = plateforce_analysis::run(&trial.inner, &request).map_err(TrialError::new_err)?;

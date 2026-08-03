@@ -7,7 +7,10 @@ use plateforce_core::{
     Landmarks, Trial,
 };
 
-use crate::binding::{expect_bound, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
+use std::collections::BTreeMap;
+
+use crate::binding::{expect_bound, Dispatch, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
+use crate::derived::{DerivedContext, PlacedSample};
 use crate::request::AnalysisRequest;
 use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
@@ -240,6 +243,20 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         ),
     ];
 
+    let mut metrics = metrics;
+    run_derived_phase(
+        trial,
+        request,
+        &epoch,
+        onset_index,
+        takeoff_index,
+        touchdown_index,
+        &mut metrics,
+        &mut bound_methods,
+        &mut refusals,
+        &mut warnings,
+    )?;
+
     let mut response = AnalysisResponse {
         weighing_start_index: epoch.start_index,
         weighing_end_index: epoch.end_index,
@@ -264,6 +281,148 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     // analysis produced against each other.
     response.signals = crate::quality::signals(&response);
     Ok(response)
+}
+
+/// Every rule the request named for a construct computed from the landmarks, in the order
+/// `BINDINGS` declares them.
+///
+/// Declaration order is the whole of the ordering rule: a rule that reads what another rule
+/// placed is declared after it. That is checked rather than trusted, by
+/// `a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it`.
+///
+/// A construct named with no rule behind it, or an id that is not the rule filed under the
+/// construct it was named for, ends the analysis rather than being skipped. Skipping would
+/// answer a request for peak force with a result carrying no peak force and nothing saying
+/// why.
+#[allow(clippy::too_many_arguments)]
+fn run_derived_phase(
+    trial: &Trial,
+    request: &AnalysisRequest,
+    epoch: &plateforce_core::WeighingEpoch,
+    onset_index: Option<usize>,
+    takeoff_index: Option<usize>,
+    touchdown_index: Option<usize>,
+    metrics: &mut Vec<Metric>,
+    bound_methods: &mut Vec<crate::resolution::BoundMethod>,
+    refusals: &mut Vec<DeclinedRule>,
+    warnings: &mut Vec<String>,
+) -> Result<(), String> {
+    if request.derived.is_empty() {
+        return Ok(());
+    }
+    for (construct, choice) in &request.derived {
+        expect_derived_choice(construct, &choice.method_id)?;
+    }
+
+    let mut placed: BTreeMap<&'static str, PlacedSample> = BTreeMap::new();
+    for binding in crate::binding::derived_bindings() {
+        let Some(choice) = request.derived.get(binding.construct) else {
+            continue;
+        };
+        if choice.method_id != binding.id {
+            continue;
+        }
+        let Dispatch::Derived(rule) = binding.dispatch else {
+            continue;
+        };
+
+        let context = DerivedContext::new(
+            trial,
+            epoch,
+            onset_index,
+            takeoff_index,
+            touchdown_index,
+            request.gravity_meters_per_second_squared,
+            request.body_mass_kilograms,
+            &placed,
+            &request.derived,
+        );
+        let outcome = rule(&context, choice, warnings);
+
+        // The chain behind a derived number is the landmark rules it rests on plus the rules
+        // whose samples it read, taken from what the rule asked for rather than from
+        // everything that ran before it. A record naming only the last step understates what
+        // produced the number, and one naming every earlier step cites rules it never used.
+        let mut chain: Vec<String> = vec![
+            request.weighing.method_id.clone(),
+            request.onset.method_id.clone(),
+            request.takeoff.method_id.clone(),
+        ];
+        chain.extend(context.rules_read().into_iter().map(str::to_string));
+
+        for (key, value) in &outcome.values {
+            let declared = binding
+                .quantities
+                .iter()
+                .find(|quantity| quantity.key == *key)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "{} reported {key}, which its binding row does not declare",
+                        binding.id
+                    )
+                });
+            metrics.push(Metric::from_declaration(
+                declared,
+                *value,
+                chain.clone(),
+                None,
+            ));
+        }
+        for (name, index) in outcome.placed {
+            placed.insert(
+                name,
+                PlacedSample {
+                    index,
+                    placed_by: binding.id,
+                },
+            );
+        }
+        bound_methods.push(bound_method(
+            binding.id,
+            outcome.bound,
+            request.is_backed(binding.id),
+            choice.manual_index.is_some(),
+        ));
+        if let Some(rejected) = outcome.refusal {
+            warnings.push(rejected.to_string());
+            refusals.push(DeclinedRule {
+                construct: binding.construct,
+                method_id: binding.id.to_string(),
+                refusal: rejected,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// A construct and an id the request named together, checked against what this build runs.
+///
+/// Both halves, because either one alone lets a request through that the loop would then
+/// skip in silence: a construct with no rule matches no binding, and an id that is not the
+/// rule filed under the construct it was named for matches no binding either. A skipped
+/// request comes back as a result missing the number that was asked for, saying nothing.
+fn expect_derived_choice(construct: &str, method_id: &str) -> Result<(), String> {
+    let constructs = crate::binding::derived_constructs();
+    if !constructs.contains(&construct) {
+        return Err(plateforce_core::Refusal::construct_not_on_the_path(
+            construct,
+            constructs.into_iter().map(str::to_string).collect(),
+        )
+        .message()
+        .to_string());
+    }
+    if crate::binding::bindings_for_construct(construct).any(|binding| binding.id == method_id) {
+        return Ok(());
+    }
+    Err(plateforce_core::Refusal::method_not_implemented(
+        method_id,
+        construct,
+        crate::binding::bindings_for_construct(construct)
+            .map(|binding| binding.id.to_string())
+            .collect(),
+    )
+    .message()
+    .to_string())
 }
 
 #[cfg(test)]
@@ -321,31 +480,134 @@ mod tests {
             touchdown_index: None,
             gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
             registry_backed_ids: vec!["onset.threshold.noise_relative".into()],
+            ..Default::default()
         }
+    }
+
+    /// A request naming the rule under test, and the first rule of every construct declared
+    /// before its own so anything it reads has been placed. Declaration order is the whole
+    /// of the ordering rule, so building the request this way is also what exercises it.
+    fn request_reaching(binding: &crate::binding::Binding) -> AnalysisRequest {
+        let mut candidate = request(
+            "onset.threshold.noise_relative",
+            "takeoff.threshold.absolute_force",
+        );
+        match binding.slot {
+            "onset" => candidate.onset.method_id = binding.id.to_string(),
+            "takeoff" => candidate.takeoff.method_id = binding.id.to_string(),
+            "weighing" => candidate.weighing.method_id = binding.id.to_string(),
+            _ => {
+                for earlier in crate::binding::derived_bindings() {
+                    if earlier.construct == binding.construct {
+                        break;
+                    }
+                    candidate
+                        .derived
+                        .entry(earlier.construct.to_string())
+                        .or_insert_with(|| MethodChoice {
+                            method_id: earlier.id.to_string(),
+                            ..Default::default()
+                        });
+                }
+                candidate.derived.insert(
+                    binding.construct.to_string(),
+                    MethodChoice {
+                        method_id: binding.id.to_string(),
+                        ..Default::default()
+                    },
+                );
+            }
+        }
+        candidate
     }
 
     #[test]
     fn every_binding_this_build_advertises_actually_runs() {
         let trial = synthetic();
+        let mut checked = 0usize;
         for binding in BINDINGS {
-            if binding.slot == "weighing" {
-                continue;
-            }
-            let mut candidate = request(
-                "onset.threshold.noise_relative",
-                "takeoff.threshold.absolute_force",
-            );
-            if binding.slot == "onset" {
-                candidate.onset.method_id = binding.id.to_string();
-            } else {
-                candidate.takeoff.method_id = binding.id.to_string();
-            }
+            let candidate = request_reaching(binding);
             let response = run(&trial, &candidate)
                 .unwrap_or_else(|error| panic!("{} failed to run: {error}", binding.id));
             assert!(
                 !response.metrics.is_empty(),
                 "{} produced no metrics",
                 binding.id
+            );
+            checked += 1;
+        }
+        println!("{checked} of {} bindings ran", BINDINGS.len());
+        assert_eq!(checked, BINDINGS.len());
+    }
+
+    /// A rule that advertises a quantity produces it, or says why it did not. Silence is the
+    /// third answer and it is the one this guard exists to forbid: a request naming a rule
+    /// that comes back with neither the number nor a refusal reads as a rule that ran.
+    #[test]
+    fn every_rule_computed_from_the_landmarks_reports_what_it_declares() {
+        let trial = synthetic();
+        let mut reported = 0usize;
+        for binding in crate::binding::derived_bindings() {
+            let response =
+                run(&trial, &request_reaching(binding)).expect("the request is well formed");
+            for declared in binding.quantities {
+                let metric = response
+                    .metrics
+                    .iter()
+                    .find(|metric| metric.key == declared.key)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "{} declares {} and reported no metric for it",
+                            binding.id, declared.key
+                        )
+                    });
+                assert_eq!(
+                    metric.computed_by.as_deref(),
+                    Some(binding.id),
+                    "{} reported {} under another rule's name",
+                    binding.id,
+                    declared.key
+                );
+                assert!(
+                    metric.value.is_some(),
+                    "{} reported {} with no value and no refusal",
+                    binding.id,
+                    declared.key
+                );
+                reported += 1;
+            }
+        }
+        println!("{reported} declared quantities reported by the rules that declare them");
+        // The population this guard was written against. A guard whose subject shrank below
+        // it would pass by having less to read.
+        assert!(reported >= 7, "only {reported} quantities were checked");
+    }
+
+    /// The ordering is declaration order and nothing else, so a rule reading a sample another
+    /// rule places has to be declared after it. Held by running each rule with only the rules
+    /// declared before it available: a rule that needs a later one declines here.
+    #[test]
+    fn a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it() {
+        let trial = synthetic();
+        for binding in crate::binding::derived_bindings() {
+            let response =
+                run(&trial, &request_reaching(binding)).expect("the request is well formed");
+            let declined: Vec<&str> = response
+                .refusals
+                .iter()
+                .filter(|rule| rule.method_id == binding.id)
+                .map(|rule| rule.method_id.as_str())
+                .collect();
+            assert!(
+                declined.is_empty(),
+                "{} declined with only the rules declared before it available, so what it reads is declared after it: {}",
+                binding.id,
+                response
+                    .refusals
+                    .iter()
+                    .map(|rule| rule.refusal.to_string())
+                    .collect::<Vec<_>>()
+                    .join("; ")
             );
         }
     }

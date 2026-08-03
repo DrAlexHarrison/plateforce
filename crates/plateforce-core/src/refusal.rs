@@ -314,6 +314,25 @@ impl Refusal {
         )
     }
 
+    /// A span that selects none of the recording, named with both of its ends.
+    ///
+    /// The same code as a trace with no samples, because to the rule they are one answer:
+    /// the samples it needs are not there. The remedy is the rule that placed the span, and
+    /// both ends are numbers so a caller can see which one to move.
+    pub fn span_selects_no_samples(method_id: impl Into<String>, start: usize, end: usize) -> Self {
+        Self::build(
+            RefusalCode::TraceTooShort,
+            method_id,
+            None,
+            None,
+            BTreeMap::from([
+                ("span_start_sample".to_string(), start as f64),
+                ("span_end_sample".to_string(), end as f64),
+            ]),
+            Vec::new(),
+        )
+    }
+
     pub fn epoch_does_not_fit(
         method_id: impl Into<String>,
         requested_seconds: f64,
@@ -705,6 +724,11 @@ fn sentence(
             named("requested_seconds"),
             named("start_seconds"),
             named("available_seconds")
+        ),
+        RefusalCode::TraceTooShort if detail.contains_key("span_start_sample") => format!(
+            "{subject} was given samples {} to {} to work over, which selects none of the recording",
+            named("span_start_sample"),
+            named("span_end_sample")
         ),
         RefusalCode::TraceTooShort => "trace is empty".to_string(),
         RefusalCode::ObservationsNotPaired => format!(

@@ -196,24 +196,30 @@ fn extract(
     (value, response.warnings.first().cloned())
 }
 
-/// The slots this sweep can vary, and the request field that is not a slot. Named here so a
-/// refusal can print what the caller could have asked for.
-const SWEEPABLE_SLOTS: &[&str] = &["weighing", "onset", "takeoff"];
+/// The three landmark slots, which are reached by their own names on the request.
+const LANDMARK_SLOTS: &[&str] = &["weighing", "onset", "takeoff"];
 const GRAVITY_FIELD: &str = "gravity_meters_per_second_squared";
 
-/// A slot the sweep does not recognise, refused rather than skipped.
+/// An axis the sweep cannot vary, refused rather than skipped.
 ///
 /// Skipping produced a run in which every variant was the baseline, so the panel printed a
 /// spread of zero over knobs that had not moved and reported success. A caller reading that
 /// cannot tell a method that agrees with itself from a name this function did not know.
-fn unsweepable(slot: &str, parameter: Option<&str>) -> String {
+///
+/// The list of what could have been asked for is the three landmark slots plus the
+/// constructs this request actually carries, not a fixed three. A construct the build runs
+/// a rule for and this request did not name is not an axis: sweeping it would run a rule
+/// nobody chose.
+fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> String {
     let named = match parameter {
         Some(parameter) => format!("'{slot}.{parameter}'"),
         None => format!("'{slot}'"),
     };
+    let mut axes: Vec<String> = LANDMARK_SLOTS.iter().map(|s| (*s).to_string()).collect();
+    axes.extend(base.derived.keys().cloned());
     format!(
-        "{named} was passed as a sweep axis, and the axes this sweep can vary are the slots \
-         {SWEEPABLE_SLOTS:?} and the request field '{GRAVITY_FIELD}'"
+        "{named} was passed as a sweep axis, and the axes this sweep can vary are \
+         {axes:?} and the request field '{GRAVITY_FIELD}'"
     )
 }
 
@@ -247,7 +253,13 @@ fn materialise(
                     candidate.takeoff.manual_index = None;
                 }
                 "weighing" => candidate.weighing.method_id = method_id,
-                other => return Err(unsweepable(other, None)),
+                construct => match candidate.derived.get_mut(construct) {
+                    Some(choice) => {
+                        choice.method_id = method_id;
+                        choice.manual_index = None;
+                    }
+                    None => return Err(unsweepable(base, construct, None)),
+                },
             }
             continue;
         }
@@ -276,7 +288,13 @@ fn materialise(
                 candidate.takeoff.parameters.insert(name.to_string(), value);
                 candidate.takeoff.manual_index = None;
             }
-            (other, name) => return Err(unsweepable(other, Some(name))),
+            (construct, name) => match candidate.derived.get_mut(construct) {
+                Some(choice) => {
+                    choice.parameters.insert(name.to_string(), value);
+                    choice.manual_index = None;
+                }
+                None => return Err(unsweepable(base, construct, Some(name))),
+            },
         }
     }
 
@@ -333,6 +351,7 @@ mod tests {
             touchdown_index: None,
             gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
             registry_backed_ids: Vec::new(),
+            ..Default::default()
         }
     }
 

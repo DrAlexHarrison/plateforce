@@ -6,9 +6,32 @@
 
 use serde::Serialize;
 
+use crate::derived::DerivedRule;
+use crate::response::Quantity;
+
 pub const WEIGHING_CONSTRUCT: &str = "system_weight";
 pub const ONSET_CONSTRUCT: &str = "movement_onset";
 pub const TAKEOFF_CONSTRUCT: &str = "takeoff";
+
+/// The three the request names by its own fields, in the order `run` resolves them. Every
+/// request names all three, so a rule that reads one of their answers and finds none is
+/// looking at a rule that ran and declined, never at a choice nobody made.
+pub const SPINE_CONSTRUCTS: &[&str] = &[WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT];
+
+/// How `run` reaches a rule.
+///
+/// One field rather than a set of optional function pointers, so a row cannot be in two
+/// states at once and a spine row says what it is rather than being defined by what it is
+/// not.
+#[derive(Debug, Clone, Copy)]
+pub enum Dispatch {
+    /// One of the three landmark rules, which `run` calls in a fixed order because each
+    /// reads what the last one settled. Reached through the request's own named field.
+    Spine,
+    /// Computed from what the landmark rules resolved, reached by construct id through
+    /// `AnalysisRequest::derived`.
+    Derived(DerivedRule),
+}
 
 /// One rule this build can run, and the slot it fills.
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -22,6 +45,14 @@ pub struct Binding {
     /// citations and the fingerprint carries the binding.
     pub composed_from: Option<&'static str>,
     pub note: &'static str,
+    /// The quantities this rule can report, declared here so one row carries a rule's
+    /// metadata and everything it produces. A surface listing quantities reads the table
+    /// rather than a transcription of it.
+    pub quantities: &'static [Quantity],
+    /// A function pointer is `Copy` and is not `Serialize`, so the row stays `Copy` and the
+    /// field is skipped. Every surface that reads a `Binding` reads the fields beside it.
+    #[serde(skip)]
+    pub dispatch: Dispatch,
 }
 
 pub const BINDINGS: &[Binding] = &[
@@ -32,6 +63,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Fixed window at the start of the recording",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "bwepoch.adaptive_lowest_variance",
@@ -40,6 +73,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Quietest window in the recording",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "bwepoch.manual_placement",
@@ -48,6 +83,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Window placed by hand",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "onset.threshold.noise_relative",
@@ -56,6 +93,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Noise-relative threshold, k SD of the quiet epoch",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "onset.threshold.relative_to_system_weight",
@@ -64,6 +103,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Fixed fraction below system weight",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "onset.threshold.absolute_force",
@@ -72,6 +113,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Absolute departure in newtons",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "onset.threshold.last_within_band",
@@ -80,6 +123,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Last sample still inside the noise band",
         composed_from: Some("onset.threshold.noise_relative"),
         note: "Composition: onset.op.crossing_selection bound to last.",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "onset.threshold.adaptive_trailing_window",
@@ -88,6 +133,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Threshold recomputed from a trailing window",
         composed_from: None,
         note: "The registry files this concept as bwepoch.rolling_trailing_window, in group B with the reference-epoch rules.",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "takeoff.threshold.absolute_force",
@@ -96,6 +143,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "First sustained run below a residual threshold",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "takeoff.threshold.longest_run",
@@ -104,6 +153,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Longest run below the threshold",
         composed_from: Some("takeoff.threshold.absolute_force"),
         note: "Composition: onset.op.crossing_selection bound to longest_run at the falling edge.",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "takeoff.threshold.descending_crossing",
@@ -112,6 +163,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Sample before a confirmed descending crossing",
         composed_from: Some("takeoff.threshold.absolute_force"),
         note: "Composition: onset.op.direction bound at the falling edge.",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "takeoff.threshold.flight_noise_k_sd",
@@ -120,6 +173,8 @@ pub const BINDINGS: &[Binding] = &[
         title: "Threshold re-estimated from the flight phase itself",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
     },
     Binding {
         id: "takeoff.threshold.landing_shape",
@@ -128,8 +183,83 @@ pub const BINDINGS: &[Binding] = &[
         title: "First low-force run the recording closes with a landing",
         composed_from: None,
         note: "",
+        quantities: &[],
+        dispatch: Dispatch::Spine,
+    },
+    // Everything below the spine runs after it, in this order. A rule that reads what
+    // another rule placed is declared after it, which is the whole of the ordering: the
+    // window is placed here and every peak below reads it.
+    Binding {
+        id: crate::slots::analysis_window::takeoff_detected::ID,
+        slot: crate::slots::analysis_window::CONSTRUCT,
+        construct: crate::slots::analysis_window::CONSTRUCT,
+        title: "The recording up to the sample takeoff was placed at",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::analysis_window::takeoff_detected::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::analysis_window::takeoff_detected::RULE),
+    },
+    Binding {
+        id: crate::slots::analysis_window::fixed_duration_isometric::ID,
+        slot: crate::slots::analysis_window::CONSTRUCT,
+        construct: crate::slots::analysis_window::CONSTRUCT,
+        title: "A fixed test length measured from onset",
+        composed_from: None,
+        note: "Scoped to an isometric test by its entry. It runs on any recording and answers the question it was asked.",
+        quantities: crate::slots::analysis_window::fixed_duration_isometric::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::analysis_window::fixed_duration_isometric::RULE),
+    },
+    Binding {
+        id: crate::slots::peak_force::gross::ID,
+        slot: crate::slots::peak_force::CONSTRUCT,
+        construct: crate::slots::peak_force::CONSTRUCT,
+        title: "The biggest force, system weight included",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::peak_force::gross::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::peak_force::gross::RULE),
+    },
+    Binding {
+        id: crate::slots::peak_force::net::ID,
+        slot: crate::slots::peak_force::CONSTRUCT,
+        construct: crate::slots::peak_force::CONSTRUCT,
+        title: "The biggest force above standing weight",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::peak_force::net::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::peak_force::net::RULE),
+    },
+    Binding {
+        id: crate::slots::peak_force::estimator::ID,
+        slot: crate::slots::peak_force::CONSTRUCT,
+        construct: crate::slots::peak_force::CONSTRUCT,
+        title: "The biggest force, read off a centred average of stated width",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::peak_force::estimator::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::peak_force::estimator::RULE),
     },
 ];
+
+/// Every rule reached by construct id through the request rather than by a named field.
+pub fn derived_bindings() -> impl Iterator<Item = &'static Binding> {
+    BINDINGS
+        .iter()
+        .filter(|binding| matches!(binding.dispatch, Dispatch::Derived(_)))
+}
+
+/// Every construct a rule computed from the landmarks fills, in declaration order without
+/// repeats. What a request may name in its `derived` map, and what a refusal lists when it
+/// names one this build runs no rule for.
+pub fn derived_constructs() -> Vec<&'static str> {
+    let mut seen: Vec<&'static str> = Vec::new();
+    for binding in derived_bindings() {
+        if !seen.contains(&binding.construct) {
+            seen.push(binding.construct);
+        }
+    }
+    seen
+}
 
 pub fn bindings_for(slot: &str) -> impl Iterator<Item = &'static Binding> + '_ {
     BINDINGS.iter().filter(move |binding| binding.slot == slot)

@@ -20,6 +20,7 @@ pub mod gravity;
 pub mod method_ids;
 pub mod normalisation;
 pub mod onset;
+pub mod peak;
 pub mod phases;
 pub mod power;
 pub mod provenance;

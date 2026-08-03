@@ -26,8 +26,11 @@ pub(crate) struct Resolution<'a> {
     numbers: BTreeMap<String, f64>,
 }
 
+/// What one rule read, ready to become the record that travels with its answer. Public
+/// because every rule computed from the landmarks hands one back, and that shape is the
+/// contract for writing one.
 #[derive(Debug, Clone, Default)]
-pub(crate) struct BoundValues {
+pub struct BoundValues {
     pub parameters: Vec<(String, String)>,
     pub sources: BTreeMap<String, ParameterSource>,
     pub unread: Vec<String>,

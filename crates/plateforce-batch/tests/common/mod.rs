@@ -79,6 +79,7 @@ pub fn analysis_request(weighing_duration_seconds: f64) -> AnalysisRequest {
         touchdown_index: None,
         gravity_meters_per_second_squared: 9.80665,
         registry_backed_ids: Vec::new(),
+        ..Default::default()
     }
 }
 

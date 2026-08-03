@@ -31,6 +31,24 @@
         },
         {
           "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.estimator",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.gross",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.net",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -88,6 +106,18 @@
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
           "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.fixed_duration.isometric",
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.takeoff.detected",
+          "slot": "analysis_window"
         }
       ],
       "operations": [
@@ -211,6 +241,24 @@
         },
         {
           "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.estimator",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.gross",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.net",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -268,6 +316,18 @@
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
           "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.fixed_duration.isometric",
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.takeoff.detected",
+          "slot": "analysis_window"
         }
       ],
       "operations": [
@@ -395,6 +455,24 @@
         },
         {
           "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.estimator",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.gross",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.net",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -452,6 +530,18 @@
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
           "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.fixed_duration.isometric",
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.takeoff.detected",
+          "slot": "analysis_window"
         }
       ],
       "operations": [

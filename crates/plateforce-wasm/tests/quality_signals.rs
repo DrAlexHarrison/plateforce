@@ -43,6 +43,7 @@ fn request_with_onset(method_id: &str) -> AnalysisRequest {
         touchdown_index: None,
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
+        ..Default::default()
     }
 }
 

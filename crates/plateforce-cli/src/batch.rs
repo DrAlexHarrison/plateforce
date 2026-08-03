@@ -179,7 +179,7 @@ pub fn run(
     }
 
     let resolved: Vec<&str> = chosen.keys().map(String::as_str).collect();
-    let stated = match crate::analyse::stated_parameters(&args.set) {
+    let stated = match crate::analyse::stated_parameters(&args.set, &[]) {
         Ok(stated) => stated,
         Err(declined) => return Outcome::declined(declined),
     };
@@ -235,6 +235,7 @@ fn request_for(
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: backed,
+        ..Default::default()
     }
 }
 

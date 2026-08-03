@@ -23,6 +23,7 @@
 
 pub mod binding;
 pub mod capability;
+pub mod derived;
 pub mod document;
 pub mod method_set;
 pub mod pipeline;

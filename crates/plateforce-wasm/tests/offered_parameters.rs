@@ -219,6 +219,7 @@ fn base_request() -> AnalysisRequest {
         touchdown_index: None,
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
+        ..Default::default()
     }
 }
 
@@ -235,7 +236,26 @@ fn request_with(offered: &OfferedParameter, value: f64) -> AnalysisRequest {
             request.weighing.parameters = choice.parameters;
         }
         "onset" => request.onset = choice,
-        _ => request.takeoff = choice,
+        "takeoff" => request.takeoff = choice,
+        // A rule reached by construct id, plus the first rule of every construct declared
+        // before its own so anything it reads has been placed. Without that second half
+        // every parameter on such a rule reads as inert here, because the rule declines
+        // identically at every value and the sweep sees one answer.
+        construct => {
+            for earlier in plateforce_analysis::binding::derived_bindings() {
+                if earlier.construct == construct {
+                    break;
+                }
+                request
+                    .derived
+                    .entry(earlier.construct.to_string())
+                    .or_insert_with(|| MethodChoice {
+                        method_id: earlier.id.to_string(),
+                        ..Default::default()
+                    });
+            }
+            request.derived.insert(construct.to_string(), choice);
+        }
     }
     request
 }

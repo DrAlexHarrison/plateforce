@@ -6,7 +6,7 @@
 
 use crate::statistics::compensated_sum;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum SmoothingError {
     #[error("savitzky_golay(window_length = {window_length}, polynomial_order = {polynomial_order}) requires the order to be lower than the window")]
     OrderNotBelowWindow {

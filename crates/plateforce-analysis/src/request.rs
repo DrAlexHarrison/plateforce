@@ -80,10 +80,47 @@ pub struct AnalysisRequest {
     pub gravity_meters_per_second_squared: f64,
     #[serde(default)]
     pub registry_backed_ids: Vec<String>,
+    /// A rule chosen for a construct computed from the resolved landmarks, keyed by the
+    /// construct id the registry declares, not by a slot word.
+    ///
+    /// Defaulted, so every writer that predates it keeps parsing against
+    /// `deny_unknown_fields`. That hazard runs the other way: a writer emitting a key the
+    /// reader lacks. So the field lands before anything emits it, never the reverse.
+    #[serde(default)]
+    pub derived: BTreeMap<String, MethodChoice>,
+    /// The athlete's mass, which is a different quantity from the weighed system mass:
+    /// system weight includes any bar and bodyweight does not.
+    ///
+    /// Three level-one entries divide by it and none can take the weighed mass instead. A
+    /// request that states none leaves them declining by name, which is the whole of what
+    /// this field buys over substituting the number next to it.
+    #[serde(default)]
+    pub body_mass_kilograms: Option<f64>,
 }
 
 fn standard_gravity() -> f64 {
     STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED
+}
+
+/// So a caller can build one with `..Default::default()`, which is what `MethodChoice` and
+/// `WeighingChoice` already offer and for the same reason: the next field this struct gains
+/// would otherwise break every exhaustive literal in the workspace at once.
+///
+/// Gravity defaults to the same constant `serde` fills, rather than to zero. A request whose
+/// method ids are empty is refused by name, so nothing here resolves to a rule by accident.
+impl Default for AnalysisRequest {
+    fn default() -> Self {
+        Self {
+            weighing: WeighingChoice::default(),
+            onset: MethodChoice::default(),
+            takeoff: MethodChoice::default(),
+            touchdown_index: None,
+            gravity_meters_per_second_squared: standard_gravity(),
+            registry_backed_ids: Vec::new(),
+            derived: BTreeMap::new(),
+            body_mass_kilograms: None,
+        }
+    }
 }
 
 impl AnalysisRequest {

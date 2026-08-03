@@ -1,6 +1,8 @@
 //! What one analysis hands back: the landmarks, the levels drawn on the trace, the numbers,
 //! and the record of what produced each of them.
 
+use std::sync::LazyLock;
+
 use serde::Serialize;
 
 use crate::resolution::{BoundMethod, DeclinedRule};
@@ -25,8 +27,8 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
 ///
 /// The eleven keys used to be string literals at eleven construction sites, so a manifest
 /// listing them transcribed them and went stale the first time a twelfth arrived. A rule
-/// that produces a new quantity adds a row here and the manifest, the Python getters and
-/// the browser all see it without an edit of their own.
+/// that produces a new quantity adds a row and the manifest, the Python getters and the
+/// browser all see it without an edit of their own.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct Quantity {
     pub key: &'static str,
@@ -39,7 +41,9 @@ pub struct Quantity {
     pub computed_by: Option<&'static str>,
 }
 
-pub const QUANTITIES: &[Quantity] = &[
+/// What the spine reports, which is what the pipeline computes from the landmarks directly
+/// rather than through a rule of its own.
+pub const SPINE_QUANTITIES: &[Quantity] = &[
     Quantity {
         key: "system_weight_newtons",
         label: "System weight",
@@ -108,6 +112,30 @@ pub const QUANTITIES: &[Quantity] = &[
     },
 ];
 
+/// Every quantity this build can report: the spine's, then one per bound rule, deduplicated
+/// by key.
+///
+/// Assembled rather than transcribed. A rule that reports a quantity declares it on its own
+/// binding row, so adding a rule cannot leave a key out of the population a manifest
+/// publishes, and cannot add one the naming guards never read.
+///
+/// Deduplicated by key on purpose, and the first declaration wins. Three rules report peak
+/// force and they are three answers to one question, not three quantities, so the key is
+/// held still and `computed_by` varies per result. What may not vary is the label or the
+/// unit, and `every_rule_reporting_one_key_agrees_on_what_it_is` holds that.
+pub static QUANTITIES: LazyLock<Vec<Quantity>> = LazyLock::new(|| {
+    let mut declared: Vec<Quantity> = Vec::new();
+    for quantity in SPINE_QUANTITIES
+        .iter()
+        .chain(crate::binding::BINDINGS.iter().flat_map(|b| b.quantities))
+    {
+        if !declared.iter().any(|seen| seen.key == quantity.key) {
+            declared.push(*quantity);
+        }
+    }
+    declared
+});
+
 /// The declaration for a key, or nothing when no quantity carries it.
 pub fn quantity(key: &str) -> Option<&'static Quantity> {
     QUANTITIES.iter().find(|quantity| quantity.key == key)
@@ -149,12 +177,29 @@ impl Metric {
         note: Option<String>,
     ) -> Self {
         let declared = quantity(key).unwrap_or_else(|| panic!("{key} is not a declared quantity"));
+        Self::from_declaration(declared, value, contributing_method_ids, note)
+    }
+
+    /// A number reported by one rule, taking its name and unit from the shared declaration
+    /// and its arithmetic from the rule's own row.
+    ///
+    /// Three rules report peak force. Reading `computed_by` off the shared declaration would
+    /// name whichever of them was declared first on every result, which is a citation the
+    /// rule that ran did not earn.
+    pub fn from_declaration(
+        declared: &Quantity,
+        value: Option<f64>,
+        contributing_method_ids: Vec<String>,
+        note: Option<String>,
+    ) -> Self {
+        let shared =
+            quantity(declared.key).unwrap_or_else(|| panic!("{} is not declared", declared.key));
         Self {
-            key: declared.key.to_string(),
-            label: declared.label.to_string(),
+            key: shared.key.to_string(),
+            label: shared.label.to_string(),
             value,
-            unit: declared.unit.to_string(),
-            unit_symbol: unit_symbol(declared.unit).to_string(),
+            unit: shared.unit.to_string(),
+            unit_symbol: unit_symbol(shared.unit).to_string(),
             contributing_method_ids,
             computed_by: declared.computed_by.map(str::to_string),
             note,

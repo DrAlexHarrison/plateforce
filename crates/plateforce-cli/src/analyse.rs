@@ -57,6 +57,10 @@ pub struct Args {
     /// The rule that finds takeoff
     #[arg(long, value_name = "METHOD")]
     pub takeoff: Option<String>,
+    /// A rule for something computed from the landmarks, written <construct>=<method>.
+    /// Repeatable
+    #[arg(long = "derive", value_name = "ASSIGNMENT")]
+    pub derive: Vec<String>,
     /// A value for a rule, written <construct>.<name>=<value>. Repeatable
     #[arg(long = "set", value_name = "ASSIGNMENT")]
     pub set: Vec<String>,
@@ -106,7 +110,11 @@ pub(crate) fn prepare(
     };
 
     let chosen = chosen_methods(args)?;
-    let stated = match stated_parameters(&args.set) {
+    let derived = match derived_methods(args) {
+        Ok(derived) => derived,
+        Err(declined) => return Err(Outcome::declined(declined)),
+    };
+    let stated = match stated_parameters(&args.set, &derived.keys().cloned().collect::<Vec<_>>()) {
         Ok(stated) => stated,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
@@ -120,7 +128,7 @@ pub(crate) fn prepare(
     }
 
     let trial = read_trial(args)?;
-    let request = build_request(&registry, &chosen, &stated);
+    let request = build_request(&registry, &chosen, &derived, &stated);
     Ok(Prepared {
         registry,
         trial,
@@ -199,8 +207,12 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
 /// spelled the same way never receive each other's number.
 pub(crate) fn stated_parameters(
     assignments: &[String],
+    also: &[String],
 ) -> Result<BTreeMap<String, BTreeMap<String, f64>>, Declined> {
-    let slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
+    let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
+    // A construct this run named for something computed from the landmarks is a step this
+    // run has, so a value written against it reaches a rule.
+    slots.extend(also.iter().map(String::as_str));
     let mut stated: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
     // The shape of the assignment is a fault in the line and reaches no rule, so it carries
     // no published code. A number a rule cannot run on is a fault the engine has a code for,
@@ -350,9 +362,43 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
     })
 }
 
+/// `--derive <construct>=<method>`, refused when the construct runs no rule or the id is not
+/// one of the rules filed under it. Both halves, because either alone lets a request through
+/// that the engine would have to refuse later or, worse, skip.
+fn derived_methods(args: &Args) -> Result<BTreeMap<String, String>, Declined> {
+    let mut chosen = BTreeMap::new();
+    for assignment in &args.derive {
+        let Some((construct, method_id)) = assignment.split_once('=') else {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--derive takes <construct>=<method>, and '{assignment}' carries no ="),
+            ));
+        };
+        let runs = plateforce_analysis::binding::derived_constructs();
+        if !runs.contains(&construct) {
+            return Err(Declined::recorded(Refusal::construct_not_on_the_path(
+                construct,
+                runs.into_iter().map(str::to_string).collect(),
+            )));
+        }
+        let available: Vec<String> =
+            plateforce_analysis::binding::bindings_for_construct(construct)
+                .map(|binding| binding.id.to_string())
+                .collect();
+        if !available.iter().any(|id| id == method_id) {
+            return Err(Declined::recorded(Refusal::method_not_implemented(
+                method_id, construct, available,
+            )));
+        }
+        chosen.insert(construct.to_string(), method_id.to_string());
+    }
+    Ok(chosen)
+}
+
 fn build_request(
     registry: &Registry,
     chosen: &BTreeMap<String, String>,
+    derived: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,
 ) -> AnalysisRequest {
     let parameters = |construct: &str| {
@@ -364,6 +410,7 @@ fn build_request(
     let id = |construct: &str| chosen.get(construct).cloned().unwrap_or_default();
     let backed: Vec<String> = chosen
         .values()
+        .chain(derived.values())
         .filter(|method_id| registry.methods.contains_key(*method_id))
         .cloned()
         .collect();
@@ -394,6 +441,20 @@ fn build_request(
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: backed,
+        derived: derived
+            .iter()
+            .map(|(construct, method_id)| {
+                (
+                    construct.clone(),
+                    MethodChoice {
+                        method_id: method_id.clone(),
+                        parameters: parameters(construct),
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect(),
+        ..Default::default()
     }
 }
 

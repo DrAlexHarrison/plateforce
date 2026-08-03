@@ -323,6 +323,7 @@ pub fn batch(
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
+        ..Default::default()
     };
 
     let declared = resolved.unwrap_or_default();
