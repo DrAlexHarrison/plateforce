@@ -215,6 +215,11 @@ pub struct TrialSet {
     pub format: SourceFormat,
     /// Files carrying a declared trial suffix. The denominator every count is taken over.
     pub files_found: usize,
+    /// Files the run met carrying none of them, which is what the declaration excluded. It
+    /// sits outside `files_found` by construction: these names were never in the population
+    /// `files_found` denominates, and a run that reported only the survivors would be stating
+    /// its own narrowing as the folder's contents.
+    pub files_without_declared_suffix: usize,
     pub unidentified: Vec<UnidentifiedFile>,
 }
 
@@ -230,6 +235,7 @@ impl TrialSet {
             return Err(WalkError::NoTrialFileSuffixes);
         }
         let mut candidates: Vec<PathBuf> = Vec::new();
+        let mut without_declared_suffix = 0usize;
         let mut pending = vec![root.to_path_buf()];
         while let Some(directory) = pending.pop() {
             let listing = std::fs::read_dir(&directory).map_err(|source| WalkError::Io {
@@ -246,17 +252,23 @@ impl TrialSet {
                     pending.push(path);
                     continue;
                 }
+                // A name the filesystem does not hand back as text carries no suffix this run
+                // can match, and it is a file the walk met either way.
                 let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                    without_declared_suffix += 1;
                     continue;
                 };
                 if format.matching_suffix(name).is_some() {
                     candidates.push(path);
+                } else {
+                    without_declared_suffix += 1;
                 }
             }
         }
         candidates.sort();
         Ok(Self::assemble(
             candidates.into_iter().map(TrialSource::Path).collect(),
+            without_declared_suffix,
             format,
             identity,
         ))
@@ -271,17 +283,25 @@ impl TrialSet {
         if format.trial_file_suffixes.is_empty() {
             return Err(WalkError::NoTrialFileSuffixes);
         }
+        let handed = sources.len();
         let mut candidates: Vec<TrialSource> = sources
             .into_iter()
             .filter(|(name, _)| format.matching_suffix(name).is_some())
             .map(|(name, text)| TrialSource::Memory { name, text })
             .collect();
         candidates.sort_by_key(TrialSource::file_name);
-        Ok(Self::assemble(candidates, format, identity))
+        let without_declared_suffix = handed - candidates.len();
+        Ok(Self::assemble(
+            candidates,
+            without_declared_suffix,
+            format,
+            identity,
+        ))
     }
 
     fn assemble(
         candidates: Vec<TrialSource>,
+        files_without_declared_suffix: usize,
         format: &SourceFormat,
         identity: &TrialIdentity,
     ) -> Self {
@@ -371,8 +391,14 @@ impl TrialSet {
             identity: identity.clone(),
             format: format.clone(),
             files_found,
+            files_without_declared_suffix,
             unidentified,
         }
+    }
+
+    /// Every file the run met, whatever its name. The denominator `files_found` is taken over.
+    pub fn files_present(&self) -> usize {
+        self.files_found + self.files_without_declared_suffix
     }
 
     pub fn len(&self) -> usize {

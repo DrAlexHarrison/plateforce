@@ -574,3 +574,73 @@ fn a_variant_that_could_not_run_stays_in_the_denominator_with_its_reason() {
     }
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// A compare run says what it was pointed at, what it read, and what it swept.
+///
+/// A folder of traces beside files that are not traces is the ordinary case, and the record
+/// a compare run leaves behind is read on its own, away from the folder, so a run that
+/// reported only the traces would describe its own narrowing as the folder's contents. The
+/// swept step belongs on the same record: naming the rules without naming the step they
+/// filled says which rules ran and not what they were compared as.
+#[test]
+fn a_compare_run_records_what_it_walked_and_which_step_it_swept() {
+    let directory = tempdir("compare-record");
+    let copied = copy_committed_fixtures(&directory);
+    let strays = ["README.md", "session.log"];
+    for name in strays {
+        std::fs::write(directory.join(name), "not a trace\n").unwrap();
+    }
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+
+    let result = compare(&set, &compare_request());
+    let line = result.coverage();
+    println!("{line}");
+    assert!(
+        line.contains(&format!("files {},", copied + strays.len())),
+        "{line}"
+    );
+    assert!(
+        line.contains(&format!(
+            "{copied} carrying a declared trial suffix and {} not",
+            strays.len()
+        )),
+        "{line}"
+    );
+
+    let record = result.run_row("content-registry", "content-request");
+    assert_eq!(record.slot, "onset", "the record names the step it swept");
+    assert_eq!(record.files_found, copied);
+    assert_eq!(record.files_without_declared_suffix, strays.len());
+    assert_eq!(record.trial_count, copied);
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// A file the identity could not name is refused by name on a compare run as it is on an
+/// analyse run. Dropping it would narrow the population a paired statistic rests on with
+/// nothing on the record saying so.
+#[test]
+fn a_compare_run_refuses_an_unnamed_file_rather_than_dropping_it() {
+    let directory = tempdir("compare-unnamed");
+    plateforce_batch::synthetic::write_corpus(&directory, 3, 3, 7).unwrap();
+    std::fs::write(directory.join("stray_trace.txt"), "600.0\n600.0\n").unwrap();
+    let set = TrialSet::walk(&directory, &synthetic_format(), &declared_pattern()).unwrap();
+
+    let result = compare(&set, &compare_request());
+    println!("{}", result.coverage());
+    assert_eq!(set.unidentified.len(), 1, "the pattern names eight of nine");
+    assert_eq!(result.files_unidentified, 1);
+
+    let named: Vec<&plateforce_batch::RefusalRow> = result
+        .refusals
+        .iter()
+        .filter(|row| row.parameter.contains("stray_trace") || row.message.contains("stray_trace"))
+        .collect();
+    assert_eq!(
+        named.len(),
+        1,
+        "the file the pattern did not match is on the record: {:?}",
+        result.refusals
+    );
+    assert_eq!(named[0].code, "trial_identity_unparsed");
+    std::fs::remove_dir_all(&directory).ok();
+}
