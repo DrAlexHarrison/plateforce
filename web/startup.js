@@ -5,6 +5,7 @@ import { $, state } from './state.js';
 import { element, showStage } from './format.js';
 import { buildDecisionModel, preferredCandidate, initialParameters } from './registry.js';
 import { wireGlobalControls } from './import-file.js';
+import { wireBatchControls } from './batch-run.js';
 
 export async function start() {
   try {
@@ -22,6 +23,7 @@ export async function start() {
   renderBuildInfo();
   resetSelections();
   wireGlobalControls();
+  wireBatchControls();
   showStage('stage-empty');
 }
 

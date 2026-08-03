@@ -7,12 +7,14 @@ import { windowLengthParameter } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
 import { runAnalysis, recordStated, withSources } from './analysis.js';
+import { endingOf } from './batch-run.js';
 
 export function enterWorkspace() {
   state.overrides = { onset: null, takeoff: null, touchdown: null };
   resetSelections();
   recordTheOpeningSelection();
   showStage('stage-workspace');
+  offerTheRun();
 
   const info = JSON.parse(state.loadedTrial.infoJson());
   state.info = info;
@@ -42,6 +44,7 @@ export function enterWorkspace() {
           state.selection.weighing = {
             methodId: placed.id, values: {}, unresolved: [],
             fromDefault: new Set(), recommended: new Set(), methodFromRecommendation: false,
+            methodStated: true,
           };
         }
         const selection = withSources(state.selection.weighing);
@@ -62,6 +65,22 @@ export function enterWorkspace() {
   refreshEnvelope();
   renderDecisions();
   runAnalysis();
+}
+
+/*
+ * The rest of the folder, offered from the trial it was declared on.
+ *
+ * The action names the reader's own count so the run they are about to start is the run
+ * they think it is, and it sits beside the trace because the rules it will carry are the
+ * ones the rail beside that trace is holding.
+ */
+function offerTheRun() {
+  const action = $('run-folder');
+  const named = state.run
+    ? state.run.files.filter((file) => state.run.endings.has(endingOf(file.name))).length
+    : 0;
+  action.hidden = !state.run;
+  if (state.run) action.textContent = `Run all ${named} trials in this folder`;
 }
 
 /*
