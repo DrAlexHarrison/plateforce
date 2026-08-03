@@ -717,6 +717,360 @@
       ],
       "schema": "plateforce.capability/1"
     },
+    "python": {
+      "methods": [
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.adaptive_lowest_variance",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.fixed_window",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "system_weight",
+          "id": "bwepoch.manual_placement",
+          "slot": "weighing"
+        },
+        {
+          "composed_from": null,
+          "construct": "conditioned_force_signal",
+          "id": "filter.none",
+          "slot": "conditioned_force_signal"
+        },
+        {
+          "composed_from": null,
+          "construct": "flight_time",
+          "id": "flight_time.takeoff_to_touchdown",
+          "slot": "flight_time"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.estimator",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.gross",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "peak_force",
+          "id": "force.peak.net",
+          "slot": "peak_force"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.undeclared",
+          "id": "jumpheight.flight_phase_displacement.vald_impdis",
+          "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.undeclared",
+          "id": "jumpheight.frame",
+          "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.undeclared",
+          "id": "jumpheight.min_of_ft_and_tov.labanalysis",
+          "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.standing_frame",
+          "id": "jumpheight.standing.double_integration",
+          "slot": "jump_height.standing_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.standing_frame",
+          "id": "jumpheight.standing.tov_plus_displacement",
+          "slot": "jump_height.standing_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.takeoff.flight_time",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.takeoff.impulse_momentum",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.takeoff.peak_velocity.chavda2018",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.takeoff.work_energy",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.absolute_force",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.adaptive_trailing_window",
+          "slot": "onset"
+        },
+        {
+          "composed_from": "onset.threshold.noise_relative",
+          "construct": "movement_onset",
+          "id": "onset.threshold.last_within_band",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.noise_relative",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "movement_onset",
+          "id": "onset.threshold.relative_to_system_weight",
+          "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unloading_yielding_split.harry2020",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.unweighting_single.mcmahon2018",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_force_crossing",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.propulsion_subdivision.by_time",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.absolute_force",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": "takeoff.threshold.absolute_force",
+          "construct": "takeoff",
+          "id": "takeoff.threshold.descending_crossing",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.flight_noise_k_sd",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "takeoff",
+          "id": "takeoff.threshold.landing_shape",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": "takeoff.threshold.absolute_force",
+          "construct": "takeoff",
+          "id": "takeoff.threshold.longest_run",
+          "slot": "takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "time_to_takeoff",
+          "id": "time_to_takeoff.onset_to_takeoff",
+          "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.fixed_duration.isometric",
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.takeoff.detected",
+          "slot": "analysis_window"
+        }
+      ],
+      "operations": [
+        "analyse",
+        "batch",
+        "capability",
+        "parse_force_file",
+        "registry_census",
+        "registry_show",
+        "registry_validate",
+        "spread",
+        "version"
+      ],
+      "output_formats": [
+        "csv",
+        "json",
+        "parquet"
+      ],
+      "plateforce_version": "0.1.0",
+      "refusal_codes": [
+        {
+          "code": "ambiguous_force_channels",
+          "exit_code": 65
+        },
+        {
+          "code": "collapsed_band",
+          "exit_code": 65
+        },
+        {
+          "code": "column_not_found",
+          "exit_code": 65
+        },
+        {
+          "code": "conventions_not_comparable",
+          "exit_code": 64
+        },
+        {
+          "code": "decision_not_made",
+          "exit_code": 64
+        },
+        {
+          "code": "dependency_unresolved",
+          "exit_code": 65
+        },
+        {
+          "code": "file_not_read",
+          "exit_code": 66
+        },
+        {
+          "code": "method_not_implemented",
+          "exit_code": 64
+        },
+        {
+          "code": "no_crossing",
+          "exit_code": 65
+        },
+        {
+          "code": "not_enough_observations",
+          "exit_code": 65
+        },
+        {
+          "code": "observations_not_paired",
+          "exit_code": 65
+        },
+        {
+          "code": "parameter_not_finite",
+          "exit_code": 64
+        },
+        {
+          "code": "plate_not_level",
+          "exit_code": 64
+        },
+        {
+          "code": "registry_invalid",
+          "exit_code": 78
+        },
+        {
+          "code": "required_parameter_unstated",
+          "exit_code": 64
+        },
+        {
+          "code": "schema_unsupported",
+          "exit_code": 65
+        },
+        {
+          "code": "sentinel_convention_unknown",
+          "exit_code": 64
+        },
+        {
+          "code": "trace_too_short",
+          "exit_code": 65
+        },
+        {
+          "code": "trial_identity_unparsed",
+          "exit_code": 65
+        },
+        {
+          "code": "unknown_parameter",
+          "exit_code": 64
+        },
+        {
+          "code": "value_not_accepted",
+          "exit_code": 64
+        }
+      ],
+      "schema": "plateforce.capability/1"
+    },
     "r": {
       "methods": [
         {

@@ -2,9 +2,9 @@ name: every surface says the same about itself
 
 # The manifest asserts over surfaces, so a job that builds one of them proves nothing. Every
 # row in scripts/capability-surfaces.txt is asked here, which is why this job installs the R
-# package rather than only compiling the workspace. A surface that cannot answer fails the
-# job and is never skipped, so a missing install cannot let the gate pass with fewer surfaces
-# than it names.
+# package and builds the Python wheel rather than only compiling the workspace. A surface that
+# cannot answer fails the job and is never skipped, so a missing install cannot let the gate
+# pass with fewer surfaces than it names.
 #
 # Two questions, and they are not the same question. What a surface says it can do is the
 # manifest gate. What it computes is the result gate, and that is the claim a reader acts on:
@@ -72,6 +72,20 @@ jobs:
           key: parity-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             parity-
+
+      # The Python rows build and install the wheel themselves, in
+      # scripts/install-python-wheel.sh, so both answer for this commit rather than for
+      # whatever is importable on the runner. What this names is the interpreter: the wheel
+      # declares 3.11 as its floor and CI is where a floor is worth asking rather than
+      # assuming, since the image ships a later one.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Named here rather than left to the rows to fetch, so a build tool that will not
+      # install fails as itself instead of inside a gate about surfaces disagreeing.
+      - name: Install maturin, so the Python rows can build the wheel they ask
+        run: python3 -m pip install maturin
 
       - uses: r-lib/actions/setup-r@v2
         with:
