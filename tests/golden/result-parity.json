@@ -11,6 +11,21 @@
       {
         "bound_parameters": [
           [
+            "passband_edge_hz",
+            "none"
+          ]
+        ],
+        "manual_override": false,
+        "method_id": "filter.none",
+        "parameter_sources": {
+          "passband_edge_hz": "assumed"
+        },
+        "registry_backed": false,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
             "centre",
             "mean"
           ],
@@ -185,6 +200,7 @@
       {
         "computed_by": null,
         "contributing_method_ids": [
+          "filter.none",
           "bwepoch.fixed_window"
         ],
         "key": "system_weight_newtons",
@@ -197,6 +213,7 @@
       {
         "computed_by": null,
         "contributing_method_ids": [
+          "filter.none",
           "bwepoch.fixed_window"
         ],
         "key": "system_mass_kilograms",
@@ -209,6 +226,7 @@
       {
         "computed_by": null,
         "contributing_method_ids": [
+          "filter.none",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
           "onset.op.crossing_selection",
@@ -226,6 +244,7 @@
       {
         "computed_by": null,
         "contributing_method_ids": [
+          "filter.none",
           "takeoff.threshold.absolute_force"
         ],
         "key": "takeoff_time_seconds",
@@ -238,6 +257,7 @@
       {
         "computed_by": "time_to_takeoff.onset_to_takeoff",
         "contributing_method_ids": [
+          "filter.none",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
           "onset.op.crossing_selection",
@@ -256,6 +276,7 @@
       {
         "computed_by": "flight_time.takeoff_to_touchdown",
         "contributing_method_ids": [
+          "filter.none",
           "takeoff.threshold.absolute_force"
         ],
         "key": "flight_time_seconds",
@@ -268,6 +289,7 @@
       {
         "computed_by": "impulse.net_vertical.as_performance_determinant",
         "contributing_method_ids": [
+          "filter.none",
           "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
@@ -291,6 +313,7 @@
       {
         "computed_by": "impulse.net_vertical.as_performance_determinant",
         "contributing_method_ids": [
+          "filter.none",
           "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
@@ -310,6 +333,7 @@
       {
         "computed_by": "jumpheight.takeoff.impulse_momentum",
         "contributing_method_ids": [
+          "filter.none",
           "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
@@ -333,6 +357,7 @@
       {
         "computed_by": "jumpheight.takeoff.flight_time",
         "contributing_method_ids": [
+          "filter.none",
           "takeoff.threshold.absolute_force"
         ],
         "key": "jump_height_from_flight_time_meters",
@@ -345,6 +370,7 @@
       {
         "computed_by": "rsimod.jh_tov_over_ttt",
         "contributing_method_ids": [
+          "filter.none",
           "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",

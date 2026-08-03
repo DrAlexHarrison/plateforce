@@ -104,6 +104,15 @@ criterion_kind = "human_visual"
 conditional_on_success = true
 
 [[method]]
+id = "onset.manual_visual.tillin2010"
+construct = "movement_onset"
+title = "Onset placed by eye on the plotted trace"
+rule = "A rater reads the trace and marks where the movement begins."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method]]
 id = "takeoff.threshold.absolute_force"
 construct = "takeoff"
 title = "First sample past a fixed newton threshold"

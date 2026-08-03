@@ -5,6 +5,7 @@
 
 pub mod analysis_window;
 pub mod braking_phase_start;
+pub mod conditioned_force_signal;
 pub mod flight_time;
 pub mod jh_standing_frame;
 pub mod jh_takeoff_frame;
