@@ -59,6 +59,10 @@ export function selectionFromChosenRule(candidate, forcesDecision) {
     fromDefault: new Set(Object.keys(filled.values)),
     recommended: new Set(),
     methodFromRecommendation: false,
+    // Set where the reader names the rule. A slot that opened under the registry's first
+    // ranked candidate carries the same shape and a false here, so arriving at a rule and
+    // choosing it stay two different records rather than one.
+    methodStated: false,
   };
 }
 
@@ -320,11 +324,11 @@ export function methodTitle(id) {
 }
 
 /* A value the request did not carry moved the number as far as one it did, so every value
- * in the fingerprint says which of the two it was. */
+ * in the fingerprint carries the source the record named for it. */
 export function boundValueText(bound, separator = ' ') {
-  const assumed = new Set(bound?.assumed_parameters || []);
+  const sources = bound?.parameter_sources || {};
   return (bound?.bound_parameters || []).map(
-    ([name, value]) => `${name}${separator}${value}${assumed.has(name) ? ' (assumed)' : ''}`,
+    ([name, value]) => `${name}${separator}${value}${sources[name] ? ` (${sources[name]})` : ''}`,
   );
 }
 

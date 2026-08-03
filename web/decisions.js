@@ -64,7 +64,7 @@ function renderSlot(slot) {
    * construct, because one unresolved entry anywhere in the construct leaves every value
    * below it provisional.
    */
-  const bound = selection.methodId ? candidateFor(slot.key, selection.methodId) : null;
+  const boundEntry = selection.methodId ? candidateFor(slot.key, selection.methodId) : null;
   const decisionPending = slot.forcesDecision && !selection.methodId && slot.available.length > 0;
 
   const head = element('div', 'decision__head');
@@ -72,7 +72,7 @@ function renderSlot(slot) {
   if (decisionPending) {
     wrap.classList.add('decision--provisional');
     head.append(element('span', 'tag tag--provisional', 'provisional'));
-  } else if (bound?.surfacing === 'default_and_hide') {
+  } else if (boundEntry?.surfacing === 'default_and_hide') {
     head.append(element('span', 'tag tag--advanced', 'advanced'));
   }
   wrap.append(head);
@@ -101,12 +101,13 @@ function renderSlot(slot) {
   select.addEventListener('change', () => {
     const candidate = candidateFor(slot.key, select.value);
     state.selection[slot.key] = selectionFromChosenRule(candidate, slot.forcesDecision);
+    state.selection[slot.key].methodStated = true;
     renderDecisions();
     runAnalysis();
   });
   wrap.append(select);
 
-  const candidate = bound;
+  const candidate = boundEntry;
   if (candidate) {
     const failure = candidate.method?.failure;
     if (failure) {
@@ -166,17 +167,19 @@ function renderRulesThatRanBeside(slot, candidate) {
  * A value the caller did not supply is shown with whoever proposed it, because a number on
  * screen that nobody asked for is only checkable if the reader can reach where it came from.
  *
- * The row says the rule supplied it and stops there when no source is recorded, rather than
- * calling it unsourced: the engine reports one bucket for a value the rule defaulted and a
- * value the rule measured off this trace, and only the first of those is missing a source.
+ * The record names a source per value, so a value the rule fell back to and a value the
+ * rule measured off this trace read as the two different things they are. A registry
+ * default carries the entry that published it as well, which the source word alone does
+ * not say.
  */
 function valuesWithTheirSource(method, bound) {
-  const fromTheRule = new Set(bound.assumed_parameters || []);
+  const sources = bound.parameter_sources || {};
   return (bound.bound_parameters || [])
     .map(([name, value]) => {
-      if (!fromTheRule.has(name)) return `${name} ${value}`;
-      const source = (method.parameter || []).find((entry) => entry.name === name)?.default_source;
-      return `${name} ${value} (from the rule${source ? `, ${source}` : ''})`;
+      const source = sources[name];
+      if (source !== 'assumed') return `${name} ${value}${source ? ` (${source})` : ''}`;
+      const published = (method.parameter || []).find((entry) => entry.name === name)?.default_source;
+      return `${name} ${value} (from the rule${published ? `, ${published}` : ''})`;
     })
     .join(', ');
 }
