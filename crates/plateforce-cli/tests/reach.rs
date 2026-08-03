@@ -242,6 +242,30 @@ fn the_floor_holds_the_number_that_only_rises() {
     );
 }
 
+/// A reader at a terminal is handed the count that answers what this build computes.
+///
+/// It was computed and passed to the document surface alone, so the text summary opened on
+/// "58 of 58 constructs reachable" while 5 of 58 carried a rule. Both counts are true and
+/// they answer different questions, and the one a reader takes for coverage is the one the
+/// terminal was not printing.
+#[test]
+fn the_terminal_is_told_how_many_constructs_compute() {
+    let report = shipped();
+    let computed = report["computed_count"].as_u64().unwrap();
+    let constructs = report["construct_count"].as_u64().unwrap();
+
+    let output = plateforce(&["--registry", "../../registry", "reach"]);
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).expect("the report is text");
+    let summary = text.lines().last().expect("a summary line").to_string();
+    println!("{summary}");
+
+    assert!(
+        summary.contains(&format!("{computed} of {constructs} constructs compute")),
+        "the terminal summary does not carry the count of constructs this build computes: {summary}"
+    );
+}
+
 /// The two questions are separate, so a construct can be one and not the other. A registry
 /// that declares a barrier in front of every rule for a construct still reports the rules
 /// this build binds for it.

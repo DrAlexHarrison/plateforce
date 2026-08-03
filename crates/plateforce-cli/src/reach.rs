@@ -131,9 +131,9 @@ pub fn run(registry_directory: &Path, format: Format, renderer: &Renderer) -> Ou
                 "query": query_of(row),
             })).collect::<Vec<_>>(),
         }))),
-        Format::Text => {
-            Outcome::complete(text_body(&rows, reachable, declared, &registry, renderer))
-        }
+        Format::Text => Outcome::complete(text_body(
+            &rows, computed, reachable, declared, &registry, renderer,
+        )),
     }
 }
 
@@ -147,6 +147,7 @@ fn query_of(row: &ConstructReach) -> Option<String> {
 
 fn text_body(
     rows: &[ConstructReach],
+    computed: usize,
     reachable: usize,
     declared: usize,
     registry: &Registry,
@@ -190,10 +191,16 @@ fn text_body(
         }
     }
 
+    // Three populations, each against its own denominator and never added together. The
+    // first is what this build computes today and is the one a floor is held to. The second
+    // counts constructs nothing stands in the way of, and it falls as barriers are classified
+    // honestly, so a reader handed only that number reads a registry nobody has classified
+    // yet as a product that computes everything.
     let _ = writeln!(document);
     let _ = write!(
         document,
-        "{reachable} of {} constructs reachable, from {declared} of {} computation entries declaring a boundary",
+        "{computed} of {} constructs compute. {reachable} of {} reachable, from {declared} of {} computation entries declaring a boundary",
+        rows.len(),
         rows.len(),
         registry.methods.len()
     );
