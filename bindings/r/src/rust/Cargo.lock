@@ -92,6 +92,7 @@ dependencies = [
  "plateforce-core",
  "plateforce-registry",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
