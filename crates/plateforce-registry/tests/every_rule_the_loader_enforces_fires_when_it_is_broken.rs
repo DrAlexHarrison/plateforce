@@ -47,7 +47,7 @@ required = true
 [[method.bias]]
 magnitude = 0.011
 unit = "meters"
-criterion = "simultaneous motion capture"
+criterion = "motion_capture_marker"
 criterion_kind = "simultaneous_capture"
 
 [[method.bias]]
@@ -55,7 +55,7 @@ magnitude = 1.0
 unit = "seconds"
 direction = "long"
 equals_parameter = "dwell_seconds"
-criterion = "time_to_stabilisation"
+criterion = "system_weight"
 criterion_kind = "model"
 
 [[method.citation]]
@@ -210,7 +210,7 @@ fn a_disagreement_the_other_side_does_not_record_is_refused() {
 #[test]
 fn a_bias_stated_against_a_blank_criterion_is_refused() {
     let kinds = methods_broken(
-        "criterion = \"simultaneous motion capture\"",
+        "criterion = \"motion_capture_marker\"",
         "criterion = \"   \"",
     );
     assert!(

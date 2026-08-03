@@ -440,39 +440,55 @@ Validation is not advisory. A registry that fails these does not load. Each name
     `BiasMagnitudeDisagreesWithParameter`
 14. The bias and the parameter are in the same unit. An identity between quantities in
     different units is not an identity. `BiasUnitDiffersFromParameter`
+15. A `criterion` names an entry, a construct, the entry itself, or one of the external
+    criteria the vocabulary declares: `motion_capture_marker`, `rubber_band_goniometer`,
+    `static_dead_weight_calibration`. The list is closed because an open field reads a
+    mistyped name as a fourth instrument and loads. `BiasCriterionUnresolved`
+
+An entry naming itself is three claims sharing one spelling, and `criterion_kind` says which.
+`model` compares two settings of this entry's own parameter. `instrument` is two
+implementations of this one rule disagreeing, which needs no parameter. `human_visual` is the
+definition of record, whose figure is the reference's own spread rather than a bias.
+`simultaneous_capture` is the entry's own design against departing from it. Each carries the
+claim its kind makes:
+
+16. A `model` self-comparison declares a parameter to have two settings of.
+    `SelfComparisonSweepsNoParameter`
+17. A `human_visual` self-comparison reports no direction but `none` or `either`, because a
+    reference is not biased against itself. `DefinitionOfRecordCarriesADirection`
 
 **Failure rate**
 
-15. A `method.failure` carries both `numerator` and `denominator`.
+18. A `method.failure` carries both `numerator` and `denominator`.
     `FailureWithoutDenominator`
-16. The stated `rate` matches its own numerator over its own denominator, within a tolerance
+19. The stated `rate` matches its own numerator over its own denominator, within a tolerance
     loose enough for a rounded literal and tight enough to catch a transcription error.
     `FailureRateInconsistent`
 
 **Status and interface**
 
-17. A `citation` with `obtained = false` in a load-bearing role bars the entry from
+20. A `citation` with `obtained = false` in a load-bearing role bars the entry from
     `status = "recommended"`. `RecommendedOnUnobtainedSource`
-18. `surfacing = "refuse"` carries a `gui.rationale`. Every other verdict decides its own
+21. `surfacing = "refuse"` carries a `gui.rationale`. Every other verdict decides its own
     behaviour; refusing decides only that the rule is not offered, so what a reader is owed
     instead has nowhere else to live. `RefuseWithoutRationale`
 
 **Reach**
 
-19. A query sits beside an undetermined boundary and nowhere else.
+22. A query sits beside an undetermined boundary and nowhere else.
     `ReachQueryOnSettledBoundary`
-20. An undetermined boundary carries a query. Every other boundary names what stands in the
+23. An undetermined boundary carries a query. Every other boundary names what stands in the
     way; this one names only that something does, so the query is the whole of what it says.
     `ReachUndeterminedWithoutQuery`
 
 **Presets**
 
-21. A preset binds a method the registry carries. `PresetBindsUnknownMethod`
-22. A binding's declared construct is the one that entry carries.
+24. A preset binds a method the registry carries. `PresetBindsUnknownMethod`
+25. A binding's declared construct is the one that entry carries.
     `PresetBindingConstructMismatch`
-23. A preset states a pipeline and cites a source for it. `PresetWithoutCitation`
-24. A preset binds each construct once. `PresetBindsOneConstructTwice`
-25. Everything a preset says its source is silent about is a declared construct.
+26. A preset states a pipeline and cites a source for it. `PresetWithoutCitation`
+27. A preset binds each construct once. `PresetBindsOneConstructTwice`
+28. Everything a preset says its source is silent about is a declared construct.
     `PresetSilentAboutUnknownConstruct`
 
 A closed vocabulary needs no rule. `status`, `confidence`, `debate`, `criterion_kind`,

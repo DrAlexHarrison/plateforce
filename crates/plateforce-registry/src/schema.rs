@@ -156,6 +156,15 @@ pub enum CriterionKind {
     Model,
 }
 
+/// What a bias was measured against, where the thing is not a registry entry. Closed for the
+/// same reason the vocabularies beside it are closed: an open field takes a mistyped name as a
+/// fourth instrument nobody owns, and the entry still loads.
+pub const EXTERNAL_CRITERIA: &[&str] = &[
+    "motion_capture_marker",
+    "rubber_band_goniometer",
+    "static_dead_weight_calibration",
+];
+
 /// A bias is meaningless without the thing it was measured against, so `criterion`
 /// is mandatory. Two device-validation papers derive their reference plate's jump
 /// height from flight time, which makes their biases additive to flight-time method
