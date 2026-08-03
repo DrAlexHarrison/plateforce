@@ -4,9 +4,11 @@
 `CAPABILITY.json` is each surface's statement of the codes it can emit, and an R condition
 class or a JSON `code` field outside that list is a class a caller can catch and a manifest
 says does not exist. The count is a query rather than a number in a document, and it is held
-to a ceiling that can only fall.
+to a ceiling that has to equal it. A ceiling standing above the count it permits admits that
+many new codes with this gate green, so slack is the failure rather than the margin.
 
-The ceiling is a file rather than a constant here, so lowering it is a diff a reader can see.
+The ceiling is a file rather than a constant here, so lowering it is a diff a reader can see,
+and the rule the file states is the rule this reads back rather than one spelled again here.
 
 Run: python3 scripts/check-refusal-vocabulary.py [--write]
 """
@@ -79,6 +81,28 @@ def read_ceiling() -> dict[str, int]:
     return ceiling
 
 
+def read_header() -> str:
+    """The rule the ceiling is held to lives in the file it governs, and `--write` carries it.
+
+    Re-emitting a copy written here would let a rewrite revert a ruling the file already
+    carries: the text amended in one commit is lost in the next, and the run that lost it
+    prints success. So the leading comment block is read and written back unchanged, and a
+    file that carries no rule at all is a fault rather than an invitation to invent one.
+    """
+    header: list[str] = []
+    for line in CEILING.read_text().splitlines() if CEILING.exists() else []:
+        if line.startswith("#") or not line.strip():
+            header.append(line)
+            continue
+        break
+    if not any(line.startswith("#") for line in header):
+        raise SystemExit(
+            f"plateforce: {CEILING.name} states no rule for the numbers it carries, and which "
+            "rule a ceiling is held to is a decision rather than a measurement"
+        )
+    return "\n".join(header) + "\n"
+
+
 def main() -> int:
     write = "--write" in sys.argv
     vocabularies = published()
@@ -131,11 +155,20 @@ def main() -> int:
                 f"{surface} raises {len(outside)} codes outside its vocabulary, "
                 f"against a ceiling of {allowed}"
             )
+        elif len(outside) < allowed:
+            # Slack is the failure, not the margin. A ceiling standing above the count it
+            # permits admits that many new codes with the gate green, which is how two
+            # arrived unnoticed once already. The number to write is named here so closing
+            # a code and lowering the ceiling stay one commit.
+            failures.append(
+                f"{surface} raises {len(outside)} codes outside its vocabulary against a "
+                f"ceiling of {allowed}, so {allowed - len(outside)} more could arrive with "
+                f"this gate green: write `{surface} {len(outside)}` in {CEILING.name}"
+            )
 
     if write:
         CEILING.write_text(
-            "# Refusal codes each surface can raise that its own manifest does not publish.\n"
-            "# The ceiling only falls. Lower it in the commit that closes a code.\n"
+            read_header()
             + "".join(f"{surface} {count}\n" for surface, count in sorted(measured.items()))
         )
         print(f"wrote {CEILING.relative_to(ROOT)}")
