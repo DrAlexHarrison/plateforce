@@ -314,6 +314,16 @@ fn the_same_folder_read_from_memory_and_from_disk_gives_one_answer() {
         "same trials, same order"
     );
     assert_eq!(walked.files_found, handed.files_found);
+    // The count of what the declaration passed over is reached one way by the walk and
+    // another by the set handed in, so the two are held against each other rather than each
+    // against itself.
+    assert_eq!(walked.files_without_declared_suffix, 1);
+    assert_eq!(
+        walked.files_without_declared_suffix, handed.files_without_declared_suffix,
+        "the browser and the terminal narrow the same folder by the same file"
+    );
+    assert_eq!(walked.files_present(), handed.files_present());
+    assert_eq!(walked.files_present(), 10);
 
     let request = common::bound_request();
     let registry = common::registry();
