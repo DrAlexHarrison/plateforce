@@ -5,9 +5,9 @@
 //! settle that, by declaring the frame and computing nothing, or reproduce it, by computing a
 //! number whose published rule never says which rise it is.
 
-pub mod flight_phase_displacement;
+pub mod flight_apex;
 pub mod frame;
-pub mod minimum_of_two_routes;
+pub mod minimum_of_two;
 
 /// The construct id, as `registry/constructs.toml` declares it.
 pub const CONSTRUCT: &str = "jump_height.undeclared";

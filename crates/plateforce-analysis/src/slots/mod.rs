@@ -5,9 +5,9 @@
 
 pub mod analysis_window;
 pub mod flight_time;
-pub mod jump_height_standing_frame;
-pub mod jump_height_takeoff_frame;
-pub mod jump_height_undeclared;
+pub mod jh_standing_frame;
+pub mod jh_takeoff_frame;
+pub mod jh_undeclared;
 pub mod movement_onset;
 pub mod peak_force;
 pub mod system_weight;

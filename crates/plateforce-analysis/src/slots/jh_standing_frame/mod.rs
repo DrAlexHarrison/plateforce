@@ -5,8 +5,8 @@
 //! average and up to about 15 cm absolute, and it is definitional rather than error: both
 //! frames are physically valid and neither is a better estimate of the other.
 
-pub mod double_integration;
-pub mod tov_plus_displacement;
+pub mod double_integral;
+pub mod tov_plus_rise;
 
 /// The construct id, as `registry/constructs.toml` declares it.
 pub const CONSTRUCT: &str = "jump_height.standing_frame";

@@ -115,7 +115,7 @@ fn height(construct: &str, method_id: &str, key: &str) -> f64 {
 /// default with the paperwork of a declared one.
 #[test]
 fn the_flight_time_height_is_the_closed_form_at_the_gravity_its_entry_declares() {
-    use plateforce_analysis::slots::jump_height_takeoff_frame::flight_time::{
+    use plateforce_analysis::slots::jh_takeoff_frame::flight_time::{
         GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED as DECLARED, GRAVITY_PARAMETER,
     };
 
