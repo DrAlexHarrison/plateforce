@@ -15,7 +15,7 @@
       "threshold_n": 20.0
     }
   },
-  "trial": "crates/plateforce-conformance/fixtures/subject01_trial1_interrupted.force.txt",
+  "trial": "crates/plateforce-conformance/fixtures/damaged/subject01_trial1_interrupted.force.txt",
   "weighing": {
     "method_id": "bwepoch.fixed_window",
     "parameters": {
