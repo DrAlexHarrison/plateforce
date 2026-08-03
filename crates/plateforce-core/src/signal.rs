@@ -42,9 +42,14 @@ impl From<TrialError> for crate::Refusal {
     fn from(error: TrialError) -> Self {
         match error {
             TrialError::Empty => crate::Refusal::empty_trace(""),
-            TrialError::BadSampleRate(value) => {
-                crate::Refusal::parameter_not_finite("", "sample_rate_hz", value)
-            }
+            TrialError::BadSampleRate(value) => crate::Refusal::value_not_accepted(
+                "",
+                "sample_rate_hz",
+                value,
+                // A rate of -1200 is a finite number, so the code for a number that is not a
+                // number would be reporting the wrong fault about it.
+                vec!["a positive number of samples per second".to_string()],
+            ),
             TrialError::NoCrossing {
                 method_id,
                 parameter,
@@ -253,12 +258,16 @@ mod tests {
         assert_eq!(epoch.code, RefusalCode::TraceTooShort);
         assert_eq!(epoch.detail["available_seconds"], 3.0);
 
-        // The one sentence that changes. The older text said "sample rate"; the refusal names
-        // the parameter as a caller spells it, which is the name they would set.
+        // The refusal names the parameter as a caller spells it, which is the name they would
+        // set. A rate of 0 is a finite number, so the code says the value is one this
+        // parameter does not take rather than that it is not a number.
         let rate: Refusal = TrialError::BadSampleRate(0.0).into();
-        assert_eq!(rate.code, RefusalCode::ParameterNotFinite);
+        assert_eq!(rate.code, RefusalCode::ValueNotAccepted);
         assert_eq!(rate.parameter.as_deref(), Some("sample_rate_hz"));
-        assert_eq!(rate.message(), "sample_rate_hz must be positive, got 0");
+        assert_eq!(
+            rate.message(),
+            "sample_rate_hz does not accept 0: it takes a positive number of samples per second"
+        );
     }
 
     #[test]

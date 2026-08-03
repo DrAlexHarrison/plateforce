@@ -33,6 +33,11 @@ refusal_codes! {
     MethodNotImplemented,
     UnknownParameter,
     ParameterNotFinite,
+    /// A value outside what its parameter takes, reported with the value and what is taken.
+    /// Distinct from `ParameterNotFinite`, where the number is not a number, and from
+    /// `UnknownParameter`, where the name rather than the value is the fault: here the rule
+    /// understands the request and will not do it.
+    ValueNotAccepted,
     TraceTooShort,
     ColumnNotFound,
     SentinelConventionUnknown,
@@ -89,6 +94,7 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         RefusalCode::MethodNotImplemented
         | RefusalCode::UnknownParameter
         | RefusalCode::ParameterNotFinite
+        | RefusalCode::ValueNotAccepted
         | RefusalCode::SentinelConventionUnknown
         | RefusalCode::DecisionNotMade
         | RefusalCode::RequiredParameterUnstated
@@ -108,6 +114,7 @@ impl RefusalCode {
             RefusalCode::MethodNotImplemented => "method_not_implemented",
             RefusalCode::UnknownParameter => "unknown_parameter",
             RefusalCode::ParameterNotFinite => "parameter_not_finite",
+            RefusalCode::ValueNotAccepted => "value_not_accepted",
             RefusalCode::TraceTooShort => "trace_too_short",
             RefusalCode::ColumnNotFound => "column_not_found",
             RefusalCode::SentinelConventionUnknown => "sentinel_convention_unknown",
@@ -132,7 +139,7 @@ impl From<&crate::signal::TrialError> for RefusalCode {
         use crate::signal::TrialError;
         match error {
             TrialError::Empty | TrialError::EpochTooLong { .. } => RefusalCode::TraceTooShort,
-            TrialError::BadSampleRate(_) => RefusalCode::ParameterNotFinite,
+            TrialError::BadSampleRate(_) => RefusalCode::ValueNotAccepted,
             TrialError::NoCrossing { .. } => RefusalCode::NoCrossing,
             TrialError::CollapsedBand { .. } => RefusalCode::CollapsedBand,
         }
@@ -321,6 +328,24 @@ impl Refusal {
             Some(value),
             BTreeMap::new(),
             Vec::new(),
+        )
+    }
+
+    /// A number the parameter will not take, with what it takes. `takes` is written as a
+    /// reader would say it, because a range is not a list of ids.
+    pub fn value_not_accepted(
+        method_id: impl Into<String>,
+        parameter: impl Into<String>,
+        value: f64,
+        takes: Vec<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::ValueNotAccepted,
+            method_id,
+            Some(parameter.into()),
+            Some(value),
+            BTreeMap::new(),
+            takes,
         )
     }
 
@@ -583,10 +608,27 @@ fn sentence(
             named("had")
         ),
         RefusalCode::ParameterNotFinite => format!(
-            "{} must be positive, got {}",
+            "{} must be a finite number, got {}",
             parameter.unwrap_or("the parameter"),
             value.unwrap_or(f64::NAN)
         ),
+        RefusalCode::ValueNotAccepted => {
+            let takes = if available.is_empty() {
+                String::new()
+            } else {
+                format!(": it takes {}", available.join(", "))
+            };
+            match value {
+                Some(number) => format!(
+                    "{} does not accept {number}{takes}",
+                    parameter.unwrap_or("the parameter")
+                ),
+                None => format!(
+                    "{} was given a value it does not accept{takes}",
+                    parameter.unwrap_or("the parameter")
+                ),
+            }
+        }
         RefusalCode::MethodNotImplemented => match slot {
             Some(step) => format!(
                 "'{method_id}' was passed as the {step} method, and the rules available for that step are {available:?}"
@@ -695,6 +737,16 @@ mod tests {
         );
         assert_eq!(
             RefusalCode::from(&TrialError::BadSampleRate(0.0)),
+            RefusalCode::ValueNotAccepted
+        );
+        // A cell that is not a number is the other code, and the two are told apart here so
+        // the pair cannot drift into one.
+        assert_eq!(
+            RefusalCode::from(&ReadError::NotANumber {
+                line_number: 1,
+                column_index: 0,
+                text: "n/a".to_string(),
+            }),
             RefusalCode::ParameterNotFinite
         );
         // A trace failure reached through a read is the same code as the trace failure

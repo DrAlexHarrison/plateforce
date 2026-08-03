@@ -177,6 +177,10 @@
         {
           "code": "unknown_parameter",
           "exit_code": 64
+        },
+        {
+          "code": "value_not_accepted",
+          "exit_code": 64
         }
       ],
       "schema": "plateforce.capability/1"
@@ -353,6 +357,10 @@
         {
           "code": "unknown_parameter",
           "exit_code": 64
+        },
+        {
+          "code": "value_not_accepted",
+          "exit_code": 64
         }
       ],
       "schema": "plateforce.capability/1"
@@ -520,6 +528,10 @@
         },
         {
           "code": "unknown_parameter",
+          "exit_code": 64
+        },
+        {
+          "code": "value_not_accepted",
           "exit_code": 64
         }
       ],
