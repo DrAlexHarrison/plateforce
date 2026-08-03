@@ -16,6 +16,7 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Landmarks, Trial, WeighingEpoch};
 
 use crate::request::MethodChoice;
@@ -40,6 +41,11 @@ pub struct DerivedContext<'a> {
     pub takeoff_index: Option<usize>,
     pub touchdown_index: Option<usize>,
     pub gravity_meters_per_second_squared: f64,
+    /// What the request claims about the number above. Carried because a rule whose entry
+    /// publishes its own gravity has to tell a value somebody chose for this analysis, which
+    /// it must honour, from the constant the request type fills in for everybody, which no
+    /// entry declares.
+    pub gravity_source: ParameterSource,
     /// The athlete's mass, which is not the weighed system mass: system weight includes the
     /// bar and bodyweight does not. `None` when the caller stated none, and a rule that
     /// divides by it declines rather than dividing by the other one.
@@ -72,6 +78,7 @@ impl<'a> DerivedContext<'a> {
         takeoff_index: Option<usize>,
         touchdown_index: Option<usize>,
         gravity_meters_per_second_squared: f64,
+        gravity_source: ParameterSource,
         body_mass_kilograms: Option<f64>,
         placed: &'a BTreeMap<&'static str, PlacedSample>,
         requested: &'a BTreeMap<String, MethodChoice>,
@@ -83,6 +90,7 @@ impl<'a> DerivedContext<'a> {
             takeoff_index,
             touchdown_index,
             gravity_meters_per_second_squared,
+            gravity_source,
             body_mass_kilograms,
             placed,
             requested,
@@ -114,6 +122,23 @@ impl<'a> DerivedContext<'a> {
             }),
             _ => None,
         }
+    }
+
+    /// The gravity somebody chose for this whole analysis, or nothing where the request holds
+    /// the constant its own type fills in.
+    ///
+    /// Only a rule whose entry publishes a gravity of its own needs this, and it needs it to
+    /// avoid two opposite faults: running on a number nobody chose, and discarding a number
+    /// somebody did. Gravity varies by half a percent across the Earth's surface, fifteen times
+    /// the gap between the two constants the tools argue over, so a plate's own value is better
+    /// information than any published one and has to win when it is offered.
+    ///
+    /// `Assumed` is the only claim that means nobody acted. A provisional value is one somebody
+    /// put there to look at, and `taints_the_record` already stops a result resting on one from
+    /// leaving the building, so it runs and says what it is.
+    pub fn chosen_gravity(&self) -> Option<(f64, ParameterSource)> {
+        (self.gravity_source != ParameterSource::Assumed)
+            .then_some((self.gravity_meters_per_second_squared, self.gravity_source))
     }
 
     /// A sample an earlier rule placed, or nothing when no rule placed one under that name.
@@ -247,6 +272,7 @@ mod tests {
             Some(900),
             None,
             9.80665,
+            ParameterSource::Assumed,
             None,
             &placed,
             &requested,

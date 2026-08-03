@@ -58,6 +58,17 @@ fn sources(out_dir: &std::path::Path) -> std::collections::BTreeMap<String, usiz
     counted
 }
 
+/// What a run over this folder exits with, and why it is not zero.
+///
+/// Five of the six subject-01 trials never return above the takeoff threshold, so no touchdown
+/// is placed on them, so `jumpheight.takeoff.flight_time` has no interval to work on and
+/// declines by name. A batch holding a trial whose requested headline number could not be
+/// produced is not a clean run, and the exit code is where a reader learns that without
+/// reading the record.
+///
+/// It used to be zero, and the height came back empty with nothing anywhere saying why.
+const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
+
 fn scratch(name: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!("plateforce-batch-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
@@ -70,7 +81,10 @@ fn scratch(name: &str) -> std::path::PathBuf {
 #[test]
 fn a_value_stated_for_a_folder_is_recorded_as_stated() {
     let without = scratch("plain");
-    assert_eq!(batch(&without, &[]).status.code(), Some(0));
+    assert_eq!(
+        batch(&without, &[]).status.code(),
+        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
+    );
     let before = sources(&without);
 
     let with = scratch("stated");
@@ -85,7 +99,10 @@ fn a_value_stated_for_a_folder_is_recorded_as_stated() {
             "takeoff.threshold_n=20",
         ],
     );
-    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        output.status.code(),
+        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
+    );
     let after = sources(&with);
 
     println!("without --set {before:?}");
@@ -173,7 +190,10 @@ fn a_folder_run_cannot_proceed_without_saying_how_a_missing_sample_is_written() 
 #[test]
 fn the_record_names_the_convention_the_run_applied() {
     let out = scratch("recorded");
-    assert_eq!(batch(&out, &[]).status.code(), Some(0));
+    assert_eq!(
+        batch(&out, &[]).status.code(),
+        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
+    );
     let run: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("run.json")).expect("a record"))
             .expect("the record parses");

@@ -136,6 +136,34 @@ impl<'a> Resolution<'a> {
         value
     }
 
+    /// A value this rule's entry publishes a default for, which the caller may also have
+    /// chosen once for the whole analysis rather than on this rule.
+    ///
+    /// Three claims, and they beat each other in that order. A value on this rule is the caller
+    /// answering this entry's own question. A value chosen for the analysis is the caller
+    /// answering it everywhere, and discarding it would run the number on a published constant
+    /// while the record showed the caller's. Neither offered, the entry's default stands and is
+    /// recorded as assumed, which is the whole of what `number` does.
+    ///
+    /// Kept apart from `number` because the middle claim is what `number` cannot express: it
+    /// takes one fallback and cannot say that the fallback was somebody's choice.
+    pub(crate) fn number_or_chosen(
+        &mut self,
+        name: &str,
+        chosen_for_the_analysis: Option<(f64, ParameterSource)>,
+        published_default: f64,
+    ) -> f64 {
+        if let Some(stated) = self.stated(name) {
+            let source = self.stated_source(name);
+            self.record_measured(name, stated, format_number(stated), source);
+            return stated;
+        }
+        let (value, source) =
+            chosen_for_the_analysis.unwrap_or((published_default, ParameterSource::Assumed));
+        self.record_measured(name, value, format_number(value), source);
+        value
+    }
+
     pub(crate) fn seconds_as_samples(
         &mut self,
         name: &str,

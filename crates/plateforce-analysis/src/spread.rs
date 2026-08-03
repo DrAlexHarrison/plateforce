@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Refusal, Trial};
 
 use crate::AnalysisRequest;
@@ -296,7 +297,14 @@ fn materialise(
         settings.push((parameter.clone(), format_value(value)));
 
         match (axis.slot.as_str(), parameter.as_str()) {
-            ("" | "global", GRAVITY_FIELD) => candidate.gravity_meters_per_second_squared = value,
+            // Stated, because naming an axis and the values along it is the caller choosing
+            // every one of them. Left as the request's own default the rule that publishes a
+            // gravity would keep publishing it, and the panel would print a spread of zero over
+            // a knob that moved, which is the fault the refusal above exists to prevent.
+            ("" | "global", GRAVITY_FIELD) => {
+                candidate.gravity_meters_per_second_squared = value;
+                candidate.gravity_source = ParameterSource::Stated;
+            }
             ("weighing", name) => {
                 candidate
                     .weighing

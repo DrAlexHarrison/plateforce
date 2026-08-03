@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use plateforce_core::provenance::PresetAttribution;
+use plateforce_core::provenance::{ParameterSource, PresetAttribution};
 use plateforce_core::{Refusal, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_registry::{Preset, PresetBinding, Registry};
 use serde::{Deserialize, Serialize};
@@ -143,6 +143,16 @@ pub struct AnalysisRequest {
     /// it as an argument for the same reason.
     #[serde(default = "standard_gravity")]
     pub gravity_meters_per_second_squared: f64,
+    /// Where the number above came from, which the number alone cannot say.
+    ///
+    /// The field is filled by `Default` and by `serde` whether or not anybody chose a value,
+    /// so a request holding standard gravity and a request whose author measured 9.80665 at
+    /// their own plate are byte-identical without this. A rule that publishes its own default
+    /// reads this to tell a value it must honour from one nobody stated, and gravity varies by
+    /// half a percent across the Earth's surface, which is fifteen times the difference between
+    /// the two constants the tools argue over.
+    #[serde(default = "assumed")]
+    pub gravity_source: ParameterSource,
     #[serde(default)]
     pub registry_backed_ids: Vec<String>,
     /// A rule chosen for a construct computed from the resolved landmarks, keyed by the
@@ -177,6 +187,12 @@ fn standard_gravity() -> f64 {
     STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED
 }
 
+/// What a request claims about a gravity nobody stated, which is the claim every request
+/// starts from. A caller that chose the value says so by writing the field.
+fn assumed() -> ParameterSource {
+    ParameterSource::Assumed
+}
+
 /// So a caller can build one with `..Default::default()`, which is what `MethodChoice` and
 /// `WeighingChoice` already offer and for the same reason: the next field this struct gains
 /// would otherwise break every exhaustive literal in the workspace at once.
@@ -191,6 +207,7 @@ impl Default for AnalysisRequest {
             takeoff: MethodChoice::default(),
             touchdown_index: None,
             gravity_meters_per_second_squared: standard_gravity(),
+            gravity_source: assumed(),
             registry_backed_ids: Vec::new(),
             derived: BTreeMap::new(),
             conditioning: BTreeMap::new(),

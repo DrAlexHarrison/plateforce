@@ -26,6 +26,11 @@ pub const ID: &str = "jumpheight.takeoff.flight_time";
 /// gets that rather than the constant the request carries, because the request's is a struct
 /// initialiser no entry declares and a record calling it assumed would be naming an act
 /// nobody performed.
+///
+/// A caller who did choose a gravity for the analysis gets theirs, on the same reasoning read
+/// the other way: half a percent of this number rides on where the plate stands, so a value
+/// somebody measured there beats a value a paper published, and running the entry's constant
+/// over the top of it would discard the better information in silence.
 pub const GRAVITY_PARAMETER: &str = "gravity";
 pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 = 9.81;
 
@@ -44,7 +49,11 @@ fn compute(
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
     let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
-    let gravity = resolved.number(GRAVITY_PARAMETER, GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED);
+    let gravity = resolved.number_or_chosen(
+        GRAVITY_PARAMETER,
+        context.chosen_gravity(),
+        GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED,
+    );
 
     let Some(landmarks) = context.landmarks() else {
         return DerivedOutcome::declined(

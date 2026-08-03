@@ -2,9 +2,9 @@
 //! them.
 
 use plateforce_core::{
-    flight_time_seconds, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
-    reactive_strength_index_modified, takeoff_velocity_integration_spec,
-    takeoff_velocity_meters_per_second, time_to_takeoff_seconds, Landmarks, Trial,
+    flight_time_seconds, jump_height_from_takeoff_velocity, reactive_strength_index_modified,
+    takeoff_velocity_integration_spec, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
+    Landmarks, Trial,
 };
 
 use std::collections::BTreeMap;
@@ -14,6 +14,7 @@ use crate::derived::{DerivedContext, PlacedSample};
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
+use crate::slots::jh_takeoff_frame::{flight_time as flight_time_rule, FLIGHT_TIME_KEY};
 use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
 
 /// Boxed on the error side because a `Refusal` carries every field a caller branches on,
@@ -191,6 +192,45 @@ pub fn run(
         .map(|marks| takeoff_velocity_meters_per_second(trial, &epoch, marks, gravity));
     let height_takeoff = velocity.map(|v| jump_height_from_takeoff_velocity(v, gravity));
 
+    // A quantity the request bound a rule for is reported by that rule, so the keys it bound
+    // are settled before anything computes one. Read off the binding rows rather than off what
+    // the rules produced, so a key is left out before it has a second value rather than
+    // deduplicated afterwards: which of two values for one key survived a deduplication is an
+    // ordering fact nobody stated.
+    let bound_by_request = keys_the_request_bound(request);
+
+    // The flight-time height is run rather than reproduced. Its entry publishes a gravity and
+    // declares 9.81, and the copy that used to sit in this function took the request's constant
+    // instead, so one id returned two numbers on one trial depending only on whether the caller
+    // named the rule, and neither result recorded which gravity produced it.
+    //
+    // Nobody chose the rule, so it runs as the registry's default for the quantity and says so
+    // through the record it leaves: the values it read are marked assumed unless the request
+    // chose them. A default that reaches the record is a choice; one that does not is an
+    // absence, which is the reason the conditioning phase below runs its own default the same
+    // way.
+    let flight_time_height = if bound_by_request.contains(&FLIGHT_TIME_KEY) {
+        None
+    } else {
+        let produced = run_spine_default(
+            expect_row(flight_time_rule::ID),
+            trial,
+            request,
+            &epoch,
+            onset_index,
+            takeoff_index,
+            touchdown_index,
+            landmarks.is_some(),
+            &mut bound_methods,
+            &mut refusals,
+            &mut warnings,
+        );
+        produced
+            .into_iter()
+            .find(|(key, _)| *key == FLIGHT_TIME_KEY)
+            .and_then(|(_, value)| value)
+    };
+
     // Every quantity's key, label, unit and computed-by come from the one declaration in
     // `response.rs`. What varies per analysis is the value, the chain behind it, and the
     // sentence beside it.
@@ -257,9 +297,11 @@ pub fn run(
             ),
         ),
         Metric::declared(
-            "jump_height_from_flight_time_meters",
-            flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
-            takeoff_ids.clone(),
+            FLIGHT_TIME_KEY,
+            flight_time_height,
+            // The chain the rule's own phase would have built, so one id carries one record
+            // whichever way a caller arrived at it.
+            derived_chain(&conditioned.ids, request),
             Some(
                 "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load."
                     .into(),
@@ -280,16 +322,16 @@ pub fn run(
     ];
 
     let mut metrics = metrics;
-    // A quantity the request bound a rule for is reported by that rule. Computed here as well
-    // it would put two values under one key, and the surfaces that look a key up resolve that
-    // in opposite directions: one takes the first match and one takes the last.
-    let bound_by_request = keys_the_request_bound(request);
+    // Computed here as well as by the rule the request named, a key would carry two values, and
+    // the surfaces that look a key up resolve that in opposite directions: one takes the first
+    // match and one takes the last.
     metrics.retain(|metric| !bound_by_request.contains(&metric.key.as_str()));
 
     run_derived_phase(
         trial,
         request,
         &epoch,
+        &conditioned.ids,
         onset_index,
         takeoff_index,
         touchdown_index,
@@ -325,6 +367,114 @@ pub fn run(
     Ok(response)
 }
 
+/// The row this build holds for an id, which is where a rule's construct, its quantities and
+/// the function behind it are declared together.
+///
+/// Panics rather than falling back, because the caller is the spine reaching for a rule it
+/// names in its own source: an id with no row is this file and `BINDINGS` disagreeing about
+/// what this build runs, which no result should be produced under.
+fn expect_row(method_id: &'static str) -> &'static crate::binding::Binding {
+    crate::binding::BINDINGS
+        .iter()
+        .find(|binding| binding.id == method_id)
+        .unwrap_or_else(|| panic!("{method_id} has no row in this build's binding table"))
+}
+
+/// The rules every number computed after the spine rests on, before the rule's own reading.
+///
+/// One home for the shape, because the spine runs one of these rules itself and a second copy
+/// of the shape would be free to answer the same question differently, which is the fault that
+/// put two records under one id in the first place.
+///
+/// It opens with what conditioned the signal, because the number was measured on the series
+/// those rules produced and cannot be reproduced without knowing which series that was.
+fn derived_chain(conditioning_ids: &[String], request: &AnalysisRequest) -> Vec<String> {
+    let mut chain = conditioning_ids.to_vec();
+    chain.extend([
+        request.weighing.method_id.clone(),
+        request.onset.method_id.clone(),
+        request.takeoff.method_id.clone(),
+    ]);
+    chain
+}
+
+/// A quantity the spine reports whose arithmetic is a registry entry, produced by running that
+/// entry rather than by repeating it in the spine.
+///
+/// The spine used to compute the flight-time height itself and label it with the entry's id.
+/// The entry publishes a gravity and declares 9.81; the spine's copy took the request's
+/// constant. So one id returned two numbers on one trial, differing only in whether the caller
+/// had named the rule, and neither result recorded which gravity produced it.
+///
+/// Nobody named the rule here, so it runs on nothing the caller stated and the record says so
+/// by itself: every value it read is marked assumed unless the request chose it elsewhere. A
+/// default that reaches the record is a choice; one that does not is an absence.
+#[allow(clippy::too_many_arguments)]
+fn run_spine_default(
+    binding: &'static crate::binding::Binding,
+    trial: &Trial,
+    request: &AnalysisRequest,
+    epoch: &plateforce_core::WeighingEpoch,
+    onset_index: Option<usize>,
+    takeoff_index: Option<usize>,
+    touchdown_index: Option<usize>,
+    landmarks_were_placed: bool,
+    bound_methods: &mut Vec<crate::resolution::BoundMethod>,
+    refusals: &mut Vec<DeclinedRule>,
+    warnings: &mut Vec<String>,
+) -> Vec<(&'static str, Option<f64>)> {
+    let Dispatch::Derived(rule) = binding.dispatch else {
+        return Vec::new();
+    };
+    // Nothing has been placed at this point in the analysis. A rule the spine runs for itself
+    // reads the landmarks and its own parameters, so it asks for no placed sample and its
+    // chain names none.
+    let placed = BTreeMap::new();
+    let context = DerivedContext::new(
+        trial,
+        epoch,
+        onset_index,
+        takeoff_index,
+        touchdown_index,
+        request.gravity_meters_per_second_squared,
+        request.gravity_source,
+        request.body_mass_kilograms,
+        &placed,
+        &request.derived,
+    );
+    let choice = MethodChoice {
+        method_id: binding.id.to_string(),
+        ..Default::default()
+    };
+    let outcome = rule(&context, &choice, warnings);
+    bound_methods.push(bound_method(
+        binding.id,
+        outcome.bound,
+        request.is_backed(binding.id),
+        false,
+    ));
+    // A rule the spine ran for itself declines out loud, on the same terms as one the caller
+    // named. Five of the six trials in the conformance corpus report no flight time, because
+    // the recording never returns to the plate after takeoff, and before this the result
+    // carried an empty height and said nothing at all about why.
+    //
+    // The exception is a recording no landmark was placed on. There the rules that failed to
+    // place them have already recorded why under their own names, or the spine has warned that
+    // onset sits at or after takeoff, so a rule declining for want of what they did not produce
+    // is a second record of one cause rather than a new fact.
+    if let Some(rejected) = outcome.refusal {
+        if landmarks_were_placed {
+            warnings.push(rejected.to_string());
+            refusals.push(DeclinedRule {
+                construct: binding.construct,
+                method_id: binding.id.to_string(),
+                refusal: rejected,
+            });
+        }
+    }
+    outcome.values
+}
+
 /// Every quantity key a rule the request named will report.
 ///
 /// Read off the binding rows rather than off what the rules produced, so a key is left out
@@ -358,6 +508,7 @@ fn run_derived_phase(
     trial: &Trial,
     request: &AnalysisRequest,
     epoch: &plateforce_core::WeighingEpoch,
+    conditioning_ids: &[String],
     onset_index: Option<usize>,
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
@@ -392,21 +543,19 @@ fn run_derived_phase(
             takeoff_index,
             touchdown_index,
             request.gravity_meters_per_second_squared,
+            request.gravity_source,
             request.body_mass_kilograms,
             &placed,
             &request.derived,
         );
         let outcome = rule(&context, choice, warnings);
 
-        // The chain behind a derived number is the landmark rules it rests on plus the rules
-        // whose samples it read, taken from what the rule asked for rather than from
-        // everything that ran before it. A record naming only the last step understates what
-        // produced the number, and one naming every earlier step cites rules it never used.
-        let mut chain: Vec<String> = vec![
-            request.weighing.method_id.clone(),
-            request.onset.method_id.clone(),
-            request.takeoff.method_id.clone(),
-        ];
+        // The chain behind a derived number is what conditioned the signal, then the landmark
+        // rules it rests on, then the rules whose samples it read, taken from what the rule
+        // asked for rather than from everything that ran before it. A record naming only the
+        // last step understates what produced the number, and one naming every earlier step
+        // cites rules it never used.
+        let mut chain = derived_chain(conditioning_ids, request);
         chain.extend(context.rules_read().into_iter().map(str::to_string));
 
         for (key, value) in &outcome.values {
