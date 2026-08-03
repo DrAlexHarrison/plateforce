@@ -1,12 +1,37 @@
+# The rule is that every population is reported under its own name and none of them is ever
+# summed, however many of them there are. A list of the populations that existed on the day
+# this was written asserts a snapshot instead, and reds the moment a fourth is added for
+# being correct, which is what happened when presets arrived.
 test_that("the census reports each population apart and never sums them", {
   census <- pf_registry()@census
 
   expect_false("total" %in% names(census))
   expect_false(any(census[["population"]] %in% c("total", "all")))
-  expect_setequal(
-    census[["population"]],
-    c("constructs", "computation_entries", "protocol_entries")
-  )
+
+  # The control. An empty census satisfies every assertion below about what it must not do.
+  expect_gt(nrow(census), 1)
+
+  populations <- census[["population"]]
+  expect_false(any(duplicated(populations)))
+  expect_true(all(nzchar(populations)))
+
+  # No row is any other row's total, which is what summing would produce whatever the
+  # populations are called. Checked against every subset of two or more rather than against
+  # the whole, so a sum of some of them is caught as well as a sum of all.
+  counts <- census[["count"]]
+  expect_true(all(counts > 0))
+  for (row in seq_along(counts)) {
+    others <- counts[-row]
+    # `seq` counts backwards when its end is below its start, so a census of two populations
+    # would ask for every subset of size one and then error rather than assert anything.
+    if (length(others) < 2) next
+    for (size in seq.int(2, length(others))) {
+      sums <- utils::combn(others, size, sum)
+      expect_false(counts[row] %in% sums,
+                   info = sprintf("%s equals the sum of %d other populations",
+                                  populations[row], size))
+    }
+  }
 })
 
 test_that("a derived count appears only on the population it was taken over", {

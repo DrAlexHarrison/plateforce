@@ -136,9 +136,14 @@ test_that("a refusal about how this surface is being used is declared as such", 
 # is never short of the codes nobody exercised. The set is derived from the sources here, so
 # a code raised and not declared is a failure rather than a member nobody looked for.
 test_that("every code the R sources raise is either the engine's or declared here", {
+  # An installed package has an `R/` directory too, holding the lazy-load database rather
+  # than any source file. Falling back to it made the directory test pass with nothing to
+  # read, so under `R CMD check` this scanned an empty set, the control below read it as a
+  # package that raises no codes, and every declared code then looked stale. What decides
+  # whether this test can run is the presence of the sources, so that is what is asked.
   root <- testthat::test_path("..", "..", "R")
-  if (!dir.exists(root)) root <- system.file("R", package = "plateforce")
-  skip_if_not(dir.exists(root), "the sources are not beside this test")
+  sources <- if (dir.exists(root)) list.files(root, pattern = "\\.R$") else character(0)
+  skip_if_not(length(sources) > 0, "the sources are not beside this test")
 
   raised_codes <- codes_raised_in_the_r_sources(root)
   # The control. A pattern that has stopped matching reads as a package that raises nothing,
