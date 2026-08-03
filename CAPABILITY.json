@@ -161,6 +161,10 @@
           "exit_code": 65
         },
         {
+          "code": "file_not_read",
+          "exit_code": 66
+        },
+        {
           "code": "method_not_implemented",
           "exit_code": 64
         },
@@ -375,6 +379,10 @@
           "exit_code": 65
         },
         {
+          "code": "file_not_read",
+          "exit_code": 66
+        },
+        {
           "code": "method_not_implemented",
           "exit_code": 64
         },
@@ -579,6 +587,10 @@
         {
           "code": "dependency_unresolved",
           "exit_code": 65
+        },
+        {
+          "code": "file_not_read",
+          "exit_code": 66
         },
         {
           "code": "method_not_implemented",

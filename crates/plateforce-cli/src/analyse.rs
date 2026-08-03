@@ -332,17 +332,20 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
             ),
         ));
     };
+    // Both failures publish the record rather than a sentence, so a shell can branch on the
+    // code and tell a path it cannot open from a file it read and did not understand. The
+    // read failure used to reach here as prose with no code at all.
     let text = std::fs::read_to_string(&args.trial).map_err(|error| {
-        Outcome::declined_line(
-            Fault::Request,
-            format!("{} cannot be read: {error}", args.trial.display()),
-        )
+        Outcome::declined(Declined::recorded(Refusal::file_not_read(
+            args.trial.display().to_string(),
+            error.to_string(),
+        )))
     })?;
     // A row with no stated delimiter is one field, so `--column 0` reads a single-column
     // export and any other column refuses by naming the index it wanted.
     let delimiter = args.delimiter.unwrap_or('\u{0}');
     let (values, report) = read_delimited_column(&text, delimiter, args.column)
-        .map_err(|error| Outcome::declined_line(Fault::Recording, format!("{error}")))?;
+        .map_err(|error| Outcome::declined(Declined::recorded(Refusal::from(error))))?;
 
     let sentinel = match args.sentinel {
         SentinelConvention::Zero => Some(Sentinel::Zero),

@@ -255,3 +255,73 @@ fn a_fault_in_the_line_publishes_no_code_and_a_refused_rule_publishes_one() {
         .expect("the sentence")
         .contains("carries no ="));
 }
+
+/// A path this binary cannot open is a different fault from a file it read and did not
+/// understand, and a workflow manager that retries one and stops on the other cannot tell
+/// them apart while they share a status. The read failure reached this surface as a
+/// sentence with no code at all before it had one.
+#[test]
+fn a_file_that_cannot_be_read_publishes_its_own_code_and_status() {
+    let missing = plateforce(&[
+        "--registry",
+        "../../registry",
+        "--format",
+        "json",
+        "analyse",
+        "no-such-trace.txt",
+        "--column",
+        "0",
+        "--sample-rate-hz",
+        "1200",
+        "--sentinel",
+        "none",
+        "--weighing",
+        "bwepoch.fixed_window",
+        "--set",
+        "weighing.duration=1.0",
+        "--onset",
+        "onset.threshold.noise_relative",
+        "--set",
+        "onset.k=5",
+        "--takeoff",
+        "takeoff.threshold.absolute_force",
+    ]);
+    let text = String::from_utf8_lossy(&missing.stdout).to_string()
+        + &String::from_utf8_lossy(&missing.stderr);
+    println!("{text}");
+    assert_eq!(missing.status.code(), Some(66), "{text}");
+    assert!(text.contains("file_not_read"), "{text}");
+    assert!(text.contains("no-such-trace.txt"), "{text}");
+
+    // The control, and the distinction the code exists to draw. A file that reads and does
+    // not carry the column asked for is the data being wrong, not the path.
+    let wrong_column = plateforce(&[
+        "--registry",
+        "../../registry",
+        "--format",
+        "json",
+        "analyse",
+        "../plateforce-conformance/fixtures/subject01_trial1.force.txt",
+        "--column",
+        "7",
+        "--sample-rate-hz",
+        "1200",
+        "--sentinel",
+        "none",
+        "--weighing",
+        "bwepoch.fixed_window",
+        "--set",
+        "weighing.duration=1.0",
+        "--onset",
+        "onset.threshold.noise_relative",
+        "--set",
+        "onset.k=5",
+        "--takeoff",
+        "takeoff.threshold.absolute_force",
+    ]);
+    let text = String::from_utf8_lossy(&wrong_column.stdout).to_string()
+        + &String::from_utf8_lossy(&wrong_column.stderr);
+    println!("{text}");
+    assert_eq!(wrong_column.status.code(), Some(65), "{text}");
+    assert!(text.contains("column_not_found"), "{text}");
+}

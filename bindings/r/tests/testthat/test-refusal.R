@@ -128,3 +128,23 @@ test_that("a rule that found its landmark declines nothing", {
   expect_false(is.null(result@onset_index))
   expect_identical(length(result@refusals), 0L)
 })
+
+# A path this package cannot open used to raise `file_unreadable` and a file it read and
+# could not get through used to raise `file_not_read`, two invented names for one failure,
+# neither of them in the vocabulary this package's own manifest publishes.
+test_that("a file that cannot be read raises the code the manifest publishes", {
+  condition <- tryCatch(
+    pf_read_force_file(
+      file.path(tempdir(), "no-such-trace.txt"),
+      sample_rate_hz = 1200,
+      force_column = 1L,
+      delimiter = "\t"
+    ),
+    plateforce_refusal = identity
+  )
+  expect_identical(condition[["code"]], "file_not_read")
+  expect_true(inherits(condition, "plateforce_file_not_read"))
+  manifest <- jsonlite::fromJSON(capability_json(), simplifyVector = FALSE)
+  published <- vapply(manifest[["ok"]][["refusal_codes"]], function(row) row[["code"]], character(1))
+  expect_true("file_not_read" %in% published)
+})

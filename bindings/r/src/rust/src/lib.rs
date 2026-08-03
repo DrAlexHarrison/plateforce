@@ -26,6 +26,10 @@ use serde::{Deserialize, Serialize};
 
 /// The fields an R condition carries, named as the cross-surface idiom names them, so the
 /// R class vector is `paste0("plateforce_", code)` with no translation table in between.
+///
+/// Field for field the same shape as `plateforce_core::Refusal`, which is what a rule's own
+/// refusal arrives as on an analysis result. Two shapes would mean `cnd[["detail"]]` reading
+/// as a named list out of one path and as a sentence out of the other, in one package.
 #[derive(Debug, Clone, Serialize)]
 pub struct Refusal {
     pub code: String,
@@ -33,8 +37,10 @@ pub struct Refusal {
     pub method_id: Option<String>,
     pub slot: Option<String>,
     pub parameter: Option<String>,
-    pub value: Option<String>,
-    pub detail: Option<String>,
+    pub value: Option<f64>,
+    /// The declined value where the parameter's values are names rather than numbers.
+    pub named_value: Option<String>,
+    pub detail: std::collections::BTreeMap<String, f64>,
     pub available: Option<Vec<String>>,
 }
 
@@ -47,7 +53,8 @@ impl Refusal {
             slot: None,
             parameter: None,
             value: None,
-            detail: None,
+            named_value: None,
+            detail: std::collections::BTreeMap::new(),
             available: None,
         }
     }
@@ -59,9 +66,31 @@ impl Refusal {
         }
     }
 
+    /// The value a rule declined on, when it is a name rather than a number.
     fn about(mut self, value: impl Into<String>) -> Self {
-        self.value = Some(value.into());
+        self.named_value = Some(value.into());
         self
+    }
+}
+
+/// A refusal the engine built, in the shape this package hands to R.
+///
+/// Nothing is decided here: the code, the sentence and every field come from the record the
+/// engine produced. Written as a conversion so a site that has one stops inventing a code
+/// for the failure it already describes.
+impl From<plateforce_core::Refusal> for Refusal {
+    fn from(refusal: plateforce_core::Refusal) -> Self {
+        Self {
+            code: refusal.code.wire_name().to_string(),
+            message: refusal.message().to_string(),
+            method_id: Some(refusal.method_id.clone()).filter(|id| !id.is_empty()),
+            slot: refusal.slot.clone(),
+            parameter: refusal.parameter.clone(),
+            value: refusal.value,
+            named_value: refusal.named_value.clone(),
+            detail: refusal.detail.clone(),
+            available: Some(refusal.available.clone()).filter(|names| !names.is_empty()),
+        }
     }
 }
 
@@ -389,9 +418,10 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
         Ok(text) => text,
         Err(error) => {
             return (
-                refuse::<TrialReport>(
-                    Refusal::of("file_unreadable", error.to_string()).about(request.path.clone()),
-                ),
+                refuse::<TrialReport>(Refusal::from(plateforce_core::Refusal::file_not_read(
+                    request.path.clone(),
+                    error.to_string(),
+                ))),
                 None,
             )
         }
@@ -401,7 +431,7 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
         Ok(read) => read,
         Err(error) => {
             return (
-                refuse::<TrialReport>(Refusal::of("file_not_read", error.to_string())),
+                refuse::<TrialReport>(Refusal::from(plateforce_core::Refusal::from(error))),
                 None,
             )
         }

@@ -3,8 +3,11 @@
 //! Which column carries vertical ground reaction force is a property of the export,
 //! not of the file format, so the caller names it and the reader reports back what it
 //! read rather than inferring anything.
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
+use crate::refusal::RefusalCode;
 use crate::signal::{Trial, TrialError};
 
 #[derive(Debug, thiserror::Error)]
@@ -31,6 +34,63 @@ pub enum ReadError {
         #[source]
         source: std::io::Error,
     },
+}
+
+/// The one mapping from a read failure onto the refusal every surface reads.
+///
+/// Written here beside the error, as `TrialError`'s is written beside that one. Before it
+/// existed each surface answered a failed read for itself: the terminal published a sentence
+/// with no code at all, and the R package minted `file_not_read` and `file_unreadable` for
+/// one failure, neither of them in the vocabulary its own manifest publishes.
+impl From<ReadError> for crate::Refusal {
+    fn from(error: ReadError) -> Self {
+        match error {
+            ReadError::ColumnMissing {
+                line_number,
+                column_index,
+                columns_found,
+            } => {
+                let mut refusal = crate::Refusal::column_not_found(
+                    format!("column index {column_index}"),
+                    (0..columns_found)
+                        .map(|index| format!("column index {index}"))
+                        .collect(),
+                );
+                refusal
+                    .detail
+                    .insert("line_number".to_string(), line_number as f64);
+                refusal.regenerate();
+                refusal
+            }
+            ReadError::NoRows { column_index } => {
+                crate::Refusal::column_not_found(format!("column index {column_index}"), Vec::new())
+            }
+            // The cell's contents are a word rather than a number, which is exactly what
+            // `named_value` carries: a caller reading this gets the text that failed to
+            // parse rather than having to find it inside the sentence.
+            ReadError::NotANumber {
+                line_number,
+                column_index,
+                text,
+            } => {
+                let mut refusal = crate::Refusal::build(
+                    RefusalCode::ParameterNotFinite,
+                    "",
+                    Some(format!("column index {column_index}")),
+                    None,
+                    BTreeMap::from([("line_number".to_string(), line_number as f64)]),
+                    Vec::new(),
+                );
+                refusal.named_value = Some(text);
+                refusal.regenerate();
+                refusal
+            }
+            ReadError::Trace(inner) => crate::Refusal::from(inner),
+            ReadError::Io { path, source } => {
+                crate::Refusal::file_not_read(path, source.to_string())
+            }
+        }
+    }
 }
 
 /// What a read consumed. Emitted alongside the trace so a mis-set column

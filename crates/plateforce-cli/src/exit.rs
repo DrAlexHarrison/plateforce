@@ -13,6 +13,8 @@ pub enum Fault {
     Request,
     /// The recording did not contain what the rule looks for.
     Recording,
+    /// The file named could not be read at all, so nothing in it was reached.
+    Input,
     /// An invariant this software states and then breaks.
     Internal,
     /// The registry does not load.
@@ -24,6 +26,7 @@ impl Fault {
         match self {
             Fault::Request => 64,   // EX_USAGE
             Fault::Recording => 65, // EX_DATAERR
+            Fault::Input => 66,     // EX_NOINPUT
             Fault::Internal => 70,  // EX_SOFTWARE
             Fault::Registry => 78,  // EX_CONFIG
         }
@@ -37,6 +40,7 @@ pub fn fault_for(code: RefusalCode) -> Fault {
     match exit_code(code) {
         64 => Fault::Request,
         65 => Fault::Recording,
+        66 => Fault::Input,
         78 => Fault::Registry,
         _ => Fault::Internal,
     }

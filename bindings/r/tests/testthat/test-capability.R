@@ -50,7 +50,9 @@ test_that("every refusal code the manifest names carries a shell exit status", {
   expect_true(length(codes) > 0)
   for (record in codes) {
     expect_true(nzchar(record[["code"]]))
-    expect_true(record[["exit_code"]] %in% c(64L, 65L, 78L))
+    # EX_USAGE, EX_DATAERR, EX_NOINPUT, EX_CONFIG. A file that cannot be opened takes its
+    # own status because a workflow manager retries bad data and stops on a missing path.
+    expect_true(record[["exit_code"]] %in% c(64L, 65L, 66L, 78L))
     expect_identical(record[["code"]], tolower(record[["code"]]))
   }
 })

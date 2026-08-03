@@ -78,6 +78,12 @@ refusal_codes! {
     /// earlier step declined, so the remedy is upstream of the rule that reports this.
     /// Distinct from `DecisionNotMade`, where the caller never chose the earlier rule at all.
     DependencyUnresolved,
+    /// A file the reader could not open or could not get through. Distinct from
+    /// `ColumnNotFound`, which is a file that was read and does not carry what was asked for:
+    /// here nothing was read, so no column could have been missing. It is the one code whose
+    /// remedy is the path rather than the request or the data, and it takes its own exit
+    /// status for that reason.
+    FileNotRead,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -106,6 +112,9 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         | RefusalCode::RequiredParameterUnstated
         | RefusalCode::PlateNotLevel
         | RefusalCode::ConventionsNotComparable => 64,
+        // EX_NOINPUT. A workflow manager that retries on bad data and stops on a missing
+        // file cannot tell the two apart while they share a status.
+        RefusalCode::FileNotRead => 66,
         RefusalCode::RegistryInvalid => 78,
     }
 }
@@ -135,6 +144,7 @@ impl RefusalCode {
             RefusalCode::ConventionsNotComparable => "conventions_not_comparable",
             RefusalCode::NotEnoughObservations => "not_enough_observations",
             RefusalCode::DependencyUnresolved => "dependency_unresolved",
+            RefusalCode::FileNotRead => "file_not_read",
         }
     }
 }
@@ -157,9 +167,12 @@ impl From<&crate::read::ReadError> for RefusalCode {
     fn from(error: &crate::read::ReadError) -> Self {
         use crate::read::ReadError;
         match error {
-            ReadError::ColumnMissing { .. } | ReadError::NoRows { .. } | ReadError::Io { .. } => {
+            ReadError::ColumnMissing { .. } | ReadError::NoRows { .. } => {
                 RefusalCode::ColumnNotFound
             }
+            // A file that could not be opened carries no columns, so reporting it as a
+            // missing column sends a caller to change an index that was never read.
+            ReadError::Io { .. } => RefusalCode::FileNotRead,
             ReadError::NotANumber { .. } => RefusalCode::ParameterNotFinite,
             ReadError::Trace(inner) => RefusalCode::from(inner),
         }
@@ -203,7 +216,7 @@ pub struct Refusal {
 }
 
 impl Refusal {
-    fn build(
+    pub(crate) fn build(
         code: RefusalCode,
         method_id: impl Into<String>,
         parameter: Option<String>,
@@ -226,7 +239,7 @@ impl Refusal {
         refusal
     }
 
-    fn regenerate(&mut self) {
+    pub(crate) fn regenerate(&mut self) {
         self.message = sentence(
             self.code,
             &self.method_id,
@@ -311,6 +324,19 @@ impl Refusal {
             None,
             BTreeMap::from([("sample_count".to_string(), 0.0)]),
             Vec::new(),
+        )
+    }
+
+    /// A file that could not be opened or could not be got through, named with the reason
+    /// the operating system or the reader gave.
+    pub fn file_not_read(path: impl Into<String>, reason: impl Into<String>) -> Self {
+        Self::build(
+            RefusalCode::FileNotRead,
+            "",
+            Some(path.into()),
+            None,
+            BTreeMap::new(),
+            vec![reason.into()],
         )
     }
 
@@ -706,6 +732,11 @@ fn sentence(
             "{subject} found no crossing within the search bound of {} s",
             named("search_bound_seconds")
         ),
+        RefusalCode::FileNotRead => format!(
+            "{} could not be read: {}",
+            parameter.unwrap_or("that path"),
+            available.first().map(String::as_str).unwrap_or("no detail")
+        ),
         RefusalCode::DependencyUnresolved => format!(
             "{subject} reads what {} placed, and that step placed nothing",
             if available.is_empty() {
@@ -1056,8 +1087,8 @@ mod tests {
 
         for code in RefusalCode::ALL {
             assert!(
-                matches!(exit_code(*code), 64 | 65 | 78),
-                "{code:?} exits {}, which is not one of the three statuses this build uses",
+                matches!(exit_code(*code), 64 | 65 | 66 | 78),
+                "{code:?} exits {}, which is not one of the four statuses this build uses",
                 exit_code(*code)
             );
         }

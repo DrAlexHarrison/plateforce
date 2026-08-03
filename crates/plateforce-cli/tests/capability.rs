@@ -129,7 +129,7 @@ fn every_refusal_code_carries_an_exit_status_a_shell_reads() {
         .collect();
     let recognised = named
         .iter()
-        .filter(|code| matches!(code, 64 | 65 | 78))
+        .filter(|code| matches!(code, 64 | 65 | 66 | 78))
         .count();
     println!(
         "refusal codes: {}; carrying a sysexits status: {} of {}",

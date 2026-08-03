@@ -1,0 +1,3 @@
+# Refusal codes each surface can raise that its own manifest does not publish.
+# The ceiling only falls. Lower it in the commit that closes a code.
+r 7
