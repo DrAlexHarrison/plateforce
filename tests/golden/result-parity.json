@@ -32,6 +32,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "bwepoch.fixed_window",
         "parameter_sources": {
           "centre": "assumed",
@@ -63,6 +64,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "onset.threshold.noise_relative",
         "parameter_sources": {
           "degenerate_band": "assumed",
@@ -81,6 +83,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "onset.op.backward_offset_fixed",
         "parameter_sources": {
           "offset_ms": "assumed"
@@ -96,6 +99,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "onset.op.crossing_selection",
         "parameter_sources": {
           "selection": "assumed"
@@ -111,6 +115,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "onset.op.direction",
         "parameter_sources": {
           "direction": "assumed"
@@ -126,6 +131,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "onset.op.persistence",
         "parameter_sources": {
           "span_ms": "assumed"
@@ -141,6 +147,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "onset.op.search_floor_at_weighing_epoch_end",
         "parameter_sources": {
           "weighing_epoch_end_seconds": "measured"
@@ -164,6 +171,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "takeoff.threshold.absolute_force",
         "parameter_sources": {
           "comparison": "assumed",
