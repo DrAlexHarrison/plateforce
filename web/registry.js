@@ -157,11 +157,10 @@ export function initialParameters(candidate, forcesDecision) {
 
 /* Every axis the spread view can sweep. Parameter axes come from the published values the
  * registry records; the method axis comes from the runnable rules. Nothing here is
- * invented. The sweep varies the rules the request names by their own field, so those are
- * the rows an axis is offered for. */
+ * invented. A row reached through `derived` sweeps under the construct id the request
+ * carries it by, which is the same key the sweep resolves it against. */
 export function availableAxes(slot, candidate) {
   const axes = [];
-  if (!slot.spine) return axes;
 
   if (slot.available.length > 1) {
     axes.push({

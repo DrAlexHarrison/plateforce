@@ -235,6 +235,133 @@ check('the request names every construct on the path, by its field or through de
   live.named.length + live.derived.length === live.rowConstructs.length,
   `${live.named.length} named by a field (${live.named.join(', ')}), ${live.derived.length} through derived`);
 
+/*
+ * PP-GRAMMAR-03. A quantity the path does not visit is reached from the workspace, by
+ * searching the words the field speaks, in two interactions: type, then choose.
+ */
+const picker = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const { offerableConstructs } = await import('./add-quantity.js');
+  const runnable = new Set(state.build.bindings.map((b) => b.construct));
+  const visited = new Set(state.slots.map((s) => s.construct));
+  return {
+    offered: [...document.querySelectorAll('#add-quantity-list button')].map((b) => b.textContent),
+    offerable: offerableConstructs().length,
+    runnableNotVisited: [...runnable].filter((c) => !visited.has(c)).length,
+    copy: document.querySelector('#add-quantity label').textContent,
+    hidden: document.getElementById('add-quantity').hidden,
+  };
+})()`);
+
+check('the picker offers every quantity a rule can produce that the path does not visit',
+  !picker.hidden && picker.offered.length === picker.runnableNotVisited && picker.offerable === picker.runnableNotVisited,
+  `${picker.offered.length} offered against ${picker.runnableNotVisited} the build can run and the path does not visit: ${picker.offered.join(', ')}`);
+check('the picker names the reader’s quantity and not the software’s inventory',
+  picker.copy === 'Add a quantity', picker.copy);
+
+/*
+ * Typing narrows the list to the words the field speaks, which is the first of the two
+ * interactions that reach a quantity. The term is the one the founding measurement is about,
+ * and the construct chosen from the matches is whichever carries the most published rules,
+ * so the sweep below is over the widest disagreement the build can run rather than over
+ * whichever row happened to sort first.
+ */
+const SPOKEN = 'jump height';
+const searched = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const search = document.getElementById('add-quantity-search');
+  search.value = ${JSON.stringify(SPOKEN)};
+  search.dispatchEvent(new Event('input'));
+  const shown = [...document.querySelectorAll('#add-quantity-list button')];
+  const rulesFor = (construct) => state.build.bindings.filter((b) => b.construct === construct).length;
+  const widest = shown.slice().sort((a, b) => rulesFor(b.dataset.construct) - rulesFor(a.dataset.construct))[0];
+  return {
+    labels: shown.map((b) => b.textContent),
+    constructs: shown.map((b) => b.dataset.construct),
+    chosen: widest?.dataset.construct ?? null,
+    chosenRules: widest ? rulesFor(widest.dataset.construct) : 0,
+  };
+})()`);
+check('searching the spoken words narrows the list rather than listing every construct',
+  searched.labels.length > 0 && searched.labels.length < picker.offered.length
+    && searched.labels.every((label) => label.toLowerCase().includes(SPOKEN)),
+  `${searched.labels.length} of ${picker.offered.length} match "${SPOKEN}": ${searched.labels.join(', ')}`);
+
+/* The second interaction. A row appears in the rail, a card appears in the results, and the
+ * card carries the rules that produced it. */
+const beforeAdd = await evaluate(`(() => document.querySelectorAll('#metric-grid .metric').length)()`);
+await evaluate(`document.querySelector('#add-quantity-list button[data-construct="${searched.chosen}"]').click()`);
+await settle(`document.querySelector('#decision-list select[data-construct="${searched.chosen}"]')`,
+  'the row for the quantity just added');
+
+const added = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const { buildRequest } = await import('./analysis.js');
+  const construct = ${JSON.stringify(searched.chosen)};
+  const slot = state.slots.find((s) => s.construct === construct);
+  const quantities = new Set(
+    state.build.bindings.filter((b) => b.construct === construct).flatMap((b) => b.quantities.map((q) => q.key)),
+  );
+  const cards = state.analysis.metrics.filter((m) => quantities.has(m.key));
+  return {
+    onThePath: state.path.includes(construct),
+    railRow: Boolean(document.querySelector('#decision-list select[data-construct="' + construct + '"]')),
+    inTheRequest: Boolean(buildRequest().derived[construct]),
+    rowTitle: slot?.title ?? null,
+    cards: cards.map((m) => m.label),
+    withProvenance: cards.filter((m) => (m.contributing_method_ids || []).length > 0).length,
+    metricsNow: state.analysis.metrics.length,
+    stillOffered: [...document.querySelectorAll('#add-quantity-list button')].map((b) => b.dataset.construct),
+  };
+})()`);
+
+check('choosing it puts the construct on the path, in the rail and in the request',
+  added.onThePath && added.railRow && added.inTheRequest,
+  `${searched.chosen} titled "${added.rowTitle}", rail row ${added.railRow}, in the request ${added.inTheRequest}`);
+check('a card appears in the results for it, carrying the rules that produced it',
+  added.cards.length > 0 && added.withProvenance === added.cards.length,
+  `${added.cards.length} cards (${added.cards.join(', ')}), ${added.withProvenance} carrying provenance, ${beforeAdd} metrics became ${added.metricsNow}`);
+check('a quantity already on the path is no longer offered',
+  !added.stillOffered.includes(searched.chosen),
+  `still offered: ${added.stillOffered.join(', ') || 'none matching the search'}`);
+
+/*
+ * A sweep over a construct reached through `derived` moves the number.
+ *
+ * The engine resolves an axis it does not recognise as a landmark against the request's
+ * `derived` map and refuses one the request does not carry, so an axis on such a row is
+ * applied rather than ignored. Asserting more than one distinct value is what tells a
+ * working sweep from one that returns its starting number as many times as it was asked.
+ */
+const swept = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const { buildRequest } = await import('./analysis.js');
+  const construct = ${JSON.stringify(searched.chosen)};
+  const slot = state.slots.find((s) => s.construct === construct);
+  if (!slot || slot.available.length < 2) return { skipped: slot ? slot.available.length : 0 };
+  const quantity = state.build.bindings.find((b) => b.construct === construct && b.quantities.length)
+    ?.quantities[0]?.key;
+  const response = JSON.parse(state.loadedTrial.spread(JSON.stringify({
+    base: buildRequest(),
+    axes: [{ slot: slot.key, parameter: null, values: [], method_ids: slot.available.map((c) => c.id) }],
+    quantity_key: quantity,
+    maximum_combinations: 512,
+  })));
+  const values = (response.variants || []).map((v) => v.value).filter((v) => v != null);
+  return {
+    quantity,
+    rules: slot.available.length,
+    succeeded: response.succeeded,
+    distinct: new Set(values).size,
+  };
+})()`);
+
+check('a sweep over a construct reached through derived varies the number rather than repeating it',
+  swept.skipped === undefined && swept.distinct > 1,
+  swept.skipped !== undefined
+    ? `skipped: the added construct has ${swept.skipped} runnable rules`
+    : `${swept.rules} rules over ${swept.quantity}, ${swept.succeeded} succeeded, ${swept.distinct} distinct values`);
+
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {
   console.log(`${result.passed ? 'pass' : 'FAIL'}  ${result.name}\n      ${result.read}`);

@@ -27,6 +27,7 @@ MODEL = [
     'web/startup.js',
     'web/workspace.js',
     'web/batch-run.js',
+    'web/add-quantity.js',
     'web/state.js',
 ]
 

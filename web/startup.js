@@ -6,6 +6,7 @@ import { element, showStage } from './format.js';
 import { buildDecisionModel, preferredCandidate, initialParameters } from './registry.js';
 import { wireGlobalControls } from './import-file.js';
 import { wireBatchControls } from './batch-run.js';
+import { wirePicker } from './add-quantity.js';
 
 export async function start() {
   try {
@@ -24,6 +25,7 @@ export async function start() {
   resetSelections();
   wireGlobalControls();
   wireBatchControls();
+  wirePicker();
   showStage('stage-empty');
 }
 
@@ -57,13 +59,22 @@ function renderBuildInfo() {
 
 export function resetSelections() {
   state.selection = {};
+  initialiseMissingSelections();
+  state.weighing = { startIndex: null };
+}
+
+/* A slot with nothing bound to it yet opens on the registry's own first-ranked runnable
+ * rule, or on nothing where the construct forces a choice. A slot the reader has already
+ * bound keeps what they bound, so putting another quantity on the path does not quietly
+ * undo a decision they made. */
+export function initialiseMissingSelections() {
   for (const slot of state.slots) {
+    if (state.selection[slot.key]) continue;
     const candidate = preferredCandidate(slot);
     state.selection[slot.key] = candidate
       ? { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) }
       : { methodId: null, values: {}, unresolved: [] };
   }
-  state.weighing = { startIndex: null };
 }
 
 export function candidateFor(slotKey, id) {

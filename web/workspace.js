@@ -8,6 +8,7 @@ import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
 import { runAnalysis, recordStated, withSources } from './analysis.js';
 import { endingOf } from './batch-run.js';
+import { renderPicker } from './add-quantity.js';
 
 export function enterWorkspace() {
   state.overrides = { onset: null, takeoff: null, touchdown: null };
@@ -63,6 +64,7 @@ export function enterWorkspace() {
 
   renderLegend();
   refreshEnvelope();
+  renderPicker();
   renderDecisions();
   runAnalysis();
 }
