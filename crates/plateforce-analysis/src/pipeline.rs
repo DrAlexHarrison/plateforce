@@ -289,18 +289,6 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     Ok(response)
 }
 
-/// Every rule the request named for a construct computed from the landmarks, in the order
-/// `BINDINGS` declares them.
-///
-/// Declaration order is the whole of the ordering rule: a rule that reads what another rule
-/// placed is declared after it. That is checked rather than trusted, by
-/// `a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it`.
-///
-/// A construct named with no rule behind it, or an id that is not the rule filed under the
-/// construct it was named for, ends the analysis rather than being skipped. Skipping would
-/// answer a request for peak force with a result carrying no peak force and nothing saying
-/// why.
-#[allow(clippy::too_many_arguments)]
 /// Every quantity key a rule the request named will report.
 ///
 /// Read off the binding rows rather than off what the rules produced, so a key is left out
@@ -318,6 +306,17 @@ fn keys_the_request_bound(request: &AnalysisRequest) -> Vec<&'static str> {
         .collect()
 }
 
+/// Every rule the request named for a construct computed from the landmarks, in the order
+/// `BINDINGS` declares them.
+///
+/// Declaration order is the whole of the ordering rule: a rule that reads what another rule
+/// placed is declared after it. That is checked rather than trusted, by
+/// `a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it`.
+///
+/// A construct named with no rule behind it, or an id that is not the rule filed under the
+/// construct it was named for, ends the analysis rather than being skipped. Skipping would
+/// answer a request for peak force with a result carrying no peak force and nothing saying
+/// why.
 #[allow(clippy::too_many_arguments)]
 fn run_derived_phase(
     trial: &Trial,
