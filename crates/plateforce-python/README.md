@@ -38,7 +38,7 @@ print(jump.jump_height_takeoff_frame_meters.describe())
 ```
 0.3419695652891413 meters
   jumpheight.takeoff.impulse_momentum {'gravity_meters_per_second_squared': 9.80665}
-  registry 2026-07-25 (content-a14543984c4ed7d2)
+  registry 2026-07-25 (content-bbdae39b15731138)
     impulse.net_vertical.as_performance_determinant {'gravity_meters_per_second_squared': 9.80665}
       bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
         centre = mean
