@@ -47,6 +47,16 @@ pub struct Binding {
     /// composition is a method plus bound parameters, so it carries the base row's
     /// citations and the fingerprint carries the binding.
     pub composed_from: Option<&'static str>,
+    /// The entry a result reached by this id is recorded against, set only where the id is
+    /// not itself an entry. A reader looks up what the record names, so an id that names no
+    /// entry may be selected but may never be recorded.
+    ///
+    /// Composing does not put a row here. `takeoff.threshold.descending_crossing` composes
+    /// and has an entry of its own, so it records under itself and this is `None`. What puts
+    /// a row here is the registry already enumerating the choice as a value of an operator's
+    /// parameter, which leaves the compound name a second spelling of a pair the registry
+    /// spells already.
+    pub records_under: Option<&'static str>,
     pub note: &'static str,
     /// The quantities this rule can report, declared here so one row carries a rule's
     /// metadata and everything it produces. A surface listing quantities reads the table
@@ -68,6 +78,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::conditioned_force_signal::CONSTRUCT,
         title: "No conditioning before event detection or integration",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Conditioning(crate::slots::conditioned_force_signal::none::apply),
@@ -78,6 +89,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: WEIGHING_CONSTRUCT,
         title: "Fixed window at the start of the recording",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -88,6 +100,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: WEIGHING_CONSTRUCT,
         title: "Quietest window in the recording",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -98,6 +111,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: WEIGHING_CONSTRUCT,
         title: "Window placed by hand",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -108,6 +122,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: ONSET_CONSTRUCT,
         title: "Noise-relative threshold, k SD of the quiet epoch",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -118,6 +133,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: ONSET_CONSTRUCT,
         title: "Fixed fraction below system weight",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -128,6 +144,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: ONSET_CONSTRUCT,
         title: "Absolute departure in newtons",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -138,7 +155,8 @@ pub const BINDINGS: &[Binding] = &[
         construct: ONSET_CONSTRUCT,
         title: "Last sample still inside the noise band",
         composed_from: Some("onset.threshold.noise_relative"),
-        note: "Composition: onset.op.crossing_selection bound to last.",
+        records_under: Some("onset.threshold.noise_relative"),
+        note: "Composition: onset.op.crossing_selection bound to last, above a search bound at the force minimum.",
         quantities: &[],
         dispatch: Dispatch::Spine,
     },
@@ -148,6 +166,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: ONSET_CONSTRUCT,
         title: "Threshold recomputed from a trailing window",
         composed_from: None,
+        records_under: None,
         note: "The registry files this concept as bwepoch.rolling_trailing_window, in group B with the reference-epoch rules.",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -158,6 +177,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: TAKEOFF_CONSTRUCT,
         title: "First sustained run below a residual threshold",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -168,7 +188,8 @@ pub const BINDINGS: &[Binding] = &[
         construct: TAKEOFF_CONSTRUCT,
         title: "Longest run below the threshold",
         composed_from: Some("takeoff.threshold.absolute_force"),
-        note: "Composition: onset.op.crossing_selection bound to longest_run at the falling edge.",
+        records_under: Some("takeoff.threshold.absolute_force"),
+        note: "Composition: takeoff.op.crossing_selection bound to longest_run.",
         quantities: &[],
         dispatch: Dispatch::Spine,
     },
@@ -178,7 +199,8 @@ pub const BINDINGS: &[Binding] = &[
         construct: TAKEOFF_CONSTRUCT,
         title: "Sample before a confirmed descending crossing",
         composed_from: Some("takeoff.threshold.absolute_force"),
-        note: "Composition: onset.op.direction bound at the falling edge.",
+        records_under: None,
+        note: "Composition: onset.op.direction bound at the falling edge. An entry of its own, so it records under itself.",
         quantities: &[],
         dispatch: Dispatch::Spine,
     },
@@ -188,6 +210,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: TAKEOFF_CONSTRUCT,
         title: "Threshold re-estimated from the flight phase itself",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -198,6 +221,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: TAKEOFF_CONSTRUCT,
         title: "First low-force run the recording closes with a landing",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: &[],
         dispatch: Dispatch::Spine,
@@ -211,6 +235,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::analysis_window::CONSTRUCT,
         title: "The recording up to the sample takeoff was placed at",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::analysis_window::takeoff_detected::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::analysis_window::takeoff_detected::RULE),
@@ -221,6 +246,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::analysis_window::CONSTRUCT,
         title: "A fixed test length measured from onset",
         composed_from: None,
+        records_under: None,
         note: "Scoped to an isometric test by its entry. It runs on any recording and answers the question it was asked.",
         quantities: crate::slots::analysis_window::fixed_duration_isometric::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::analysis_window::fixed_duration_isometric::RULE),
@@ -231,6 +257,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::peak_force::CONSTRUCT,
         title: "The biggest force, system weight included",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::peak_force::gross::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::peak_force::gross::RULE),
@@ -241,6 +268,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::peak_force::CONSTRUCT,
         title: "The biggest force above standing weight",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::peak_force::net::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::peak_force::net::RULE),
@@ -251,6 +279,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::peak_force::CONSTRUCT,
         title: "The biggest force, read off a centred average of stated width",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::peak_force::estimator::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::peak_force::estimator::RULE),
@@ -261,6 +290,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::time_to_takeoff::CONSTRUCT,
         title: "From the placed onset to the placed takeoff",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::time_to_takeoff::onset_to_takeoff::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::time_to_takeoff::onset_to_takeoff::RULE),
@@ -271,6 +301,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::flight_time::CONSTRUCT,
         title: "From the placed takeoff to the return to the plate",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::flight_time::takeoff_to_touchdown::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::flight_time::takeoff_to_touchdown::RULE),
@@ -281,6 +312,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
         title: "Rise from takeoff, from the velocity the net impulse gave",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_takeoff_frame::impulse_momentum::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::impulse_momentum::RULE),
@@ -291,6 +323,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
         title: "Rise from takeoff, from the time spent off the plate",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_takeoff_frame::flight_time::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::flight_time::RULE),
@@ -301,6 +334,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
         title: "Rise from takeoff, from the highest velocity reached",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_takeoff_frame::peak_velocity::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::peak_velocity::RULE),
@@ -311,6 +345,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
         title: "Rise from takeoff, from the work the net force did",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_takeoff_frame::work_energy::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::work_energy::RULE),
@@ -321,6 +356,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_standing_frame::CONSTRUCT,
         title: "Rise from standing, as the apex of one integrated curve",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_standing_frame::double_integral::QUANTITIES,
         dispatch: Dispatch::Derived(
@@ -333,6 +369,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_standing_frame::CONSTRUCT,
         title: "Rise from standing, as the rise to takeoff plus the flight",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_standing_frame::tov_plus_rise::QUANTITIES,
         dispatch: Dispatch::Derived(
@@ -345,6 +382,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_undeclared::CONSTRUCT,
         title: "Which rise the height denotes, stated by the reader",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_undeclared::frame::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::jh_undeclared::frame::RULE),
@@ -355,6 +393,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_undeclared::CONSTRUCT,
         title: "The apex of the curve, searched between takeoff and landing",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_undeclared::flight_apex::QUANTITIES,
         dispatch: Dispatch::Derived(
@@ -367,6 +406,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::jh_undeclared::CONSTRUCT,
         title: "The smaller of the flight-time and takeoff-velocity heights",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::jh_undeclared::minimum_of_two::QUANTITIES,
         dispatch: Dispatch::Derived(
@@ -382,6 +422,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::braking_phase_start::CONSTRUCT,
         title: "Net force crosses zero upward after the minimum",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::braking_phase_start::zero_net_force::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::braking_phase_start::zero_net_force::RULE),
@@ -392,6 +433,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::braking_phase_start::CONSTRUCT,
         title: "The instant of minimum vertical force following onset",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::braking_phase_start::min_force::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::braking_phase_start::min_force::RULE),
@@ -402,6 +444,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::propulsion_phase_start::CONSTRUCT,
         title: "Centre of mass velocity crosses zero from below",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::propulsion_phase_start::zero_velocity::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::zero_velocity::RULE),
@@ -412,6 +455,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::propulsion_phase_start::CONSTRUCT,
         title: "Centre of mass velocity first exceeds a small positive threshold",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::propulsion_phase_start::velocity_threshold::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::velocity_threshold::RULE),
@@ -422,6 +466,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::propulsion_phase_start::CONSTRUCT,
         title: "The instant of peak vertical force",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::propulsion_phase_start::peak_grf::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::peak_grf::RULE),
@@ -433,6 +478,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::propulsion_phase_end::CONSTRUCT,
         title: "Propulsion ends at maximum centre of mass velocity rather than at takeoff",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
@@ -445,6 +491,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::phase_model::CONSTRUCT,
         title: "One unweighting phase from onset to peak negative velocity",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::phase_model::unweighting_single::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::phase_model::unweighting_single::RULE),
@@ -455,6 +502,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::phase_model::CONSTRUCT,
         title: "Unloading and eccentric yielding split at the force minimum",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::phase_model::unloading_yielding_split::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::phase_model::unloading_yielding_split::RULE),
@@ -465,6 +513,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::phase_model::CONSTRUCT,
         title: "Fixed time epochs measured from contraction onset",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::phase_model::time_epochs::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::phase_model::time_epochs::RULE),
@@ -475,6 +524,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::phase_model::CONSTRUCT,
         title: "Split the propulsion phase at half its duration",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::phase_model::propulsion_subdivision_by_time::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::phase_model::propulsion_subdivision_by_time::RULE),
@@ -485,6 +535,7 @@ pub const BINDINGS: &[Binding] = &[
         construct: crate::slots::phase_model::CONSTRUCT,
         title: "Split the propulsion phase where force descends through system weight",
         composed_from: None,
+        records_under: None,
         note: "",
         quantities: crate::slots::phase_model::propulsion_subdivision_by_force_crossing::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::phase_model::propulsion_subdivision_by_force_crossing::RULE),
@@ -525,6 +576,21 @@ pub fn conditioning_constructs() -> Vec<&'static str> {
         }
     }
     seen
+}
+
+/// The registry entry a result reached by this id is recorded against.
+///
+/// Selecting and recording are different acts and this is the one place they diverge. A
+/// caller may select a compound name the interface offers; what travels with the number is
+/// the entry a stranger can look up, with the operator the compound name bound recorded
+/// beside it by the rule that bound it. An id that is itself an entry answers itself, so
+/// every caller can route through this without asking whether it needs to.
+pub fn records_under(method_id: &str) -> &str {
+    BINDINGS
+        .iter()
+        .find(|binding| binding.id == method_id)
+        .and_then(|binding| binding.records_under)
+        .unwrap_or(method_id)
 }
 
 /// Every rule reached by construct id through the request rather than by a named field.

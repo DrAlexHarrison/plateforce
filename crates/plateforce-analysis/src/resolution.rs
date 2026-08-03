@@ -540,3 +540,59 @@ pub(crate) fn bound_method(
         numeric_values: values.numbers,
     }
 }
+
+/// One rule's reading, split into the entry it is recorded under and the operator entries
+/// it composed, each carrying only the values that belong to it.
+///
+/// Written once and called by both landmark slots. Each supplies its own name-to-entry map,
+/// because the onset and takeoff operator families are separate registry entries and a
+/// takeoff parameter recorded against an onset operator is a value filed under a construct
+/// it never touched. The split itself is one rule, so it has one home.
+pub(crate) fn bound_with_operators(
+    method_id: &str,
+    values: BoundValues,
+    operator_for: fn(&str) -> Option<&'static str>,
+    backed: impl Fn(&str) -> bool,
+    manual_override: bool,
+) -> Vec<BoundMethod> {
+    let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
+    let adopted = values.preset;
+    // The caller named the threshold rule, and the operators arrived with it, so the claim
+    // about how the rule was chosen belongs to the row the caller actually named.
+    let mut carried = BoundValues {
+        unread: values.unread,
+        method_from_recommendation: values.method_from_recommendation,
+        ..Default::default()
+    };
+
+    for (name, shown) in values.parameters {
+        let target = match operator_for(&name) {
+            Some(operator) => composed.entry(operator).or_default(),
+            None => &mut carried,
+        };
+        if let Some(source) = values.sources.get(&name) {
+            target.sources.insert(name.clone(), *source);
+        }
+        if let Some(number) = values.numbers.get(&name) {
+            target.numbers.insert(name.clone(), *number);
+        }
+        target.parameters.push((name, shown));
+    }
+
+    // Recorded under the entry a reader can look up, which for a compound name is the rule
+    // it composes. The operator that name bound is in `composed` beside it, so nothing the
+    // compound name carried is lost by not naming it.
+    carried.preset = attribution_for(&carried, adopted.as_ref(), true);
+    let recorded = crate::binding::records_under(method_id);
+    let mut bound = vec![bound_method(
+        recorded,
+        carried,
+        backed(recorded),
+        manual_override,
+    )];
+    bound.extend(composed.into_iter().map(|(operator, mut read)| {
+        read.preset = attribution_for(&read, adopted.as_ref(), false);
+        bound_method(operator, read, backed(operator), false)
+    }));
+    bound
+}

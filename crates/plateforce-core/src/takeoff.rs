@@ -139,7 +139,7 @@ pub fn takeoff_longest_run(
         .collect();
 
     let failure = || TrialError::NoCrossing {
-        method_id: method_ids::TAKEOFF_THRESHOLD_LONGEST_RUN.to_string(),
+        method_id: method_ids::TAKEOFF_THRESHOLD_ABSOLUTE_FORCE.to_string(),
         parameter: "minimum_flight_samples".to_string(),
         value: minimum_flight_samples as f64,
         search_bound_seconds: signal.len() as f64 / sample_rate_hz,

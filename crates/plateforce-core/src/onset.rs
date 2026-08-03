@@ -316,7 +316,7 @@ pub fn onset_last_sample_within_noise_band(
         .find(|&index| signal[index] >= lower_threshold)
         .ok_or_else(|| {
             no_crossing(
-                method_ids::ONSET_THRESHOLD_LAST_WITHIN_BAND,
+                method_ids::ONSET_THRESHOLD_NOISE_RELATIVE,
                 "k",
                 multiplier,
                 scan_end as f64 / sample_rate_hz,
@@ -352,7 +352,7 @@ pub fn onset_last_sample_within_noise_band(
         .find(|&index| acceptance.accepts(signal[index]))
         .ok_or_else(|| {
             no_crossing(
-                method_ids::ONSET_THRESHOLD_LAST_WITHIN_BAND,
+                method_ids::ONSET_THRESHOLD_NOISE_RELATIVE,
                 "k",
                 multiplier,
                 scan_limit as f64 / sample_rate_hz,
