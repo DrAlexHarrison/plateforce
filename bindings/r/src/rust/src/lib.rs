@@ -94,19 +94,24 @@ impl From<plateforce_core::Refusal> for Refusal {
     }
 }
 
+/// Boxed, because a refusal carrying every field a caller branches on is 208 bytes against
+/// an answer of nothing, and every reply in this package is one of these two.
 #[derive(Serialize)]
 #[serde(untagged)]
 enum Envelope<T: Serialize> {
     Ok { ok: T },
-    Refused { refusal: Refusal },
+    Refused { refusal: Box<Refusal> },
 }
 
 fn ok<T: Serialize>(value: T) -> String {
     encode(Envelope::Ok { ok: value })
 }
 
-fn refuse<T: Serialize>(refusal: Refusal) -> String {
-    encode(Envelope::<T>::Refused { refusal })
+/// Takes either shape, because half this package's refusal sites already hold a box.
+fn refuse<T: Serialize>(refusal: impl Into<Box<Refusal>>) -> String {
+    encode(Envelope::<T>::Refused {
+        refusal: refusal.into(),
+    })
 }
 
 /// A serialisation that itself failed would otherwise leave the caller holding nothing, so
