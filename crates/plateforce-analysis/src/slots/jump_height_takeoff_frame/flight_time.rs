@@ -19,9 +19,15 @@ use crate::slots::flight_time;
 
 pub const ID: &str = "jumpheight.takeoff.flight_time";
 
-/// The entry's own name for gravity. It publishes four values because the tools disagree, and
-/// the one the request carries is the one every other number in the same result ran under.
+/// The entry's own name for gravity, and the value it declares.
+///
+/// It publishes four values because the tools disagree on this constant, and declares 9.81,
+/// which is the value the paper that teaches the derivation uses. A caller who states nothing
+/// gets that rather than the constant the request carries, because the request's is a struct
+/// initialiser no entry declares and a record calling it assumed would be naming an act
+/// nobody performed.
 pub const GRAVITY_PARAMETER: &str = "gravity";
+pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 = 9.81;
 
 pub const QUANTITIES: &[Quantity] = &[Quantity {
     key: super::FLIGHT_TIME_KEY,
@@ -43,7 +49,7 @@ fn compute(
         &choice.recommended,
         &choice.from_registry_default,
     );
-    let gravity = resolved.number(GRAVITY_PARAMETER, context.gravity_meters_per_second_squared);
+    let gravity = resolved.number(GRAVITY_PARAMETER, GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED);
 
     let Some(landmarks) = context.landmarks() else {
         return DerivedOutcome::declined(
