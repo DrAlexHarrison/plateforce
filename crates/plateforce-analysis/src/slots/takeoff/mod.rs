@@ -9,7 +9,6 @@ pub mod longest_run;
 
 use plateforce_core::{Trial, WeighingEpoch};
 
-use crate::binding::unbound_method_message;
 use crate::request::MethodChoice;
 use crate::resolution::{BoundValues, Resolution, RuleRefusal};
 
@@ -62,8 +61,8 @@ fn crossing(
         "takeoff.threshold.landing_shape" => {
             landing_shape::crossing(trial, epoch, *threshold_newtons, resolved, warnings)
         }
-        other => Err(RuleRefusal::Stated(unbound_method_message(
-            other, "takeoff",
+        other => Err(RuleRefusal::Refused(Box::new(
+            crate::binding::unbound_method_refusal(other, "takeoff"),
         ))),
     }
 }

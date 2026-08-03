@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 
-use crate::resolution::{BoundMethod, RuleRefusal};
+use crate::resolution::{BoundMethod, DeclinedRule};
 
 /// The symbol an interface draws beside a number, for the units this build reports.
 ///
@@ -194,9 +194,9 @@ pub struct AnalysisResponse {
     /// this response, so the browser, the terminal, Python and R receive them together.
     #[serde(default)]
     pub signals: Vec<crate::quality::QualitySignal>,
-    /// The same failures `warnings` describes, kept as the errors they were, keyed by the
-    /// slot whose rule produced nothing. Skipped over the wire, where the sentence is what
-    /// the interface draws.
+    /// The same failures `warnings` describes, kept as the errors they were, each naming the
+    /// construct whose rule produced nothing and the id that rule was reached by. Skipped
+    /// over the wire, where the sentence is what the interface draws.
     #[serde(skip)]
-    pub refusals: Vec<(&'static str, RuleRefusal)>,
+    pub refusals: Vec<DeclinedRule>,
 }

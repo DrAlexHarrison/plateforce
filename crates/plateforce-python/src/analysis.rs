@@ -53,15 +53,17 @@ pub fn implemented_method_ids() -> Vec<&'static str> {
         .collect()
 }
 
+/// The sentence comes from the one place that writes it, because this surface hand-wrote a
+/// copy of it and a copy is a second description of one failure.
 fn expect_bound(method: &BoundMethod, slot: &str) -> PyResult<()> {
-    let available: Vec<&str> = bindings_for(slot).map(|binding| binding.id).collect();
-    if available.contains(&method.method_id()) {
+    if bindings_for(slot).any(|binding| binding.id == method.method_id()) {
         return Ok(());
     }
-    Err(MethodNotImplementedError::new_err(format!(
-        "'{}' was passed as the {slot} method, and the rules available for that step are {available:?}",
-        method.method_id()
-    )))
+    Err(MethodNotImplementedError::new_err(
+        plateforce_analysis::binding::unbound_method_refusal(method.method_id(), slot)
+            .message()
+            .to_string(),
+    ))
 }
 
 /// The registry entry's own parameters, plus any the caller stated directly. A name no
@@ -159,16 +161,24 @@ fn resolved_slot<'a>(response: &'a AnalysisResponse, method_id: &str) -> &'a Res
 /// A landmark rule that placed nothing, raised as the error it was rather than as a
 /// sentence, so a caller can branch on the parameter that failed.
 fn refusal_of(python: Python<'_>, response: &AnalysisResponse, slot: &str) -> PyErr {
+    let construct = plateforce_analysis::binding::construct_for_slot(slot).unwrap_or(slot);
     match response
         .refusals
         .iter()
-        .find(|(named, _)| *named == slot)
-        .map(|(_, refusal)| refusal)
+        .find(|declined| declined.construct == construct)
     {
-        Some(RuleRefusal::Trial(error)) => map_trial_error(python, error.clone()),
-        Some(RuleRefusal::Stated(message)) => TrialError::new_err(message.clone()),
+        Some(declined) => match &declined.refusal {
+            RuleRefusal::Trial(error) => map_trial_error(python, error.clone()),
+            // The record the rule built, with the id it was reached by stamped on, so the
+            // sentence a Python caller sees is the sentence every other surface prints.
+            RuleRefusal::Refused(_) => TrialError::new_err(
+                plateforce_analysis::document::refusal_from_rule(declined)
+                    .message()
+                    .to_string(),
+            ),
+        },
         None => TrialError::new_err(format!(
-            "the {slot} rule placed no landmark and gave no reason"
+            "the {construct} rule placed no landmark and gave no reason"
         )),
     }
 }

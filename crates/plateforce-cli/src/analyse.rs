@@ -397,21 +397,15 @@ fn build_request(
     }
 }
 
-/// A landmark rule that produced nothing, as a record where the engine has one.
+/// A rule that produced nothing, as the record the engine hands back.
 ///
-/// The rule that carries the core's own error carries its code with it. The one that hands
-/// back a sentence alone publishes no code, because a code chosen here would name a failure
-/// no other surface can raise, and a wrong code in a record is worse than an absent one in
-/// software whose product is the record.
-fn declined_landmark(slot: &str, refusal: &plateforce_analysis::RuleRefusal) -> Declined {
-    match refusal {
-        plateforce_analysis::RuleRefusal::Trial(error) => {
-            Declined::recorded(Refusal::from(error.clone()).in_slot(decisions::construct_of(slot)))
-        }
-        plateforce_analysis::RuleRefusal::Stated(message) => {
-            Declined::line(Fault::Recording, format!("{slot}: {message}"))
-        }
-    }
+/// One arm, because every decline now carries a code the rule itself chose. This surface
+/// used to publish a sentence with no code for the refusals that arrived as prose, on the
+/// reasoning that a code chosen here would name a failure no other surface can raise. That
+/// reasoning was right and the remedy sat one layer down: the rule says which code it is
+/// declining under, and every surface reads the same one.
+fn declined_landmark(declined: &plateforce_analysis::DeclinedRule) -> Declined {
+    Declined::recorded(plateforce_analysis::document::refusal_from_rule(declined))
 }
 
 /// The construct a refusal happened under, on every row. A record built without one is a
@@ -453,16 +447,12 @@ fn render(
         .iter()
         .filter(|metric| metric.value.is_none())
         .collect();
-    let refusals: Vec<Declined> = response
-        .refusals
-        .iter()
-        .map(|(slot, refusal)| declined_landmark(slot, refusal))
-        .collect();
+    let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
     let recorded: Vec<serde_json::Value> = response
         .refusals
         .iter()
         .zip(&refusals)
-        .map(|((slot, _), declined)| with_slot(decisions::construct_of(slot), declined.record()))
+        .map(|(rule, declined)| with_slot(rule.construct, declined.record()))
         .collect();
     // What the software already knows about a number it is about to print. A value the
     // browser flags and the pipe does not is a confident wrong number reaching a paper.

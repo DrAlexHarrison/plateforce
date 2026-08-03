@@ -156,10 +156,15 @@ impl<'a> Resolution<'a> {
             .find(|(label, _)| *label == chosen)
             .map(|(_, value)| *value)
             .ok_or_else(|| {
-                let offered: Vec<&str> = accepted.iter().map(|(label, _)| *label).collect();
-                RuleRefusal::Stated(format!(
-                    "{name} takes one of {offered:?}, and '{chosen}' is not one of them"
-                ))
+                let offered: Vec<String> = accepted
+                    .iter()
+                    .map(|(label, _)| (*label).to_string())
+                    .collect();
+                // The id is left empty because a `Resolution` reads a request rather than
+                // knowing which entry reached it. The boundary stamps the bound id on.
+                RuleRefusal::Refused(Box::new(plateforce_core::Refusal::name_not_accepted(
+                    "", name, chosen, offered,
+                )))
             })
     }
 
@@ -219,24 +224,46 @@ pub(crate) fn dispersion_label(dispersion: DispersionEstimator) -> &'static str 
     }
 }
 
-/// Why a landmark rule produced nothing.
+/// Why a rule produced nothing.
 ///
-/// The sentence goes to `warnings` for somebody reading the trace. This carries the core's
-/// own error beside it wherever there is one, so a caller can branch on the method and the
-/// parameter that failed rather than parse the sentence back apart.
+/// The sentence goes to `warnings` for somebody reading the trace. Both variants carry the
+/// fields a caller branches on, so no rule reaches a surface with a sentence and nothing
+/// else. A `Stated(String)` variant used to sit beside these two, and every refusal that
+/// took it was published under one code chosen at the boundary, which was the wrong code
+/// for every producer of it.
 #[derive(Debug, Clone)]
 pub enum RuleRefusal {
+    /// The core's own error, which already carries its code and its fields.
     Trial(plateforce_core::TrialError),
-    Stated(String),
+    /// A refusal the rule built itself, under the code it decided it was declining on.
+    /// A rule that leaves `method_id` empty is stamped with the id it was bound to at the
+    /// boundary, because a core operator does not know which entry a caller reached it by.
+    /// Boxed because a `Refusal` is 192 bytes against this enum's other variant at 72,
+    /// and every rule in the tree returns a `Result` carrying it on the error side.
+    Refused(Box<plateforce_core::Refusal>),
 }
 
 impl std::fmt::Display for RuleRefusal {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RuleRefusal::Trial(error) => write!(formatter, "{error}"),
-            RuleRefusal::Stated(message) => formatter.write_str(message),
+            RuleRefusal::Refused(refusal) => formatter.write_str(refusal.message()),
         }
     }
+}
+
+/// One rule that declined, with everything the rule itself could not know: which construct
+/// it was filling and which id a caller reached it by.
+///
+/// Both were previously recovered at each surface by matching the start of a method id
+/// against a table of prefixes, whose last arm answered `takeoff.` for every name it did
+/// not recognise. Two surfaces carried a copy of that table.
+#[derive(Debug, Clone)]
+pub struct DeclinedRule {
+    /// Named as the registry names constructs, so a caller can look it up.
+    pub construct: &'static str,
+    pub method_id: String,
+    pub refusal: RuleRefusal,
 }
 
 #[derive(Debug, Clone, Serialize)]

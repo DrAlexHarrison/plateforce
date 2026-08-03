@@ -67,8 +67,8 @@ fn a_threshold_nothing_reaches_is_a_no_crossing_rather_than_an_unknown_parameter
     let refusal = declined
         .refusals
         .iter()
-        .find(|(slot, _)| *slot == "onset")
-        .map(|(slot, rule)| refusal_from_rule(slot, rule, "onset.threshold.absolute_force"))
+        .find(|rule| rule.construct == "movement_onset")
+        .map(refusal_from_rule)
         .expect("the onset rule declined");
 
     assert_eq!(refusal.code, RefusalCode::NoCrossing);

@@ -159,9 +159,32 @@ pub fn executable_constructs() -> Vec<&'static str> {
 }
 
 pub(crate) fn unbound_method_message(method_id: &str, slot: &str) -> String {
-    let available: Vec<&str> = bindings_for(slot).map(|binding| binding.id).collect();
-    format!(
-        "'{method_id}' was passed as the {slot} method, and the rules available for that step are {available:?}"
+    unbound_method_refusal(method_id, slot)
+        .message()
+        .to_string()
+}
+
+/// The construct a slot word names, read off the table rather than written down twice.
+///
+/// The registry declares constructs and declares no `weighing` or `onset`, so a refusal
+/// carrying a slot word hands a caller a name it cannot look up. `None` for a step this
+/// build runs no rule for, which has no construct to read off the table.
+pub fn construct_for_slot(slot: &str) -> Option<&'static str> {
+    bindings_for(slot).map(|binding| binding.construct).next()
+}
+
+/// An id with no rule behind it, as the record rather than as a sentence.
+///
+/// Public because every surface refuses this case and each one that formatted its own
+/// sentence for it was a second description of one failure.
+pub fn unbound_method_refusal(method_id: &str, slot: &str) -> plateforce_core::Refusal {
+    let available: Vec<String> = bindings_for(slot)
+        .map(|binding| binding.id.to_string())
+        .collect();
+    plateforce_core::Refusal::method_not_implemented(
+        method_id,
+        construct_for_slot(slot).unwrap_or(slot),
+        available,
     )
 }
 

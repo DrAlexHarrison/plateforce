@@ -43,13 +43,15 @@ pub(crate) fn crossing(
 
     let search_end = takeoff_index
         .and_then(|takeoff| countermovement_dip(force, takeoff))
+        // The rule searches back from the countermovement dip, which is the force minimum
+        // before the propulsive peak, and the peak is bounded by takeoff. So a recording
+        // that settles no takeoff leaves this rule nothing to search back from, and the
+        // remedy is the takeoff rule rather than anything on this one.
         .ok_or_else(|| {
-            RuleRefusal::Stated(
-                "onset.threshold.last_within_band searches back from the countermovement dip, \
-                 which is the force minimum before the propulsive peak, and this recording \
-                 settles no takeoff to bound that peak"
-                    .to_string(),
-            )
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::dependency_unresolved(
+                "onset.threshold.last_within_band",
+                vec![crate::binding::TAKEOFF_CONSTRUCT.to_string()],
+            )))
         })?;
     resolved.record_measured(
         "search_bound_seconds",

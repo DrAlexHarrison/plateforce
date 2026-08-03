@@ -9,7 +9,7 @@ use plateforce_core::Refusal;
 use serde::Serialize;
 
 use crate::quality::QualitySignal;
-use crate::resolution::{BoundMethod, RuleRefusal};
+use crate::resolution::{BoundMethod, DeclinedRule, RuleRefusal};
 use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::spread::SpreadResponse;
 
@@ -55,24 +55,25 @@ pub struct ResultDocument {
 
 /// What a rule's refusal is, as the typed record rather than as prose.
 ///
-/// `TrialError` already carries every field and generates its own sentence, so this reads
-/// them off it rather than destructuring the error a second time. A refusal that names no
-/// rule of its own is stamped with the rule the slot was bound to.
-pub fn refusal_from_rule(slot: &str, refusal: &RuleRefusal, bound_method_id: &str) -> Refusal {
-    match refusal {
-        RuleRefusal::Trial(error) => {
-            let refused = Refusal::from(error.clone());
-            let named = if refused.method_id.is_empty() {
-                refused.under(bound_method_id)
-            } else {
-                refused
-            };
-            named.in_slot(slot)
-        }
-        RuleRefusal::Stated(message) => {
-            Refusal::unknown_parameter(bound_method_id, message.clone(), Vec::new()).in_slot(slot)
-        }
-    }
+/// Neither arm decides a code here. `TrialError` already carries its own and generates its
+/// own sentence, and a rule that built a `Refusal` chose the code it was declining under.
+/// The one thing this adds is the identity the rule could not know: which id a caller
+/// reached it by, and which construct that id was bound to.
+///
+/// The slot is named as the registry names constructs. The binding table's own words,
+/// `weighing` and `onset`, resolve to nothing in the registry, so a caller handed one has a
+/// name it cannot look up.
+pub fn refusal_from_rule(declined: &DeclinedRule) -> Refusal {
+    let refused = match &declined.refusal {
+        RuleRefusal::Trial(error) => Refusal::from(error.clone()),
+        RuleRefusal::Refused(refusal) => refusal.as_ref().clone(),
+    };
+    let named = if refused.method_id.is_empty() {
+        refused.under(&declined.method_id)
+    } else {
+        refused
+    };
+    named.in_slot(declined.construct)
 }
 
 impl ResultDocument {
@@ -89,19 +90,7 @@ impl ResultDocument {
         descriptions: BTreeMap<String, String>,
         spread: Option<SpreadResponse>,
     ) -> Self {
-        let refusals = response
-            .refusals
-            .iter()
-            .map(|(slot, refusal)| {
-                let bound = response
-                    .bound_methods
-                    .iter()
-                    .find(|bound| bound.method_id.starts_with(slot_prefix(slot)))
-                    .map(|bound| bound.method_id.as_str())
-                    .unwrap_or_default();
-                refusal_from_rule(slot, refusal, bound)
-            })
-            .collect();
+        let refusals = response.refusals.iter().map(refusal_from_rule).collect();
 
         Self {
             plateforce_version: plateforce_version.into(),
@@ -131,60 +120,75 @@ impl ResultDocument {
     }
 }
 
-/// The registry's own word for the slot, which is what a bound method id begins with.
-fn slot_prefix(slot: &str) -> &'static str {
-    match slot {
-        "weighing" | "system_weight" => "bwepoch.",
-        "onset" | "movement_onset" => "onset.",
-        _ => "takeoff.",
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
     use plateforce_core::{RefusalCode, TrialError};
+
+    fn declined(construct: &'static str, method_id: &str, refusal: RuleRefusal) -> DeclinedRule {
+        DeclinedRule {
+            construct,
+            method_id: method_id.to_string(),
+            refusal,
+        }
+    }
 
     #[test]
     fn a_declined_rule_arrives_as_fields_rather_than_a_sentence() {
-        let refused = refusal_from_rule(
-            "onset",
-            &RuleRefusal::Trial(TrialError::NoCrossing {
+        let refused = refusal_from_rule(&declined(
+            ONSET_CONSTRUCT,
+            "onset.threshold.noise_relative",
+            RuleRefusal::Trial(TrialError::NoCrossing {
                 method_id: "onset.threshold.noise_relative".to_string(),
                 parameter: "k".to_string(),
                 value: 5.0,
                 search_bound_seconds: 2.5,
             }),
-            "onset.threshold.noise_relative",
-        );
+        ));
 
         assert_eq!(refused.code, RefusalCode::NoCrossing);
         assert_eq!(refused.parameter.as_deref(), Some("k"));
         assert_eq!(refused.value, Some(5.0));
-        assert_eq!(refused.slot.as_deref(), Some("onset"));
+        // The registry declares `movement_onset` and declares no `onset`, so this is the
+        // spelling a caller can look up.
+        assert_eq!(refused.slot.as_deref(), Some("movement_onset"));
         // The number a caller branches on is a number, not a substring of the sentence.
         assert_eq!(refused.detail["search_bound_seconds"], 2.5);
     }
 
     #[test]
     fn a_refusal_that_names_no_rule_is_stamped_with_the_one_the_slot_ran() {
-        let refused = refusal_from_rule(
-            "takeoff",
-            &RuleRefusal::Trial(TrialError::Empty),
+        let refused = refusal_from_rule(&declined(
+            TAKEOFF_CONSTRUCT,
             "takeoff.threshold.absolute_force",
-        );
+            RuleRefusal::Trial(TrialError::Empty),
+        ));
         assert_eq!(refused.method_id, "takeoff.threshold.absolute_force");
         assert_eq!(refused.slot.as_deref(), Some("takeoff"));
     }
 
+    /// A rule that declined on a name rather than a number publishes the name it declined
+    /// on. Every one of these used to publish `unknown_parameter` with the whole sentence
+    /// in the `parameter` column, which named a fault the request had not committed.
     #[test]
-    fn a_request_for_something_not_on_offer_says_which_slot_asked() {
-        let refused = refusal_from_rule(
-            "weighing",
-            &RuleRefusal::Stated("duration is not a parameter of this rule".to_string()),
+    fn a_value_the_rule_will_not_take_keeps_its_own_code_across_the_boundary() {
+        let refused = refusal_from_rule(&declined(
+            WEIGHING_CONSTRUCT,
             "bwepoch.fixed_window",
-        );
-        assert_eq!(refused.code, RefusalCode::UnknownParameter);
-        assert_eq!(refused.slot.as_deref(), Some("weighing"));
+            RuleRefusal::Refused(Box::new(Refusal::name_not_accepted(
+                "",
+                "dispersion",
+                "unbiased",
+                vec!["population".to_string(), "sample".to_string()],
+            ))),
+        ));
+        assert_eq!(refused.code, RefusalCode::ValueNotAccepted);
+        assert_eq!(refused.named_value.as_deref(), Some("unbiased"));
+        assert_eq!(refused.parameter.as_deref(), Some("dispersion"));
+        // The rule that declined did not know which entry reached it, so the boundary
+        // stamped the id on and the sentence was regenerated under it.
+        assert_eq!(refused.method_id, "bwepoch.fixed_window");
+        assert_eq!(refused.slot.as_deref(), Some("system_weight"));
     }
 }

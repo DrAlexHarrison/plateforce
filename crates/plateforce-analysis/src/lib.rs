@@ -38,7 +38,7 @@ pub use binding::{
 };
 pub use pipeline::run;
 pub use request::{AnalysisRequest, MethodChoice, WeighingChoice};
-pub use resolution::{BoundMethod, RuleRefusal};
+pub use resolution::{BoundMethod, DeclinedRule, RuleRefusal};
 pub use response::{AnalysisResponse, Levels, Metric};
 pub use slots::movement_onset::ONSET_OPERATOR_IDS;
 pub use slots::system_weight::weighing_epoch_at;

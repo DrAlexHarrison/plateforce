@@ -127,6 +127,10 @@
           "exit_code": 64
         },
         {
+          "code": "dependency_unresolved",
+          "exit_code": 65
+        },
+        {
           "code": "method_not_implemented",
           "exit_code": 64
         },
@@ -307,6 +311,10 @@
           "exit_code": 64
         },
         {
+          "code": "dependency_unresolved",
+          "exit_code": 65
+        },
+        {
           "code": "method_not_implemented",
           "exit_code": 64
         },
@@ -477,6 +485,10 @@
         {
           "code": "decision_not_made",
           "exit_code": 64
+        },
+        {
+          "code": "dependency_unresolved",
+          "exit_code": 65
         },
         {
           "code": "method_not_implemented",

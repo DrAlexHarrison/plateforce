@@ -1,6 +1,8 @@
 //! `takeoff.threshold.landing_shape`: the first low-force run the recording closes with a
 //! landing.
 
+use std::collections::BTreeMap;
+
 use plateforce_core::takeoff::landing_shape::{
     classify_runs, takeoff_by_landing_shape, LandingShapeSpec,
 };
@@ -48,17 +50,28 @@ fn nothing_found(
         spec,
     );
     let open_ended = runs.iter().filter(|run| run.ends_the_recording).count();
-    RuleRefusal::Stated(format!(
-        "takeoff.threshold.landing_shape read {} run{} below threshold_n = {} N and none of them \
-         ends in a rise reaching landing_rise_rate_floor_bodyweights_per_second = {} and \
-         landing_peak_floor_bodyweights = {}, with {} of them running to the end of the recording",
+    // Every figure the sentence used to interpolate is a number a caller branches on, so
+    // each one is a field. The count of runs reaching the end of the recording is the one
+    // that says whether the trace was cut mid-flight rather than the floors being wrong.
+    RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
+        "takeoff.threshold.landing_shape",
         runs.len(),
-        if runs.len() == 1 { "" } else { "s" },
-        crate::resolution::format_number(threshold_newtons),
-        crate::resolution::format_number(spec.landing_rise_rate_floor_bodyweights_per_second),
-        crate::resolution::format_number(spec.landing_peak_floor_bodyweights),
-        open_ended,
-    ))
+        BTreeMap::from([
+            ("threshold_n".to_string(), threshold_newtons),
+            (
+                "landing_rise_rate_floor_bodyweights_per_second".to_string(),
+                spec.landing_rise_rate_floor_bodyweights_per_second,
+            ),
+            (
+                "landing_peak_floor_bodyweights".to_string(),
+                spec.landing_peak_floor_bodyweights,
+            ),
+            (
+                "runs_reaching_the_end_of_the_recording".to_string(),
+                open_ended as f64,
+            ),
+        ]),
+    )))
 }
 
 pub(crate) fn crossing(

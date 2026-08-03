@@ -7,9 +7,9 @@ use plateforce_core::{
     Landmarks, Trial,
 };
 
-use crate::binding::expect_bound;
+use crate::binding::{expect_bound, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::request::AnalysisRequest;
-use crate::resolution::{bound_method, RuleRefusal};
+use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
 
@@ -34,7 +34,7 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
         request.weighing.start_index.is_some_and(|start| start != 0),
     )];
 
-    let mut refusals: Vec<(&'static str, RuleRefusal)> = Vec::new();
+    let mut refusals: Vec<DeclinedRule> = Vec::new();
 
     // Takeoff settles first because one onset rule searches back from the countermovement
     // dip, which is the force minimum before the propulsive peak and so needs the jump's
@@ -63,7 +63,11 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
                 &mut warnings,
             );
             if let Some(rejected) = outcome.refusal {
-                refusals.push(("onset", rejected));
+                refusals.push(DeclinedRule {
+                    construct: ONSET_CONSTRUCT,
+                    method_id: request.onset.method_id.clone(),
+                    refusal: rejected,
+                });
             }
             (outcome.index, outcome.bound)
         }
@@ -84,7 +88,11 @@ pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse,
     // is what touchdown is found against.
     warnings.extend(takeoff_warnings);
     if let Some(rejected) = takeoff.refusal.take() {
-        refusals.push(("takeoff", rejected));
+        refusals.push(DeclinedRule {
+            construct: TAKEOFF_CONSTRUCT,
+            method_id: request.takeoff.method_id.clone(),
+            refusal: rejected,
+        });
     }
     bound_methods.push(bound_method(
         &request.takeoff.method_id,
@@ -266,7 +274,7 @@ mod tests {
     use plateforce_core::{DispersionEstimator, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 
     use super::*;
-    use crate::binding::BINDINGS;
+    use crate::binding::{BINDINGS, WEIGHING_CONSTRUCT};
     use crate::request::{MethodChoice, WeighingChoice};
     use crate::slots::system_weight::{weighing_epoch_at, window_length_parameter};
 
@@ -434,13 +442,21 @@ mod tests {
 
     /// The picker cannot reach an id with no rule behind it, and the module surface can. A
     /// rule run under somebody else's id would put that author's citation on the answer.
+    ///
+    /// The step is named as the registry names constructs. It used to be named with the
+    /// binding table's own word, and `weighing` and `onset` resolve to nothing in the
+    /// registry, so a caller reading the refusal held a name it could not look up.
     #[test]
     fn an_id_with_no_rule_behind_it_is_refused_rather_than_run_as_something_else() {
         let trial = synthetic();
-        for (slot, method_id) in [
-            ("weighing", "bwepoch.robust_estimator"),
-            ("onset", "onset.yank_inflection.sahrom2020"),
-            ("takeoff", "takeoff.system_weight_decrease.pinto2024"),
+        for (slot, construct, method_id) in [
+            ("weighing", WEIGHING_CONSTRUCT, "bwepoch.robust_estimator"),
+            ("onset", ONSET_CONSTRUCT, "onset.yank_inflection.sahrom2020"),
+            (
+                "takeoff",
+                TAKEOFF_CONSTRUCT,
+                "takeoff.system_weight_decrease.pinto2024",
+            ),
         ] {
             let mut candidate = request(
                 "onset.threshold.noise_relative",
@@ -454,7 +470,7 @@ mod tests {
             let error = run(&trial, &candidate)
                 .expect_err(&format!("{method_id} ran under a rule that is not it"));
             assert!(error.contains(method_id), "{error}");
-            assert!(error.contains(slot), "{error}");
+            assert!(error.contains(construct), "{error}");
         }
     }
 

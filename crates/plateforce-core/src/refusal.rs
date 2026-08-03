@@ -73,6 +73,11 @@ refusal_codes! {
     /// count it needs. Distinct from `TraceTooShort`, which is one recording being short
     /// rather than a group being small.
     NotEnoughObservations,
+    /// A rule that reads another construct's answer, run where that construct produced none.
+    /// Distinct from every code describing the request: the request was answerable and an
+    /// earlier step declined, so the remedy is upstream of the rule that reports this.
+    /// Distinct from `DecisionNotMade`, where the caller never chose the earlier rule at all.
+    DependencyUnresolved,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -90,7 +95,8 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         | RefusalCode::AmbiguousForceChannels
         | RefusalCode::SchemaUnsupported
         | RefusalCode::ObservationsNotPaired
-        | RefusalCode::NotEnoughObservations => 65,
+        | RefusalCode::NotEnoughObservations
+        | RefusalCode::DependencyUnresolved => 65,
         RefusalCode::MethodNotImplemented
         | RefusalCode::UnknownParameter
         | RefusalCode::ParameterNotFinite
@@ -128,6 +134,7 @@ impl RefusalCode {
             RefusalCode::ObservationsNotPaired => "observations_not_paired",
             RefusalCode::ConventionsNotComparable => "conventions_not_comparable",
             RefusalCode::NotEnoughObservations => "not_enough_observations",
+            RefusalCode::DependencyUnresolved => "dependency_unresolved",
         }
     }
 }
@@ -178,6 +185,15 @@ pub struct Refusal {
     pub slot: Option<String>,
     pub parameter: Option<String>,
     pub value: Option<f64>,
+    /// The declined value where the parameter's values are names rather than numbers, in
+    /// the registry's own spelling for them.
+    ///
+    /// A parameter whose values are named alternatives has no number to put in `value`, so
+    /// before this field the name reached a caller only inside the sentence, which is prose
+    /// a caller has to parse back apart. The registry files these as `NamedValue.key`, and
+    /// this is that key.
+    #[serde(default)]
+    pub named_value: Option<String>,
     /// Everything else the rule read while declining. Ordered, so the sentence is stable
     /// across runs.
     pub detail: BTreeMap<String, f64>,
@@ -201,6 +217,7 @@ impl Refusal {
             slot: None,
             parameter,
             value,
+            named_value: None,
             detail,
             available,
             message: String::new(),
@@ -216,6 +233,7 @@ impl Refusal {
             self.slot.as_deref(),
             self.parameter.as_deref(),
             self.value,
+            self.named_value.as_deref(),
             &self.detail,
             &self.available,
         );
@@ -346,6 +364,69 @@ impl Refusal {
             Some(value),
             BTreeMap::new(),
             takes,
+        )
+    }
+
+    /// A name the parameter will not take, with the names it does take.
+    ///
+    /// The same code as the numeric form, because the fault is the same one: the rule
+    /// understood the request and will not do it. What differs is only that the value is a
+    /// name, so it arrives in `named_value` and a caller reads it from there rather than out
+    /// of the sentence.
+    pub fn name_not_accepted(
+        method_id: impl Into<String>,
+        parameter: impl Into<String>,
+        chosen: impl Into<String>,
+        takes: Vec<String>,
+    ) -> Self {
+        let mut refusal = Self::build(
+            RefusalCode::ValueNotAccepted,
+            method_id,
+            Some(parameter.into()),
+            None,
+            BTreeMap::new(),
+            takes,
+        );
+        refusal.named_value = Some(chosen.into());
+        refusal.regenerate();
+        refusal
+    }
+
+    /// A rule that reads another construct's answer, run where that construct produced none.
+    ///
+    /// `needs` names those constructs as the registry names them, so a caller reading this
+    /// knows which step to repair rather than which rule to blame.
+    pub fn dependency_unresolved(method_id: impl Into<String>, needs: Vec<String>) -> Self {
+        Self::build(
+            RefusalCode::DependencyUnresolved,
+            method_id,
+            None,
+            None,
+            BTreeMap::new(),
+            needs,
+        )
+    }
+
+    /// A rule that read the trace, found candidates, and found none of them qualifying.
+    ///
+    /// The same code as a rule that found no candidate at all, because to a caller both are
+    /// one answer: this rule places nothing on this recording. `read` carries the counts and
+    /// the floors it compared against, every one of them a number rather than a figure
+    /// inside the sentence.
+    pub fn nothing_qualified(
+        method_id: impl Into<String>,
+        candidates: usize,
+        read: BTreeMap<String, f64>,
+    ) -> Self {
+        let mut detail = read;
+        detail.insert("candidates_read".to_string(), candidates as f64);
+        Self::build(
+            RefusalCode::NoCrossing,
+            method_id,
+            None,
+            None,
+            detail,
+            Vec::new(),
         )
     }
 
@@ -563,24 +644,56 @@ impl std::fmt::Display for Refusal {
 impl std::error::Error for Refusal {}
 
 /// The one place a refusal becomes a sentence.
+#[allow(clippy::too_many_arguments)]
 fn sentence(
     code: RefusalCode,
     method_id: &str,
     slot: Option<&str>,
     parameter: Option<&str>,
     value: Option<f64>,
+    named_value: Option<&str>,
     detail: &BTreeMap<String, f64>,
     available: &[String],
 ) -> String {
     let named = |key: &str| detail.get(key).copied().unwrap_or(f64::NAN);
-    let subject = match (parameter, value) {
-        (Some(name), Some(number)) => format!("{method_id}({name} = {number})"),
+    let subject = match (parameter, value, named_value) {
+        (Some(name), Some(number), _) => format!("{method_id}({name} = {number})"),
+        (Some(name), None, Some(chosen)) => format!("{method_id}({name} = {chosen})"),
         _ => method_id.to_string(),
     };
     match code {
+        // A rule that read candidates and rejected all of them names the counts it read.
+        // The bounded search that finds nothing at all has no candidates to count, so the
+        // two forms are told apart by the detail rather than by a code of their own: to a
+        // caller both are this rule placing nothing on this recording.
+        RefusalCode::NoCrossing if detail.contains_key("candidates_read") => {
+            let read: Vec<String> = detail
+                .iter()
+                .filter(|(key, _)| key.as_str() != "candidates_read")
+                .map(|(key, value)| format!("{key} = {value}"))
+                .collect();
+            format!(
+                "{subject} read {} candidate{} and none of them qualifies against {}",
+                named("candidates_read"),
+                if named("candidates_read") == 1.0 { "" } else { "s" },
+                if read.is_empty() {
+                    "what it looks for".to_string()
+                } else {
+                    read.join(", ")
+                }
+            )
+        }
         RefusalCode::NoCrossing => format!(
             "{subject} found no crossing within the search bound of {} s",
             named("search_bound_seconds")
+        ),
+        RefusalCode::DependencyUnresolved => format!(
+            "{subject} reads what {} placed, and that step placed nothing",
+            if available.is_empty() {
+                "an earlier step".to_string()
+            } else {
+                available.join(" and ")
+            }
         ),
         RefusalCode::CollapsedBand => format!(
             "{subject} has no band to search: dispersion is {} N and the threshold falls at {} N",
@@ -618,12 +731,16 @@ fn sentence(
             } else {
                 format!(": it takes {}", available.join(", "))
             };
-            match value {
-                Some(number) => format!(
+            match (value, named_value) {
+                (Some(number), _) => format!(
                     "{} does not accept {number}{takes}",
                     parameter.unwrap_or("the parameter")
                 ),
-                None => format!(
+                (None, Some(chosen)) => format!(
+                    "{} does not accept {chosen}{takes}",
+                    parameter.unwrap_or("the parameter")
+                ),
+                (None, None) => format!(
                     "{} was given a value it does not accept{takes}",
                     parameter.unwrap_or("the parameter")
                 ),
@@ -980,6 +1097,84 @@ mod tests {
         );
         // The slotted reading of this code names a step; this one has none to name.
         assert!(refused.slot.is_none());
+    }
+
+    /// A parameter whose values are names has no number to decline on, so the name it
+    /// declined has to be a field. Before it was, a caller could reach the name only by
+    /// parsing the sentence, which is the prose channel this type exists to replace.
+    #[test]
+    fn a_name_a_parameter_will_not_take_arrives_as_a_field() {
+        let refused = Refusal::name_not_accepted(
+            "onset.op.direction",
+            "direction",
+            "above_only",
+            vec!["below_only".to_string(), "two_sided".to_string()],
+        );
+        assert_eq!(refused.code, RefusalCode::ValueNotAccepted);
+        assert_eq!(refused.named_value.as_deref(), Some("above_only"));
+        assert_eq!(refused.value, None);
+        assert_eq!(refused.parameter.as_deref(), Some("direction"));
+        assert_eq!(
+            refused.message(),
+            "direction does not accept above_only: it takes below_only, two_sided"
+        );
+
+        let read_back: Refusal =
+            serde_json::from_str(&serde_json::to_string(&refused).unwrap()).unwrap();
+        assert_eq!(read_back, refused);
+    }
+
+    /// A record written before this field existed still reads, because a refusal on a
+    /// number carries no name and the absent field is that absence rather than a loss.
+    #[test]
+    fn a_refusal_written_without_a_named_value_still_reads() {
+        let older = r#"{"code":"no_crossing","method_id":"onset.threshold.noise_relative",
+            "slot":null,"parameter":"k","value":5.0,"detail":{"search_bound_seconds":2.5},
+            "available":[],"message":"anything"}"#;
+        let read: Refusal = serde_json::from_str(older).expect("an older refusal reads");
+        assert_eq!(read.named_value, None);
+        assert_eq!(read.code, RefusalCode::NoCrossing);
+    }
+
+    /// The remedy for this one is upstream, which no other code says: the request was
+    /// answerable and an earlier step declined.
+    #[test]
+    fn a_rule_whose_earlier_step_placed_nothing_names_that_step() {
+        let refused =
+            Refusal::dependency_unresolved("force.peak.gross", vec!["analysis_window".to_string()]);
+        assert_eq!(refused.code, RefusalCode::DependencyUnresolved);
+        assert_eq!(refused.exit_code(), 65);
+        assert_eq!(
+            refused.message(),
+            "force.peak.gross reads what analysis_window placed, and that step placed nothing"
+        );
+    }
+
+    /// A rule that read candidates and rejected every one of them reports the count and
+    /// the floors it compared against as numbers. The bounded search that finds no
+    /// candidate at all keeps its own sentence, and the two are told apart by the detail.
+    #[test]
+    fn a_rule_that_rejected_every_candidate_reports_the_count_and_what_it_compared() {
+        let refused = Refusal::nothing_qualified(
+            "takeoff.threshold.landing_shape",
+            3,
+            BTreeMap::from([("landing_peak_floor_bodyweights".to_string(), 1.5)]),
+        );
+        assert_eq!(refused.code, RefusalCode::NoCrossing);
+        assert_eq!(refused.detail["candidates_read"], 3.0);
+        assert_eq!(refused.detail["landing_peak_floor_bodyweights"], 1.5);
+        assert_eq!(
+            refused.message(),
+            "takeoff.threshold.landing_shape read 3 candidates and none of them qualifies \
+             against landing_peak_floor_bodyweights = 1.5"
+        );
+
+        let bounded = Refusal::no_crossing("onset.threshold.noise_relative", "k", 5.0, 2.5);
+        assert!(
+            bounded.message().contains("found no crossing"),
+            "{}",
+            bounded.message()
+        );
     }
 
     #[test]

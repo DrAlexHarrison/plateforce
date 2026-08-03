@@ -159,7 +159,8 @@ fn a_trial_that_computed_and_declined_two_landmarks_carries_a_row_for_each() {
     );
     assert_eq!(
         declines,
-        vec![(0, "onset"), (1, "takeoff")],
+        // As the registry names constructs, so a reader of this column can look the name up.
+        vec![(0, "movement_onset"), (1, "takeoff")],
         "each decline keeps its own row under its own ordinal"
     );
     std::fs::remove_dir_all(&directory).ok();

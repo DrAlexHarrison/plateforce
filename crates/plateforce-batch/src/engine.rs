@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::document::refusal_from_rule;
 use plateforce_analysis::{
-    AnalysisRequest, AnalysisResponse, BoundMethod, Metric, RuleRefusal, ONSET_CONSTRUCT,
+    AnalysisRequest, AnalysisResponse, BoundMethod, DeclinedRule, Metric, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
 use plateforce_core::{Acquisition, RefusalCode};
@@ -249,14 +249,8 @@ pub fn analyse(
 
         // A landmark that declined while other numbers computed is the partial state, so the
         // trial carries values and one refusal row per decline at once.
-        for (slot, refusal) in &response.refusals {
-            refusals.push(rule_refusal_row(
-                trial_id,
-                ordinal(&refusals),
-                slot,
-                refusal,
-                &response,
-            ));
+        for declined in &response.refusals {
+            refusals.push(rule_refusal_row(trial_id, ordinal(&refusals), declined));
         }
         for (index, sentence) in response.warnings.iter().enumerate() {
             warnings.push(WarningRow {
@@ -428,34 +422,29 @@ fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
     }
 }
 
-/// The typed fields of a landmark refusal, read off the error rather than parsed back out of
-/// its sentence. `RuleRefusal::Stated` carries no fields, and every rule in the tree that
-/// produces one is a request asking for something not on offer, so it reads as that.
-fn rule_refusal_row(
-    trial_id: &str,
-    ordinal: usize,
-    slot: &str,
-    refusal: &RuleRefusal,
-    response: &AnalysisResponse,
-) -> RefusalRow {
-    let bound_for_slot = response
-        .bound_methods
-        .iter()
-        .find(|bound| bound.method_id.starts_with(slot_prefix(slot)))
-        .map(|bound| bound.method_id.as_str())
-        .unwrap_or_default();
-    let refused = refusal_from_rule(slot, refusal, bound_for_slot);
+/// The typed fields of a rule's refusal, read off the record rather than parsed back out of
+/// its sentence.
+///
+/// The construct and the id come with the decline rather than being recovered here by
+/// matching the start of a method id against a table of prefixes. This surface and the
+/// document surface each kept a copy of that table and the two copies had different last
+/// arms, so an unrecognised name resolved to `bwepoch.` here and to `takeoff.` there.
+fn rule_refusal_row(trial_id: &str, ordinal: usize, declined: &DeclinedRule) -> RefusalRow {
+    let refused = refusal_from_rule(declined);
 
     RefusalRow {
         trial_id: trial_id.to_string(),
         ordinal,
         code: refused.code.wire_name().to_string(),
         method_id: refused.method_id.clone(),
-        slot: slot.to_string(),
+        slot: declined.construct.to_string(),
         parameter: refused.parameter.clone().unwrap_or_default(),
+        // A refusal on a name and a refusal on a number both answer "which value", so one
+        // column carries whichever of the two this rule declined on.
         value: refused
             .value
             .map(crate::relations::format_value)
+            .or_else(|| refused.named_value.clone())
             .unwrap_or_default(),
         detail: refused
             .detail
@@ -464,15 +453,9 @@ fn rule_refusal_row(
             .collect::<Vec<_>>()
             .join(","),
         available: refused.available.join(","),
-        message: refusal.to_string(),
-    }
-}
-
-fn slot_prefix(slot: &str) -> &'static str {
-    match slot {
-        "onset" => "onset.",
-        "takeoff" => "takeoff.",
-        _ => "bwepoch.",
+        // The sentence the record generates, which is the one carrying the id the boundary
+        // stamped on. The rule's own sentence predates that stamp.
+        message: refused.message().to_string(),
     }
 }
 

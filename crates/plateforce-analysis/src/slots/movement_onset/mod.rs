@@ -13,7 +13,6 @@ use std::collections::BTreeMap;
 use plateforce_core::onset::{backtrack, CrossingSearch, CrossingSelection};
 use plateforce_core::{Trial, WeighingEpoch};
 
-use crate::binding::unbound_method_message;
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{
     bound_method, format_number, BoundMethod, BoundValues, Resolution, RuleRefusal,
@@ -32,18 +31,23 @@ pub(crate) enum OnsetDirection {
 /// countermovement jump always unweights first, and counting a departure in either
 /// direction lets the upward excursion of rising onto the toes register as onset: net
 /// impulse ICC 0.479 either-direction against 0.790 below-only.
+///
+/// `above_only` is a published value of this operator and is declined here rather than
+/// treated as a misspelling, and both report under one code carrying the name that was
+/// asked for. Which of the two it was is the difference between a typo and a method fork,
+/// and `onset.op.direction`'s own entry is where that difference is written.
 pub(crate) fn direction(resolved: &mut Resolution) -> Result<OnsetDirection, RuleRefusal> {
-    match resolved.option("direction", "below_only").as_str() {
+    let chosen = resolved.option("direction", "below_only");
+    match chosen.as_str() {
         "below_only" => Ok(OnsetDirection::BelowOnly),
         "two_sided" => Ok(OnsetDirection::TwoSided),
-        "above_only" => Err(RuleRefusal::Stated(
-            "onset.op.direction(above_only) counts departures above the \
-             reference, and a countermovement jump unweights first, so its onset is \
-             below_only or two_sided"
-                .to_string(),
-        )),
-        other => Err(RuleRefusal::Stated(format!(
-            "onset.op.direction({other}) is not one of below_only, above_only, two_sided"
+        _ => Err(RuleRefusal::Refused(Box::new(
+            plateforce_core::Refusal::name_not_accepted(
+                "onset.op.direction",
+                "direction",
+                chosen,
+                vec!["below_only".to_string(), "two_sided".to_string()],
+            ),
         ))),
     }
 }
@@ -152,7 +156,9 @@ fn crossing(
         "onset.threshold.noise_relative" => {
             noise_relative::crossing(trial, epoch, inherited_spread, resolved)
         }
-        other => Err(RuleRefusal::Stated(unbound_method_message(other, "onset"))),
+        other => Err(RuleRefusal::Refused(Box::new(
+            crate::binding::unbound_method_refusal(other, "onset"),
+        ))),
     }
 }
 
