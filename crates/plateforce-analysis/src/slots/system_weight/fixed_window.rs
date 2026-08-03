@@ -16,7 +16,7 @@ pub(crate) fn place(
     duration_seconds: f64,
     dispersion: DispersionEstimator,
     resolved: &mut Resolution,
-) -> Result<WeighingEpoch, Refusal> {
+) -> Result<WeighingEpoch, Box<Refusal>> {
     let centre = resolved
         .enumerated(
             "centre",

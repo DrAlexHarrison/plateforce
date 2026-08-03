@@ -217,7 +217,7 @@ fn declined_for(response: &crate::AnalysisResponse, quantity_key: &str) -> Optio
         .refusals
         .iter()
         .map(crate::document::refusal_from_rule)
-        .find(|refusal| chain.iter().any(|id| *id == refusal.method_id))
+        .find(|refusal| chain.contains(&refusal.method_id))
 }
 
 /// The three landmark slots, which are reached by their own names on the request.
@@ -234,7 +234,7 @@ const GRAVITY_FIELD: &str = "gravity_meters_per_second_squared";
 /// constructs this request actually carries and the gravity field, not a fixed three. A
 /// construct the build runs a rule for and this request did not name is not an axis:
 /// sweeping it would run a rule nobody chose.
-fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> Refusal {
+fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> Box<Refusal> {
     let axis = match parameter {
         Some(parameter) => format!("{slot}.{parameter}"),
         None => slot.to_string(),
@@ -242,15 +242,18 @@ fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> R
     let mut offered: Vec<String> = LANDMARK_SLOTS.iter().map(|s| (*s).to_string()).collect();
     offered.extend(base.derived.keys().cloned());
     offered.push(format!("global.{GRAVITY_FIELD}"));
-    Refusal::axis_not_in_this_request(axis, offered)
+    Box::new(Refusal::axis_not_in_this_request(axis, offered))
 }
+
+/// One point of the cartesian product: the request to run, and the settings naming it.
+type SweepPoint = (AnalysisRequest, Vec<(String, String)>);
 
 /// Mixed-radix decode of the flat index into one point of the cartesian product.
 fn materialise(
     base: &AnalysisRequest,
     axes: &[Axis],
     flat_index: usize,
-) -> Result<(AnalysisRequest, Vec<(String, String)>), Refusal> {
+) -> Result<SweepPoint, Box<Refusal>> {
     let mut candidate = base.clone();
     let mut settings = Vec::new();
     let mut remainder = flat_index;

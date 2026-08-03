@@ -38,7 +38,7 @@ pub(crate) fn search(
     dispersion: DispersionEstimator,
     resolved: &mut Resolution,
     warnings: &mut Vec<String>,
-) -> Result<WeighingEpoch, Refusal> {
+) -> Result<WeighingEpoch, Box<Refusal>> {
     let window_samples = (duration_seconds * trial.sample_rate_hz()).round() as usize;
     let accumulation = resolved
         .enumerated(

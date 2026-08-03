@@ -433,9 +433,12 @@ pub fn unbound_method_refusal(method_id: &str, slot: &str) -> plateforce_core::R
 /// An id with no rule behind it is refused rather than run under the nearest rule, which
 /// would carry a published author's citation onto a number that author's method did not
 /// produce.
-pub(crate) fn expect_bound(method_id: &str, slot: &str) -> Result<(), plateforce_core::Refusal> {
+pub(crate) fn expect_bound(
+    method_id: &str,
+    slot: &str,
+) -> Result<(), Box<plateforce_core::Refusal>> {
     if bindings_for(slot).any(|binding| binding.id == method_id) {
         return Ok(());
     }
-    Err(unbound_method_refusal(method_id, slot))
+    Err(Box::new(unbound_method_refusal(method_id, slot)))
 }

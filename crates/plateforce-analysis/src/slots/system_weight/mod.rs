@@ -39,10 +39,10 @@ pub fn weighing_epoch_at(
     duration_seconds: f64,
     centre: CentralTendency,
     dispersion: DispersionEstimator,
-) -> Result<WeighingEpoch, Refusal> {
+) -> Result<WeighingEpoch, Box<Refusal>> {
     if start_index == 0 {
         return WeighingEpoch::fixed_window(trial, duration_seconds, centre, dispersion)
-            .map_err(Refusal::from);
+            .map_err(|error| Box::new(Refusal::from(error)));
     }
     let start_index = start_index.min(trial.len().saturating_sub(2));
     let shifted = Trial::new(
@@ -61,7 +61,7 @@ pub(crate) fn resolve(
     trial: &Trial,
     choice: &WeighingChoice,
     warnings: &mut Vec<String>,
-) -> Result<WeighingOutcome, Refusal> {
+) -> Result<WeighingOutcome, Box<Refusal>> {
     let mut resolved = Resolution::over(
         &choice.parameters,
         &choice.options,

@@ -334,7 +334,7 @@ fn run_derived_phase(
     bound_methods: &mut Vec<crate::resolution::BoundMethod>,
     refusals: &mut Vec<DeclinedRule>,
     warnings: &mut Vec<String>,
-) -> Result<(), plateforce_core::Refusal> {
+) -> Result<(), Box<plateforce_core::Refusal>> {
     if request.derived.is_empty() {
         return Ok(());
     }
@@ -429,24 +429,29 @@ fn run_derived_phase(
 /// skip in silence: a construct with no rule matches no binding, and an id that is not the
 /// rule filed under the construct it was named for matches no binding either. A skipped
 /// request comes back as a result missing the number that was asked for, saying nothing.
-fn expect_derived_choice(construct: &str, method_id: &str) -> Result<(), plateforce_core::Refusal> {
+fn expect_derived_choice(
+    construct: &str,
+    method_id: &str,
+) -> Result<(), Box<plateforce_core::Refusal>> {
     let constructs = crate::binding::derived_constructs();
     if !constructs.contains(&construct) {
-        return Err(plateforce_core::Refusal::construct_not_on_the_path(
-            construct,
-            constructs.into_iter().map(str::to_string).collect(),
+        return Err(Box::new(
+            plateforce_core::Refusal::construct_not_on_the_path(
+                construct,
+                constructs.into_iter().map(str::to_string).collect(),
+            ),
         ));
     }
     if crate::binding::bindings_for_construct(construct).any(|binding| binding.id == method_id) {
         return Ok(());
     }
-    Err(plateforce_core::Refusal::method_not_implemented(
+    Err(Box::new(plateforce_core::Refusal::method_not_implemented(
         method_id,
         construct,
         crate::binding::bindings_for_construct(construct)
             .map(|binding| binding.id.to_string())
             .collect(),
-    ))
+    )))
 }
 
 #[cfg(test)]

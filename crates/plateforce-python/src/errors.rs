@@ -140,13 +140,21 @@ fn class_of(code: RefusalCode) -> fn(String) -> PyErr {
 pub fn raise_refusal(python: Python<'_>, refusal: &Refusal) -> PyErr {
     let raised = class_of(refusal.code)(refusal.message().to_string());
     let instance = raised.value(python);
+    // Everything the rule read while declining, reachable as a mapping and as an attribute
+    // each. The mapping is the shape an R condition carries, so a caller crossing the two
+    // languages reads one thing; the attributes are how a Python caller reaches a number
+    // without a lookup. Written before the named fields, so a name the two share resolves to
+    // the field rather than to a reading of the same name.
+    for (name, value) in &refusal.detail {
+        let _ = instance.setattr(name.as_str(), *value);
+    }
+    let _ = instance.setattr("detail", refusal.detail.clone());
     let _ = instance.setattr("code", refusal.code.wire_name());
     let _ = instance.setattr("method_id", refusal.method_id.clone());
     let _ = instance.setattr("slot", refusal.slot.clone());
     let _ = instance.setattr("parameter", refusal.parameter.clone());
     let _ = instance.setattr("value", refusal.value);
     let _ = instance.setattr("named_value", refusal.named_value.clone());
-    let _ = instance.setattr("detail", refusal.detail.clone());
     let _ = instance.setattr("available", refusal.available.clone());
     raised
 }
