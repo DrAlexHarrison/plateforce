@@ -1,0 +1,46 @@
+[[preset]]
+id = "sams"
+title = "Sams, shiny-vertical-jump"
+description = """
+The pipeline Sams' analysis application runs: the quietest one-second window in the recording for
+system weight, movement onset the last sample still inside a band five standard deviations wide, and
+takeoff re-estimated from the flight the ten newton provisional takeoff found.
+"""
+
+[[preset.binding]]
+construct = "system_weight"
+method_id = "bwepoch.adaptive_lowest_variance"
+parameters = { window_seconds = 1.0 }
+note = """
+The application segments the recording and keeps the surviving segment of lowest variance, and it
+discards any candidate segment holding a sample at or below ten newtons. The window's length is an
+input to the application and one second is the value it starts at.
+"""
+
+[[preset.binding]]
+construct = "movement_onset"
+method_id = "onset.threshold.last_within_band"
+composed_from = "onset.threshold.noise_relative"
+parameters = { k = 5.0 }
+note = """
+The threshold is system weight less five standard deviations of the weighing window, and the instant
+taken is the last sample still inside that band rather than the first sample outside it, which is the
+crossing operator bound to last. The application offers a second termination that subtracts thirty
+milliseconds from the crossing instead, and that pairing is what owen2014 states.
+"""
+
+[[preset.binding]]
+construct = "takeoff"
+method_id = "takeoff.threshold.flight_noise_k_sd"
+parameters = { bounding_threshold_n = 10.0, k = 5.0, trim_fraction = 0.25 }
+note = """
+Takeoff is found twice. A provisional takeoff at ten newtons bounds a flight phase, the threshold is
+re-derived as five standard deviations over the middle half of that flight, and takeoff is found
+again against the re-derived value.
+"""
+
+[[preset.citation]]
+key = "sams_shiny"
+role = "proposes"
+reference = "Sams, shiny-vertical-jump, GPL-3, App/global.R:417-460 the weighing epoch, :616-665 the onset threshold and its two terminations, :379-415 the two-pass takeoff"
+obtained = true

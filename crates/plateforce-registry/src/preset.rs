@@ -43,6 +43,14 @@ pub struct PresetBinding {
     pub parameters: BTreeMap<String, f64>,
     #[serde(default)]
     pub options: BTreeMap<String, String>,
+    /// The entry this rule composes, when the id names a composition rather than an entry.
+    ///
+    /// A composition is an entry with an operator bound onto it and carries that entry's
+    /// citations, so it has no row of its own to be checked against. Stating the entry here
+    /// is what lets a preset name one and still be checked: without it, an id that composes
+    /// and an id that is a typo are the same thing to a validator.
+    #[serde(default)]
+    pub composed_from: Option<String>,
     /// What the source states about this binding that the ids do not carry.
     #[serde(default)]
     pub note: Option<String>,
@@ -110,12 +118,19 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             }
             seen_constructs.push(&binding.construct);
 
-            match registry.methods.get(&binding.method_id) {
+            // A composition is checked through the entry it composes, which is the row
+            // carrying the citations it inherits. The id itself has no row by design.
+            let checked_id = binding
+                .composed_from
+                .as_ref()
+                .unwrap_or(&binding.method_id)
+                .clone();
+            match registry.methods.get(&checked_id) {
                 None => violations.push(Violation {
                     entry: preset.id.clone(),
                     kind: ViolationKind::PresetBindsUnknownMethod {
                         preset: preset.id.clone(),
-                        method_id: binding.method_id.clone(),
+                        method_id: checked_id.clone(),
                     },
                 }),
                 Some(method) if method.construct != binding.construct => {
@@ -123,7 +138,7 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                         entry: preset.id.clone(),
                         kind: ViolationKind::PresetBindingConstructMismatch {
                             preset: preset.id.clone(),
-                            method_id: binding.method_id.clone(),
+                            method_id: checked_id.clone(),
                             declared: binding.construct.clone(),
                             actual: method.construct.clone(),
                         },

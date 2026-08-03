@@ -89,6 +89,7 @@ fn a_preset_binding_a_rule_this_build_does_not_run_refuses_by_name() {
         method_id: "onset.yank_inflection.sahrom2020".into(),
         parameters: BTreeMap::new(),
         options: BTreeMap::new(),
+        composed_from: None,
         note: None,
     });
 

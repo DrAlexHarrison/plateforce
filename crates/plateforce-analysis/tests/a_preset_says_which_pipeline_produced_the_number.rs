@@ -89,6 +89,7 @@ fn owen_shaped() -> Preset {
                 method_id: "bwepoch.fixed_window".into(),
                 parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
                 options: BTreeMap::new(),
+                composed_from: None,
                 note: None,
             },
             PresetBinding {
@@ -99,6 +100,7 @@ fn owen_shaped() -> Preset {
                     ("offset_ms".to_string(), 30.0),
                 ]),
                 options: BTreeMap::new(),
+                composed_from: None,
                 note: None,
             },
         ],
@@ -256,6 +258,7 @@ fn every_construct_this_build_runs_records_the_pipeline_that_bound_it() {
                 method_id: first.id.to_string(),
                 parameters: BTreeMap::new(),
                 options: BTreeMap::new(),
+                composed_from: None,
                 note: None,
             }],
             citations: vec![citation()],
@@ -338,6 +341,7 @@ fn a_binding_naming_a_rule_this_build_does_not_run_is_refused_by_name() {
         method_id: "onset.threshold.nothing_runs_this".into(),
         parameters: BTreeMap::new(),
         options: BTreeMap::new(),
+        composed_from: None,
         note: None,
     });
     let mut request = bare_request();

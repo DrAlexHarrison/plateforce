@@ -7,14 +7,14 @@ use std::sync::Arc;
 use plateforce_registry::{
     assemble, AssemblyError, Bias as CoreBias, Citation as CoreCitation,
     Construct as CoreConstruct, Disagreement as CoreDisagreement, Failure as CoreFailure,
-    Gui as CoreGui, Method as CoreMethod, Parameter as CoreParameter, Registry as CoreRegistry,
-    RegistryError as CoreRegistryError,
+    Gui as CoreGui, Method as CoreMethod, Parameter as CoreParameter, Preset as CorePreset,
+    Registry as CoreRegistry, RegistryError as CoreRegistryError,
 };
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
 use crate::analysis::implemented_method_ids;
-use crate::errors::{map_registry_error, parameter_error, MethodError};
+use crate::errors::{map_registry_error, parameter_error, MethodError, MethodNotImplementedError};
 
 // Written by build.rs. The registry travels inside the extension module, so an install
 // from PyPI reaches the methods without a clone of the repository beside it.
@@ -435,14 +435,103 @@ pub struct Census {
     computation_entries: usize,
     #[pyo3(get)]
     protocol_entries: usize,
+    /// Published pipelines, counted as their own population. The four are never summed:
+    /// a construct and a rule that fills it are not two of anything.
+    #[pyo3(get)]
+    preset_entries: usize,
 }
 
 #[pymethods]
 impl Census {
     fn __repr__(&self) -> String {
         format!(
-            "Census(constructs={}, computation_entries={}, protocol_entries={})",
-            self.constructs, self.computation_entries, self.protocol_entries
+            "Census(constructs={}, computation_entries={}, protocol_entries={}, preset_entries={})",
+            self.constructs, self.computation_entries, self.protocol_entries, self.preset_entries
+        )
+    }
+}
+
+/// A published pipeline: which rule fills each construct its source states, and the values
+/// that source states for them.
+///
+/// Handed to `analyse_countermovement_jump` as `preset=`, which fills the slots it binds and
+/// leaves the rest to the caller. Every value it supplies is recorded as cited, naming this
+/// pipeline, so a result reached this way is a different record from one reached by typing
+/// the same numbers.
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Preset")]
+#[derive(Clone)]
+pub struct Preset {
+    pub(crate) inner: CorePreset,
+    pub(crate) registry_identity: RegistryIdentity,
+}
+
+#[pymethods]
+impl Preset {
+    #[getter]
+    fn id(&self) -> &str {
+        &self.inner.id
+    }
+
+    #[getter]
+    fn title(&self) -> &str {
+        &self.inner.title
+    }
+
+    #[getter]
+    fn description(&self) -> &str {
+        &self.inner.description
+    }
+
+    /// The constructs this pipeline binds, and the rule it binds to each.
+    #[getter]
+    fn bindings(&self) -> BTreeMap<String, String> {
+        self.inner
+            .bindings
+            .iter()
+            .map(|binding| (binding.construct.clone(), binding.method_id.clone()))
+            .collect()
+    }
+
+    /// The values this pipeline states, keyed by construct then by name.
+    #[getter]
+    fn parameters(&self) -> BTreeMap<String, BTreeMap<String, f64>> {
+        self.inner
+            .bindings
+            .iter()
+            .map(|binding| (binding.construct.clone(), binding.parameters.clone()))
+            .collect()
+    }
+
+    /// Constructs this pipeline's source says nothing about. A fact about the source, so the
+    /// caller decides those for themselves and the pipeline is not credited with the choice.
+    #[getter]
+    fn states_nothing_about(&self) -> Vec<String> {
+        self.inner.states_nothing_about.clone()
+    }
+
+    #[getter]
+    fn citations(&self) -> Vec<Citation> {
+        self.inner
+            .citations
+            .iter()
+            .map(|inner| Citation {
+                inner: inner.clone(),
+            })
+            .collect()
+    }
+
+    /// False when any source behind this pipeline rests on an abstract or a secondary
+    /// source. A pipeline is only as citable as the weakest source behind it.
+    #[getter]
+    fn every_source_obtained(&self) -> bool {
+        self.inner.every_source_obtained()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Preset('{}', binds={:?})",
+            self.inner.id,
+            self.bindings().keys().collect::<Vec<_>>()
         )
     }
 }
@@ -853,6 +942,7 @@ impl Registry {
             constructs: census.constructs,
             computation_entries: census.computation_entries,
             protocol_entries: census.protocol_entries,
+            preset_entries: census.preset_entries,
         }
     }
 
@@ -881,6 +971,34 @@ impl Registry {
                 "no entry with id '{method_id}'. This registry holds {} computation entries",
                 self.inner.methods.len()
             ))),
+        }
+    }
+
+    /// Every published pipeline this registry carries.
+    fn presets(&self) -> Vec<Preset> {
+        self.inner
+            .presets
+            .values()
+            .map(|inner| Preset {
+                inner: inner.clone(),
+                registry_identity: self.identity(),
+            })
+            .collect()
+    }
+
+    /// The pipeline a caller named, refused by name with the ones this registry carries.
+    ///
+    /// The sentence comes from the one place that writes it, so a name that is not a
+    /// pipeline reads the same here as in a terminal, a browser tab and an R condition.
+    fn preset(&self, preset_id: &str) -> PyResult<Preset> {
+        match plateforce_analysis::request::preset_named(&self.inner, preset_id) {
+            Ok(inner) => Ok(Preset {
+                inner: inner.clone(),
+                registry_identity: self.identity(),
+            }),
+            Err(refusal) => Err(MethodNotImplementedError::new_err(
+                refusal.message().to_string(),
+            )),
         }
     }
 
@@ -928,12 +1046,13 @@ impl Registry {
     fn __repr__(&self) -> String {
         let census = self.inner.census();
         format!(
-            "Registry(version={}, digest='{}', constructs={}, computation_entries={}, protocol_entries={})",
+            "Registry(version={}, digest='{}', constructs={}, computation_entries={}, protocol_entries={}, preset_entries={})",
             optional(self.version.as_deref()),
             self.inner.content_digest,
             census.constructs,
             census.computation_entries,
-            census.protocol_entries
+            census.protocol_entries,
+            census.preset_entries
         )
     }
 }

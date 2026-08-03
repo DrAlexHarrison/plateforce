@@ -6,14 +6,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use plateforce_core::provenance::PresetAttribution;
 use plateforce_core::{Refusal, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_registry::{Preset, PresetBinding, Registry};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
 
 /// Unknown fields are refused rather than ignored. A caller whose field name has drifted
 /// from this one would otherwise send every value it holds into nothing, and each rule
 /// would run its own value under the id the caller asked for.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MethodChoice {
     pub method_id: String,
@@ -67,7 +67,7 @@ pub struct Claims<'a> {
 
 /// `Default` so a caller can build one with `..Default::default()`. The next field this
 /// struct gains would otherwise break every exhaustive literal in the workspace at once.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct WeighingChoice {
     pub method_id: String,
@@ -125,7 +125,7 @@ impl WeighingChoice {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AnalysisRequest {
     pub weighing: WeighingChoice,

@@ -77,6 +77,9 @@ struct RegistryView<'a> {
     constructs: Vec<&'a plateforce_registry::Construct>,
     methods: Vec<&'a plateforce_registry::Method>,
     protocols: Vec<&'a plateforce_registry::Protocol>,
+    /// The published pipelines, in full. A tab that received only the count could report how
+    /// many there are and offer none of them.
+    presets: Vec<&'a plateforce_registry::Preset>,
     census: Census,
 }
 
@@ -93,12 +96,47 @@ pub fn registry_json() -> Result<String, JsError> {
         constructs: loaded.registry.constructs.values().collect(),
         methods: loaded.registry.methods.values().collect(),
         protocols: loaded.registry.protocols.values().collect(),
+        presets: loaded.registry.presets.values().collect(),
         census: Census {
             constructs: census.constructs,
             computation_entries: census.computation_entries,
             protocol_entries: census.protocol_entries,
             preset_entries: census.preset_entries,
         },
+    })
+}
+
+/// The request a published pipeline resolves to, or the record saying why it did not.
+///
+/// One of the two is present. A refusal travels as the record every other surface receives
+/// rather than as a sentence, so a tab branches on the code the terminal exits on.
+#[derive(Serialize)]
+struct AdoptedPreset {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request: Option<AnalysisRequest>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    refusal: Option<plateforce_core::Refusal>,
+}
+
+/// The request a named published pipeline resolves to, laid onto the one the tab has built.
+///
+/// Resolved here rather than in JavaScript. A second implementation of which values a
+/// pipeline supplied would be a second answer to the question this product exists to answer,
+/// and the interface reads the returned request back into its own controls, so a reader sees
+/// exactly what the pipeline bound before anything is computed.
+#[wasm_bindgen(js_name = adoptPreset)]
+pub fn adopt_preset(preset_id: &str, request_json: &str) -> Result<String, JsError> {
+    let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
+    let mut request: AnalysisRequest =
+        serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
+
+    let refused = match plateforce_analysis::request::preset_named(&loaded.registry, preset_id) {
+        Err(refusal) => Some(*refusal),
+        Ok(preset) => request.adopt(preset).err().map(|refusal| *refusal),
+    };
+    to_json(&AdoptedPreset {
+        request: refused.is_none().then_some(request),
+        refusal: refused,
     })
 }
 
@@ -112,6 +150,9 @@ pub fn registry_json() -> Result<String, JsError> {
 fn operations_named(export: &str) -> Option<&'static [Operation]> {
     match export {
         "analyse" => Some(&[Operation::Analyse, Operation::Spread]),
+        // Shaping the request a pipeline resolves to, which is part of analysing one trial
+        // rather than a question of its own.
+        "adoptPreset" => Some(&[Operation::Analyse]),
         "spread" => Some(&[Operation::Spread]),
         "parse" => Some(&[Operation::ParseForceFile]),
         "batchJson" | "batchCoverage" => Some(&[Operation::Batch]),
@@ -136,6 +177,7 @@ fn operations_named(export: &str) -> Option<&'static [Operation]> {
 /// Every name this crate exposes to JavaScript. The test below reads the same names out of
 /// the source, so an export added or removed without reaching this list fails there.
 const EXPORTS: &[&str] = &[
+    "adoptPreset",
     "analyse",
     "batchCoverage",
     "batchJson",
