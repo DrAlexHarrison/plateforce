@@ -95,7 +95,7 @@ const trial = wasm.LoadedTrial.fromForceFile(
   asked.sentinel_convention,
 );
 
-const json = trial.analyse(JSON.stringify(buildRequest()));
+const json = trial.analyse(JSON.stringify(buildRequest()), asked.trial);
 // Read through the page's own reader. A surface that parsed past this envelope would find
 // every field undefined and report that as an answer.
 const answer = reply(json);
