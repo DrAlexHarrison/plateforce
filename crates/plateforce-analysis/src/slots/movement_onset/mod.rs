@@ -84,10 +84,10 @@ pub(crate) fn onset_search(
     // stated time is the deprecated fixed floor. Unstated, the search starts where the
     // weighing window ended, which the weighing rule decided and no caller chose, so it is
     // recorded as the derived bound it is rather than as a time nobody stated.
-    let start_index = match resolved.stated("floor_seconds") {
+    let start_index = match resolved.stated(FLOOR_SECONDS) {
         Some(seconds) => {
             resolved.record_measured(
-                "floor_seconds",
+                FLOOR_SECONDS,
                 seconds,
                 format_number(seconds),
                 ParameterSource::Stated,
@@ -96,7 +96,7 @@ pub(crate) fn onset_search(
         }
         None => {
             resolved.record_measured(
-                "weighing_epoch_end_seconds",
+                WEIGHING_EPOCH_END_SECONDS,
                 trial.time_at(epoch.end_index),
                 format!("{:.4}", trial.time_at(epoch.end_index)),
                 ParameterSource::Measured,
@@ -201,7 +201,8 @@ pub(crate) fn resolve(
     let index = match found {
         Ok(index) => {
             if applies_backtrack(&choice.method_id) {
-                let back_offset_samples = resolved.milliseconds_as_samples("offset_ms", 30.0, rate);
+                let back_offset_samples =
+                    resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
                 let outcome = backtrack(index, back_offset_samples);
                 if outcome.clamped_at_start {
                     warnings.push(
@@ -227,15 +228,30 @@ pub(crate) fn resolve(
     }
 }
 
+/// The step back from the crossing, composed onto every onset rule that does not resolve
+/// its own.
+pub const BACKWARD_OFFSET_FIXED: &str = "onset.op.backward_offset_fixed";
+/// A floor the caller stated in seconds.
+pub const SEARCH_FLOOR: &str = "onset.op.search_floor";
+/// A floor the weighing rule settled and no caller chose.
+pub const SEARCH_FLOOR_AT_WEIGHING_EPOCH_END: &str = "onset.op.search_floor_at_weighing_epoch_end";
+
+/// The names those three operators carry their values under. Named once because the rule
+/// that records a value and the reader that looks it up again are in different files, and a
+/// name that drifted between them would read as an operator that never ran.
+pub const OFFSET_MILLISECONDS: &str = "offset_ms";
+pub const FLOOR_SECONDS: &str = "floor_seconds";
+pub const WEIGHING_EPOCH_END_SECONDS: &str = "weighing_epoch_end_seconds";
+
 /// The entries this build composes onto an onset threshold rule. Each is a registry entry
 /// in its own right, with its own citation, default and published values.
 pub const ONSET_OPERATOR_IDS: &[&str] = &[
-    "onset.op.backward_offset_fixed",
+    BACKWARD_OFFSET_FIXED,
     "onset.op.crossing_selection",
     "onset.op.direction",
     "onset.op.persistence",
-    "onset.op.search_floor",
-    "onset.op.search_floor_at_weighing_epoch_end",
+    SEARCH_FLOOR,
+    SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
 ];
 
 /// Which registry entry carries each name an onset rule reads.
@@ -246,10 +262,10 @@ pub const ONSET_OPERATOR_IDS: &[&str] = &[
 /// it, and a reader who looks the id up does not find the value that moved the number.
 fn operator_for(name: &str) -> Option<&'static str> {
     match name {
-        "offset_ms" => Some("onset.op.backward_offset_fixed"),
+        OFFSET_MILLISECONDS => Some(BACKWARD_OFFSET_FIXED),
         "span_ms" => Some("onset.op.persistence"),
-        "floor_seconds" => Some("onset.op.search_floor"),
-        "weighing_epoch_end_seconds" => Some("onset.op.search_floor_at_weighing_epoch_end"),
+        FLOOR_SECONDS => Some(SEARCH_FLOOR),
+        WEIGHING_EPOCH_END_SECONDS => Some(SEARCH_FLOOR_AT_WEIGHING_EPOCH_END),
         "direction" => Some("onset.op.direction"),
         "selection" => Some("onset.op.crossing_selection"),
         _ => None,

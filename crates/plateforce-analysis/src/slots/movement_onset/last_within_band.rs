@@ -8,7 +8,7 @@ use plateforce_core::takeoff::force_minimum_index;
 use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
-use crate::slots::movement_onset::record_inherited_spread;
+use crate::slots::movement_onset::{record_inherited_spread, OFFSET_MILLISECONDS};
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
 pub(crate) const APPLIES_BACKTRACK: bool = false;
@@ -39,7 +39,7 @@ pub(crate) fn crossing(
     let k = resolved.number("k", 5.0);
     record_inherited_spread(resolved, inherited_spread);
     let lookback_samples = resolved.seconds_as_samples("inverse_lookback", 0.5, rate);
-    let back_offset_samples = resolved.milliseconds_as_samples("offset_ms", 30.0, rate);
+    let back_offset_samples = resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
 
     let search_end = takeoff_index
         .and_then(|takeoff| countermovement_dip(force, takeoff))
