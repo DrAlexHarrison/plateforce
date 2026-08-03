@@ -780,3 +780,6 @@ note = "A precondition rather than a competitor, and it makes three movements ha
 surfacing = "force_a_decision"
 sensitivity = "total on every net quantity"
 rationale = "Force the decision on the bar state, then hide the window length."
+
+[method.reach]
+boundary = "both"
