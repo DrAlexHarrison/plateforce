@@ -65,6 +65,10 @@ trial in a tidy shape with stable column names bound to registry identifiers. It
 computation of its own, which is why it is not promoted.
 """
 
+[method.reach]
+boundary = "undetermined"
+query = "whether the metric vector clustered includes the kinematic variables the source recorded alongside its two plates, which one plate does not supply"
+
 [[method]]
 id = "analysis.jump_strategy_waveform_clustering.guess2020"
 construct = "movement_strategy_cluster"
