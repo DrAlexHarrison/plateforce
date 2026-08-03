@@ -104,3 +104,97 @@ test_that("a rule the caller named out of the registry is recorded as coming fro
   expect_identical(sort(unname(ids[backed])), sort(named))
   expect_true(all(ids[backed] %in% pf_registry()@method_ids))
 })
+
+# A rule for a construct other than the three the spine walks. Before the engine could
+# dispatch by construct id, no surface could ask for one of these at all.
+test_that("a rule named by its construct reports its number and the rule behind it", {
+  jump <- pf_trial(
+    c(
+      rep(700, 1200) + rep(c(-0.4, 0.2, 0.4, -0.2), length.out = 1200),
+      seq(700, 400, length.out = 360),
+      seq(400, 1900, length.out = 360),
+      rep(0, 600),
+      rep(1700, 240)
+    ),
+    sample_rate_hz = 1200
+  )
+  result <- analyse_countermovement_jump(
+    jump,
+    weighing = "bwepoch.fixed_window",
+    weighing_parameters = list(duration = 0.8),
+    onset = "onset.threshold.absolute_force",
+    onset_parameters = list(threshold_n = 20),
+    takeoff = "takeoff.threshold.absolute_force",
+    derived = list(
+      analysis_window = "window_end.takeoff.detected",
+      peak_force = "force.peak.gross"
+    )
+  )
+
+  peak <- pf_value(result, "peak_force_newtons")
+  expect_true(peak@value > 0)
+  expect_identical(peak@unit, "newtons")
+  expect_identical(peak@provenance@method_id, "force.peak.gross")
+  expect_identical(length(result@refusals), 0L)
+})
+
+# A rule that takes values reads them, and the value moves the number.
+test_that("a value stated against a construct reaches its rule", {
+  jump <- pf_trial(
+    c(
+      rep(700, 1200) + rep(c(-0.4, 0.2, 0.4, -0.2), length.out = 1200),
+      seq(700, 400, length.out = 360),
+      seq(400, 1900, length.out = 360),
+      rep(0, 600),
+      rep(1700, 240)
+    ),
+    sample_rate_hz = 1200
+  )
+  peak_at <- function(width) {
+    result <- analyse_countermovement_jump(
+      jump,
+      weighing = "bwepoch.fixed_window",
+      weighing_parameters = list(duration = 0.8),
+      onset = "onset.threshold.absolute_force",
+      onset_parameters = list(threshold_n = 20),
+      takeoff = "takeoff.threshold.absolute_force",
+      derived = list(
+        analysis_window = "window_end.takeoff.detected",
+        peak_force = list(
+          method_id = "force.peak.estimator",
+          parameters = list(averaging_window_seconds = width)
+        )
+      )
+    )
+    pf_value(result, "peak_force_newtons")@value
+  }
+  expect_true(peak_at(0.1) < peak_at(0))
+})
+
+# A construct forcing a choice nobody made declines by name rather than taking a window
+# nobody picked, and the decline arrives with its code.
+test_that("a peak asked for with no window chosen names the open choice", {
+  jump <- pf_trial(
+    c(
+      rep(700, 1200) + rep(c(-0.4, 0.2, 0.4, -0.2), length.out = 1200),
+      seq(700, 400, length.out = 360),
+      seq(400, 1900, length.out = 360),
+      rep(0, 600),
+      rep(1700, 240)
+    ),
+    sample_rate_hz = 1200
+  )
+  result <- analyse_countermovement_jump(
+    jump,
+    weighing = "bwepoch.fixed_window",
+    weighing_parameters = list(duration = 0.8),
+    onset = "onset.threshold.absolute_force",
+    onset_parameters = list(threshold_n = 20),
+    takeoff = "takeoff.threshold.absolute_force",
+    derived = list(peak_force = "force.peak.gross")
+  )
+  expect_identical(length(result@refusals), 1L)
+  expect_identical(result@refusals[[1]][["code"]], "decision_not_made")
+  expect_true("analysis_window" %in% unlist(result@refusals[[1]][["available"]]))
+  expect_false("peak_force_newtons" %in% names(result@values))
+})

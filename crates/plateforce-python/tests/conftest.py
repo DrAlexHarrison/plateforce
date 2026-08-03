@@ -32,6 +32,16 @@ unit = "seconds"
 id = "takeoff"
 title = "The instant the last foot leaves the plate"
 unit = "seconds"
+
+[[construct]]
+id = "analysis_window"
+title = "The stretch of the recording a number is taken over"
+unit = "seconds"
+
+[[construct]]
+id = "peak_force"
+title = "The biggest force"
+unit = "newtons"
 """
 
 METHODS = """
@@ -149,6 +159,36 @@ detectability = "silent"
 [method.gui]
 surfacing = "force_a_decision"
 sensitivity = "high"
+
+[[method]]
+id = "window_end.takeoff.detected"
+construct = "analysis_window"
+title = "The recording up to the sample takeoff was placed at"
+rule = "The analysis window runs from the first sample of the recording to the sample the bound takeoff rule placed."
+status = "accepted"
+confidence = "high"
+
+[[method]]
+id = "force.peak.gross"
+construct = "peak_force"
+title = "The biggest force, system weight included"
+rule = "Peak force is the maximum of the force series with system weight included in the value."
+status = "accepted"
+confidence = "high"
+
+[[method]]
+id = "force.peak.estimator"
+construct = "peak_force"
+title = "The biggest force, read off a centred average of stated width"
+rule = "Peak force is the maximum of the raw series, or the maximum of a centred moving average of stated width."
+status = "accepted"
+confidence = "high"
+
+[[method.parameter]]
+name = "averaging_window_seconds"
+unit = "seconds"
+default = 0.0
+default_source = "synthetic_fixture"
 """
 
 

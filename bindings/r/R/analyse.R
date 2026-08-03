@@ -90,6 +90,12 @@ pf_value <- function(x, quantity) {
 #' @param weighing_start_index,onset_index,takeoff_index,touchdown_index Indices placed by
 #'   hand. An override is a fact about what produced the number, so it travels in the
 #'   record rather than replacing it.
+#' @param derived Rules for constructs computed from the landmarks, named by the construct
+#'   id the registry declares: `list(analysis_window = "window_end.takeoff.detected",
+#'   peak_force = "force.peak.gross")`. A rule that takes values is written
+#'   `list(peak_force = list(method_id = "force.peak.estimator",
+#'   parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
+#'   one placed declines by name when that construct was not named.
 #' @param registry Directory holding the registry, as in [pf_registry()].
 #' @return A [countermovement_jump].
 #' @export
@@ -118,9 +124,10 @@ analyse_countermovement_jump <- function(trial,
                                         onset_index = NULL,
                                         takeoff_index = NULL,
                                         touchdown_index = NULL,
+                                        derived = NULL,
                                         registry = NULL) {
   request <- analysis_request_of(
-    weighing = weighing, onset = onset, takeoff = takeoff,
+    weighing = weighing, onset = onset, takeoff = takeoff, derived = derived,
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     weighing_parameters = weighing_parameters, onset_parameters = onset_parameters,
     takeoff_parameters = takeoff_parameters,
@@ -138,6 +145,7 @@ analyse_countermovement_jump <- function(trial,
 # that differs from the one a user's call sends, and a comparison over that document would
 # be measuring a request nobody makes.
 analysis_request_of <- function(weighing, onset, takeoff,
+                                derived = NULL,
                                 gravity_meters_per_second_squared = NULL,
                                 weighing_parameters = NULL, onset_parameters = NULL,
                                 takeoff_parameters = NULL,
@@ -165,11 +173,42 @@ analysis_request_of <- function(weighing, onset, takeoff,
       options = takeoff_options,
       manual_index = as_index(takeoff_index)
     )),
+    derived = derived_choices(derived),
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     registry_digest = registry_digest(registry),
-    registry_backed_ids = registry_backed_among(c(weighing, onset, takeoff), registry)
+    registry_backed_ids = registry_backed_among(
+      c(weighing, onset, takeoff, vapply(derived_choices(derived), function(c) c[["method_id"]], character(1))),
+      registry
+    )
   )
+}
+
+# A rule for something computed from the landmarks, keyed by the construct id the registry
+# declares. Written either as `list(peak_force = "force.peak.gross")` or, where the rule
+# takes values, as `list(peak_force = list(method_id = ..., parameters = list(...)))`. The
+# short form is the same request as the long one with nothing stated.
+derived_choices <- function(derived) {
+  if (is.null(derived) || !length(derived)) {
+    return(NULL)
+  }
+  if (is.null(names(derived)) || any(!nzchar(names(derived)))) {
+    refuse_here(
+      "required_parameter_unstated",
+      "each rule computed from the landmarks is named by its construct, as list(peak_force = \"force.peak.gross\")",
+      parameter = "derived"
+    )
+  }
+  lapply(derived, function(choice) {
+    if (is.character(choice)) {
+      return(list(method_id = choice))
+    }
+    drop_empty(list(
+      method_id = choice[["method_id"]],
+      parameters = choice[["parameters"]],
+      options = choice[["options"]]
+    ))
+  })
 }
 
 drop_empty <- function(fields) fields[!vapply(fields, is.null, logical(1))]

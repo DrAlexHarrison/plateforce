@@ -176,3 +176,70 @@ def test_sentinels_declared_on_the_trial_are_reported_on_the_result(
 
 def test_the_module_states_its_version():
     assert pf.__version__
+
+
+def test_a_rule_named_by_its_construct_reports_its_number_and_the_rule_behind_it(
+    registry, trial
+):
+    """A construct other than the three the spine walks, asked for by name.
+
+    Before the engine could dispatch by construct id no surface could ask for one at all,
+    and this surface was the last of the four to be able to.
+    """
+    epoch = registry.method("bwepoch.fixed_window").bind(duration=1.0)
+    onset = registry.method("onset.threshold.noise_relative").bind(k=5.0)
+    takeoff = registry.method("takeoff.threshold.absolute_force").bind(threshold_n=20.0)
+
+    result = pf.analyse_countermovement_jump(
+        trial,
+        epoch,
+        onset,
+        takeoff,
+        derived={
+            "analysis_window": registry.method("window_end.takeoff.detected").bind(),
+            "peak_force": registry.method("force.peak.gross").bind(),
+        },
+    )
+    peak = result.value("peak_force_newtons")
+    assert peak.value > 0
+    assert peak.unit == "newtons"
+    assert peak.provenance.method_id == "force.peak.gross"
+
+
+def test_a_value_stated_against_a_construct_reaches_its_rule(registry, trial):
+    epoch = registry.method("bwepoch.fixed_window").bind(duration=1.0)
+    onset = registry.method("onset.threshold.noise_relative").bind(k=5.0)
+    takeoff = registry.method("takeoff.threshold.absolute_force").bind(threshold_n=20.0)
+
+    def peak_at(width):
+        result = pf.analyse_countermovement_jump(
+            trial,
+            epoch,
+            onset,
+            takeoff,
+            derived={
+                "analysis_window": registry.method("window_end.takeoff.detected").bind(),
+                "peak_force": registry.method("force.peak.estimator").bind(),
+            },
+            derived_parameters={"peak_force": {"averaging_window_seconds": width}},
+        )
+        return result.value("peak_force_newtons").value
+
+    assert peak_at(0.1) < peak_at(0.0)
+
+
+def test_a_construct_this_build_runs_no_rule_for_is_refused_by_name(registry, trial):
+    epoch = registry.method("bwepoch.fixed_window").bind(duration=1.0)
+    onset = registry.method("onset.threshold.noise_relative").bind(k=5.0)
+    takeoff = registry.method("takeoff.threshold.absolute_force").bind(threshold_n=20.0)
+
+    with pytest.raises(pf.MethodNotImplementedError) as refused:
+        pf.analyse_countermovement_jump(
+            trial,
+            epoch,
+            onset,
+            takeoff,
+            derived={"movement_onset": registry.method("force.peak.gross").bind()},
+        )
+    assert "movement_onset" in str(refused.value)
+    assert "peak_force" in str(refused.value)

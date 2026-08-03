@@ -158,6 +158,17 @@ jobs:
       - name: Run the commands and read every byte they write
         run: ./scripts/check-cli-output-is-ascii.sh
 
+  # A surface that can raise a refusal code its own manifest does not publish hands a caller
+  # a class to catch that the manifest says does not exist. The count is held to a ceiling
+  # that only falls, so a code closed cannot quietly be replaced by a new one.
+  vocabulary:
+    name: every refusal code a surface raises is one it publishes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Measure each surface against its own manifest
+        run: python3 ./scripts/check-refusal-vocabulary.py
+
   deploy:
     needs: [build, floor]
     if: github.event_name != 'pull_request'

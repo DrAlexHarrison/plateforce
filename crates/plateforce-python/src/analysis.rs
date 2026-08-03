@@ -66,6 +66,42 @@ fn expect_bound(method: &BoundMethod, slot: &str) -> PyResult<()> {
     ))
 }
 
+/// A construct with no rule behind it, and an id that is a real rule filed under a different
+/// construct, are both refused here rather than reaching the engine. Either one alone would
+/// match no binding, and a request that matches nothing comes back missing the number it
+/// asked for with nothing said about it.
+fn expect_derived_bound(derived: &BTreeMap<String, BoundMethod>) -> PyResult<()> {
+    let runs = plateforce_analysis::binding::derived_constructs();
+    for (construct, method) in derived {
+        if !runs.contains(&construct.as_str()) {
+            return Err(MethodNotImplementedError::new_err(
+                plateforce_core::Refusal::construct_not_on_the_path(
+                    construct.clone(),
+                    runs.iter().map(|name| (*name).to_string()).collect(),
+                )
+                .message()
+                .to_string(),
+            ));
+        }
+        if !plateforce_analysis::binding::bindings_for_construct(construct)
+            .any(|binding| binding.id == method.method_id())
+        {
+            return Err(MethodNotImplementedError::new_err(
+                plateforce_core::Refusal::method_not_implemented(
+                    method.method_id(),
+                    construct.clone(),
+                    plateforce_analysis::binding::bindings_for_construct(construct)
+                        .map(|binding| binding.id.to_string())
+                        .collect(),
+                )
+                .message()
+                .to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// The registry entry's own parameters, plus any the caller stated directly. A name no
 /// rule reads is not dropped in silence: it comes back in `unread_parameters`.
 fn quantities_of(
@@ -234,6 +270,37 @@ impl Derived<'_> {
         })
     }
 
+    /// Every quantity the response reported, keyed by the engine's own name for it, with
+    /// the provenance of the rule that produced it.
+    ///
+    /// Read through `value()` rather than through a getter per quantity. Eleven getters
+    /// were written when eleven quantities existed, and a rule bound for any other
+    /// construct reports a key none of them names, so a transcription would go stale the
+    /// first time one landed.
+    fn every_value(&self) -> BTreeMap<String, Measured> {
+        let mut values = BTreeMap::new();
+        for metric in &self.response.metrics {
+            let Some(value) = metric.value else { continue };
+            let provenance = match &metric.computed_by {
+                Some(id) => software_step(id, Vec::new(), self.registry, self.acquisition_complete),
+                None => software_step("", Vec::new(), self.registry, self.acquisition_complete),
+            };
+            values.insert(
+                metric.key.clone(),
+                Measured::new(
+                    CoreMeasured {
+                        value,
+                        unit: self.unit(&metric.key),
+                        provenance,
+                    },
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            );
+        }
+        values
+    }
+
     /// A quantity a resolved registry rule produced directly, so its provenance is that
     /// rule's rather than an id of the software's own.
     fn by_rule(&self, key: &str, chain: &ProvenanceChain) -> Option<Measured> {
@@ -279,10 +346,33 @@ pub struct CountermovementJump {
     unread_parameters: Vec<String>,
     assumed_parameters: Vec<String>,
     warnings: Vec<String>,
+    /// Every quantity the engine reported, by its own name for it, reached through
+    /// `value()`. The getters above cover the eleven the spine has always produced; a rule
+    /// bound for any other construct reports through this and needs no getter of its own.
+    values: BTreeMap<String, Measured>,
 }
 
 #[pymethods]
 impl CountermovementJump {
+    /// One quantity by the engine's name for it, matched in full.
+    ///
+    /// A name this analysis did not report is refused naming what it did, rather than
+    /// answering `None`, because a caller reading a missing quantity as absent cannot tell
+    /// it from a rule that ran and produced nothing.
+    fn value(&self, quantity: &str) -> PyResult<Measured> {
+        self.values.get(quantity).cloned().ok_or_else(|| {
+            MethodNotImplementedError::new_err(
+                plateforce_core::Refusal::unknown_parameter(
+                    "this analysis",
+                    quantity,
+                    self.values.keys().cloned().collect(),
+                )
+                .message()
+                .to_string(),
+            )
+        })
+    }
+
     #[getter]
     fn system_weight_newtons(&self) -> Measured {
         self.system_weight_newtons.clone()
@@ -438,6 +528,8 @@ impl CountermovementJump {
     onset_index = None,
     takeoff_index = None,
     touchdown_index = None,
+    derived = None,
+    derived_parameters = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn analyse_countermovement_jump(
@@ -457,10 +549,21 @@ pub fn analyse_countermovement_jump(
     onset_index: Option<usize>,
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
+    derived: Option<BTreeMap<String, Py<BoundMethod>>>,
+    derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
 ) -> PyResult<CountermovementJump> {
     expect_bound(weighing_epoch, "weighing")?;
     expect_bound(onset, "onset")?;
     expect_bound(takeoff, "takeoff")?;
+    // A `BoundMethod` reaches a signature as the Python object holding it, so each is
+    // borrowed once here and the request is built from plain values after that.
+    let derived: BTreeMap<String, BoundMethod> = derived
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(construct, method)| (construct, method.borrow(python).clone()))
+        .collect();
+    let derived_parameters = derived_parameters.unwrap_or_default();
+    expect_derived_bound(&derived)?;
 
     let registry = weighing_epoch.registry_identity().clone();
     let acquisition_complete = trial.acquisition_complete();
@@ -487,6 +590,15 @@ pub fn analyse_countermovement_jump(
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
         registry_backed_ids: registry.method_ids.as_ref().clone(),
+        derived: derived
+            .iter()
+            .map(|(construct, method)| {
+                (
+                    construct.clone(),
+                    choice_of(method, derived_parameters.get(construct).cloned(), None),
+                )
+            })
+            .collect(),
         ..Default::default()
     };
 
@@ -647,6 +759,7 @@ pub fn analyse_countermovement_jump(
             .flat_map(|bound| bound.assumed_parameters())
             .collect(),
         warnings: response.warnings.clone(),
+        values: derived.every_value(),
     })
 }
 
