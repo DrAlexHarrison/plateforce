@@ -72,9 +72,7 @@ pub struct Args {
     /// A published pipeline to run over every trial in the folder
     #[arg(long, value_name = "NAME")]
     pub preset: Option<String>,
-    /// A value for a rule, written <construct>.<name>=<value>. Repeatable, and it applies to
-    /// every trial in the folder
-    #[arg(long = "set", value_name = "ASSIGNMENT")]
+    #[arg(long = "set", value_name = "ASSIGNMENT", help = crate::analyse::SET_HELP_FOR_A_FOLDER)]
     pub set: Vec<String>,
     /// A rule to sweep against the bound one, for compare. Repeatable
     #[arg(long = "against", value_name = "METHOD_ID")]
