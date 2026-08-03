@@ -96,6 +96,7 @@ async function readFile(file) {
     const text = await file.text();
     state.file?.free?.();
     state.file = ForceFile.parse(text);
+    state.fileName = file.name;
     renderColumnChooser(file.name, JSON.parse(state.file.summaryJson()));
     showStage('stage-columns');
   } catch (error) {

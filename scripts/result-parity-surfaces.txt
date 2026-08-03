@@ -7,3 +7,4 @@
 cli	scripts/result-from-cli.sh
 python	./scripts/result-from-python.sh
 r	Rscript --vanilla scripts/result-from-r.R
+browser	node scripts/result-from-browser.mjs

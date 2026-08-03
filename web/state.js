@@ -23,6 +23,10 @@ export const state = {
    * engine supplies standard gravity, which is the one place that constant lives. */
   gravity: null,
   file: null,
+  /* What the reader called the trace they opened, carried onto every result computed from
+   * it. The module is handed text and never a file, so a name it is not given is a name it
+   * cannot report. */
+  fileName: null,
   loadedTrial: null,
   envelope: null,
   analysis: null,

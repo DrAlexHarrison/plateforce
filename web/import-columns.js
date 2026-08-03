@@ -166,5 +166,8 @@ export function confirmColumns() {
 export function loadDemonstration() {
   state.loadedTrial?.free?.();
   state.loadedTrial = LoadedTrial.demonstration();
+  // The trace the interface opens with is a recording rather than a file the reader chose,
+  // and a result computed from it says so rather than reporting whatever was opened before.
+  state.fileName = 'demonstration';
   enterWorkspace();
 }

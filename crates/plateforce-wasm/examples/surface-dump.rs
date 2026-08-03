@@ -600,7 +600,10 @@ fn main() {
             trial.envelope_json(64),
         );
         for (name, payload) in requests() {
-            report(&format!("analyse {trace} {name}"), trial.analyse(&payload));
+            report(
+                &format!("analyse {trace} {name}"),
+                trial.analyse(&payload, Some((*trace).to_string())),
+            );
         }
         for (name, payload) in sweeps() {
             report(&format!("spread {trace} {name}"), trial.spread(&payload));

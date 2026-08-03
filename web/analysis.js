@@ -167,7 +167,9 @@ export function runAnalysis() {
   /* A rule that declines is an answer, not an exception. It arrives as the record it built,
    * carrying the code, the rule and what could have been asked for instead. A throw here is
    * the bundle itself being broken, which is a different thing and reads differently. */
-  const answer = reply(state.loadedTrial.analyse(JSON.stringify(buildRequest())));
+  const answer = reply(
+    state.loadedTrial.analyse(JSON.stringify(buildRequest()), state.fileName),
+  );
   if (answer.refusal) {
     state.analysisRefusal = answer.refusal;
     $('metric-grid').replaceChildren();

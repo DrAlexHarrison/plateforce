@@ -20,7 +20,7 @@ use wasm_bindgen::prelude::*;
 
 use plateforce_analysis::binding::SPINE_CONSTRUCTS;
 use plateforce_analysis::capability::{capability, Operation, OutputFormat};
-use plateforce_analysis::{spread, AnalysisRequest, Binding, BINDINGS};
+use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
 use plateforce_core::signal::{partition_sentinels, Sentinel};
 use plateforce_core::Trial;
@@ -360,12 +360,41 @@ impl LoadedTrial {
 
     /// One analysis. Every number in the response names the methods that produced it, and a
     /// rule that declined arrives as the record it built rather than as a thrown sentence.
+    ///
+    /// Returned as the document the terminal and R return, so a result carried out of the tab
+    /// says which method set produced it. A tab that answered with the response alone handed
+    /// back numbers a reader could not attribute to a registry.
+    ///
+    /// The name of the trace is the caller's, because the module is handed text and never a
+    /// file. A caller that names none has a trace this surface cannot name.
     #[wasm_bindgen(js_name = analyse)]
-    pub fn analyse(&self, request_json: &str) -> Result<String, JsError> {
+    pub fn analyse(
+        &self,
+        request_json: &str,
+        trial_name: Option<String>,
+    ) -> Result<String, JsError> {
         let request: AnalysisRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
+        let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
         match plateforce_analysis::run(&self.trial, &request) {
-            Ok(response) => replied(&response),
+            Ok(response) => replied(&document::ResultDocument::of(
+                version(),
+                document::TrialSource {
+                    name: trial_name.unwrap_or_default(),
+                    rows_read: self.info.sample_count,
+                    sentinel_rows: self.info.sentinel_samples_replaced,
+                },
+                loaded.registry.declared_version.clone(),
+                Some(loaded.digest.clone()),
+                // No acquisition block reaches this surface, and a dataset that cannot fill
+                // one fingerprints as incomplete rather than as matching.
+                false,
+                &response,
+                std::collections::BTreeMap::new(),
+                // The tab sweeps on its own schedule through `spread`, so an analysis that
+                // computed one here would answer a question nobody asked and pay for it.
+                None,
+            )),
             Err(refusal) => refused(&refusal),
         }
     }
