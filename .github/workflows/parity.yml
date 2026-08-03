@@ -93,6 +93,12 @@ jobs:
       - name: Every listed surface reports, and every answer meets the obligation
         run: ./scripts/capability.sh --check
 
+      # The browser arm loads the compiled bundle rather than the page, so the gate needs it
+      # on disk. Built here rather than by the arm, so a surface that cannot answer fails the
+      # job instead of quietly building itself into a pass.
+      - name: Build the browser bundle, so its row can answer
+        run: bash scripts/build-web.sh
+
       # The only gate here that compares a computed number rather than a manifest. Two
       # surfaces can publish identical vocabularies and return different jump heights, and
       # nothing above this line can see that.
