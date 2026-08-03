@@ -831,6 +831,9 @@ minimising residual on a mono-exponential pushes onset later, which shortens eve
 therefore inflates epoch-anchored rate of force development.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "onset.op.backward_offset_fixed"
 construct = "movement_onset"
