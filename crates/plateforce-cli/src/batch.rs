@@ -72,9 +72,7 @@ pub struct Args {
     /// A published pipeline to run over every trial in the folder
     #[arg(long, value_name = "NAME")]
     pub preset: Option<String>,
-    /// A value for a rule, written <construct>.<name>=<value>. Repeatable, and it applies to
-    /// every trial in the folder
-    #[arg(long = "set", value_name = "ASSIGNMENT")]
+    #[arg(long = "set", value_name = "ASSIGNMENT", help = crate::analyse::SET_HELP_FOR_A_FOLDER)]
     pub set: Vec<String>,
     /// A rule to sweep against the bound one, for compare. Repeatable
     #[arg(long = "against", value_name = "METHOD_ID")]
@@ -206,13 +204,6 @@ fn request_for(
             .cloned()
             .unwrap_or_default()
     };
-    let backed: Vec<String> = [&args.weighing, &args.onset, &args.takeoff]
-        .into_iter()
-        .flatten()
-        .filter(|method_id| registry.methods.contains_key(*method_id))
-        .cloned()
-        .collect();
-
     plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: args.weighing.clone().unwrap_or_default(),
@@ -232,7 +223,7 @@ fn request_for(
         touchdown_index: None,
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
-        registry_backed_ids: backed,
+        registry_backed_ids: crate::analyse::backed_ids(registry),
         ..Default::default()
     }
 }

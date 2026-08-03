@@ -37,8 +37,10 @@ function cellFor(row, column, units) {
  * two hundred is the failure this is here to make visible. */
 function coverageLine(run) {
   if (!run) return '';
+  const present = run.files_found + run.files_without_declared_suffix;
   return (
-    `${run.files_found} files found, ${run.trial_count} named, ` +
+    `files ${present}, ${run.files_found} carrying a declared trial suffix and ` +
+    `${run.files_without_declared_suffix} not, ${run.trial_count} named, ` +
     `${run.computed_count} of ${run.trial_count} computed, ` +
     `${run.refusal_count} of ${run.trial_count} declined, ` +
     `${run.trials_excluded} of ${run.trial_count} left out by a rule`

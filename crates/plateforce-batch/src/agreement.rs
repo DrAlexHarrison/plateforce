@@ -179,17 +179,27 @@ pub struct BatchCompareResult {
     pub provenance: Vec<ProvenanceRow>,
     pub refusals: Vec<RefusalRow>,
     pub quantity: String,
+    /// The step the run swept, carried so the record says what was compared rather than only
+    /// which rules were named.
+    pub slot: String,
     pub method_ids: Vec<String>,
     /// Trials that produced a value for every method, which is the denominator of any
     /// paired statistic taken over this run.
     pub complete_pairs: usize,
     pub trial_count: usize,
+    pub files_found: usize,
+    pub files_without_declared_suffix: usize,
+    /// Of the files the suffixes kept, the ones the identity could not name.
+    pub files_unidentified: usize,
 }
 
 impl BatchCompareResult {
     pub fn coverage(&self) -> String {
         format!(
-            "paired {} of {} rows, {} methods x {} trials, failed {} of {}",
+            "{}, {} of {} named, paired {} of {} rows, {} methods x {} trials, failed {} of {}",
+            crate::engine::files_line(self.files_found, self.files_without_declared_suffix),
+            self.trial_count,
+            self.files_found,
             self.paired.len(),
             self.method_ids.len() * self.trial_count,
             self.method_ids.len(),
@@ -361,6 +371,19 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
     let mut refusals = Vec::new();
     let mut trial_count = 0usize;
 
+    // A file the identity could not name is refused by name here as it is under `analyse`,
+    // because a sweep that dropped it would answer how far two rules disagree over a
+    // population it never said it had narrowed.
+    // A file the identity could not name is refused by name here as it is under `analyse`,
+    // because a sweep that dropped it would answer how far two rules disagree over a
+    // population it never said it had narrowed.
+    for unidentified in &set.unidentified {
+        refusals.push(crate::engine::unidentified_row(
+            unidentified,
+            refusals.len(),
+        ));
+    }
+
     for (trial_id, entry) in set.iter() {
         trial_count += 1;
         let subject = entry
@@ -467,9 +490,13 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
         provenance: chains.into_values().flatten().collect(),
         refusals,
         quantity: request.quantity.clone(),
+        slot: request.slot.clone(),
         method_ids: request.method_ids.clone(),
         complete_pairs,
         trial_count,
+        files_found: set.files_found,
+        files_without_declared_suffix: set.files_without_declared_suffix,
+        files_unidentified: set.unidentified.len(),
     }
 }
 
@@ -678,8 +705,16 @@ pub struct CompareRunRow {
     pub registry_digest: String,
     pub request_digest: String,
     pub quantity: String,
+    /// The step the sweep varied. A record that named the rules but not the step they filled
+    /// says which rules ran and not what they were compared as.
     pub slot: String,
     pub method_ids: Vec<String>,
+    /// Names carrying a declared trial suffix. The denominator the file counts are over.
+    pub files_found: usize,
+    /// Names the run met carrying none of them, outside `files_found` rather than inside it.
+    pub files_without_declared_suffix: usize,
+    /// Of those the suffixes kept, the ones the identity could not name.
+    pub files_unidentified: usize,
     pub trial_count: usize,
     /// Trials that produced a value for every method, which is the denominator of any paired
     /// statistic taken over this run.
@@ -702,8 +737,11 @@ impl BatchCompareResult {
             registry_digest: registry_digest.to_string(),
             request_digest: request_digest.to_string(),
             quantity: self.quantity.clone(),
-            slot: String::new(),
+            slot: self.slot.clone(),
             method_ids: self.method_ids.clone(),
+            files_found: self.files_found,
+            files_without_declared_suffix: self.files_without_declared_suffix,
+            files_unidentified: self.files_unidentified,
             trial_count: self.trial_count,
             complete_pairs: self.complete_pairs,
             paired_rows: self.paired.len(),

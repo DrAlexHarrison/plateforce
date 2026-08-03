@@ -91,6 +91,10 @@ pub struct RunRefusal {
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Coverage {
     pub files_found: usize,
+    /// Files the run met carrying none of the declared suffixes, so the declaration's own
+    /// narrowing is a number the reader can see rather than one they would have to take on
+    /// trust from the size of the folder.
+    pub files_without_declared_suffix: usize,
     pub files_unidentified: usize,
     pub trial_count: usize,
     /// Counted off the rows that exist rather than taken from the trial count, so a row the
@@ -102,12 +106,17 @@ pub struct Coverage {
 }
 
 impl Coverage {
+    /// Every file the run met, whatever its name.
+    pub fn files_present(&self) -> usize {
+        self.files_found + self.files_without_declared_suffix
+    }
+
     /// Printed rather than inferred from a green result, because a run that quietly covered
     /// six trials instead of 244 is the failure this project documents.
     pub fn line(&self) -> String {
         format!(
-            "files {} found, {} of {} named, results {} of {} trials, computed {} of {}, refused {} of {}, excluded {} of {}",
-            self.files_found,
+            "{}, {} of {} named, results {} of {} trials, computed {} of {}, refused {} of {}, excluded {} of {}",
+            files_line(self.files_found, self.files_without_declared_suffix),
             self.trial_count,
             self.files_found,
             self.results_written,
@@ -120,6 +129,17 @@ impl Coverage {
             self.trial_count,
         )
     }
+}
+
+/// What the run was pointed at, and how much of it the declared suffixes kept.
+///
+/// One sentence for every surface that reports a batch, so a folder cannot be described one
+/// way under `analyse` and another under `compare`.
+pub(crate) fn files_line(files_found: usize, files_without_declared_suffix: usize) -> String {
+    format!(
+        "files {}, {files_found} carrying a declared trial suffix and {files_without_declared_suffix} not",
+        files_found + files_without_declared_suffix,
+    )
 }
 
 /// The relations one run produced.
@@ -308,6 +328,7 @@ pub fn analyse(
 
     let coverage = Coverage {
         files_found: set.files_found,
+        files_without_declared_suffix: set.files_without_declared_suffix,
         files_unidentified: set.unidentified.len(),
         trial_count: set.len(),
         results_written: results.len(),
@@ -346,6 +367,7 @@ pub fn analyse(
         registry_digest: registry.content_digest.clone(),
         request_digest: request_digest(&request.analysis, request.registry_version.as_deref()),
         files_found: coverage.files_found,
+        files_without_declared_suffix: coverage.files_without_declared_suffix,
         files_unidentified: coverage.files_unidentified,
         trial_count: coverage.trial_count,
         computed_count: coverage.computed,
@@ -397,7 +419,7 @@ fn refused_row(trial_id: &str, source_path: &str, code: &str) -> ResultRow {
     }
 }
 
-fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
+pub(crate) fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
     RefusalRow {
         trial_id: String::new(),
         ordinal,

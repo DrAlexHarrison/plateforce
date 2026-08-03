@@ -286,13 +286,26 @@ fn a_trace_no_rule_can_work_with_also_costs_one_row() {
 fn the_coverage_line_names_every_count_against_one_denominator() {
     let directory = tempdir("coverage-line");
     let copied = copy_committed_fixtures(&directory);
-    std::fs::write(directory.join("README.md"), "not a trace\n").unwrap();
+    let strays = ["README.md", "notes.txt", "session.log"];
+    for name in strays {
+        std::fs::write(directory.join(name), "not a trace\n").unwrap();
+    }
     let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
     let result = analyse(&set, &bound_request(), &registry()).unwrap();
 
     let line = result.coverage.line();
     println!("{line}");
-    assert!(line.contains(&format!("files {copied} found")), "{line}");
+    let present = copied + strays.len();
+    // The folder's own population, then what the declared suffixes kept, then what they
+    // passed over. A line stating only the survivors reads as the whole folder.
+    assert!(line.contains(&format!("files {present},")), "{line}");
+    assert!(
+        line.contains(&format!(
+            "{copied} carrying a declared trial suffix and {} not",
+            strays.len()
+        )),
+        "{line}"
+    );
     assert!(
         line.contains(&format!("computed {copied} of {copied}")),
         "{line}"
@@ -303,6 +316,86 @@ fn the_coverage_line_names_every_count_against_one_denominator() {
         result.coverage.trial_count,
         "the counts sum to the denominator"
     );
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// The number a reader takes away from a run, checked where they read it rather than only in
+/// the struct that holds it.
+///
+/// A folder of traces beside a few files that are not traces is the ordinary case, and a run
+/// that reported the traces alone would be describing its own narrowing as the folder's
+/// contents. The counts have to survive to the record on disk, which is what another tool
+/// reads, and to the read-back result, which is what a library caller holds.
+#[test]
+fn a_run_reports_the_files_its_declaration_passed_over() {
+    let directory = tempdir("passed-over");
+    let copied = copy_committed_fixtures(&directory);
+    let strays = ["README.md", "protocol.pdf", "AT01_6.csv", "notes"];
+    for name in strays {
+        std::fs::write(directory.join(name), "not a trace\n").unwrap();
+    }
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).unwrap();
+
+    println!("{}", result.coverage.line());
+    assert_eq!(set.files_found, copied);
+    assert_eq!(set.files_without_declared_suffix, strays.len());
+    assert_eq!(set.files_present(), copied + strays.len());
+    assert_eq!(result.coverage.files_without_declared_suffix, strays.len());
+    assert_eq!(result.run.files_without_declared_suffix, strays.len());
+
+    // The passed-over files are outside the population the identity works over, so the
+    // invariant the run states about itself still holds with them counted.
+    result
+        .run
+        .check_invariants()
+        .expect("a file with no declared suffix was never a trial the identity failed to name");
+
+    let out = tempdir("passed-over-record");
+    result.write_csv(&out).expect("the relations are written");
+    let record: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("run.json")).unwrap()).unwrap();
+    assert_eq!(
+        record["files_without_declared_suffix"],
+        serde_json::json!(strays.len())
+    );
+    assert_eq!(record["files_found"], serde_json::json!(copied));
+
+    let back = plateforce_batch::BatchResult::from_json(&result.to_json())
+        .expect("the envelope reads back");
+    assert_eq!(back.coverage.line(), result.coverage.line());
+
+    std::fs::remove_dir_all(&directory).ok();
+    std::fs::remove_dir_all(&out).ok();
+}
+
+/// A result read back off the wire reports the run it came from, not an empty one.
+///
+/// The library, the browser and Python all rebuild a result from this envelope, and a
+/// rebuilt result that answered `files 0, 0 carrying a declared trial suffix and 0 not,
+/// computed 0 of 0` would be stating a measurement nobody made, in the shape of a real one.
+#[test]
+fn a_result_rebuilt_from_its_envelope_reports_the_counts_it_arrived_with() {
+    let directory = tempdir("envelope-coverage");
+    let copied = copy_committed_fixtures(&directory);
+    std::fs::write(directory.join("README.md"), "not a trace\n").unwrap();
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).unwrap();
+
+    let back = plateforce_batch::BatchResult::from_json(&result.to_json())
+        .expect("the envelope reads back");
+    println!("out {}", result.coverage.line());
+    println!("in  {}", back.coverage.line());
+
+    assert!(copied > 0, "the fixtures are on disk");
+    assert_eq!(back.coverage.files_found, copied);
+    assert_eq!(back.coverage.files_without_declared_suffix, 1);
+    assert_eq!(back.coverage.trial_count, copied);
+    assert_eq!(back.coverage.results_written, copied);
+    assert_eq!(back.coverage.computed, copied);
+    assert_eq!(back.coverage.refused, 0);
+    assert_eq!(back.coverage, result.coverage);
+
     std::fs::remove_dir_all(&directory).ok();
 }
 

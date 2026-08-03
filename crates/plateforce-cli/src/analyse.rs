@@ -63,13 +63,24 @@ pub struct Args {
     /// Repeatable
     #[arg(long = "derive", value_name = "ASSIGNMENT")]
     pub derive: Vec<String>,
-    /// A value for a rule, written <construct>.<name>=<value>. Repeatable
-    #[arg(long = "set", value_name = "ASSIGNMENT")]
+    #[arg(long = "set", value_name = "ASSIGNMENT", help = SET_HELP)]
     pub set: Vec<String>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
 }
+
+/// What `--set` takes, in the word the method flags already use: a reader who wrote `--onset`
+/// writes `--set onset.k=5`.
+///
+/// One string for the help and the refusals, because a flag whose help describes something
+/// the parser does not accept is a silent default wearing a different costume.
+pub(crate) const SET_SHAPE: &str = "<slot>.<name>=<value>";
+
+/// The help both commands show for `--set`. `batch` adds what a folder run does with it.
+pub(crate) const SET_HELP: &str = "A value for a rule, written <slot>.<name>=<value>. Repeatable";
+pub(crate) const SET_HELP_FOR_A_FOLDER: &str =
+    "A value for a rule, written <slot>.<name>=<value>. Repeatable, and it applies to every trial in the folder";
 
 /// The number a file writes where it has no sample, for a reader that takes the value
 /// rather than the word.
@@ -214,9 +225,9 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
     Ok(chosen)
 }
 
-/// `--set <slot>.<name>=<value>`, keyed by the same word the method flag carries, so a reader
-/// who wrote `--onset` writes `--set onset.k`. Kept per slot, so two rules reading a name
-/// spelled the same way never receive each other's number.
+/// `--set`, keyed by the same word the method flag carries, so a reader who wrote `--onset`
+/// writes `--set onset.k`. Kept per slot, so two rules reading a name spelled the same way
+/// never receive each other's number.
 pub(crate) fn stated_parameters(
     assignments: &[String],
     also: &[String],
@@ -233,13 +244,13 @@ pub(crate) fn stated_parameters(
         let Some((qualified, written)) = assignment.split_once('=') else {
             return Err(Declined::line(
                 Fault::Request,
-                format!("--set takes <slot>.<name>=<value>, and '{assignment}' carries no ="),
+                format!("--set takes {SET_SHAPE}, and '{assignment}' carries no ="),
             ));
         };
         let Some((slot, name)) = qualified.split_once('.') else {
             return Err(Declined::line(
                 Fault::Request,
-                format!("--set takes <slot>.<name>=<value>, and '{qualified}' names no slot"),
+                format!("--set takes {SET_SHAPE}, and '{qualified}' names no slot"),
             ));
         };
         // A value written against a step this run does not have would otherwise be read,
@@ -247,7 +258,10 @@ pub(crate) fn stated_parameters(
         if !slots.contains(&slot) {
             return Err(Declined::line(
                 Fault::Request,
-                format!("--set {qualified} names the step '{slot}', and this run has {slots:?}"),
+                format!(
+                    "--set {qualified} names the slot '{slot}', and this run has {}",
+                    slots.join(", ")
+                ),
             ));
         }
         let value: f64 = written.trim().parse().map_err(|_| {
@@ -423,12 +437,6 @@ fn build_request(
             .unwrap_or_default()
     };
     let id = |construct: &str| chosen.get(construct).cloned().unwrap_or_default();
-    let backed: Vec<String> = chosen
-        .values()
-        .chain(derived.values())
-        .filter(|method_id| registry.methods.contains_key(*method_id))
-        .cloned()
-        .collect();
 
     AnalysisRequest {
         weighing: WeighingChoice {
@@ -455,7 +463,7 @@ fn build_request(
         touchdown_index: None,
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
-        registry_backed_ids: backed,
+        registry_backed_ids: backed_ids(registry),
         derived: derived
             .iter()
             .map(|(construct, method_id)| {
@@ -471,6 +479,17 @@ fn build_request(
             .collect(),
         ..Default::default()
     }
+}
+
+/// What this registry carries, which is the question `registry_entry` answers on every
+/// record the run produces.
+///
+/// Every id, not the ones the caller named. The binding composes operators onto the rule a
+/// caller chose, and each of those is an entry in its own right that has to be judged
+/// against the same list. A list built from the caller's choices alone reports a published
+/// entry as absent from the registry it is filed in.
+pub(crate) fn backed_ids(registry: &Registry) -> Vec<String> {
+    registry.methods.keys().cloned().collect()
 }
 
 /// A rule that produced nothing, as the record the engine hands back.

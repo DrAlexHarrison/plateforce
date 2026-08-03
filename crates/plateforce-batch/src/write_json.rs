@@ -6,7 +6,8 @@
 
 use serde_json::{json, Value};
 
-use crate::engine::{BatchResult, RunRefusal};
+use crate::engine::{BatchResult, Coverage, RunRefusal};
+use crate::relations::RunRow;
 
 impl BatchResult {
     /// `{"ok": {...}}`, and never both keys.
@@ -39,8 +40,13 @@ impl BatchResult {
             .get("ok")
             .ok_or_else(|| "the envelope carries a refusal rather than a result".to_string())?;
         let read = |key: &str| body.get(key).cloned().unwrap_or(Value::Array(Vec::new()));
+        let run: RunRow = serde_json::from_value(read("run")).map_err(|error| error.to_string())?;
+        let results: Vec<crate::relations::ResultRow> =
+            serde_json::from_value(read("results")).map_err(|error| error.to_string())?;
         Ok(Self {
-            run: serde_json::from_value(read("run")).map_err(|error| error.to_string())?,
+            coverage: coverage_of(&run, results.len()),
+            run,
+            results,
             quantities: serde_json::from_value(read("quantities"))
                 .map_err(|error| error.to_string())?,
             units: serde_json::from_value(
@@ -51,7 +57,6 @@ impl BatchResult {
                     .unwrap_or(Value::Object(Default::default())),
             )
             .map_err(|error| error.to_string())?,
-            results: serde_json::from_value(read("results")).map_err(|error| error.to_string())?,
             provenance: serde_json::from_value(read("provenance"))
                 .map_err(|error| error.to_string())?,
             refusals: serde_json::from_value(read("refusals"))
@@ -62,8 +67,25 @@ impl BatchResult {
                 .map_err(|error| error.to_string())?,
             exclusions: serde_json::from_value(read("exclusions"))
                 .map_err(|error| error.to_string())?,
-            coverage: Default::default(),
         })
+    }
+}
+
+/// The counts a read-back result reports, taken from the record it arrived with.
+///
+/// Every one of them is on the `run` row, and `results_written` is the rows themselves. A
+/// result rebuilt with zeroes here reports a run that read nothing, which is a measurement
+/// nobody made.
+fn coverage_of(run: &RunRow, results_written: usize) -> Coverage {
+    Coverage {
+        files_found: run.files_found,
+        files_without_declared_suffix: run.files_without_declared_suffix,
+        files_unidentified: run.files_unidentified,
+        trial_count: run.trial_count,
+        results_written,
+        computed: run.computed_count,
+        refused: run.refusal_count,
+        excluded: run.trials_excluded,
     }
 }
 

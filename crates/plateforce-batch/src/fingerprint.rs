@@ -190,6 +190,7 @@ mod tests {
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
             files_found: 6,
+            files_without_declared_suffix: 0,
             files_unidentified: 0,
             trial_count: 6,
             computed_count: 6,

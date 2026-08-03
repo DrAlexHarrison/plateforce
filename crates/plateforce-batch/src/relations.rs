@@ -190,7 +190,12 @@ pub struct RunRow {
     pub request_digest: String,
     /// Names carrying a declared trial suffix. The denominator the file counts are over.
     pub files_found: usize,
-    /// Of those, the ones the identity could not name. Refused by name, never skipped.
+    /// Names the run met carrying none of them. Outside `files_found` rather than inside it,
+    /// because the declaration removed them before the identity saw them, and a run that
+    /// stated only the survivors would be reporting its own narrowing as the folder.
+    pub files_without_declared_suffix: usize,
+    /// Of those the suffixes kept, the ones the identity could not name. Refused by name,
+    /// never skipped.
     pub files_unidentified: usize,
     /// Files the identity named, which is the denominator every trial count is over.
     pub trial_count: usize,
@@ -360,6 +365,23 @@ mod tests {
         assert!(error.contains("9 of 6"), "{error}");
     }
 
+    /// A file the declared suffixes passed over is counted and stays outside the denominator
+    /// the named trials are taken over. Folding it in would say the identity failed to name a
+    /// file nothing ever asked it to name.
+    #[test]
+    fn files_carrying_no_declared_suffix_are_counted_outside_the_named_denominator() {
+        let mut run = run_fixture();
+        run.files_without_declared_suffix = 3;
+        assert!(run.check_invariants().is_ok(), "{run:?}");
+
+        run.files_found += 3;
+        let error = run
+            .check_invariants()
+            .expect_err("a file the suffixes passed over is not a file the identity named");
+        assert!(error.contains("files_found 9"), "{error}");
+        assert!(error.contains("named 6"), "{error}");
+    }
+
     fn run_fixture() -> RunRow {
         RunRow {
             plateforce_version: "0.1.0".to_string(),
@@ -367,6 +389,7 @@ mod tests {
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
             files_found: 6,
+            files_without_declared_suffix: 0,
             files_unidentified: 0,
             trial_count: 6,
             computed_count: 6,

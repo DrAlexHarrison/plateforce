@@ -189,10 +189,7 @@ analysis_request_of <- function(weighing, onset, takeoff,
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     registry_digest = registry_digest(registry),
-    registry_backed_ids = registry_backed_among(
-      c(weighing, onset, takeoff, vapply(derived_choices(derived), function(c) c[["method_id"]], character(1))),
-      registry
-    )
+    registry_backed_ids = registry_backed_ids(registry)
   )
 }
 

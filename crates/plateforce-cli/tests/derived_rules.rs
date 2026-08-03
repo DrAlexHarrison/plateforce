@@ -1,9 +1,10 @@
 //! Asking the terminal for a number computed from the landmarks.
 //!
 //! `--derive <construct>=<method>` is how a construct other than the three the path walks is
-//! named, and `--set <construct>.<name>=<value>` reaches its parameters under the same
-//! spelling. The manifest lists every rule this build runs, so a rule the engine dispatches
-//! and the command line cannot reach would be a claim this surface could not honour.
+//! named, and `--set` reaches its parameters under the slot word, which for a rule computed
+//! from the landmarks is the construct itself. The manifest lists every rule this build runs,
+//! so a rule the engine dispatches and the command line cannot reach would be a claim this
+//! surface could not honour.
 
 use std::process::Output;
 
