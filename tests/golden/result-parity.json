@@ -16,6 +16,7 @@
           ]
         ],
         "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "filter.none",
         "parameter_sources": {
           "passband_edge_hz": "assumed"
