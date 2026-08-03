@@ -23,3 +23,9 @@ anstream = "1"
 anstyle-query = "1.1"
 terminal_size = "0.4"
 serde_json = { workspace = true }
+
+# The build script assembles the registry with the registry crate's own walk, so a set of
+# files the directory loader refuses fails this build rather than reaching a machine that
+# has no other registry to read.
+[build-dependencies]
+plateforce-registry = { workspace = true }

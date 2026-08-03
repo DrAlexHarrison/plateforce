@@ -90,7 +90,7 @@ pub struct Args {
 
 pub fn run(
     args: &Args,
-    registry_directory: &std::path::Path,
+    registry_directory: Option<&std::path::Path>,
     format: Format,
     document_destination: Option<&std::path::Path>,
     renderer: &crate::render::Renderer,
@@ -132,7 +132,7 @@ pub fn run(
         }
     }
 
-    let registry = match Registry::load(registry_directory) {
+    let registry = match crate::registry_source::load(registry_directory) {
         Ok(registry) => registry,
         Err(error) => {
             return Outcome::declined(Declined::recorded(Refusal::registry_invalid(

@@ -12,6 +12,7 @@ mod exit;
 mod out;
 mod reach;
 mod registry_cmd;
+mod registry_source;
 mod render;
 mod spread_cmd;
 mod verdict;
@@ -26,8 +27,6 @@ use exit::{code_for, stream_for, Fault, Outcome};
 use out::Format;
 use render::{Colour, Renderer};
 
-const DEFAULT_REGISTRY_DIRECTORY: &str = "registry";
-
 #[derive(Parser)]
 #[command(
     name = "plateforce",
@@ -36,7 +35,7 @@ const DEFAULT_REGISTRY_DIRECTORY: &str = "registry";
     disable_help_subcommand = false
 )]
 struct Invocation {
-    /// Path to the registry directory
+    /// Read the registry in this directory rather than the one compiled in
     #[arg(long, global = true, action = clap::ArgAction::Append, value_name = "DIR")]
     registry: Vec<PathBuf>,
     /// Write the result as readable text or as JSON
@@ -110,13 +109,19 @@ fn main() -> ExitCode {
     let renderer = Renderer::for_stdout(invocation.color, invocation.out.is_some());
 
     let outcome = match &invocation.command {
-        Command::Registry(command) => {
-            registry_cmd::run(command, &registry_directory, invocation.format, &renderer)
-        }
-        Command::Analyse(args) => {
-            analyse::run(args, &registry_directory, invocation.format, &renderer)
-        }
-        Command::Reach => reach::run(&registry_directory, invocation.format, &renderer),
+        Command::Registry(command) => registry_cmd::run(
+            command,
+            registry_directory.as_deref(),
+            invocation.format,
+            &renderer,
+        ),
+        Command::Analyse(args) => analyse::run(
+            args,
+            registry_directory.as_deref(),
+            invocation.format,
+            &renderer,
+        ),
+        Command::Reach => reach::run(registry_directory.as_deref(), invocation.format, &renderer),
         // The server holds the process rather than handing back a document, and it reads its
         // own options, so the one parser for them stays in the crate that acts on them.
         Command::Serve { options } => {
@@ -129,7 +134,7 @@ fn main() -> ExitCode {
             return deliver(
                 batch::run(
                     args,
-                    &registry_directory,
+                    registry_directory.as_deref(),
                     invocation.format,
                     invocation.out.as_deref(),
                     &renderer,
@@ -139,9 +144,12 @@ fn main() -> ExitCode {
                 invocation.format,
             )
         }
-        Command::Spread(args) => {
-            spread_cmd::run(args, &registry_directory, invocation.format, &renderer)
-        }
+        Command::Spread(args) => spread_cmd::run(
+            args,
+            registry_directory.as_deref(),
+            invocation.format,
+            &renderer,
+        ),
         Command::Capability(args) => capability_cmd::run(args, invocation.format),
         Command::Version => version_cmd::run(invocation.format),
     };
@@ -179,15 +187,18 @@ fn report_parse_failure(error: clap::Error) -> ExitCode {
 /// A global argument is propagated to the subcommand it precedes, and both levels then hold
 /// the last value alone, so a line naming two directories parses as one and the other
 /// disappears.
-fn one_registry_directory(parsed: &[PathBuf], written: usize) -> Result<PathBuf, String> {
+///
+/// Naming none reads the registry this build carries, rather than a relative `registry`
+/// directory that resolves differently depending on where the operator is standing.
+fn one_registry_directory(parsed: &[PathBuf], written: usize) -> Result<Option<PathBuf>, String> {
     if written > 1 {
         return Err(format!(
             "--registry names {written} directories, and an entry read under one of them would carry the other's id"
         ));
     }
     match parsed {
-        [only] => Ok(only.clone()),
-        _ => Ok(PathBuf::from(DEFAULT_REGISTRY_DIRECTORY)),
+        [only] => Ok(Some(only.clone())),
+        _ => Ok(None),
     }
 }
 
@@ -246,7 +257,7 @@ mod tests {
         Invocation::try_parse_from(arguments)
     }
 
-    fn directory_of(line: &[&str]) -> Result<PathBuf, String> {
+    fn directory_of(line: &[&str]) -> Result<Option<PathBuf>, String> {
         let invocation = parse(line).map_err(|error| error.to_string())?;
         let written = times_written(line.iter().map(std::ffi::OsString::from), "--registry");
         one_registry_directory(&invocation.registry, written)
@@ -256,7 +267,7 @@ mod tests {
     /// being read as the same word, which is the confusing failure this ordering removes.
     #[test]
     fn the_flag_means_the_same_thing_wherever_it_sits() {
-        let expected = PathBuf::from("elsewhere");
+        let expected = Some(PathBuf::from("elsewhere"));
         assert_eq!(
             directory_of(&["registry", "show", "an.id", "--registry", "elsewhere"]).unwrap(),
             expected
@@ -279,7 +290,7 @@ mod tests {
     /// reading it as a command name would answer a path with "unknown command".
     #[test]
     fn the_joined_spelling_names_the_same_directory() {
-        let expected = PathBuf::from("elsewhere");
+        let expected = Some(PathBuf::from("elsewhere"));
         assert_eq!(
             directory_of(&["registry", "show", "an.id", "--registry=elsewhere"]).unwrap(),
             expected
@@ -299,12 +310,13 @@ mod tests {
         .is_err());
     }
 
+    /// Naming no directory names no directory. It used to resolve to the relative path
+    /// `registry`, so the same command read a different set of methods depending on where
+    /// the operator stood, and reported a different digest without saying why.
     #[test]
-    fn no_flag_reads_the_default_directory() {
-        assert_eq!(
-            directory_of(&["registry", "census"]).unwrap(),
-            PathBuf::from(DEFAULT_REGISTRY_DIRECTORY)
-        );
+    fn no_flag_names_no_directory_and_reads_what_this_build_carries() {
+        assert_eq!(directory_of(&["registry", "census"]).unwrap(), None);
+        assert!(registry_source::load(None).is_ok());
     }
 
     #[test]

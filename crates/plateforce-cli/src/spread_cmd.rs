@@ -36,7 +36,12 @@ pub struct Args {
     pub quantity: Option<String>,
 }
 
-pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
+pub fn run(
+    args: &Args,
+    registry_directory: Option<&Path>,
+    format: Format,
+    renderer: &Renderer,
+) -> Outcome {
     let prepared = match crate::analyse::prepare(&args.analysis, registry_directory, renderer) {
         Ok(prepared) => prepared,
         Err(outcome) => return outcome,
