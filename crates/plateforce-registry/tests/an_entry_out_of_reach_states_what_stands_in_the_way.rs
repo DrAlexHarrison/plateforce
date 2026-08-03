@@ -62,6 +62,28 @@ fn an_undetermined_boundary_carries_the_query_that_would_settle_it() {
     );
 }
 
+/// The mirror of the rule beside it. An entry nobody has placed, carrying no query, tells a
+/// reader something stands in the way and withholds the one thing that would settle it, and a
+/// blank query is the same silence spelled differently.
+#[test]
+fn an_undetermined_boundary_without_a_query_is_refused() {
+    for written in ["", "\nquery = \"   \""] {
+        let assembled = assembled_with(&METHOD.replace(
+            "boundary = \"equipment\"",
+            &format!("boundary = \"undetermined\"{written}"),
+        ));
+        let kinds: Vec<ViolationKind> = assembled
+            .violations
+            .into_iter()
+            .map(|violation| violation.kind)
+            .collect();
+        assert!(
+            kinds.contains(&ViolationKind::ReachUndeterminedWithoutQuery),
+            "{kinds:?}"
+        );
+    }
+}
+
 #[test]
 fn a_query_beside_a_settled_boundary_is_refused() {
     let assembled = assembled_with(&METHOD.replace(
