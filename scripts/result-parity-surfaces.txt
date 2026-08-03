@@ -6,3 +6,4 @@
 # added in the same commit as the entry point it calls.
 cli	scripts/result-from-cli.sh
 r	Rscript --vanilla scripts/result-from-r.R
+browser	node scripts/result-from-browser.mjs
