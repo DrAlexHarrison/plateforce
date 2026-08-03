@@ -44,14 +44,6 @@ Documentation = "https://github.com/DrAlexHarrison/plateforce/blob/main/docs/sch
 # stable ABI, so a single cp311-abi3 wheel serves 3.11 and every later version.
 features = ["pyo3/extension-module"]
 
-# The build script reads ../../registry and compiles it into the extension, so a wheel
-# carries the methods rather than expecting a clone beside it. A source distribution is
-# built from its own tree, and maturin does not carry that directory unless told to, so
-# building from the sdist failed on every platform with "reading ../../registry: No such
-# file or directory" while building from the repository succeeded. The pattern is relative
-# to the project root, which for a workspace member is the workspace root the sdist is
-# rooted at, not this directory: maturin refuses a pattern containing `..` outright.
-include = [{ path = "registry/**/*", format = "sdist" }]
 
 [tool.cibuildwheel]
 # Building on the oldest supported interpreter is what collapses the matrix: the wheel
