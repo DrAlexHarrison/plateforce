@@ -60,6 +60,9 @@ pub struct Claims<'a> {
     pub from_registry_default: &'a BTreeSet<String>,
     pub cited: &'a BTreeSet<String>,
     pub preset: Option<&'a PresetAttribution>,
+    /// Whether the rule itself was accepted from the registry's recommendation rather than
+    /// picked. A bulk acceptance and a considered pick move the number identically.
+    pub method_from_recommendation: bool,
 }
 
 /// `Default` so a caller can build one with `..Default::default()`. The next field this
@@ -105,6 +108,7 @@ impl MethodChoice {
             from_registry_default: &self.from_registry_default,
             cited: &self.cited,
             preset: self.preset.as_ref(),
+            method_from_recommendation: self.method_from_recommendation,
         }
     }
 }
@@ -116,6 +120,7 @@ impl WeighingChoice {
             from_registry_default: &self.from_registry_default,
             cited: &self.cited,
             preset: self.preset.as_ref(),
+            method_from_recommendation: self.method_from_recommendation,
         }
     }
 }

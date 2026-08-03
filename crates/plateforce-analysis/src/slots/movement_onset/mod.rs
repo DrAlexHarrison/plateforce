@@ -270,8 +270,11 @@ pub(crate) fn bound_methods(
 ) -> Vec<BoundMethod> {
     let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
     let adopted = values.preset;
+    // The caller named the threshold rule, and the operators arrived with it, so the claim
+    // about how the rule was chosen belongs to the row the caller actually named.
     let mut threshold = BoundValues {
         unread: values.unread,
+        method_from_recommendation: values.method_from_recommendation,
         ..Default::default()
     };
 

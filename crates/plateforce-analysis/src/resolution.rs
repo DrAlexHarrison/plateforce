@@ -24,6 +24,7 @@ pub(crate) struct Resolution<'a> {
     cited: &'a BTreeSet<String>,
     /// The pipeline this rule was adopted from, travelling with the values it bound.
     adopted: Option<&'a PresetAttribution>,
+    method_from_recommendation: bool,
     read: Vec<(String, String)>,
     sources: BTreeMap<String, ParameterSource>,
     consulted: BTreeSet<String>,
@@ -45,6 +46,8 @@ pub struct BoundValues {
     /// The published pipeline this rule was adopted from, carried alongside the values so a
     /// record cannot name the values without naming what chose them.
     pub preset: Option<PresetAttribution>,
+    /// Whether the rule itself was accepted from the registry's recommendation.
+    pub method_from_recommendation: bool,
 }
 
 impl<'a> Resolution<'a> {
@@ -63,6 +66,7 @@ impl<'a> Resolution<'a> {
             from_registry_default: claims.from_registry_default,
             cited: claims.cited,
             adopted: claims.preset,
+            method_from_recommendation: claims.method_from_recommendation,
             read: Vec::new(),
             sources: BTreeMap::new(),
             consulted: BTreeSet::new(),
@@ -235,6 +239,7 @@ impl<'a> Resolution<'a> {
             unread,
             numbers: self.numbers,
             preset: self.adopted.cloned(),
+            method_from_recommendation: self.method_from_recommendation,
         }
     }
 }
@@ -377,6 +382,10 @@ pub struct BoundMethod {
     /// though the reader had picked them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preset: Option<PresetAttribution>,
+    /// Whether the rule itself was accepted from the registry's recommendation rather than
+    /// picked. A bulk acceptance and a considered pick used to produce identical records.
+    #[serde(default)]
+    pub method_from_recommendation: bool,
     /// The names in `bound_parameters` the rule read as quantities, with their values.
     /// Skipped over the wire, where every value is already the text beside its name.
     #[serde(skip)]
@@ -421,11 +430,13 @@ impl BoundMethod {
 
         plateforce_core::Provenance {
             method_id: self.method_id.clone(),
-            // A rule a published pipeline named was not picked off a list by the reader, and
-            // recording it as stated would put the reader's signature on an author's choice.
-            method_source: match self.preset {
-                Some(_) => ParameterSource::Cited,
-                None => ParameterSource::Stated,
+            // A rule a published pipeline named, and a rule accepted from the registry's
+            // recommendation, were neither of them picked off a list by the reader. Recording
+            // either as stated puts the reader's signature on somebody else's choice.
+            method_source: match (&self.preset, self.method_from_recommendation) {
+                (Some(_), _) => ParameterSource::Cited,
+                (None, true) => ParameterSource::Recommended,
+                (None, false) => ParameterSource::Stated,
             },
             parameters: self
                 .quantities()
@@ -490,6 +501,7 @@ pub(crate) fn bound_method(
         registry_backed,
         manual_override,
         preset: values.preset,
+        method_from_recommendation: values.method_from_recommendation,
         numeric_values: values.numbers,
     }
 }

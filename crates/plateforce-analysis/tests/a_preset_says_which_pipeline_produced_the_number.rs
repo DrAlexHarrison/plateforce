@@ -384,3 +384,31 @@ fn typing_a_pipelines_values_does_not_produce_the_record_adopting_it_produces() 
         Some(&ParameterSource::Stated)
     );
 }
+
+/// A rule accepted from the registry's recommendation was not picked by the reader either.
+/// The field was declared, serialised and fingerprinted while nothing read it.
+#[test]
+fn a_rule_accepted_from_the_recommendation_is_not_recorded_as_one_the_caller_stated() {
+    let mut request = bare_request();
+    request.onset.method_from_recommendation = true;
+    let bound = run(&trial(), &request)
+        .expect("the fixture produces a result")
+        .bound_methods;
+
+    let onset = row(&bound, "onset.threshold.noise_relative");
+    assert_eq!(
+        onset
+            .into_provenance(None, None, false, Vec::new())
+            .method_source,
+        ParameterSource::Recommended
+    );
+
+    let takeoff = row(&bound, "takeoff.threshold.absolute_force");
+    assert_eq!(
+        takeoff
+            .into_provenance(None, None, false, Vec::new())
+            .method_source,
+        ParameterSource::Stated,
+        "a rule nobody recommended is recorded as accepted from a recommendation"
+    );
+}
