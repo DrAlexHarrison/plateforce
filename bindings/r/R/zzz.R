@@ -48,14 +48,12 @@ registry_facts <- function(path = NULL) {
 
 registry_digest <- function(path = NULL) registry_facts(path)$digest
 
-# Which of the rules a caller named this registry carries. The engine is told rather than
-# asked: it reports a rule as registry backed only for the ids the request declares, so a
-# request that names none produces a record stating that no rule came from the registry.
-registry_backed_among <- function(method_ids, path = NULL) {
-  named <- method_ids[!vapply(method_ids, is.null, logical(1))]
-  if (!length(named)) {
-    return(NULL)
-  }
-  backed <- intersect(as.character(named), registry_facts(path)$method_ids)
-  if (!length(backed)) NULL else as.list(backed)
+# What this registry carries. The engine is told rather than asked, and it judges every rule
+# it binds against this list, so the list is every id rather than the ones a caller named:
+# the binding composes operators onto the rule the caller chose, and each of those is an
+# entry in its own right. A list built from the caller's choices alone reports a published
+# entry as absent from the registry it is filed in.
+registry_backed_ids <- function(path = NULL) {
+  ids <- registry_facts(path)$method_ids
+  if (!length(ids)) NULL else as.list(as.character(ids))
 }

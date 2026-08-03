@@ -437,12 +437,6 @@ fn build_request(
             .unwrap_or_default()
     };
     let id = |construct: &str| chosen.get(construct).cloned().unwrap_or_default();
-    let backed: Vec<String> = chosen
-        .values()
-        .chain(derived.values())
-        .filter(|method_id| registry.methods.contains_key(*method_id))
-        .cloned()
-        .collect();
 
     AnalysisRequest {
         weighing: WeighingChoice {
@@ -469,7 +463,7 @@ fn build_request(
         touchdown_index: None,
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
-        registry_backed_ids: backed,
+        registry_backed_ids: backed_ids(registry),
         derived: derived
             .iter()
             .map(|(construct, method_id)| {
@@ -485,6 +479,17 @@ fn build_request(
             .collect(),
         ..Default::default()
     }
+}
+
+/// What this registry carries, which is the question `registry_entry` answers on every
+/// record the run produces.
+///
+/// Every id, not the ones the caller named. The binding composes operators onto the rule a
+/// caller chose, and each of those is an entry in its own right that has to be judged
+/// against the same list. A list built from the caller's choices alone reports a published
+/// entry as absent from the registry it is filed in.
+pub(crate) fn backed_ids(registry: &Registry) -> Vec<String> {
+    registry.methods.keys().cloned().collect()
 }
 
 /// A rule that produced nothing, as the record the engine hands back.

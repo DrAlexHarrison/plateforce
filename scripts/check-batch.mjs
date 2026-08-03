@@ -299,8 +299,11 @@ check('every value on the page equals the value the terminal computed',
   disagreed.length === 0 && comparedCells >= trialNames.length,
   `${comparedCells} cells compared across ${browserRows.size} trials, ${disagreed.length} disagreed` +
     (disagreed.length ? `: ${disagreed.slice(0, 3).join('; ')}` : ''));
+// Both numbers, because a line stating only the files a declared suffix kept reads as the
+// whole folder, and the fixture folder holds files that are not traces.
 check('the run states its coverage against the denominator it was taken over',
-  /\d+ files found/.test(table.coverage), table.coverage);
+  /files \d+, \d+ carrying a declared trial suffix and \d+ not/.test(table.coverage),
+  table.coverage);
 
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {

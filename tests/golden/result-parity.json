@@ -21,7 +21,7 @@
         "parameter_sources": {
           "passband_edge_hz": "assumed"
         },
-        "registry_backed": false,
+        "registry_backed": true,
         "unread_parameters": []
       },
       {
@@ -104,7 +104,7 @@
         "parameter_sources": {
           "offset_ms": "assumed"
         },
-        "registry_backed": false,
+        "registry_backed": true,
         "unread_parameters": []
       },
       {
@@ -120,7 +120,7 @@
         "parameter_sources": {
           "selection": "assumed"
         },
-        "registry_backed": false,
+        "registry_backed": true,
         "unread_parameters": []
       },
       {
@@ -136,7 +136,7 @@
         "parameter_sources": {
           "direction": "assumed"
         },
-        "registry_backed": false,
+        "registry_backed": true,
         "unread_parameters": []
       },
       {
@@ -152,7 +152,7 @@
         "parameter_sources": {
           "span_ms": "assumed"
         },
-        "registry_backed": false,
+        "registry_backed": true,
         "unread_parameters": []
       },
       {
@@ -168,7 +168,7 @@
         "parameter_sources": {
           "weighing_epoch_end_seconds": "measured"
         },
-        "registry_backed": false,
+        "registry_backed": true,
         "unread_parameters": []
       },
       {
