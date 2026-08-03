@@ -121,8 +121,9 @@ const empty = await evaluate(`(() => ({
   heading: document.querySelector('#stage-empty h2')?.textContent ?? '',
   actions: [...document.querySelectorAll('#stage-empty .dropzone__actions button')].map((b) => b.textContent.trim()),
 }))()`);
-check('the first screen offers a file and a demonstration trial as peers',
-  empty.heading === 'Drop a force trace here' && empty.actions.join(' / ') === 'Choose a file / Open a demo trial',
+check('the first screen offers a file, a folder and a demonstration trial as peers',
+  empty.heading === 'Drop a force trace or a folder of them here'
+    && empty.actions.join(' / ') === 'Choose a file / Choose a folder / Open a demo trial',
   `${empty.heading}: ${empty.actions.join(' / ')}`);
 
 await evaluate("document.getElementById('load-demo').click()");

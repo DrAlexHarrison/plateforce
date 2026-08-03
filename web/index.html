@@ -80,13 +80,15 @@
           <path d="M20 27V9m0 0-6 6m6-6 6 6" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M6 25v4a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3v-4" fill="none" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <h2>Drop a force trace here</h2>
+        <h2>Drop a force trace or a folder of them here</h2>
         <p>Tab or comma separated text from any plate.</p>
         <div class="dropzone__actions">
           <button type="button" class="button button--primary" id="choose-file">Choose a file</button>
+          <button type="button" class="button button--ghost" id="choose-folder">Choose a folder</button>
           <button type="button" class="button button--ghost" id="load-demo">Open a demo trial</button>
         </div>
-        <input type="file" id="file-input" accept=".txt,.csv,.tsv,.dat,.asc,text/plain" hidden>
+        <input type="file" id="file-input" accept=".txt,.csv,.tsv,.dat,.asc,text/plain" multiple hidden>
+        <input type="file" id="folder-input" webkitdirectory directory hidden>
       </div>
 
       <ul class="empty__points">
@@ -120,10 +122,33 @@
           <label for="sentinel">How does this file write a missing value?</label>
           <select id="sentinel">
             <option value="none">No sentinel, every value is a measurement</option>
-            <option value="zero">0 means missing</option>
-            <option value="negative_one">-1 means missing</option>
+            <option value="zero" data-number="0">0 means missing</option>
+            <option value="negative_one" data-number="-1">-1 means missing</option>
           </select>
           <p class="field__hint">Three sentinel rows in 244 moved a published correlation by 0.16.</p>
+        </div>
+      </div>
+
+      <div class="run-declaration" id="run-declaration" hidden>
+        <h3 id="run-count"></h3>
+        <div class="field-row">
+          <div class="field">
+            <fieldset class="run-suffixes">
+              <legend>Which of these names are trials?</legend>
+              <div id="run-suffix-list"></div>
+            </fieldset>
+          </div>
+          <div class="field">
+            <label for="run-delimiter">What separates the columns in these files?</label>
+            <select id="run-delimiter">
+              <option value="">Choose the separator</option>
+              <option value="single">Each row holds one value</option>
+              <option value="tab" data-character="&#9;">Tab</option>
+              <option value="comma" data-character=",">Comma</option>
+              <option value="semicolon" data-character=";">Semicolon</option>
+            </select>
+            <p class="field__hint" id="run-delimiter-hint"></p>
+          </div>
         </div>
       </div>
 
@@ -145,6 +170,7 @@
             <p class="panel__sub" id="trial-summary"></p>
           </div>
           <div class="panel__head-actions">
+            <button type="button" class="button button--primary button--small" id="run-folder" hidden></button>
             <button type="button" class="button button--ghost button--small" id="reset-markers" disabled>Release dragged markers</button>
             <button type="button" class="button button--ghost button--small" id="change-file">New file</button>
           </div>
@@ -204,6 +230,12 @@
           <p class="panel__sub" id="decisions-sub"></p>
         </div>
         <div id="decision-list"></div>
+
+        <div class="add-quantity" id="add-quantity" hidden>
+          <label for="add-quantity-search">Add a quantity</label>
+          <input type="search" id="add-quantity-search" autocomplete="off" placeholder="Search by name">
+          <ul class="add-quantity__list" id="add-quantity-list"></ul>
+        </div>
       </section>
 
       <section class="panel panel--rail">
@@ -214,7 +246,17 @@
 
   </section>
 
-  <section class="stage" id="stage-batch" hidden></section>
+  <section class="stage" id="stage-batch" hidden>
+    <div class="batch-controls">
+      <button type="button" class="button button--ghost button--small" id="batch-back">Back to the trace</button>
+      <label class="batch-controls__toggle">
+        <input type="checkbox" id="batch-provenance" checked>
+        Show the fingerprint each row was produced under
+      </label>
+    </div>
+    <p class="panel__sub batch-declaration" id="batch-declaration"></p>
+    <div id="batch-result"></div>
+  </section>
 </main>
 
 <!-- Method detail -->

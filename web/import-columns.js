@@ -4,8 +4,9 @@
 import { LoadedTrial } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
 import { element, showStage } from './format.js';
-import { reportInline } from './import-file.js';
+import { reportInline, openFirstDeclaredTrial } from './import-file.js';
 import { enterWorkspace } from './workspace.js';
+import { endingsChosen, declarationLine } from './batch-run.js';
 
 function sparkline(values) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -81,18 +82,77 @@ export function renderColumnChooser(fileName, summary) {
   $('sample-rate-hint').textContent = derived
     ? `${summary.sample_rate_source}. A wrong rate scales every time and every impulse.`
     : 'The file carries no time column, so the rate cannot be recovered from it. It scales every time, every velocity and every impulse, so plateforce will not guess it.';
-  rate.addEventListener('input', updateColumnsReady);
+  rate.oninput = updateColumnsReady;
+  renderRunDeclaration(summary);
   updateColumnsReady();
+}
+
+/*
+ * What a folder is read as, declared once for every file in it.
+ *
+ * The endings offered are the endings the reader's own selection carries, so the control
+ * describes their folder rather than a list of formats. A single ending arrives ticked
+ * because with one ending there is no alternative to tick instead.
+ */
+function renderRunDeclaration(summary) {
+  const block = $('run-declaration');
+  block.hidden = !state.run;
+  $('columns-confirm').textContent = state.run ? 'Analyse the first trial' : 'Analyse this trial';
+  if (!state.run) return;
+
+  const list = $('run-suffix-list');
+  list.replaceChildren();
+  for (const { ending, count } of endingsChosen(state.run.files)) {
+    const row = element('label', 'run-suffix');
+    const tick = document.createElement('input');
+    tick.type = 'checkbox';
+    tick.value = ending;
+    tick.checked = state.run.endings.has(ending);
+    // Re-opening rather than only re-counting: the column cards above describe one file, and
+    // a declaration that no longer names that file would leave them describing a trial the
+    // run will not read.
+    tick.onchange = () => {
+      if (tick.checked) state.run.endings.add(ending);
+      else state.run.endings.delete(ending);
+      openFirstDeclaredTrial();
+      $('run-count').textContent = declarationLine();
+      updateColumnsReady();
+    };
+    row.append(tick);
+    row.append(element('span', null, `${ending || 'no full stop in the name'}, ${count} files`));
+    list.append(row);
+  }
+
+  const separator = $('run-delimiter');
+  // The reader's own file reports which of these it reads as, and the option values are
+  // spelled the way the reader reports it, so the opening selection needs no second table.
+  separator.value = summary.column_count === 1 ? 'single' : summary.delimiter;
+  separator.onchange = updateColumnsReady;
+  $('run-delimiter-hint').textContent =
+    summary.column_count === 1
+      ? 'Each row of the trial on screen holds one value.'
+      : `The trial on screen reads as ${summary.delimiter} separated across ${summary.column_count} columns.`;
+  $('run-count').textContent = declarationLine();
 }
 
 function updateColumnsReady() {
   const rate = Number($('sample-rate').value);
-  $('columns-confirm').disabled = !(rate > 0);
+  const runDeclared = !state.run || (state.run.endings.size > 0 && $('run-delimiter').value !== '');
+  $('columns-confirm').disabled = !(rate > 0 && runDeclared);
 }
 
 export function confirmColumns() {
   const rate = Number($('sample-rate').value);
   if (!(rate > 0)) return;
+  if (state.run) {
+    const separator = $('run-delimiter').selectedOptions[0];
+    const sentinel = $('sentinel').selectedOptions[0];
+    state.run.sampleRateHz = rate;
+    // The engine reads an unstated separator as a row holding one field, which is what a
+    // single-column export is, and the terminal writes the same value for the same reason.
+    state.run.delimiter = separator.dataset.character ?? '\u0000';
+    state.run.sentinel = sentinel.dataset.number == null ? null : Number(sentinel.dataset.number);
+  }
   try {
     state.loadedTrial?.free?.();
     state.loadedTrial = LoadedTrial.fromForceFile(state.file, state.chosenColumn, rate, $('sentinel').value);

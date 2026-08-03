@@ -5,20 +5,24 @@ import { $, state } from './state.js';
 import { element, showStage } from './format.js';
 import { renderColumnChooser, confirmColumns, loadDemonstration } from './import-columns.js';
 import { runAnalysis } from './analysis.js';
+import { endingOf, endingsChosen } from './batch-run.js';
 
 export function wireGlobalControls() {
   const dropzone = $('dropzone');
   const input = $('file-input');
+  const folder = $('folder-input');
 
   const open = () => input.click();
   $('choose-file').addEventListener('click', (event) => { event.stopPropagation(); open(); });
+  $('choose-folder').addEventListener('click', (event) => { event.stopPropagation(); folder.click(); });
   // Clicking the whole zone is a convenience on top of the real buttons inside it, not
   // the only way in, so the zone itself is not a control and does not take focus.
   dropzone.addEventListener('click', (event) => {
     if (event.target.closest('button')) return;
     open();
   });
-  input.addEventListener('change', () => { if (input.files[0]) readFile(input.files[0]); });
+  input.addEventListener('change', () => receive([...input.files]));
+  folder.addEventListener('change', () => receive([...folder.files]));
 
   for (const type of ['dragenter', 'dragover']) {
     dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('is-over'); });
@@ -28,8 +32,7 @@ export function wireGlobalControls() {
   }
   dropzone.addEventListener('drop', (event) => {
     event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (file) readFile(file);
+    receive([...(event.dataTransfer?.files ?? [])]);
   });
 
   $('load-demo').addEventListener('click', (event) => { event.stopPropagation(); loadDemonstration(); });
@@ -55,6 +58,37 @@ export function wireGlobalControls() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') $('method-drawer').hidden = true;
   });
+}
+
+/*
+ * Everything the reader handed over at once.
+ *
+ * One file opens as one trial. Several are a folder, and the folder's commonest name ending
+ * opens declared, with its count beside it, because a folder whose files nearly all end the
+ * same way has said what its trials are. Sorted by name because the engine walks a set in
+ * that order, so the trial on screen is the trial the run starts from.
+ */
+async function receive(chosen) {
+  if (chosen.length === 0) return;
+  const files = [...chosen].sort((a, b) => a.name.localeCompare(b.name));
+  if (files.length === 1) {
+    state.run = null;
+    await readFile(files[0]);
+    return;
+  }
+  state.run = { files, endings: new Set([endingsChosen(files)[0].ending]), envelope: null };
+  await openFirstDeclaredTrial();
+}
+
+/*
+ * The first file the declaration names, opened so the column and the rate are stated
+ * against a trace the reader can see. Re-run when the declaration changes, so the trial on
+ * screen is never a file the run will not read. With nothing declared there is no trial to
+ * show, and the stage keeps the one it has while the run stays unstartable.
+ */
+export async function openFirstDeclaredTrial() {
+  const first = state.run.files.find((file) => state.run.endings.has(endingOf(file.name)));
+  if (first) await readFile(first);
 }
 
 async function readFile(file) {

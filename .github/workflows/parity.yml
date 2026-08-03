@@ -26,6 +26,11 @@ on:
       - 'crates/**'
       - 'registry/**'
       - 'scripts/build-web.sh'
+      - 'scripts/check-batch.mjs'
+      - 'scripts/check-grammar.mjs'
+      - 'scripts/check-web-names-no-construct.py'
+      - 'scripts/check-web-reads-live-fields.py'
+      - 'web/**'
       - '.github/workflows/parity.yml'
   pull_request:
     paths:
@@ -37,6 +42,11 @@ on:
       - 'crates/**'
       - 'registry/**'
       - 'scripts/build-web.sh'
+      - 'scripts/check-batch.mjs'
+      - 'scripts/check-grammar.mjs'
+      - 'scripts/check-web-names-no-construct.py'
+      - 'scripts/check-web-reads-live-fields.py'
+      - 'web/**'
       - '.github/workflows/parity.yml'
   workflow_dispatch:
 
@@ -88,3 +98,23 @@ jobs:
       # nothing above this line can see that.
       - name: Every listed surface computes the one committed request to the same numbers
         run: ./scripts/result-parity.sh --check
+
+      # A field the engine renames and migrates across its Rust callers leaves the browser
+      # reading a name that is gone, which renders as an empty string rather than as an
+      # error. That is a disagreement between two surfaces, so it is asked here.
+      - name: The browser reads only fields the engine still serialises
+        run: python3 scripts/check-web-reads-live-fields.py
+
+      # The browser and the terminal are asked the same question about the same trials, by
+      # driving the page rather than by calling its modules: an answer a surface exports and
+      # has no path to is an answer it cannot give.
+      - name: A folder through the browser equals the same folder through the terminal
+        run: node scripts/check-batch.mjs web 8751
+
+      # Adding a method is a data edit, so a construct written into the interface is a row
+      # the registry can no longer add or remove on its own.
+      - name: The interface writes down no construct the registry declares
+        run: python3 scripts/check-web-names-no-construct.py
+
+      - name: The rail is a query against the registry, not a list
+        run: node scripts/check-grammar.mjs web 8791

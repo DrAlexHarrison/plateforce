@@ -196,12 +196,20 @@ export function renderBatch(container, envelope, rendering = WITH_PROVENANCE) {
  *
  * The recompute budget after a marker drag does not apply to a walk over hundreds of files,
  * and what fills in is the count of the user's own trials rather than an indeterminate
- * spinner, so the wait says something true about their data.
+ * spinner, so the wait says something true about their data. The coverage line below cannot
+ * serve here: every count in it is taken over a finished run, so none of them moves while
+ * one is still being read.
  */
-export function renderProgress(container, run) {
+export function renderProgress(container, filesChosen, trialCount, trialsRead) {
   container.replaceChildren();
   const panel = element('section', 'panel panel--standalone');
   panel.append(element('h2', null, 'Reading this folder'));
-  panel.append(element('p', 'panel__sub', coverageLine(run)));
+  panel.append(
+    element(
+      'p',
+      'panel__sub',
+      `${trialsRead} of ${trialCount} trials read, from ${filesChosen} files chosen`,
+    ),
+  );
   container.append(panel);
 }

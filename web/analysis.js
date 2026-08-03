@@ -59,6 +59,10 @@ export function selectionFromChosenRule(candidate, forcesDecision) {
     fromDefault: new Set(Object.keys(filled.values)),
     recommended: new Set(),
     methodFromRecommendation: false,
+    // Set where the reader names the rule. A slot that opened under the registry's first
+    // ranked candidate carries the same shape and a false here, so arriving at a rule and
+    // choosing it stay two different records rather than one.
+    methodStated: false,
   };
 }
 
@@ -87,30 +91,29 @@ function whereTheValuesCameFrom(slot) {
   };
 }
 
+/*
+ * The evidence a slot the request names by its own field carries beyond its rule.
+ *
+ * Two of those fields take a dragged marker and the third takes where the weighing window
+ * starts, and each refuses the other's name, so what a slot sends is read off what the tab
+ * is holding for it rather than off a list of field names written here.
+ */
+function placementFor(slotKey) {
+  return slotKey in state.overrides
+    ? { manual_index: state.overrides[slotKey] }
+    : { start_index: state.weighing.startIndex };
+}
+
+/*
+ * One request naming every construct on the path.
+ *
+ * A construct the request names by its own field goes there; every other goes into
+ * `derived` under the id the registry declares for it, which is the same key the terminal
+ * takes. Nothing is listed here, so a rail that grows a row sends that row without an edit.
+ */
 export function buildRequest() {
-  const weighingId = boundMethodId('weighing');
-  return {
-    weighing: {
-      method_id: weighingId,
-      start_index: state.weighing.startIndex,
-      parameters: state.selection.weighing?.values || {},
-      options: {},
-      ...whereTheValuesCameFrom('weighing'),
-    },
-    onset: {
-      method_id: boundMethodId('onset'),
-      parameters: state.selection.onset?.values || {},
-      options: {},
-      manual_index: state.overrides.onset,
-      ...whereTheValuesCameFrom('onset'),
-    },
-    takeoff: {
-      method_id: boundMethodId('takeoff'),
-      parameters: state.selection.takeoff?.values || {},
-      options: {},
-      manual_index: state.overrides.takeoff,
-      ...whereTheValuesCameFrom('takeoff'),
-    },
+  const request = {
+    derived: {},
     touchdown_index: state.overrides.touchdown,
     // Sent only when the operator has stated it. A literal here would be standard gravity's
     // second home, and the engine already carries the one the registry declares.
@@ -121,6 +124,18 @@ export function buildRequest() {
       ? state.registry.methods.map((method) => method.id)
       : [],
   };
+
+  for (const slot of state.slots) {
+    const choice = {
+      method_id: boundMethodId(slot.key),
+      parameters: state.selection[slot.key]?.values || {},
+      options: {},
+      ...whereTheValuesCameFrom(slot.key),
+    };
+    if (slot.spine) request[slot.key] = { ...choice, ...placementFor(slot.key) };
+    else request.derived[slot.construct] = choice;
+  }
+  return request;
 }
 
 export function runAnalysis() {
@@ -327,11 +342,11 @@ export function methodTitle(id) {
 }
 
 /* A value the request did not carry moved the number as far as one it did, so every value
- * in the fingerprint says which of the two it was. */
+ * in the fingerprint carries the source the record named for it. */
 export function boundValueText(bound, separator = ' ') {
-  const assumed = new Set(bound?.assumed_parameters || []);
+  const sources = bound?.parameter_sources || {};
   return (bound?.bound_parameters || []).map(
-    ([name, value]) => `${name}${separator}${value}${assumed.has(name) ? ' (assumed)' : ''}`,
+    ([name, value]) => `${name}${separator}${value}${sources[name] ? ` (${sources[name]})` : ''}`,
   );
 }
 
