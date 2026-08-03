@@ -3,8 +3,8 @@
 
 use plateforce_core::{
     flight_time_seconds, jump_height_from_flight_time, jump_height_from_takeoff_velocity,
-    reactive_strength_index_modified, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
-    Landmarks, Trial,
+    reactive_strength_index_modified, takeoff_velocity_integration_spec,
+    takeoff_velocity_meters_per_second, time_to_takeoff_seconds, Landmarks, Trial,
 };
 
 use std::collections::BTreeMap;
@@ -149,6 +149,20 @@ pub fn run(
     let mut full = vec![request.weighing.method_id.clone()];
     full.extend(onset_ids.clone());
     full.push(request.takeoff.method_id.clone());
+    // Every number read off the integrated velocity series rests on the four integration
+    // entries as well as on the three landmark rules, and the two start rules give different
+    // velocities from one recording. Named here rather than left out, because a chain is what
+    // a reader compares two results by. The impulse below is integrated directly rather than
+    // read off the series, so it keeps the shorter chain.
+    let mut integrated = full.clone();
+    if let Some(marks) = landmarks.as_ref() {
+        integrated.extend(
+            takeoff_velocity_integration_spec(marks)
+                .method_ids()
+                .iter()
+                .map(|id| (*id).to_string()),
+        );
+    }
 
     let interval_seconds = landmarks
         .as_ref()
@@ -202,7 +216,7 @@ pub fn run(
         Metric::declared(
             "takeoff_velocity_meters_per_second",
             velocity,
-            full.clone(),
+            integrated.clone(),
             Some("Net impulse over system mass. An identity, not an estimate.".into()),
         ),
         Metric::declared(
@@ -220,7 +234,7 @@ pub fn run(
         Metric::declared(
             "jump_height_from_takeoff_meters",
             height_takeoff,
-            full.clone(),
+            integrated.clone(),
             Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
                     .into(),
@@ -241,7 +255,7 @@ pub fn run(
                 (Some(height), Some(seconds)) => reactive_strength_index_modified(height, seconds),
                 _ => None,
             },
-            full,
+            integrated,
             Some(
                 "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number."
                     .into(),

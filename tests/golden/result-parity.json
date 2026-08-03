@@ -275,7 +275,11 @@
           "onset.op.direction",
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "integration.rule.trapezoid",
+          "integration.direction.forward",
+          "integration.start.detected_onset",
+          "integration.anchor.single_point"
         ],
         "key": "takeoff_velocity_meters_per_second",
         "label": "Takeoff velocity",
@@ -313,7 +317,11 @@
           "onset.op.direction",
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "integration.rule.trapezoid",
+          "integration.direction.forward",
+          "integration.start.detected_onset",
+          "integration.anchor.single_point"
         ],
         "key": "jump_height_from_takeoff_meters",
         "label": "Jump height, takeoff frame",
@@ -344,7 +352,11 @@
           "onset.op.direction",
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "integration.rule.trapezoid",
+          "integration.direction.forward",
+          "integration.start.detected_onset",
+          "integration.anchor.single_point"
         ],
         "key": "reactive_strength_index_modified",
         "label": "RSI modified",
