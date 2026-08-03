@@ -55,8 +55,13 @@ pub struct Variant {
     pub settings: Vec<(String, String)>,
     pub value: Option<f64>,
     pub method_ids: Vec<String>,
+    /// Why this combination produced no number, as the record of the rule that declined.
+    ///
+    /// `None` where no rule on the quantity's chain declined, which is a different state
+    /// from a rule declining and is reported as one. The variant stays in the denominator
+    /// either way.
     #[serde(default)]
-    pub failure_reason: Option<String>,
+    pub failure_reason: Option<Refusal>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,7 +94,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
 
     let baseline = crate::run(trial, &request.base)
         .ok()
-        .and_then(|response| extract(&response, &request.quantity_key).0);
+        .and_then(|response| extract(&response, &request.quantity_key));
 
     let (unit, unit_symbol) = crate::run(trial, &request.base)
         .ok()
@@ -118,7 +123,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
 
         match crate::run(trial, &candidate) {
             Ok(response) => {
-                let (value, warning) = extract(&response, &request.quantity_key);
+                let value = extract(&response, &request.quantity_key);
                 variants.push(Variant {
                     label: if label.is_empty() {
                         "baseline".into()
@@ -128,14 +133,13 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                     settings,
                     value,
                     method_ids,
-                    failure_reason: value.is_none().then(|| {
-                        warning.unwrap_or_else(|| {
-                            "the rule found no crossing, so this quantity has no value".into()
-                        })
-                    }),
+                    failure_reason: value
+                        .is_none()
+                        .then(|| declined_for(&response, &request.quantity_key))
+                        .flatten(),
                 });
             }
-            Err(error) => variants.push(Variant {
+            Err(refusal) => variants.push(Variant {
                 label: if label.is_empty() {
                     "baseline".into()
                 } else {
@@ -144,7 +148,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                 settings,
                 value: None,
                 method_ids,
-                failure_reason: Some(error.message().to_string()),
+                failure_reason: Some(*refusal),
             }),
         }
     }
@@ -183,17 +187,37 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
     })
 }
 
-fn extract(
-    response: &crate::AnalysisResponse,
-    quantity_key: &str,
-) -> (Option<f64>, Option<String>) {
-    let value = response
+fn extract(response: &crate::AnalysisResponse, quantity_key: &str) -> Option<f64> {
+    response
         .metrics
         .iter()
         .find(|m| m.key == quantity_key)
         .and_then(|m| m.value)
-        .filter(|v| v.is_finite());
-    (value, response.warnings.first().cloned())
+        .filter(|v| v.is_finite())
+}
+
+/// Why this quantity has no value on this variant, taken from a rule that declined on its
+/// own chain.
+///
+/// Attributed rather than assumed: the refusal has to name one of the rules the quantity
+/// itself says produced it, so a rule declining elsewhere in the analysis is not written
+/// against a number it had no part in. Where nothing on the chain declined this is `None`,
+/// because a cause nobody recorded is not a cause to report.
+///
+/// This field used to carry the first warning of the whole analysis whatever it was about,
+/// and where there was no warning it carried a written sentence naming a crossing that no
+/// rule had looked for.
+fn declined_for(response: &crate::AnalysisResponse, quantity_key: &str) -> Option<Refusal> {
+    let chain = response
+        .metrics
+        .iter()
+        .find(|metric| metric.key == quantity_key)
+        .map(|metric| metric.contributing_method_ids.as_slice())?;
+    response
+        .refusals
+        .iter()
+        .map(crate::document::refusal_from_rule)
+        .find(|refusal| chain.iter().any(|id| *id == refusal.method_id))
 }
 
 /// The three landmark slots, which are reached by their own names on the request.
@@ -488,7 +512,70 @@ mod tests {
             .iter()
             .find(|v| v.value.is_none())
             .unwrap();
-        assert!(failed.failure_reason.is_some());
+        let reason = failed
+            .failure_reason
+            .as_ref()
+            .expect("a variant that failed says why");
+        // The record the rule built, so a caller reads the code and the value it declined on
+        // rather than parsing a sentence. On this variant the band is wider than the trace,
+        // which is a collapsed band and not a crossing nobody found: the written sentence
+        // this replaced named the wrong one of the two.
+        assert_eq!(reason.code, plateforce_core::RefusalCode::CollapsedBand);
+        assert_eq!(reason.parameter.as_deref(), Some("k"));
+        assert_eq!(reason.value, Some(100_000.0));
+        assert_eq!(reason.slot.as_deref(), Some("movement_onset"));
+    }
+
+    /// The reason names a rule the quantity itself says produced it, so a rule declining
+    /// elsewhere in the analysis is not written against a number it had no part in.
+    ///
+    /// Both quantities below come back empty on the same run, and only one of them rests on
+    /// the rule that declined: the interval is bounded by the onset the rule did not place,
+    /// and flight time is bounded by the takeoff rule, which placed its landmark. A field
+    /// filled from whatever went wrong anywhere would put the onset refusal on both.
+    #[test]
+    fn a_reason_is_only_written_against_a_quantity_the_declining_rule_produced() {
+        let sweep = |quantity: &str| {
+            run(
+                &synthetic(),
+                &SpreadRequest {
+                    base: base(),
+                    axes: vec![Axis {
+                        slot: "onset".into(),
+                        parameter: Some("k".into()),
+                        values: vec![100_000.0],
+                        method_ids: Vec::new(),
+                    }],
+                    quantity_key: quantity.to_string(),
+                    maximum_combinations: 512,
+                },
+            )
+            .unwrap()
+        };
+
+        let interval = sweep("time_to_takeoff_seconds");
+        let reason = interval.variants[0]
+            .failure_reason
+            .as_ref()
+            .expect("the onset rule declined and this interval rests on it");
+        assert!(
+            reason.method_id.starts_with("onset."),
+            "{} is not the rule this quantity rests on",
+            reason.method_id
+        );
+
+        // Flight time is empty on the same run and rests on the takeoff rule, which placed
+        // its landmark. Nothing on its chain declined, so nothing is written against it.
+        let flight = sweep("flight_time_seconds");
+        assert!(
+            flight.variants[0].value.is_none(),
+            "this quantity has to be empty here, or the pair below is not a comparison"
+        );
+        assert!(
+            flight.variants[0].failure_reason.is_none(),
+            "the onset rule's refusal was written against a number bounded by takeoff: {:?}",
+            flight.variants[0].failure_reason
+        );
     }
 }
 

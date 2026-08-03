@@ -202,7 +202,11 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
     // A variant that failed stays in the denominator and says why, because a spread taken
     // over the ones that worked is a spread over a set nobody chose.
     for variant in response.variants.iter().filter(|v| v.value.is_none()) {
-        let reason = variant.failure_reason.as_deref().unwrap_or("no value");
+        let reason = variant
+            .failure_reason
+            .as_ref()
+            .map(|refusal| refusal.message())
+            .unwrap_or("no value");
         block.push('\n');
         let lines = renderer.wrap(&format!("{}: {reason}", variant.label), 4);
         let _ = write!(block, "{}", lines.join("\n"));

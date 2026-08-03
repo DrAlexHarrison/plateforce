@@ -269,7 +269,7 @@ function spreadTable(result, label) {
     if (variant.value === result.maximum) row.dataset.extreme = 'high';
     row.append(element('td', null, readableLabel(variant)));
     if (variant.value == null) {
-      const cell = element('td', 'failed', variant.failure_reason || 'no value');
+      const cell = element('td', 'failed', variant.failure_reason?.message || 'no value');
       cell.colSpan = 2;
       row.append(cell);
     } else {

@@ -553,7 +553,7 @@ fn a_variant_that_could_not_run_stays_in_the_denominator_with_its_reason() {
     );
     for row in result.paired.iter().filter(|r| r.trial_id == "standing") {
         assert!(
-            row.value.is_none() || !row.failure_reason.is_empty(),
+            row.value.is_some() || !row.failure_reason.is_empty(),
             "a row either carries a value or says why it does not: {row:?}"
         );
     }

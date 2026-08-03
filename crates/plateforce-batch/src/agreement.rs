@@ -406,7 +406,10 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                         value: variant.value,
                         // A variant that failed is listed with its reason and stays in the
                         // denominator, which the sweep already does and this must not undo.
-                        failure_reason: variant.failure_reason.unwrap_or_default(),
+                        failure_reason: variant
+                            .failure_reason
+                            .map(|refusal| refusal.message().to_string())
+                            .unwrap_or_default(),
                         provenance_id: String::new(),
                     });
                 }
