@@ -68,11 +68,32 @@ fn values_the_rules_assumed() -> BTreeMap<String, BTreeMap<String, String>> {
                     ..Default::default()
                 }
             }
-            _ => {
+            "takeoff" => {
                 request.takeoff = MethodChoice {
                     method_id: binding.id.to_string(),
                     ..Default::default()
                 }
+            }
+            // A rule reached by construct id rather than by a named field. Assigning one to
+            // the takeoff field instead left `run` refusing an id filed elsewhere, the loop
+            // stepping over the refusal, and this comparison reading none of them.
+            construct => {
+                request.derived.insert(
+                    construct.to_string(),
+                    MethodChoice {
+                        method_id: binding.id.to_string(),
+                        ..Default::default()
+                    },
+                );
+                // The window rules place what several of these read, so one is named beside
+                // the rule under test. A rule that declines for want of it records nothing.
+                request
+                    .derived
+                    .entry("analysis_window".to_string())
+                    .or_insert(MethodChoice {
+                        method_id: "window_end.takeoff.detected".to_string(),
+                        ..Default::default()
+                    });
             }
         }
         let Ok(response) = run(&trial, &request) else {
@@ -134,9 +155,25 @@ fn every_value_a_rule_assumes_is_the_one_the_registry_declares() {
         "a rule ran on a value the registry does not declare:\n  {}",
         disagreements.join("\n  ")
     );
+    // Two populations, counted apart. A rule can record a value and declare no default, so
+    // the second number is not a denominator for the first.
+    println!(
+        "{compared} declared defaults compared, from {} rules that recorded one, of {} binding rows and {} composed operators",
+        assumed.len(),
+        BINDINGS.len(),
+        ONSET_OPERATORS.len()
+    );
     assert!(
         compared >= 5,
         "only {compared} declared defaults were reached, so this comparison has stopped covering the rules"
+    );
+    // The rules reached, rather than the values compared. A rule with no declared default
+    // contributes nothing above and still says whether this comparison can see it at all,
+    // which is the half that was silently zero for every rule reached by construct id.
+    assert!(
+        assumed.len() >= 34,
+        "only {} rules were reached, so rules this build runs are outside this comparison",
+        assumed.len()
     );
 }
 

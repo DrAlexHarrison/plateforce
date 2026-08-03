@@ -108,13 +108,40 @@ fn height(construct: &str, method_id: &str, key: &str) -> f64 {
 
 /// The projectile equation on a flight phase of stated length, which is the one jump-height
 /// answer that has a closed form. Nothing about the integrator can move it.
+///
+/// A reader who states nothing gets the value the entry declares, 9.81, and not the constant
+/// the request carries. The entry publishes four values because the tools disagree on this one
+/// and a rule running on whichever number a struct initialiser held would be the silent
+/// default with the paperwork of a declared one.
 #[test]
-fn the_flight_time_height_is_the_closed_form_of_the_flight_phase_it_measured() {
-    let computed = height(TAKEOFF_FRAME, "jumpheight.takeoff.flight_time", FLIGHT_KEY);
+fn the_flight_time_height_is_the_closed_form_at_the_gravity_its_entry_declares() {
+    use plateforce_analysis::slots::jh_takeoff_frame::flight_time::{
+        GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED as DECLARED, GRAVITY_PARAMETER,
+    };
+
     let seconds = FLIGHT_SAMPLES as f64 / SAMPLE_RATE_HZ;
-    let closed_form = GRAVITY * seconds * seconds / 8.0;
-    println!("flight {seconds:.4} s, height {computed:.6} m, closed form {closed_form:.6} m");
-    assert!((computed - closed_form).abs() < 1e-9);
+    let stated_nothing = height(TAKEOFF_FRAME, "jumpheight.takeoff.flight_time", FLIGHT_KEY);
+    let closed_form = DECLARED * seconds * seconds / 8.0;
+    println!("flight {seconds:.4} s, height {stated_nothing:.6} m, closed form at g = {DECLARED} is {closed_form:.6} m");
+    assert!((stated_nothing - closed_form).abs() < 1e-9);
+    assert_ne!(
+        DECLARED, GRAVITY,
+        "the entry's value and the request's constant are the same number here, so this could not tell them apart"
+    );
+
+    // And a reader who does state one gets theirs. A rule that took its entry's default over a
+    // stated value would be the same fault pointing the other way.
+    let mut request = naming(&[(TAKEOFF_FRAME, "jumpheight.takeoff.flight_time")]);
+    request
+        .derived
+        .get_mut(TAKEOFF_FRAME)
+        .unwrap()
+        .parameters
+        .insert(GRAVITY_PARAMETER.to_string(), 9.8);
+    let response = run(&a_jump_that_lands(), &request).expect("the request is well formed");
+    let stated = value(&response, FLIGHT_KEY).expect("a height");
+    println!("stated g = 9.8 gives {stated:.6} m");
+    assert!((stated - 9.8 * seconds * seconds / 8.0).abs() < 1e-9);
 }
 
 /// The two frames are different quantities and the standing frame is the larger, by exactly
@@ -215,22 +242,35 @@ fn the_peak_velocity_route_never_reads_below_the_takeoff_velocity_route() {
 /// The minimum of two estimators returns one of them, and which one is not fixed across
 /// trials. Both halves are checked, because a rule returning either one unconditionally would
 /// satisfy a test that only asked for the smaller.
+///
+/// Its own entry declares no gravity, so both of its terms run under the one the request
+/// carries. That is not the value the flight-time entry declares for its own route, so this
+/// compares against the terms this rule computed rather than against the other rule's number.
 #[test]
-fn the_minimum_route_returns_the_smaller_of_the_two_it_names() {
-    let from_flight = height(TAKEOFF_FRAME, "jumpheight.takeoff.flight_time", FLIGHT_KEY);
-    let from_impulse = height(
+fn the_minimum_route_returns_the_smaller_of_the_two_it_computed() {
+    let response = run(
+        &a_jump_that_lands(),
+        &naming(&[
+            ("flight_time", "flight_time.takeoff_to_touchdown"),
+            (UNDECLARED, "jumpheight.min_of_ft_and_tov.labanalysis"),
+        ]),
+    )
+    .expect("the request is well formed");
+    let seconds = value(&response, "flight_time_seconds").expect("a flight time");
+    let minimum = value(&response, UNDECLARED_KEY).expect("a height");
+
+    // The same core functions this rule calls, at the gravity this rule ran under.
+    let flight_term = plateforce_core::jump_height_from_flight_time(seconds, GRAVITY);
+    let impulse_term = height(
         TAKEOFF_FRAME,
         "jumpheight.takeoff.impulse_momentum",
         TAKEOFF_KEY,
     );
-    let minimum = height(
-        UNDECLARED,
-        "jumpheight.min_of_ft_and_tov.labanalysis",
-        UNDECLARED_KEY,
+    println!(
+        "flight term {flight_term:.6} m, impulse term {impulse_term:.6} m, minimum {minimum:.6} m"
     );
-    println!("flight {from_flight:.6} m, impulse {from_impulse:.6} m, minimum {minimum:.6} m");
-    assert_eq!(minimum, from_flight.min(from_impulse));
-    assert!(minimum <= from_flight && minimum <= from_impulse);
+    assert_eq!(minimum, flight_term.min(impulse_term));
+    assert!(minimum <= flight_term && minimum <= impulse_term);
 }
 
 /// The apex searched over the flight and the apex searched from standing are the same instant
