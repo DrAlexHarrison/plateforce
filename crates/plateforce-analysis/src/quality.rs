@@ -90,9 +90,7 @@ pub fn distrusted(signals: &[QualitySignal]) -> bool {
 
 fn metric(response: &AnalysisResponse, key: &str) -> Option<f64> {
     response
-        .metrics
-        .iter()
-        .find(|entry| entry.key == key)
+        .metric(key)
         .and_then(|entry| entry.value)
         .filter(|value| value.is_finite())
 }

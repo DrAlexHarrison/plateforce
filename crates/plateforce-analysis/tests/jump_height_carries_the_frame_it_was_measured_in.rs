@@ -468,6 +468,60 @@ fn each_height_rule_reports_its_own_arithmetic_exactly_once() {
     }
 }
 
+/// No response carries one key twice, for any rule this build runs rather than for the ones
+/// this file is about.
+///
+/// Two surfaces read a response by key and used to resolve a repeat in opposite directions,
+/// so a repeated key was one trial reported as two different numbers depending on who asked.
+/// The spine now leaves out any key a bound rule will report, and this is what says so.
+#[test]
+fn no_rule_this_build_runs_reports_a_key_a_second_time() {
+    let trial = a_jump_that_lands();
+    let mut checked = 0usize;
+    for binding in plateforce_analysis::BINDINGS {
+        let mut request = base();
+        match binding.slot {
+            "weighing" | "onset" | "takeoff" => continue,
+            construct => {
+                request.derived.insert(
+                    construct.to_string(),
+                    MethodChoice {
+                        method_id: binding.id.to_string(),
+                        ..Default::default()
+                    },
+                );
+            }
+        }
+        // The window rules place what several later rules read, so a request naming only one
+        // of those would decline rather than exercising the report this guard reads.
+        request
+            .derived
+            .entry("analysis_window".to_string())
+            .or_insert(MethodChoice {
+                method_id: "window_end.takeoff.detected".to_string(),
+                ..Default::default()
+            });
+
+        let response = run(&trial, &request).expect("the request is well formed");
+        let mut seen: Vec<&str> = Vec::new();
+        for metric in &response.metrics {
+            assert!(
+                !seen.contains(&metric.key.as_str()),
+                "{} produced a response carrying {} twice",
+                binding.id,
+                metric.key
+            );
+            seen.push(metric.key.as_str());
+        }
+        checked += 1;
+    }
+    println!(
+        "{checked} of {} rules checked for a repeated key",
+        plateforce_analysis::BINDINGS.len()
+    );
+    assert!(checked >= 13, "only {checked} rules were reached");
+}
+
 /// The four integration choices behind every height reach the record. A velocity integrated
 /// under a quadrature nobody stated is the silent default this registry documents, and three
 /// of these rules never see a spec because the core function integrates for itself.

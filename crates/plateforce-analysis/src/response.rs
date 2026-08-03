@@ -207,6 +207,18 @@ impl Metric {
     }
 }
 
+impl AnalysisResponse {
+    /// The metric carrying a key, or nothing where no rule reported one.
+    ///
+    /// One lookup for every surface, because two of them read a response by key and resolved a
+    /// repeated key in opposite directions: the quality signals took the first match and the
+    /// batch writer took the last, so one response could hand two surfaces different numbers
+    /// under one name. Which of two values a reader gets is not a thing to decide twice.
+    pub fn metric(&self, key: &str) -> Option<&Metric> {
+        self.metrics.iter().find(|metric| metric.key == key)
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Levels {
     pub system_weight_newtons: f64,

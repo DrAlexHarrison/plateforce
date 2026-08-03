@@ -295,7 +295,10 @@ pub fn analyse(
                 quantities.push(metric.key.to_string());
                 units.insert(metric.key.to_string(), metric.unit.to_string());
             }
-            values.insert(metric.key.to_string(), metric.value);
+            // The first metric under a key, which is the one every other surface reads. Taking
+            // the last would write a different number into the batch than the terminal and the
+            // quality signals show for the same trial.
+            values.entry(metric.key.to_string()).or_insert(metric.value);
         }
         results.push(ResultRow {
             trial_id: trial_id.clone(),
