@@ -42,8 +42,8 @@ would cost 99 dollars a year to ship the same free software.
 
 ## Windows
 
-**The direct download.** Run `plateforce_<version>_x64-setup.exe`. It installs into your own
-user profile and does not ask for an administrator.
+Run `plateforce_<version>_x64-setup.exe`. It installs into your own user profile and does
+not ask for an administrator.
 
 Windows shows a blue dialog reading "Windows protected your PC" the first time, because the
 installer carries no purchased certificate. Choose **More info**, then **Run anyway**.
@@ -52,12 +52,8 @@ On a Windows 11 machine that was clean-installed, Smart App Control may block th
 outright with no per-app override. Smart App Control cannot be enabled on an upgraded
 machine, so this is rare; if you meet it, the last section is your route.
 
-**The Microsoft Store.** The Store listing installs with no dialog at all and keeps itself
-up to date. It runs a certification cycle after each release, so it reaches a new version a
-few days after the direct download.
-
-Windows 10 version 1809 and newer. Both routes use the WebView2 runtime, which ships with
-Windows 11 and arrived on Windows 10 through Windows Update.
+Windows 10 version 1809 and newer. It uses the WebView2 runtime, which ships with Windows 11
+and arrived on Windows 10 through Windows Update.
 
 ## A machine that will not let you install anything
 
