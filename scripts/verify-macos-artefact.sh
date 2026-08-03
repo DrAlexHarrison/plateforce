@@ -52,6 +52,11 @@ fi
 
 codesign --verify --deep --strict --verbose=2 "$application"
 spctl -a -vvv -t install "$application"
-xcrun stapler validate "$application"
 
-echo "codesign ok, spctl accepted, staple valid"
+# The ticket is on the image, so the image is what carries it. The workflow staples the
+# DMG, a mounted DMG is read only, and stapling a container cannot reach inside it, so
+# asking the application for a ticket asks the one file that was never given one. The
+# reader downloads the image, and the image is what has to answer offline on first launch.
+xcrun stapler validate "$image"
+
+echo "codesign ok, spctl accepted, staple valid on the image"
