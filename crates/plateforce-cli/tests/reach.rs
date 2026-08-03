@@ -84,42 +84,66 @@ fn every_construct_out_of_reach_names_what_stands_in_the_way() {
 #[test]
 fn a_construct_walled_by_two_things_names_both() {
     let (scratch, construct) = walled_registry("both", None);
-    let report = reach_in(scratch.to_str().unwrap());
-    let filing_both = constructs_filing_a_two_part_barrier(&scratch);
-    assert!(
-        filing_both.contains(&construct),
-        "the fixture walls its construct with a two-part barrier"
-    );
+    let rows = rows_the_union_rule_is_asked_of(&scratch);
+    println!("rows the union rule was asked of: {}", rows.len());
 
-    let mut named_both = Vec::new();
-    for row in report["constructs"].as_array().unwrap() {
-        let id = row["id"].as_str().unwrap();
-        let barriers: Vec<&str> = row["boundary"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter_map(|barrier| barrier.as_str())
-            .collect();
-        if barriers.is_empty() || !filing_both.contains(id) {
-            continue;
-        }
+    for (id, barriers) in &rows {
         assert!(
-            barriers.contains(&"movement") && barriers.contains(&"instrument"),
+            barriers.iter().any(|barrier| barrier == "movement")
+                && barriers.iter().any(|barrier| barrier == "instrument"),
             "{id} files a two-part barrier and reported {barriers:?}"
         );
-        named_both.push(id.to_string());
     }
-
-    println!(
-        "constructs out of reach whose rules file a two-part barrier: {} of {}, each naming both",
-        named_both.len(),
-        report["construct_count"]
-    );
     assert!(
-        named_both.len() > 1,
-        "the union rule met one row, which says nothing about the rest: {named_both:?}"
+        rows.iter().any(|(id, _)| id == &construct),
+        "the construct the fixture walls with a two-part barrier reached no row"
     );
     let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// The population the rule above is asked of, guarded apart from the rule itself.
+///
+/// It was one row for as long as no entry declared a barrier, and a rule asked only of the row
+/// its own fixture built cannot fail for the reason it exists. A failure here is a signal to
+/// look rather than a defect in the code, which is why it carries its own name.
+#[test]
+fn more_than_the_fixture_exercises_the_two_part_barrier_rule() {
+    let (scratch, construct) = walled_registry("both", None);
+    let beyond_the_fixture: Vec<String> = rows_the_union_rule_is_asked_of(&scratch)
+        .into_iter()
+        .map(|(id, _)| id)
+        .filter(|id| id != &construct)
+        .collect();
+    println!(
+        "constructs beyond the fixture exercising the union rule: {}",
+        beyond_the_fixture.len()
+    );
+    assert!(
+        !beyond_the_fixture.is_empty(),
+        "the union rule is asked only of the row the fixture builds, so a collapse anywhere else would go unseen"
+    );
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// The rows that exercise the union rule: reported out of reach, and filing a two-part barrier.
+fn rows_the_union_rule_is_asked_of(scratch: &Path) -> Vec<(String, Vec<String>)> {
+    let report = reach_in(scratch.to_str().unwrap());
+    let filing_both = constructs_filing_a_two_part_barrier(scratch);
+    report["constructs"]
+        .as_array()
+        .expect("one row per construct")
+        .iter()
+        .filter_map(|row| {
+            let id = row["id"].as_str().expect("a construct id").to_string();
+            let barriers: Vec<String> = row["boundary"]
+                .as_array()
+                .expect("a barrier list")
+                .iter()
+                .filter_map(|barrier| barrier.as_str().map(str::to_string))
+                .collect();
+            (!barriers.is_empty() && filing_both.contains(&id)).then_some((id, barriers))
+        })
+        .collect()
 }
 
 /// The constructs a registry files a two-part barrier for, read through the loader the

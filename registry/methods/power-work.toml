@@ -813,6 +813,9 @@ jump, where the three coincide, and the control must not be shown there. What is
 any one object but using one object's kinematics to claim another object's quantity.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "normalise.denominator"
 construct = "normalisation_basis"

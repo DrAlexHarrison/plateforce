@@ -391,6 +391,9 @@ surfacing = "default_and_hide"
 sensitivity = "very large on encoder jump height, which is measured from this instant"
 rationale = "Fails in the opposite direction if a post-takeoff oscillation produces a zero crossing nearer peak velocity."
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "flight_window.bounding_rule"
 construct = "baseline_noise_scale"

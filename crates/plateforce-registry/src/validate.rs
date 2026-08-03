@@ -61,6 +61,7 @@ pub enum ViolationKind {
     ReachQueryOnSettledBoundary {
         boundary: Boundary,
     },
+    ReachUndeterminedWithoutQuery,
     PresetBindsUnknownMethod {
         preset: String,
         method_id: String,
@@ -171,6 +172,11 @@ impl fmt::Display for Violation {
             ReachQueryOnSettledBoundary { boundary } => write!(
                 f,
                 "{}: reach is '{boundary}' and carries a query, which reads as doubt about a boundary that was settled",
+                self.entry
+            ),
+            ReachUndeterminedWithoutQuery => write!(
+                f,
+                "{}: reach is 'undetermined' and carries no query, so it says something stands in the way and not what would settle it",
                 self.entry
             ),
             RecommendedOnUnobtainedSource { citation } => write!(
@@ -369,7 +375,8 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             }
         }
 
-        // A query beside a settled boundary is the classification arguing with itself.
+        // A query beside a settled boundary is the classification arguing with itself, and an
+        // undetermined one without a query names a barrier while withholding what would place it.
         if let Some(reach) = &method.reach {
             let settled = reach.boundary != Boundary::Undetermined;
             let asked = reach
@@ -382,6 +389,12 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                     kind: ViolationKind::ReachQueryOnSettledBoundary {
                         boundary: reach.boundary,
                     },
+                });
+            }
+            if !settled && !asked {
+                violations.push(Violation {
+                    entry: entry.clone(),
+                    kind: ViolationKind::ReachUndeterminedWithoutQuery,
                 });
             }
         }

@@ -461,15 +461,18 @@ Validation is not advisory. A registry that fails these does not load. Each name
 
 19. A query sits beside an undetermined boundary and nowhere else.
     `ReachQueryOnSettledBoundary`
+20. An undetermined boundary carries a query. Every other boundary names what stands in the
+    way; this one names only that something does, so the query is the whole of what it says.
+    `ReachUndeterminedWithoutQuery`
 
 **Presets**
 
-20. A preset binds a method the registry carries. `PresetBindsUnknownMethod`
-21. A binding's declared construct is the one that entry carries.
+21. A preset binds a method the registry carries. `PresetBindsUnknownMethod`
+22. A binding's declared construct is the one that entry carries.
     `PresetBindingConstructMismatch`
-22. A preset states a pipeline and cites a source for it. `PresetWithoutCitation`
-23. A preset binds each construct once. `PresetBindsOneConstructTwice`
-24. Everything a preset says its source is silent about is a declared construct.
+23. A preset states a pipeline and cites a source for it. `PresetWithoutCitation`
+24. A preset binds each construct once. `PresetBindsOneConstructTwice`
+25. Everything a preset says its source is silent about is a declared construct.
     `PresetSilentAboutUnknownConstruct`
 
 A closed vocabulary needs no rule. `status`, `confidence`, `debate`, `criterion_kind`,
