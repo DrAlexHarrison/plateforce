@@ -48,8 +48,10 @@ features = ["pyo3/extension-module"]
 # carries the methods rather than expecting a clone beside it. A source distribution is
 # built from its own tree, and maturin does not carry that directory unless told to, so
 # building from the sdist failed on every platform with "reading ../../registry: No such
-# file or directory" while building from the repository succeeded.
-include = [{ path = "../../registry/**/*", format = "sdist" }]
+# file or directory" while building from the repository succeeded. The pattern is relative
+# to the project root, which for a workspace member is the workspace root the sdist is
+# rooted at, not this directory: maturin refuses a pattern containing `..` outright.
+include = [{ path = "registry/**/*", format = "sdist" }]
 
 [tool.cibuildwheel]
 # Building on the oldest supported interpreter is what collapses the matrix: the wheel
