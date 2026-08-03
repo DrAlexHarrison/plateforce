@@ -74,6 +74,9 @@ negative-loading protocol produces system mass below body mass, and neither open
 surveyed can represent that.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.samozino_simple.2008"
 construct = "force_velocity_profile"
@@ -130,6 +133,9 @@ surfacing = "surface_on_demand"
 sensitivity = "high to the push-off distance"
 rationale = "Force the decision on the push-off measurement protocol. A force plate measures the same quantities directly, which is what this platform will have."
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.model.linear"
 construct = "force_velocity_profile"
@@ -179,6 +185,9 @@ cannot carry a magnitude, because it could only be estimated by assuming the alt
 is the thing in dispute.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.model.hyperbolic_and_double_hyperbolic"
 construct = "force_velocity_profile"
@@ -215,6 +224,9 @@ obviously more correct either.
 surfacing = "surface_on_demand"
 sensitivity = "high on the intercepts"
 rationale = "For researchers, with the linear form hidden as the practitioner default, because switching the model changes every downstream number including the imbalance."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "fv.imbalance.samozino2012"
@@ -308,6 +320,9 @@ between-session confidence band. Emitting a single number with a training recomm
 which is what commercial tools do, is precisely the practice the critical literature objects to.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.acquisition.multi_point"
 construct = "force_velocity_profile"
@@ -371,6 +386,9 @@ surfacing = "force_a_decision"
 sensitivity = "high; the number of loads sets the extrapolation error on the intercepts"
 rationale = "More points constrain the fit, make the residual visible, and are the only way to detect that the relationship is not the shape assumed."
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.acquisition.two_point"
 construct = "force_velocity_profile"
@@ -419,6 +437,9 @@ literature disputes: its validity is conditional on precisely the assumption und
 methods literature and the theoretical literature rarely cite each other.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.acquisition.bwjump_plus_imvc"
 construct = "force_velocity_profile"
@@ -452,6 +473,9 @@ kind = "genuine"
 [method.gui]
 surfacing = "refuse"
 rationale = "Retained flagged rather than excluded because it is an attractive shortcut that practitioners keep reinventing."
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "fv.regression_form"
@@ -505,6 +529,9 @@ the software computing all three and displaying the spread, which costs nothing 
 sensitivity visible for the first time.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "sjl100.linear_load_velocity_extrapolation.chronojump"
 construct = "force_velocity_profile"
@@ -553,6 +580,9 @@ an arbitrary implementation.
 surfacing = "force_a_decision"
 sensitivity = "very large: with a single loaded jump the slope is determined by two points"
 rationale = "The number of loads used must be shown. The tool already colours the profile indicator red when jumps are missing, which is the right instinct applied to the wrong variable."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "vbt.minimal_velocity_threshold_1rm"
@@ -618,6 +648,9 @@ user for.
 surfacing = "surface_on_demand"
 sensitivity = "presumed high, unmeasured here"
 rationale = "It is an extrapolation to a load never lifted, so its error grows with distance from the tested range and with any curvature in the load-velocity relationship."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "vbt.load_at_zero_velocity_1rm"
@@ -688,6 +721,9 @@ applied, because none exists for most exercises. The software must collect mean 
 rather than peak, and a minimum velocity spread across loads.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "fv.point_reduction"
 construct = "force_velocity_profile"
@@ -752,6 +788,9 @@ power without recording the statistic is how a threefold discrepancy becomes inv
 cross-study comparison that does not pin it is meaningless.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "optimal_load.exercise_specific"
 construct = "optimal_load"
@@ -810,3 +849,6 @@ this entry makes that requirement harder to satisfy because there are now four. 
 source is worth recording because the library had it filed under another paper's slug and citation
 block, which means that other paper is absent from the library rather than present.
 """
+
+[method.reach]
+boundary = "both"
