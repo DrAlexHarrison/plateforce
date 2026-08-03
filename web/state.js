@@ -11,6 +11,10 @@ export const $ = (id) => document.getElementById(id);
 export const state = {
   registry: null,
   build: null,
+  /* Constructs the reader has asked for, beyond the three the request names by its own
+   * fields. A construct nobody asked for is not on the path, so no rule instantiates it and
+   * it raises no decision. */
+  path: [],
   slots: [],
   selection: {},
   weighing: { startIndex: null },

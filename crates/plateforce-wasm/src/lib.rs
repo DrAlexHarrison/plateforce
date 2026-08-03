@@ -18,6 +18,7 @@ pub mod registry_embed;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+use plateforce_analysis::binding::SPINE_CONSTRUCTS;
 use plateforce_analysis::capability::{capability, Operation, OutputFormat};
 use plateforce_analysis::{spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
@@ -40,6 +41,11 @@ struct BuildInfo {
     registry_violations: Vec<String>,
     /// Every rule that runs, with the slot it fills.
     bindings: &'static [Binding],
+    /// The constructs the request names by its own fields. `Dispatch` carries a function
+    /// pointer and is not serialised, and a binding's slot word equals its construct id for
+    /// takeoff as well as for every derived row, so an interface reading `bindings` alone
+    /// cannot tell which of the two ways a construct is asked for.
+    spine_constructs: &'static [&'static str],
     threads: bool,
 }
 
@@ -57,6 +63,7 @@ pub fn build_info_json() -> Result<String, JsError> {
         registry_valid: loaded.is_valid(),
         registry_violations: loaded.violation_messages(),
         bindings: BINDINGS,
+        spine_constructs: SPINE_CONSTRUCTS,
         threads: false,
     })
 }

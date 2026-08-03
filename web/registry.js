@@ -1,9 +1,10 @@
 /*
  * Turning the registry into the decisions the interface presents.
  *
- * Nothing here hardcodes a method. The slots name constructs, the candidates come from
- * the registry, and the surfacing field on each entry decides how hard the choice is
- * pushed at the user.
+ * Nothing here names a construct or a method. The rows come from the rules this build
+ * declares it can run, the label and the note on each row come from the registry's own
+ * entry for that construct, and the surfacing field on the entry bound to a row decides how
+ * hard the choice is pushed at the reader.
  *
  * A candidate is offered only when a rule exists to run it. A runnable rule the registry
  * has not documented still appears, flagged as carrying no citation, because presenting
@@ -11,27 +12,6 @@
  * two ways: a composition binds parameters on a registry entry and inherits its
  * citations, while an unfiled rule has no entry anywhere.
  */
-
-export const SLOTS = [
-  {
-    key: 'weighing',
-    construct: 'system_weight',
-    title: 'Standing still, before the jump',
-    why: 'Sets system weight, and with it the onset band and every impulse below.',
-  },
-  {
-    key: 'onset',
-    construct: 'movement_onset',
-    title: 'Start of the jump',
-    why: 'Net impulse reliability runs from 0.984 to 0.479 across published onset rules on identical data.',
-  },
-  {
-    key: 'takeoff',
-    construct: 'takeoff',
-    title: 'Takeoff',
-    why: 'Moves jump height by about 1.4 cm across six published rules, and decides flight time outright.',
-  },
-];
 
 /* Entries the registry rules out as user choices. The reasoning lives in the registry and
  * in the docs, not in the interface. */
@@ -41,67 +21,104 @@ const NOT_A_CHOICE = new Set(['never_a_user_choice', 'refuse']);
  * carrying a copy of them. Set once when the model is built. */
 let loaded = null;
 
-export function buildDecisionModel(registry, bindings) {
+/*
+ * One row per construct on the path, in the order the pipeline runs them.
+ *
+ * `path` is the constructs beyond the three the request names by its own fields. A
+ * construct nobody asked for is not on the path, so it is never instantiated and raises no
+ * decision, which is why the registry's fifty-eight constructs do not become fifty-eight
+ * rows.
+ */
+export function buildDecisionModel(registry, build, path = []) {
   loaded = registry;
-  const byConstruct = new Map();
+  const documentedByConstruct = new Map();
   for (const method of registry.methods) {
-    if (!byConstruct.has(method.construct)) byConstruct.set(method.construct, []);
-    byConstruct.get(method.construct).push(method);
+    if (!documentedByConstruct.has(method.construct)) documentedByConstruct.set(method.construct, []);
+    documentedByConstruct.get(method.construct).push(method);
   }
 
-  return SLOTS.map((slot) => {
-    const documented = byConstruct.get(slot.construct) || [];
-    const slotBindings = bindings.filter((binding) => binding.slot === slot.key);
-    const executableIds = new Set(slotBindings.map((binding) => binding.id));
+  const spine = new Set(build.spine_constructs);
+  const onThePath = new Set([...build.spine_constructs, ...path]);
 
-    const offered = documented.filter((method) => !NOT_A_CHOICE.has(method.gui?.surfacing));
-
-    const candidates = offered.map((method) => ({
-      id: method.id,
-      title: method.title,
-      status: method.status,
-      surfacing: method.gui?.surfacing || null,
-      method,
-      registryBacked: true,
-      composedFrom: null,
-      executable: executableIds.has(method.id),
-      note: '',
-    }));
-
-    for (const binding of slotBindings) {
-      if (candidates.some((candidate) => candidate.id === binding.id)) continue;
-      candidates.push({
-        id: binding.id,
-        title: binding.title,
-        status: null,
-        surfacing: null,
-        method: null,
-        registryBacked: false,
-        composedFrom: binding.composed_from || null,
-        executable: true,
-        note: binding.note || 'No registry row carries this id.',
-      });
-    }
-
-    return {
-      ...slot,
-      constructEntry: registry.constructs.find((c) => c.id === slot.construct) || null,
-      candidates,
-      available: candidates.filter((candidate) => candidate.executable),
-      forcesDecision: offered.some((method) => method.gui?.surfacing === 'force_a_decision'),
-      surfacing: dominantSurfacing(offered),
-    };
+  const rows = [];
+  const seen = new Set();
+  build.bindings.forEach((binding, pipelineIndex) => {
+    if (seen.has(binding.construct) || !onThePath.has(binding.construct)) return;
+    seen.add(binding.construct);
+    const runnable = build.bindings.filter((entry) => entry.construct === binding.construct);
+    rows.push(
+      rowFor(registry, documentedByConstruct.get(binding.construct) || [], runnable, {
+        construct: binding.construct,
+        // The word the request uses for this construct: its own field for the three it
+        // names that way, and the construct id for every rule reached through `derived`.
+        key: spine.has(binding.construct) ? binding.slot : binding.construct,
+        spine: spine.has(binding.construct),
+        pipelineIndex,
+      }),
+    );
   });
+  return orderByConsequence(rows);
 }
 
-/* The loudest surfacing among the candidates wins, because a slot is only as quiet as its
- * most consequential entry. */
-function dominantSurfacing(methods) {
-  const order = ['force_a_decision', 'default_and_show', 'surface_on_demand', 'default_and_hide'];
-  for (const level of order) {
-    if (methods.some((method) => method.gui?.surfacing === level)) return level;
+function rowFor(registry, documented, runnable, identity) {
+  const executableIds = new Set(runnable.map((binding) => binding.id));
+  const offered = documented.filter((method) => !NOT_A_CHOICE.has(method.gui?.surfacing));
+
+  const candidates = offered.map((method) => ({
+    id: method.id,
+    title: method.title,
+    status: method.status,
+    surfacing: method.gui?.surfacing || null,
+    method,
+    registryBacked: true,
+    composedFrom: null,
+    executable: executableIds.has(method.id),
+    note: '',
+  }));
+
+  for (const binding of runnable) {
+    if (candidates.some((candidate) => candidate.id === binding.id)) continue;
+    candidates.push({
+      id: binding.id,
+      title: binding.title,
+      status: null,
+      surfacing: null,
+      method: null,
+      registryBacked: false,
+      composedFrom: binding.composed_from || null,
+      executable: true,
+      note: binding.note || 'No registry row carries this id.',
+    });
   }
-  return 'default_and_show';
+
+  const entry = registry.constructs.find((c) => c.id === identity.construct) || null;
+  return {
+    ...identity,
+    constructEntry: entry,
+    /* The field's spoken words for this quantity, which is what the terminal prints beside
+     * each construct it lists. */
+    title: entry?.label || entry?.title || identity.construct,
+    /* What the registry says about the quantity itself, shown where the entry bound to the
+     * row says nothing about what the choice costs. */
+    notes: entry?.notes || '',
+    candidates,
+    available: candidates.filter((candidate) => candidate.executable),
+    forcesDecision: offered.some((method) => method.gui?.surfacing === 'force_a_decision'),
+  };
+}
+
+/*
+ * The rail reads down in the order the choices matter.
+ *
+ * A construct carrying an entry that forces a decision leaves every value below it
+ * provisional until somebody resolves it, so it is the most consequential row on the page
+ * and it is read first. Within that, the pipeline order, so a reader still meets the rules
+ * in the order they run where consequence does not separate two rows.
+ */
+function orderByConsequence(rows) {
+  return [...rows].sort(
+    (a, b) => Number(b.forcesDecision) - Number(a.forcesDecision) || a.pipelineIndex - b.pipelineIndex,
+  );
 }
 
 const STATUS_ORDER = ['recommended', 'accepted', 'contested', 'legacy', 'deprecated'];
@@ -140,9 +157,11 @@ export function initialParameters(candidate, forcesDecision) {
 
 /* Every axis the spread view can sweep. Parameter axes come from the published values the
  * registry records; the method axis comes from the runnable rules. Nothing here is
- * invented. */
+ * invented. The sweep varies the rules the request names by their own field, so those are
+ * the rows an axis is offered for. */
 export function availableAxes(slot, candidate) {
   const axes = [];
+  if (!slot.spine) return axes;
 
   if (slot.available.length > 1) {
     axes.push({

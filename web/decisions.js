@@ -76,7 +76,11 @@ function renderSlot(slot) {
     head.append(element('span', 'tag tag--advanced', 'advanced'));
   }
   wrap.append(head);
-  wrap.append(element('p', 'decision__why', slot.why));
+  /* What this choice costs, as the entry bound to the row states it, falling back to what
+   * the registry says about the quantity itself. A row whose entry states neither carries
+   * no sentence rather than an invented one. */
+  const consequence = boundEntry?.method?.gui?.sensitivity || slot.notes;
+  if (consequence) wrap.append(element('p', 'decision__why', consequence));
 
   const select = document.createElement('select');
   select.setAttribute('aria-label', `${slot.title} method`);

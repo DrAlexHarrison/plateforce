@@ -18,7 +18,7 @@ export async function start() {
     return;
   }
 
-  state.slots = buildDecisionModel(state.registry, state.build.bindings);
+  state.slots = buildDecisionModel(state.registry, state.build, state.path);
   renderRegistryBanner();
   renderBuildInfo();
   resetSelections();

@@ -19,6 +19,8 @@ on:
       - 'registry/**'
       - 'scripts/build-web.sh'
       - 'scripts/check-batch.mjs'
+      - 'scripts/check-grammar.mjs'
+      - 'scripts/check-web-names-no-construct.py'
       - 'scripts/check-web-reads-live-fields.py'
       - 'web/**'
       - '.github/workflows/parity.yml'
@@ -31,6 +33,8 @@ on:
       - 'registry/**'
       - 'scripts/build-web.sh'
       - 'scripts/check-batch.mjs'
+      - 'scripts/check-grammar.mjs'
+      - 'scripts/check-web-names-no-construct.py'
       - 'scripts/check-web-reads-live-fields.py'
       - 'web/**'
       - '.github/workflows/parity.yml'
@@ -90,3 +94,11 @@ jobs:
       # has no path to is an answer it cannot give.
       - name: A folder through the browser equals the same folder through the terminal
         run: node scripts/check-batch.mjs web 8751
+
+      # Adding a method is a data edit, so a construct written into the interface is a row
+      # the registry can no longer add or remove on its own.
+      - name: The interface writes down no construct the registry declares
+        run: python3 scripts/check-web-names-no-construct.py
+
+      - name: The rail is a query against the registry, not a list
+        run: node scripts/check-grammar.mjs web 8791
