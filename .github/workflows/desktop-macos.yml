@@ -210,10 +210,14 @@ jobs:
             -name '*.dmg' | head -1)"
           bash scripts/verify-macos-artefact.sh "$image" --mounts-only
 
-      # Runs whether the notarisation succeeded or ran out of attempts, so the signed
-      # binary survives an Apple outage and so the key does not outlive the job.
+      # Runs whether the notarisation succeeded or ran out of attempts, so the signed binary
+      # survives an Apple outage. Not when the signing decision itself failed: there is no
+      # binary then, and this step's "No files were found" becomes the loudest line in the
+      # log, which sends a reader looking for a broken build when the cause is a credential
+      # that was never set. `if-no-files-found: error` stays, so a build that ran and
+      # produced nothing still fails here.
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.signing.outcome == 'success'
         with:
           name: desktop-macos
           path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
