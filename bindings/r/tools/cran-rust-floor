@@ -1,9 +1,26 @@
 # The oldest rustc on CRAN's check farm, and the flavours that run it.
-# flavour: r-release-macos-arm64, r-release-macos-x86_64, r-oldrel-macos-arm64,
-#          r-oldrel-macos-x86_64. All six macOS builds sit at this version, against
-#          1.87.0 on fedora, 1.91.1 on debian and linux, and 1.92.0 on windows.
-# read: 2026-08-01
-# source: https://github.com/extendr/extendr.github.io/issues/74
+# flavour: r-oldrel-macos-arm64 and r-oldrel-macos-x86_64, and those two alone.
+# read: 2026-08-03
+# source: CRAN's own per-flavour install logs, which is where the version string is
+#         printed. The check-results and check-flavours pages carry no toolchain version.
+#         https://www.R-project.org/nosvn/R.check/<flavour>/gifski-00install.html
+#         over all 13 flavours listed at
+#         https://cran.r-project.org/web/checks/check_flavors.html
+#         13 of 13 flavours printed a version. Reproduced on the two 1.84.1 flavours from
+#         b64 0.1.7 and awdb 0.1.3, which print cargo's version rather than rustc's, so
+#         three packages agree. Both of those packages pass there, so 1.84.1 builds real
+#         vendored Rust and the constraint is the declared floor rather than the builder.
+#
+# The rest of the farm, same reading: 1.95.0 on debian clang, debian gcc, patched linux
+# and release linux; 1.96.1 on fedora gcc; 1.93.1 on fedora clang; 1.93.0 on the two
+# release macOS builds; 1.92.0 on all three windows builds. So 11 of 13 sit at 1.92.0 or
+# newer and 2 of 13 sit at 1.84.1, which is a wider gap than a single farm-wide number
+# suggests and is why the flavour is named rather than the count.
+#
+# A previous reading recorded all six macOS builds at this version, taken from a GitHub
+# issue rather than from CRAN. The two release macOS builds are on 1.93.0. Read CRAN's
+# logs rather than a summary of them.
+#
 # The binding flavour moves. Windows set the floor until it was upgraded, which put it
 # on macOS, so the flavour is recorded beside the number rather than assumed.
 1.84.1
