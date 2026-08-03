@@ -28,6 +28,7 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<registry::Registry>()?;
     module.add_class::<registry::MethodEntry>()?;
     module.add_class::<registry::BoundMethod>()?;
+    module.add_class::<registry::Preset>()?;
     module.add_class::<registry::Parameter>()?;
     module.add_class::<registry::Citation>()?;
     module.add_class::<registry::Bias>()?;

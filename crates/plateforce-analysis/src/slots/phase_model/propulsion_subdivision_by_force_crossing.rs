@@ -31,12 +31,7 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let bound = resolved.finish();
 
     let (Some(start), Some(end)) = (

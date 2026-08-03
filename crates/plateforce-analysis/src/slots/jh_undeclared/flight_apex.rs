@@ -31,12 +31,7 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
 
     let Some(landmarks) = context.landmarks() else {
         return DerivedOutcome::declined(

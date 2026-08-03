@@ -27,12 +27,7 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let bound = resolved.finish();
 
     let Some((start, end)) = analysis_window::span(context) else {

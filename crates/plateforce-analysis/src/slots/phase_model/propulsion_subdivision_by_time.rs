@@ -37,12 +37,7 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let split_percent_of_duration = resolved.number(
         "split_percent_of_duration",
         PUBLISHED_SPLIT_PERCENT_OF_DURATION,

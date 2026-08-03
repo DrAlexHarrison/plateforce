@@ -186,12 +186,7 @@ pub(crate) fn resolve(
     warnings: &mut Vec<String>,
 ) -> OnsetOutcome {
     let rate = trial.sample_rate_hz();
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let found = crossing(
         trial,
         epoch,
@@ -274,8 +269,12 @@ pub(crate) fn bound_methods(
     manual_override: bool,
 ) -> Vec<BoundMethod> {
     let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
+    let adopted = values.preset;
+    // The caller named the threshold rule, and the operators arrived with it, so the claim
+    // about how the rule was chosen belongs to the row the caller actually named.
     let mut threshold = BoundValues {
         unread: values.unread,
+        method_from_recommendation: values.method_from_recommendation,
         ..Default::default()
     };
 
@@ -293,16 +292,16 @@ pub(crate) fn bound_methods(
         carried_by.parameters.push((name, shown));
     }
 
+    threshold.preset = crate::resolution::attribution_for(&threshold, adopted.as_ref(), true);
     let mut bound = vec![bound_method(
         method_id,
         threshold,
         request.is_backed(method_id),
         manual_override,
     )];
-    bound.extend(
-        composed.into_iter().map(|(operator, read)| {
-            bound_method(operator, read, request.is_backed(operator), false)
-        }),
-    );
+    bound.extend(composed.into_iter().map(|(operator, mut read)| {
+        read.preset = crate::resolution::attribution_for(&read, adopted.as_ref(), false);
+        bound_method(operator, read, request.is_backed(operator), false)
+    }));
     bound
 }

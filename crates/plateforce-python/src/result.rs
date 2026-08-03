@@ -24,6 +24,20 @@ pub struct Provenance {
     pub(crate) chain: ProvenanceChain,
 }
 
+/// The word this surface reports for each source, matched exhaustively so a source added to
+/// the vocabulary has to be ruled on here rather than reaching Python unnamed.
+fn source_name(source: plateforce_core::provenance::ParameterSource) -> &'static str {
+    use plateforce_core::provenance::ParameterSource::*;
+    match source {
+        Stated => "stated",
+        Assumed => "assumed",
+        Measured => "measured",
+        Recommended => "recommended",
+        Provisional => "provisional",
+        Cited => "cited",
+    }
+}
+
 #[pymethods]
 impl Provenance {
     /// Canonical dotted registry id of the method that produced the value.
@@ -40,6 +54,42 @@ impl Provenance {
             bound.set_item(name, value)?;
         }
         Ok(bound)
+    }
+
+    /// The published pipeline this rule and its cited values were adopted from, and None on
+    /// a step no pipeline spoke to. A pipeline binds the constructs its source states, so a
+    /// result carries it on some steps and not others.
+    #[getter]
+    fn preset(&self) -> Option<&str> {
+        self.chain
+            .provenance
+            .preset
+            .as_ref()
+            .map(|adopted| adopted.id.as_str())
+    }
+
+    /// Values the pipeline states for this rule that the caller replaced. What ran is in
+    /// `bound_parameters`, and this is what the source published for the same names.
+    #[getter]
+    fn superseded_by_caller<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let displaced = PyDict::new(python);
+        if let Some(adopted) = &self.chain.provenance.preset {
+            for (name, value) in &adopted.superseded_parameters {
+                displaced.set_item(name, value)?;
+            }
+            for (name, value) in &adopted.superseded_options {
+                displaced.set_item(name, value)?;
+            }
+        }
+        Ok(displaced)
+    }
+
+    /// Where the rule itself came from: stated by the caller, accepted from the registry's
+    /// recommendation, or adopted with a published pipeline. The three move the number
+    /// identically and answer different questions a methods section asks.
+    #[getter]
+    fn method_source(&self) -> &'static str {
+        source_name(self.chain.provenance.method_source)
     }
 
     /// The revision the caller pinned, and None when they pinned none.

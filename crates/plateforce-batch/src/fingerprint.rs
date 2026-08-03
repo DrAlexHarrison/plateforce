@@ -62,10 +62,15 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         recommended: weighing_recommended,
         method_from_recommendation: weighing_method_from_recommendation,
         from_registry_default: weighing_from_registry_default,
+        cited: weighing_cited,
+        preset: weighing_preset,
     } = weighing;
     let mut backed = registry_backed_ids.clone();
     backed.sort();
 
+    // The pipeline pins the digest for the reason `recommended` does: one set of numbers
+    // reached by adopting a published pipeline and one reached by typing them carry
+    // different records, and the record is what this identifies.
     let body = json!({
         "weighing": {
             "method_id": weighing_id,
@@ -75,6 +80,8 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
             "recommended": weighing_recommended,
             "method_from_recommendation": weighing_method_from_recommendation,
             "from_registry_default": weighing_from_registry_default,
+            "cited": weighing_cited,
+            "preset": weighing_preset,
         },
         "onset": method_choice(onset),
         "takeoff": method_choice(takeoff),
@@ -109,6 +116,8 @@ fn method_choice(choice: &MethodChoice) -> Value {
         recommended,
         method_from_recommendation,
         from_registry_default,
+        cited,
+        preset,
     } = choice;
     json!({
         "method_id": method_id,
@@ -117,6 +126,8 @@ fn method_choice(choice: &MethodChoice) -> Value {
         "recommended": recommended,
         "method_from_recommendation": method_from_recommendation,
         "from_registry_default": from_registry_default,
+        "cited": cited,
+        "preset": preset,
         "manual_index": manual_index,
     })
 }

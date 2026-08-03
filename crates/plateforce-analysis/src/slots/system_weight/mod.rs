@@ -62,12 +62,7 @@ pub(crate) fn resolve(
     choice: &WeighingChoice,
     warnings: &mut Vec<String>,
 ) -> Result<WeighingOutcome, Box<Refusal>> {
-    let mut resolved = Resolution::over(
-        &choice.parameters,
-        &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
-    );
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let duration_seconds = resolved.number(window_length_parameter(&choice.method_id), 1.0);
     let standard_deviation_convention_stated = choice.options.contains_key("dispersion");
     let dispersion = resolved.dispersion().map_err(Refusal::from)?;

@@ -13,7 +13,8 @@ registry <- S7::new_class(
     census = S7::class_data.frame,
     method_ids = S7::class_character,
     construct_ids = S7::class_character,
-    protocol_ids = S7::class_character
+    protocol_ids = S7::class_character,
+    preset_ids = S7::class_character
   )
 )
 
@@ -47,7 +48,8 @@ pf_registry <- function(path = NULL) {
     census = census,
     method_ids = as.character(unlist(report[["method_ids"]])),
     construct_ids = as.character(unlist(report[["construct_ids"]])),
-    protocol_ids = as.character(unlist(report[["protocol_ids"]]))
+    protocol_ids = as.character(unlist(report[["protocol_ids"]])),
+    preset_ids = as.character(unlist(report[["preset_ids"]]))
   )
 }
 

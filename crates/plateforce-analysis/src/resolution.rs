@@ -5,10 +5,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use plateforce_core::provenance::ParameterSource;
+use plateforce_core::provenance::{ParameterSource, PresetAttribution};
 use plateforce_core::takeoff::ResidualComparison;
 use plateforce_core::DispersionEstimator;
 use serde::Serialize;
+
+use crate::request::Claims;
 
 pub(crate) struct Resolution<'a> {
     parameters: &'a BTreeMap<String, f64>,
@@ -17,6 +19,12 @@ pub(crate) struct Resolution<'a> {
     /// filled from a default with nobody asked. A rule cannot tell either from the number.
     recommended: &'a BTreeSet<String>,
     from_registry_default: &'a BTreeSet<String>,
+    /// Names a published pipeline the caller adopted supplied. Disjoint from the two above
+    /// by construction: a value the caller stated for itself leaves this set.
+    cited: &'a BTreeSet<String>,
+    /// The pipeline this rule was adopted from, travelling with the values it bound.
+    adopted: Option<&'a PresetAttribution>,
+    method_from_recommendation: bool,
     read: Vec<(String, String)>,
     sources: BTreeMap<String, ParameterSource>,
     consulted: BTreeSet<String>,
@@ -35,20 +43,30 @@ pub struct BoundValues {
     pub sources: BTreeMap<String, ParameterSource>,
     pub unread: Vec<String>,
     pub numbers: BTreeMap<String, f64>,
+    /// The published pipeline this rule was adopted from, carried alongside the values so a
+    /// record cannot name the values without naming what chose them.
+    pub preset: Option<PresetAttribution>,
+    /// Whether the rule itself was accepted from the registry's recommendation.
+    pub method_from_recommendation: bool,
 }
 
 impl<'a> Resolution<'a> {
+    /// The values a rule reads and, in one argument, everything the choice claims about
+    /// where they came from. Taken together on purpose: a rule handed the values without the
+    /// claims records a published author's number as one the reader typed.
     pub(crate) fn over(
         parameters: &'a BTreeMap<String, f64>,
         options: &'a BTreeMap<String, String>,
-        recommended: &'a BTreeSet<String>,
-        from_registry_default: &'a BTreeSet<String>,
+        claims: Claims<'a>,
     ) -> Self {
         Self {
             parameters,
             options,
-            recommended,
-            from_registry_default,
+            recommended: claims.recommended,
+            from_registry_default: claims.from_registry_default,
+            cited: claims.cited,
+            adopted: claims.preset,
+            method_from_recommendation: claims.method_from_recommendation,
             read: Vec::new(),
             sources: BTreeMap::new(),
             consulted: BTreeSet::new(),
@@ -59,10 +77,12 @@ impl<'a> Resolution<'a> {
     /// What the caller claimed about a name it did supply.
     ///
     /// A value present in the request is `stated` unless the caller said otherwise, because
-    /// only the caller knows whether a number was typed, accepted in bulk, or filled by an
-    /// interface on the reader's behalf.
+    /// only the caller knows whether a number was typed, accepted in bulk, filled by an
+    /// interface on the reader's behalf, or adopted with a published pipeline.
     fn stated_source(&self, name: &str) -> ParameterSource {
-        if self.recommended.contains(name) {
+        if self.cited.contains(name) {
+            ParameterSource::Cited
+        } else if self.recommended.contains(name) {
             ParameterSource::Recommended
         } else if self.from_registry_default.contains(name) {
             ParameterSource::Assumed
@@ -253,8 +273,47 @@ impl<'a> Resolution<'a> {
             sources: self.sources,
             unread,
             numbers: self.numbers,
+            preset: self.adopted.cloned(),
+            method_from_recommendation: self.method_from_recommendation,
         }
     }
+}
+
+/// The share of a pipeline's attribution that belongs to one row of a composition.
+///
+/// A binding names one composed rule and the composition splits it into the threshold rule
+/// and the operators the registry files separately. The attribution follows the values, so an
+/// operator running a value the pipeline never published is not reported under its author's
+/// name, and a value the reader replaced is recorded as displaced on the row that ran it.
+pub(crate) fn attribution_for(
+    values: &BoundValues,
+    adopted: Option<&PresetAttribution>,
+    names_the_rule: bool,
+) -> Option<PresetAttribution> {
+    let adopted = adopted?;
+    let holds = |name: &String| values.parameters.iter().any(|(held, _)| held == name);
+    let mut share = PresetAttribution::of(&adopted.id);
+    share.superseded_parameters = adopted
+        .superseded_parameters
+        .iter()
+        .filter(|(name, _)| holds(name))
+        .map(|(name, value)| (name.clone(), *value))
+        .collect();
+    share.superseded_options = adopted
+        .superseded_options
+        .iter()
+        .filter(|(name, _)| holds(name))
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect();
+
+    let supplied_a_value = values
+        .sources
+        .values()
+        .any(|source| *source == ParameterSource::Cited);
+    if names_the_rule || supplied_a_value || share.was_overridden() {
+        return Some(share);
+    }
+    None
 }
 
 pub(crate) fn format_number(value: f64) -> String {
@@ -353,6 +412,15 @@ pub struct BoundMethod {
     pub unread_parameters: Vec<String>,
     pub registry_backed: bool,
     pub manual_override: bool,
+    /// The published pipeline this rule and its cited values were adopted from. A surface
+    /// that printed the values without this would report a published author's numbers as
+    /// though the reader had picked them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<PresetAttribution>,
+    /// Whether the rule itself was accepted from the registry's recommendation rather than
+    /// picked. A bulk acceptance and a considered pick used to produce identical records.
+    #[serde(default)]
+    pub method_from_recommendation: bool,
     /// The names in `bound_parameters` the rule read as quantities, with their values.
     /// Skipped over the wire, where every value is already the text beside its name.
     #[serde(skip)]
@@ -397,7 +465,14 @@ impl BoundMethod {
 
         plateforce_core::Provenance {
             method_id: self.method_id.clone(),
-            method_source: ParameterSource::Stated,
+            // A rule a published pipeline named, and a rule accepted from the registry's
+            // recommendation, were neither of them picked off a list by the reader. Recording
+            // either as stated puts the reader's signature on somebody else's choice.
+            method_source: match (&self.preset, self.method_from_recommendation) {
+                (Some(_), _) => ParameterSource::Cited,
+                (None, true) => ParameterSource::Recommended,
+                (None, false) => ParameterSource::Stated,
+            },
             parameters: self
                 .quantities()
                 .into_iter()
@@ -424,6 +499,7 @@ impl BoundMethod {
             manual_override: self.manual_override,
             registry_entry: self.registry_backed,
             composed_from: None,
+            preset: self.preset.clone(),
         }
     }
 
@@ -459,6 +535,8 @@ pub(crate) fn bound_method(
         unread_parameters: values.unread,
         registry_backed,
         manual_override,
+        preset: values.preset,
+        method_from_recommendation: values.method_from_recommendation,
         numeric_values: values.numbers,
     }
 }

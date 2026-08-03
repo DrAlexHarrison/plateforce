@@ -56,6 +56,9 @@ pub struct Args {
     /// The rule that finds takeoff
     #[arg(long, value_name = "METHOD")]
     pub takeoff: Option<String>,
+    /// A published pipeline to run, which binds the rules and the values its source states
+    #[arg(long, value_name = "NAME")]
+    pub preset: Option<String>,
     /// A rule for something computed from the landmarks, written <construct>=<method>.
     /// Repeatable
     #[arg(long = "derive", value_name = "ASSIGNMENT")]
@@ -117,16 +120,24 @@ pub(crate) fn prepare(
         Err(declined) => return Err(Outcome::declined(declined)),
     };
 
+    // A named pipeline is adopted before the decision rail rather than after it: its source
+    // published the choices it binds, so a caller who named one has answered them.
+    let mut request = build_request(&registry, &chosen, &derived, &stated);
+    if let Err(declined) = crate::preset::adopt(&mut request, &registry, args.preset.as_ref()) {
+        return Err(Outcome::declined(declined));
+    }
+    let chosen = crate::preset::methods_in(&request);
+    let bound = crate::preset::parameters_in(&request);
+
     let open = decisions::open(&registry, &PATH, &chosen);
     if !open.is_empty() {
         return Err(Outcome::declined(open_decisions_refusal(&open, renderer)));
     }
-    if let Some(declined) = unresolved_parameters(&registry, &chosen, &stated, renderer) {
+    if let Some(declined) = unresolved_parameters(&registry, &chosen, &bound, renderer) {
         return Err(Outcome::declined(declined));
     }
 
     let trial = read_trial(args)?;
-    let request = build_request(&registry, &chosen, &derived, &stated);
     Ok(Prepared {
         registry,
         trial,
@@ -668,6 +679,40 @@ fn describe_bound(
     } else {
         ", not filed in the registry under this id"
     };
-    let row = format!("{}{unfiled}   {}", bound.method_id, shown.join(", "));
+    let adopted_from = match &bound.preset {
+        Some(adopted) => format!(", from {}", adopted.id),
+        None => String::new(),
+    };
+    let row = format!(
+        "{}{unfiled}{adopted_from}   {}{}",
+        bound.method_id,
+        shown.join(", "),
+        displaced(bound)
+    );
     renderer.wrap(&row, 2)
+}
+
+/// What the reader's own value displaced, printed beside the value that ran.
+///
+/// A reader comparing this result against the pipeline's own paper sees where the two part
+/// company without having to look the pipeline up.
+fn displaced(bound: &BoundMethod) -> String {
+    let Some(adopted) = &bound.preset else {
+        return String::new();
+    };
+    if !adopted.was_overridden() {
+        return String::new();
+    }
+    let stated: Vec<String> = adopted
+        .superseded_parameters
+        .iter()
+        .map(|(name, value)| format!("{name} = {value}"))
+        .chain(
+            adopted
+                .superseded_options
+                .iter()
+                .map(|(name, value)| format!("{name} = {value}")),
+        )
+        .collect();
+    format!(", and {} states {}", adopted.id, stated.join(", "))
 }

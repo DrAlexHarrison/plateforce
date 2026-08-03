@@ -17,8 +17,8 @@ use plateforce_core::{
 };
 use pyo3::prelude::*;
 
-use crate::errors::{raise_refusal, TrialError};
-use crate::registry::{BoundMethod, RegistryIdentity};
+use crate::errors::{raise_refusal, MethodNotImplementedError, TrialError};
+use crate::registry::{BoundMethod, Preset, RegistryIdentity};
 use crate::result::{Exclusions, Measured, ProvenanceChain};
 use crate::trial::Trial;
 
@@ -111,6 +111,23 @@ fn quantities_of(
     let mut parameters: BTreeMap<String, f64> = method.bound_parameters.iter().cloned().collect();
     parameters.extend(stated.unwrap_or_default());
     parameters
+}
+
+/// A choice for a slot the caller named a rule for, or one carrying only their values for a
+/// slot a published pipeline is about to fill.
+fn unbound_or(
+    method: Option<&BoundMethod>,
+    parameters: Option<BTreeMap<String, f64>>,
+    options: Option<BTreeMap<String, String>>,
+) -> MethodChoice {
+    match method {
+        Some(method) => choice_of(method, parameters, options),
+        None => MethodChoice {
+            parameters: parameters.unwrap_or_default(),
+            options: options.unwrap_or_default(),
+            ..Default::default()
+        },
+    }
 }
 
 fn choice_of(
@@ -509,9 +526,10 @@ impl CountermovementJump {
 #[pyfunction]
 #[pyo3(signature = (
     trial,
-    weighing_epoch,
-    onset,
-    takeoff,
+    weighing_epoch = None,
+    onset = None,
+    takeoff = None,
+    preset = None,
     gravity_meters_per_second_squared = STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
     weighing_parameters = None,
     onset_parameters = None,
@@ -530,9 +548,10 @@ impl CountermovementJump {
 pub fn analyse_countermovement_jump(
     python: Python<'_>,
     trial: &Trial,
-    weighing_epoch: &BoundMethod,
-    onset: &BoundMethod,
-    takeoff: &BoundMethod,
+    weighing_epoch: Option<&BoundMethod>,
+    onset: Option<&BoundMethod>,
+    takeoff: Option<&BoundMethod>,
+    preset: Option<&Preset>,
     gravity_meters_per_second_squared: f64,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
@@ -547,9 +566,18 @@ pub fn analyse_countermovement_jump(
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
 ) -> PyResult<CountermovementJump> {
-    expect_bound(python, weighing_epoch, "weighing")?;
-    expect_bound(python, onset, "onset")?;
-    expect_bound(python, takeoff, "takeoff")?;
+    // A pipeline fills the constructs its source states, so a caller who named one leaves
+    // those arguments out. Whatever is still unnamed once it has been laid on is refused by
+    // name below rather than resolved to a neighbouring rule.
+    for (method, slot) in [
+        (weighing_epoch, "weighing"),
+        (onset, "onset"),
+        (takeoff, "takeoff"),
+    ] {
+        if let Some(method) = method {
+            expect_bound(python, method, slot)?;
+        }
+    }
     // A `BoundMethod` reaches a signature as the Python object holding it, so each is
     // borrowed once here and the request is built from plain values after that.
     let derived: BTreeMap<String, BoundMethod> = derived
@@ -560,24 +588,49 @@ pub fn analyse_countermovement_jump(
     let derived_parameters = derived_parameters.unwrap_or_default();
     expect_derived_bound(python, &derived)?;
 
-    let registry = weighing_epoch.registry_identity().clone();
+    // Every rule this call holds carries the registry it came from, and a pipeline carries
+    // one too, so the identity stamped on the record is the first of them that exists
+    // rather than a field only one argument could supply.
+    let registry = [
+        weighing_epoch.map(|m| m.registry_identity()),
+        onset.map(|m| m.registry_identity()),
+        takeoff.map(|m| m.registry_identity()),
+        preset.map(|p| &p.registry_identity),
+    ]
+    .into_iter()
+    .flatten()
+    .next()
+    .ok_or_else(|| {
+        MethodNotImplementedError::new_err(
+            "no rule and no published pipeline was named for this analysis".to_string(),
+        )
+    })?
+    .clone();
     let acquisition_complete = trial.acquisition_complete();
 
-    let request = AnalysisRequest {
-        weighing: WeighingChoice {
-            method_id: weighing_epoch.method_id().to_string(),
-            start_index: weighing_start_index,
-            parameters: quantities_of(weighing_epoch, weighing_parameters),
-            options: weighing_options.unwrap_or_default(),
-            ..Default::default()
+    let mut request = AnalysisRequest {
+        weighing: match weighing_epoch {
+            Some(method) => WeighingChoice {
+                method_id: method.method_id().to_string(),
+                start_index: weighing_start_index,
+                parameters: quantities_of(method, weighing_parameters),
+                options: weighing_options.unwrap_or_default(),
+                ..Default::default()
+            },
+            None => WeighingChoice {
+                start_index: weighing_start_index,
+                parameters: weighing_parameters.unwrap_or_default(),
+                options: weighing_options.unwrap_or_default(),
+                ..Default::default()
+            },
         },
         onset: MethodChoice {
             manual_index: onset_index,
-            ..choice_of(onset, onset_parameters, onset_options)
+            ..unbound_or(onset, onset_parameters, onset_options)
         },
         takeoff: MethodChoice {
             manual_index: takeoff_index,
-            ..choice_of(takeoff, takeoff_parameters, takeoff_options)
+            ..unbound_or(takeoff, takeoff_parameters, takeoff_options)
         },
         touchdown_index,
         gravity_meters_per_second_squared,
@@ -597,6 +650,14 @@ pub fn analyse_countermovement_jump(
         ..Default::default()
     };
 
+    // Laid on after the caller's own values, so a value they stated keeps its place and the
+    // pipeline's is recorded beside it as the one it displaced.
+    if let Some(preset) = preset {
+        request
+            .adopt(&preset.inner)
+            .map_err(|refusal| raise_refusal(python, &refusal))?;
+    }
+
     // The record the engine built, raised under the class its own code names. This used to
     // arrive as a sentence, so every one of these was a `TrialError` whatever it was about.
     let response = plateforce_analysis::run(&trial.inner, &request)
@@ -610,7 +671,7 @@ pub fn analyse_countermovement_jump(
         .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
 
     let epoch_chain = chain_of(
-        resolved_slot(&response, weighing_epoch.method_id()),
+        resolved_slot(&response, &request.weighing.method_id),
         &registry,
         acquisition_complete,
         Vec::new(),
@@ -626,13 +687,13 @@ pub fn analyse_countermovement_jump(
         .collect();
     onset_inputs.push(epoch_chain.clone());
     let onset_chain = chain_of(
-        resolved_slot(&response, onset.method_id()),
+        resolved_slot(&response, &request.onset.method_id),
         &registry,
         acquisition_complete,
         onset_inputs,
     );
     let takeoff_chain = chain_of(
-        resolved_slot(&response, takeoff.method_id()),
+        resolved_slot(&response, &request.takeoff.method_id),
         &registry,
         acquisition_complete,
         vec![epoch_chain.clone()],
