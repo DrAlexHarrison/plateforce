@@ -24,6 +24,7 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<trial::Acquisition>()?;
     module.add_class::<trial::Sentinel>()?;
     module.add_class::<trial::SentinelPartition>()?;
+    module.add_class::<trial::ReadReport>()?;
 
     module.add_class::<registry::Registry>()?;
     module.add_class::<registry::MethodEntry>()?;
@@ -66,6 +67,7 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
         module
     )?)?;
     module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
+    module.add_function(wrap_pyfunction!(trial::read_force_file, module)?)?;
 
     module.add_function(wrap_pyfunction!(batch::batch, module)?)?;
     // `BatchResult.__reduce__` reaches this by name on the module, so a result cannot be

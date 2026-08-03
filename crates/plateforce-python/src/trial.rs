@@ -1,12 +1,15 @@
 //! The trace, the acquisition block that decides whether it can be compared, and the
 //! sentinel reporting that has to happen before anything reads it.
 
+use std::path::PathBuf;
+
+use plateforce_core::read::read_delimited_column;
 use plateforce_core::signal::{partition_sentinels, Sentinel as CoreSentinel};
-use plateforce_core::{Exclusions as CoreExclusions, Trial as CoreTrial};
+use plateforce_core::{Exclusions as CoreExclusions, Refusal, Trial as CoreTrial};
 use pyo3::buffer::PyBuffer;
 use pyo3::prelude::*;
 
-use crate::errors::{map_trial_error, TrialError};
+use crate::errors::{map_trial_error, raise_refusal, TrialError};
 use crate::result::Exclusions;
 
 /// NaN never compares equal to itself, so this convention matches no reading and the
@@ -243,39 +246,69 @@ pub fn partition_sentinel_values(
     })
 }
 
+/// What the reader decided while turning a file into a trace.
+///
+/// Every field is a choice the caller stated and the reader acted on, plus what the file
+/// turned out to hold. A result carries the column a number came out of rather than leaving
+/// a reader of the result to ask which one it was.
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "ReadReport")]
+#[derive(Clone)]
+pub struct ReadReport {
+    /// The file this trace was read from.
+    #[pyo3(get)]
+    source: String,
+    #[pyo3(get)]
+    delimiter: String,
+    #[pyo3(get)]
+    force_column: usize,
+    #[pyo3(get)]
+    rows_read: usize,
+    #[pyo3(get)]
+    columns_per_row: usize,
+    #[pyo3(get)]
+    blank_lines_skipped: usize,
+}
+
+#[pymethods]
+impl ReadReport {
+    fn __repr__(&self) -> String {
+        format!(
+            "ReadReport(source='{}', delimiter={:?}, force_column={}, rows_read={}, columns_per_row={}, blank_lines_skipped={})",
+            self.source,
+            self.delimiter,
+            self.force_column,
+            self.rows_read,
+            self.columns_per_row,
+            self.blank_lines_skipped
+        )
+    }
+}
+
 /// A single trial: vertical ground reaction force in newtons against a sample rate.
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Trial")]
 pub struct Trial {
     pub(crate) inner: CoreTrial,
     acquisition: Option<Acquisition>,
     exclusions: Exclusions,
+    read_report: Option<ReadReport>,
 }
 
 impl Trial {
     pub(crate) fn exclusions_for_result(&self) -> Exclusions {
         self.exclusions.clone()
     }
-}
 
-#[pymethods]
-impl Trial {
-    /// `force_newtons` accepts any float64 buffer, which covers a numpy array, an
-    /// `array.array('d')` and a memoryview, and reads it without a Python-level loop. A
-    /// list or tuple is accepted too and converts element by element.
-    ///
-    /// Declaring `sentinel` reports how many samples match that convention. It never
-    /// removes them: closing a gap in a trace would shift every timestamp after it.
-    #[new]
-    #[pyo3(signature = (force_newtons, sample_rate_hz, acquisition = None, sentinel = None))]
-    fn new(
+    /// The one place a trial is assembled on this surface, so the sentinel convention is
+    /// applied once however the samples arrived. A second assembly beside this one would be
+    /// a second answer to what a declared convention does to a trace.
+    fn of_values(
         python: Python<'_>,
-        force_newtons: &Bound<'_, PyAny>,
+        values: Vec<f64>,
         sample_rate_hz: f64,
         acquisition: Option<Acquisition>,
         sentinel: Option<Sentinel>,
+        read_report: Option<ReadReport>,
     ) -> PyResult<Self> {
-        let values = read_float64_values(python, force_newtons, "force_newtons")?;
-
         let convention = sentinel
             .as_ref()
             .map(|declared| declared.inner)
@@ -303,7 +336,37 @@ impl Trial {
                     sentinel_convention: sentinel.as_ref().map(|s| sentinel_name(&s.inner)),
                 },
             },
+            read_report,
         })
+    }
+}
+
+#[pymethods]
+impl Trial {
+    /// `force_newtons` accepts any float64 buffer, which covers a numpy array, an
+    /// `array.array('d')` and a memoryview, and reads it without a Python-level loop. A
+    /// list or tuple is accepted too and converts element by element.
+    ///
+    /// Declaring `sentinel` reports how many samples match that convention. It never
+    /// removes them: closing a gap in a trace would shift every timestamp after it.
+    #[new]
+    #[pyo3(signature = (force_newtons, sample_rate_hz, acquisition = None, sentinel = None))]
+    fn new(
+        python: Python<'_>,
+        force_newtons: &Bound<'_, PyAny>,
+        sample_rate_hz: f64,
+        acquisition: Option<Acquisition>,
+        sentinel: Option<Sentinel>,
+    ) -> PyResult<Self> {
+        let values = read_float64_values(python, force_newtons, "force_newtons")?;
+        Self::of_values(python, values, sample_rate_hz, acquisition, sentinel, None)
+    }
+
+    /// What the reader decided about the file this trace came from, or None for a trace
+    /// handed in as an array, where the caller read the file and this package did not.
+    #[getter]
+    fn read_report(&self) -> Option<ReadReport> {
+        self.read_report.clone()
     }
 
     #[getter]
@@ -380,6 +443,82 @@ impl Trial {
             },
             self.exclusions.inner.dropped_samples
         )
+    }
+}
+
+/// Read a trace from a delimited text export.
+///
+/// The file is read by the engine, so which bytes are numbers is decided in one place for
+/// every surface rather than in each caller's own loader. Without this a notebook had to
+/// parse the export itself, which put the delimiter, the column and the missing-sample
+/// convention in a script nothing records, and the result then carried a full provenance
+/// chain resting on three choices no reader can recover.
+///
+/// Nothing here is inferred. `sample_rate_hz`, `delimiter` and `force_column` are
+/// keyword-only and undefaulted, so omitting one raises: a rate that is guessed scales
+/// every velocity, displacement, impulse and rate of force development with it, and a
+/// guessed column can be the wrong one quietly.
+#[pyfunction]
+#[pyo3(signature = (
+    path,
+    *,
+    sample_rate_hz,
+    delimiter,
+    force_column,
+    sentinel = None,
+    acquisition = None,
+))]
+pub fn read_force_file(
+    python: Python<'_>,
+    path: PathBuf,
+    sample_rate_hz: f64,
+    delimiter: &str,
+    force_column: usize,
+    sentinel: Option<Sentinel>,
+    acquisition: Option<Acquisition>,
+) -> PyResult<Trial> {
+    let separator = one_character(python, delimiter)?;
+    let text = std::fs::read_to_string(&path).map_err(|error| {
+        raise_refusal(
+            python,
+            &Refusal::file_not_read(path.display().to_string(), error.to_string()),
+        )
+    })?;
+    let (values, column) = read_delimited_column(&text, separator, force_column)
+        .map_err(|error| raise_refusal(python, &Refusal::from(error)))?;
+
+    Trial::of_values(
+        python,
+        values,
+        sample_rate_hz,
+        acquisition,
+        sentinel,
+        Some(ReadReport {
+            source: path.display().to_string(),
+            delimiter: separator.to_string(),
+            force_column: column.column_index,
+            rows_read: column.rows_read,
+            columns_per_row: column.columns_per_row,
+            blank_lines_skipped: column.blank_lines_skipped,
+        }),
+    )
+}
+
+/// A column separator is one character, and a string of several is refused rather than
+/// silently read as its first, which would split on a character the caller did not name.
+fn one_character(python: Python<'_>, delimiter: &str) -> PyResult<char> {
+    let mut characters = delimiter.chars();
+    match (characters.next(), characters.next()) {
+        (Some(single), None) => Ok(single),
+        _ => Err(raise_refusal(
+            python,
+            &Refusal::name_not_accepted(
+                "read_force_file",
+                "delimiter",
+                delimiter,
+                vec!["one character".to_string()],
+            ),
+        )),
     }
 }
 

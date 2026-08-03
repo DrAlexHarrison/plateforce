@@ -107,3 +107,103 @@ def test_time_at_refuses_an_index_past_the_end(trial):
     assert trial.time_at(1200) == pytest.approx(1.0)
     with pytest.raises(pf.TrialError):
         trial.time_at(trial.sample_count)
+
+
+# Reading a file. Until this existed a notebook parsed the export itself, which put the
+# delimiter, the column and the missing-sample convention in a script nothing records, and
+# the result then carried a provenance chain resting on three choices no reader can recover.
+
+
+def a_three_column_export(directory, rows, delimiter="\t"):
+    """Time, a second channel, then force, so a test reading the wrong column reads a number
+    rather than failing to parse and passing for the wrong reason."""
+    path = directory / "trial.txt"
+    path.write_text(
+        "".join(
+            delimiter.join([f"{index / 100:.4f}", "0.0", f"{value:.4f}"]) + "\n"
+            for index, value in enumerate(rows)
+        )
+    )
+    return path
+
+
+def test_a_file_and_the_same_numbers_handed_in_as_an_array_give_one_trace(tmp_path):
+    rows = [600.0, 601.5, 599.25, 602.0]
+    path = a_three_column_export(tmp_path, rows)
+    from_file = pf.read_force_file(path, sample_rate_hz=100.0, delimiter="\t", force_column=2)
+    assert from_file.force_newtons == pf.Trial(rows, sample_rate_hz=100.0).force_newtons
+
+
+def test_the_read_report_names_every_choice_the_read_rested_on(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0, 601.0])
+    report = pf.read_force_file(
+        path, sample_rate_hz=100.0, delimiter="\t", force_column=2
+    ).read_report
+    assert report.delimiter == "\t"
+    assert report.force_column == 2
+    assert report.rows_read == 2
+    assert report.columns_per_row == 3
+    assert report.blank_lines_skipped == 0
+    assert report.source == str(path)
+
+
+def test_a_trace_handed_in_as_an_array_reports_no_read():
+    assert pf.Trial([1.0, 2.0], sample_rate_hz=100.0).read_report is None
+
+
+def test_the_column_asked_for_is_the_column_read(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0, 601.0])
+    forces = pf.read_force_file(path, sample_rate_hz=100.0, delimiter="\t", force_column=2)
+    others = pf.read_force_file(path, sample_rate_hz=100.0, delimiter="\t", force_column=1)
+    assert forces.force_newtons == [600.0, 601.0]
+    assert others.force_newtons == [0.0, 0.0]
+
+
+def test_a_column_that_is_not_there_is_refused_naming_the_index_it_wanted(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0])
+    with pytest.raises(pf.PlateforceError) as raised:
+        pf.read_force_file(path, sample_rate_hz=100.0, delimiter="\t", force_column=7)
+    assert "7" in str(raised.value)
+
+
+def test_a_file_that_is_not_there_refuses_under_the_code_a_caller_branches_on(tmp_path):
+    with pytest.raises(pf.PlateforceError) as raised:
+        pf.read_force_file(
+            tmp_path / "absent.txt", sample_rate_hz=100.0, delimiter="\t", force_column=0
+        )
+    assert raised.value.code == "file_not_read"
+
+
+def test_a_separator_of_several_characters_is_refused_rather_than_read_as_its_first(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0])
+    with pytest.raises(pf.ParameterError) as raised:
+        pf.read_force_file(path, sample_rate_hz=100.0, delimiter="\t\t", force_column=2)
+    assert raised.value.parameter == "delimiter"
+
+
+def test_the_rate_the_column_and_the_separator_have_no_defaults(tmp_path):
+    """A rate that is guessed scales every velocity, displacement and impulse with it, and a
+    guessed column can be the wrong one quietly, so each has to be stated."""
+    path = a_three_column_export(tmp_path, [600.0])
+    for omitted in ("sample_rate_hz", "delimiter", "force_column"):
+        stated = {"sample_rate_hz": 100.0, "delimiter": "\t", "force_column": 2}
+        del stated[omitted]
+        with pytest.raises(TypeError) as raised:
+            pf.read_force_file(path, **stated)
+        assert omitted in str(raised.value)
+
+
+def test_a_sentinel_declared_on_a_read_is_reported(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0, 0.0, 602.0])
+    trial = pf.read_force_file(
+        path, sample_rate_hz=100.0, delimiter="\t", force_column=2, sentinel=pf.Sentinel.zero()
+    )
+    assert trial.sample_count == 3
+    assert trial.exclusions.dropped_samples == 1
+    assert trial.exclusions.sentinel_convention == "zero"
+
+
+def test_a_comma_separated_export_reads(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0, 601.0], delimiter=",")
+    trial = pf.read_force_file(path, sample_rate_hz=100.0, delimiter=",", force_column=2)
+    assert trial.force_newtons == [600.0, 601.0]
