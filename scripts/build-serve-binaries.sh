@@ -46,7 +46,10 @@ for target in "${targets[@]}"; do
     cargo build --release --package plateforce-cli --target "$target"
   fi
 
-  binary="target/${target}/release/plateforce"
+  # Where cargo actually put it, asked rather than assumed. A contributor with
+  # CARGO_TARGET_DIR set builds successfully and then meets "linkage could not be read",
+  # which reads like a broken binary and is a script looking in the wrong directory.
+  binary="${CARGO_TARGET_DIR:-target}/${target}/release/plateforce"
   described="$(file -b "$binary")"
 
   case "$described" in
