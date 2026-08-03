@@ -12,7 +12,6 @@ use plateforce_analysis::{
 use plateforce_core::signal::{partition_sentinels, Sentinel};
 use plateforce_core::{read_delimited_column, Refusal, Trial};
 use plateforce_registry::{Registry, Surfacing};
-use serde_json::json;
 
 use crate::decisions;
 use crate::exit::{Declined, Fault, Outcome};
@@ -474,18 +473,6 @@ fn declined_landmark(declined: &plateforce_analysis::DeclinedRule) -> Declined {
     Declined::recorded(plateforce_analysis::document::refusal_from_rule(declined))
 }
 
-/// The construct a refusal happened under, on every row. A record built without one is a
-/// fault the engine records no construct for, and the caller still has to know which
-/// landmark declined.
-fn with_slot(slot: &str, mut record: serde_json::Value) -> serde_json::Value {
-    if let Some(object) = record.as_object_mut() {
-        if object.get("slot").is_none_or(serde_json::Value::is_null) {
-            object.insert("slot".to_string(), json!(slot));
-        }
-    }
-    record
-}
-
 fn render(
     response: &AnalysisResponse,
     spread: Option<plateforce_analysis::spread::SpreadResponse>,
@@ -501,38 +488,46 @@ fn render(
         .filter(|metric| metric.value.is_none())
         .collect();
     let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
-    let recorded: Vec<serde_json::Value> = response
-        .refusals
-        .iter()
-        .zip(&refusals)
-        .map(|(rule, declined)| with_slot(rule.construct, declined.record()))
-        .collect();
-    // What the software already knows about a number it is about to print. A value the
-    // browser flags and the pipe does not is a confident wrong number reaching a paper.
-    let signals = plateforce_analysis::quality::signals(response);
+
+    // The shape every surface writes a result in, rather than a second one assembled here.
+    // A terminal reporting one result under different field names from an R session is the
+    // same defect as two implementations of one method, one layer out from the maths, and
+    // this surface's own document carried neither the version that produced the numbers nor
+    // the landmarks they rest on.
+    let reported = plateforce_analysis::document::ResultDocument::of(
+        env!("CARGO_PKG_VERSION"),
+        plateforce_analysis::document::TrialSource {
+            name: args.trial.display().to_string(),
+            rows_read: trial.rows_read,
+            sentinel_rows: trial.sentinel_rows,
+        },
+        registry.declared_version.clone(),
+        Some(registry.content_digest.clone()),
+        // No acquisition block reaches this surface, and a dataset that cannot fill one
+        // fingerprints as incomplete rather than as matching.
+        false,
+        response,
+        BTreeMap::new(),
+        spread,
+    );
 
     let document = match format {
-        Format::Json => canonical(&json!({
-            "trial": args.trial.display().to_string(),
-            "rows_read": trial.rows_read,
-            "sentinel_rows": trial.sentinel_rows,
-            "registry_digest": registry.content_digest,
-            "metrics": response.metrics,
-            "bound_methods": response.bound_methods,
-            "levels": response.levels,
-            "warnings": response.warnings,
-            "refusals": recorded,
-            "signals": signals,
-            "spread": spread,
-        })),
+        Format::Json => match serde_json::to_value(&reported) {
+            Ok(value) => canonical(&value),
+            Err(error) => {
+                return Outcome::declined(Declined::line(Fault::Internal, format!("{error}")))
+            }
+        },
+        // The signals the analysis already computed. Recomputing them here ran the same
+        // function over the same response a second time.
         Format::Text => text_body(
             response,
-            spread.as_ref(),
+            reported.spread.as_ref(),
             registry,
             args,
             renderer,
             &refusals,
-            &signals,
+            &response.signals,
         ),
     };
 

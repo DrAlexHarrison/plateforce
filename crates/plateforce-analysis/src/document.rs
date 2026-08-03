@@ -47,7 +47,10 @@ pub struct ResultDocument {
     /// sentence one surface formats and another cannot represent at all.
     pub refusals: Vec<Refusal>,
     /// The account each quantity gives of itself, keyed by the quantity. Supplied by the
-    /// caller, which is the layer that holds the chain each account is written from.
+    /// caller, which is the layer that holds the chain each account is written from. Absent
+    /// rather than empty where the caller holds none, because an empty block reads as a
+    /// surface that found nothing to say about any number.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub descriptions: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spread: Option<SpreadResponse>,
