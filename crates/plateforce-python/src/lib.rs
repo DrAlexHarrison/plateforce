@@ -11,6 +11,7 @@ mod analysis;
 mod batch;
 mod capability;
 mod errors;
+mod quality;
 mod registry;
 mod result;
 mod spread;
@@ -45,6 +46,7 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<result::Provenance>()?;
     module.add_class::<result::Exclusions>()?;
     module.add_class::<analysis::CountermovementJump>()?;
+    module.add_class::<quality::QualitySignal>()?;
 
     module.add_class::<spread::Spread>()?;
     module.add_class::<spread::SpreadVariant>()?;
