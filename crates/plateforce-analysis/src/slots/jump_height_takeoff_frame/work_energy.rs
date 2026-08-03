@@ -39,8 +39,7 @@ fn compute(
     let mut resolved = Resolution::over(
         &choice.parameters,
         &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
+        choice.claims(),
     );
 
     let Some(landmarks) = context.landmarks() else {

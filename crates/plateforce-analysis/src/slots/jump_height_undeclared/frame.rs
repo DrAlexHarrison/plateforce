@@ -38,8 +38,7 @@ fn compute(
     let mut resolved = Resolution::over(
         &choice.parameters,
         &choice.options,
-        &choice.recommended,
-        &choice.from_registry_default,
+        choice.claims(),
     );
 
     if resolved.stated_name(FRAME_PARAMETER).is_none() {
