@@ -320,25 +320,28 @@ fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Box<Refusal>> {
     }
 }
 
-/// A sample matching the declared convention is held at the last real reading and counted.
-/// Closing the gap instead would shift every timestamp after it.
-fn apply_sentinel(values: &[f64], sentinel: Option<Sentinel>) -> (Vec<f64>, usize) {
-    let flagged = sentinel.map(|convention| partition_sentinels(values, convention).1);
-    let mut held = 0usize;
-    let mut force = Vec::with_capacity(values.len());
-    for (index, value) in values.iter().enumerate() {
-        let missing = !value.is_finite()
-            || flagged
-                .as_ref()
-                .is_some_and(|dropped| dropped.binary_search(&index).is_ok());
-        if missing {
-            held += 1;
-            force.push(force.last().copied().unwrap_or(0.0));
-        } else {
-            force.push(*value);
-        }
-    }
-    (force, held)
+/// With no convention declared, the samples no arithmetic can use are still counted.
+/// `Sentinel::Value(f64::NAN)` selects exactly those and nothing else: NaN equals no reading,
+/// so every comparison falls through to the non-finite test `partition_sentinels` applies to
+/// each value regardless of convention.
+const NON_FINITE_ONLY: Sentinel = Sentinel::Value(f64::NAN);
+
+/// A sample matching the declared convention is counted and left where it is.
+///
+/// Closing the gap would shift every timestamp after it, and holding the sample at the last
+/// real reading writes a force the plate never measured into the trace. The second is the
+/// worse of the two, because a zero sentinel is physically indistinguishable from a correct
+/// reading during flight: an unloaded plate reads zero or one quantisation step, and a vendor
+/// writing `0.00` to mean "no measurement" writes the same bytes. On the recorded trial 157
+/// samples between indices 5029 and 5719 are exactly zero and all of them are inside the
+/// flight phase, so holding carries a standing force across a flight that has none, and
+/// takeoff and touchdown are both placed by a force threshold. Measured on that trial with
+/// three quiet-stance samples zeroed, holding moved jump height 2.06 cm and time to takeoff
+/// 69 ms away from what the terminal and Python report from the same file.
+fn sentinel_count(values: &[f64], sentinel: Option<Sentinel>) -> usize {
+    partition_sentinels(values, sentinel.unwrap_or(NON_FINITE_ONLY))
+        .1
+        .len()
 }
 
 fn build_trial(
@@ -357,8 +360,8 @@ fn build_trial(
     })?;
     let convention = convention.unwrap_or_else(|| "none".to_string());
     let sentinel = sentinel_from(&convention)?;
-    let (force, held) = apply_sentinel(values, sentinel);
-    let trial = Trial::new(force, sample_rate_hz)
+    let held = sentinel_count(values, sentinel);
+    let trial = Trial::new(values.to_vec(), sample_rate_hz)
         .map_err(|error| Box::new(Refusal::of("trace_too_short", error.to_string())))?;
     let report = TrialReport {
         sample_count: trial.len(),

@@ -92,7 +92,7 @@ test_that("the registry the numbers were bound to is named in the record", {
   expect_identical(result@registry_digest, pf_registry()@digest)
 })
 
-test_that("a rule the caller named out of the registry is recorded as coming from it", {
+test_that("a rule the registry carries is recorded as coming from it, named or composed", {
   named <- c("bwepoch.fixed_window", "onset.threshold.noise_relative",
              "takeoff.threshold.absolute_force")
   result <- analyse_countermovement_jump(
@@ -102,13 +102,23 @@ test_that("a rule the caller named out of the registry is recorded as coming fro
 
   ids <- vapply(result@bound_methods, function(m) as.character(m[["method_id"]]), character(1))
   backed <- vapply(result@bound_methods, function(m) isTRUE(m[["registry_backed"]]), logical(1))
+  carried <- ids %in% pf_registry()@method_ids
 
-  # Both sides in one run: the operators the rule composed were named by nobody, so a
-  # surface reporting one value for every rule cannot satisfy both halves.
-  expect_true(any(backed))
-  expect_true(any(!backed))
-  expect_identical(sort(unname(ids[backed])), sort(named))
-  expect_true(all(ids[backed] %in% pf_registry()@method_ids))
+  # The control. Every equality below holds trivially over no bound methods, and the run
+  # has to bind more than the caller named for the composed half to be asserted at all.
+  expect_gt(length(ids), length(named))
+
+  # The binding composes operators onto the rule the caller chose and a caller never types
+  # those, yet each is an entry in its own right carrying its own citation. Reporting one as
+  # absent from the registry it is filed in is what this asserts against: what decides the
+  # flag is whether the registry carries the id, never whether the caller typed it.
+  composed <- setdiff(ids, named)
+  expect_true(length(composed) > 0)
+  expect_true(all(composed %in% pf_registry()@method_ids))
+
+  # `vapply` keeps the names of the list it walked and `%in%` returns none, so the two are
+  # compared on their values alone rather than on an attribute neither side is asserting.
+  expect_identical(unname(backed), carried)
 })
 
 # A rule for a construct other than the three the spine walks. Before the engine could

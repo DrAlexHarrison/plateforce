@@ -6,9 +6,10 @@
 \usage{
 analyse_countermovement_jump(
   trial,
-  weighing,
-  onset,
-  takeoff,
+  weighing = NULL,
+  onset = NULL,
+  takeoff = NULL,
+  preset = NULL,
   gravity_meters_per_second_squared = NULL,
   weighing_parameters = NULL,
   onset_parameters = NULL,
@@ -32,6 +33,11 @@ analyse_countermovement_jump(
 \item{onset}{Registry id of the rule that places the start of the jump.}
 
 \item{takeoff}{Registry id of the rule that places the instant of takeoff.}
+
+\item{preset}{Name of a published pipeline, which binds the rules and the values its
+source states and leaves every construct that source is silent about to the caller.
+Every value it supplies is recorded as cited, naming the pipeline, so a result reached
+this way is a different record from one reached by typing the same numbers.}
 
 \item{gravity_meters_per_second_squared}{Gravitational acceleration. A bound parameter
 rather than a constant, because published tools disagree on it, and it appears in the

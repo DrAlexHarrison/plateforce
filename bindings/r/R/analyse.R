@@ -247,7 +247,13 @@ jump_from_response <- function(response) {
 
   values <- list()
   for (metric in response[["metrics"]]) {
-    chain <- records[as.character(unlist(metric[["contributing_method_ids"]]))]
+    # A contributing id the response did not bind carries no parameters to report, so it has
+    # no record to link. Selecting by name without asking would put a NULL in the chain,
+    # which reads as a rule whose record is missing rather than as a rule that never ran.
+    # The engine's other readers pass over the same ids: the batch export skips a
+    # contributing id with no bound method, and the terminal walks `bound_methods` itself.
+    contributing <- as.character(unlist(metric[["contributing_method_ids"]]))
+    chain <- records[contributing[contributing %in% names(records)]]
     names(chain) <- NULL
     computed_by <- metric[["computed_by"]]
     own <- provenance(
