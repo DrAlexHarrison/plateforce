@@ -126,8 +126,12 @@ jobs:
       - name: Build the program the package wraps
         run: cargo tauri build --config src-tauri/tauri.store.conf.json --no-bundle
 
+      # Read from the `vars` context rather than through a step's own `env` block. A step's
+      # `if` is evaluated before that step's `env` is applied, so `env.STORE_IDENTITY_NAME`
+      # was empty whatever the repository variable held, and these four steps would have
+      # gone on skipping after somebody registered the account and set it.
       - name: Package it with the Windows SDK's own tool
-        if: env.STORE_IDENTITY_NAME != ''
+        if: vars.STORE_IDENTITY_NAME != ''
         env:
           STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
           STORE_PUBLISHER: ${{ vars.STORE_PUBLISHER }}
@@ -143,7 +147,7 @@ jobs:
       # justification for the runFullTrust restricted capability are done once, by hand, by
       # the person whose name the listing carries.
       - name: What is left to do by hand
-        if: env.STORE_IDENTITY_NAME != ''
+        if: vars.STORE_IDENTITY_NAME != ''
         shell: bash
         run: |
           {
@@ -152,12 +156,11 @@ jobs:
             echo "It is unsigned on purpose: the Store re-signs it with a Microsoft"
             echo "certificate after certification, and signing it first fails validation."
             echo ""
-            echo "Three steps remain, each done once:"
+            echo "One step remains, done once. The account and the reserved identity are"
+            echo "already behind the variables that let this package be built:"
             echo ""
-            echo "1. Register the developer account, free for both account types."
-            echo "2. Reserve the package identity and put it in the repository variables."
-            echo "3. Write the justification for the runFullTrust restricted capability"
-            echo "   in Submission Options on the first submission."
+            echo "Write the justification for the runFullTrust restricted capability in"
+            echo "Submission Options on the first submission."
             echo ""
             echo "Certification then takes one to five business days."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -165,16 +168,40 @@ jobs:
       # Unpacks the package and asks the program inside it, against this job's web/pkg for
       # the same reason the installer job checks its own.
       - name: What the Store package carries
-        if: env.STORE_IDENTITY_NAME != ''
+        if: vars.STORE_IDENTITY_NAME != ''
         env:
           STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
         shell: bash
         run: bash scripts/verify-windows-artefact.sh dist
 
       - uses: actions/upload-artifact@v4
-        if: env.STORE_IDENTITY_NAME != ''
+        if: vars.STORE_IDENTITY_NAME != ''
         with:
           name: store-package
           path: dist/*.msix
           if-no-files-found: error
+
+      # Always, and last. Without it this job reports success from a run that packaged
+      # nothing, because every step that produces the package is behind a variable that is
+      # empty until a package identity is reserved. A green check that carries no artefact
+      # and says nothing reads exactly like a green check that carries one.
+      - name: Say which of the two happened
+        if: always()
+        shell: bash
+        env:
+          IDENTITY: ${{ vars.STORE_IDENTITY_NAME }}
+        run: |
+          if [ -n "$IDENTITY" ]; then
+            echo "packaged under the identity $IDENTITY" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### No Store package was built"
+              echo ""
+              echo "The program the package wraps was built and the packaging script was"
+              echo "parsed. Packaging needs a reserved identity, which lives in three"
+              echo "repository variables: STORE_IDENTITY_NAME, STORE_PUBLISHER and"
+              echo "STORE_PUBLISHER_DISPLAY_NAME. Partner Center issues those values when a"
+              echo "package identity is reserved, and the release runbook carries the route."
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
