@@ -273,16 +273,16 @@ doi = "10.1519/ssc.0000000000000353"
 obtained = true
 
 [[method.bias]]
-magnitude = 0.001
+magnitude = 0.0309
 unit = "meters"
 direction = "high"
 criterion = "jumpheight.takeoff.impulse_momentum"
 criterion_kind = "model"
-source = "plateforce_inference"
-# Peak centre of mass velocity generally precedes takeoff, because force falls below bodyweight in
-# the last tens of milliseconds of propulsion while the foot is still in contact, so the bias is
-# positive by construction. Not quantified in the paper; quantifying it on the 244-trial corpus is
-# cheap and would be publishable on its own.
+source = "plateforce_measurement"
+# Peak centre of mass velocity precedes takeoff, because force falls below system weight in the
+# last tens of milliseconds of propulsion while the foot is still in contact, so the bias is
+# positive by construction. The paper does not quantify it. Measured on the six committed trials,
+# both rules running on all six: positive on 6 of 6, 0.0277 to 0.0343 m, mean 0.0309 m.
 
 [[method.disagrees_with]]
 id = "jumpheight.takeoff.impulse_momentum"
