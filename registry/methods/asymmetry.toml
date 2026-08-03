@@ -103,6 +103,9 @@ or heights but can for signed quantities, and if one limb value is negative the 
 toward zero and the index explodes, so this algebra must never be applied to a signed quantity.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "asymmetry.pct_diff_over_larger.bishop"
 construct = "interlimb_asymmetry"
@@ -168,6 +171,9 @@ rather than a sign buried in the magnitude. Separating magnitude from direction 
 design than baking the sign into the index, and the software should copy it.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "asymmetry.symmetry_angle.zifchock2008"
 construct = "interlimb_asymmetry"
@@ -211,6 +217,9 @@ kind = "genuine"
 [method.gui]
 surfacing = "surface_on_demand"
 rationale = "A registry entry whose rule has not been verified must not be promoted. This is the single highest-value acquisition gap in the asymmetry domain."
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "asymmetry.limb_symmetry_ratio.clinical"
@@ -301,6 +310,9 @@ software may compute a threshold flag because clinicians need it, and must refus
 without the test name bound to it. Never a bare pass.
 """
 
+[method.reach]
+boundary = "both"
+
 [[method]]
 id = "asymmetry.direction_operator"
 construct = "interlimb_asymmetry"
@@ -343,6 +355,9 @@ Direction as a separate column. Reassigning limbs per test day forces the series
 hides limb-dominance flips, so an athlete whose dominant limb alternates shows a flat positive trace
 instead of a sign flip: defensible clinically, indefensible for research.
 """
+
+[method.reach]
+boundary = "both"
 
 [[method]]
 id = "asymmetry.bilateral_index"
@@ -389,6 +404,9 @@ source = "plateforce_algebra"
 [method.gui]
 surfacing = "surface_on_demand"
 rationale = "With the units shown, and never as a percentage."
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "asymmetry.variability_test.bishop2019"
@@ -440,3 +458,6 @@ to 6.9 percent on another in the same 16 athletes, and concludes that this precl
 test to screen for asymmetry. That is the honest state of the construct from its leading proponent
 and belongs on every asymmetry entry as a first-class caveat rather than a footnote.
 """
+
+[method.reach]
+boundary = "both"
