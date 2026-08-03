@@ -64,6 +64,9 @@ surfacing = "default_and_hide"
 sensitivity = "high to the contact-time boundary definition and to drop technique"
 rationale = "Force the decision on drop height and on contact-time instruction, because those move it more than the mathematics does."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "rsi.ft_over_gct.rsr.healy2018"
 construct = "reactive_strength_ratio"
@@ -102,6 +105,9 @@ A companion metric, never silently substituted for the index. Dimensionally clea
 computable by every contact mat without a jump-height model, so it removes one method dependency
 entirely.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "rsimod.jh_tov_over_ttt"
@@ -309,6 +315,9 @@ kind = "naming"
 surfacing = "surface_on_demand"
 rationale = "With the confound in the tooltip, and show the squat-jump value beside it, because that is where the signal is."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "battery_index.normalise_by_best.chronojump"
 construct = "eccentric_utilisation_ratio"
@@ -342,6 +351,9 @@ surfacing = "force_a_decision"
 sensitivity = "compresses every index toward zero for athletes with one dominant jump type"
 rationale = "Force the decision, or rename one of the two."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "dri.dynamic_rebound_index.chronojump"
 construct = "reactive_strength_ratio"
@@ -368,6 +380,9 @@ rationale = """
 Carries a source-unknown marker until someone finds one. Structurally it is a coherent construct that
 nobody appears to have described in print, and it is shipped and surfaced, so users will report it.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "index.rpem.riosgallardo"
@@ -439,6 +454,9 @@ surfacing = "surface_on_demand"
 sensitivity = "very large with respect to contact time, which enters squared, and hence to the debounce floor"
 rationale = "The only stiffness estimate obtainable from a contact mat, with strong and well-known assumptions."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "sparta.load_explode_drive"
 construct = "movement_signature_score"
@@ -470,6 +488,9 @@ verify they computed the same score. That is a stronger statement than undisclos
 cleanest illustration of the registry's premise found in the vendor domain. No independent published
 agreement study was found anywhere in the sweep.
 """
+
+[method.reach]
+boundary = "source"
 
 [[method]]
 id = "tts.band_and_dwell.hawkin"
@@ -553,6 +574,10 @@ domain, recorded as four to five entries existing and not acquired, and it is th
 own count carries an add-up-to-four contingency.
 """
 
+[method.reach]
+boundary = "undetermined"
+query = "whether the landing was recorded on a plate that reports both horizontal force channels, which the dynamic postural stability index in this family sums"
+
 [[method]]
 id = "landing.energy_absorption.joint_sum"
 construct = "joint_energy_absorption"
@@ -616,6 +641,9 @@ deficit, which is the failure this entry documents. This entry is landing
 energetics and does not close the landing-detection gap.
 """
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "strength.dynamic_strength_index"
 construct = "dynamic_strength_index"
@@ -678,3 +706,6 @@ shares a structural tension with any framework classifying athletes on a ratio o
 configuration-dependent quantities, in weaker form, because its inputs are directly measured rather
 than extrapolated.
 """
+
+[method.reach]
+boundary = "both"
