@@ -18,6 +18,9 @@ on:
       - 'crates/**'
       - 'registry/**'
       - 'scripts/build-web.sh'
+      - 'scripts/check-batch.mjs'
+      - 'scripts/check-web-reads-live-fields.py'
+      - 'web/**'
       - '.github/workflows/parity.yml'
   pull_request:
     paths:
@@ -27,6 +30,9 @@ on:
       - 'crates/**'
       - 'registry/**'
       - 'scripts/build-web.sh'
+      - 'scripts/check-batch.mjs'
+      - 'scripts/check-web-reads-live-fields.py'
+      - 'web/**'
       - '.github/workflows/parity.yml'
   workflow_dispatch:
 
@@ -72,3 +78,15 @@ jobs:
 
       - name: Every listed surface reports, and every answer meets the obligation
         run: ./scripts/capability.sh --check
+
+      # A field the engine renames and migrates across its Rust callers leaves the browser
+      # reading a name that is gone, which renders as an empty string rather than as an
+      # error. That is a disagreement between two surfaces, so it is asked here.
+      - name: The browser reads only fields the engine still serialises
+        run: python3 scripts/check-web-reads-live-fields.py
+
+      # The browser and the terminal are asked the same question about the same trials, by
+      # driving the page rather than by calling its modules: an answer a surface exports and
+      # has no path to is an answer it cannot give.
+      - name: A folder through the browser equals the same folder through the terminal
+        run: node scripts/check-batch.mjs web 8751
