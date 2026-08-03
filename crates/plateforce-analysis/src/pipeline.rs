@@ -17,7 +17,8 @@ use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
 
 /// Boxed on the error side because a `Refusal` carries every field a caller branches on,
-/// which is 208 bytes riding on every call that succeeds.
+/// which is wider than the error-size lint's threshold and rides on every call that
+/// succeeds. `a_refusal_reports_what_it_costs_to_carry` prints the figure.
 pub fn run(
     trial: &Trial,
     request: &AnalysisRequest,

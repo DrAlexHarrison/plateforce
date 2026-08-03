@@ -94,8 +94,8 @@ impl From<plateforce_core::Refusal> for Refusal {
     }
 }
 
-/// Boxed, because a refusal carrying every field a caller branches on is 208 bytes against
-/// an answer of nothing, and every reply in this package is one of these two.
+/// Boxed, because a refusal carrying every field a caller branches on is wide against an
+/// answer of nothing, and every reply in this package is one of these two.
 #[derive(Serialize)]
 #[serde(untagged)]
 enum Envelope<T: Serialize> {

@@ -889,6 +889,21 @@ fn sentence(
 mod tests {
     use super::*;
 
+    /// What a refusal costs to carry, printed rather than asserted against a figure that
+    /// would go stale the next time a field is added. Two comments in this tree quoted this
+    /// number from memory and gave two different answers.
+    #[test]
+    fn a_refusal_reports_what_it_costs_to_carry() {
+        println!(
+            "Refusal is {} bytes, Box<Refusal> is {}",
+            std::mem::size_of::<Refusal>(),
+            std::mem::size_of::<Box<Refusal>>()
+        );
+        // The threshold the error-size lint holds a `Result` to, which is why every function
+        // returning one of these boxes it.
+        assert!(std::mem::size_of::<Refusal>() > 128);
+    }
+
     #[test]
     fn the_name_a_caller_reads_is_the_name_on_the_wire() {
         for code in RefusalCode::ALL {
