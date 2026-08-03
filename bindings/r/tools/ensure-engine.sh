@@ -10,7 +10,7 @@ set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 package_root=$(dirname -- "$here")
 
-if [ ! -d "$package_root/src/rust/crates/plateforce-core" ]; then
+if [ ! -d "$package_root/src/rust/core" ]; then
     sh "$here/sync-engine.sh" >/dev/null
     exit 0
 fi

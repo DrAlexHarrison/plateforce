@@ -43,7 +43,7 @@ fi
 
 # A source checkout carries the engine crates in the repository rather than inside the
 # package. A built tarball already carries them and this does nothing.
-if [ ! -d "$here/src/rust/crates/plateforce-core" ] && [ -x "$here/tools/sync-engine.sh" ]; then
+if [ ! -d "$here/src/rust/core" ] && [ -x "$here/tools/sync-engine.sh" ]; then
     sh "$here/tools/sync-engine.sh"
 fi
 

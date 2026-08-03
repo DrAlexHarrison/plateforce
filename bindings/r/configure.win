@@ -39,7 +39,7 @@ MESSAGE
     exit 1
 fi
 
-if [ ! -d "$here/src/rust/crates/plateforce-core" ] && [ -x "$here/tools/sync-engine.sh" ]; then
+if [ ! -d "$here/src/rust/core" ] && [ -x "$here/tools/sync-engine.sh" ]; then
     sh "$here/tools/sync-engine.sh"
 fi
 

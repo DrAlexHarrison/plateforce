@@ -14,18 +14,21 @@ crate-type = ["staticlib"]
 # The engine crates are members here rather than in the repository's workspace, so the R
 # tree resolves on its own and the CRAN build gets exactly the sources that were checked.
 # `tools/sync-engine.sh` resolves what their manifests inherit into the copies, so this
-# table never has to mirror a dependency list the engine is free to change.
+# table never has to mirror a dependency list the engine is free to change. It also owns the
+# folder each crate lands in, which drops the `plateforce-` these three share with the
+# package they sit inside, because a tar member is only required to hold 100 bytes and the
+# engine's own paths are long enough to need every one of them.
 [workspace]
 members = [
-    "crates/plateforce-registry",
-    "crates/plateforce-core",
-    "crates/plateforce-analysis",
+    "registry",
+    "core",
+    "analysis",
 ]
 
 [dependencies]
-plateforce-analysis = { path = "crates/plateforce-analysis" }
-plateforce-core = { path = "crates/plateforce-core" }
-plateforce-registry = { path = "crates/plateforce-registry" }
+plateforce-analysis = { path = "analysis" }
+plateforce-core = { path = "core" }
+plateforce-registry = { path = "registry" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 extendr-api = "0.9"

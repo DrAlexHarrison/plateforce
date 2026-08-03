@@ -16,15 +16,28 @@ set -eu
 
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 package_root=$(dirname -- "$here")
-destination="$package_root/src/rust/crates"
+destination="$package_root/src/rust"
 registry="$package_root/inst/registry"
+
+# Each engine crate and the directory it takes inside the package, which is deliberately not
+# the name of the crate. A tar member is only required to hold 100 bytes. The package
+# directory and the engine's own path spend 76 of them on the longest rule, leaving 24 for
+# everything this script puts in front of it, and `crates/` plus the `plateforce-` that every
+# crate shares with the package it is already sitting inside spend 18 on words the path has
+# said once already. Taking those two levels out buys 18 bytes for every file in the engine
+# at once, where shortening one rule's name buys them for one file. The package names inside
+# the manifests are untouched, so cargo still resolves `plateforce-analysis`; it is the
+# folder that is shorter. `tools/resolve-manifests.py` is handed this same mapping, so the
+# path dependencies between the three copies point at where they actually landed.
+engine='plateforce-registry:registry plateforce-core:core plateforce-analysis:analysis'
 
 repository=${1:-}
 if [ -z "$repository" ]; then
     repository=$(CDPATH= cd -- "$package_root/../.." && pwd)
 fi
 
-for crate in plateforce-registry plateforce-core plateforce-analysis; do
+for pair in $engine; do
+    crate=${pair%:*}
     if [ ! -f "$repository/crates/$crate/Cargo.toml" ]; then
         echo "no engine source at $repository/crates/$crate" >&2
         echo "pass the repository root as the first argument" >&2
@@ -44,8 +57,8 @@ if [ "${PLATEFORCE_SYNC_FROM:-commit}" = "commit" ] && \
     revision=$(git -C "$repository" rev-parse --short HEAD)
 fi
 
-rm -rf "$destination" "$registry"
-mkdir -p "$destination" "$registry"
+rm -rf "$registry"
+mkdir -p "$registry"
 
 take() {
     from=$1
@@ -57,14 +70,19 @@ take() {
     fi
 }
 
-for crate in plateforce-registry plateforce-core plateforce-analysis; do
-    mkdir -p "$destination/$crate"
+# Each copy is cleared on its own rather than by emptying the directory above it, which is
+# now `src/rust` and holds the binding crate's own tracked sources as well.
+for pair in $engine; do
+    crate=${pair%:*}
+    into="$destination/${pair#*:}"
+    rm -rf "$into"
+    mkdir -p "$into"
     if [ "$source_kind" = commit ]; then
         git -C "$repository" archive HEAD "crates/$crate" \
-            | tar -C "$destination/$crate" --strip-components=2 -xf -
+            | tar -C "$into" --strip-components=2 -xf -
     else
         tar -C "$repository/crates/$crate" --exclude=target -cf - . \
-            | tar -C "$destination/$crate" -xf -
+            | tar -C "$into" -xf -
     fi
     # The engine's own suite runs in the repository, against the repository's fixtures, and
     # no R check runs it. Carrying it costs the one thing a source tarball cannot spend:
@@ -72,7 +90,7 @@ for crate in plateforce-registry plateforce-core plateforce-analysis; do
     # is only required to hold 100 bytes and this project names a test after the sentence it
     # proves. Removed after the copy rather than filtered during it, because the two tar
     # dialects on the three check platforms spell an exclusion differently.
-    rm -rf "$destination/$crate/tests"
+    rm -rf "$into/tests"
 done
 
 take registry "$registry"
@@ -81,10 +99,13 @@ take registry "$registry"
 # commit can carry an older mtime than the last build and cargo will skip the rebuild. The
 # digest guard compares content and reports the copy as current while the linked engine is
 # stale, which is the drift this product exists to publish about, in our own build.
-find "$destination" "$registry" -type f -exec touch {} +
+for pair in $engine; do
+    find "$destination/${pair#*:}" -type f -exec touch {} +
+done
+find "$registry" -type f -exec touch {} +
 
 floor=$(grep -v '^ *#' "$here/msrv" | grep -v '^ *$' | head -1 | tr -d ' \r')
-python3 "$here/resolve-manifests.py" "$repository" "$destination" "$floor"
+python3 "$here/resolve-manifests.py" "$repository" "$destination" "$floor" $engine
 
 {
     printf 'revision %s\n' "${revision:-worktree}"

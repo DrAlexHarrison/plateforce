@@ -8,8 +8,8 @@ cd "$package_root"
 
 listing=$(
     {
-        for crate in plateforce-registry plateforce-core plateforce-analysis; do
-            find "src/rust/crates/$crate" -type f -not -path '*/target/*'
+        for folder in registry core analysis; do
+            find "src/rust/$folder" -type f -not -path '*/target/*'
         done
         find inst/registry -type f
     } | LC_ALL=C sort

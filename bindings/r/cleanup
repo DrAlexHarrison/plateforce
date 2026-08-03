@@ -10,8 +10,8 @@ set -eu
 
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-if [ ! -d "$here/src/rust/crates/plateforce-core" ]; then
-    echo "no engine sources under src/rust/crates: run tools/sync-engine.sh first" >&2
+if [ ! -d "$here/src/rust/core" ]; then
+    echo "no engine sources under src/rust: run tools/sync-engine.sh first" >&2
     exit 1
 fi
 
