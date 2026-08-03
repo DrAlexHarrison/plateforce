@@ -13,11 +13,19 @@ pub const ONSET_THRESHOLD_NOISE_RELATIVE: &str = "onset.threshold.noise_relative
 pub const ONSET_THRESHOLD_RELATIVE_TO_SYSTEM_WEIGHT: &str =
     "onset.threshold.relative_to_system_weight";
 pub const ONSET_THRESHOLD_ABSOLUTE_FORCE: &str = "onset.threshold.absolute_force";
+/// Selectable, and never recorded. The registry enumerates this rule as its threshold plus
+/// `onset.op.crossing_selection` bound to `last`, so a result reached by this name is
+/// recorded under `onset.threshold.noise_relative` with that operator beside it. A refusal
+/// raised from here names the entry that failed, never this name, because a reader looks up
+/// what the record says.
 pub const ONSET_THRESHOLD_LAST_WITHIN_BAND: &str = "onset.threshold.last_within_band";
 pub const ONSET_THRESHOLD_ADAPTIVE_TRAILING_WINDOW: &str =
     "onset.threshold.adaptive_trailing_window";
 
 pub const TAKEOFF_THRESHOLD_ABSOLUTE_FORCE: &str = "takeoff.threshold.absolute_force";
+/// Selectable, and never recorded, on the same grounds as the onset compound above: the
+/// registry enumerates it as `takeoff.threshold.absolute_force` plus
+/// `takeoff.op.crossing_selection` bound to `longest_run`.
 pub const TAKEOFF_THRESHOLD_LONGEST_RUN: &str = "takeoff.threshold.longest_run";
 pub const TAKEOFF_THRESHOLD_DESCENDING_CROSSING: &str = "takeoff.threshold.descending_crossing";
 pub const TAKEOFF_THRESHOLD_FLIGHT_NOISE_K_SD: &str = "takeoff.threshold.flight_noise_k_sd";

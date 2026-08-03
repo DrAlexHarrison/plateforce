@@ -952,10 +952,33 @@ The published MATLAB variant has no floor and no iteration cap, so on a noisy qu
 walk arbitrarily far back. A parameter to bound rather than a reason to reject the family.
 """
 
+[[method.parameter]]
+name = "inverse_lookback"
+unit = "seconds"
+published_values = [0.1]
+default = 0.5
+default_source = "plateforce_derivation"
+required = true
+notes = """
+The window before the candidate crossing that is searched for an excursion the other side of the
+band, which is what makes the retreat fire on a trace that preloads before it unweights. Sams is
+the only source that states one and states it as 100 ms. The 0.5 s default this implementation
+runs is five times that and matches no published value; nobody has measured which is right on this
+corpus, and the recording that would settle it is a countermovement jump preceded by a deliberate
+preload. Stated in seconds while the offset and persistence spans beside it are stated in
+milliseconds, because that is the unit the request key is read in.
+"""
+
 [[method.citation]]
 key = "merrigan2022"
 role = "evaluates"
 reference = "Merrigan et al. 2022, JSCR 36(9):2387-2402, Table 1 and the openly downloadable supplementary MATLAB"
+obtained = true
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Named in this registry. The lookback window is stated by one source at 100 ms and the wider default this build runs is this registry's, not a published figure"
 obtained = true
 
 [[method.citation]]

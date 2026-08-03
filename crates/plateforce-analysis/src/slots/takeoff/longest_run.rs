@@ -1,5 +1,6 @@
 //! `takeoff.threshold.longest_run`: the longest run below the threshold, wherever it sits.
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::takeoff::{takeoff_longest_run, ShortRunHandling};
 use plateforce_core::Trial;
 
@@ -12,6 +13,10 @@ pub(crate) fn crossing(
     warnings: &mut Vec<String>,
 ) -> Result<usize, RuleRefusal> {
     let rate = trial.sample_rate_hz();
+    // The operator this rule binds by being chosen. Measured on 244 trials it moves takeoff
+    // 843 ms on 155 of them against the first-run reading, so which of the two ran is the
+    // whole answer and it is recorded rather than left implicit in which function ran.
+    resolved.record("selection", "longest_run".into(), ParameterSource::Stated);
     let minimum_flight_samples = resolved
         .milliseconds_as_samples("persistence_ms", 0.0, rate)
         .max(1);

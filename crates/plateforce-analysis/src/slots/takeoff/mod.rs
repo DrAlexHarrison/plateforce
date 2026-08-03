@@ -9,8 +9,55 @@ pub mod longest_run;
 
 use plateforce_core::{Trial, WeighingEpoch};
 
-use crate::request::MethodChoice;
-use crate::resolution::{BoundValues, Resolution, RuleRefusal};
+use crate::request::{AnalysisRequest, MethodChoice};
+use crate::resolution::{BoundMethod, BoundValues, Resolution, RuleRefusal};
+
+// Written once and read from here by everything that names one, for the same reason the
+// onset family is: a list and a match spelling the same id are free to drift apart.
+pub(crate) const TAKEOFF_OP_CROSSING_SELECTION: &str = "takeoff.op.crossing_selection";
+pub(crate) const TAKEOFF_OP_SHORT_RUN_HANDLING: &str = "takeoff.op.short_run_handling";
+pub(crate) const TAKEOFF_OP_RESIDUAL_COMPARISON: &str = "takeoff.op.residual_comparison";
+
+/// The entries this build composes onto a takeoff threshold rule. Each is a registry entry
+/// in its own right, filed under the takeoff construct rather than the onset one.
+pub const TAKEOFF_OPERATOR_IDS: &[&str] = &[
+    TAKEOFF_OP_CROSSING_SELECTION,
+    TAKEOFF_OP_RESIDUAL_COMPARISON,
+    TAKEOFF_OP_SHORT_RUN_HANDLING,
+];
+
+/// Which registry entry carries each name a takeoff rule reads.
+///
+/// The threshold rule carries its threshold and its persistence span, which its entry
+/// publishes. The rest are operators with entries of their own, and until they were routed
+/// here every one of them rode on a threshold row that does not list it: a reader looking up
+/// the rule found no `comparison` and no `short_run_handling`, which between them decide
+/// whether an unloaded plate reading negative counts as flight and whether a run too short
+/// to be a flight can win the comparison and disqualify the trial.
+fn operator_for(name: &str) -> Option<&'static str> {
+    match name {
+        "comparison" => Some(TAKEOFF_OP_RESIDUAL_COMPARISON),
+        "short_run_handling" => Some(TAKEOFF_OP_SHORT_RUN_HANDLING),
+        "selection" => Some(TAKEOFF_OP_CROSSING_SELECTION),
+        _ => None,
+    }
+}
+
+/// The threshold rule, then each operator composed onto it, as separate entries.
+pub(crate) fn bound_methods(
+    method_id: &str,
+    values: BoundValues,
+    request: &AnalysisRequest,
+    manual_override: bool,
+) -> Vec<BoundMethod> {
+    crate::resolution::bound_with_operators(
+        method_id,
+        values,
+        operator_for,
+        |id| request.is_backed(id),
+        manual_override,
+    )
+}
 
 pub(crate) struct TakeoffOutcome {
     pub index: Option<usize>,

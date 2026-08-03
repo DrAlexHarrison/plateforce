@@ -8,15 +8,12 @@ pub mod noise_relative;
 pub mod relative_to_system_weight;
 
 use plateforce_core::provenance::ParameterSource;
-use std::collections::BTreeMap;
 
 use plateforce_core::onset::{backtrack, CrossingSearch, CrossingSelection};
 use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::request::{AnalysisRequest, MethodChoice};
-use crate::resolution::{
-    bound_method, format_number, BoundMethod, BoundValues, Resolution, RuleRefusal,
-};
+use crate::resolution::{format_number, BoundMethod, BoundValues, Resolution, RuleRefusal};
 
 /// Which sign of departure from the reference counts as onset. `above_only` is a genuine
 /// fork for a squat jump or an isometric pull, which only rise, and is refused here rather
@@ -235,10 +232,15 @@ pub const BACKWARD_OFFSET_FIXED: &str = "onset.op.backward_offset_fixed";
 pub const SEARCH_FLOOR: &str = "onset.op.search_floor";
 /// A floor the weighing rule settled and no caller chose.
 pub const SEARCH_FLOOR_AT_WEIGHING_EPOCH_END: &str = "onset.op.search_floor_at_weighing_epoch_end";
+/// The landmark a backward search stops at, which is what makes a last-crossing rule safe.
+pub const SEARCH_UPPER_BOUND: &str = "onset.op.search_upper_bound";
+/// The retreat from the crossing to where force returned within a tolerance, and the window
+/// it looks back over for the excursion that triggers it.
+pub const BACKTRACK_TO_TOLERANCE: &str = "onset.op.backtrack_to_tolerance";
 
-/// The names those three operators carry their values under. Named once because the rule
-/// that records a value and the reader that looks it up again are in different files, and a
-/// name that drifted between them would read as an operator that never ran.
+/// The names those operators carry their values under. Named once because the rule that
+/// records a value and the reader that looks it up again are in different files, and a name
+/// that drifted between them would read as an operator that never ran.
 pub const OFFSET_MILLISECONDS: &str = "offset_ms";
 pub const FLOOR_SECONDS: &str = "floor_seconds";
 pub const WEIGHING_EPOCH_END_SECONDS: &str = "weighing_epoch_end_seconds";
@@ -246,12 +248,14 @@ pub const WEIGHING_EPOCH_END_SECONDS: &str = "weighing_epoch_end_seconds";
 /// The entries this build composes onto an onset threshold rule. Each is a registry entry
 /// in its own right, with its own citation, default and published values.
 pub const ONSET_OPERATOR_IDS: &[&str] = &[
+    BACKTRACK_TO_TOLERANCE,
     BACKWARD_OFFSET_FIXED,
     "onset.op.crossing_selection",
     "onset.op.direction",
     "onset.op.persistence",
     SEARCH_FLOOR,
     SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
+    SEARCH_UPPER_BOUND,
 ];
 
 /// Which registry entry carries each name an onset rule reads.
@@ -268,6 +272,11 @@ fn operator_for(name: &str) -> Option<&'static str> {
         WEIGHING_EPOCH_END_SECONDS => Some(SEARCH_FLOOR_AT_WEIGHING_EPOCH_END),
         "direction" => Some("onset.op.direction"),
         "selection" => Some("onset.op.crossing_selection"),
+        // The window searched for an excursion the other side of the band, which is the
+        // trigger the retreat fires on.
+        "inverse_lookback" => Some(BACKTRACK_TO_TOLERANCE),
+        // The landmark the search stops at, and where on this trace it landed.
+        "bound" | "search_bound_seconds" => Some(SEARCH_UPPER_BOUND),
         _ => None,
     }
 }
@@ -284,40 +293,11 @@ pub(crate) fn bound_methods(
     request: &AnalysisRequest,
     manual_override: bool,
 ) -> Vec<BoundMethod> {
-    let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
-    let adopted = values.preset;
-    // The caller named the threshold rule, and the operators arrived with it, so the claim
-    // about how the rule was chosen belongs to the row the caller actually named.
-    let mut threshold = BoundValues {
-        unread: values.unread,
-        method_from_recommendation: values.method_from_recommendation,
-        ..Default::default()
-    };
-
-    for (name, shown) in values.parameters {
-        let carried_by = match operator_for(&name) {
-            Some(operator) => composed.entry(operator).or_default(),
-            None => &mut threshold,
-        };
-        if let Some(source) = values.sources.get(&name) {
-            carried_by.sources.insert(name.clone(), *source);
-        }
-        if let Some(number) = values.numbers.get(&name) {
-            carried_by.numbers.insert(name.clone(), *number);
-        }
-        carried_by.parameters.push((name, shown));
-    }
-
-    threshold.preset = crate::resolution::attribution_for(&threshold, adopted.as_ref(), true);
-    let mut bound = vec![bound_method(
+    crate::resolution::bound_with_operators(
         method_id,
-        threshold,
-        request.is_backed(method_id),
+        values,
+        operator_for,
+        |id| request.is_backed(id),
         manual_override,
-    )];
-    bound.extend(composed.into_iter().map(|(operator, mut read)| {
-        read.preset = crate::resolution::attribution_for(&read, adopted.as_ref(), false);
-        bound_method(operator, read, request.is_backed(operator), false)
-    }));
-    bound
+    )
 }

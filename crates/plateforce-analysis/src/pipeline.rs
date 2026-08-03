@@ -81,7 +81,7 @@ pub fn run(
             if let Some(rejected) = outcome.refusal {
                 refusals.push(DeclinedRule {
                     construct: ONSET_CONSTRUCT,
-                    method_id: request.onset.method_id.clone(),
+                    method_id: crate::binding::records_under(&request.onset.method_id).to_string(),
                     refusal: rejected,
                 });
             }
@@ -106,14 +106,14 @@ pub fn run(
     if let Some(rejected) = takeoff.refusal.take() {
         refusals.push(DeclinedRule {
             construct: TAKEOFF_CONSTRUCT,
-            method_id: request.takeoff.method_id.clone(),
+            method_id: crate::binding::records_under(&request.takeoff.method_id).to_string(),
             refusal: rejected,
         });
     }
-    bound_methods.push(bound_method(
+    bound_methods.extend(takeoff_slot::bound_methods(
         &request.takeoff.method_id,
         takeoff.bound,
-        request.is_backed(&request.takeoff.method_id),
+        request,
         request.takeoff.manual_index.is_some(),
     ));
 
@@ -152,19 +152,24 @@ pub fn run(
     // Every chain opens with what conditioned the signal, because every number below was
     // measured on the series those rules produced and none of them can be reproduced without
     // knowing which series that was.
+    //
+    // The id a metric names has to be one a reader can look up, exactly as the bound record's
+    // is. The onset ids already are, because they come back from the rules themselves; the
+    // takeoff id is the request's word and is put through the same redirect here.
+    let takeoff_recorded = crate::binding::records_under(&request.takeoff.method_id).to_string();
     let mut interval = conditioned.ids.clone();
     interval.extend(onset_ids.clone());
-    interval.push(request.takeoff.method_id.clone());
+    interval.push(takeoff_recorded.clone());
     let mut weighing_ids = conditioned.ids.clone();
     weighing_ids.push(request.weighing.method_id.clone());
     let mut takeoff_ids = conditioned.ids.clone();
-    takeoff_ids.push(request.takeoff.method_id.clone());
+    takeoff_ids.push(takeoff_recorded.clone());
     let mut onset_chain = conditioned.ids.clone();
     onset_chain.extend(onset_ids.clone());
     let mut full = conditioned.ids.clone();
     full.push(request.weighing.method_id.clone());
     full.extend(onset_ids.clone());
-    full.push(request.takeoff.method_id.clone());
+    full.push(takeoff_recorded);
     // Every number read off the integrated velocity series rests on the four integration
     // entries as well as on the three landmark rules, and the two start rules give different
     // velocities from one recording. Named here rather than left out, because a chain is what
@@ -404,8 +409,8 @@ fn run_derived_phase(
         // produced the number, and one naming every earlier step cites rules it never used.
         let mut chain: Vec<String> = vec![
             request.weighing.method_id.clone(),
-            request.onset.method_id.clone(),
-            request.takeoff.method_id.clone(),
+            crate::binding::records_under(&request.onset.method_id).to_string(),
+            crate::binding::records_under(&request.takeoff.method_id).to_string(),
         ];
         chain.extend(context.rules_read().into_iter().map(str::to_string));
 

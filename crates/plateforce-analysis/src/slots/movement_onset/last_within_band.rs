@@ -8,7 +8,9 @@ use plateforce_core::takeoff::force_minimum_index;
 use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
-use crate::slots::movement_onset::{record_inherited_spread, OFFSET_MILLISECONDS};
+use crate::slots::movement_onset::{
+    record_inherited_spread, OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND,
+};
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
 pub(crate) const APPLIES_BACKTRACK: bool = false;
@@ -38,6 +40,12 @@ pub(crate) fn crossing(
     let rate = trial.sample_rate_hz();
     let k = resolved.number("k", 5.0);
     record_inherited_spread(resolved, inherited_spread);
+    // The two operators this rule binds by being chosen. A caller that names this rule has
+    // stated them as surely as if it had typed them, and the value is what a reader needs
+    // to reproduce the number, so it is recorded rather than left implicit in which
+    // function ran.
+    resolved.record("selection", "last".into(), ParameterSource::Stated);
+    resolved.record("bound", "minimum_force".into(), ParameterSource::Stated);
     let lookback_samples = resolved.seconds_as_samples("inverse_lookback", 0.5, rate);
     let back_offset_samples = resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
 
@@ -46,10 +54,12 @@ pub(crate) fn crossing(
         // The rule searches back from the countermovement dip, which is the force minimum
         // before the propulsive peak, and the peak is bounded by takeoff. So a recording
         // that settles no takeoff leaves this rule nothing to search back from, and the
-        // remedy is the takeoff rule rather than anything on this one.
+        // remedy is the takeoff rule rather than anything on this one. The operator that
+        // wants the landmark is the search bound, not the threshold, and it is the one
+        // named: a bare noise-relative threshold needs no takeoff.
         .ok_or_else(|| {
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::dependency_unresolved(
-                "onset.threshold.last_within_band",
+                SEARCH_UPPER_BOUND,
                 vec![crate::binding::TAKEOFF_CONSTRUCT.to_string()],
             )))
         })?;

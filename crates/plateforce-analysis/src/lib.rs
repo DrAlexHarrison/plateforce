@@ -38,7 +38,8 @@ pub mod slots;
 pub mod spread;
 
 pub use binding::{
-    bindings_for, Binding, BINDINGS, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
+    bindings_for, records_under, Binding, BINDINGS, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT,
+    WEIGHING_CONSTRUCT,
 };
 pub use pipeline::run;
 pub use request::{AnalysisRequest, MethodChoice, WeighingChoice};
@@ -46,3 +47,4 @@ pub use resolution::{BoundMethod, DeclinedRule, RuleRefusal};
 pub use response::{AnalysisResponse, Levels, Metric};
 pub use slots::movement_onset::ONSET_OPERATOR_IDS;
 pub use slots::system_weight::weighing_epoch_at;
+pub use slots::takeoff::TAKEOFF_OPERATOR_IDS;
