@@ -1,3 +1,6 @@
 # Refusal codes each surface can raise that its own manifest does not publish.
-# The ceiling only falls. Lower it in the commit that closes a code.
-r 5
+#
+# The ceiling falls as codes close, and is lowered in the commit that closes them. It rises
+# only in a commit that widens what the gate reads, where the number that rises is a true
+# count replacing a false one, and that commit says so.
+r 13

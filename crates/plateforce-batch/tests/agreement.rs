@@ -556,6 +556,21 @@ fn a_variant_that_could_not_run_stays_in_the_denominator_with_its_reason() {
             row.value.is_some() || !row.failure_reason.is_empty(),
             "a row either carries a value or says why it does not: {row:?}"
         );
+        // The code beside the sentence, so a script reading this export branches on it
+        // rather than matching prose. Held against the engine's own vocabulary, so a column
+        // filled with a word no surface publishes is a failure rather than a value.
+        if !row.failure_reason.is_empty() {
+            assert!(
+                plateforce_core::RefusalCode::ALL
+                    .iter()
+                    .any(|code| code.wire_name() == row.failure_code),
+                "'{}' is not a code this build publishes: {row:?}",
+                row.failure_code
+            );
+        }
+        if row.value.is_some() {
+            assert!(row.failure_code.is_empty(), "a value that arrived: {row:?}");
+        }
     }
     std::fs::remove_dir_all(&directory).ok();
 }
