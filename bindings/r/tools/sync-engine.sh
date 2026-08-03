@@ -31,6 +31,13 @@ registry="$package_root/inst/registry"
 # path dependencies between the three copies point at where they actually landed.
 engine='plateforce-registry:registry plateforce-core:core plateforce-analysis:analysis'
 
+# The layout above replaced `src/rust/crates/<crate>/`, and a checkout that ran the older
+# script still holds that tree. It is no longer written, no longer ignored, and still walked
+# by tools/check-portable-paths.sh, so on every machine that predates the rename the gate
+# reports the old long paths and reads as though the fix did not work. Removed here rather
+# than left to each reader to discover, because the copy is this script's to own.
+rm -rf "$destination/crates"
+
 repository=${1:-}
 if [ -z "$repository" ]; then
     repository=$(CDPATH= cd -- "$package_root/../.." && pwd)
