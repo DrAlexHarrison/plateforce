@@ -194,6 +194,9 @@ Two numbers both labelled as peak force on one graph is a defect. Any tool offer
 them differently in the interface and in the export.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "rfd.epoch_from_onset.overlapping"
 construct = "rate_of_force_development"
@@ -657,6 +660,9 @@ percent with a suggested remedy, which is the single best piece of interface des
 sweep and should be copied outright.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "rfd.scaling_factor.bellumori"
 construct = "rate_of_force_development"
@@ -684,6 +690,9 @@ The exact rule is not citation-bound and this entry must not be implemented from
 family with its own literature, living in motor control rather than strength and conditioning, and
 the clearest example of a family the original decomposition did not anticipate.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "rfd.mean_force_over_duration.lapuente"
