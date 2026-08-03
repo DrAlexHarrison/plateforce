@@ -269,6 +269,19 @@ pub struct DeclinedRule {
     pub refusal: RuleRefusal,
 }
 
+/// On the wire it is the record a caller branches on, which is what every other surface
+/// already builds from it.
+///
+/// Written here rather than left to each reader, because this used to be skipped entirely:
+/// a rule that declined reached R and the browser as a sentence in `warnings` and nothing
+/// else, so thirteen condition classes the R package publishes could not be raised on any
+/// landmark rule. A refusal that cannot cross is a result without its method.
+impl Serialize for DeclinedRule {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        crate::document::refusal_from_rule(self).serialize(serializer)
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct BoundMethod {
     pub method_id: String,

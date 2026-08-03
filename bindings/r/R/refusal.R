@@ -33,11 +33,19 @@ NULL
 
 REFUSAL_FIELDS <- c(
   "code", "message", "method_id", "slot",
-  "parameter", "value", "detail", "available"
+  "parameter", "value", "named_value", "detail", "available"
 )
 
-plateforce_refuse <- function(refusal) {
-  stop(errorCondition(
+#' A refusal as the condition object, built rather than raised.
+#'
+#' One rule declining while the rest of the analysis computes is a partial result, not a
+#' failed one, so those arrive on `@refusals` and are read with the same `[[` as a caught
+#' condition. Before the engine sent them across, a declining rule reached this package as a
+#' sentence in `warnings` and every one of the codes named below was unraisable here.
+#'
+#' @noRd
+refusal_condition <- function(refusal) {
+  errorCondition(
     message = refusal[["message"]],
     class = c(
       paste0("plateforce_", refusal[["code"]]),
@@ -49,9 +57,14 @@ plateforce_refuse <- function(refusal) {
     slot = refusal[["slot"]],
     parameter = refusal[["parameter"]],
     value = refusal[["value"]],
+    named_value = refusal[["named_value"]],
     detail = refusal[["detail"]],
     available = refusal[["available"]]
-  ))
+  )
+}
+
+plateforce_refuse <- function(refusal) {
+  stop(refusal_condition(refusal))
 }
 
 #' @export

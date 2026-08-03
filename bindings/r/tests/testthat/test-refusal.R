@@ -71,3 +71,60 @@ test_that("one trial analyses as many times as it is asked, without losing its t
   expect_length(weights, 1L)
   expect_identical(trial@sample_count, 2400L)
 })
+
+# A rule that declines while the rest of the analysis computes is a partial result rather
+# than a failed one, so it arrives on the result instead of being raised. Before the engine
+# sent these across, it reached this package as a sentence in `warnings` and nothing else,
+# and every code below was unraisable on any binding.
+test_that("a landmark rule that placed nothing arrives as a code, not only a sentence", {
+  result <- analyse_countermovement_jump(
+    quiet_trial(),
+    weighing = "bwepoch.fixed_window",
+    onset = "onset.threshold.absolute_force",
+    onset_parameters = list(threshold_n = 99999),
+    takeoff = "takeoff.threshold.absolute_force"
+  )
+
+  expect_true(length(result@refusals) > 0)
+  declined <- result@refusals[[1]]
+  expect_true(inherits(declined, "plateforce_refusal"))
+  expect_identical(declined[["code"]], "no_crossing")
+  # The construct is the registry's own name for it, so a reader can look it up. `onset` is
+  # the binding table's word and the registry declares no such construct.
+  expect_identical(declined[["slot"]], "movement_onset")
+  expect_identical(declined[["method_id"]], "onset.threshold.absolute_force")
+  expect_identical(declined[["parameter"]], "threshold_n")
+  expect_identical(declined[["value"]], 99999)
+
+  # The same handler that catches a raised refusal reads this one.
+  expect_identical(
+    tryCatch(stop(declined), plateforce_no_crossing = function(c) c[["code"]]),
+    "no_crossing"
+  )
+})
+
+# The control. The same rule at a threshold the trace does reach declines nothing, so the
+# assertion above is about the code rather than about every analysis carrying a refusal.
+test_that("a rule that found its landmark declines nothing", {
+  quiet <- rep(700, 1200) + rep(c(-0.4, 0.2, 0.4, -0.2), length.out = 1200)
+  jump <- pf_trial(
+    c(
+      quiet,
+      seq(700, 400, length.out = 360),
+      seq(400, 1900, length.out = 360),
+      rep(0, 600),
+      rep(1700, 240)
+    ),
+    sample_rate_hz = 1200
+  )
+  result <- analyse_countermovement_jump(
+    jump,
+    weighing = "bwepoch.fixed_window",
+    weighing_parameters = list(duration = 0.8),
+    onset = "onset.threshold.absolute_force",
+    onset_parameters = list(threshold_n = 20),
+    takeoff = "takeoff.threshold.absolute_force"
+  )
+  expect_false(is.null(result@onset_index))
+  expect_identical(length(result@refusals), 0L)
+})

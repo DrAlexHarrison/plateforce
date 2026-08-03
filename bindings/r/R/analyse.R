@@ -25,6 +25,7 @@ countermovement_jump <- S7::new_class(
     bound_methods = S7::class_list,
     signals = S7::class_list,
     warnings = S7::class_character,
+    refusals = S7::class_list,
     registry_digest = S7::class_character
   )
 )
@@ -232,6 +233,7 @@ jump_from_response <- function(response) {
     bound_methods = by_method,
     signals = lapply(response[["signals"]], signal_from_list),
     warnings = as.character(unlist(response[["warnings"]])),
+    refusals = lapply(response[["refusals"]], refusal_condition),
     registry_digest = digest
   )
 }

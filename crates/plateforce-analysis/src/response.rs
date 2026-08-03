@@ -239,9 +239,11 @@ pub struct AnalysisResponse {
     /// this response, so the browser, the terminal, Python and R receive them together.
     #[serde(default)]
     pub signals: Vec<crate::quality::QualitySignal>,
-    /// The same failures `warnings` describes, kept as the errors they were, each naming the
-    /// construct whose rule produced nothing and the id that rule was reached by. Skipped
-    /// over the wire, where the sentence is what the interface draws.
-    #[serde(skip)]
+    /// The same failures `warnings` describes, kept as the records they were, each naming the
+    /// construct whose rule produced nothing and the id that rule was reached by.
+    ///
+    /// It crosses the wire as the typed record rather than as the sentence beside it. A
+    /// surface that received only the sentence had to parse it back apart to branch, which
+    /// is the prose channel this project replaces.
     pub refusals: Vec<DeclinedRule>,
 }

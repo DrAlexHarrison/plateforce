@@ -410,3 +410,56 @@ fn a_construct_the_request_did_not_name_is_refused_as_an_axis() {
     );
     assert!(refusal.contains("analysis_window"), "{refusal}");
 }
+
+/// A refusal that cannot cross the wire is a result without its method.
+///
+/// The response used to skip these entirely, so a rule that declined reached R and the
+/// browser as a sentence in `warnings` and nothing else, and the thirteen condition classes
+/// the R package publishes could not be raised on any landmark rule. Every field a caller
+/// branches on now crosses as a field.
+#[test]
+fn a_declining_rule_crosses_the_wire_as_the_record_rather_than_the_sentence() {
+    let response = run(
+        &a_jump_that_lands(),
+        &naming(&[("peak_force", "force.peak.gross")]),
+    )
+    .expect("the request is well formed");
+
+    let wire: serde_json::Value = serde_json::to_value(&response).expect("the response serialises");
+    let refusals = wire["refusals"].as_array().expect("refusals crossed");
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&wire["refusals"]).unwrap()
+    );
+
+    let declined = refusals
+        .iter()
+        .find(|refusal| refusal["method_id"] == "force.peak.gross")
+        .expect("the peak rule's refusal crossed");
+    assert_eq!(declined["code"], "decision_not_made");
+    assert_eq!(declined["slot"], "peak_force");
+    assert!(declined["message"]
+        .as_str()
+        .expect("a sentence")
+        .contains("analysis_window"));
+    assert!(declined["available"]
+        .as_array()
+        .expect("what is outstanding")
+        .contains(&serde_json::Value::String("analysis_window".to_string())));
+}
+
+/// The control. An analysis where every rule ran carries an empty list rather than an
+/// absent field, so a caller reads the same shape either way.
+#[test]
+fn an_analysis_where_every_rule_ran_carries_no_refusals() {
+    let response = run(
+        &a_jump_that_lands(),
+        &naming(&[
+            ("analysis_window", "window_end.takeoff.detected"),
+            ("peak_force", "force.peak.gross"),
+        ]),
+    )
+    .expect("the request is well formed");
+    let wire: serde_json::Value = serde_json::to_value(&response).unwrap();
+    assert_eq!(wire["refusals"].as_array().map(Vec::len), Some(0));
+}

@@ -14,3 +14,9 @@ authors.workspace = true
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 serde = { workspace = true }
+
+# JSON reaches this crate only in its tests. The library stays free of it: a guard that
+# checks what crosses the wire has to write the wire form, and the shipped crate does not
+# know which surface asked or what it writes.
+[dev-dependencies]
+serde_json = { workspace = true }
