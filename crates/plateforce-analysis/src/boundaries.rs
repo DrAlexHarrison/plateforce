@@ -12,14 +12,70 @@
 //! The forward spec is the one `takeoff_velocity_meters_per_second` reads its impulse-momentum
 //! identity off, so a velocity landmark and the takeoff velocity beside it come from one curve.
 
-use plateforce_core::provenance::ParameterSource;
-use plateforce_core::series::{
-    centre_of_mass_velocity_meters_per_second, IntegrationAnchor, IntegrationDirection,
-    IntegrationSpec, IntegrationStart, QuadratureRule, VelocitySeries,
-};
+use std::collections::BTreeMap;
 
-use crate::derived::DerivedContext;
-use crate::resolution::Resolution;
+use plateforce_core::phases::VelocityZeroCrossing;
+
+use crate::derived::{DerivedContext, DerivedOutcome};
+use crate::resolution::{BoundValues, RuleRefusal};
+
+/// A rule that searched for an instant, as the outcome carrying the time it reports and the
+/// sample a later rule reads it by.
+///
+/// `None` is the rule running and this recording carrying no such instant, which is a
+/// different report from the rule declining, so it reaches a reader as a quantity with no
+/// value rather than as a refusal.
+pub(crate) fn placed_outcome(
+    context: &DerivedContext,
+    key: &'static str,
+    name: &'static str,
+    index: Option<usize>,
+    bound: BoundValues,
+) -> DerivedOutcome {
+    match index {
+        Some(index) => DerivedOutcome {
+            values: vec![(key, Some(context.trial.time_at(index)))],
+            placed: vec![(name, index)],
+            bound,
+            refusal: None,
+        },
+        None => DerivedOutcome {
+            values: vec![(key, None)],
+            placed: Vec::new(),
+            bound,
+            refusal: None,
+        },
+    }
+}
+
+/// The same, for a search whose answer carries whether the signal really crossed.
+///
+/// The core returns a fallback index when the signal never returns through the threshold,
+/// which reproduces one shipped tool and is not the same quantity. Reporting it would publish
+/// an instant under a crossing rule's name that no crossing produced.
+pub(crate) fn crossing_outcome(
+    context: &DerivedContext,
+    method_id: &str,
+    key: &'static str,
+    name: &'static str,
+    crossing: Option<VelocityZeroCrossing>,
+    bound: BoundValues,
+) -> DerivedOutcome {
+    match crossing {
+        Some(crossing) if crossing.is_true_crossing => {
+            placed_outcome(context, key, name, Some(crossing.index), bound)
+        }
+        Some(fallback) => DerivedOutcome::declined(
+            bound,
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
+                method_id,
+                1,
+                BTreeMap::from([("fallback_index".to_string(), fallback.index as f64)]),
+            ))),
+        ),
+        None => placed_outcome(context, key, name, None, bound),
+    }
+}
 
 /// The construct a caller settles by stating where the athlete landed.
 pub(crate) const LANDING_CONSTRUCT: &str = "landing";

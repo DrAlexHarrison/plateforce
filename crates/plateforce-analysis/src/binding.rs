@@ -380,6 +380,47 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::braking_phase_start::min_force::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::braking_phase_start::min_force::RULE),
     },
+    Binding {
+        id: crate::slots::propulsion_phase_start::zero_velocity::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "Centre of mass velocity crosses zero from below",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::zero_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::zero_velocity::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::velocity_threshold::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "Centre of mass velocity first exceeds a small positive threshold",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::velocity_threshold::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::velocity_threshold::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::peak_grf::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "The instant of peak vertical force",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::peak_grf::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::peak_grf::RULE),
+    },
+    // Declared after braking start, which its force option reads and names.
+    Binding {
+        id: crate::slots::propulsion_phase_end::peak_com_velocity::ID,
+        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
+        title: "Propulsion ends at maximum centre of mass velocity rather than at takeoff",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
+    },
 ];
 
 /// Every rule reached by construct id through the request rather than by a named field.

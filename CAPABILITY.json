@@ -151,6 +151,30 @@
         },
         {
           "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "slot": "takeoff"
@@ -440,6 +464,30 @@
           "construct": "braking_phase_start",
           "id": "phase.braking_start.zero_net_force",
           "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
@@ -736,6 +784,30 @@
           "construct": "braking_phase_start",
           "id": "phase.braking_start.zero_net_force",
           "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.peak_grf",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.velocity_threshold",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsion_start.zero_velocity",
+          "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,

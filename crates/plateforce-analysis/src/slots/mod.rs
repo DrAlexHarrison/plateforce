@@ -11,6 +11,8 @@ pub mod jump_height_takeoff_frame;
 pub mod jump_height_undeclared;
 pub mod movement_onset;
 pub mod peak_force;
+pub mod propulsion_phase_end;
+pub mod propulsion_phase_start;
 pub mod system_weight;
 pub mod takeoff;
 pub mod time_to_takeoff;

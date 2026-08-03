@@ -296,3 +296,165 @@ fn a_boundary_without_its_landmark_declines_naming_only_what_is_missing() {
     );
     assert!(value(&response, BRAKING_START).is_none());
 }
+
+const PROPULSION_START: &str = "propulsion_phase_start_seconds";
+const PROPULSION_END: &str = "propulsion_phase_end_seconds";
+
+/// Three rules under one construct, three instants, in the order their entries predict: the
+/// velocity crossing, then the threshold that guards it against jitter, then the force
+/// maximum, which has no mechanical reason to be the transition at all.
+#[test]
+fn the_three_propulsion_start_rules_place_three_instants_in_the_order_their_entries_predict() {
+    let trial = a_jump_that_lands();
+    let at = |id: &str| {
+        value(
+            &run(&trial, &naming(&[("propulsion_phase_start", id)])).unwrap(),
+            PROPULSION_START,
+        )
+        .unwrap_or_else(|| panic!("{id} placed no boundary"))
+    };
+    let zero = at("phase.propulsion_start.zero_velocity");
+    let threshold = at("phase.propulsion_start.velocity_threshold");
+    let peak = at("phase.propulsion_start.peak_grf");
+
+    println!("zero {zero:.4} s, threshold {threshold:.4} s, peak force {peak:.4} s");
+    assert!(
+        zero < threshold,
+        "the threshold at {threshold:.4} s did not follow the zero crossing at {zero:.4} s"
+    );
+    assert!(
+        threshold < peak,
+        "peak force at {peak:.4} s did not follow the velocity crossing at {threshold:.4} s"
+    );
+    // The deprecated rule is carried to show a disagreement, so it has to be a real one.
+    assert!(
+        peak - zero > 0.02,
+        "the legacy rule landed {:.4} s from the recommended one, which is not the gap its \
+         entry records",
+        peak - zero
+    );
+}
+
+/// The threshold is a bound value that moves the boundary, not a formality.
+#[test]
+fn raising_the_propulsion_threshold_moves_the_boundary_later() {
+    let trial = a_jump_that_lands();
+    let at = |threshold: f64| {
+        let mut request = naming(&[(
+            "propulsion_phase_start",
+            "phase.propulsion_start.velocity_threshold",
+        )]);
+        request
+            .derived
+            .get_mut("propulsion_phase_start")
+            .unwrap()
+            .parameters
+            .insert("threshold_mps".to_string(), threshold);
+        value(&run(&trial, &request).unwrap(), PROPULSION_START).expect("a boundary")
+    };
+    let published = at(0.01);
+    let higher = at(0.30);
+    println!("0.01 m/s at {published:.4} s, 0.30 m/s at {higher:.4} s");
+    assert!(
+        higher > published,
+        "raising the threshold left the boundary at {published:.4} s against {higher:.4} s"
+    );
+}
+
+/// The entry states its signal required with no default, so an unstated one is refused under
+/// the code for a required parameter nobody stated rather than filled from a neighbour.
+#[test]
+fn the_propulsion_end_signal_is_refused_when_the_request_states_none() {
+    let response = run(
+        &a_jump_that_lands(),
+        &naming(&[(
+            "propulsion_phase_end",
+            "phase.propulsion_end.peak_com_velocity",
+        )]),
+    )
+    .unwrap();
+    let declined = response
+        .refusals
+        .iter()
+        .find(|refusal| refusal.method_id == "phase.propulsion_end.peak_com_velocity")
+        .expect("the rule declined");
+    let message = format!("{}", declined.refusal);
+    assert!(
+        message.contains("search_signal"),
+        "the refusal did not name the parameter: {message}"
+    );
+    assert!(value(&response, PROPULSION_END).is_none());
+}
+
+/// Under the force signal the boundary is searched from the braking start, so it rests on
+/// whichever braking rule ran and its chain says so. Asked without one it declines naming the
+/// construct, rather than searching from somewhere convenient.
+#[test]
+fn the_force_signal_for_propulsion_end_rests_on_the_braking_rule_and_names_it() {
+    let trial = a_jump_that_lands();
+    let end_rule = (
+        "propulsion_phase_end",
+        "phase.propulsion_end.peak_com_velocity",
+    );
+    let braking = ("braking_phase_start", "phase.braking_start.zero_net_force");
+    let signal = |pairs: &[(&str, &str)], value: &str| {
+        with_option(pairs, "propulsion_phase_end", "search_signal", value)
+    };
+
+    let alone = run(&trial, &signal(&[end_rule], "force_bw_crossing")).unwrap();
+    let declined = alone
+        .refusals
+        .iter()
+        .find(|refusal| refusal.method_id == "phase.propulsion_end.peak_com_velocity")
+        .expect("the rule declined without a braking start");
+    assert!(
+        format!("{}", declined.refusal).contains("braking_phase_start"),
+        "the refusal did not name the construct it needed: {}",
+        declined.refusal
+    );
+
+    let together = run(&trial, &signal(&[braking, end_rule], "force_bw_crossing")).unwrap();
+    let named = chain(&together, PROPULSION_END);
+    assert!(
+        named.contains(&"phase.braking_start.zero_net_force".to_string()),
+        "the boundary did not name the braking rule it was searched from: {named:?}"
+    );
+
+    // The velocity signal does not read the braking start, so it must not name it either. A
+    // chain claiming more than the number rests on is as wrong as one claiming less.
+    let velocity = run(&trial, &signal(&[braking, end_rule], "velocity_argmax")).unwrap();
+    let velocity_chain = chain(&velocity, PROPULSION_END);
+    assert!(
+        !velocity_chain.contains(&"phase.braking_start.zero_net_force".to_string()),
+        "the velocity signal named a rule it never read: {velocity_chain:?}"
+    );
+}
+
+/// The registry's directional claim about this entry: peak velocity necessarily precedes
+/// takeoff, because velocity peaks where net force crosses zero and takeoff is declared later.
+/// Propulsion duration is therefore shorter, and mean propulsion force higher, than under the
+/// reading that propulsion ends when the athlete leaves the plate.
+#[test]
+fn propulsion_ends_before_takeoff_under_this_entry() {
+    let trial = a_jump_that_lands();
+    let response = run(
+        &trial,
+        &with_option(
+            &[(
+                "propulsion_phase_end",
+                "phase.propulsion_end.peak_com_velocity",
+            )],
+            "propulsion_phase_end",
+            "search_signal",
+            "velocity_argmax",
+        ),
+    )
+    .unwrap();
+    let end = value(&response, PROPULSION_END).expect("a boundary");
+    let takeoff = value(&response, "takeoff_time_seconds").expect("a takeoff");
+    println!("propulsion ends {end:.4} s, takeoff {takeoff:.4} s");
+    assert!(
+        end < takeoff,
+        "propulsion ended at {end:.4} s, at or after takeoff at {takeoff:.4} s"
+    );
+}

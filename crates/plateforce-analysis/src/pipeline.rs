@@ -596,6 +596,27 @@ mod tests {
         for binding in crate::binding::derived_bindings() {
             let response =
                 run(&trial, &request_reaching(binding)).expect("the request is well formed");
+            // An entry stating a parameter required with no default cannot be reached by a
+            // request that states nothing, and refusing there is the rule working. That is
+            // the "or says why it did not" half, and it is checked rather than skipped.
+            if let Some(declined) = response
+                .refusals
+                .iter()
+                .find(|rule| rule.method_id == binding.id)
+            {
+                assert!(
+                    matches!(
+                        &declined.refusal,
+                        crate::RuleRefusal::Refused(refusal)
+                            if refusal.code == plateforce_core::RefusalCode::RequiredParameterUnstated
+                    ),
+                    "{} declined a request naming it, for a reason other than a value only the \
+                     caller can supply: {}",
+                    binding.id,
+                    declined.refusal
+                );
+                continue;
+            }
             for declared in binding.quantities {
                 let metric = response
                     .metrics
@@ -646,9 +667,17 @@ mod tests {
     /// The ordering is declaration order and nothing else, so a rule reading a sample another
     /// rule places has to be declared after it. Held by running each rule with only the rules
     /// declared before it available: a rule that needs a later one declines here.
+    ///
+    /// A decline is read by what the rule said it wanted, not by its code alone. Two declines
+    /// carry one code and mean opposite things: a rule wanting a construct this build runs a
+    /// rule for was handed every earlier one, so it is declared too early, while a rule wanting
+    /// a construct this build has no rule for at all is reporting coverage and says nothing
+    /// about order. Excluding the code would exclude the ordering fault with it, so the
+    /// constructs the refusal names are what decide.
     #[test]
     fn a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it() {
         let trial = synthetic();
+        let runnable = crate::binding::executable_constructs();
         for binding in crate::binding::derived_bindings() {
             let response =
                 run(&trial, &request_reaching(binding)).expect("the request is well formed");
@@ -660,8 +689,19 @@ mod tests {
                 .iter()
                 .filter(|rule| rule.method_id == binding.id)
                 .filter(|rule| {
-                    crate::document::refusal_from_rule(rule).code
-                        != RefusalCode::RequiredParameterUnstated
+                    let refusal = crate::document::refusal_from_rule(rule);
+                    match refusal.code {
+                        // A value only the caller can supply, which `required_options`
+                        // answers for every rule whose entry states one.
+                        RefusalCode::RequiredParameterUnstated => false,
+                        // A search this recording gave nothing to.
+                        RefusalCode::NoCrossing => false,
+                        RefusalCode::DependencyUnresolved | RefusalCode::DecisionNotMade => refusal
+                            .available
+                            .iter()
+                            .any(|construct| runnable.contains(&construct.as_str())),
+                        _ => true,
+                    }
                 })
                 .map(|rule| rule.method_id.as_str())
                 .collect();
