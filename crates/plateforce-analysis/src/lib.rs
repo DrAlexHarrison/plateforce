@@ -24,6 +24,7 @@
 pub mod binding;
 pub mod capability;
 pub(crate) mod centre_of_mass;
+pub mod conditioning;
 pub mod derived;
 pub mod document;
 pub mod method_set;

@@ -479,6 +479,15 @@ fn no_rule_this_build_runs_reports_a_key_a_second_time() {
     let trial = a_jump_that_lands();
     let mut checked = 0usize;
     for binding in plateforce_analysis::BINDINGS {
+        // Conditioning runs before the spine rather than over what it placed, so it is
+        // reached through its own map. Matched on the dispatch rather than on a construct
+        // name, so a second conditioning rule is skipped here without an edit.
+        if matches!(
+            binding.dispatch,
+            plateforce_analysis::binding::Dispatch::Conditioning(_)
+        ) {
+            continue;
+        }
         let mut request = base();
         match binding.slot {
             "weighing" | "onset" | "takeoff" => continue,

@@ -8,4 +8,5 @@ mod common;
 mod ws1;
 mod ws2;
 mod ws3;
+mod ws3_conditioning;
 mod ws5;

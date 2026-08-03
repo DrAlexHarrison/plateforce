@@ -51,6 +51,7 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         gravity_meters_per_second_squared,
         registry_backed_ids,
         derived,
+        conditioning,
         body_mass_kilograms,
     } = request;
     let WeighingChoice {
@@ -83,6 +84,13 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         // Keyed by construct and already ordered, because the map is a `BTreeMap`: two runs
         // stating one set of rules in two orders are one request and fingerprint alike.
         "derived": derived
+            .iter()
+            .map(|(construct, choice)| (construct.clone(), method_choice(choice)))
+            .collect::<serde_json::Map<String, Value>>(),
+        // What the signal was conditioned with before anything was measured on it. Two runs
+        // under different filters are two results, and a fingerprint blind to this would
+        // call them one.
+        "conditioning": conditioning
             .iter()
             .map(|(construct, choice)| (construct.clone(), method_choice(choice)))
             .collect::<serde_json::Map<String, Value>>(),

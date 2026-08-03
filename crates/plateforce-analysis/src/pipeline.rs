@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 use crate::binding::{expect_bound, Dispatch, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::derived::{DerivedContext, PlacedSample};
-use crate::request::AnalysisRequest;
+use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
@@ -29,6 +29,12 @@ pub fn run(
 
     let mut warnings = Vec::new();
     let gravity = request.gravity_meters_per_second_squared;
+
+    // Everything below reads the signal this phase produced, so it runs first and its rules
+    // are named ahead of every other rule in each metric's chain.
+    let conditioned = run_conditioning_phase(trial, request, &mut warnings)?;
+    let trial = conditioned.trial.as_ref().unwrap_or(trial);
+
     let weighing = system_weight::resolve(trial, &request.weighing, &mut warnings)?;
     let epoch = weighing.epoch;
     let inherited_spread = (
@@ -36,12 +42,13 @@ pub fn run(
         weighing.standard_deviation_convention_stated,
     );
 
-    let mut bound_methods = vec![bound_method(
+    let mut bound_methods = conditioned.bound_methods;
+    bound_methods.push(bound_method(
         &request.weighing.method_id,
         weighing.bound,
         request.is_backed(&request.weighing.method_id),
         request.weighing.start_index.is_some_and(|start| start != 0),
-    )];
+    ));
 
     let mut refusals: Vec<DeclinedRule> = Vec::new();
 
@@ -142,11 +149,20 @@ pub fn run(
         _ => None,
     };
 
-    let mut interval = onset_ids.clone();
+    // Every chain opens with what conditioned the signal, because every number below was
+    // measured on the series those rules produced and none of them can be reproduced without
+    // knowing which series that was.
+    let mut interval = conditioned.ids.clone();
+    interval.extend(onset_ids.clone());
     interval.push(request.takeoff.method_id.clone());
-    let weighing_ids = vec![request.weighing.method_id.clone()];
-    let takeoff_ids = vec![request.takeoff.method_id.clone()];
-    let mut full = vec![request.weighing.method_id.clone()];
+    let mut weighing_ids = conditioned.ids.clone();
+    weighing_ids.push(request.weighing.method_id.clone());
+    let mut takeoff_ids = conditioned.ids.clone();
+    takeoff_ids.push(request.takeoff.method_id.clone());
+    let mut onset_chain = conditioned.ids.clone();
+    onset_chain.extend(onset_ids.clone());
+    let mut full = conditioned.ids.clone();
+    full.push(request.weighing.method_id.clone());
     full.extend(onset_ids.clone());
     full.push(request.takeoff.method_id.clone());
 
@@ -180,7 +196,7 @@ pub fn run(
         Metric::declared(
             "onset_time_seconds",
             onset_index.map(|index| trial.time_at(index)),
-            onset_ids.clone(),
+            onset_chain,
             None,
         ),
         Metric::declared(
@@ -198,7 +214,7 @@ pub fn run(
                     .into(),
             ),
         ),
-        Metric::declared("flight_time_seconds", flight, takeoff_ids, None),
+        Metric::declared("flight_time_seconds", flight, takeoff_ids.clone(), None),
         Metric::declared(
             "takeoff_velocity_meters_per_second",
             velocity,
@@ -229,7 +245,7 @@ pub fn run(
         Metric::declared(
             "jump_height_from_flight_time_meters",
             flight.map(|seconds| jump_height_from_flight_time(seconds, gravity)),
-            vec![request.takeoff.method_id.clone()],
+            takeoff_ids.clone(),
             Some(
                 "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load."
                     .into(),
@@ -424,6 +440,107 @@ fn run_derived_phase(
     Ok(())
 }
 
+/// What the conditioning phase settled: the signal everything below reads, the rules that
+/// produced it, and their records.
+struct Conditioned {
+    /// `None` where every rule that ran was the identity, so the recording is used as it
+    /// was digitised and no copy of it is made.
+    trial: Option<Trial>,
+    /// The ids, in the order they ran, to open every chain with.
+    ids: Vec<String>,
+    bound_methods: Vec<crate::resolution::BoundMethod>,
+}
+
+/// Every construct this build conditions with, run in declaration order.
+///
+/// A construct the request does not name still runs, under the rule declared as its default.
+/// That is the whole point of the phase: before it existed the software applied no filter and
+/// said nothing, so a reader could not tell an unfiltered signal from a filtered one whose
+/// filter nobody wrote down. A default that reaches the record is a choice; one that does not
+/// is an absence.
+fn run_conditioning_phase(
+    trial: &Trial,
+    request: &AnalysisRequest,
+    warnings: &mut Vec<String>,
+) -> Result<Conditioned, Box<plateforce_core::Refusal>> {
+    for (construct, choice) in &request.conditioning {
+        expect_conditioning_choice(construct, &choice.method_id)?;
+    }
+
+    let mut settled = Conditioned {
+        trial: None,
+        ids: Vec::new(),
+        bound_methods: Vec::new(),
+    };
+    for construct in crate::binding::conditioning_constructs() {
+        let stated = request.conditioning.get(construct);
+        let method_id = stated
+            .map(|choice| choice.method_id.as_str())
+            .unwrap_or(crate::slots::conditioned_force_signal::DECLARED_DEFAULT);
+        let Some(binding) = crate::binding::conditioning_bindings().find(|b| b.id == method_id)
+        else {
+            continue;
+        };
+        let Dispatch::Conditioning(rule) = binding.dispatch else {
+            continue;
+        };
+
+        // A construct the request did not name is run under the default, and the choice it
+        // is run with says so, so the record distinguishes the software's pick from a
+        // caller's without a second field to hold the distinction.
+        let chosen = stated.cloned().unwrap_or_else(|| MethodChoice {
+            method_id: method_id.to_string(),
+            from_registry_default: [construct.to_string()].into_iter().collect(),
+            ..Default::default()
+        });
+        let source = settled.trial.as_ref().unwrap_or(trial);
+        let outcome = rule(source, &chosen, warnings);
+        if let Some(force) = outcome.force_newtons {
+            settled.trial = Some(
+                Trial::new(force, trial.sample_rate_hz())
+                    .map_err(|error| Box::new(plateforce_core::Refusal::from(error)))?,
+            );
+        }
+        settled.ids.push(binding.id.to_string());
+        settled.bound_methods.push(bound_method(
+            binding.id,
+            outcome.bound,
+            request.is_backed(binding.id),
+            false,
+        ));
+    }
+    Ok(settled)
+}
+
+/// A construct and an id the request named together, checked against what this build
+/// conditions with. Both halves, for the same reason the derived phase checks both: either
+/// alone lets a request through that the loop would then skip in silence, and a skipped
+/// conditioning choice is a filter the caller asked for and did not get.
+fn expect_conditioning_choice(
+    construct: &str,
+    method_id: &str,
+) -> Result<(), Box<plateforce_core::Refusal>> {
+    let constructs = crate::binding::conditioning_constructs();
+    if !constructs.contains(&construct) {
+        return Err(Box::new(
+            plateforce_core::Refusal::construct_not_on_the_path(
+                construct,
+                constructs.into_iter().map(str::to_string).collect(),
+            ),
+        ));
+    }
+    if crate::binding::conditioning_bindings().any(|binding| binding.id == method_id) {
+        return Ok(());
+    }
+    Err(Box::new(plateforce_core::Refusal::method_not_implemented(
+        method_id,
+        construct,
+        crate::binding::conditioning_bindings()
+            .map(|binding| binding.id.to_string())
+            .collect(),
+    )))
+}
+
 /// A construct and an id the request named together, checked against what this build runs.
 ///
 /// Both halves, because either one alone lets a request through that the loop would then
@@ -524,6 +641,18 @@ mod tests {
             "onset.threshold.noise_relative",
             "takeoff.threshold.absolute_force",
         );
+        // A conditioning rule is reached through its own map, because it runs before the
+        // spine rather than over what the spine placed.
+        if matches!(binding.dispatch, Dispatch::Conditioning(_)) {
+            candidate.conditioning.insert(
+                binding.construct.to_string(),
+                MethodChoice {
+                    method_id: binding.id.to_string(),
+                    ..Default::default()
+                },
+            );
+            return candidate;
+        }
         match binding.slot {
             "onset" => candidate.onset.method_id = binding.id.to_string(),
             "takeoff" => candidate.takeoff.method_id = binding.id.to_string(),

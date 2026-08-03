@@ -3,6 +3,16 @@
 # would change how every other package the user has loaded behaves.
 options(warnPartialMatchDollar = TRUE)
 
+# One link of a provenance chain, found by the rule's id rather than by where it sits.
+# A chain gains a link whenever a rule runs earlier than the ones already in it, so a test
+# that reads a position is asserting an ordering it did not mean to assert.
+link_named <- function(chain, method_id) {
+  for (link in chain) {
+    if (identical(link@method_id, method_id)) return(link)
+  }
+  testthat::fail(paste(method_id, "is not in this chain"))
+}
+
 fixture_lines <- function(name) {
   path <- testthat::test_path("fixtures", name)
   testthat::skip_if_not(file.exists(path), paste("no fixture at", path))

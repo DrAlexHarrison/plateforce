@@ -25,6 +25,9 @@ pub const SPINE_CONSTRUCTS: &[&str] = &[WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAK
 /// not.
 #[derive(Debug, Clone, Copy)]
 pub enum Dispatch {
+    /// A rule that conditions the signal the landmark rules then read. Runs before them,
+    /// because the thresholds they resolve are scaled by what it produces.
+    Conditioning(crate::conditioning::ConditioningRule),
     /// One of the three landmark rules, which `run` calls in a fixed order because each
     /// reads what the last one settled. Reached through the request's own named field.
     Spine,
@@ -56,6 +59,19 @@ pub struct Binding {
 }
 
 pub const BINDINGS: &[Binding] = &[
+    // First, because it produces the signal every rule below reads. A conditioning rule
+    // that ran after the landmarks would leave the record saying they were placed on a
+    // signal they were not.
+    Binding {
+        id: crate::slots::conditioned_force_signal::none::ID,
+        slot: crate::slots::conditioned_force_signal::CONSTRUCT,
+        construct: crate::slots::conditioned_force_signal::CONSTRUCT,
+        title: "No conditioning before event detection or integration",
+        composed_from: None,
+        note: "",
+        quantities: &[],
+        dispatch: Dispatch::Conditioning(crate::slots::conditioned_force_signal::none::apply),
+    },
     Binding {
         id: "bwepoch.fixed_window",
         slot: "weighing",
@@ -358,6 +374,26 @@ pub const BINDINGS: &[Binding] = &[
         ),
     },
 ];
+
+/// Every rule that conditions the signal before the landmark rules read it.
+pub fn conditioning_bindings() -> impl Iterator<Item = &'static Binding> {
+    BINDINGS
+        .iter()
+        .filter(|binding| matches!(binding.dispatch, Dispatch::Conditioning(_)))
+}
+
+/// Every construct conditioning fills, in declaration order without repeats. What a request
+/// may name in its `conditioning` map, and what a refusal lists when it names one this build
+/// runs no rule for.
+pub fn conditioning_constructs() -> Vec<&'static str> {
+    let mut seen: Vec<&'static str> = Vec::new();
+    for binding in conditioning_bindings() {
+        if !seen.contains(&binding.construct) {
+            seen.push(binding.construct);
+        }
+    }
+    seen
+}
 
 /// Every rule reached by construct id through the request rather than by a named field.
 pub fn derived_bindings() -> impl Iterator<Item = &'static Binding> {

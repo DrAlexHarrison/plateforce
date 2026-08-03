@@ -25,9 +25,12 @@ test_that("a value a rule did compute carries the rule and what it was bound to"
   chain <- weight@provenance@depends_on
 
   expect_true(length(chain) >= 1)
-  expect_identical(chain[[1]]@method_id, "bwepoch.fixed_window")
-  expect_true(nrow(chain[[1]]@parameters) > 0)
-  expect_true(all(chain[[1]]@parameters[["source"]] %in%
+  # What conditioned the signal is named before what read it, because every number below
+  # was measured on the series the first rule produced.
+  expect_identical(chain[[1]]@method_id, "filter.none")
+  weighing <- link_named(chain, "bwepoch.fixed_window")
+  expect_true(nrow(weighing@parameters) > 0)
+  expect_true(all(weighing@parameters[["source"]] %in%
     c("stated", "assumed", "measured", "provisional")))
 })
 
@@ -39,7 +42,10 @@ weighed <- function(...) {
     takeoff = "takeoff.threshold.absolute_force",
     ...
   )
-  pf_value(result, "system_weight_newtons")@provenance@depends_on[[1]]@parameters
+  # By id rather than by position. Reading the first link assumed the weighing rule opened
+  # the chain, which stopped being true the moment a rule ran before it.
+  chain <- pf_value(result, "system_weight_newtons")@provenance@depends_on
+  link_named(chain, "bwepoch.fixed_window")@parameters
 }
 
 source_of <- function(bound, name) bound[bound[["name"]] == name, "source"]

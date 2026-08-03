@@ -88,6 +88,16 @@ pub struct AnalysisRequest {
     /// reader lacks. So the field lands before anything emits it, never the reverse.
     #[serde(default)]
     pub derived: BTreeMap<String, MethodChoice>,
+    /// A rule chosen for a construct that conditions the signal, keyed by the construct id
+    /// the registry declares. Runs before the landmark rules, because the signal they read
+    /// is the one these produce.
+    ///
+    /// A construct this build runs and the request does not name still runs, under the rule
+    /// declared as its default, and that rule is on the record like any other. Leaving it
+    /// out is not the same as declining to condition: it is the software choosing, and a
+    /// choice nobody can read is the defect this field exists to close.
+    #[serde(default)]
+    pub conditioning: BTreeMap<String, MethodChoice>,
     /// The athlete's mass, which is a different quantity from the weighed system mass:
     /// system weight includes any bar and bodyweight does not.
     ///
@@ -118,6 +128,7 @@ impl Default for AnalysisRequest {
             gravity_meters_per_second_squared: standard_gravity(),
             registry_backed_ids: Vec::new(),
             derived: BTreeMap::new(),
+            conditioning: BTreeMap::new(),
             body_mass_kilograms: None,
         }
     }
