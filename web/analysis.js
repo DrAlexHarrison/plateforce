@@ -1,7 +1,7 @@
 /* One round trip into WebAssembly, and the numbers it hands back with their provenance. */
 
 import { $, state } from './state.js';
-import { element, formatNumber, secondaryDisplay } from './format.js';
+import { element, formatNumber, reply, secondaryDisplay } from './format.js';
 import { rankCandidates, initialParameters, findMethod } from './registry.js';
 import { candidateFor } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
@@ -149,13 +149,20 @@ export function runAnalysis() {
     return;
   }
 
-  try {
-    state.analysis = JSON.parse(state.loadedTrial.analyse(JSON.stringify(buildRequest())));
-  } catch (error) {
+  /* A rule that declines is an answer, not an exception. It arrives as the record it built,
+   * carrying the code, the rule and what could have been asked for instead. A throw here is
+   * the bundle itself being broken, which is a different thing and reads differently. */
+  const answer = reply(state.loadedTrial.analyse(JSON.stringify(buildRequest())));
+  if (answer.refusal) {
+    state.analysisRefusal = answer.refusal;
     $('metric-grid').replaceChildren();
-    $('analysis-warnings').replaceChildren(notice('danger', 'The analysis could not run', String(error.message || error)));
+    $('analysis-warnings').replaceChildren(
+      notice('danger', 'The analysis could not run', answer.refusal.message),
+    );
     return;
   }
+  state.analysisRefusal = null;
+  state.analysis = answer.ok;
 
   state.chart.setAnalysis(state.analysis);
   state.chart.schedule();

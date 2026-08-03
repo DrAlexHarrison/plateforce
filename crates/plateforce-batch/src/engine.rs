@@ -11,7 +11,7 @@ use plateforce_analysis::{
     AnalysisRequest, AnalysisResponse, BoundMethod, DeclinedRule, Metric, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
-use plateforce_core::{Acquisition, RefusalCode};
+use plateforce_core::{Acquisition, Refusal, RefusalCode};
 use plateforce_registry::Registry;
 use serde::Serialize;
 
@@ -224,24 +224,13 @@ pub fn analyse(
 
         let response = match plateforce_analysis::run(&trial, &request.analysis) {
             Ok(response) => response,
-            Err(message) => {
-                refusals.push(RefusalRow {
-                    trial_id: trial_id.clone(),
-                    ordinal: ordinal(&refusals),
-                    code: RefusalCode::MethodNotImplemented.wire_name().to_string(),
-                    method_id: String::new(),
-                    slot: String::new(),
-                    parameter: String::new(),
-                    value: String::new(),
-                    detail: String::new(),
-                    available: String::new(),
-                    message,
-                });
-                results.push(refused_row(
-                    trial_id,
-                    &source_path,
-                    RefusalCode::MethodNotImplemented.wire_name(),
-                ));
+            // The code is the one the engine decided it was declining under. This surface
+            // used to write `method_not_implemented` on every one of these and leave every
+            // other column empty, which named a fault the request had not committed.
+            Err(declined) => {
+                let code = declined.code.wire_name();
+                refusals.push(refusal_row(trial_id, ordinal(&refusals), &declined));
+                results.push(refused_row(trial_id, &source_path, code));
                 refused += 1;
                 continue;
             }
@@ -433,14 +422,18 @@ fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> RefusalRow {
 /// document surface each kept a copy of that table and the two copies had different last
 /// arms, so an unrecognised name resolved to `bwepoch.` here and to `takeoff.` there.
 fn rule_refusal_row(trial_id: &str, ordinal: usize, declined: &DeclinedRule) -> RefusalRow {
-    let refused = refusal_from_rule(declined);
+    refusal_row(trial_id, ordinal, &refusal_from_rule(declined))
+}
 
+/// One writer for every refusal this surface records, so a decline that arrives on a
+/// response and one that ends the analysis outright cannot be written into two shapes.
+pub(crate) fn refusal_row(trial_id: &str, ordinal: usize, refused: &Refusal) -> RefusalRow {
     RefusalRow {
         trial_id: trial_id.to_string(),
         ordinal,
         code: refused.code.wire_name().to_string(),
         method_id: refused.method_id.clone(),
-        slot: declined.construct.to_string(),
+        slot: refused.slot.clone().unwrap_or_default(),
         parameter: refused.parameter.clone().unwrap_or_default(),
         // A refusal on a name and a refusal on a number both answer "which value", so one
         // column carries whichever of the two this rule declined on.

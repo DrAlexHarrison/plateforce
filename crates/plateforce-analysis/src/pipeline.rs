@@ -16,7 +16,12 @@ use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
 
-pub fn run(trial: &Trial, request: &AnalysisRequest) -> Result<AnalysisResponse, String> {
+/// Boxed on the error side because a `Refusal` carries every field a caller branches on,
+/// which is 208 bytes riding on every call that succeeds.
+pub fn run(
+    trial: &Trial,
+    request: &AnalysisRequest,
+) -> Result<AnalysisResponse, Box<plateforce_core::Refusal>> {
     expect_bound(&request.weighing.method_id, "weighing")?;
     expect_bound(&request.onset.method_id, "onset")?;
     expect_bound(&request.takeoff.method_id, "takeoff")?;
@@ -329,7 +334,7 @@ fn run_derived_phase(
     bound_methods: &mut Vec<crate::resolution::BoundMethod>,
     refusals: &mut Vec<DeclinedRule>,
     warnings: &mut Vec<String>,
-) -> Result<(), String> {
+) -> Result<(), plateforce_core::Refusal> {
     if request.derived.is_empty() {
         return Ok(());
     }
@@ -424,15 +429,13 @@ fn run_derived_phase(
 /// skip in silence: a construct with no rule matches no binding, and an id that is not the
 /// rule filed under the construct it was named for matches no binding either. A skipped
 /// request comes back as a result missing the number that was asked for, saying nothing.
-fn expect_derived_choice(construct: &str, method_id: &str) -> Result<(), String> {
+fn expect_derived_choice(construct: &str, method_id: &str) -> Result<(), plateforce_core::Refusal> {
     let constructs = crate::binding::derived_constructs();
     if !constructs.contains(&construct) {
         return Err(plateforce_core::Refusal::construct_not_on_the_path(
             construct,
             constructs.into_iter().map(str::to_string).collect(),
-        )
-        .message()
-        .to_string());
+        ));
     }
     if crate::binding::bindings_for_construct(construct).any(|binding| binding.id == method_id) {
         return Ok(());
@@ -443,9 +446,7 @@ fn expect_derived_choice(construct: &str, method_id: &str) -> Result<(), String>
         crate::binding::bindings_for_construct(construct)
             .map(|binding| binding.id.to_string())
             .collect(),
-    )
-    .message()
-    .to_string())
+    ))
 }
 
 #[cfg(test)]
@@ -775,10 +776,16 @@ mod tests {
                 "onset" => candidate.onset.method_id = method_id.to_string(),
                 _ => candidate.takeoff.method_id = method_id.to_string(),
             }
-            let error = run(&trial, &candidate)
+            let refused = run(&trial, &candidate)
                 .expect_err(&format!("{method_id} ran under a rule that is not it"));
-            assert!(error.contains(method_id), "{error}");
-            assert!(error.contains(construct), "{error}");
+            // The code is a field rather than a word inside the sentence, so a caller that
+            // reaches this branches on it without reading the prose.
+            assert_eq!(
+                refused.code,
+                plateforce_core::RefusalCode::MethodNotImplemented
+            );
+            assert_eq!(refused.method_id, method_id);
+            assert_eq!(refused.slot.as_deref(), Some(construct));
         }
     }
 

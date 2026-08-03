@@ -90,7 +90,6 @@ pub(crate) struct Prepared {
     pub registry: Registry,
     pub trial: ReadTrial,
     pub request: AnalysisRequest,
-    pub chosen: BTreeMap<String, String>,
 }
 
 /// One home for the path from a command line to a request, so a second command asking a
@@ -133,7 +132,6 @@ pub(crate) fn prepare(
         registry,
         trial,
         request,
-        chosen,
     })
 }
 
@@ -147,17 +145,16 @@ pub fn run(
         registry,
         trial,
         request,
-        chosen,
     } = match prepare(args, registry_directory, renderer) {
         Ok(prepared) => prepared,
         Err(outcome) => return outcome,
     };
 
     match plateforce_analysis::run(&trial.trial, &request) {
-        // The engine writes the sentence. Which class of fault it is, is a question about
-        // the request, so it is answered by asking the binding table rather than by reading
-        // the sentence back apart.
-        Err(message) => Outcome::declined_line(fault_of(&chosen), message),
+        // The record carries the code and the class follows from it. This surface used to
+        // ask the binding table a second time for the fault class, because the record that
+        // knew the answer was flattened to its sentence one frame earlier.
+        Err(refusal) => Outcome::declined(Declined::recorded(*refusal)),
         Ok(response) => {
             let spread = crate::spread_cmd::measure(
                 &trial.trial,
@@ -487,19 +484,6 @@ fn with_slot(slot: &str, mut record: serde_json::Value) -> serde_json::Value {
         }
     }
     record
-}
-
-/// A request naming a rule this build cannot run asked for something not on offer; one whose
-/// rules all exist and still produced nothing met a recording without what they look for.
-fn fault_of(chosen: &BTreeMap<String, String>) -> Fault {
-    let unbound = chosen.iter().any(|(construct, method_id)| {
-        !bindings_for(decisions::slot_of(construct)).any(|binding| binding.id == method_id)
-    });
-    if unbound {
-        Fault::Request
-    } else {
-        Fault::Recording
-    }
 }
 
 fn render(

@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use plateforce_core::Trial;
+use plateforce_core::{Refusal, Trial};
 
 use crate::AnalysisRequest;
 
@@ -80,7 +80,7 @@ pub struct SpreadResponse {
     pub variants: Vec<Variant>,
 }
 
-pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, String> {
+pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box<Refusal>> {
     let combinations_requested: usize =
         request.axes.iter().map(Axis::len).product::<usize>().max(1);
     let cap = request.maximum_combinations.max(1);
@@ -144,7 +144,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Str
                 settings,
                 value: None,
                 method_ids,
-                failure_reason: Some(error),
+                failure_reason: Some(error.message().to_string()),
             }),
         }
     }
@@ -207,20 +207,18 @@ const GRAVITY_FIELD: &str = "gravity_meters_per_second_squared";
 /// cannot tell a method that agrees with itself from a name this function did not know.
 ///
 /// The list of what could have been asked for is the three landmark slots plus the
-/// constructs this request actually carries, not a fixed three. A construct the build runs
-/// a rule for and this request did not name is not an axis: sweeping it would run a rule
-/// nobody chose.
-fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> String {
-    let named = match parameter {
-        Some(parameter) => format!("'{slot}.{parameter}'"),
-        None => format!("'{slot}'"),
+/// constructs this request actually carries and the gravity field, not a fixed three. A
+/// construct the build runs a rule for and this request did not name is not an axis:
+/// sweeping it would run a rule nobody chose.
+fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> Refusal {
+    let axis = match parameter {
+        Some(parameter) => format!("{slot}.{parameter}"),
+        None => slot.to_string(),
     };
-    let mut axes: Vec<String> = LANDMARK_SLOTS.iter().map(|s| (*s).to_string()).collect();
-    axes.extend(base.derived.keys().cloned());
-    format!(
-        "{named} was passed as a sweep axis, and the axes this sweep can vary are \
-         {axes:?} and the request field '{GRAVITY_FIELD}'"
-    )
+    let mut offered: Vec<String> = LANDMARK_SLOTS.iter().map(|s| (*s).to_string()).collect();
+    offered.extend(base.derived.keys().cloned());
+    offered.push(format!("global.{GRAVITY_FIELD}"));
+    Refusal::axis_not_in_this_request(axis, offered)
 }
 
 /// Mixed-radix decode of the flat index into one point of the cartesian product.
@@ -228,7 +226,7 @@ fn materialise(
     base: &AnalysisRequest,
     axes: &[Axis],
     flat_index: usize,
-) -> Result<(AnalysisRequest, Vec<(String, String)>), String> {
+) -> Result<(AnalysisRequest, Vec<(String, String)>), Refusal> {
     let mut candidate = base.clone();
     let mut settings = Vec::new();
     let mut remainder = flat_index;
@@ -522,8 +520,15 @@ mod a_slot_the_sweep_cannot_vary {
         let request = sweep_over("movement_onset", Some("k"), vec![2.0, 5.0, 8.0]);
         let refusal = run(&synthetic(), &request).expect_err("an unknown axis is refused");
         println!("{refusal}");
-        assert!(refusal.contains("movement_onset.k"), "{refusal}");
-        assert!(refusal.contains("onset"), "{refusal}");
+        assert_eq!(refusal.code, plateforce_core::RefusalCode::UnknownParameter);
+        assert_eq!(refusal.parameter.as_deref(), Some("movement_onset.k"));
+        assert!(refusal.available.iter().any(|axis| axis == "onset"));
+        // The gravity field is an axis a caller can write, so it is listed with the rest
+        // rather than mentioned only in the sentence.
+        assert!(refusal
+            .available
+            .iter()
+            .any(|axis| axis == "global.gravity_meters_per_second_squared"));
     }
 
     #[test]
@@ -535,7 +540,9 @@ mod a_slot_the_sweep_cannot_vary {
         ];
         let refusal = run(&synthetic(), &request).expect_err("an unknown axis is refused");
         println!("{refusal}");
-        assert!(refusal.contains("'movement_onset'"), "{refusal}");
+        assert_eq!(refusal.code, plateforce_core::RefusalCode::UnknownParameter);
+        // The axis is the slot alone when the sweep varies the rule rather than a value.
+        assert_eq!(refusal.parameter.as_deref(), Some("movement_onset"));
     }
 
     /// The control. A knob the sweep does know still moves the number, so the refusal above

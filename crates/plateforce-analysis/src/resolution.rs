@@ -265,6 +265,21 @@ impl std::fmt::Display for RuleRefusal {
     }
 }
 
+/// The one place either variant becomes the record every surface publishes.
+///
+/// Neither arm decides a code: `TrialError` carries its own and a rule that built a
+/// `Refusal` chose the one it was declining under. Written once because a rule that
+/// declines reaches a caller through several paths, and a second copy of this match would be
+/// free to answer one of them differently.
+impl From<RuleRefusal> for plateforce_core::Refusal {
+    fn from(refusal: RuleRefusal) -> Self {
+        match refusal {
+            RuleRefusal::Trial(error) => plateforce_core::Refusal::from(error),
+            RuleRefusal::Refused(refused) => *refused,
+        }
+    }
+}
+
 /// One rule that declined, with everything the rule itself could not know: which construct
 /// it was filling and which id a caller reached it by.
 ///

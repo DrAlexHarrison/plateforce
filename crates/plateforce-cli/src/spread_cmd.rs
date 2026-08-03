@@ -15,7 +15,7 @@ use std::path::Path;
 
 use crate::analyse::PATH;
 use crate::decisions::slot_of;
-use crate::exit::{Fault, Outcome};
+use crate::exit::{Declined, Fault, Outcome};
 use crate::out::Format;
 use crate::registry_cmd::canonical;
 use crate::render::{Renderer, Role};
@@ -53,7 +53,7 @@ pub fn run(
     // so a misspelling reads as a run that worked.
     let reported = match plateforce_analysis::run(&prepared.trial.trial, &prepared.request) {
         Ok(response) => response.metrics,
-        Err(message) => return Outcome::declined_line(Fault::Request, message),
+        Err(refusal) => return Outcome::declined(Declined::recorded(*refusal)),
     };
     if !reported.iter().any(|metric| metric.key == quantity) {
         let names: Vec<&str> = reported.iter().map(|metric| metric.key.as_str()).collect();
@@ -64,7 +64,7 @@ pub fn run(
     }
 
     match measure(&prepared.trial.trial, &prepared.request, quantity) {
-        Err(message) => Outcome::declined_line(Fault::Request, message),
+        Err(refusal) => Outcome::declined(Declined::recorded(*refusal)),
         Ok(response) => {
             let document = match format {
                 Format::Json => match serde_json::to_value(&response) {
@@ -101,7 +101,7 @@ pub fn measure(
     trial: &Trial,
     request: &AnalysisRequest,
     quantity_key: &str,
-) -> Result<SpreadResponse, String> {
+) -> Result<SpreadResponse, Box<plateforce_core::Refusal>> {
     sweep(
         trial,
         &SpreadRequest {

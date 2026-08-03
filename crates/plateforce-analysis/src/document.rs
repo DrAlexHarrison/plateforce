@@ -9,7 +9,7 @@ use plateforce_core::Refusal;
 use serde::Serialize;
 
 use crate::quality::QualitySignal;
-use crate::resolution::{BoundMethod, DeclinedRule, RuleRefusal};
+use crate::resolution::{BoundMethod, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
 use crate::spread::SpreadResponse;
 
@@ -64,10 +64,7 @@ pub struct ResultDocument {
 /// `weighing` and `onset`, resolve to nothing in the registry, so a caller handed one has a
 /// name it cannot look up.
 pub fn refusal_from_rule(declined: &DeclinedRule) -> Refusal {
-    let refused = match &declined.refusal {
-        RuleRefusal::Trial(error) => Refusal::from(error.clone()),
-        RuleRefusal::Refused(refusal) => refusal.as_ref().clone(),
-    };
+    let refused = Refusal::from(declined.refusal.clone());
     let named = if refused.method_id.is_empty() {
         refused.under(&declined.method_id)
     } else {
@@ -124,6 +121,7 @@ impl ResultDocument {
 mod tests {
     use super::*;
     use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
+    use crate::resolution::RuleRefusal;
     use plateforce_core::{RefusalCode, TrialError};
 
     fn declined(construct: &'static str, method_id: &str, refusal: RuleRefusal) -> DeclinedRule {

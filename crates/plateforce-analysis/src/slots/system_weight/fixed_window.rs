@@ -2,7 +2,7 @@
 
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::trial::CentralTendency;
-use plateforce_core::{DispersionEstimator, Trial, WeighingEpoch};
+use plateforce_core::{DispersionEstimator, Refusal, Trial, WeighingEpoch};
 
 use crate::request::WeighingChoice;
 use crate::resolution::Resolution;
@@ -16,7 +16,7 @@ pub(crate) fn place(
     duration_seconds: f64,
     dispersion: DispersionEstimator,
     resolved: &mut Resolution,
-) -> Result<WeighingEpoch, String> {
+) -> Result<WeighingEpoch, Refusal> {
     let centre = resolved
         .enumerated(
             "centre",
@@ -26,7 +26,7 @@ pub(crate) fn place(
                 ("median", CentralTendency::Median),
             ],
         )
-        .map_err(|refused| refused.to_string())?;
+        .map_err(Refusal::from)?;
     let epoch = weighing_epoch_at(
         trial,
         choice.start_index.unwrap_or(0),

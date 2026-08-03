@@ -10,22 +10,29 @@ declined <- function() {
   )
 }
 
+# An analysis that ends before any number computes used to be wrapped here under
+# `analysis_declined`, a name this package's own manifest does not publish, so the class a
+# caller would catch it by did not exist. It arrives under the code the rule declined on.
 test_that("a refusal arrives classed by its code, as a refusal, and as an error", {
   condition <- declined()
 
   expect_identical(
     class(condition),
-    c("plateforce_analysis_declined", "plateforce_refusal", "plateforce_error",
+    c("plateforce_method_not_implemented", "plateforce_refusal", "plateforce_error",
       "error", "condition")
   )
-  expect_identical(condition[["code"]], "analysis_declined")
+  expect_identical(condition[["code"]], "method_not_implemented")
+
+  manifest <- jsonlite::fromJSON(capability_json(), simplifyVector = FALSE)
+  published <- vapply(manifest[["ok"]][["refusal_codes"]], function(row) row[["code"]], character(1))
+  expect_true(condition[["code"]] %in% published)
 })
 
 test_that("both the specific and the general handler catch one refusal", {
   condition <- declined()
 
   expect_identical(
-    tryCatch(stop(condition), plateforce_analysis_declined = function(c) "specific"),
+    tryCatch(stop(condition), plateforce_method_not_implemented = function(c) "specific"),
     "specific"
   )
   expect_identical(
@@ -39,7 +46,17 @@ test_that("a field is read by its whole name", {
 
   expect_error(condition$method)
   expect_error(condition$param)
-  expect_identical(condition[["code"]], "analysis_declined")
+  expect_identical(condition[["code"]], "method_not_implemented")
+})
+
+# The fields the record carries, rather than the sentence a caller would have had to parse.
+# The rule that could not be bound and the step it was named for are both fields.
+test_that("an analysis that declined names the rule and the construct as fields", {
+  condition <- declined()
+
+  expect_identical(condition[["method_id"]], "onset.not.a.rule")
+  expect_identical(condition[["slot"]], "movement_onset")
+  expect_true(length(condition[["available"]]) > 0)
 })
 
 test_that("every field the idiom names is present on a refusal", {

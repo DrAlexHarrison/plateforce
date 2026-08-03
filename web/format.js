@@ -31,3 +31,12 @@ export function element(tag, className, text) {
 export function showStage(id) {
   for (const stage of document.querySelectorAll('.stage')) stage.hidden = stage.id !== id;
 }
+
+/* The one reply shape the engine answers in, read once here. `{ok}` carries the result and
+ * `{refusal}` carries the record: a code to branch on, the rule that declined, and what
+ * could have been asked for instead. A refusal used to arrive as a thrown string, so the
+ * page held the sentence and none of the fields. */
+export function reply(json) {
+  const parsed = JSON.parse(json);
+  return { ok: parsed.ok ?? null, refusal: parsed.refusal ?? null };
+}

@@ -411,18 +411,9 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                     });
                 }
             }
-            Err(message) => refusals.push(RefusalRow {
-                trial_id: trial_id.clone(),
-                ordinal: 0,
-                code: "method_not_implemented".to_string(),
-                method_id: String::new(),
-                slot: request.slot.clone(),
-                parameter: String::new(),
-                value: String::new(),
-                detail: String::new(),
-                available: String::new(),
-                message,
-            }),
+            // The sweep says which code it declined under, so this row carries that rather
+            // than a code chosen here for every failure the sweep can have.
+            Err(declined) => refusals.push(crate::engine::refusal_row(trial_id, 0, &declined)),
         }
     }
 
