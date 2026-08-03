@@ -1,0 +1,3 @@
+# The registry copy `tools/vendor-registry.sh` writes so the source distribution can carry
+# it. Git tracks one registry, at the repository root; this is a build artefact taken from it.
+registry/

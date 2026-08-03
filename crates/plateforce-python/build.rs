@@ -12,7 +12,8 @@ use plateforce_registry::{assemble, read_sources, Source};
 
 fn main() {
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    let registry_root = manifest.join("../../registry");
+    let registry_root = registry_root(&manifest);
+    println!("cargo:rerun-if-changed={}", registry_root.display());
 
     let sources = read_sources(&registry_root).unwrap_or_else(|error| panic!("{error}"));
     for path in watched_paths(&registry_root, &sources) {
@@ -50,6 +51,32 @@ fn main() {
 
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("embedded_registry.rs");
     std::fs::write(out, generated).unwrap();
+}
+
+/// The copy inside this crate first, then the one the repository tracks.
+///
+/// A wheel is built from the source distribution with no checkout beside it, and the registry
+/// is not a crate, so maturin carries it only when `tools/vendor-registry.sh` has put a copy
+/// in here. A build in a clone finds no copy and reads the single tree every other surface
+/// validates against, so nobody has to run a script to compile the crate they just cloned.
+///
+/// Failing names both places it looked and the command that fixes it, because this panic
+/// previously read as a missing file with no indication that a copy step existed.
+fn registry_root(manifest: &Path) -> PathBuf {
+    let vendored = manifest.join("registry");
+    if vendored.is_dir() {
+        return vendored;
+    }
+    let tracked = manifest.join("../../registry");
+    if tracked.is_dir() {
+        return tracked;
+    }
+    panic!(
+        "no registry at {} and none at {}: a source distribution carries its own copy, \
+         written by crates/plateforce-python/tools/vendor-registry.sh",
+        vendored.display(),
+        tracked.display()
+    );
 }
 
 /// Every file, and every directory holding one. Without the directories, a method file

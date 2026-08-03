@@ -16,6 +16,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "scripts/check-wheel-set.py"
+      - "scripts/check-sdist-carries-registry.py"
       - "scripts/smoke-installed-wheel.py"
       - ".github/workflows/python-wheels.yml"
   pull_request:
@@ -60,6 +61,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # maturin carries the workspace root and the sibling crates, which is why the engine
+      # compiles inside the tarball. The registry is a directory rather than a crate, so
+      # nothing carried it and `build.rs` read a path that was not there. It has to be
+      # inside the package: maturin's include resolves against the crate root and refuses
+      # a path containing `..`.
+      - name: Copy the registry into the package
+        run: sh crates/plateforce-python/tools/vendor-registry.sh
+
       # The crate is a workspace member, so the sdist has to carry the workspace root and
       # the sibling crates. maturin resolves that; every wheel below is then built from
       # this one artefact, which is also what proves the sdist is complete.
@@ -68,6 +77,12 @@ jobs:
         with:
           command: sdist
           args: --out dist --manifest-path crates/plateforce-python/Cargo.toml
+
+      # The wheel jobs prove this too, by failing, six minutes later on five platforms at
+      # once and with a Rust panic about a path. This says the same thing in seconds and
+      # names the file count and the script that fixes it.
+      - name: The source distribution carries the registry it will be built against
+        run: python3 scripts/check-sdist-carries-registry.py dist/*.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
