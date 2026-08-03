@@ -222,7 +222,7 @@ impl AnalysisRequest {
             let runnable: Vec<String> = crate::binding::bindings_for_construct(&binding.construct)
                 .map(|binding| binding.id.to_string())
                 .collect();
-            if !runnable.iter().any(|id| *id == binding.method_id) {
+            if !runnable.contains(&binding.method_id) {
                 return Err(Box::new(Refusal::method_not_implemented(
                     binding.method_id.clone(),
                     binding.construct.clone(),
