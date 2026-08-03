@@ -46,6 +46,7 @@ fn status_name(status: QualityStatus) -> &'static str {
     match status {
         QualityStatus::Disagrees => "disagrees",
         QualityStatus::Incomparable => "incomparable",
+        QualityStatus::AtSearchFloor => "at_search_floor",
     }
 }
 
