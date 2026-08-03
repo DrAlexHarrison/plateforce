@@ -27,8 +27,13 @@ pub enum Command {
     },
 }
 
-pub fn run(command: &Command, directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
-    let registry = match Registry::load(directory) {
+pub fn run(
+    command: &Command,
+    directory: Option<&Path>,
+    format: Format,
+    renderer: &Renderer,
+) -> Outcome {
+    let registry = match crate::registry_source::load(directory) {
         Ok(registry) => registry,
         Err(error) => {
             return Outcome::declined(Declined::recorded(Refusal::registry_invalid(format!(
@@ -90,11 +95,11 @@ fn census(registry: &Registry, format: Format) -> Outcome {
     Outcome::complete(document)
 }
 
-fn validate(registry: &Registry, directory: &Path, format: Format) -> Outcome {
+fn validate(registry: &Registry, directory: Option<&Path>, format: Format) -> Outcome {
     let census = registry.census();
     if format == Format::Json {
         return Outcome::complete(canonical(&json!({
-            "registry_directory": directory.display().to_string(),
+            "registry_source": crate::registry_source::describe(directory),
             "registry_digest": registry.content_digest,
             "computation_entries": census.computation_entries,
             "protocol_entries": census.protocol_entries,
@@ -104,8 +109,8 @@ fn validate(registry: &Registry, directory: &Path, format: Format) -> Outcome {
     // The digest names which registry this was, measured from the bytes read rather than
     // declared beside them, so an id quoted in a methods section resolves to a version.
     Outcome::complete(format!(
-        "registry at {} is valid: {} computation entries, {} protocol entries, {} constructs\nregistry digest: {}",
-        directory.display(),
+        "{} is valid: {} computation entries, {} protocol entries, {} constructs\nregistry digest: {}",
+        crate::registry_source::in_prose(directory),
         census.computation_entries,
         census.protocol_entries,
         census.constructs,

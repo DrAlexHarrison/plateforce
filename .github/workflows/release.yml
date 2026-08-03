@@ -12,10 +12,27 @@ permissions:
   contents: read
 
 jobs:
+  # First, and everything below waits on it. The tag is the one input to this route that a
+  # person types, and until now it was the one input nothing compared against anything. A
+  # tag naming a version the manifests do not name produces a release page titled v0.2.0
+  # carrying seven files named 0.1.0, and the artefact check passes, because those names
+  # agree with each other. Thirty seconds here rather than after a seven minute matrix.
+  named:
+    name: the tag names the version the manifests do
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: One release, one version
+        run: |
+          python3 scripts/verify-version-homes.py \
+            --ref-type "${{ github.ref_type }}" --ref-name "${{ github.ref_name }}"
+
   linux:
+    needs: named
     uses: ./.github/workflows/desktop-linux.yml
     secrets: inherit
   macos:
+    needs: named
     uses: ./.github/workflows/desktop-macos.yml
     secrets: inherit
     with:
@@ -24,6 +41,7 @@ jobs:
       # warning, which is true only of a signed and notarised one.
       must_be_signed: ${{ startsWith(github.ref, 'refs/tags/') }}
   windows:
+    needs: named
     uses: ./.github/workflows/desktop-windows.yml
     secrets: inherit
 

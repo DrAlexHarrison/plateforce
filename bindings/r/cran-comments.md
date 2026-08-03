@@ -3,7 +3,7 @@
 ## Test environments
 
 * Linux x86_64, R 4.3.3, rustc 1.97.1
-* The declared toolchain floor, rustc 1.82, built from a clean tree in CI
+* The declared toolchain floor, rustc 1.82, built from a clean tree, in CI and locally
 
 ## R CMD check results
 
@@ -26,9 +26,9 @@ The check machine could not reach the time service it queries.
 
 ```
 * checking installed package size ... NOTE
-  installed size is  5.1Mb
+  installed size is  6.0Mb
   sub-directories of 1Mb or more:
-    libs   4.3Mb
+    libs   5.2Mb
 ```
 
 The shared object statically links the compiled analysis engine, which is what makes the

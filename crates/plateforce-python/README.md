@@ -3,16 +3,19 @@
 Force-plate analysis where a result carries the method that produced it. You pick a
 published method from the registry, and the number you get back remembers which one.
 
-Build a wheel from this repository and install it:
-
 ```
-pip install maturin
-maturin build --release --manifest-path crates/plateforce-python/Cargo.toml
-pip install target/wheels/plateforce-*.whl
+pip install plateforce
 ```
 
-The machine that installs the wheel needs no compiler and no Rust toolchain. One abi3 wheel
-per platform covers Python 3.11 and every later version.
+The machine that installs it needs no compiler and no Rust toolchain. One abi3 wheel per
+platform covers Python 3.11 and every later version, and the method registry travels inside
+the wheel, so the digest a result reports names the same bytes on every machine that
+installed the same version.
+
+**`plateforce` is not `forceplate`.** The similarly named CRAN package, by Hartmann, Koger
+and Johannsen, analyses posturography: centre-of-pressure measures from quiet standing.
+This one computes jump kinetics from a vertical ground reaction force trace. The two are
+unrelated and neither is a port of the other.
 
 ## Analysing one jump
 
@@ -20,7 +23,7 @@ per platform covers Python 3.11 and every later version.
 import numpy as np
 import plateforce as pf
 
-registry = pf.Registry.load("registry", version="2026-07-25")
+registry = pf.Registry.load()
 
 force_newtons = np.loadtxt("trial.csv")        # vertical ground reaction force, newtons
 trial = pf.Trial(force_newtons, sample_rate_hz=1200.0)

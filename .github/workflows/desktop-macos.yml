@@ -14,7 +14,16 @@ on:
         description: Refuse the ad-hoc path, for a run whose artefact reaches a reader.
         type: boolean
         default: false
+  # The same switch by hand, so the signing path can be run once before a tag runs it.
+  # Only a tag sets it on the release route, and a tag is created once and deleted with
+  # difficulty, so without this the first execution of the signing and notarisation path
+  # is also the release. Dispatching this with the box ticked makes the tag the second.
   workflow_dispatch:
+    inputs:
+      must_be_signed:
+        description: Refuse the ad-hoc path. Tick this to rehearse the signed release.
+        type: boolean
+        default: false
 
 permissions:
   contents: read

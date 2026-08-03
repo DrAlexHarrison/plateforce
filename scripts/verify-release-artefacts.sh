@@ -120,17 +120,12 @@ check_bundle_payload() {
   echo "bundle wasm matches web/pkg: sha256 $in_the_bundle"
 }
 
+# Four manifests state the version and this used to compare two of them, so the R package
+# and the R crate could name a different release from the desktop and the terminal and
+# nothing said so. The comparison lives in one place now, and the tag is compared against
+# the same four at the top of the release route.
 check_versions() {
-  local workspace shell
-  workspace="$(version_from Cargo.toml plateforce-cli)"
-  shell="$(version_from src-tauri/Cargo.toml plateforce-desktop)"
-  if [ "$workspace" != "$shell" ]; then
-    echo "the two version homes disagree, so the artefacts would not name one release" >&2
-    echo "  Cargo.toml:           $workspace" >&2
-    echo "  src-tauri/Cargo.toml: $shell" >&2
-    return 1
-  fi
-  echo "version $workspace in both manifests"
+  python3 scripts/verify-version-homes.py
 }
 
 # The install documentation is the only place the routes are stated, so a command it names
@@ -163,6 +158,43 @@ check_documented_commands() {
     return 1
   fi
   echo "every route docs/install.md names is one the binary answers"
+}
+
+# Naming a command in the help text is not answering it. This runs one, from a directory
+# holding nothing, which is what a reader who downloaded a single file has.
+#
+# The population this artefact exists for cannot fetch a registry: enterprise Linux, an
+# air-gapped analysis box, a machine whose administrator is somebody else. A binary that
+# lists `registry` in its help and then exits 78 because no `registry/` directory sits in
+# the working directory reaches them with a terminal that cannot answer anything, and the
+# check above passes it, because the word is in the help.
+check_terminal_reaches_the_registry() {
+  local binary
+  binary="$(cd "$1" && pwd)/plateforce-x86_64-linux-static"
+  [ -x "$binary" ] || { echo "no runnable static binary to ask" >&2; return 1; }
+
+  local sandbox reported status
+  sandbox="$(mktemp -d)"
+  set +e
+  reported="$(cd "$sandbox" && "$binary" registry census 2>&1)"
+  status=$?
+  set -e
+  rmdir "$sandbox" 2>/dev/null
+
+  if [ "$status" -ne 0 ]; then
+    echo "the terminal cannot reach a registry with none beside it, exit ${status}:" >&2
+    printf '  %s\n' "$reported" >&2
+    return 1
+  fi
+  # A census that counted nothing exits zero and reads like a working one, so the count is
+  # read rather than the exit code alone. Anchored, because the rows below this one break
+  # the same population down and carry their own numbers.
+  if ! printf '%s' "$reported" | command grep -qE '^ *computation entries +[1-9]'; then
+    echo "the terminal answered with no computation entries:" >&2
+    printf '  %s\n' "$reported" >&2
+    return 1
+  fi
+  echo "the terminal reaches a registry with none beside it: $(printf '%s' "$reported" | head -1)"
 }
 
 check_declared_set() {
@@ -211,6 +243,7 @@ case "${1:-}" in
     check_declared_set "$1" || status=1
     check_versions || status=1
     check_documented_commands "$1" || status=1
+    check_terminal_reaches_the_registry "$1" || status=1
     exit "$status"
     ;;
 esac

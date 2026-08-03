@@ -97,10 +97,10 @@ pub(crate) struct Prepared {
 /// second question of the same trial meets the same decision rail rather than its own.
 pub(crate) fn prepare(
     args: &Args,
-    registry_directory: &Path,
+    registry_directory: Option<&Path>,
     renderer: &Renderer,
 ) -> Result<Prepared, Outcome> {
-    let registry = match Registry::load(registry_directory) {
+    let registry = match crate::registry_source::load(registry_directory) {
         Ok(registry) => registry,
         Err(error) => {
             return Err(Outcome::declined(Declined::recorded(
@@ -137,7 +137,12 @@ pub(crate) fn prepare(
     })
 }
 
-pub fn run(args: &Args, registry_directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
+pub fn run(
+    args: &Args,
+    registry_directory: Option<&Path>,
+    format: Format,
+    renderer: &Renderer,
+) -> Outcome {
     let Prepared {
         registry,
         trial,

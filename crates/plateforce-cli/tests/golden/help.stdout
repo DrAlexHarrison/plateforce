@@ -14,7 +14,7 @@ Commands:
   help        Print this message or the help of the given subcommand(s)
 
 Options:
-      --registry <DIR>   Path to the registry directory
+      --registry <DIR>   Read the registry in this directory rather than the one compiled in
       --format <FORMAT>  Write the result as readable text or as JSON [default: text] [possible values: text, json]
       --out <PATH>       Write the result to this path
       --color <COLOR>    When to colour the output [default: auto] [possible values: auto, always, never]

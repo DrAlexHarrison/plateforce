@@ -94,8 +94,8 @@ fn reach_of(registry: &Registry) -> Vec<ConstructReach> {
         .collect()
 }
 
-pub fn run(registry_directory: &Path, format: Format, renderer: &Renderer) -> Outcome {
-    let registry = match Registry::load(registry_directory) {
+pub fn run(registry_directory: Option<&Path>, format: Format, renderer: &Renderer) -> Outcome {
+    let registry = match crate::registry_source::load(registry_directory) {
         Ok(registry) => registry,
         Err(error) => {
             return Outcome::declined(Declined::recorded(Refusal::registry_invalid(format!(

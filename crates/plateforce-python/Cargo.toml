@@ -30,3 +30,8 @@ plateforce-registry = { workspace = true }
 # than a lower floor because Py_buffer entered the stable ABI in 3.11, which is what lets
 # an array be read without a numpy dependency.
 pyo3 = { version = "0.29.0", features = ["abi3-py311"] }
+
+# The build script assembles the registry with the registry crate's own walk, so a set of
+# files the directory loader refuses fails this build rather than reaching a wheel.
+[build-dependencies]
+plateforce-registry = { workspace = true }
