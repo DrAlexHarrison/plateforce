@@ -5,8 +5,11 @@
 //! lands. A construct joins `computed` when a rule is bound for it, so that count only
 //! rises, and it is the one a floor can be held to.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+
+use plateforce_registry::{Boundary, Registry};
 
 fn plateforce(arguments: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_plateforce"))
@@ -72,41 +75,68 @@ fn every_construct_out_of_reach_names_what_stands_in_the_way() {
     assert!(unnamed.is_empty(), "{unnamed:?}");
 }
 
-/// A barrier that is a movement and an instrument at once names both. Collapsing it to
-/// either would be wrong about its own scope on the second largest class of walled entry.
+/// A barrier that is a movement and an instrument at once names both, and is never rounded
+/// to either.
 ///
-/// Asked of a registry built to hold one rather than of the shipped registry, so the rule is
-/// exercised whatever the shipped classification happens to be.
+/// Asked as a property of every row whose rules file one, rather than as the single row a
+/// fixture builds. An exact set would have to be restated each time an entry is classified,
+/// and a guard answered by editing its expectation has stopped being one.
 #[test]
 fn a_construct_walled_by_two_things_names_both() {
     let (scratch, construct) = walled_registry("both", None);
     let report = reach_in(scratch.to_str().unwrap());
-    let both: Vec<&str> = report["constructs"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|row| {
-            let barriers: Vec<&str> = row["boundary"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .filter_map(|b| b.as_str())
-                .collect();
-            barriers.contains(&"movement") && barriers.contains(&"instrument")
-        })
-        .map(|row| row["id"].as_str().unwrap())
-        .collect();
+    let filing_both = constructs_filing_a_two_part_barrier(&scratch);
+    assert!(
+        filing_both.contains(&construct),
+        "the fixture walls its construct with a two-part barrier"
+    );
+
+    let mut named_both = Vec::new();
+    for row in report["constructs"].as_array().unwrap() {
+        let id = row["id"].as_str().unwrap();
+        let barriers: Vec<&str> = row["boundary"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|barrier| barrier.as_str())
+            .collect();
+        if barriers.is_empty() || !filing_both.contains(id) {
+            continue;
+        }
+        assert!(
+            barriers.contains(&"movement") && barriers.contains(&"instrument"),
+            "{id} files a two-part barrier and reported {barriers:?}"
+        );
+        named_both.push(id.to_string());
+    }
+
     println!(
-        "constructs naming both barriers: {} of {}",
-        both.len(),
+        "constructs out of reach whose rules file a two-part barrier: {} of {}, each naming both",
+        named_both.len(),
         report["construct_count"]
     );
-    assert_eq!(
-        both,
-        [construct],
-        "the union rule collapsed a two-part barrier"
+    assert!(
+        named_both.len() > 1,
+        "the union rule met one row, which says nothing about the rest: {named_both:?}"
     );
     let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// The constructs a registry files a two-part barrier for, read through the loader the
+/// software reads it with rather than by a second parse of the same files.
+fn constructs_filing_a_two_part_barrier(registry_root: &Path) -> BTreeSet<String> {
+    Registry::load(registry_root)
+        .expect("the fixture registry loads")
+        .methods
+        .values()
+        .filter(|method| {
+            method
+                .reach
+                .as_ref()
+                .is_some_and(|reach| reach.boundary == Boundary::Both)
+        })
+        .map(|method| method.construct.clone())
+        .collect()
 }
 
 /// Every barrier the registry can file reaches a row, so a fifth spelling cannot arrive and
