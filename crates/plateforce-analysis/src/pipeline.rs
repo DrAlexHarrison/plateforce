@@ -152,6 +152,7 @@ pub fn run(
     // Every chain opens with what conditioned the signal, because every number below was
     // measured on the series those rules produced and none of them can be reproduced without
     // knowing which series that was.
+    //
     // The id a metric names has to be one a reader can look up, exactly as the bound record's
     // is. The onset ids already are, because they come back from the rules themselves; the
     // takeoff id is the request's word and is put through the same redirect here.
