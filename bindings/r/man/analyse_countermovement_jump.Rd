@@ -20,6 +20,7 @@ analyse_countermovement_jump(
   onset_index = NULL,
   takeoff_index = NULL,
   touchdown_index = NULL,
+  derived = NULL,
   registry = NULL
 )
 }
@@ -45,6 +46,13 @@ settings that are a choice between named alternatives rather than a number.}
 \item{weighing_start_index, onset_index, takeoff_index, touchdown_index}{Indices placed by
 hand. An override is a fact about what produced the number, so it travels in the
 record rather than replacing it.}
+
+\item{derived}{Rules for constructs computed from the landmarks, named by the construct
+id the registry declares: `list(analysis_window = "window_end.takeoff.detected",
+peak_force = "force.peak.gross")`. A rule that takes values is written
+`list(peak_force = list(method_id = "force.peak.estimator",
+parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
+one placed declines by name when that construct was not named.}
 
 \item{registry}{Directory holding the registry, as in [pf_registry()].}
 }
