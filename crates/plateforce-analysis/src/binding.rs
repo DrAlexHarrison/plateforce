@@ -421,7 +421,75 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
     },
+    // Declared last of the phase rules: the two propulsion subdivisions read the boundaries
+    // the propulsion rules placed, so the interval they split is already settled here.
+    Binding {
+        id: crate::slots::phase_model::unweighting_single::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "One unweighting phase from onset to peak negative velocity",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::unweighting_single::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::unweighting_single::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::unloading_yielding_split::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Unloading and eccentric yielding split at the force minimum",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::unloading_yielding_split::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::unloading_yielding_split::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::time_epochs::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Fixed time epochs measured from contraction onset",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::time_epochs::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::time_epochs::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::propulsion_subdivision_by_time::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Split the propulsion phase at half its duration",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::propulsion_subdivision_by_time::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::propulsion_subdivision_by_time::RULE),
+    },
+    Binding {
+        id: crate::slots::phase_model::propulsion_subdivision_by_force_crossing::ID,
+        slot: crate::slots::phase_model::CONSTRUCT,
+        construct: crate::slots::phase_model::CONSTRUCT,
+        title: "Split the propulsion phase where force descends through system weight",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::phase_model::propulsion_subdivision_by_force_crossing::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::phase_model::propulsion_subdivision_by_force_crossing::RULE),
+    },
 ];
+
+/// What a caller has to state before a rule will run, for the entries whose registry rows
+/// publish no default, each with one value that answers it.
+///
+/// A rule whose entry states a parameter required and publishes no default cannot be reached
+/// by a request that states nothing, and that is the entry working rather than the rule
+/// failing. Held beside the rules rather than inside each caller, so a surface asking the
+/// question and a check answering it read one list.
+pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static str)] {
+    match method_id {
+        crate::slots::propulsion_phase_end::peak_com_velocity::ID => {
+            crate::slots::propulsion_phase_end::peak_com_velocity::REQUIRED_OPTIONS
+        }
+        _ => &[],
+    }
+}
 
 /// Every rule reached by construct id through the request rather than by a named field.
 pub fn derived_bindings() -> impl Iterator<Item = &'static Binding> {

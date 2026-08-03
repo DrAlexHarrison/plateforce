@@ -48,6 +48,33 @@ pub(crate) fn placed_outcome(
     }
 }
 
+/// The same, for a search over a trace that may carry no such crossing at all.
+///
+/// A recording where force steps to flight without descending through system weight has no
+/// falling crossing, and that is a fact about the recording rather than an empty cell. It
+/// reaches a reader as a refusal under the code for a search that found nothing, so it is as
+/// visible as a number.
+pub(crate) fn crossing_or_refusal(
+    context: &DerivedContext,
+    method_id: &str,
+    key: &'static str,
+    name: &'static str,
+    index: Option<usize>,
+    bound: BoundValues,
+) -> DerivedOutcome {
+    match index {
+        Some(index) => placed_outcome(context, key, name, Some(index), bound),
+        None => DerivedOutcome::declined(
+            bound,
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
+                method_id,
+                0,
+                BTreeMap::new(),
+            ))),
+        ),
+    }
+}
+
 /// The same, for a search whose answer carries whether the signal really crossed.
 ///
 /// The core returns a fallback index when the signal never returns through the threshold,

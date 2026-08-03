@@ -458,3 +458,295 @@ fn propulsion_ends_before_takeoff_under_this_entry() {
         "propulsion ended at {end:.4} s, at or after takeoff at {takeoff:.4} s"
     );
 }
+
+fn keys_reported_by(response: &AnalysisResponse, rule: &str) -> Vec<String> {
+    response
+        .metrics
+        .iter()
+        .filter(|metric| metric.computed_by.as_deref() == Some(rule))
+        .map(|metric| metric.key.clone())
+        .collect()
+}
+
+/// The registry's own claim about this pair, and the reason a phase model is a decision a user
+/// makes rather than a default: the two models produce different sets of metrics, not
+/// different values for one metric. So the keys change when the model changes, and a reader
+/// comparing two results sees that rather than two numbers under one name.
+#[test]
+fn the_two_phase_models_report_two_different_sets_of_keys() {
+    let trial = a_jump_that_lands();
+    let single = run(
+        &trial,
+        &naming(&[("phase_model", "phase.model.unweighting_single.mcmahon2018")]),
+    )
+    .unwrap();
+    let split = run(
+        &trial,
+        &naming(&[(
+            "phase_model",
+            "phase.model.unloading_yielding_split.harry2020",
+        )]),
+    )
+    .unwrap();
+
+    let single_keys = keys_reported_by(&single, "phase.model.unweighting_single.mcmahon2018");
+    let split_keys = keys_reported_by(&split, "phase.model.unloading_yielding_split.harry2020");
+    println!("single {single_keys:?}\nsplit {split_keys:?}");
+    assert_eq!(single_keys.len(), 2, "{single_keys:?}");
+    assert_eq!(split_keys.len(), 5, "{split_keys:?}");
+    assert!(
+        single_keys.iter().all(|key| !split_keys.contains(key)),
+        "the two models shared a key, so a reader could take one model's number for the other"
+    );
+}
+
+/// The difference between the two is the force minimum, and it is a boundary in one and not
+/// the other. Measured on one trace: the split model's minimum lies strictly inside the single
+/// model's one unweighting phase, which is what makes the second model a split of the first
+/// rather than a different interval.
+#[test]
+fn the_split_model_puts_a_boundary_inside_the_single_models_unweighting_phase() {
+    let trial = a_jump_that_lands();
+    let single = run(
+        &trial,
+        &naming(&[("phase_model", "phase.model.unweighting_single.mcmahon2018")]),
+    )
+    .unwrap();
+    let split = run(
+        &trial,
+        &naming(&[(
+            "phase_model",
+            "phase.model.unloading_yielding_split.harry2020",
+        )]),
+    )
+    .unwrap();
+
+    let start = value(&single, "unweighting_phase_start_seconds").expect("a start");
+    let end = value(&single, "unweighting_phase_end_seconds").expect("an end");
+    let minimum = value(&split, "force_minimum_seconds").expect("a minimum");
+    println!("unweighting {start:.4} s to {end:.4} s, minimum {minimum:.4} s");
+    assert!(
+        start < minimum && minimum < end,
+        "the minimum at {minimum:.4} s is not inside {start:.4} s to {end:.4} s"
+    );
+    assert!(
+        value(&single, "force_minimum_seconds").is_none(),
+        "the single-phase model reported the force minimum, which is the other model"
+    );
+}
+
+/// The split model reads its own definition of where movement began, so a caller changing the
+/// onset rule cannot move a boundary this model never asked that rule for.
+///
+/// The two threshold rules both land ahead of this model's own start on this trace, so they
+/// cannot tell the two readings apart and a test built on them would pass either way. A
+/// dragged marker placed deliberately after the model's own start can: under a reading that
+/// searched from the bound onset, the unloading start would follow the marker.
+#[test]
+fn the_split_models_unloading_start_does_not_follow_the_bound_onset_rule() {
+    let trial = a_jump_that_lands();
+    let model = (
+        "phase_model",
+        "phase.model.unloading_yielding_split.harry2020",
+    );
+    let under = |onset_rule: &str, manual: Option<usize>| {
+        let mut request = naming(&[model]);
+        request.onset.method_id = onset_rule.to_string();
+        request.onset.manual_index = manual;
+        let response = run(&trial, &request).unwrap();
+        (
+            value(&response, "onset_time_seconds").expect("an onset"),
+            value(&response, "unloading_phase_start_seconds").expect("an unloading start"),
+        )
+    };
+
+    let (detected_onset, from_detected) = under("onset.threshold.noise_relative", None);
+    let (other_onset, from_other) = under("onset.threshold.relative_to_system_weight", None);
+    assert_eq!(
+        from_detected, from_other,
+        "the model's own start moved between two onset rules"
+    );
+
+    // A marker dragged well past the model's own start, so a rule that searched from the
+    // bound onset could not return the same instant.
+    let (dragged_onset, from_dragged) = under("onset.threshold.noise_relative", Some(1300));
+    println!(
+        "onsets {detected_onset:.4} s, {other_onset:.4} s, dragged {dragged_onset:.4} s; \
+         unloading start {from_detected:.4} s and {from_dragged:.4} s"
+    );
+    assert!(
+        dragged_onset > from_detected,
+        "the marker at {dragged_onset:.4} s did not land after the model's own start at \
+         {from_detected:.4} s, so this trace cannot tell the two readings apart"
+    );
+    assert_eq!(
+        from_dragged, from_detected,
+        "the model's own unloading start followed a dragged onset marker"
+    );
+}
+
+/// The model's own drop is a bound value that does move it, which is what separates a
+/// parameter this model owns from a choice it declines to inherit.
+#[test]
+fn a_deeper_unloading_drop_starts_the_split_model_later() {
+    let trial = a_jump_that_lands();
+    let at = |percent: f64| {
+        let mut request = naming(&[(
+            "phase_model",
+            "phase.model.unloading_yielding_split.harry2020",
+        )]);
+        request
+            .derived
+            .get_mut("phase_model")
+            .unwrap()
+            .parameters
+            .insert(
+                "unloading_drop_percent_of_system_weight".to_string(),
+                percent,
+            );
+        value(
+            &run(&trial, &request).unwrap(),
+            "unloading_phase_start_seconds",
+        )
+        .expect("an unloading start")
+    };
+    let published = at(2.5);
+    let deeper = at(15.0);
+    println!("2.5 percent at {published:.4} s, 15 percent at {deeper:.4} s");
+    assert!(
+        deeper > published,
+        "a deeper drop started no later: {deeper:.4} s against {published:.4} s"
+    );
+}
+
+/// Two published partitions of one interval, landing at two instants. Both bounded by the
+/// same propulsion boundaries, so the difference is the partition and nothing else.
+#[test]
+fn the_two_propulsion_subdivisions_split_one_interval_at_two_instants() {
+    let trial = a_jump_that_lands();
+    let both = |model: &str| {
+        with_option(
+            &[
+                (
+                    "propulsion_phase_start",
+                    "phase.propulsion_start.zero_velocity",
+                ),
+                (
+                    "propulsion_phase_end",
+                    "phase.propulsion_end.peak_com_velocity",
+                ),
+                ("phase_model", model),
+            ],
+            "propulsion_phase_end",
+            "search_signal",
+            "velocity_argmax",
+        )
+    };
+    let by_time = run(&trial, &both("phase.propulsion_subdivision.by_time")).unwrap();
+    let by_force = run(
+        &trial,
+        &both("phase.propulsion_subdivision.by_force_crossing"),
+    )
+    .unwrap();
+
+    let key = "propulsion_subdivision_seconds";
+    let time_split = value(&by_time, key).expect("a split by time");
+    let start = value(&by_time, "propulsion_phase_start_seconds").expect("a start");
+    let end = value(&by_time, "propulsion_phase_end_seconds").expect("an end");
+    println!("propulsion {start:.4} s to {end:.4} s, split by time {time_split:.4} s");
+    assert!(
+        start < time_split && time_split < end,
+        "the split at {time_split:.4} s is outside {start:.4} s to {end:.4} s"
+    );
+    // Halfway by construction, which is the whole of what the arbitrary rule claims.
+    assert!(
+        ((time_split - start) - (end - time_split)).abs() < 0.002,
+        "a 50 percent split was not halfway: {start:.4}, {time_split:.4}, {end:.4}"
+    );
+
+    // The event-anchored rule either lands somewhere else on the same interval, or says the
+    // recording carries no such crossing. Both are answers; agreeing silently is not.
+    match value(&by_force, key) {
+        Some(force_split) => {
+            println!("split by force crossing {force_split:.4} s");
+            assert_ne!(
+                force_split, time_split,
+                "the two partitions returned one instant, so the pair proves nothing here"
+            );
+        }
+        None => assert!(
+            by_force
+                .refusals
+                .iter()
+                .any(|rule| rule.method_id == "phase.propulsion_subdivision.by_force_crossing"),
+            "the force-crossing rule reported nothing and said nothing about why"
+        ),
+    }
+}
+
+/// A subdivision is bounded by whatever the propulsion rules placed, so it names both of them
+/// and moves when either does.
+#[test]
+fn a_propulsion_subdivision_names_both_boundaries_it_splits_between() {
+    let trial = a_jump_that_lands();
+    let response = run(
+        &trial,
+        &with_option(
+            &[
+                (
+                    "propulsion_phase_start",
+                    "phase.propulsion_start.zero_velocity",
+                ),
+                (
+                    "propulsion_phase_end",
+                    "phase.propulsion_end.peak_com_velocity",
+                ),
+                ("phase_model", "phase.propulsion_subdivision.by_time"),
+            ],
+            "propulsion_phase_end",
+            "search_signal",
+            "velocity_argmax",
+        ),
+    )
+    .unwrap();
+    let named = chain(&response, "propulsion_subdivision_seconds");
+    for rule in [
+        "phase.propulsion_start.zero_velocity",
+        "phase.propulsion_end.peak_com_velocity",
+    ] {
+        assert!(
+            named.contains(&rule.to_string()),
+            "the split did not name {rule}: {named:?}"
+        );
+    }
+}
+
+/// The time-anchored model measures from onset rather than from an event on the trace, so its
+/// boundary moves with the stated epoch and with nothing else on the far side of onset.
+#[test]
+fn a_longer_time_epoch_ends_later_and_lands_the_stated_distance_from_onset() {
+    let trial = a_jump_that_lands();
+    let at = |milliseconds: f64| {
+        let mut request = naming(&[("phase_model", "phase.anchor.time_epochs.schmidtbleicher")]);
+        request
+            .derived
+            .get_mut("phase_model")
+            .unwrap()
+            .parameters
+            .insert("epoch_ms".to_string(), milliseconds);
+        let response = run(&trial, &request).unwrap();
+        let onset = value(&response, "onset_time_seconds").expect("an onset");
+        value(&response, "time_epoch_end_seconds").expect("an epoch end") - onset
+    };
+    for milliseconds in [30.0, 50.0, 100.0, 200.0, 250.0] {
+        let measured = at(milliseconds);
+        println!(
+            "{milliseconds} ms epoch measured {:.4} s from onset",
+            measured
+        );
+        assert!(
+            (measured - milliseconds / 1000.0).abs() < 0.002,
+            "a {milliseconds} ms epoch ended {measured:.4} s after onset"
+        );
+    }
+}

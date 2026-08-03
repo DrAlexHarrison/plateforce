@@ -29,6 +29,13 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     computed_by: Some(ID),
 }];
 
+/// What a caller has to answer before this rule can run, with one value that answers it.
+///
+/// Not a default. `place` refuses an unstated signal and the entry forbids the default that
+/// would quiet it. This is what a surface offering the rule has to ask, and what a check
+/// reaching the rule has to supply, so neither has to know the answer by heart.
+pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[("search_signal", "velocity_argmax")];
+
 #[derive(Clone, Copy)]
 enum SearchSignal {
     VelocityArgmax,

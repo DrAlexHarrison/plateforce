@@ -543,6 +543,17 @@ mod tests {
             "takeoff" => candidate.takeoff.method_id = binding.id.to_string(),
             "weighing" => candidate.weighing.method_id = binding.id.to_string(),
             _ => {
+                // Whatever an entry states required with no default is answered here. A rule
+                // that cannot run unasked is the entry working, and leaving it unanswered
+                // would make every rule downstream of it undemonstrable too.
+                let choosing = |chosen: &crate::binding::Binding| MethodChoice {
+                    method_id: chosen.id.to_string(),
+                    options: crate::binding::required_options(chosen.id)
+                        .iter()
+                        .map(|(name, value)| (name.to_string(), value.to_string()))
+                        .collect(),
+                    ..Default::default()
+                };
                 for earlier in crate::binding::derived_bindings() {
                     if earlier.construct == binding.construct {
                         break;
@@ -550,18 +561,11 @@ mod tests {
                     candidate
                         .derived
                         .entry(earlier.construct.to_string())
-                        .or_insert_with(|| MethodChoice {
-                            method_id: earlier.id.to_string(),
-                            ..Default::default()
-                        });
+                        .or_insert_with(|| choosing(earlier));
                 }
-                candidate.derived.insert(
-                    binding.construct.to_string(),
-                    MethodChoice {
-                        method_id: binding.id.to_string(),
-                        ..Default::default()
-                    },
-                );
+                candidate
+                    .derived
+                    .insert(binding.construct.to_string(), choosing(binding));
             }
         }
         candidate
@@ -596,23 +600,32 @@ mod tests {
         for binding in crate::binding::derived_bindings() {
             let response =
                 run(&trial, &request_reaching(binding)).expect("the request is well formed");
-            // An entry stating a parameter required with no default cannot be reached by a
-            // request that states nothing, and refusing there is the rule working. That is
-            // the "or says why it did not" half, and it is checked rather than skipped.
+            // The "or says why it did not" half. A rule may decline, and only for a reason
+            // that names something outside itself: a value only the caller supplies, an
+            // answer another construct owes it, or a search this recording gave nothing to.
+            // Any other code would be the rule failing rather than reporting.
             if let Some(declined) = response
                 .refusals
                 .iter()
                 .find(|rule| rule.method_id == binding.id)
             {
+                let crate::RuleRefusal::Refused(refusal) = &declined.refusal else {
+                    panic!(
+                        "{} declined with a trial error: {}",
+                        binding.id, declined.refusal
+                    )
+                };
                 assert!(
                     matches!(
-                        &declined.refusal,
-                        crate::RuleRefusal::Refused(refusal)
-                            if refusal.code == plateforce_core::RefusalCode::RequiredParameterUnstated
+                        refusal.code,
+                        plateforce_core::RefusalCode::RequiredParameterUnstated
+                            | plateforce_core::RefusalCode::DependencyUnresolved
+                            | plateforce_core::RefusalCode::DecisionNotMade
+                            | plateforce_core::RefusalCode::NoCrossing
                     ),
-                    "{} declined a request naming it, for a reason other than a value only the \
-                     caller can supply: {}",
+                    "{} declined under {:?}, which is the rule failing rather than reporting: {}",
                     binding.id,
+                    refusal.code,
                     declined.refusal
                 );
                 continue;
