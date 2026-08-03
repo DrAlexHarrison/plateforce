@@ -39,23 +39,52 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
 
         // Values and records that travel outward. None of them is a computation this
         // manifest asserts over.
-        "Acquisition" | "Bias" | "BatchResult" | "BatchRun" | "BoundMethod" | "Census"
-        | "Citation" | "Construct" | "CountermovementJump" | "Disagreement" | "Exclusions"
-        | "Failure" | "Gui" | "Measured" | "MethodEntry" | "Parameter" | "Preset"
-        | "Provenance" | "ProvenanceStep" | "ReadReport" | "Sentinel" | "SentinelPartition"
-        | "Spread" | "SpreadVariant" | "Trial" | "TrialIdentity" => Some(&[]),
+        "Acquisition"
+        | "Bias"
+        | "BatchResult"
+        | "BatchRun"
+        | "BoundMethod"
+        | "Census"
+        | "Citation"
+        | "Construct"
+        | "CountermovementJump"
+        | "Disagreement"
+        | "Exclusions"
+        | "Failure"
+        | "Gui"
+        | "Measured"
+        | "MethodEntry"
+        | "Parameter"
+        | "Preset"
+        | "Provenance"
+        | "ProvenanceStep"
+        | "ReadReport"
+        | "Sentinel"
+        | "SentinelPartition"
+        | "Spread"
+        | "SpreadVariant"
+        | "Trial"
+        | "TrialIdentity" => Some(&[]),
 
         // The exception hierarchy a caller catches by type.
-        "CollapsedBandError" | "MethodError" | "MethodNotImplementedError" | "NoCrossingError"
-        | "ParameterError" | "PlateforceError" | "RegistryError" | "TrialError" => Some(&[]),
+        "CollapsedBandError"
+        | "MethodError"
+        | "MethodNotImplementedError"
+        | "NoCrossingError"
+        | "ParameterError"
+        | "PlateforceError"
+        | "RegistryError"
+        | "TrialError" => Some(&[]),
 
         // Rules the research harness reaches directly rather than through an analysis, and
         // one identity computed from a number a plate did not measure. Each is a call into
         // the core, none is one of the named operations.
-        "classify_low_force_runs" | "jump_height_from_flight_time" | "partition_sentinel_values"
-        | "rise_after_run" | "rise_looks_like_a_landing" | "takeoff_by_landing_shape" => {
-            Some(&[])
-        }
+        "classify_low_force_runs"
+        | "jump_height_from_flight_time"
+        | "partition_sentinel_values"
+        | "rise_after_run"
+        | "rise_looks_like_a_landing"
+        | "takeoff_by_landing_shape" => Some(&[]),
         _ => None,
     }
 }

@@ -277,7 +277,12 @@ fn counted_apart(values: &[f64], sentinel: Option<CoreSentinel>) -> (usize, usiz
 /// Every field is a choice the caller stated and the reader acted on, plus what the file
 /// turned out to hold. A result carries the column a number came out of rather than leaving
 /// a reader of the result to ask which one it was.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "ReadReport")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "ReadReport"
+)]
 #[derive(Clone)]
 pub struct ReadReport {
     /// The file this trace was read from.
