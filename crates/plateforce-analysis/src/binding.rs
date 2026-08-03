@@ -357,6 +357,29 @@ pub const BINDINGS: &[Binding] = &[
             crate::slots::jump_height_undeclared::minimum_of_two_routes::RULE,
         ),
     },
+    // The phase boundaries, in trace order, which is also dependency order: propulsion end
+    // reads what braking start placed under its force option, and the phase models read the
+    // propulsion boundaries.
+    Binding {
+        id: crate::slots::braking_phase_start::zero_net_force::ID,
+        slot: crate::slots::braking_phase_start::CONSTRUCT,
+        construct: crate::slots::braking_phase_start::CONSTRUCT,
+        title: "Net force crosses zero upward after the minimum",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::braking_phase_start::zero_net_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::zero_net_force::RULE),
+    },
+    Binding {
+        id: crate::slots::braking_phase_start::min_force::ID,
+        slot: crate::slots::braking_phase_start::CONSTRUCT,
+        construct: crate::slots::braking_phase_start::CONSTRUCT,
+        title: "The instant of minimum vertical force following onset",
+        composed_from: None,
+        note: "",
+        quantities: crate::slots::braking_phase_start::min_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::min_force::RULE),
+    },
 ];
 
 /// Every rule reached by construct id through the request rather than by a named field.

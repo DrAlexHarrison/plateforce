@@ -4,6 +4,7 @@
 //! working on different rules in one construct never share a file.
 
 pub mod analysis_window;
+pub mod braking_phase_start;
 pub mod flight_time;
 pub mod jump_height_standing_frame;
 pub mod jump_height_takeoff_frame;

@@ -139,6 +139,18 @@
         },
         {
           "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "slot": "takeoff"
@@ -416,6 +428,18 @@
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
           "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
@@ -700,6 +724,18 @@
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
           "slot": "onset"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.min_force",
+          "slot": "braking_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "braking_phase_start",
+          "id": "phase.braking_start.zero_net_force",
+          "slot": "braking_phase_start"
         },
         {
           "composed_from": null,

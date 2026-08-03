@@ -800,6 +800,61 @@ mod tests {
         assert!(guarded.index > bare.index, "{guarded:?} against {bare:?}");
     }
 
+    /// The bound a rising-crossing search runs to has three regimes, and the propulsive peak
+    /// sits inside the one where the bound does not matter.
+    ///
+    /// Below the crossing the search is truncated and returns its own bound, because force is
+    /// still under the reference everywhere it looked. From the crossing to the sample before
+    /// force falls back through the reference, every bound returns the crossing. At or past
+    /// that fall the search reaches the collapse toward takeoff, where force is under the
+    /// reference again, and returns a sample there instead.
+    ///
+    /// The propulsive peak lies inside the middle regime by construction rather than by luck:
+    /// force has to rise through the reference to reach a maximum above it, and has to fall
+    /// back through the reference afterwards, so the maximum is strictly between the two. That
+    /// is what lets a rule bound the search at the peak without publishing the bound as a
+    /// setting. What is measured here rather than argued is only that a countermovement makes
+    /// one such excursion above system weight between onset and takeoff, and the denominator
+    /// is one synthetic trace: this test is the shape of the claim, not its prevalence.
+    #[test]
+    fn a_rising_crossing_is_fixed_across_the_band_the_propulsive_peak_sits_in() {
+        let force = countermovement_force();
+        let peak = index_of_maximum(&force[500..TAKEOFF_INDEX]).unwrap() + 500;
+        let crossing =
+            braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, peak).unwrap();
+        let falls_back = (peak..TAKEOFF_INDEX)
+            .find(|index| force[*index] <= SYSTEM_WEIGHT_NEWTONS)
+            .expect("force returns under system weight before takeoff");
+        assert!(
+            crossing < peak && peak < falls_back,
+            "crossing {crossing}, peak {peak}, fall {falls_back}"
+        );
+
+        for bound in [crossing, crossing + 1, peak, falls_back - 1] {
+            assert_eq!(
+                braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, bound),
+                Some(crossing),
+                "a bound at {bound} moved the boundary off {crossing}"
+            );
+        }
+        // Truncated below the band: the search returns the bound it was given, which is not a
+        // crossing at all.
+        assert_eq!(
+            braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, crossing - 60),
+            Some(crossing - 60)
+        );
+        // Past the band: the collapse before takeoff is under the reference again.
+        for bound in [falls_back, TAKEOFF_INDEX] {
+            let late = braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, bound)
+                .expect("the search still answers");
+            assert!(
+                late >= falls_back,
+                "a bound at {bound} returned {late}, before the fall at {falls_back}, so this \
+                 trace cannot show what the bound prevents"
+            );
+        }
+    }
+
     /// The minimum-force instant is not a boundary in this model, which is the whole
     /// difference between it and the split model.
     #[test]
