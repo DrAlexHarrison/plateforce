@@ -17,3 +17,6 @@ plateforce_*.tar.gz
 
 # Agent worktrees.
 .claude/
+
+# Browser verification artefacts written by an agent looking at the page.
+.playwright-mcp/
