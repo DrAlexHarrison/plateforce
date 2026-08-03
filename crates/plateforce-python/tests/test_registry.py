@@ -27,7 +27,7 @@ SHIPPED_REGISTRY = _find_shipped_registry()
 def test_the_census_reports_populations_separately(registry):
     census = registry.census
     assert census.constructs == 5
-    assert census.computation_entries == 7
+    assert census.computation_entries == 8
     assert census.protocol_entries == 0
     assert not hasattr(census, "total"), "the two populations are never summed"
 
