@@ -64,6 +64,12 @@ role = "proposes"
 reference = "Owen et al. 2014, JSCR 28(6):1552-1558"
 obtained = true
 
+[[method.citation]]
+key = "hawkin_glossary"
+role = "uses"
+reference = "Hawkin Dynamics glossary, the dwell this entry defaults to"
+obtained = false
+
 [method.gui]
 surfacing = "force_a_decision"
 rationale = "The choice moves the number by more than a training effect."
@@ -295,6 +301,24 @@ fn a_numeric_default_with_nobody_named_as_having_chosen_it_is_refused() {
     assert!(
         kinds.contains(&ViolationKind::DefaultWithoutSource {
             parameter: "k".to_string(),
+        }),
+        "{kinds:?}"
+    );
+}
+
+/// Naming a chooser the entry does not cite reads as provenance and carries none. The route a
+/// reader takes from a bound value is the entry it came from, so a key resolvable only on some
+/// other entry, or nowhere, leaves them holding a number and a word.
+#[test]
+fn a_default_naming_a_chooser_this_entry_does_not_cite_is_refused() {
+    let kinds = methods_broken(
+        "default_source = \"owen2014\"\n",
+        "default_source = \"owen2015\"\n",
+    );
+    assert!(
+        kinds.contains(&ViolationKind::DefaultSourceNamesNoCitation {
+            parameter: "k".to_string(),
+            source: "owen2015".to_string(),
         }),
         "{kinds:?}"
     );
