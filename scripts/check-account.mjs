@@ -162,7 +162,12 @@ const painted = await evaluate(`(async () => {
       offered: Boolean(control),
       wording: control ? control.textContent.trim() : null,
       written: metric ? state.analysis.descriptions[metric.key] ?? null : null,
-      rules: metric ? [metric.computed_by, ...metric.contributing_method_ids].filter(Boolean) : [],
+      // Off the rendered row rather than off the record the row was drawn from, so the two
+      // sides of the comparison below are two things a reader meets. Both read from the
+      // record would agree by construction whatever the page drew. The id leads the title
+      // the row carries, ahead of the values the rule was bound to.
+      rules: [...card.querySelectorAll('.metric__provenance .provenance')]
+        .map((rule) => rule.title.split(' | ')[0]),
       title: null,
       shown: null,
       blocks: 0,
