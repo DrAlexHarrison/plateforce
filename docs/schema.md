@@ -44,6 +44,7 @@ title = "Jump height, centre of mass rise from the instant of takeoff"
 label = "Jump height"
 unit = "meters"
 frame = "takeoff"
+rules_answer = "one_question"    # one_question | their_own_questions
 notes = "Not comparable with standing_frame without a declared correction."
 ```
 
@@ -51,6 +52,39 @@ notes = "Not comparable with standing_frame without a declared correction."
 the identifier. Measured across six course documents, `takeoff` appears in 6 of 6 and
 `onset`, `threshold` and `epoch` in 0 of 6, so the identifier alone reaches a reader who has
 met the concept under other words.
+
+### What a construct's rules are to each other
+
+A request carries one rule per construct, so a construct holding several entries is a choice
+the caller makes. Two shapes are sound and they are not the same choice.
+
+- `one_question`, the entries report the same quantities and picking one moves the values.
+  The five onset rules place one instant five ways.
+- `their_own_questions`, each entry reports quantities the others do not, so picking one
+  settles which quantities exist. The three phase models publish different landmark sets.
+
+Mixing them is the fault. Some entries share a key, so they answer the construct's question
+together, while another reports only keys those never report, so it answers a different
+question from the same slot: a caller reaching for that one loses the others' quantities and
+nothing on the result says so. `propulsion_subdivision` was cut out of `phase_model` for
+being that shape.
+
+`rules_answer` sits on the construct rather than on the entries because no single entry's
+row can carry it. From one row nothing says what the row beside it answers, so putting it on
+entries would store one fact N times and want a validator to keep the copies agreeing. It is
+not a relation either: it does not vary pair by pair, and a relation would want an edge for
+every pair and new edges on every pair a new entry creates. `disagrees_with` cannot serve for
+a stronger reason than shape. Its four kinds, `genuine`, `vendor_convention`, `units` and
+`naming`, all describe two entries answering the *same* question and returning different
+numbers, which is the opposite claim.
+
+Optional, and stated wherever the software can run two of a construct's entries and read the
+answer back off a recording. The guard
+`a_construct_holds_rules_that_all_answer_its_question_or_all_answer_their_own` requires it
+there and refuses a construct whose measured entries contradict it, either way round. Adding
+a second runnable entry to a construct that declares nothing turns that guard red, and its
+message says what to write. Left off elsewhere on purpose: a declaration no measurement can
+reach is an assertion, and this registry states queries.
 
 ## A computation entry
 
