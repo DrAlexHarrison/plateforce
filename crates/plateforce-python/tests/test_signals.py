@@ -84,9 +84,9 @@ def test_two_routes_disagreeing_reach_a_reader_with_the_figure_they_disagree_by(
 def test_a_comparison_that_could_not_run_reports_no_value_rather_than_a_sentence(
     truncated, rules
 ):
-    """The case every other renderer hardcodes a sentence for. The terminal and R write "not
-    comparable" and the browser writes "no second route on this trace", and both are true of
-    this signal and of no signal in general. This surface reports what the signal holds."""
+    """A comparison that could not run, which the three rendering surfaces put into a
+    sentence for a person to read. This surface reports what the signal holds and writes no
+    sentence, so a caller branching on the status reads the record rather than prose."""
     result = pf.analyse_countermovement_jump(truncated, **rules)
     assert len(result.signals) == 1
     signal = result.signals[0]

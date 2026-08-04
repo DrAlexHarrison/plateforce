@@ -3,12 +3,16 @@
 //! Nothing here computes or decides anything. `plateforce_analysis::quality` raises the
 //! signals, for every surface, and this carries them to a notebook as the fields they are.
 //!
-//! Every other surface renders a signal into a sentence, and all three of those renderers
-//! hardcode one for a signal carrying no value: the terminal and R write "not comparable"
-//! and the browser writes "no second route on this trace". Both are true of the one signal
-//! that ships and neither is true of a signal in general, so a second signal with an absent
-//! value makes them print something false. This surface writes no sentence. It reports the
-//! status the signal declares and leaves the value absent, which is what the signal holds.
+//! This surface writes no sentence at all. It reports the status the signal declares and
+//! leaves the value absent, which is what the signal holds, so a caller branching on either
+//! reads the record rather than prose about it.
+//!
+//! The three rendering surfaces write a sentence because a person is reading it, and each
+//! now names the status in the record's own spelling for the same reason this one does. They
+//! arrived there the hard way: all three once hardcoded a phrase written for the first signal
+//! that shipped, so the terminal and R told a reader "not comparable" and the browser told
+//! them "no second route on this trace" whatever the signal was about, and a second signal
+//! with an absent value would have printed a sentence that was false about their own data.
 
 use plateforce_analysis::quality::{QualitySignal as CoreQualitySignal, QualityStatus};
 use pyo3::prelude::*;
