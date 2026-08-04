@@ -65,9 +65,9 @@
         },
         {
           "composed_from": null,
-          "construct": "peak_force",
+          "construct": "net_peak_force",
           "id": "force.peak.net",
-          "slot": "peak_force"
+          "slot": "net_peak_force"
         },
         {
           "composed_from": null,
@@ -439,9 +439,9 @@
         },
         {
           "composed_from": null,
-          "construct": "peak_force",
+          "construct": "net_peak_force",
           "id": "force.peak.net",
-          "slot": "peak_force"
+          "slot": "net_peak_force"
         },
         {
           "composed_from": null,
@@ -817,9 +817,9 @@
         },
         {
           "composed_from": null,
-          "construct": "peak_force",
+          "construct": "net_peak_force",
           "id": "force.peak.net",
-          "slot": "peak_force"
+          "slot": "net_peak_force"
         },
         {
           "composed_from": null,
@@ -1193,9 +1193,9 @@
         },
         {
           "composed_from": null,
-          "construct": "peak_force",
+          "construct": "net_peak_force",
           "id": "force.peak.net",
-          "slot": "peak_force"
+          "slot": "net_peak_force"
         },
         {
           "composed_from": null,
