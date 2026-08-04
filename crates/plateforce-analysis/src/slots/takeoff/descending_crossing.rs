@@ -11,6 +11,7 @@ pub(crate) fn crossing(
     resolved: &mut Resolution,
 ) -> Result<usize, RuleRefusal> {
     let rate = trial.sample_rate_hz();
+    super::record_search_floor_at_trial_start(trial, resolved);
     // A crossing this rule calls confirmed has to have a span to be confirmed over,
     // so unstated it takes the shortest span the persistence operator publishes.
     let confirmation_samples = resolved

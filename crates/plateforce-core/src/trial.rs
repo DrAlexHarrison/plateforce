@@ -9,7 +9,7 @@ use crate::series::{
 use crate::signal::{Trial, TrialError};
 use crate::statistics::{
     lowest_variance_window, mean_and_standard_deviation, median, DispersionEstimator,
-    VarianceAccumulation,
+    VarianceAccumulation, WeighingWindowSearch,
 };
 
 /// The quiet-standing window that establishes system weight.
@@ -118,11 +118,16 @@ impl WeighingEpoch {
         })
     }
 
-    /// Weighing window chosen as the quietest stretch of the recording.
+    /// Weighing window chosen as the quietest stretch of the recording, and the search that
+    /// chose it.
     ///
     /// The low force floor keeps the flight phase out of the search, where the plate
     /// is unloaded and almost noiseless and would otherwise win on variance. The
     /// upper bound keeps the search before takeoff for the same reason.
+    ///
+    /// The search travels out beside the window because the floor removes candidate windows
+    /// from consideration, on subject 01's first trial 985 of 4801 of them, and a caller that
+    /// receives only the winner cannot say what was taken out of the running.
     pub fn lowest_variance(
         trial: &Trial,
         window_samples: usize,
@@ -130,7 +135,7 @@ impl WeighingEpoch {
         reject_at_or_below_newtons: Option<f64>,
         accumulation: VarianceAccumulation,
         dispersion: DispersionEstimator,
-    ) -> Result<Self, TrialError> {
+    ) -> Result<(Self, WeighingWindowSearch), TrialError> {
         let searchable = &trial.force()[..search_end_index.min(trial.len())];
         let found = lowest_variance_window(
             searchable,
@@ -147,15 +152,18 @@ impl WeighingEpoch {
         let deviation = mean_and_standard_deviation(window, dispersion)
             .map(|(_, deviation)| deviation)
             .unwrap_or(f64::NAN);
-        Ok(Self {
-            start_index: found.start_index,
-            end_index: found.start_index + window_samples,
-            system_weight_newtons: found.mean_newtons,
-            standard_deviation_newtons: deviation,
-            tied_window_count: found.tied_window_count,
-            tied_weight_low_newtons: found.tied_weight_low_newtons,
-            tied_weight_high_newtons: found.tied_weight_high_newtons,
-        })
+        Ok((
+            Self {
+                start_index: found.start_index,
+                end_index: found.start_index + window_samples,
+                system_weight_newtons: found.mean_newtons,
+                standard_deviation_newtons: deviation,
+                tied_window_count: found.tied_window_count,
+                tied_weight_low_newtons: found.tied_weight_low_newtons,
+                tied_weight_high_newtons: found.tied_weight_high_newtons,
+            },
+            found,
+        ))
     }
 
     /// System mass under a stated value of gravity.

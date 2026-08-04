@@ -670,6 +670,114 @@ calibration rather than in the method list.
 """
 
 [[method]]
+id = "takeoff.op.search_floor_at_weighing_epoch_end"
+construct = "takeoff"
+group = "D"
+title = "Begin the takeoff search where the weighing window ended"
+rule = """
+Begin the search for the flight phase at the end of the window that defined bodyweight, wherever
+that window fell, and never look earlier.
+"""
+# Split out of the threshold rules that apply it, which recorded the threshold they compared
+# against and not the first sample they were permitted to compare. Two of the five shipped takeoff
+# rules take this floor and three search the whole recording, so the fork is between rules rather
+# than inside any one of them.
+status = "contested"
+confidence = "medium"
+debate = "genuine"
+
+[[method.parameter]]
+name = "weighing_epoch_end_seconds"
+unit = "seconds"
+published_values = []
+required = false
+notes = """
+Measured, not chosen: it is an outcome of the weighing rule, and it is recorded because a floor that
+moves with the weighing window is otherwise invisible in the result. Where the window ends inside a
+stretch of low force, the first sample the search may examine already satisfies the threshold and
+the takeoff reported is that sample.
+"""
+
+[[method.citation]]
+key = "plateforce_shipped_convention"
+role = "uses"
+reference = "The floor this software has applied to its first-run and re-estimating takeoff rules since they were written, recorded here so a takeoff produced under it names it"
+obtained = true
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Split from the takeoff threshold rows in this registry; no publication states where a takeoff search begins, and the two policies were told apart by running them"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.op.search_floor_at_trial_start"
+kind = "genuine"
+note = """
+On subject 01's first trial under a weighing window ending at 4.4 s, the two rules taking this floor
+report takeoff at 4.4000 s and the three searching the whole recording report 4.1783 s, which moves
+jump height from the impulse from 37.0 cm to 1.4 cm.
+"""
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "very large where the weighing window ends inside a low-force stretch, none where it does not"
+rationale = """
+Show where the search began and which rule put it there. It runs whenever one of the two rules that
+take it is chosen, so hiding it would leave the most consequential bound on takeoff unstated.
+"""
+
+[[method]]
+id = "takeoff.op.search_floor_at_trial_start"
+construct = "takeoff"
+group = "D"
+title = "Search the whole recording for the flight phase"
+rule = """
+Consider every sample of the recording when placing takeoff, including the samples before the
+athlete was weighed.
+"""
+# Recorded so the two policies read as two values rather than as one value and a silence. A reader
+# comparing two records otherwise finds a floor on one and nothing on the other, which reads as a
+# rule that has no floor rather than as a rule that searches from the beginning.
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "search_floor_seconds"
+unit = "seconds"
+published_values = []
+required = false
+notes = """
+The first sample the search may examine, which for this policy is the start of the recording. It
+forbids nothing, and that is the fact it records: a takeoff placed here was found rather than
+returned for want of anywhere else to look.
+"""
+
+[[method.citation]]
+key = "plateforce_shipped_convention"
+role = "uses"
+reference = "The policy this software has applied to its longest-run, descending-crossing and landing-shape takeoff rules since they were written"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.op.search_floor_at_weighing_epoch_end"
+kind = "genuine"
+note = """
+Searching the whole recording admits the stretch before the athlete stepped onto the plate and the
+stretch after they stepped off, which is what places takeoff 843 ms late on 155 of 244 trials under
+the longest-run selection.
+"""
+
+[method.gui]
+surfacing = "default_and_show"
+sensitivity = "large on an untrimmed recording, none on a recording trimmed to one jump"
+rationale = """
+Shown for the same reason as the floor it disagrees with: which of the two ran is the difference
+between a takeoff found in the jump and a takeoff found somewhere else in the file.
+"""
+
+[[method]]
 id = "landing.threshold.tied_to_takeoff"
 construct = "landing"
 group = "D"

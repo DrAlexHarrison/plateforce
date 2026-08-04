@@ -22,6 +22,7 @@ pub(crate) fn crossing(
     // absence of the other. A reader comparing two records reads two values, not a value
     // against a silence.
     resolved.record("selection", "first".into(), ParameterSource::Assumed);
+    super::record_search_floor_at_weighing_epoch_end(trial, epoch, resolved);
     let minimum_flight_samples = resolved
         .milliseconds_as_samples("persistence_ms", 0.0, rate)
         .max(1);

@@ -82,6 +82,7 @@ pub(crate) fn crossing(
     warnings: &mut Vec<String>,
 ) -> Result<usize, RuleRefusal> {
     let spec = spec(resolved);
+    super::record_search_floor_at_trial_start(trial, resolved);
     let (placed, landing_count) = takeoff_by_landing_shape(
         trial.force(),
         epoch.system_weight_newtons,

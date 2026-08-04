@@ -7,6 +7,7 @@ pub mod flight_noise_k_sd;
 pub mod landing_shape;
 pub mod longest_run;
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::request::{AnalysisRequest, MethodChoice};
@@ -17,6 +18,16 @@ use crate::resolution::{BoundMethod, BoundValues, Resolution, RuleRefusal};
 pub(crate) const TAKEOFF_OP_CROSSING_SELECTION: &str = "takeoff.op.crossing_selection";
 pub(crate) const TAKEOFF_OP_SHORT_RUN_HANDLING: &str = "takeoff.op.short_run_handling";
 pub(crate) const TAKEOFF_OP_RESIDUAL_COMPARISON: &str = "takeoff.op.residual_comparison";
+/// A floor the weighing rule settled, which no caller chose and which moves with it.
+pub const TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END: &str =
+    "takeoff.op.search_floor_at_weighing_epoch_end";
+/// The policy of considering every sample, which the other three shipped rules take.
+pub const TAKEOFF_SEARCH_FLOOR_AT_TRIAL_START: &str = "takeoff.op.search_floor_at_trial_start";
+
+/// The names those two operators carry their values under. Named once because the rule that
+/// records a value and the reader that looks it up again are in different files.
+pub const TAKEOFF_WEIGHING_EPOCH_END_SECONDS: &str = "weighing_epoch_end_seconds";
+pub const TAKEOFF_SEARCH_FLOOR_SECONDS: &str = "search_floor_seconds";
 
 /// The entries this build composes onto a takeoff threshold rule. Each is a registry entry
 /// in its own right, filed under the takeoff construct rather than the onset one.
@@ -24,7 +35,40 @@ pub const TAKEOFF_OPERATOR_IDS: &[&str] = &[
     TAKEOFF_OP_CROSSING_SELECTION,
     TAKEOFF_OP_RESIDUAL_COMPARISON,
     TAKEOFF_OP_SHORT_RUN_HANDLING,
+    TAKEOFF_SEARCH_FLOOR_AT_TRIAL_START,
+    TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
 ];
+
+/// The first sample a rule flooring at the weighing window may examine, written into the
+/// record beside the takeoff it produced.
+///
+/// Recorded whether or not the takeoff lands on it, because a floor stated only when it binds
+/// tells a reader nothing about the runs where it did not.
+pub(crate) fn record_search_floor_at_weighing_epoch_end(
+    trial: &Trial,
+    epoch: &WeighingEpoch,
+    resolved: &mut Resolution,
+) {
+    let seconds = trial.time_at(epoch.end_index);
+    resolved.record_measured(
+        TAKEOFF_WEIGHING_EPOCH_END_SECONDS,
+        seconds,
+        format!("{seconds:.4}"),
+        ParameterSource::Measured,
+    );
+}
+
+/// The same fact for the three rules that forbid nothing, so the two policies read as two
+/// values rather than as one value and a silence.
+pub(crate) fn record_search_floor_at_trial_start(trial: &Trial, resolved: &mut Resolution) {
+    let seconds = trial.time_at(0);
+    resolved.record_measured(
+        TAKEOFF_SEARCH_FLOOR_SECONDS,
+        seconds,
+        format!("{seconds:.4}"),
+        ParameterSource::Assumed,
+    );
+}
 
 /// Which registry entry carries each name a takeoff rule reads.
 ///
@@ -39,6 +83,8 @@ fn operator_for(name: &str) -> Option<&'static str> {
         "comparison" => Some(TAKEOFF_OP_RESIDUAL_COMPARISON),
         "short_run_handling" => Some(TAKEOFF_OP_SHORT_RUN_HANDLING),
         "selection" => Some(TAKEOFF_OP_CROSSING_SELECTION),
+        TAKEOFF_WEIGHING_EPOCH_END_SECONDS => Some(TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END),
+        TAKEOFF_SEARCH_FLOOR_SECONDS => Some(TAKEOFF_SEARCH_FLOOR_AT_TRIAL_START),
         _ => None,
     }
 }

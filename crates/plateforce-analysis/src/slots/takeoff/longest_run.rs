@@ -17,6 +17,7 @@ pub(crate) fn crossing(
     // 843 ms on 155 of them against the first-run reading, so which of the two ran is the
     // whole answer and it is recorded rather than left implicit in which function ran.
     resolved.record("selection", "longest_run".into(), ParameterSource::Stated);
+    super::record_search_floor_at_trial_start(trial, resolved);
     let minimum_flight_samples = resolved
         .milliseconds_as_samples("persistence_ms", 0.0, rate)
         .max(1);
