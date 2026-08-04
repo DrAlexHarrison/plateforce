@@ -227,6 +227,37 @@
       {
         "bound_parameters": [
           [
+            "integration_anchor",
+            "integration.anchor.single_point"
+          ],
+          [
+            "integration_direction",
+            "integration.direction.forward"
+          ],
+          [
+            "integration_rule",
+            "integration.rule.trapezoid"
+          ],
+          [
+            "integration_start",
+            "integration.start.detected_onset"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "impulse.net_vertical.as_performance_determinant",
+        "parameter_sources": {
+          "integration_anchor": "assumed",
+          "integration_direction": "assumed",
+          "integration_rule": "assumed",
+          "integration_start": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
             "gravity",
             "9.81"
           ]
@@ -236,6 +267,68 @@
         "method_id": "jumpheight.takeoff.flight_time",
         "parameter_sources": {
           "gravity": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "integration_anchor",
+            "integration.anchor.single_point"
+          ],
+          [
+            "integration_direction",
+            "integration.direction.forward"
+          ],
+          [
+            "integration_rule",
+            "integration.rule.trapezoid"
+          ],
+          [
+            "integration_start",
+            "integration.start.detected_onset"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "jumpheight.takeoff.impulse_momentum",
+        "parameter_sources": {
+          "integration_anchor": "assumed",
+          "integration_direction": "assumed",
+          "integration_rule": "assumed",
+          "integration_start": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "integration_anchor",
+            "integration.anchor.single_point"
+          ],
+          [
+            "integration_direction",
+            "integration.direction.forward"
+          ],
+          [
+            "integration_rule",
+            "integration.rule.trapezoid"
+          ],
+          [
+            "integration_start",
+            "integration.start.detected_onset"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "rsimod.jh_tov_over_ttt",
+        "parameter_sources": {
+          "integration_anchor": "assumed",
+          "integration_direction": "assumed",
+          "integration_rule": "assumed",
+          "integration_start": "assumed"
         },
         "registry_backed": true,
         "unread_parameters": []
@@ -297,7 +390,9 @@
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison"
         ],
         "key": "takeoff_time_seconds",
         "label": "Takeoff",
@@ -316,7 +411,9 @@
           "onset.op.direction",
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison"
         ],
         "key": "time_to_takeoff_seconds",
         "label": "Time to takeoff",
@@ -329,7 +426,9 @@
         "computed_by": "flight_time.takeoff_to_touchdown",
         "contributing_method_ids": [
           "filter.none",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison"
         ],
         "key": "flight_time_seconds",
         "label": "Flight time",
@@ -350,6 +449,8 @@
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
           "integration.rule.trapezoid",
           "integration.direction.forward",
           "integration.start.detected_onset",
@@ -373,7 +474,9 @@
           "onset.op.direction",
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
-          "takeoff.threshold.absolute_force"
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison"
         ],
         "key": "net_impulse_newton_seconds",
         "label": "Net impulse",
@@ -394,6 +497,8 @@
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
           "integration.rule.trapezoid",
           "integration.direction.forward",
           "integration.start.detected_onset",
@@ -412,7 +517,14 @@
           "filter.none",
           "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
-          "takeoff.threshold.absolute_force"
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison"
         ],
         "key": "jump_height_from_flight_time_meters",
         "label": "Jump height, flight time",
@@ -433,6 +545,8 @@
           "onset.op.persistence",
           "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
           "integration.rule.trapezoid",
           "integration.direction.forward",
           "integration.start.detected_onset",

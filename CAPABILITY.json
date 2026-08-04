@@ -61,6 +61,12 @@
         },
         {
           "composed_from": null,
+          "construct": "net_impulse",
+          "id": "impulse.net_vertical.as_performance_determinant",
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -208,6 +214,12 @@
           "construct": "phase_model",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
+          "id": "rsimod.jh_tov_over_ttt",
+          "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
@@ -413,6 +425,12 @@
         },
         {
           "composed_from": null,
+          "construct": "net_impulse",
+          "id": "impulse.net_vertical.as_performance_determinant",
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -560,6 +578,12 @@
           "construct": "phase_model",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
+          "id": "rsimod.jh_tov_over_ttt",
+          "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
@@ -769,6 +793,12 @@
         },
         {
           "composed_from": null,
+          "construct": "net_impulse",
+          "id": "impulse.net_vertical.as_performance_determinant",
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -916,6 +946,12 @@
           "construct": "phase_model",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
+          "id": "rsimod.jh_tov_over_ttt",
+          "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
@@ -1123,6 +1159,12 @@
         },
         {
           "composed_from": null,
+          "construct": "net_impulse",
+          "id": "impulse.net_vertical.as_performance_determinant",
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -1270,6 +1312,12 @@
           "construct": "phase_model",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
+          "id": "rsimod.jh_tov_over_ttt",
+          "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,

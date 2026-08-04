@@ -26,7 +26,10 @@ case onset noise_relative bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative k on synthetic
   window 0..960
   onset Some(1169)
@@ -55,7 +58,10 @@ case onset noise_relative k on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative direction below_only on synthetic
   window 0..960
   onset Some(1176)
@@ -84,7 +90,10 @@ case onset noise_relative direction below_only on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative direction two_sided on synthetic
   window 0..960
   onset Some(1176)
@@ -113,7 +122,10 @@ case onset noise_relative direction two_sided on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative selection last on synthetic
   window 0..960
   onset Some(2448)
@@ -142,7 +154,10 @@ case onset noise_relative selection last on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset noise_relative selection first on synthetic
   window 0..960
@@ -172,7 +187,10 @@ case onset noise_relative selection first on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative persistence on synthetic
   window 0..960
   onset Some(1176)
@@ -201,7 +219,10 @@ case onset noise_relative persistence on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative search floor on synthetic
   window 0..960
   onset Some(1176)
@@ -230,7 +251,10 @@ case onset noise_relative search floor on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative back offset on synthetic
   window 0..960
   onset Some(1152)
@@ -259,7 +283,10 @@ case onset noise_relative back offset on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative degenerate fraction on synthetic
   window 0..960
   onset Some(1176)
@@ -288,7 +315,10 @@ case onset noise_relative degenerate fraction on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset noise_relative every value stated on synthetic
   window 0..960
   onset Some(2490)
@@ -317,7 +347,10 @@ case onset noise_relative every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset noise_relative names another rule carries on synthetic
   window 0..960
@@ -347,7 +380,10 @@ case onset noise_relative names another rule carries on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset relative_to_system_weight bare on synthetic
   window 0..960
   onset Some(1183)
@@ -375,7 +411,10 @@ case onset relative_to_system_weight bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset relative_to_system_weight pct on synthetic
   window 0..960
   onset Some(1201)
@@ -403,7 +442,10 @@ case onset relative_to_system_weight pct on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset relative_to_system_weight superseded spelling on synthetic
   window 0..960
   onset Some(1183)
@@ -431,7 +473,10 @@ case onset relative_to_system_weight superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset relative_to_system_weight every value stated on synthetic
   window 0..960
   onset Some(2503)
@@ -459,7 +504,10 @@ case onset relative_to_system_weight every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset absolute_force bare on synthetic
   window 0..960
@@ -489,7 +537,10 @@ case onset absolute_force bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset absolute_force threshold on synthetic
   window 0..960
   onset Some(1225)
@@ -518,7 +569,10 @@ case onset absolute_force threshold on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset absolute_force superseded spelling on synthetic
   window 0..960
   onset Some(1189)
@@ -547,7 +601,10 @@ case onset absolute_force superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset absolute_force direction two_sided on synthetic
   window 0..960
   onset Some(1189)
@@ -576,7 +633,10 @@ case onset absolute_force direction two_sided on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset absolute_force direction below_only on synthetic
   window 0..960
   onset Some(1189)
@@ -605,7 +665,10 @@ case onset absolute_force direction below_only on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset absolute_force every value stated on synthetic
   window 0..960
   onset Some(2705)
@@ -634,7 +697,10 @@ case onset absolute_force every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case onset last_within_band bare on synthetic
   window 0..960
@@ -663,7 +729,10 @@ case onset last_within_band bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset last_within_band k on synthetic
   window 0..960
   onset Some(1171)
@@ -691,7 +760,10 @@ case onset last_within_band k on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset last_within_band inverse lookback on synthetic
   window 0..960
   onset Some(1175)
@@ -719,7 +791,10 @@ case onset last_within_band inverse lookback on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset last_within_band back offset on synthetic
   window 0..960
   onset Some(1151)
@@ -747,7 +822,10 @@ case onset last_within_band back offset on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset last_within_band every value stated on synthetic
   window 0..960
   onset Some(1192)
@@ -775,7 +853,10 @@ case onset last_within_band every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset adaptive_trailing_window bare on synthetic
   window 0..960
   onset Some(1213)
@@ -799,7 +880,10 @@ case onset adaptive_trailing_window bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset adaptive_trailing_window window on synthetic
   window 0..960
   onset Some(1218)
@@ -823,7 +907,10 @@ case onset adaptive_trailing_window window on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset adaptive_trailing_window k on synthetic
   window 0..960
   onset Some(1208)
@@ -847,7 +934,10 @@ case onset adaptive_trailing_window k on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset adaptive_trailing_window population on synthetic
   window 0..960
   onset Some(1213)
@@ -871,7 +961,10 @@ case onset adaptive_trailing_window population on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset adaptive_trailing_window sample on synthetic
   window 0..960
   onset Some(1213)
@@ -895,7 +988,10 @@ case onset adaptive_trailing_window sample on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset adaptive_trailing_window every value stated on synthetic
   window 0..960
   onset Some(1210)
@@ -919,7 +1015,10 @@ case onset adaptive_trailing_window every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force bare on synthetic
   window 0..960
   onset Some(1176)
@@ -948,7 +1047,10 @@ case takeoff absolute_force bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force threshold on synthetic
   window 0..960
   onset Some(1176)
@@ -977,7 +1079,10 @@ case takeoff absolute_force threshold on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force superseded spelling on synthetic
   window 0..960
   onset Some(1176)
@@ -1006,7 +1111,10 @@ case takeoff absolute_force superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force persistence on synthetic
   window 0..960
   onset Some(1176)
@@ -1035,7 +1143,10 @@ case takeoff absolute_force persistence on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force magnitude on synthetic
   window 0..960
   onset Some(1176)
@@ -1064,7 +1175,10 @@ case takeoff absolute_force magnitude on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force signed on synthetic
   window 0..960
   onset Some(1176)
@@ -1093,7 +1207,10 @@ case takeoff absolute_force signed on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff absolute_force every value stated on synthetic
   window 0..960
   onset Some(1176)
@@ -1122,7 +1239,10 @@ case takeoff absolute_force every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff longest_run bare on synthetic
   window 0..960
   onset Some(1176)
@@ -1152,7 +1272,10 @@ case takeoff longest_run bare on synthetic
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
   method takeoff.op.short_run_handling backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff longest_run filter then rank on synthetic
   window 0..960
   onset Some(1176)
@@ -1182,7 +1305,10 @@ case takeoff longest_run filter then rank on synthetic
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
   method takeoff.op.short_run_handling backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff longest_run rank then filter on synthetic
   window 0..960
   onset Some(1176)
@@ -1212,7 +1338,10 @@ case takeoff longest_run rank then filter on synthetic
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
   method takeoff.op.short_run_handling backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff longest_run every value stated on synthetic
   window 0..960
   onset Some(1176)
@@ -1242,7 +1371,10 @@ case takeoff longest_run every value stated on synthetic
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
   method takeoff.op.short_run_handling backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff descending_crossing bare on synthetic
   window 0..960
   onset Some(1176)
@@ -1269,7 +1401,10 @@ case takeoff descending_crossing bare on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff descending_crossing confirmation on synthetic
   window 0..960
   onset Some(1176)
@@ -1296,7 +1431,10 @@ case takeoff descending_crossing confirmation on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff descending_crossing threshold on synthetic
   window 0..960
   onset Some(1176)
@@ -1323,7 +1461,10 @@ case takeoff descending_crossing threshold on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff flight_noise_k_sd bare on synthetic
   window 0..960
   onset Some(1176)
@@ -1350,7 +1491,10 @@ case takeoff flight_noise_k_sd bare on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff flight_noise_k_sd trim on synthetic
   window 0..960
   onset Some(1176)
@@ -1377,7 +1521,10 @@ case takeoff flight_noise_k_sd trim on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff flight_noise_k_sd k on synthetic
   window 0..960
   onset Some(1176)
@@ -1404,7 +1551,10 @@ case takeoff flight_noise_k_sd k on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff flight_noise_k_sd population on synthetic
   window 0..960
   onset Some(1176)
@@ -1431,7 +1581,10 @@ case takeoff flight_noise_k_sd population on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff flight_noise_k_sd every value stated on synthetic
   window 0..960
   onset Some(1176)
@@ -1458,7 +1611,10 @@ case takeoff flight_noise_k_sd every value stated on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window bare on synthetic
   window 0..960
   onset Some(1176)
@@ -1487,7 +1643,10 @@ case weighing fixed_window bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window half second on synthetic
   window 0..600
   onset Some(1176)
@@ -1516,7 +1675,10 @@ case weighing fixed_window half second on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window moved on synthetic
   window 240..1200
   onset Some(1176)
@@ -1545,7 +1707,10 @@ case weighing fixed_window moved on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window median on synthetic
   window 0..960
   onset Some(1176)
@@ -1574,7 +1739,10 @@ case weighing fixed_window median on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window mean on synthetic
   window 0..960
   onset Some(1176)
@@ -1603,7 +1771,10 @@ case weighing fixed_window mean on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window population on synthetic
   window 0..960
   onset Some(1176)
@@ -1632,7 +1803,10 @@ case weighing fixed_window population on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window sample on synthetic
   window 0..960
   onset Some(1176)
@@ -1661,7 +1835,10 @@ case weighing fixed_window sample on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window superseded spelling on synthetic
   window 0..960
   onset Some(1176)
@@ -1690,7 +1867,10 @@ case weighing fixed_window superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing fixed_window every value stated on synthetic
   window 120..840
   onset Some(1176)
@@ -1719,7 +1899,10 @@ case weighing fixed_window every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing manual_placement moved on synthetic
   window 240..840
   onset Some(1176)
@@ -1748,7 +1931,10 @@ case weighing manual_placement moved on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing manual_placement anchored on synthetic
   window 0..600
   onset Some(1176)
@@ -1777,7 +1963,10 @@ case weighing manual_placement anchored on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance bare on synthetic
   window 242..1202
   onset Some(1176)
@@ -1806,7 +1995,10 @@ case weighing adaptive_lowest_variance bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance cumulative on synthetic
   window 242..1202
   onset Some(1176)
@@ -1835,7 +2027,10 @@ case weighing adaptive_lowest_variance cumulative on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance two pass on synthetic
   window 242..1202
   onset Some(1176)
@@ -1864,7 +2059,10 @@ case weighing adaptive_lowest_variance two pass on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance population on synthetic
   window 242..1202
   onset Some(1176)
@@ -1893,7 +2091,10 @@ case weighing adaptive_lowest_variance population on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance moved on synthetic
   window 240..1200
   onset Some(1176)
@@ -1922,7 +2123,10 @@ case weighing adaptive_lowest_variance moved on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance half second on synthetic
   window 601..1201
   onset Some(1176)
@@ -1951,7 +2155,10 @@ case weighing adaptive_lowest_variance half second on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case weighing adaptive_lowest_variance floor published on synthetic
   window 242..1202
   onset Some(1183)
@@ -1980,7 +2187,10 @@ case weighing adaptive_lowest_variance floor published on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning the weighing window's spread is 1.954 N and the floor is 3.000 N, so every noise-relative threshold below is set by the floor and not by this recording
 case weighing adaptive_lowest_variance floor binding on synthetic
   window 242..1202
@@ -2010,7 +2220,10 @@ case weighing adaptive_lowest_variance floor binding on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning the weighing window's spread is 1.954 N and the floor is 12.000 N, so every noise-relative threshold below is set by the floor and not by this recording
 case gravity 9.8 on synthetic
   window 0..960
@@ -2040,7 +2253,10 @@ case gravity 9.8 on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case gravity 9.81 on synthetic
   window 0..960
   onset Some(1176)
@@ -2069,7 +2285,10 @@ case gravity 9.81 on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case touchdown stated on synthetic
   window 0..960
   onset Some(1176)
@@ -2098,7 +2317,10 @@ case touchdown stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset dragged on synthetic
   window 0..960
   onset Some(1100)
@@ -2122,7 +2344,10 @@ case onset dragged on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case takeoff dragged on synthetic
   window 0..960
   onset Some(1176)
@@ -2151,7 +2376,10 @@ case takeoff dragged on synthetic
   method takeoff.threshold.absolute_force backed false override true
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case both dragged on synthetic
   window 0..960
   onset Some(1150)
@@ -2175,7 +2403,10 @@ case both dragged on synthetic
   method takeoff.threshold.absolute_force backed false override true
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case onset after takeoff on synthetic
   window 0..960
   onset Some(2200)
@@ -2199,7 +2430,10 @@ case onset after takeoff on synthetic
   method takeoff.threshold.absolute_force backed false override true
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case nothing registry backed on synthetic
   window 0..960
@@ -2229,7 +2463,10 @@ case nothing registry backed on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case everything registry backed on synthetic
   window 0..960
   onset Some(1176)
@@ -2258,7 +2495,10 @@ case everything registry backed on synthetic
   method takeoff.threshold.absolute_force backed true override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed true override false
   method jumpheight.takeoff.flight_time backed true override false
+  method jumpheight.takeoff.impulse_momentum backed true override false
+  method rsimod.jh_tov_over_ttt backed true override false
 case bump onset absolute_force bare on pre_movement_bump
   window 0..960
   onset Some(1349)
@@ -2287,7 +2527,10 @@ case bump onset absolute_force bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset absolute_force direction below_only on pre_movement_bump
   window 0..960
   onset Some(1349)
@@ -2316,7 +2559,10 @@ case bump onset absolute_force direction below_only on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset absolute_force direction two_sided on pre_movement_bump
   window 0..960
   onset Some(964)
@@ -2345,7 +2591,10 @@ case bump onset absolute_force direction two_sided on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset absolute_force both and last on pre_movement_bump
   window 0..960
   onset Some(2848)
@@ -2374,7 +2623,10 @@ case bump onset absolute_force both and last on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset is at or after takeoff, so every interval below is meaningless
 case bump onset noise_relative bare on pre_movement_bump
   window 0..960
@@ -2404,7 +2656,10 @@ case bump onset noise_relative bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset noise_relative direction below_only on pre_movement_bump
   window 0..960
   onset Some(1336)
@@ -2433,7 +2688,10 @@ case bump onset noise_relative direction below_only on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset noise_relative direction two_sided on pre_movement_bump
   window 0..960
   onset Some(964)
@@ -2462,7 +2720,10 @@ case bump onset noise_relative direction two_sided on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset noise_relative persistence on pre_movement_bump
   window 0..960
   onset Some(1336)
@@ -2491,7 +2752,10 @@ case bump onset noise_relative persistence on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset relative_to_system_weight bare on pre_movement_bump
   window 0..960
   onset Some(1343)
@@ -2519,7 +2783,10 @@ case bump onset relative_to_system_weight bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset last_within_band bare on pre_movement_bump
   window 0..960
   onset Some(963)
@@ -2547,7 +2814,10 @@ case bump onset last_within_band bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
 case bump onset adaptive_trailing_window bare on pre_movement_bump
   window 0..960
   onset None
@@ -2571,7 +2841,10 @@ case bump onset adaptive_trailing_window bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset.threshold.adaptive_trailing_window(k = 5) found no crossing within the search bound of 1.7333333333333334 s
 case two flight phases first sustained run on two_flight_phases
   window 0..600
@@ -2600,7 +2873,10 @@ case two flight phases first sustained run on two_flight_phases
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
 case two flight phases longest run on two_flight_phases
   window 0..600
@@ -2630,7 +2906,10 @@ case two flight phases longest run on two_flight_phases
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
   method takeoff.op.short_run_handling backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
   warning the longest-run rule skipped past the first of 2 qualifying flight phases, which on an untrimmed recording places takeoff after the athlete has already landed
 case two flight phases descending crossing on two_flight_phases
@@ -2658,7 +2937,10 @@ case two flight phases descending crossing on two_flight_phases
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
 case two flight phases flight noise on two_flight_phases
   window 0..600
@@ -2685,5 +2967,8 @@ case two flight phases flight noise on two_flight_phases
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
+  method jumpheight.takeoff.impulse_momentum backed false override false
+  method rsimod.jh_tov_over_ttt backed false override false
   warning onset.threshold.noise_relative(k = 5) has no band to search: dispersion is 0 N and the threshold falls at 600 N
