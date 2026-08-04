@@ -719,6 +719,32 @@ report takeoff at 4.4000 s and the three searching the whole recording report 4.
 jump height from the impulse from 37.0 cm to 1.4 cm.
 """
 
+[method.failure]
+rate = 0.4634
+numerator = 114
+denominator = 246
+corpus = "harrison2011_cmj"
+definition = """
+Takeoff reported at the first sample the search was permitted to examine, so the instant published
+is the boundary of the search rather than a flight phase found in the recording. Weighing window
+1 s anchored at the start of the recording, every other value the rule's own default.
+
+The two rules taking this floor differ by a factor of 57 and the figure above is the worse of them,
+because a blended rate would average a rule that works with one that does not.
+takeoff.threshold.absolute_force, comparing against a fixed 20 N residual, fails on 2 of 246.
+takeoff.threshold.flight_noise_k_sd, which re-estimates its threshold from the flight phase its
+seed found, fails on 114 of 246, and every one of the 114 trials in the numerator is one of its.
+
+The floor is where that failure lands rather than what causes it. On the 114, the re-estimated
+flight threshold exceeds its own 10 N seed on 112 and exceeds 1000 N on 102, median 2285.9 N
+against a median force at the floor sample of 721.3 N: the athlete is standing on the plate and
+every sample from the floor onward is below a threshold of three bodyweights, so the first one
+qualifies. A recording trimmed to one jump does not produce it; an untrimmed one, where the span
+between the seed's first and last low-force samples covers the landing and the athlete standing
+off the plate, does.
+"""
+detectability = "guarded"
+
 [method.gui]
 surfacing = "default_and_show"
 sensitivity = "very large where the weighing window ends inside a low-force stretch, none where it does not"
@@ -768,6 +794,27 @@ Searching the whole recording admits the stretch before the athlete stepped onto
 stretch after they stepped off, which is what places takeoff 843 ms late on 155 of 244 trials under
 the longest-run selection.
 """
+
+[method.failure]
+rate = 0.0081
+numerator = 2
+denominator = 246
+corpus = "harrison2011_cmj"
+definition = """
+Takeoff placed at or before the end of the window the athlete was weighed in, so the run reported
+as the flight phase is one the trace held while the athlete was standing still. A rule flooring at
+the weighing window cannot reach it and a rule searching the whole recording can, which is what
+makes it this policy's failure rather than a threshold rule's.
+
+Weighing window 1 s anchored at the start of the recording, every other value the rule's own
+default. takeoff.threshold.longest_run commits it on 2 of 246; takeoff.threshold.descending_crossing
+answers on 244 and commits it on none, and takeoff.threshold.landing_shape answers on 134 and
+commits it on none, declining on the other 112 rather than publishing an instant.
+
+Rarer than its sibling and worse per instance: the sibling publishes a late takeoff and this one
+publishes a flight phase during quiet stance, which leaves the jump's start after its end.
+"""
+detectability = "silent"
 
 [method.gui]
 surfacing = "default_and_show"
