@@ -15,7 +15,7 @@
 
 /* Entries the registry rules out as user choices. The reasoning lives in the registry and
  * in the docs, not in the interface. */
-const NOT_A_CHOICE = new Set(['never_a_user_choice', 'refuse']);
+export const NOT_A_CHOICE = new Set(['never_a_user_choice', 'refuse']);
 
 /* The loaded registry, so an axis can read the values the literature contains rather than
  * carrying a copy of them. Set once when the model is built. */
@@ -142,22 +142,39 @@ export function preferredCandidate(slot) {
   return rankCandidates(slot.available)[0] || null;
 }
 
+/* The alternatives an entry states for a value that varies by name rather than by number.
+ * The registry publishes a key and the field's words for each one, and both travel: the key
+ * is what a result records and the words are what a reader is asked to choose between. */
+export function namedValues(parameter) {
+  return parameter?.value || [];
+}
+
 /* Parameters start at their published default, and the default names the source that chose
  * it. On a slot that forces a decision, a required parameter carrying more than one
  * published value is left unset too, because picking one silently is exactly the behaviour
- * the registry exists to document. */
+ * the registry exists to document.
+ *
+ * Two kinds of value and one rule over both. A quantity carries its numbers in
+ * `published_values` with a `default`; a choice between named alternatives carries them in
+ * `value` with a `default_key`, and travels in `options` rather than in `parameters` because
+ * the engine reaches a construct three ways and refuses a name arriving through the wrong
+ * one. */
 export function initialParameters(candidate, forcesDecision) {
   const values = {};
+  const options = {};
   const unresolved = [];
   for (const parameter of candidate?.method?.parameter || []) {
-    const choices = (parameter.published_values || []).filter(Number.isFinite);
+    const named = namedValues(parameter);
+    const choices = named.length ? named : (parameter.published_values || []).filter(Number.isFinite);
     if (forcesDecision && parameter.required && choices.length > 1) {
       unresolved.push(parameter.name);
+    } else if (named.length) {
+      if (parameter.default_key != null) options[parameter.name] = parameter.default_key;
     } else if (parameter.default != null) {
       values[parameter.name] = parameter.default;
     }
   }
-  return { values, unresolved };
+  return { values, options, unresolved };
 }
 
 /* Every axis the spread view can sweep. Parameter axes come from the published values the

@@ -63,6 +63,7 @@ export function addToPath(construct) {
     const selection = withSources(state.selection[slot.key]);
     if (!selection.methodId) continue;
     for (const name of Object.keys(selection.values)) selection.fromDefault.add(name);
+    for (const name of Object.keys(selection.options || {})) selection.fromDefault.add(name);
   }
   renderPicker();
   renderDecisions();

@@ -83,7 +83,7 @@ export function initialiseMissingSelections() {
     const candidate = preferredCandidate(slot);
     state.selection[slot.key] = candidate
       ? { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) }
-      : { methodId: null, values: {}, unresolved: [] };
+      : { methodId: null, values: {}, options: {}, unresolved: [] };
   }
 }
 

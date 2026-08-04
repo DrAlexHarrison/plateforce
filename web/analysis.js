@@ -2,7 +2,7 @@
 
 import { $, state } from './state.js';
 import { element, formatNumber, reply, secondaryDisplay } from './format.js';
-import { rankCandidates, initialParameters, findMethod } from './registry.js';
+import { rankCandidates, initialParameters, namedValues, findMethod } from './registry.js';
 import { candidateFor, renderBuildInfo } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
 import { renderSpreadControls, scheduleSpread } from './spread.js';
@@ -51,13 +51,15 @@ export function recordStated(selection, name) {
 }
 
 /* A rule the reader picked, with every parameter the registry filled in behind it. They
- * chose the rule and were not asked about any of those values. */
+ * chose the rule and were not asked about any of those values. Both kinds of value are
+ * stamped, because a named alternative the registry chose is as much a default nobody was
+ * asked about as a number is. */
 export function selectionFromChosenRule(candidate, forcesDecision) {
   const filled = initialParameters(candidate, forcesDecision);
   return {
     methodId: candidate.id,
     ...filled,
-    fromDefault: new Set(Object.keys(filled.values)),
+    fromDefault: new Set([...Object.keys(filled.values), ...Object.keys(filled.options)]),
     recommended: new Set(),
     methodFromRecommendation: false,
     // Set where the reader names the rule. A slot that opened under the registry's first
@@ -145,7 +147,11 @@ export function buildRequest() {
     const choice = {
       method_id: boundMethodId(slot.key),
       parameters: state.selection[slot.key]?.values || {},
-      options: {},
+      // A choice between named alternatives moves the number as far as a quantity does, and
+      // the two travel in separate maps because the engine reads a name off one and a number
+      // off the other. An empty map here is a slot whose rule takes no such choice, never a
+      // slot whose reader was never offered one.
+      options: state.selection[slot.key]?.options || {},
       ...whereTheValuesCameFrom(slot.key),
     };
     if (slot.spine) request[slot.key] = { ...choice, ...placementFor(slot.key) };
@@ -247,7 +253,12 @@ export function acceptRecommended() {
     // that value, so marking it recommended would be a silent default wearing a signature.
     for (const name of selection.unresolved || []) {
       const parameter = (candidate?.method?.parameter || []).find((entry) => entry.name === name);
-      selection.values[name] = parameter?.default ?? parameter?.published_values?.[0];
+      const named = namedValues(parameter);
+      if (named.length) {
+        selection.options[name] = parameter.default_key ?? named[0].key;
+      } else {
+        selection.values[name] = parameter?.default ?? parameter?.published_values?.[0];
+      }
       selection.recommended.add(name);
       selection.fromDefault.delete(name);
     }
@@ -320,9 +331,24 @@ function renderMetrics() {
 
   const host = $('analysis-warnings');
   host.replaceChildren();
+  // A rule that declined is a different answer from a rule that ran and complained, and the
+  // record carries the two in separate lists. Only the second was ever drawn, so a value a
+  // rule refused to produce arrived as an empty card with the reason discarded: the card
+  // states that a number is absent, and this states which rule declined and what it takes.
+  for (const refusal of state.analysis.refusals || []) {
+    host.append(notice('danger', 'A rule declined', refusalSentence(refusal)));
+  }
   for (const warning of state.analysis.warnings) {
     host.append(notice('warning', 'The rule reported a problem', warning));
   }
+}
+
+/* What the rule said, led by the rule that said it. The sentence already names what could
+ * have been asked for instead, so the alternatives are not repeated beside it. A refusal
+ * raised before any rule was reached carries no id and is shown on its own. */
+function refusalSentence(refusal) {
+  const rule = refusal.method_id ? `${methodTitle(refusal.method_id)}: ` : '';
+  return `${rule}${refusal.message}`;
 }
 
 /*

@@ -385,6 +385,229 @@ check('a sweep over a construct reached through derived varies the number rather
       ? `the sweep over ${swept.quantity} was declined: ${swept.refused}`
       : `${swept.rules} rules over ${swept.quantity}, ${swept.succeeded} succeeded, ${swept.distinct} distinct values`);
 
+/*
+ * A choice between named alternatives is stated from the rail, and the record says who
+ * stated it.
+ *
+ * Seventeen of the entries a result can name carry one, and until the tab drew a control for
+ * them the browser could state none while the terminal, Python and R could state all. The
+ * property is not that a control exists. It is that a name the reader picks arrives at the
+ * engine and comes back recorded as theirs, and that a name they never touched comes back
+ * recorded as the rule's, because those two are the same request otherwise.
+ *
+ * Every offered name is swept rather than one, from the rail the page rendered, because a
+ * check that picks a single name reports the same green whether the other sixteen work or
+ * were never drawn. Each pick starts from a freshly opened trial, through the call a reader's
+ * own click goes through.
+ */
+const choices = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const { buildRequest, acceptRecommended } = await import('./analysis.js');
+  const { enterWorkspace } = await import('./workspace.js');
+  const { namedValues } = await import('./registry.js');
+
+  // A trial just opened, with every slot bound the way the interface's own one act binds
+  // them. A slot that forces a decision holds no rule until somebody makes it and therefore
+  // offers no value either, so a sweep run before that act reads two constructs out of four
+  // and reports the same green as one that reads them all.
+  const opened = () => { enterWorkspace(); acceptRecommended(); };
+
+  // What the rail is holding for a slot, read out of the request the engine is handed rather
+  // than out of the tab's own bookkeeping, because the request is what the engine sees.
+  const asked = (slotKey, construct, spine) => {
+    const request = buildRequest();
+    return spine ? request[slotKey] : (request.derived[construct] || request.conditioning[construct]);
+  };
+  const entryFor = (methodId) => state.registry.methods.find((m) => m.id === methodId) || null;
+  // Which rule under this construct answered for a name, whether by recording it or by
+  // reporting that it never read it. Narrowed to the construct because an operator reads its
+  // value off the slot the rule above it reads, and two constructs can spell one name the
+  // same way: dispersion is on both a weighing rule and a takeoff rule.
+  const answeredFor = (name, construct) => {
+    const under = (state.analysis?.bound_methods || [])
+      .filter((bound) => entryFor(bound.method_id)?.construct === construct);
+    return under.find((bound) => (bound.bound_parameters || []).some(([written]) => written === name))
+      || under.find((bound) => (bound.unread_parameters || []).includes(name))
+      || null;
+  };
+  const valueIn = (record, name) =>
+    (record?.bound_parameters || []).find(([written]) => written === name)?.[1] ?? null;
+
+  const controls = () => [...document.querySelectorAll('#decision-list select[data-option]')]
+    .map((node) => ({
+      name: node.dataset.option,
+      construct: node.closest('.decision').querySelector('select[data-construct]').dataset.construct,
+    }));
+  // A control inside its own construct's row. Three rail rows spell dispersion the same way,
+  // and a lookup by name alone drives the first of them three times over while reporting
+  // three constructs.
+  const node0 = (construct, name) => document
+    .querySelector('#decision-list select[data-construct="' + construct + '"]')
+    .closest('.decision')
+    .querySelector('select[data-option="' + name + '"]');
+
+  // Binds one rule on its own row, the way the reader's own click does, and reports what the
+  // rail then offers under it against what the entries that ran declare.
+  const bind = (construct, methodId) => {
+    opened();
+    const chooser = document.querySelector('#decision-list select[data-construct="' + construct + '"]');
+    chooser.value = methodId;
+    chooser.dispatchEvent(new Event('change'));
+    const declared = new Set();
+    for (const bound of state.analysis?.bound_methods || []) {
+      const method = entryFor(bound.method_id);
+      if (!method || method.construct !== construct) continue;
+      if (method.gui?.surfacing === 'never_a_user_choice' || method.gui?.surfacing === 'refuse') continue;
+      for (const parameter of method.parameter || []) {
+        if (namedValues(parameter).length) declared.add(parameter.name);
+      }
+    }
+    return {
+      declared: [...declared],
+      offered: controls().filter((control) => control.construct === construct).map((control) => control.name),
+    };
+  };
+
+  // Every rule every rail row can bind, because the rules beneath a row change with the rule
+  // above it and a sweep over one opening state reads five names out of twenty-five. A rule
+  // that leaves the trial unanalysable is recorded as that rather than skipped, so a sweep
+  // that reached nothing cannot read as one that found nothing to fault.
+  const rules = [];
+  for (const slot of state.slots) {
+    for (const candidate of slot.available) {
+      const seen = bind(slot.construct, candidate.id);
+      rules.push({
+        construct: slot.construct,
+        methodId: candidate.id,
+        refusedWhole: state.analysisRefusal?.code ?? null,
+        ...seen,
+        missing: seen.declared.filter((name) => !seen.offered.includes(name)),
+      });
+    }
+  }
+
+  const opening = [];
+  const stated = [];
+  const refused = [];
+  const unread = [];
+  const dropped = [];
+
+  for (const rule of rules) {
+    if (rule.refusedWhole) continue;
+    const slot = state.slots.find((s) => s.construct === rule.construct);
+    for (const name of rule.offered) {
+      bind(rule.construct, rule.methodId);
+      const before = asked(slot.key, rule.construct, slot.spine);
+      const ranUnder = valueIn(answeredFor(name, rule.construct), name);
+      const where = rule.construct + '.' + name + ' under ' + rule.methodId;
+      // Only the names the registry's own default filled. A name the one act of taking the
+      // recommendation filled is a different claim and is recorded as the act it was.
+      if ((before.from_registry_default || []).includes(name)) {
+        opening.push({
+          name: where,
+          value: before.options[name],
+          selected: node0(rule.construct, name)?.value ?? null,
+          source: answeredFor(name, rule.construct)?.parameter_sources?.[name] ?? null,
+          recorded: ranUnder,
+        });
+      }
+
+      // Every alternative the entry lists, not one. A build implements a subset of what the
+      // literature contains, and the value it declines is the one a sweep over first
+      // alternatives never reaches.
+      const alternatives = [...node0(rule.construct, name).options]
+        .map((option) => option.value).filter(Boolean);
+      for (const pick of alternatives) {
+        if (pick === ranUnder) continue;
+        bind(rule.construct, rule.methodId);
+        const node = node0(rule.construct, name);
+        node.value = pick;
+        node.dispatchEvent(new Event('change'));
+
+        const after = asked(slot.key, rule.construct, slot.spine);
+        const record = answeredFor(name, rule.construct);
+        // Both places a refusal lands: a rule that declined inside a result, and a request
+        // the engine would not take at all, which leaves the last result standing.
+        const declined = (state.analysis?.refusals || []).some((r) => r.parameter === name)
+          || state.analysisRefusal?.parameter === name;
+        const row = {
+          name: where,
+          pick,
+          ranUnder,
+          reachedTheRequest: after.options[name] === pick,
+          claimedAsDefault: (after.from_registry_default || []).includes(name),
+          source: record?.parameter_sources?.[name] ?? null,
+          written: valueIn(record, name),
+          onScreen: declined
+            ? [...document.querySelectorAll('#analysis-warnings .notice')]
+              .some((n) => n.textContent.includes(name) && n.textContent.includes(pick))
+            : null,
+        };
+        if (declined) refused.push(row);
+        else if ((record?.unread_parameters || []).includes(name)) unread.push(row);
+        else if (row.source === 'stated' && row.written === pick) stated.push(row);
+        else dropped.push(row);
+      }
+    }
+  }
+  enterWorkspace();
+  return {
+    rules,
+    offered: rules.reduce((total, rule) => total + rule.offered.length, 0),
+    declared: rules.reduce((total, rule) => total + rule.declared.length, 0),
+    unoffered: rules.filter((rule) => rule.missing.length)
+      .map((rule) => rule.methodId + ': ' + rule.missing.join(', ')),
+    unanalysable: rules.filter((rule) => rule.refusedWhole).map((rule) => rule.methodId),
+    opening, stated, refused, unread, dropped,
+  };
+})()`);
+
+check('every enumerated choice a bindable rule declares carries a control',
+  choices.offered > 0 && choices.unoffered.length === 0 && choices.unanalysable.length === 0,
+  `${choices.offered} of ${choices.declared} declared across ${choices.rules.length} rules the rail can bind, ` +
+    `over ${new Set(choices.rules.map((rule) => rule.construct)).size} constructs` +
+    (choices.unoffered.length ? ` | no control for: ${choices.unoffered.join('; ')}` : '') +
+    (choices.unanalysable.length ? ` | left the trial unanalysable: ${choices.unanalysable.join(', ')}` : ''));
+
+// The opening state, which is the half a control can silently get wrong: a value the registry
+// chose, shown as though the reader had. Each has to be the value on screen, the value the
+// rule ran, and a source that says nobody was asked, all three at once.
+const openingWrong = choices.opening.filter(
+  (row) => row.source !== 'assumed' || row.recorded !== row.value || row.selected !== row.value);
+check('a declared default opens selected and records as the rule’s own, not the reader’s',
+  choices.opening.length > 0 && openingWrong.length === 0,
+  choices.opening.length === 0
+    ? 'no offered choice opens on a registry default, so this arm read nothing'
+    : `${choices.opening.length} defaults, each on screen, run by the rule and recorded assumed: ` +
+      choices.opening.map((row) => `${row.name}=${row.value}`).join(', ') +
+      (openingWrong.length ? ` | wrong: ${openingWrong.map((row) => `${row.name} shown ${row.selected} source ${row.source} recorded ${row.recorded}`).join('; ')}` : ''));
+
+// A name the tab stated has to reach the request whatever the rule does with it afterwards,
+// which is the half that belongs to the browser rather than to the engine.
+const missedTheRequest = [...choices.stated, ...choices.refused, ...choices.unread, ...choices.dropped]
+  .filter((row) => !row.reachedTheRequest);
+const picked = choices.stated.length + choices.refused.length + choices.unread.length + choices.dropped.length;
+check('a name the reader picks reaches the request and claims no registry default',
+  picked > 0 && missedTheRequest.length === 0
+    && ![...choices.stated, ...choices.unread].some((row) => row.claimedAsDefault),
+  `${picked} values picked across ${choices.offered} controls, ${missedTheRequest.length} missing from the request` +
+    (missedTheRequest.length ? `: ${missedTheRequest.map((row) => row.name).join(', ')}` : ''));
+
+const namesRead = new Set(choices.stated.map((row) => row.name));
+check('a stated choice comes back recorded as stated, under the value that was picked',
+  choices.stated.length > 0 && choices.dropped.length === 0,
+  `${choices.stated.length} of ${picked} recorded stated, over ${namesRead.size} names the rules read; ` +
+    `${choices.refused.length} declined by the rule, ${choices.unread.length} the rule never read` +
+    (choices.unread.length ? ` (${[...new Set(choices.unread.map((row) => row.name))].join(', ')})` : '') +
+    (choices.dropped.length ? ` | dropped silently: ${choices.dropped.map((row) => `${row.name} source ${row.source} recorded ${row.written}`).join('; ')}` : ''));
+
+check('a name this build does not run is declined, and the refusal is on the page',
+  choices.refused.every((row) => row.onScreen === true),
+  choices.refused.length === 0
+    ? 'no offered name was declined by its rule, so nothing here was read'
+    : `${choices.refused.length} declined, ${choices.refused.filter((row) => row.onScreen).length} shown: ` +
+      choices.refused.map((row) => `${row.name}=${row.pick}`).join(', '));
+
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {
   console.log(`${result.passed ? 'pass' : 'FAIL'}  ${result.name}\n      ${result.read}`);

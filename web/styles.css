@@ -658,6 +658,13 @@ select { cursor: pointer; }
    the weight of a heading over a list instead of the weight of a label over a choice. */
 .decision--record .decision__title { font-weight: 500; color: var(--text-secondary); }
 
+/* Choices the rules beneath the chosen one take, folded away because the registry's verdict
+   on most of them is to bind a value and not display it. Open, they are the same controls
+   the panel above carries, so they take the same grid. */
+.beneath { margin-top: var(--space-3); }
+.beneath summary { cursor: pointer; font-size: var(--text-xs); color: var(--text-secondary); padding: var(--space-1) 0; }
+.beneath .decision__params { margin-top: var(--space-2); }
+
 /* Rules that ran inside the chosen one and were never asked about. Displayed because the
    registry says to display them, quiet because nobody asked a question here. */
 .ran-beside { display: grid; gap: var(--space-1); margin-top: var(--space-2); }
@@ -879,6 +886,7 @@ table.data td.failed { color: var(--danger); white-space: normal; }
   .row-record { min-height: 44px; }
   .chip { min-height: 44px; padding: var(--space-2) var(--space-3); }
   .param select, .param input { min-height: 44px; }
+  .beneath summary { min-height: 44px; padding: var(--space-3) 0; }
   .add-quantity input, .add-quantity__option { min-height: 44px; }
   .spread-axes label { min-height: 44px; align-items: center; }
   .spread-axes input { min-width: 20px; min-height: 20px; }
