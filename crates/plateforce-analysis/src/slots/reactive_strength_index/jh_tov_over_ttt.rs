@@ -1,11 +1,18 @@
-//! `jumpheight.takeoff.impulse_momentum`: takeoff velocity squared over twice gravity.
+//! `rsimod.jh_tov_over_ttt`: the takeoff-velocity jump height, over the time from onset to
+//! takeoff.
 //!
-//! Takeoff velocity is the net impulse over system mass, which is an identity rather than an
-//! estimate, so this is the reference the other three are quoted against. Three further
-//! registry entries sit inside it and each is its own row: the weighing epoch, the
-//! integration start, and the takeoff threshold. It reads all three off the spine.
+//! The registry files a second numerator, `rsimod.jh_ft_over_ttt`, which divides the
+//! flight-time height by the same interval and is a different number on the same recording.
+//! Which of the two produced a figure is what this entry id says, so a result carrying it
+//! answers the question the shared name invites.
+//!
+//! The fragility is measured and it is in the denominator: typical error at 7.5 to 9.3 percent
+//! against 2 to 3 percent for the height alone, in two labs independently.
 
-use plateforce_core::{jump_height_from_takeoff_velocity, takeoff_velocity_meters_per_second};
+use plateforce_core::{
+    jump_height_from_takeoff_velocity, reactive_strength_index_modified,
+    takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
+};
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::centre_of_mass;
@@ -14,12 +21,12 @@ use crate::request::MethodChoice;
 use crate::resolution::Resolution;
 use crate::response::Quantity;
 
-pub const ID: &str = "jumpheight.takeoff.impulse_momentum";
+pub const ID: &str = "rsimod.jh_tov_over_ttt";
 
 pub const QUANTITIES: &[Quantity] = &[Quantity {
     key: super::KEY,
-    label: "Jump height, takeoff frame",
-    unit: "meters",
+    label: "RSI modified",
+    unit: "meters_per_second",
     computed_by: Some(ID),
 }];
 
@@ -38,24 +45,26 @@ fn compute(
             context.unavailable(ID, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]),
         );
     };
-    // The velocity this rests on is read off the integrated series, so the four entries behind
-    // that series are behind this number. They place no sample, so nothing else in the record
-    // of what this rule read can reach them.
+
+    // The numerator is read off the integrated velocity series, so the four entries behind
+    // that series are behind this number too.
     let spec = centre_of_mass::spec_anchored_at(landmarks.onset_index);
     context.rests_on(super::KEY, &spec.method_ids());
     centre_of_mass::record_choices(&mut resolved, landmarks.onset_index);
-    let bound = resolved.finish();
 
     let gravity = context.gravity_meters_per_second_squared;
     let velocity =
         takeoff_velocity_meters_per_second(context.trial, context.epoch, &landmarks, gravity);
+    let height_meters = jump_height_from_takeoff_velocity(velocity, gravity);
+    let seconds = time_to_takeoff_seconds(&landmarks, context.trial.sample_interval_seconds());
+
     DerivedOutcome {
         values: vec![(
             super::KEY,
-            Some(jump_height_from_takeoff_velocity(velocity, gravity)),
+            reactive_strength_index_modified(height_meters, seconds),
         )],
         placed: Vec::new(),
-        bound,
+        bound: resolved.finish(),
         refusal: None,
     }
 }

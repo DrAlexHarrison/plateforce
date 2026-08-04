@@ -1,11 +1,7 @@
 //! One analysis, from a validated request to the numbers and the record of what produced
 //! them.
 
-use plateforce_core::{
-    flight_time_seconds, jump_height_from_takeoff_velocity, reactive_strength_index_modified,
-    takeoff_velocity_integration_spec, takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
-    Landmarks, Trial,
-};
+use plateforce_core::{flight_time_seconds, time_to_takeoff_seconds, Landmarks, Trial};
 
 use std::collections::BTreeMap;
 
@@ -14,8 +10,15 @@ use crate::derived::{DerivedContext, PlacedSample};
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
-use crate::slots::jh_takeoff_frame::{flight_time as flight_time_rule, FLIGHT_TIME_KEY};
-use crate::slots::{movement_onset, system_weight, takeoff as takeoff_slot};
+use crate::slots::jh_takeoff_frame::{
+    flight_time as flight_time_rule, impulse_momentum as impulse_momentum_rule, FLIGHT_TIME_KEY,
+};
+use crate::slots::net_impulse::as_performance_determinant as net_impulse_rule;
+use crate::slots::reactive_strength_index::jh_tov_over_ttt as rsimod_rule;
+use crate::slots::{
+    jh_takeoff_frame, movement_onset, net_impulse, reactive_strength_index, system_weight,
+    takeoff as takeoff_slot,
+};
 
 /// Boxed on the error side because a `Refusal` carries every field a caller branches on,
 /// which is wider than the error-size lint's threshold and rides on every call that
@@ -116,12 +119,17 @@ pub fn run(
             refusal: rejected,
         });
     }
-    bound_methods.extend(takeoff_slot::bound_methods(
+    let takeoff_methods = takeoff_slot::bound_methods(
         &request.takeoff.method_id,
         takeoff.bound,
         request,
         request.takeoff.manual_index.is_some(),
-    ));
+    );
+    let takeoff_ids_bound: Vec<String> = takeoff_methods
+        .iter()
+        .map(|bound| bound.method_id.clone())
+        .collect();
+    bound_methods.extend(takeoff_methods);
 
     // Touchdown is the return above the threshold that defined takeoff, so it is not an
     // independent choice and it is not offered as one.
@@ -159,37 +167,19 @@ pub fn run(
     // measured on the series those rules produced and none of them can be reproduced without
     // knowing which series that was.
     //
-    // The id a metric names has to be one a reader can look up, exactly as the bound record's
-    // is. The onset ids already are, because they come back from the rules themselves; the
-    // takeoff id is the request's word and is put through the same redirect here.
-    let takeoff_recorded = crate::binding::records_under(&request.takeoff.method_id).to_string();
+    // Both landmark rules hand their ids back as the threshold entry followed by every
+    // operator entry it bound, and a chain naming the threshold rule alone hides them. Which
+    // crossing each operator selected moves the sample its rule placed, and every interval,
+    // impulse and height below rests on those two samples.
     let mut interval = conditioned.ids.clone();
     interval.extend(onset_ids.clone());
-    interval.push(takeoff_recorded.clone());
+    interval.extend(takeoff_ids_bound.clone());
     let mut weighing_ids = conditioned.ids.clone();
     weighing_ids.push(request.weighing.method_id.clone());
     let mut takeoff_ids = conditioned.ids.clone();
-    takeoff_ids.push(takeoff_recorded.clone());
+    takeoff_ids.extend(takeoff_ids_bound.clone());
     let mut onset_chain = conditioned.ids.clone();
     onset_chain.extend(onset_ids.clone());
-    let mut full = conditioned.ids.clone();
-    full.push(request.weighing.method_id.clone());
-    full.extend(onset_ids.clone());
-    full.push(takeoff_recorded);
-    // Every number read off the integrated velocity series rests on the four integration
-    // entries as well as on the three landmark rules, and the two start rules give different
-    // velocities from one recording. Named here rather than left out, because a chain is what
-    // a reader compares two results by. The impulse below is integrated directly rather than
-    // read off the series, so it keeps the shorter chain.
-    let mut integrated = full.clone();
-    if let Some(marks) = landmarks.as_ref() {
-        integrated.extend(
-            takeoff_velocity_integration_spec(marks)
-                .method_ids()
-                .iter()
-                .map(|id| (*id).to_string()),
-        );
-    }
 
     let interval_seconds = landmarks
         .as_ref()
@@ -197,10 +187,6 @@ pub fn run(
     let flight = landmarks.as_ref().and_then(|marks| {
         touchdown_index.map(|_| flight_time_seconds(marks, trial.sample_interval_seconds()))
     });
-    let velocity = landmarks
-        .as_ref()
-        .map(|marks| takeoff_velocity_meters_per_second(trial, &epoch, marks, gravity));
-    let height_takeoff = velocity.map(|v| jump_height_from_takeoff_velocity(v, gravity));
 
     // A quantity the request bound a rule for is reported by that rule, so the keys it bound
     // are settled before anything computes one. Read off the binding rows rather than off what
@@ -209,21 +195,34 @@ pub fn run(
     // ordering fact nobody stated.
     let bound_by_request = keys_the_request_bound(request);
 
-    // The flight-time height is run rather than reproduced. Its entry publishes a gravity and
-    // declares 9.81, and the copy that used to sit in this function took the request's constant
-    // instead, so one id returned two numbers on one trial depending only on whether the caller
-    // named the rule, and neither result recorded which gravity produced it.
+    // Each of these is run rather than reproduced. The copy that used to sit in this function
+    // was labelled with the entry's id while the entry itself never ran, so nobody could check
+    // the arithmetic against the rule the number named, and on the flight-time height the two
+    // disagreed by the ratio of the gravities they took.
     //
-    // Nobody chose the rule, so it runs as the registry's default for the quantity and says so
-    // through the record it leaves: the values it read are marked assumed unless the request
-    // chose them. A default that reaches the record is a choice; one that does not is an
-    // absence, which is the reason the conditioning phase below runs its own default the same
-    // way.
-    let flight_time_height = if bound_by_request.contains(&FLIGHT_TIME_KEY) {
-        None
-    } else {
-        let produced = run_spine_default(
-            expect_row(flight_time_rule::ID),
+    // Nobody chose these rules, so each runs as the registry's default for its quantities and
+    // says so through the record it leaves: the values it read are marked assumed unless the
+    // request chose them. A default that reaches the record is a choice; one that does not is
+    // an absence, which is the reason the conditioning phase runs its own default the same way.
+    let landmark_chain = LandmarkChain {
+        conditioning_ids: &conditioned.ids,
+        onset_ids: &onset_ids,
+        takeoff_ids: &takeoff_ids_bound,
+    };
+    let spine_default = |method_id: &'static str,
+                         bound_methods: &mut Vec<crate::resolution::BoundMethod>,
+                         refusals: &mut Vec<DeclinedRule>,
+                         warnings: &mut Vec<String>| {
+        let binding = expect_row(method_id);
+        if binding
+            .quantities
+            .iter()
+            .any(|quantity| bound_by_request.contains(&quantity.key))
+        {
+            return Vec::new();
+        }
+        run_spine_default(
+            binding,
             trial,
             request,
             &epoch,
@@ -231,15 +230,63 @@ pub fn run(
             takeoff_index,
             touchdown_index,
             landmarks.is_some(),
-            &mut bound_methods,
-            &mut refusals,
-            &mut warnings,
-        );
-        produced
-            .into_iter()
-            .find(|(key, _)| *key == FLIGHT_TIME_KEY)
-            .and_then(|(_, value)| value)
+            landmark_chain,
+            bound_methods,
+            refusals,
+            warnings,
+        )
     };
+    let impulse_produced = spine_default(
+        net_impulse_rule::ID,
+        &mut bound_methods,
+        &mut refusals,
+        &mut warnings,
+    );
+    let flight_produced = spine_default(
+        flight_time_rule::ID,
+        &mut bound_methods,
+        &mut refusals,
+        &mut warnings,
+    );
+    let takeoff_height_produced = spine_default(
+        impulse_momentum_rule::ID,
+        &mut bound_methods,
+        &mut refusals,
+        &mut warnings,
+    );
+    let rsimod_produced = spine_default(
+        rsimod_rule::ID,
+        &mut bound_methods,
+        &mut refusals,
+        &mut warnings,
+    );
+
+    let (net_impulse, net_impulse_chain) = number_and_chain(
+        &impulse_produced,
+        net_impulse::KEY,
+        &landmark_chain,
+        request,
+    );
+    let (takeoff_velocity, takeoff_velocity_chain) = number_and_chain(
+        &impulse_produced,
+        net_impulse::VELOCITY_KEY,
+        &landmark_chain,
+        request,
+    );
+    let (flight_time_height, flight_time_height_chain) =
+        number_and_chain(&flight_produced, FLIGHT_TIME_KEY, &landmark_chain, request);
+    let (takeoff_height, takeoff_height_chain) = number_and_chain(
+        &takeoff_height_produced,
+        jh_takeoff_frame::KEY,
+        &landmark_chain,
+        request,
+    );
+    let (reactive_strength, reactive_strength_chain) = number_and_chain(
+        &rsimod_produced,
+        reactive_strength_index::KEY,
+        &landmark_chain,
+        request,
+    );
 
     // Every quantity's key, label, unit and computed-by come from the one declaration in
     // `response.rs`. What varies per analysis is the value, the chain behind it, and the
@@ -281,26 +328,20 @@ pub fn run(
         Metric::declared("flight_time_seconds", flight, takeoff_ids.clone(), None),
         Metric::declared(
             "takeoff_velocity_meters_per_second",
-            velocity,
-            integrated.clone(),
+            takeoff_velocity,
+            takeoff_velocity_chain,
             Some("Net impulse over system mass. An identity, not an estimate.".into()),
         ),
         Metric::declared(
             "net_impulse_newton_seconds",
-            landmarks.as_ref().map(|marks| {
-                trial.integrate_offset_newton_seconds(
-                    marks.onset_index,
-                    marks.takeoff_index,
-                    epoch.system_weight_newtons,
-                )
-            }),
-            full.clone(),
+            net_impulse,
+            net_impulse_chain,
             None,
         ),
         Metric::declared(
             "jump_height_from_takeoff_meters",
-            height_takeoff,
-            integrated.clone(),
+            takeoff_height,
+            takeoff_height_chain,
             Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
                     .into(),
@@ -309,9 +350,9 @@ pub fn run(
         Metric::declared(
             FLIGHT_TIME_KEY,
             flight_time_height,
-            // The chain the rule's own phase would have built, so one id carries one record
-            // whichever way a caller arrived at it.
-            derived_chain(&conditioned.ids, request),
+            // The chain the rule's own phase built, so one id carries one record whichever way
+            // a caller arrived at it.
+            flight_time_height_chain,
             Some(
                 "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load."
                     .into(),
@@ -319,11 +360,8 @@ pub fn run(
         ),
         Metric::declared(
             "reactive_strength_index_modified",
-            match (height_takeoff, interval_seconds) {
-                (Some(height), Some(seconds)) => reactive_strength_index_modified(height, seconds),
-                _ => None,
-            },
-            integrated,
+            reactive_strength,
+            reactive_strength_chain,
             Some(
                 "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number."
                     .into(),
@@ -341,7 +379,7 @@ pub fn run(
         trial,
         request,
         &epoch,
-        &conditioned.ids,
+        landmark_chain,
         onset_index,
         takeoff_index,
         touchdown_index,
@@ -399,17 +437,86 @@ fn expect_row(method_id: &'static str) -> &'static crate::binding::Binding {
 /// It opens with what conditioned the signal, because the number was measured on the series
 /// those rules produced and cannot be reproduced without knowing which series that was.
 ///
-/// The landmark ids arrive here as the request's own words, so both go through the redirect
-/// that names the entry a stranger can look up. The spine's chains take the onset ids back
-/// from the rules, which are already entries, and redirect only the takeoff id.
-fn derived_chain(conditioning_ids: &[String], request: &AnalysisRequest) -> Vec<String> {
+/// The landmark ids arrive as the rules handed them back, which is the threshold entry
+/// followed by every operator entry it bound. Written from the request's word instead, the
+/// chain named the threshold rules alone, and which crossing each operator selected moves the
+/// sample its rule placed.
+fn derived_chain(
+    conditioning_ids: &[String],
+    onset_ids: &[String],
+    takeoff_ids: &[String],
+    request: &AnalysisRequest,
+) -> Vec<String> {
     let mut chain = conditioning_ids.to_vec();
-    chain.extend([
-        request.weighing.method_id.clone(),
-        crate::binding::records_under(&request.onset.method_id).to_string(),
-        crate::binding::records_under(&request.takeoff.method_id).to_string(),
-    ]);
+    chain.push(request.weighing.method_id.clone());
+    chain.extend(onset_ids.iter().cloned());
+    chain.extend(takeoff_ids.iter().cloned());
     chain
+}
+
+/// The chain behind one number a rule computed: what conditioned the signal, the landmark
+/// rules, the rules whose samples this one read, and the entries it declared this number
+/// rests on.
+///
+/// One home for the whole shape, because the spine runs some of these rules itself and a
+/// second copy would be free to answer the same question differently.
+fn chain_behind(
+    context: &DerivedContext,
+    quantity_key: &str,
+    landmarks: &LandmarkChain,
+    request: &AnalysisRequest,
+) -> Vec<String> {
+    let mut chain = derived_chain(
+        landmarks.conditioning_ids,
+        landmarks.onset_ids,
+        landmarks.takeoff_ids,
+        request,
+    );
+    chain.extend(context.rules_read().into_iter().map(str::to_string));
+    chain.extend(context.entries_behind(quantity_key));
+    chain
+}
+
+/// The ids the rules that conditioned the signal and placed the landmarks handed back, which
+/// every chain built after them opens with.
+#[derive(Clone, Copy)]
+struct LandmarkChain<'a> {
+    conditioning_ids: &'a [String],
+    onset_ids: &'a [String],
+    takeoff_ids: &'a [String],
+}
+
+/// One number a rule the spine ran for itself produced, carrying the chain that rule's own
+/// phase would have built for it, so one id leaves one record whichever way a caller arrived.
+struct SpineQuantity {
+    key: &'static str,
+    value: Option<f64>,
+    chain: Vec<String>,
+}
+
+/// One quantity among what a spine-run rule produced, and the chain behind it.
+///
+/// The fallback covers the case where the request named the rule itself: the spine does not
+/// run it then, and the metric this fills is dropped before anything reads it.
+fn number_and_chain(
+    produced: &[SpineQuantity],
+    key: &str,
+    landmark_chain: &LandmarkChain,
+    request: &AnalysisRequest,
+) -> (Option<f64>, Vec<String>) {
+    produced
+        .iter()
+        .find(|quantity| quantity.key == key)
+        .map(|quantity| (quantity.value, quantity.chain.clone()))
+        .unwrap_or_else(|| {
+            let chain = derived_chain(
+                landmark_chain.conditioning_ids,
+                landmark_chain.onset_ids,
+                landmark_chain.takeoff_ids,
+                request,
+            );
+            (None, chain)
+        })
 }
 
 /// A quantity the spine reports whose arithmetic is a registry entry, produced by running that
@@ -433,10 +540,11 @@ fn run_spine_default(
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
     landmarks_were_placed: bool,
+    landmark_chain: LandmarkChain,
     bound_methods: &mut Vec<crate::resolution::BoundMethod>,
     refusals: &mut Vec<DeclinedRule>,
     warnings: &mut Vec<String>,
-) -> Vec<(&'static str, Option<f64>)> {
+) -> Vec<SpineQuantity> {
     let Dispatch::Derived(rule) = binding.dispatch else {
         return Vec::new();
     };
@@ -486,7 +594,15 @@ fn run_spine_default(
             });
         }
     }
-    outcome.values
+    outcome
+        .values
+        .into_iter()
+        .map(|(key, value)| SpineQuantity {
+            key,
+            value,
+            chain: chain_behind(&context, key, &landmark_chain, request),
+        })
+        .collect()
 }
 
 /// Every quantity key a rule the request named will report.
@@ -522,7 +638,7 @@ fn run_derived_phase(
     trial: &Trial,
     request: &AnalysisRequest,
     epoch: &plateforce_core::WeighingEpoch,
-    conditioning_ids: &[String],
+    landmark_chain: LandmarkChain,
     onset_index: Option<usize>,
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
@@ -564,14 +680,9 @@ fn run_derived_phase(
         );
         let outcome = rule(&context, choice, warnings);
 
-        // The chain behind a derived number is what conditioned the signal, then the landmark
-        // rules it rests on, then the rules whose samples it read, taken from what the rule
-        // asked for rather than from everything that ran before it. A record naming only the
-        // last step understates what produced the number, and one naming every earlier step
-        // cites rules it never used.
-        let mut chain = derived_chain(conditioning_ids, request);
-        chain.extend(context.rules_read().into_iter().map(str::to_string));
-
+        // A record naming only the last step understates what produced the number, and one
+        // naming every earlier step cites rules it never used. Built per quantity, because two
+        // numbers under one entry can rest on different things.
         for (key, value) in &outcome.values {
             let declared = binding
                 .quantities
@@ -586,7 +697,7 @@ fn run_derived_phase(
             metrics.push(Metric::from_declaration(
                 declared,
                 *value,
-                chain.clone(),
+                chain_behind(&context, key, &landmark_chain, request),
                 None,
             ));
         }

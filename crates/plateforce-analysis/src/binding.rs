@@ -307,6 +307,17 @@ pub const BINDINGS: &[Binding] = &[
         dispatch: Dispatch::Derived(crate::slots::flight_time::takeoff_to_touchdown::RULE),
     },
     Binding {
+        id: crate::slots::net_impulse::as_performance_determinant::ID,
+        slot: crate::slots::net_impulse::CONSTRUCT,
+        construct: crate::slots::net_impulse::CONSTRUCT,
+        title: "Force above standing weight over the interval, and the velocity it gave",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::net_impulse::as_performance_determinant::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::net_impulse::as_performance_determinant::RULE),
+    },
+    Binding {
         id: crate::slots::jh_takeoff_frame::impulse_momentum::ID,
         slot: crate::slots::jh_takeoff_frame::CONSTRUCT,
         construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
@@ -412,6 +423,17 @@ pub const BINDINGS: &[Binding] = &[
         dispatch: Dispatch::Derived(
             crate::slots::jh_undeclared::minimum_of_two::RULE,
         ),
+    },
+    Binding {
+        id: crate::slots::reactive_strength_index::jh_tov_over_ttt::ID,
+        slot: crate::slots::reactive_strength_index::CONSTRUCT,
+        construct: crate::slots::reactive_strength_index::CONSTRUCT,
+        title: "Takeoff-velocity jump height over the time taken to produce it",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::reactive_strength_index::jh_tov_over_ttt::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::reactive_strength_index::jh_tov_over_ttt::RULE),
     },
     // The phase boundaries, in trace order, which is also dependency order: propulsion end
     // reads what braking start placed under its force option, and the phase models read the
