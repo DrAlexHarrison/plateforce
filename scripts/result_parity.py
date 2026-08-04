@@ -27,6 +27,14 @@ none of the three makes this gate refuse, so it cannot print that four surfaces 
 result while a field of that result went unread. `scripts/prove-parity-coverage-refuses.py`
 is where each of those refusals is shown to fire.
 
+A field two surfaces carry cannot go in `result`, which every surface is held to whole, so
+the record carries a second block: `carried_by_some`, holding the value of each declared
+divergence whose carriers can be held to one, and every carrier is held to it. Being carried
+by two surfaces is not a reason to compare a field with nothing, which is what leaving them
+out of the record did to the acquisition block, the trial's source and the plate a run came
+off. An entry opts out by naming what would move a record for a reason that is not parity,
+the way a field asserted another way does.
+
 Measured from the surfaces and then checked against the document, because the two are not the
 same universe. Those three registers are keyed by what the answers hold, and `serde` drops a
 field the whole population leaves empty, so such a field is compared by nobody, asserted by
@@ -563,6 +571,14 @@ class Divergence(NamedTuple):
     one level finer. Checked in both directions on every run: a request named here that
     leaves the field off every wire reddens this gate, and so does a request not named here
     whose answers carry it.
+
+    `a_committed_value_would_move` names what would move a record of this field for a reason
+    that is not parity, and is empty where nothing would. Empty is the ordinary state and it
+    means the carriers are held to a committed value in `carried_by_some`, because carriers
+    agreeing with each other is the weaker claim: several surfaces wrong the same way agree
+    perfectly, which is the sentence at the top of this file and the reason every other field
+    here is held to a record. An entry that names something states it the way
+    `ASSERTED_ANOTHER_WAY` states it, as why a record would be the wrong instrument.
     """
 
     carried_by: frozenset
@@ -571,6 +587,7 @@ class Divergence(NamedTuple):
     reason: str
     answered_by: str = ""
     filled_by: frozenset = frozenset()
+    a_committed_value_would_move: str = ""
 
 
 class NotAsked(NamedTuple):
@@ -626,6 +643,10 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "the build that produced the numbers, carried by the two surfaces that assemble "
         "`ResultDocument`. Python and R answer for a build a caller already holds, through "
         "`plateforce.__version__` and `packageVersion`",
+        a_committed_value_would_move=(
+            "every release, which is not a parity event. Two surfaces built out of step is "
+            "exactly parity, so that is what is asked of the carriers"
+        ),
     ),
     # `registry_version` was here, carried by cli, browser and python, and the one entry whose
     # carriers disagreed. Discharged by wsrp/registry-pin: it now means the caller's pin on
@@ -640,6 +661,14 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "where the trace came from and what the reader had to be told about reading it. The "
         "two surfaces handed a path know it; Python and R are handed a trial somebody else "
         "opened",
+        a_committed_value_would_move=(
+            "the request, and two requests share this record. The sentinel request answers "
+            "the quiet request's record and reads the same trace under a convention matching "
+            "157 of its samples where the quiet request matches none, so "
+            "`samples_matching_the_convention` is two numbers under one record and the "
+            "difference is the sentinel request's whole subject. The carriers are held to "
+            "each other instead"
+        ),
     ),
     "acquisition": Divergence(
         frozenset({"cli", "browser"}),
@@ -679,6 +708,13 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "the chain of rules behind each number, one record per metric. R's package reads it "
         "off the wire because R links the engine and cannot reach the derivation any other "
         "way; the other three hold the tree in memory and publish the numbers alone",
+        a_committed_value_would_move=(
+            "every registry data edit, which is how a method is added here: each record in "
+            "the chain quotes the digest and the revision the registry names about itself, "
+            "measured on this request at 11 records and every one of them carrying both. It "
+            "is the property `descriptions` and the digest itself are asserted for, reaching "
+            "this field through the chain"
+        ),
     ),
     # A discharge naming the shape of an API is not a comparison: a call nothing asks proves
     # nothing about the value it returns. The `sweep` request is what asks these surfaces, and
@@ -695,6 +731,13 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "with the analysis; the tab sweeps on its own schedule through a second entry point, "
         "and Python and R expose the sweep as a call of its own",
         SWEPT,
+        a_committed_value_would_move=(
+            "a rule added to any swept construct, which is a registry data edit and is how a "
+            "method is added here. The headline sweep varies 3, 5 and 5 rules over the three "
+            "landmark constructs and runs their 75 combinations, and every one of those "
+            "figures is a count of the registry rather than of this trial. The swept request "
+            "is where the numbers of a sweep are held to a record"
+        ),
     ),
 }
 
@@ -1086,6 +1129,77 @@ def carriers_agree_about(answers, field, carried):
     return len({canonical(answers[name][field]) for name in carried}) == 1
 
 
+def divergences_held_to_a_record(kind):
+    """Every declared divergence whose carriers are held to a committed value.
+
+    Every entry, less the ones naming something that would move a record for a reason that is
+    not parity. Holding the carriers to each other is the weaker claim and the one this whole
+    file is written against: surfaces wrong the same way agree perfectly, and a record is what
+    puts the value in front of a reviewer as a diff.
+    """
+    return {
+        field: declared
+        for field, declared in SURFACES_THAT_DIFFER[kind].items()
+        if not declared.a_committed_value_would_move
+    }
+
+
+def divergent_values_measured_from(answers, kind):
+    """What `carried_by_some` holds: the value of each recorded divergence this request puts
+    on a wire, taken from a carrier.
+
+    Taken from one carrier rather than from all of them because they agree, which
+    `coverage_faults` has already asked and refused where they do not. A field this request
+    leaves off every wire contributes nothing: it has no value here to record, and the
+    register's `filled_by` is what says so.
+    """
+    held = {}
+    for field in sorted(divergences_held_to_a_record(kind)):
+        carried = sorted(surfaces_publishing(answers, field))
+        if carried:
+            held[field] = answers[carried[0]][field]
+    return held
+
+
+def divergent_record_faults(committed, answers, kind):
+    """Every recorded divergence on a wire here matches the record, in both directions.
+
+    The record cannot be one surface's word: every carrier is held to it, so a field two
+    surfaces carry is compared twice and a third surface picking it up is compared as well.
+    And a value in the record for a field the register does not record is a standard nothing
+    is measured against, which is the same defect as a baseline no row is held to.
+    """
+    faults = []
+    recorded = divergences_held_to_a_record(kind)
+    for field, declared in sorted(recorded.items()):
+        carried = sorted(surfaces_publishing(answers, field))
+        if not carried:
+            continue
+        if field not in committed:
+            faults.append(
+                f"{field} reaches {carried} and the record holds no value for it, so what "
+                f"those surfaces say about it is compared with nothing. Write it with "
+                f"scripts/result-parity.sh --write and audit the diff: {declared.reason}"
+            )
+            continue
+        for name in carried:
+            moved = differing_paths(committed[field], answers[name][field], field)
+            if moved:
+                where = "place" if len(moved) == 1 else "places"
+                faults.append(
+                    f"{name} does not match the record of {field} in {len(moved)} {where}:\n"
+                    "    " + "\n    ".join(moved[:12])
+                    + ("\n    ..." if len(moved) > 12 else "")
+                )
+
+    for field in sorted(set(committed) - set(recorded)):
+        faults.append(
+            f"the record holds a value for {field} and the register does not record that "
+            "field, so it is a standard nothing is measured against"
+        )
+    return faults
+
+
 def article(word):
     """The right article for a kind's name, so a kind added later reads as English."""
     return "an" if word[:1].lower() in "aeiou" else "a"
@@ -1157,7 +1271,14 @@ def write_one(baseline_path, answers, row, source=None):
         )
 
     first = source or sorted(answers)[0]
+    # The values of the fields no single projection can hold, beside the projection rather
+    # than inside it. A field two surfaces carry and two do not cannot go in `result`, which
+    # every surface is held to whole, and leaving it out of the record altogether was how the
+    # acquisition block, the trial's source and the plate a run came off were compared by
+    # nobody while the gate reported that four surfaces computed the result.
+    held = divergent_values_measured_from(answers, row.kind)
     document = {
+        "carried_by_some": held,
         "compared_fields": fields,
         "result": projections[first],
     }
@@ -1167,6 +1288,9 @@ def write_one(baseline_path, answers, row, source=None):
         f"{baseline_path} written from {first}{chosen}; audit the diff before committing it\n"
         f"compared_fields derived from the surfaces: {len(fields)} fields"
         + (f", {len(gained)} newly covered: {gained}" if gained else ", none newly covered")
+        + f"\ncarried_by_some derived from the register: {len(held)} of "
+        f"{len(SURFACES_THAT_DIFFER[row.kind])} declared divergences held to a record here: "
+        f"{sorted(held)}"
     )
     return document, note
 
@@ -1181,11 +1305,18 @@ def check_one(row, baseline_path, answers):
     request_name = row.name
     fields = compared_fields_in(baseline_path)
     with open(baseline_path, encoding="utf-8") as handle:
-        committed = json.load(handle)["result"]
+        record = json.load(handle)
+    committed = record["result"]
 
     faults = [
         f"{request_name}: {fault}"
         for fault in coverage_faults(answers, fields, row.kind, row.surfaces, row.name)
+    ]
+    faults += [
+        f"{request_name}: {fault}"
+        for fault in divergent_record_faults(
+            record.get("carried_by_some", {}), answers, row.kind
+        )
     ]
 
     for name in sorted(answers):
@@ -1213,10 +1344,20 @@ def report_one(row, baseline_path, answers, fields, committed, values):
     everywhere = fields_every_surface_publishes(answers)
     held = f"{row.equals}'s record" if row.equals else pathlib.Path(baseline_path).name
     listed = len(surfaces_named_in_manifest())
+    # What the record holds beyond the projection, with its own denominator: a field two
+    # surfaces carry cannot go in `result`, and the count of compared fields would otherwise
+    # read as the whole of what this request was held to.
+    recorded = sorted(
+        field
+        for field in divergences_held_to_a_record(row.kind)
+        if surfaces_publishing(answers, field)
+    )
     print(
         f"  {row.name}: {len(answers)} of {listed} listed surfaces computed {held}, "
         f"{values} numbers each, {len(fields)} of {len(everywhere)} fields every surface "
-        "asked publishes compared"
+        f"asked publishes compared, {len(recorded)} of "
+        f"{len(SURFACES_THAT_DIFFER[row.kind])} declared divergences held to a record too: "
+        f"{recorded}"
     )
     # The surfaces this question cannot be put to, named beside the count above so the count
     # cannot be read as every surface having answered. A surface here answers a narrower
@@ -1380,12 +1521,20 @@ def check(directory):
                 set().union(*(surfaces_publishing(answers, field) for _, answers in filling))
             )
             asked = sorted({len(row.surfaces) for row, _ in filling})
+            # Whether the carriers are held to a record or only to each other, said here
+            # because the two read identically in the line above and only one of them can
+            # catch two surfaces wrong the same way.
+            standard = (
+                f"held to the record; discharged by {declared.discharged_by}"
+                if not declared.a_committed_value_would_move
+                else f"held to each other, because a record would move with "
+                f"{declared.a_committed_value_would_move}"
+            )
             print(
                 f"  over the {len(of_kind)} {kind} requests, {field} reaches {reaching} of the "
                 f"{asked[0] if len(asked) == 1 else asked} asked, on "
                 f"{[row.name for row, _ in filling]} of them, "
-                f"{agreement_reads(declared.carriers_agree)}, discharged by "
-                f"{declared.discharged_by}"
+                f"{agreement_reads(declared.carriers_agree)}, {standard}"
             )
 
 

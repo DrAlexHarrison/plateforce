@@ -38,7 +38,16 @@ import result_parity as gate
 
 ROOT = pathlib.Path(__file__).parent.parent
 BASELINE = ROOT / "tests" / "golden" / "result-parity.json"
+PLATE_BASELINE = ROOT / "tests" / "golden" / "result-parity-plate.json"
 SWEEP_BASELINE = ROOT / "tests" / "golden" / "result-parity-sweep.json"
+
+# Which request each control is assembled from, named because the reach register is keyed by
+# request as well as by kind. A control built for one request and measured as another places a
+# field the request leaves off every wire, or leaves off one its answers carry, and either way
+# the control refuses before a case has touched it.
+QUIET = "quiet"
+PLATE = "plate"
+SWEEP = "sweep"
 
 
 # What every surface publishes for a field asserted another way, when they agree. One entry
@@ -70,7 +79,7 @@ def an_agreeing_value(field):
     return copy.deepcopy(AN_AGREEING_VALUE[field])
 
 
-def a_recorded_divergence(kind):
+def a_recorded_divergence(kind, request):
     """One field the register records as reaching some surfaces and agreeing across them.
 
     Read off the register rather than named, because a case naming one field goes quiet the
@@ -80,17 +89,56 @@ def a_recorded_divergence(kind):
 
     Agreeing rather than any entry at all: spreading a divergence whose carriers disagree
     raises the disagreement fault as well, and a case that trips two refusals proves neither.
+    Filled by this request for the same reason: an entry the request does not fill is on no
+    answer here, and spreading it would raise the entry's own refusal instead.
     """
     for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
-        if declared.carriers_agree:
+        if declared.carriers_agree and fills(declared, request):
             return field
     raise SystemExit(
-        f"plateforce: the {kind} register records no divergence its carriers agree about, so "
-        "there is nothing here to spread to every surface"
+        f"plateforce: the {kind} register records no divergence its carriers agree about on "
+        f"the {request} request, so there is nothing here to spread to every surface"
     )
 
 
-def answers_from_baseline(baseline, kind, asked):
+def fills(declared, request):
+    """Whether this request is one the entry says puts the field on a wire.
+
+    An entry naming no request is one every request of its kind fills, which is what a field
+    the request cannot decide looks like: the terminal names the build on every analysis it
+    performs, and no request makes it stop.
+    """
+    return not declared.filled_by or request in declared.filled_by
+
+
+def a_field_the_request_leaves_off_every_wire(kind, request):
+    """One field the document declares that no answer to this request carries.
+
+    Read off the register rather than named, for the reason `a_recorded_divergence` is: a case
+    naming `plate_profile` goes quiet the moment that entry is discharged, and this script is
+    run by hand.
+    """
+    for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
+        if not fills(declared, request):
+            return field
+    raise SystemExit(
+        f"plateforce: the {kind} register records no field a request decides, so on the "
+        f"{request} request there is no declared field whose account can be taken away"
+    )
+
+
+def a_field_the_request_fills(kind, request):
+    """One field on a wire because this request asked for it, and on no other request's."""
+    for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
+        if declared.filled_by and request in declared.filled_by:
+            return field
+    raise SystemExit(
+        f"plateforce: the {kind} register records no field the {request} request puts on a "
+        "wire, so there is nothing here to stop filling"
+    )
+
+
+def answers_from_baseline(baseline, kind, asked, request):
     """The surfaces as they answer today, assembled from a committed result.
 
     The fields beyond the compared ones are placed from the gate's own register rather than
@@ -98,6 +146,11 @@ def answers_from_baseline(baseline, kind, asked):
     drift as a case that proved something. A field recorded as agreeing gets one value across
     its carriers, one recorded as disagreeing gets a different value on each, and the surfaces
     are exactly the ones that request is asked of.
+
+    A divergence this request does not fill is left off, because that is what the surfaces do
+    with it: `plate_profile` is on two answers to the request that states a plate and on
+    nobody's answer to the rest, so placing it everywhere would build a document no surface
+    produces and every case below would run against it.
     """
     document = json.loads(baseline.read_text(encoding="utf-8"))
     result = document["result"]
@@ -111,6 +164,8 @@ def answers_from_baseline(baseline, kind, asked):
             answer[field] = an_agreeing_value(field)
 
     for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
+        if not fills(declared, request):
+            continue
         for surface in declared.carried_by:
             answers[surface][field] = (
                 f"{surface}-{field}" if declared.carriers_agree is False else f"one-{field}"
@@ -119,7 +174,18 @@ def answers_from_baseline(baseline, kind, asked):
 
 
 def answers_that_pass():
-    return answers_from_baseline(BASELINE, gate.ANALYSED, gate.surfaces_named_in_manifest())
+    return answers_from_baseline(BASELINE, gate.ANALYSED, gate.surfaces_named_in_manifest(), QUIET)
+
+
+def plate_answers_that_pass():
+    """The request that states a saved plate, over the four surfaces it is asked of.
+
+    A second analysed control, because the reach register is keyed by request as well as by
+    kind: `plate_profile` is on two answers here and on nobody's answer to the request above,
+    so a case written against one says nothing about the other.
+    """
+    asked = gate.surfaces_named_in_manifest()
+    return answers_from_baseline(PLATE_BASELINE, gate.ANALYSED, asked, PLATE), asked
 
 
 def swept_answers_that_pass():
@@ -130,10 +196,10 @@ def swept_answers_that_pass():
     case written against one says nothing about the other.
     """
     asked = gate.surfaces_named_in_manifest() - set(gate.SURFACES_NOT_ASKED[gate.SWEPT])
-    return answers_from_baseline(SWEEP_BASELINE, gate.SWEPT, asked), asked
+    return answers_from_baseline(SWEEP_BASELINE, gate.SWEPT, asked, SWEEP), asked
 
 
-def faults_when(name, change, expected, kind=None, build=None):
+def faults_when(name, change, expected, kind=None, build=None, request=QUIET):
     """Apply one change to a passing run and require a fault that names `expected`.
 
     Every register a case can reach is restored afterwards, because several cases edit one: a
@@ -156,7 +222,7 @@ def faults_when(name, change, expected, kind=None, build=None):
     try:
         fields = change(answers, fields) or fields
         print(f"applied {name}", flush=True)
-        faults = gate.coverage_faults(answers, fields, kind, asked)
+        faults = gate.coverage_faults(answers, fields, kind, asked, request)
     finally:
         gate.SURFACES_THAT_DIFFER[kind].clear()
         gate.SURFACES_THAT_DIFFER[kind].update(differ_was)
@@ -180,7 +246,9 @@ def a_control_that_must_pass():
     """
     answers, fields = answers_that_pass()
     print("applied nothing, the control", flush=True)
-    faults = gate.coverage_faults(answers, fields, gate.ANALYSED, gate.surfaces_named_in_manifest())
+    faults = gate.coverage_faults(
+        answers, fields, gate.ANALYSED, gate.surfaces_named_in_manifest(), QUIET
+    )
     if faults:
         print("  THE CONTROL DOES NOT PASS, so no case below means anything:", file=sys.stderr)
         for fault in faults:
@@ -190,10 +258,29 @@ def a_control_that_must_pass():
     return True
 
 
+def a_plate_control_that_must_pass():
+    """The request that states a saved plate, unchanged, has to be green.
+
+    A second analysed control because a field can be on the wire because the request asked for
+    it, and a case written against the request that states no plate is measured against a
+    document `plate_profile` is absent from.
+    """
+    (answers, fields), asked = plate_answers_that_pass()
+    print("applied nothing, the plate control", flush=True)
+    faults = gate.coverage_faults(answers, fields, gate.ANALYSED, asked, PLATE)
+    if faults:
+        print("  THE CONTROL DOES NOT PASS, so no plate case means anything:", file=sys.stderr)
+        for fault in faults:
+            print(f"    {fault}", file=sys.stderr)
+        return False
+    print(f"  passed: {len(fields)} compared fields, {len(asked)} surfaces, no fault", flush=True)
+    return True
+
+
 def a_swept_control_that_must_pass():
     (answers, fields), asked = swept_answers_that_pass()
     print("applied nothing, the swept control", flush=True)
-    faults = gate.coverage_faults(answers, fields, gate.SWEPT, asked)
+    faults = gate.coverage_faults(answers, fields, gate.SWEPT, asked, SWEEP)
     if faults:
         print("  THE CONTROL DOES NOT PASS, so no swept case means anything:", file=sys.stderr)
         for fault in faults:
@@ -231,7 +318,7 @@ def move_a_declared_divergence(answers, fields):
 
 def spread_a_divergence_to_every_surface(answers, fields):
     """A field the register records as reaching some surfaces, reaching all of them."""
-    field = a_recorded_divergence(gate.ANALYSED)
+    field = a_recorded_divergence(gate.ANALYSED, QUIET)
     for answer in answers.values():
         answer[field] = f"one-{field}"
 
@@ -318,15 +405,22 @@ def make_two_surfaces_name_different_builds(answers, fields):
     answers["python"]["plateforce_version"] = "0.0.0-somewhere-else"
 
 
-def stop_naming_a_field_that_reaches_no_wire(answers, fields):
-    """The defect the register was added for, put back.
+def stop_naming_a_field_no_answer_here_carries(answers, fields):
+    """The defect the reach registers were added for, put back.
+
+    A field the document declares that no answer to this request carries is invisible to every
+    register keyed by what the answers hold: `serde` drops it, so it is compared by nobody,
+    asserted by nobody and missing from nobody, and the gate goes on reporting that every field
+    was accounted for. Taking away its entry is the state the gate was in before it read the
+    document at all.
 
     Written against the register rather than against a named field, for the reason the repaired
-    disagreement above is: a case naming `plate_profile` goes quiet the moment a request fills
-    it, and this script is run by hand. Emptying the register is the state the gate was in
-    before it read the document at all.
+    disagreement above is: a case naming `plate_profile` goes quiet the moment that entry
+    moves, and this script is run by hand.
     """
-    gate.NEVER_ON_THE_WIRE[gate.ANALYSED].clear()
+    gate.SURFACES_THAT_DIFFER[gate.ANALYSED].pop(
+        a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
+    )
 
 
 def name_a_field_the_document_does_not_declare(answers, fields):
@@ -336,10 +430,48 @@ def name_a_field_the_document_does_not_declare(answers, fields):
     )
 
 
-def put_a_field_named_as_reaching_no_wire_on_one(answers, fields):
-    """The entry outliving the gap it records, which an allow-list would pass in silence."""
-    for field in gate.NEVER_ON_THE_WIRE[gate.ANALYSED]:
-        answers["cli"][field] = {"id": "plate-01"}
+def put_a_field_named_as_reaching_no_wire_on_every_surface(answers, fields):
+    """The entry outliving the gap it records, which an allow-list would pass in silence.
+
+    The entry is moved into the register rather than read out of it: both registers are empty
+    today, so a case that iterated one would apply nothing and report whatever the run happened
+    to raise. Put on every surface and compared as well, so the entry itself is the only thing
+    left wrong with the run and the refusal that fires is this one.
+    """
+    field = a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
+    gate.SURFACES_THAT_DIFFER[gate.ANALYSED].pop(field)
+    gate.NEVER_ON_THE_WIRE[gate.ANALYSED][field] = gate.NeverOnTheWire(
+        "a request that fills it", "a field every request in this population leaves off"
+    )
+    for answer in answers.values():
+        answer[field] = {"name": "parity-lab-plate"}
+    fields.append(field)
+    return fields
+
+
+def carry_a_field_this_request_does_not_fill(answers, fields):
+    """A divergence recorded as one request's, on the answers to another.
+
+    The register says which requests put a field on a wire, so an entry that has stopped being
+    true of the population reddens here rather than excusing the field on every request at
+    once.
+    """
+    field = a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
+    for surface in gate.SURFACES_THAT_DIFFER[gate.ANALYSED][field].carried_by:
+        answers[surface][field] = f"one-{field}"
+
+
+def stop_filling_the_field_this_request_fills(answers, fields):
+    """The one request that puts a field on a wire, stopping.
+
+    The gap reopening, which is the direction the register cannot see without being asked:
+    every other request leaves the field off every wire and the entry accounts for that, so
+    without this the register would go on describing a divergence the population no longer has
+    and the field would be back where `NEVER_ON_THE_WIRE` found it.
+    """
+    field = a_field_the_request_fills(gate.ANALYSED, PLATE)
+    for answer in answers.values():
+        answer.pop(field, None)
 
 
 def make_the_document_a_stranger_to_the_surfaces(answers, fields):
@@ -426,7 +558,7 @@ CASES = [
     ),
     (
         "a field the document declares that reaches no wire and is named nowhere",
-        stop_naming_a_field_that_reaches_no_wire,
+        stop_naming_a_field_no_answer_here_carries,
         "and no answer to this request carries it",
     ),
     (
@@ -436,13 +568,35 @@ CASES = [
     ),
     (
         "a field named as reaching no wire, on a wire",
-        put_a_field_named_as_reaching_no_wire_on_one,
+        put_a_field_named_as_reaching_no_wire_on_every_surface,
         "it is on the wire",
+    ),
+    (
+        "a field recorded as one request's, carried by another request's answers",
+        carry_a_field_this_request_does_not_fill,
+        "is recorded as on the wire on",
     ),
     (
         "the document's fields read off something that is not the document",
         make_the_document_a_stranger_to_the_surfaces,
         "declares no such field, so the",
+    ),
+]
+
+
+# The request that states a saved plate, whose answers carry a field the four above them leave
+# off every wire. Every case above is measured against a request that states no plate, so this
+# is the only place the entry's own account of which requests fill it can be broken.
+PLATE_CASES = [
+    (
+        "the one request that puts a field on a wire, leaving it off",
+        stop_filling_the_field_this_request_fills,
+        "which it is recorded as reaching",
+    ),
+    (
+        "a field one surface publishes on the request that states a plate, and the others do not",
+        add_a_field_to_one_surface,
+        "sample_rate_hz_read",
     ),
 ]
 
@@ -481,21 +635,78 @@ def every_surface_a_sweep_reaches():
     return ",".join(sorted(reached))
 
 
-# Three rows, because the register holds an entry whose account of itself rests on a swept
-# request being in the population. A population of analysed requests alone makes that entry
+def every_request_the_register_rests_on():
+    """Every request a reach entry says puts a field on a wire, derived rather than written out.
+
+    An entry naming a request the population does not hold is a refusal, and a control that
+    tripped it would say nothing about any case below. Written here as a list it would go stale
+    the moment an entry named a different request.
+    """
+    return sorted(
+        {
+            name
+            for register in gate.SURFACES_THAT_DIFFER.values()
+            for declared in register.values()
+            for name in declared.filled_by
+        }
+    )
+
+
+def a_row_for(name):
+    """One row of a passing population, in the naming every committed request already uses."""
+    return (
+        f"{name}\ttests/golden/result-parity-request-{name}.json\t"
+        f"tests/golden/result-parity-{name}.json\t{every_surface()}"
+    )
+
+
+# A row for each thing the registers rest on, because two entries hold an account of themselves
+# that a population can falsify. One rests on a swept request being asked at all; the others
+# name the requests that put a field on a wire. A population missing either makes that entry
 # refuse, which is what it is there to do.
 A_POPULATION_THAT_PASSES = [
     f"quiet\ttests/golden/result-parity-request.json\ttests/golden/result-parity.json\t{every_surface()}",
     f"sentinel\ttests/golden/result-parity-request-sentinel.json\t=quiet\t{every_surface()}",
+    *(a_row_for(name) for name in every_request_the_register_rests_on()),
     f"sweep\ttests/golden/result-parity-request-sweep.json\ttests/golden/result-parity-sweep.json\t{every_surface_a_sweep_reaches()}",
 ]
 
 DEFAULT_REQUESTS = [
     "result-parity-request.json",
     "result-parity-request-sentinel.json",
+    *(f"result-parity-request-{name}.json" for name in every_request_the_register_rests_on()),
     "result-parity-request-sweep.json",
 ]
-DEFAULT_BASELINES = ["result-parity.json", "result-parity-sweep.json"]
+DEFAULT_BASELINES = [
+    "result-parity.json",
+    *(f"result-parity-{name}.json" for name in every_request_the_register_rests_on()),
+    "result-parity-sweep.json",
+]
+
+
+def row_named(name):
+    """The passing population's row for one request, found by name rather than by position.
+
+    A row added to the population shifts every index after it, and a case that reached for one
+    by number would quietly start changing a different row and refuse for a reason that is not
+    the case.
+    """
+    return next(row for row in A_POPULATION_THAT_PASSES if row.startswith(f"{name}\t"))
+
+
+def population_where(name, row):
+    """The passing population with one row replaced, so a case changes one thing."""
+    return [row if held.startswith(f"{name}\t") else held for held in A_POPULATION_THAT_PASSES]
+
+
+def population_without(name):
+    """The passing population with one row taken out."""
+    return [held for held in A_POPULATION_THAT_PASSES if not held.startswith(f"{name}\t")]
+
+
+def files_without(names, held):
+    """Every file of a population but the ones belonging to the named requests."""
+    return [file for file in held if not any(f"-{name}." in file for name in names)]
 
 
 def a_population_on_disk(directory, rows, requests=None, baselines=None):
@@ -565,8 +776,14 @@ def a_manifest_control_that_must_pass():
 
 GAP = "gap\ttests/golden/result-parity-request-gap.json"
 WITH_A_GAP = DEFAULT_REQUESTS + ["result-parity-request-gap.json"]
-ANALYSED_ROWS = [A_POPULATION_THAT_PASSES[0], A_POPULATION_THAT_PASSES[1]]
-SWEEP_ROW = A_POPULATION_THAT_PASSES[2]
+ANALYSED_ROWS = population_without(SWEEP)
+ANALYSED_REQUESTS = files_without([SWEEP], DEFAULT_REQUESTS)
+ANALYSED_BASELINES = files_without([SWEEP], DEFAULT_BASELINES)
+
+# One request a reach entry rests on, for the case that takes it out of the population. Read
+# off the register rather than named, and empty where no entry names a request at all, which
+# is the state that leaves the case with nothing to remove.
+RESTED_ON = every_request_the_register_rests_on()
 
 MANIFEST_CASES = [
     (
@@ -606,32 +823,32 @@ MANIFEST_CASES = [
     (
         "a row declared equal to a row that does not exist",
         dict(
-            rows=[ANALYSED_ROWS[0], ANALYSED_ROWS[1].replace("=quiet", "=loud"), SWEEP_ROW],
+            rows=population_where("sentinel", row_named("sentinel").replace("=quiet", "=loud")),
             expected="and no row is named that",
         ),
     ),
     (
         "a row declared equal to itself, which asserts nothing",
         dict(
-            rows=[ANALYSED_ROWS[0], ANALYSED_ROWS[1].replace("=quiet", "=sentinel"), SWEEP_ROW],
+            rows=population_where(
+                "sentinel", row_named("sentinel").replace("=quiet", "=sentinel")
+            ),
             expected="declared equal to itself",
         ),
     ),
     (
         "a chain of rows each declared equal to the next",
         dict(
-            rows=[
-                ANALYSED_ROWS[0].replace("tests/golden/result-parity.json", "=sentinel"),
-                ANALYSED_ROWS[1],
-                SWEEP_ROW,
-            ],
+            rows=population_where(
+                QUIET, row_named(QUIET).replace("tests/golden/result-parity.json", "=sentinel")
+            ),
             expected="One hop",
         ),
     ),
     (
         "two rows carrying one name",
         dict(
-            rows=[ANALYSED_ROWS[0], ANALYSED_ROWS[0], SWEEP_ROW],
+            rows=[row_named(QUIET)] + A_POPULATION_THAT_PASSES,
             expected="two rows of the request manifest carry one name",
         ),
     ),
@@ -656,7 +873,7 @@ MANIFEST_CASES = [
     (
         "a row asked of a surface no manifest names",
         dict(
-            rows=[f"{ANALYSED_ROWS[0]},abacus", ANALYSED_ROWS[1], SWEEP_ROW],
+            rows=population_where(QUIET, f"{row_named(QUIET)},abacus"),
             expected="names no such surface",
         ),
     ),
@@ -665,22 +882,17 @@ MANIFEST_CASES = [
         # catching one level down, in a divergence carried by a single surface.
         "a request one surface answers",
         dict(
-            rows=[
-                ANALYSED_ROWS[0].rsplit("\t", 1)[0] + "\tcli",
-                ANALYSED_ROWS[1],
-                SWEEP_ROW,
-            ],
+            rows=population_where(QUIET, row_named(QUIET).rsplit("\t", 1)[0] + "\tcli"),
             expected="agreeing with itself",
         ),
     ),
     (
         "a surface left off a request and named nowhere",
         dict(
-            rows=[
-                ANALYSED_ROWS[0].replace(every_surface(), every_surface_a_sweep_reaches()),
-                ANALYSED_ROWS[1],
-                SWEEP_ROW,
-            ],
+            rows=population_where(
+                QUIET,
+                row_named(QUIET).replace(every_surface(), every_surface_a_sweep_reaches()),
+            ),
             expected="nothing here says why",
         ),
     ),
@@ -697,8 +909,10 @@ MANIFEST_CASES = [
     (
         "a surface recorded as unable to answer a sweep, answering one",
         dict(
-            rows=ANALYSED_ROWS
-            + [SWEEP_ROW.replace(every_surface_a_sweep_reaches(), every_surface())],
+            rows=population_where(
+                SWEEP,
+                row_named(SWEEP).replace(every_surface_a_sweep_reaches(), every_surface()),
+            ),
             expected="so the entry is out of date and the surface answers for real",
         ),
     ),
@@ -709,8 +923,8 @@ MANIFEST_CASES = [
         "a population holding no swept request, with a surface recorded as unable to answer one",
         dict(
             rows=ANALYSED_ROWS,
-            requests=DEFAULT_REQUESTS[:2],
-            baselines=DEFAULT_BASELINES[:1],
+            requests=ANALYSED_REQUESTS,
+            baselines=ANALYSED_BASELINES,
             expected="reads as coverage and covers nothing",
         ),
     ),
@@ -718,11 +932,25 @@ MANIFEST_CASES = [
         "a register entry resting on a swept request the population no longer holds",
         dict(
             rows=ANALYSED_ROWS,
-            requests=DEFAULT_REQUESTS[:2],
-            baselines=DEFAULT_BASELINES[:1],
+            requests=ANALYSED_REQUESTS,
+            baselines=ANALYSED_BASELINES,
             expected="its account of itself is a sentence nothing measures",
         ),
     ),
+] + [
+    (
+        # The register says which requests put a field on a wire. A population without one of
+        # them leaves the entry excusing that field's absence everywhere and nothing ever
+        # putting it anywhere, which reads as coverage and covers nothing.
+        f"a reach entry resting on the {name} request, which the population no longer holds",
+        dict(
+            rows=population_without(name),
+            requests=files_without([name], DEFAULT_REQUESTS),
+            baselines=files_without([name], DEFAULT_BASELINES),
+            expected="so nothing ever puts it on one",
+        ),
+    )
+    for name in RESTED_ON
 ]
 
 
@@ -823,13 +1051,24 @@ def main():
     survived += [name for name, change, expected in CASES if not faults_when(name, change, expected)]
 
     print()
+    if not a_plate_control_that_must_pass():
+        raise SystemExit(1)
+    survived += [
+        name
+        for name, change, expected in PLATE_CASES
+        if not faults_when(
+            name, change, expected, build=plate_answers_that_pass, request=PLATE
+        )
+    ]
+
+    print()
     if not a_swept_control_that_must_pass():
         raise SystemExit(1)
     survived += [
         name
         for name, change, expected in SWEPT_CASES
         if not faults_when(
-            name, change, expected, kind=gate.SWEPT, build=swept_answers_that_pass
+            name, change, expected, kind=gate.SWEPT, build=swept_answers_that_pass, request=SWEEP
         )
     ]
 
@@ -848,7 +1087,13 @@ def main():
         if not hollow_faults_when(name, committed, fields, expected):
             survived.append(name)
 
-    total = len(CASES) + len(SWEPT_CASES) + len(MANIFEST_CASES) + len(HOLLOW_CASES)
+    total = (
+        len(CASES)
+        + len(PLATE_CASES)
+        + len(SWEPT_CASES)
+        + len(MANIFEST_CASES)
+        + len(HOLLOW_CASES)
+    )
     print()
     print(f"{total - len(survived)} of {total} cases were refused")
     if survived:

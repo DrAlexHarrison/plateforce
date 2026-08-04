@@ -1,11 +1,18 @@
 {
   "carried_by_some": {
     "acquisition": {
-      "filter_at_capture": null,
-      "firmware_version": null,
-      "floor_surface": null,
-      "plate_natural_frequency_hz": null,
-      "tare_state": null
+      "filter_at_capture": "none",
+      "firmware_version": "2.2",
+      "floor_surface": "concrete",
+      "plate_natural_frequency_hz": 400.0,
+      "tare_state": "tared_before_trial"
+    },
+    "plate_profile": {
+      "name": "parity-lab-plate",
+      "revision": "content-fa359f464ec26791",
+      "superseded_members": {
+        "firmware_version": "2.1"
+      }
     }
   },
   "compared_fields": [
@@ -26,7 +33,7 @@
     "weighing_start_index"
   ],
   "result": {
-    "acquisition_complete": false,
+    "acquisition_complete": true,
     "bound_globals": [
       {
         "name": "gravity_meters_per_second_squared",
