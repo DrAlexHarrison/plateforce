@@ -71,9 +71,21 @@
         },
         {
           "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.epoch_from_onset",
+          "slot": "epoch_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
           "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.to_fraction_of_peak_force",
+          "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
@@ -224,6 +236,60 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.at_fraction_of_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.average_to_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.between_force_levels",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.overlapping",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.mean_force_over_duration.lapuente",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.peak_sliding_window",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.phase_endpoint_secant.harry",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.peak_to_peak_anchored.amti",
+          "slot": "rate_of_power_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.phase_anchored",
+          "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
@@ -445,9 +511,21 @@
         },
         {
           "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.epoch_from_onset",
+          "slot": "epoch_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
           "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.to_fraction_of_peak_force",
+          "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
@@ -598,6 +676,60 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.at_fraction_of_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.average_to_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.between_force_levels",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.overlapping",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.mean_force_over_duration.lapuente",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.peak_sliding_window",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.phase_endpoint_secant.harry",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.peak_to_peak_anchored.amti",
+          "slot": "rate_of_power_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.phase_anchored",
+          "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
@@ -823,9 +955,21 @@
         },
         {
           "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.epoch_from_onset",
+          "slot": "epoch_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
           "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.to_fraction_of_peak_force",
+          "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
@@ -976,6 +1120,60 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.at_fraction_of_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.average_to_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.between_force_levels",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.overlapping",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.mean_force_over_duration.lapuente",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.peak_sliding_window",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.phase_endpoint_secant.harry",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.peak_to_peak_anchored.amti",
+          "slot": "rate_of_power_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.phase_anchored",
+          "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
@@ -1199,9 +1397,21 @@
         },
         {
           "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.epoch_from_onset",
+          "slot": "epoch_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
           "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "epoch_impulse",
+          "id": "impulse.to_fraction_of_peak_force",
+          "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
@@ -1352,6 +1562,60 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.at_fraction_of_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.average_to_peak_force",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.between_force_levels",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.overlapping",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.mean_force_over_duration.lapuente",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.peak_sliding_window",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.phase_endpoint_secant.harry",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.peak_to_peak_anchored.amti",
+          "slot": "rate_of_power_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_power_development",
+          "id": "rpd.phase_anchored",
+          "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
