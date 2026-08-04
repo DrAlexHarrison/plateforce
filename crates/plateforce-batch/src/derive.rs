@@ -52,22 +52,6 @@ pub fn choice(flag: &str, assignment: &str) -> Result<(String, String), DeriveRe
     Ok((construct.to_string(), method_id.to_string()))
 }
 
-/// Every assignment on one line, refused on the first that cannot be made.
-///
-/// A construct named twice is the last one written rather than a refusal, which is the shape
-/// `clap` gives a repeated `--weighing` and what a caller correcting a line expects.
-pub fn assignments(
-    flag: &str,
-    lines: &[String],
-) -> Result<BTreeMap<String, String>, DeriveRefusal> {
-    let mut chosen = BTreeMap::new();
-    for line in lines {
-        let (construct, method_id) = choice(flag, line)?;
-        chosen.insert(construct, method_id);
-    }
-    Ok(chosen)
-}
-
 /// Whether this build runs `method_id` for `construct`, as the record rather than as a bool.
 ///
 /// The one home for the question. A surface that answered it from its own copy of the

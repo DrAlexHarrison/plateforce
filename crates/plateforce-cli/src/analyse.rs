@@ -324,7 +324,7 @@ fn assignment_of<'a>(
 ///
 /// Refused rather than warned, because there is no reading of two values under one name that
 /// this software can act on, and P5 of the mission is that it refuses rather than guesses.
-fn stated_twice(flag: &str, name: &str, first: &str, second: &str) -> Declined {
+pub(crate) fn stated_twice(flag: &str, name: &str, first: &str, second: &str) -> Declined {
     Declined::line(
         Fault::Request,
         format!(
