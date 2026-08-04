@@ -3,6 +3,7 @@
     "acquisition_complete",
     "bound_globals",
     "bound_methods",
+    "descriptions",
     "levels",
     "metrics",
     "onset_index",
@@ -306,6 +307,11 @@
         "unread_parameters": []
       }
     ],
+    "descriptions": {
+      "flight_time_seconds": "0.5991666666666667 seconds\n  flight_time.takeoff_to_touchdown {}\n  registry declaring 2026-07-25 (content-d4e4ee147e5de79d)\n    filter.none {}\n      passband_edge = none\n    bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}\n      centre = mean\n      dispersion = sample\n      window_anchor = trial_start\n    takeoff.threshold.absolute_force {'persistence_ms': 0, 'threshold_n': 20}\n      takeoff.op.crossing_selection {}\n        selection = first\n      takeoff.op.residual_comparison {}\n        comparison = signed\n      takeoff.op.search_floor_at_weighing_epoch_end {'weighing_epoch_end_seconds': 1}\n  acquisition block incomplete, so this result cannot be declared to match another lab's",
+      "jump_height_from_flight_time_meters": "0.44022460156250015 meters\n  jumpheight.takeoff.flight_time {'gravity': 9.81}\n  registry declaring 2026-07-25 (content-d4e4ee147e5de79d)\n    filter.none {}\n      passband_edge = none\n    bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}\n      centre = mean\n      dispersion = sample\n      window_anchor = trial_start\n    takeoff.threshold.absolute_force {'persistence_ms': 0, 'threshold_n': 20}\n      takeoff.op.crossing_selection {}\n        selection = first\n      takeoff.op.residual_comparison {}\n        comparison = signed\n      takeoff.op.search_floor_at_weighing_epoch_end {'weighing_epoch_end_seconds': 1}\n  acquisition block incomplete, so this result cannot be declared to match another lab's",
+      "takeoff_time_seconds": "4.178333333333334 seconds\n  takeoff.threshold.absolute_force {'persistence_ms': 0, 'threshold_n': 20}\n  registry declaring 2026-07-25 (content-d4e4ee147e5de79d)\n    takeoff.op.crossing_selection {}\n      selection = first\n    takeoff.op.residual_comparison {}\n      comparison = signed\n    takeoff.op.search_floor_at_weighing_epoch_end {'weighing_epoch_end_seconds': 1}\n    filter.none {}\n      passband_edge = none\n    bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}\n      centre = mean\n      dispersion = sample\n      window_anchor = trial_start\n    takeoff.op.crossing_selection {}\n      selection = first\n    takeoff.op.residual_comparison {}\n      comparison = signed\n    takeoff.op.search_floor_at_weighing_epoch_end {'weighing_epoch_end_seconds': 1}\n  acquisition block incomplete, so this result cannot be declared to match another lab's"
+    },
     "levels": {
       "onset_band_lower_newtons": null,
       "onset_band_upper_newtons": null,
