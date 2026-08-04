@@ -61,6 +61,24 @@ default = 1.0
 default_source = "owen2014"
 required = true
 
+# The other shape of default, on the entry the shipped registry gives it to. A fixture holding
+# only numeric defaults let `bind` read `default` alone and answer every test here correctly,
+# while two shipped entries whose only default is a name refused outright.
+[[method.parameter]]
+name = "centre"
+unit = "enumeration"
+default_key = "mean"
+default_source = "owen2014"
+required = true
+
+[[method.parameter.value]]
+key = "mean"
+label = "Arithmetic mean of the span"
+
+[[method.parameter.value]]
+key = "median"
+label = "Median of the span"
+
 [[method.citation]]
 key = "owen2014"
 role = "proposes"
@@ -157,6 +175,12 @@ default = 5.0
 default_source = "owen2014"
 required = true
 
+[[method.citation]]
+key = "owen2014"
+role = "uses"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+obtained = true
+
 [method.failure]
 rate = 0.1494
 numerator = 36
@@ -198,6 +222,12 @@ name = "averaging_window_seconds"
 unit = "seconds"
 default = 0.0
 default_source = "synthetic_fixture"
+
+[[method.citation]]
+key = "synthetic_fixture"
+role = "proposes"
+reference = "This fixture, which chose the raw maximum so the width is stated rather than assumed"
+obtained = true
 """
 
 
