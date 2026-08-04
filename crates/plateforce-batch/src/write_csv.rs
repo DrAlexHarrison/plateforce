@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::engine::BatchResult;
+use crate::exclusions::PopulationExclusion;
 use crate::relations::{
     AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
 };
@@ -20,6 +21,7 @@ pub enum Relation {
     Refusals,
     Warnings,
     Signals,
+    Exclusions,
     Aggregates,
     Run,
 }
@@ -32,6 +34,7 @@ impl Relation {
             Relation::Refusals => "refusals.csv",
             Relation::Warnings => "warnings.csv",
             Relation::Signals => "signals.csv",
+            Relation::Exclusions => "exclusions.csv",
             Relation::Aggregates => "aggregates.csv",
             Relation::Run => "run.json",
         }
@@ -45,6 +48,7 @@ pub const EVERY_RELATION: &[Relation] = &[
     Relation::Refusals,
     Relation::Warnings,
     Relation::Signals,
+    Relation::Exclusions,
     Relation::Aggregates,
 ];
 
@@ -123,6 +127,15 @@ impl BatchResult {
             Relation::Signals => render_table(
                 SignalRow::header(),
                 self.signals.iter().map(SignalRow::cells),
+            ),
+            // One trial can be examined by several gates, so the ordinal is the position
+            // within the run rather than a field the gate produced.
+            Relation::Exclusions => render_table(
+                PopulationExclusion::header(),
+                self.exclusions
+                    .iter()
+                    .enumerate()
+                    .map(|(ordinal, row)| row.cells(ordinal)),
             ),
             Relation::Aggregates => render_table(
                 AggregateRow::header(),
