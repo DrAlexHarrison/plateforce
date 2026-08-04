@@ -639,6 +639,9 @@ select { cursor: pointer; }
 .decision > select, .decision__params { margin-top: var(--space-2); width: 100%; }
 .decision__params { display: grid; gap: var(--space-2); }
 .decision--provisional { border-left: 3px solid var(--border-strong); padding-left: var(--space-3); }
+/* A row carrying what ran rather than a question. It holds no control, so its title sits at
+   the weight of a heading over a list instead of the weight of a label over a choice. */
+.decision--record .decision__title { font-weight: 500; color: var(--text-secondary); }
 
 /* Rules that ran inside the chosen one and were never asked about. Displayed because the
    registry says to display them, quiet because nobody asked a question here. */
