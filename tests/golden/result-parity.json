@@ -196,6 +196,22 @@
         },
         "registry_backed": true,
         "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "gravity",
+            "9.81"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "jumpheight.takeoff.flight_time",
+        "parameter_sources": {
+          "gravity": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
       }
     ],
     "levels": {
@@ -367,6 +383,8 @@
         "computed_by": "jumpheight.takeoff.flight_time",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
           "takeoff.threshold.absolute_force"
         ],
         "key": "jump_height_from_flight_time_meters",
@@ -374,7 +392,7 @@
         "note": "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load.",
         "unit": "meters",
         "unit_symbol": "m",
-        "value": 0.44007427002170146
+        "value": 0.44022460156250015
       },
       {
         "computed_by": "rsimod.jh_tov_over_ttt",

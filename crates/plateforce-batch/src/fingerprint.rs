@@ -49,6 +49,7 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         takeoff,
         touchdown_index,
         gravity_meters_per_second_squared,
+        gravity_source,
         registry_backed_ids,
         derived,
         conditioning,
@@ -87,6 +88,10 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         "takeoff": method_choice(takeoff),
         "touchdown_index": touchdown_index,
         "gravity_meters_per_second_squared": gravity_meters_per_second_squared,
+        // Pinned for the reason `recommended` is: one run whose author chose this gravity and
+        // one that took the constant the request type fills in produce the same number under
+        // different records, and the record is what this identifies.
+        "gravity_source": gravity_source,
         "registry_backed_ids": backed,
         // Keyed by construct and already ordered, because the map is a `BTreeMap`: two runs
         // stating one set of rules in two orders are one request and fingerprint alike.
