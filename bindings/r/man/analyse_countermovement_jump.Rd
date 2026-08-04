@@ -22,7 +22,8 @@ analyse_countermovement_jump(
   takeoff_index = NULL,
   touchdown_index = NULL,
   derived = NULL,
-  registry = NULL
+  registry = NULL,
+  registry_version = NULL
 )
 }
 \arguments{
@@ -61,6 +62,12 @@ parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what ano
 one placed declines by name when that construct was not named.}
 
 \item{registry}{Directory holding the registry, as in [pf_registry()].}
+
+\item{registry_version}{The revision of the registry data to cite in the result. Absent,
+the result names no pinned revision and reports the one the registry declares for
+itself. The two are recorded separately, because a revision the caller cited and one
+the data claimed about itself are different facts and a reader acts on them
+differently.}
 }
 \value{
 A [countermovement_jump].
