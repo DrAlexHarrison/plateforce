@@ -553,6 +553,97 @@ pub struct MethodEntry {
     pub(crate) registry_identity: RegistryIdentity,
 }
 
+/// One rule of the registry this build carries, bound to the values stated and to the entry's
+/// own default for every name that was not.
+///
+/// The route a notebook takes reaches its values through a `PyDict` and hands back a
+/// `BoundMethod` whose record of which names the registry filled is module-private, so a guard
+/// over the claim a request makes about a value nobody stated needs this to be written at all.
+#[cfg(test)]
+pub(crate) fn bound_from_the_registry_this_build_carries(
+    method_id: &str,
+    stated: BTreeMap<String, f64>,
+) -> BoundMethod {
+    let carried = registry_this_build_carries().expect("the wheel carries a registry");
+    let registry = Registry {
+        inner: carried,
+        version: None,
+    };
+    let identity = registry.identity();
+    let inner = registry
+        .inner
+        .methods
+        .get(method_id)
+        .unwrap_or_else(|| panic!("{method_id} is not in the registry this build carries"))
+        .clone();
+    MethodEntry {
+        inner,
+        registry_identity: identity,
+    }
+    .binding_over(stated)
+    .unwrap_or_else(|error| panic!("{method_id} did not bind: {error}"))
+}
+
+impl MethodEntry {
+    /// The binding itself, over values already read out of whatever the caller handed in.
+    ///
+    /// Apart from `bind` because that call reaches its values through a `PyDict` and this one
+    /// does not, so a guard over what a request claims about a value nobody stated can run
+    /// without an interpreter.
+    pub(crate) fn binding_over(&self, supplied: BTreeMap<String, f64>) -> PyResult<BoundMethod> {
+        let known: BTreeMap<&str, &CoreParameter> = self
+            .inner
+            .parameters
+            .iter()
+            .map(|parameter| (parameter.name.as_str(), parameter))
+            .collect();
+
+        // Sorted, so two bindings of the same values fingerprint the same however the
+        // caller happened to order the keyword arguments.
+        let mut bound: Vec<(String, f64)> = Vec::new();
+        let mut defaulted: Vec<String> = Vec::new();
+        let mut unpublished: Vec<String> = Vec::new();
+
+        for (name, definition) in &known {
+            let value = match supplied.get(*name) {
+                Some(given) => *given,
+                None => match definition.default {
+                    Some(default) => {
+                        defaulted.push((*name).to_string());
+                        default
+                    }
+                    None => {
+                        if definition.required {
+                            return Err(parameter_error(
+                                &self.inner.id,
+                                name,
+                                format!(
+                                    "{}: parameter '{}' is required and the registry gives it no default",
+                                    self.inner.id, name
+                                ),
+                            ));
+                        }
+                        continue;
+                    }
+                },
+            };
+            if !definition.published_values.is_empty()
+                && !definition.published_values.contains(&value)
+            {
+                unpublished.push((*name).to_string());
+            }
+            bound.push(((*name).to_string(), value));
+        }
+
+        Ok(BoundMethod {
+            entry: self.clone(),
+            bound_parameters: bound,
+            defaulted,
+            unpublished,
+        })
+    }
+}
+
 #[pymethods]
 impl MethodEntry {
     #[getter]
@@ -740,49 +831,7 @@ impl MethodEntry {
             }
         }
 
-        // Sorted, so two bindings of the same values fingerprint the same however the
-        // caller happened to order the keyword arguments.
-        let mut bound: Vec<(String, f64)> = Vec::new();
-        let mut defaulted: Vec<String> = Vec::new();
-        let mut unpublished: Vec<String> = Vec::new();
-
-        for (name, definition) in &known {
-            let value = match supplied.get(*name) {
-                Some(given) => *given,
-                None => match definition.default {
-                    Some(default) => {
-                        defaulted.push((*name).to_string());
-                        default
-                    }
-                    None => {
-                        if definition.required {
-                            return Err(parameter_error(
-                                &self.inner.id,
-                                name,
-                                format!(
-                                    "{}: parameter '{}' is required and the registry gives it no default",
-                                    self.inner.id, name
-                                ),
-                            ));
-                        }
-                        continue;
-                    }
-                },
-            };
-            if !definition.published_values.is_empty()
-                && !definition.published_values.contains(&value)
-            {
-                unpublished.push((*name).to_string());
-            }
-            bound.push(((*name).to_string(), value));
-        }
-
-        Ok(BoundMethod {
-            entry: self.clone(),
-            bound_parameters: bound,
-            defaulted,
-            unpublished,
-        })
+        self.binding_over(supplied)
     }
 
     fn __repr__(&self) -> String {
