@@ -42,7 +42,15 @@ impl Plates {
     /// One plate saved, as the decree spells it.
     fn save(&self, name: &str, members: &[(&str, &str)]) -> String {
         let mut command = Command::new(env!("CARGO_BIN_EXE_plateforce"));
-        command.args(["--plates", &self.folder(), "--format", "json", "plate", "save", name]);
+        command.args([
+            "--plates",
+            &self.folder(),
+            "--format",
+            "json",
+            "plate",
+            "save",
+            name,
+        ]);
         for (member, value) in members {
             command.args(["--acquisition", &format!("{member}={value}")]);
         }
@@ -51,7 +59,11 @@ impl Plates {
             .current_dir(env!("CARGO_MANIFEST_DIR"))
             .output()
             .expect("the terminal runs");
-        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         let saved: serde_json::Value =
             serde_json::from_slice(&output.stdout).expect("the result is json");
         saved["ok"]["revision"]
@@ -135,11 +147,13 @@ fn a_run_that_names_a_saved_plate_carries_its_members_and_fingerprints_complete(
     );
     for (member, value) in EVERY_MEMBER {
         let written = &result["acquisition"][member];
-        let carried = written.as_str().map(str::to_string).or_else(|| written.as_f64().map(|number| {
-            // The one member the block holds as a number, compared as the answer rather than
-            // as its spelling, so 400 and 400.0 are the same answer.
-            format!("{number}")
-        }));
+        let carried = written.as_str().map(str::to_string).or_else(|| {
+            written.as_f64().map(|number| {
+                // The one member the block holds as a number, compared as the answer rather than
+                // as its spelling, so 400 and 400.0 are the same answer.
+                format!("{number}")
+            })
+        });
         assert_eq!(
             carried.as_deref(),
             Some(value),
@@ -195,7 +209,10 @@ fn two_results_off_one_plate_name_show_that_the_plate_was_edited() {
     let after = plates.save("lab-kistler-1", &edited);
     let (second, _) = plates.analyse(&["--plate", "lab-kistler-1"]);
 
-    assert_ne!(before, after, "an edited plate hashed to the revision it held before");
+    assert_ne!(
+        before, after,
+        "an edited plate hashed to the revision it held before"
+    );
     assert_eq!(
         result_in(&first)["plate_profile"]["revision"].as_str(),
         Some(before.as_str()),
@@ -222,6 +239,9 @@ fn a_plate_nobody_saved_is_refused_by_name() {
 
     let (document, refusal) = plates.analyse(&["--plate", "lab-kistler-9"]);
 
-    assert!(document.is_empty(), "a run named a plate nobody saved and produced a result\n{document}");
+    assert!(
+        document.is_empty(),
+        "a run named a plate nobody saved and produced a result\n{document}"
+    );
     assert!(refusal.contains("lab-kistler-9"), "{refusal}");
 }

@@ -78,7 +78,7 @@ macro_rules! acquisition_block {
                 $(
                     if let Some(stated) = self.$member.as_ref() {
                         if let Some(was) = saved.$member.as_ref() {
-                            if was.to_string() != stated.to_string() {
+                            if was != stated {
                                 displaced.insert(
                                     stringify!($member).to_string(),
                                     was.to_string(),
@@ -265,7 +265,10 @@ mod tests {
     #[test]
     fn a_name_the_block_does_not_hold_and_a_value_of_the_wrong_kind_are_told_apart() {
         let mut block = Acquisition::default();
-        assert_eq!(block.set_member("debounce_ms", "50"), Err(MemberFault::Unknown));
+        assert_eq!(
+            block.set_member("debounce_ms", "50"),
+            Err(MemberFault::Unknown)
+        );
         assert_eq!(
             block.set_member("plate_natural_frequency_hz", "stiff"),
             Err(MemberFault::NotANumber)
@@ -277,8 +280,13 @@ mod tests {
     #[test]
     fn the_stated_members_are_the_ones_somebody_answered() {
         let mut block = Acquisition::default();
-        block.set_member("floor_surface", "concrete").expect("a member");
-        assert_eq!(block.stated_members(), vec![("floor_surface", "concrete".to_string())]);
+        block
+            .set_member("floor_surface", "concrete")
+            .expect("a member");
+        assert_eq!(
+            block.stated_members(),
+            vec![("floor_surface", "concrete".to_string())]
+        );
         assert_eq!(Acquisition::default().stated_members(), Vec::new());
     }
 
@@ -288,7 +296,9 @@ mod tests {
     #[test]
     fn a_stated_member_displaces_the_saved_one_and_says_what_it_displaced() {
         let mut stated = Acquisition::default();
-        stated.set_member("firmware_version", "2.4.2").expect("a member");
+        stated
+            .set_member("firmware_version", "2.4.2")
+            .expect("a member");
 
         let (laid, displaced) = stated.over(&filled());
 
@@ -305,7 +315,9 @@ mod tests {
     #[test]
     fn restating_the_saved_answer_displaces_nothing() {
         let mut stated = Acquisition::default();
-        stated.set_member("plate_natural_frequency_hz", "400").expect("a member");
+        stated
+            .set_member("plate_natural_frequency_hz", "400")
+            .expect("a member");
 
         let (laid, displaced) = stated.over(&filled());
 
@@ -320,7 +332,9 @@ mod tests {
         let mut saved = filled();
         saved.firmware_version = None;
         let mut stated = Acquisition::default();
-        stated.set_member("firmware_version", "2.4.1").expect("a member");
+        stated
+            .set_member("firmware_version", "2.4.1")
+            .expect("a member");
 
         let (laid, displaced) = stated.over(&saved);
 

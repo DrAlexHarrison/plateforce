@@ -523,12 +523,16 @@ impl LoadedTrial {
 /// An empty block rather than a refusal, because a run told nothing about the plate is a run
 /// whose result fingerprints as incomplete and names what would fill it, which is a different
 /// thing from a run that cannot happen.
-pub(crate) fn stated_capture(capture_json: Option<&str>) -> Result<plateforce_core::Capture, JsError> {
+pub(crate) fn stated_capture(
+    capture_json: Option<&str>,
+) -> Result<plateforce_core::Capture, JsError> {
     let Some(text) = capture_json else {
         return Ok(plateforce_core::Capture::default());
     };
     let stated: StatedCapture = serde_json::from_str(text).map_err(|error| {
-        JsError::new(&format!("what the tab said about the plate did not parse: {error}"))
+        JsError::new(&format!(
+            "what the tab said about the plate did not parse: {error}"
+        ))
     })?;
     stated.resolved()
 }

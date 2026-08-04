@@ -203,7 +203,8 @@ fn forget(
 
 /// Every member whose answer moved between two revisions of one saved plate.
 fn replacements(before: &Acquisition, after: &Acquisition) -> Vec<(String, String, String)> {
-    let was: std::collections::BTreeMap<&str, String> = before.stated_members().into_iter().collect();
+    let was: std::collections::BTreeMap<&str, String> =
+        before.stated_members().into_iter().collect();
     after
         .stated_members()
         .into_iter()

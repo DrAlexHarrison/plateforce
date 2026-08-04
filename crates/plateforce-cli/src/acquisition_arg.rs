@@ -83,13 +83,15 @@ pub(crate) fn stated_acquisition(assignments: &[String]) -> Result<Acquisition, 
 /// member holds, so a member added to the block reaches this flag without being told about it
 /// and there is no arm here to forget.
 fn assign(block: &mut Acquisition, member: &str, written: &str) -> Result<(), Declined> {
-    block.set_member(member, written).map_err(|fault| match fault {
-        MemberFault::Unknown => not_a_member(member),
-        MemberFault::NotANumber => Declined::line(
-            Fault::Request,
-            format!("--acquisition {member} was given '{written}', which is not a number"),
-        ),
-    })
+    block
+        .set_member(member, written)
+        .map_err(|fault| match fault {
+            MemberFault::Unknown => not_a_member(member),
+            MemberFault::NotANumber => Declined::line(
+                Fault::Request,
+                format!("--acquisition {member} was given '{written}', which is not a number"),
+            ),
+        })
 }
 
 /// The refusal a caller learns the members from, said once so the two places that raise it

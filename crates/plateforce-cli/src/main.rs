@@ -228,7 +228,9 @@ fn one_directory(
     consequence: &str,
 ) -> Result<Option<PathBuf>, String> {
     if written > 1 {
-        return Err(format!("{flag} names {written} directories, and {consequence}"));
+        return Err(format!(
+            "{flag} names {written} directories, and {consequence}"
+        ));
     }
     match parsed {
         [only] => Ok(Some(only.clone())),
@@ -294,7 +296,12 @@ mod tests {
     fn directory_of(line: &[&str]) -> Result<Option<PathBuf>, String> {
         let invocation = parse(line).map_err(|error| error.to_string())?;
         let written = times_written(line.iter().map(std::ffi::OsString::from), "--registry");
-        one_directory("--registry", &invocation.registry, written, "an entry read under one of them would carry the other's id")
+        one_directory(
+            "--registry",
+            &invocation.registry,
+            written,
+            "an entry read under one of them would carry the other's id",
+        )
     }
 
     fn plates_of(line: &[&str]) -> Result<Option<PathBuf>, String> {

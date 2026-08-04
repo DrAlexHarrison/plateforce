@@ -348,11 +348,39 @@ alike.
 ### Which surface asks for the block
 
 A trace of forces carries none of the acquisition block, so it is stated by whoever runs the
-analysis and no surface can derive it. Three ask: a folder run through `--acquisition
-<member>=<value>`, repeatable, and the R and Python trials through an acquisition argument.
-The terminal's single-trial command and the browser do not, so every result either writes is
-incomplete and cannot be declared to match. That is a gap in those two surfaces and not a
-property of the data they read.
+analysis and no surface can derive it. The terminal takes `--acquisition <member>=<value>`,
+repeatable, on a single trial and on a folder run; the R and Python trials take an acquisition
+argument; the browser module takes the block beside the request.
+
+### Saving a plate rather than retyping it
+
+A lab has one or two plates whose firmware changes rarely, so a bar that asks five questions at
+every analysis asks the same answers hundreds of times. `plateforce plate save <name>` records
+them once and `--plate <name>` fills the block from them.
+
+```
+plateforce plate save lab-kistler-1 --acquisition filter_at_capture=none ...
+plateforce analyse trial.txt --plate lab-kistler-1
+```
+
+Three rules keep a saved plate from becoming a second home for the fact.
+
+- **A record carries the members, never a reference to them.** A result that travelled away
+  from the machine that saved the plate holds every member it ran under.
+- **A member stated beside a plate is the answer that runs**, because stating one is a caller
+  producing evidence and reading a saved plate is not. What it displaced reaches the record
+  under `plate_profile.superseded_members`, so a reader sees both numbers.
+- **Neither the name nor the revision is fingerprint material.** What a lab calls its own plate
+  is not a fact about the capture, and two labs whose plates are configured alike have to match
+  whatever they file them under. `run_fingerprint` clears `plate_profile` before it digests the
+  run row for exactly this.
+
+`plate_profile.revision` is the digest of the members the plate held when it was read, so two
+results taken off one plate name either side of an edit differ visibly rather than silently.
+`plateforce plate show <name>` prints the revision a plate hashes to now, which is what a reader
+holding an older result compares against. Saved plates live where the operating system keeps a
+program's settings, per user, and `--plates <DIR>` names a folder instead, which is how a plate
+travels with a dataset rather than with the person.
 
 ### What a run publishes when the block is unfilled
 

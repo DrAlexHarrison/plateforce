@@ -785,6 +785,9 @@ fn declined_landmark(declined: &plateforce_analysis::DeclinedRule) -> Declined {
     Declined::recorded(plateforce_analysis::document::refusal_from_rule(declined))
 }
 
+// Every argument is a fact a document carries and none of them is derivable from another, so
+// the alternative to the count is a struct whose only reader is this call.
+#[allow(clippy::too_many_arguments)]
 fn render(
     response: &AnalysisResponse,
     spread: Option<plateforce_analysis::spread::SpreadResponse>,

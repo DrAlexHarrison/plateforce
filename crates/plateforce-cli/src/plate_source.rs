@@ -44,7 +44,10 @@ impl SavedPlate {
 
     /// What this plate contributes to a result: the name a reader recognises and the revision
     /// that tells them whether the file on their machine is still the one that ran.
-    pub fn attributed(&self, superseded_members: BTreeMap<String, String>) -> PlateProfileAttribution {
+    pub fn attributed(
+        &self,
+        superseded_members: BTreeMap<String, String>,
+    ) -> PlateProfileAttribution {
         PlateProfileAttribution {
             name: self.name.clone(),
             revision: self.revision.clone(),
@@ -118,9 +121,9 @@ fn configuration_root() -> Option<PathBuf> {
 /// with a full stop in it would be read as an ending.
 pub(crate) fn checked_name(name: &str) -> Result<&str, Declined> {
     let usable = !name.is_empty()
-        && name
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_');
+        && name.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '-' || character == '_'
+        });
     if usable {
         Ok(name)
     } else {
@@ -278,7 +281,8 @@ mod tests {
 
     impl Scratch {
         fn new(label: &str) -> Self {
-            let path = std::env::temp_dir().join(format!("plateforce-plates-{label}-{}", std::process::id()));
+            let path = std::env::temp_dir()
+                .join(format!("plateforce-plates-{label}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&path);
             std::fs::create_dir_all(&path).expect("a scratch folder");
             Self(path)
@@ -320,13 +324,22 @@ mod tests {
         let scratch = Scratch::new("round-trip");
         write("lab-kistler-1", &filled(), scratch.path()).expect("the plate saves");
 
-        let capture = capture_for(Some("lab-kistler-1"), &[], scratch.path()).expect("the plate reads");
+        let capture =
+            capture_for(Some("lab-kistler-1"), &[], scratch.path()).expect("the plate reads");
 
-        assert!(capture.acquisition.is_complete(), "{:?}", capture.acquisition.missing());
+        assert!(
+            capture.acquisition.is_complete(),
+            "{:?}",
+            capture.acquisition.missing()
+        );
         assert_eq!(capture.acquisition, filled());
         let profile = capture.plate_profile.expect("the record names the plate");
         assert_eq!(profile.name, "lab-kistler-1");
-        assert!(profile.superseded_members.is_empty(), "{:?}", profile.superseded_members);
+        assert!(
+            profile.superseded_members.is_empty(),
+            "{:?}",
+            profile.superseded_members
+        );
     }
 
     /// A member written beside the plate is the answer that runs, and the record says what it
@@ -347,7 +360,10 @@ mod tests {
         assert_eq!(capture.acquisition.firmware_version.as_deref(), Some("2.2"));
         let profile = capture.plate_profile.expect("the record names the plate");
         assert_eq!(
-            profile.superseded_members.get("firmware_version").map(String::as_str),
+            profile
+                .superseded_members
+                .get("firmware_version")
+                .map(String::as_str),
             Some("2.1")
         );
     }
@@ -357,12 +373,14 @@ mod tests {
     #[test]
     fn saving_over_a_name_changes_the_revision_and_hands_back_what_was_replaced() {
         let scratch = Scratch::new("saving-over");
-        let (first, nothing) = write("lab-kistler-1", &filled(), scratch.path()).expect("the plate saves");
+        let (first, nothing) =
+            write("lab-kistler-1", &filled(), scratch.path()).expect("the plate saves");
         assert!(nothing.is_none());
 
         let mut edited = filled();
         edited.firmware_version = Some("2.2".to_string());
-        let (second, replaced) = write("lab-kistler-1", &edited, scratch.path()).expect("the plate saves");
+        let (second, replaced) =
+            write("lab-kistler-1", &edited, scratch.path()).expect("the plate saves");
 
         assert_ne!(first.revision, second.revision);
         let replaced = replaced.expect("a plate was already saved under that name");
@@ -378,7 +396,10 @@ mod tests {
         write("lab-kistler-1", &filled(), scratch.path()).expect("the plate saves");
         let saved = read("lab-kistler-1", scratch.path()).expect("the plate reads");
         assert_eq!(saved.members.plate_natural_frequency_hz, Some(400.0));
-        assert_eq!(saved.revision, PlateProfileAttribution::revision_of(&filled()));
+        assert_eq!(
+            saved.revision,
+            PlateProfileAttribution::revision_of(&filled())
+        );
     }
 
     /// Somebody hand-editing the file writes a bare number, and it is the same saved plate.
@@ -393,7 +414,10 @@ mod tests {
 
         let saved = read("lab-kistler-1", scratch.path()).expect("the plate reads");
         assert_eq!(saved.members, filled());
-        assert_eq!(saved.revision, PlateProfileAttribution::revision_of(&filled()));
+        assert_eq!(
+            saved.revision,
+            PlateProfileAttribution::revision_of(&filled())
+        );
     }
 
     /// A hand-edited file naming something the block does not hold is refused against the
@@ -407,11 +431,15 @@ mod tests {
         )
         .expect("the file writes");
 
-        let declined = read("lab-kistler-1", scratch.path()).expect_err("the block holds no debounce");
+        let declined =
+            read("lab-kistler-1", scratch.path()).expect_err("the block holds no debounce");
         let message = format!("{declined:?}");
         assert!(message.contains("debounce_ms"), "{message}");
         for member in Acquisition::MEMBERS {
-            assert!(message.contains(member), "the refusal does not name {member}: {message}");
+            assert!(
+                message.contains(member),
+                "the refusal does not name {member}: {message}"
+            );
         }
     }
 
@@ -422,7 +450,10 @@ mod tests {
         let scratch = Scratch::new("absent");
         let declined = capture_for(Some("lab-kistler-9"), &[], scratch.path())
             .expect_err("no such plate is saved");
-        assert!(format!("{declined:?}").contains("lab-kistler-9"), "{declined:?}");
+        assert!(
+            format!("{declined:?}").contains("lab-kistler-9"),
+            "{declined:?}"
+        );
     }
 
     /// A name that would name a file somewhere else is refused before anything touches the
