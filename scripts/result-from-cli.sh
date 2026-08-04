@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The terminal's answer to the one committed request.
+# The terminal's answer to one committed request, analysed or swept.
 #
 # Every value comes from the request file rather than from a line written here, so this arm
 # and the others cannot drift into asking different questions. Two arms differing on the
@@ -14,9 +14,22 @@ import json
 import sys
 
 asked = json.load(open(sys.argv[1], encoding="utf-8"))
-argv = [
-    "--format", "json",
-    "analyse", asked["trial"],
+
+# A request carrying a `sweep` block asks how far the number moves, and one without it asks
+# what the analysis reports. The same test in the same words is what Python's arm and the
+# browser's make, so the three cannot drift into answering different kinds of question.
+sweep = asked.get("sweep")
+
+argv = ["--format", "json"]
+if sweep is None:
+    argv += ["analyse", asked["trial"]]
+else:
+    # The terminal takes no flag naming the slots. It reads them off the rules the request
+    # bound, varying every construct this build runs more than one rule for, so the slots the
+    # request states are what the other surfaces are told and what this arm's `axes_varied`
+    # is held to. The two accounts of one sweep meet in the committed record.
+    argv += ["spread", asked["trial"], "--quantity", sweep["quantity_key"]]
+argv += [
     "--column", str(asked["force_column"]),
     "--sample-rate-hz", str(asked["sample_rate_hz"]),
     "--sentinel", asked["sentinel_convention"],

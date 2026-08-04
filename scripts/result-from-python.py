@@ -1,4 +1,4 @@
-"""Python's answer to the one committed request.
+"""Python's answer to one committed request, analysed or swept.
 
 Every value comes from the request file rather than from a line written here, so this arm
 and the others cannot drift into asking different questions.
@@ -6,7 +6,8 @@ and the others cannot drift into asking different questions.
 The request is turned into a call through the entry points a user's own call goes through:
 the package reads the file and the package builds the request. An arm that parsed the export
 itself, or assembled a request beside the one `analyse_countermovement_jump` sends, would be
-comparing a document nobody sends and the gate would be measuring this file.
+comparing a document nobody sends and the gate would be measuring this file. The sweep goes
+the same way, through the run `plateforce.spread` makes rather than a second one built here.
 """
 
 import json
@@ -40,15 +41,33 @@ trial = pf.read_force_file(
 )
 
 registry = pf.Registry.load()
-print(
-    pf._analyse_json(
-        trial,
-        weighing_epoch=registry.method(asked["weighing"]["method_id"]).bind(
-            **asked["weighing"]["parameters"]
-        ),
-        onset=registry.method(asked["onset"]["method_id"]).bind(**asked["onset"]["parameters"]),
-        takeoff=registry.method(asked["takeoff"]["method_id"]).bind(
-            **asked["takeoff"]["parameters"]
-        ),
+bound = {
+    slot: registry.method(asked[slot]["method_id"]).bind(**asked[slot]["parameters"])
+    for slot in ("weighing", "onset", "takeoff")
+}
+
+# A request carrying a `sweep` block asks how far the number moves, and one without it asks
+# what the analysis reports. The terminal's arm and the browser's make the same test in the
+# same words.
+sweep = asked.get("sweep")
+if sweep is None:
+    print(
+        pf._analyse_json(
+            trial,
+            weighing_epoch=bound["weighing"],
+            onset=bound["onset"],
+            takeoff=bound["takeoff"],
+        )
     )
-)
+else:
+    print(
+        pf._spread_json(
+            trial,
+            quantity=sweep["quantity_key"],
+            slot=sweep["slots"],
+            weighing_epoch=bound["weighing"],
+            onset=bound["onset"],
+            takeoff=bound["takeoff"],
+            maximum_combinations=sweep["maximum_combinations"],
+        )
+    )

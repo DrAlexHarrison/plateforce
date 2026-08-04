@@ -1,0 +1,1870 @@
+{
+  "compared_fields": [
+    "axes_varied",
+    "baseline_value",
+    "capped",
+    "combinations_requested",
+    "combinations_run",
+    "failed",
+    "held_fixed",
+    "maximum",
+    "median",
+    "minimum",
+    "quantity_key",
+    "registry_version",
+    "spread_absolute",
+    "spread_percent_of_median",
+    "succeeded",
+    "unit",
+    "unit_symbol",
+    "variants"
+  ],
+  "result": {
+    "axes_varied": [
+      {
+        "construct": "system_weight",
+        "parameter": null,
+        "rules_varied": 3,
+        "slot": "weighing",
+        "values_varied": 0
+      },
+      {
+        "construct": "movement_onset",
+        "parameter": null,
+        "rules_varied": 5,
+        "slot": "onset",
+        "values_varied": 0
+      },
+      {
+        "construct": "takeoff",
+        "parameter": null,
+        "rules_varied": 5,
+        "slot": "takeoff",
+        "values_varied": 0
+      }
+    ],
+    "baseline_value": 0.4105176602724294,
+    "capped": false,
+    "combinations_requested": 75,
+    "combinations_run": 75,
+    "failed": 0,
+    "held_fixed": [
+      {
+        "construct": "jump_height.takeoff_frame",
+        "method_id": "jumpheight.takeoff.impulse_momentum"
+      }
+    ],
+    "maximum": 0.41585389631873065,
+    "median": 0.41048371429404634,
+    "minimum": 0.38478774469482696,
+    "quantity_key": "jump_height_from_takeoff_meters",
+    "registry_version": null,
+    "spread_absolute": 0.031066151623903693,
+    "spread_percent_of_median": 7.568181280305248,
+    "succeeded": 75,
+    "unit": "meters",
+    "unit_symbol": "m",
+    "variants": [
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.noise_relative, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.noise_relative, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41488925685631
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.noise_relative, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41519972742849104
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.absolute_force, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.absolute_force, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41537010976588606
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.absolute_force, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.last_within_band, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.last_within_band, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41487895334994523
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.last_within_band, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.41585389631873065
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.absolute_force",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.absolute_force"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.absolute_force"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.noise_relative, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.noise_relative, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41488925685631
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.noise_relative, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41519972742849104
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.absolute_force, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.absolute_force, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41537010976588606
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.absolute_force, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.last_within_band, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.last_within_band, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41487895334994523
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.last_within_band, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.41585389631873065
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.longest_run",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.longest_run"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.longest_run"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.noise_relative, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.noise_relative, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41488925685631
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.noise_relative, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41519972742849104
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.absolute_force, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.absolute_force, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41537010976588606
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.absolute_force, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.last_within_band, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.last_within_band, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41487895334994523
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.last_within_band, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.41585389631873065
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.descending_crossing",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.descending_crossing"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.descending_crossing"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.noise_relative, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.40362191510223533
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.noise_relative, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.40795702356510194
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.noise_relative, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.40362191510223533
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.38478774469482696
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.4082648899285437
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.38478774469482696
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.absolute_force, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.38478774469482696
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.absolute_force, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.4084338435227793
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.absolute_force, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.38478774469482696
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.last_within_band, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.403588255444095
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.last_within_band, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.40794680650063947
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.last_within_band, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.403588255444095
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.40386298870644843
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.4089135748741126
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.flight_noise_k_sd",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.flight_noise_k_sd"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.flight_noise_k_sd"
+          ]
+        ],
+        "value": 0.40386298870644843
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.noise_relative, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.noise_relative, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41488925685631
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.noise_relative, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.noise_relative",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.noise_relative"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.4105176602724294
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41519972742849104
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.relative_to_system_weight, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.relative_to_system_weight",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.relative_to_system_weight"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.absolute_force, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.absolute_force, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41537010976588606
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.absolute_force, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.absolute_force",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.absolute_force"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.39152136964691875
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.last_within_band, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.last_within_band, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41487895334994523
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.last_within_band, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.last_within_band",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.last_within_band"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41048371429404634
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.fixed_window, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.fixed_window",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.fixed_window"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.4107607841800114
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.adaptive_lowest_variance, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.adaptive_lowest_variance",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.adaptive_lowest_variance"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.41585389631873065
+      },
+      {
+        "failure_reason": null,
+        "label": "weighing bwepoch.manual_placement, onset onset.threshold.adaptive_trailing_window, takeoff takeoff.threshold.landing_shape",
+        "method_ids": [
+          "bwepoch.manual_placement",
+          "onset.threshold.adaptive_trailing_window",
+          "takeoff.threshold.landing_shape"
+        ],
+        "settings": [
+          [
+            "weighing",
+            "bwepoch.manual_placement"
+          ],
+          [
+            "onset",
+            "onset.threshold.adaptive_trailing_window"
+          ],
+          [
+            "takeoff",
+            "takeoff.threshold.landing_shape"
+          ]
+        ],
+        "value": 0.4107607841800114
+      }
+    ]
+  }
+}

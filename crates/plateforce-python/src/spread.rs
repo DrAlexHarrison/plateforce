@@ -83,6 +83,10 @@ pub struct Spread {
     /// `Registry.version` answers, which is not the one `Registry.declared_version` answers.
     #[pyo3(get)]
     registry_version: Option<String>,
+    /// The revision the registry names about itself, and None where it names none. What the
+    /// data claims, never what the caller cited, which is the pin above.
+    #[pyo3(get)]
+    registry_declared_version: Option<String>,
     /// Identifies the registry files this sweep read, whether or not anybody declared a
     /// revision.
     #[pyo3(get)]
@@ -207,9 +211,88 @@ pub fn spread_over(
     takeoff_parameters: Option<BTreeMap<String, f64>>,
     maximum_combinations: Option<usize>,
 ) -> PyResult<Spread> {
-    // The base is built by the one request builder this surface has, so the combination that
-    // varies nothing is the request a user's own analysis call sends and the sweep is around
-    // their result rather than around one assembled here.
+    let (response, stamp) = swept(
+        python,
+        trial,
+        quantity,
+        slot,
+        weighing_epoch,
+        onset,
+        takeoff,
+        preset,
+        method_ids,
+        parameter,
+        values,
+        gravity_meters_per_second_squared,
+        weighing_parameters,
+        onset_parameters,
+        takeoff_parameters,
+        maximum_combinations,
+    )?;
+
+    Ok(Spread {
+        // Read off the rules this call named, the same identity `analyse_countermovement_jump`
+        // stamps on its own record, rather than a second reading of the registry here.
+        plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
+        registry_version: stamp.version.clone(),
+        registry_declared_version: stamp.declared_version.clone(),
+        registry_digest: stamp.digest.clone(),
+        quantity_key: response.quantity_key,
+        unit: response.unit,
+        unit_symbol: response.unit_symbol,
+        combinations_requested: response.combinations_requested,
+        combinations_run: response.combinations_run,
+        capped: response.capped,
+        succeeded: response.succeeded,
+        failed: response.failed,
+        minimum: response.minimum,
+        maximum: response.maximum,
+        median: response.median,
+        spread_absolute: response.spread_absolute,
+        spread_percent_of_median: response.spread_percent_of_median,
+        baseline_value: response.baseline_value,
+        variants: response
+            .variants
+            .into_iter()
+            .map(|variant| SpreadVariant {
+                label: variant.label,
+                value: variant.value,
+                method_ids: variant.method_ids,
+                settings: variant.settings,
+                failure_reason: variant.failure_reason,
+            })
+            .collect(),
+    })
+}
+
+/// One home for running a sweep, so the shaped answer and the engine's own record below
+/// cannot come from two different requests.
+///
+/// The base is built by the one request builder this surface has, so the combination that
+/// varies nothing is the request a user's own analysis call sends and the sweep is around
+/// their result rather than around one assembled here.
+#[allow(clippy::too_many_arguments)]
+fn swept(
+    python: Python<'_>,
+    trial: &Trial,
+    quantity: &str,
+    slot: &Bound<'_, PyAny>,
+    weighing_epoch: Option<&BoundMethod>,
+    onset: Option<&BoundMethod>,
+    takeoff: Option<&BoundMethod>,
+    preset: Option<&Preset>,
+    method_ids: Option<Vec<String>>,
+    parameter: Option<String>,
+    values: Option<Vec<f64>>,
+    gravity_meters_per_second_squared: Option<f64>,
+    weighing_parameters: Option<BTreeMap<String, f64>>,
+    onset_parameters: Option<BTreeMap<String, f64>>,
+    takeoff_parameters: Option<BTreeMap<String, f64>>,
+    maximum_combinations: Option<usize>,
+) -> PyResult<(
+    spread::SpreadResponse,
+    plateforce_core::provenance::RegistryStamp,
+)> {
     let (base, registry) = analysis_request_of(
         python,
         weighing_epoch,
@@ -240,39 +323,81 @@ pub fn spread_over(
 
     let response =
         spread::run(&trial.inner, &request).map_err(|refusal| raise_refusal(python, &refusal))?;
+    Ok((response, registry.stamp.clone()))
+}
 
-    Ok(Spread {
-        // Read off the rules this call named, the same identity `analyse_countermovement_jump`
-        // stamps on its own record, rather than a second reading of the registry here.
-        plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
-        registry_version: registry.stamp.version.clone(),
-        registry_digest: registry.stamp.digest.clone(),
-        quantity_key: response.quantity_key,
-        unit: response.unit,
-        unit_symbol: response.unit_symbol,
-        combinations_requested: response.combinations_requested,
-        combinations_run: response.combinations_run,
-        capped: response.capped,
-        succeeded: response.succeeded,
-        failed: response.failed,
-        minimum: response.minimum,
-        maximum: response.maximum,
-        median: response.median,
-        spread_absolute: response.spread_absolute,
-        spread_percent_of_median: response.spread_percent_of_median,
-        baseline_value: response.baseline_value,
-        variants: response
-            .variants
-            .into_iter()
-            .map(|variant| SpreadVariant {
-                label: variant.label,
-                value: variant.value,
-                method_ids: variant.method_ids,
-                settings: variant.settings,
-                failure_reason: variant.failure_reason,
-            })
-            .collect(),
-    })
+/// The engine's own record of one sweep, as the engine wrote it.
+///
+/// `spread` reshapes that record into the classes a notebook reads and keeps no copy of it,
+/// so nothing on this surface could be handed to a comparison against another surface's
+/// sweep. This returns it whole, through the same run the shaped call makes. The private
+/// primitive `_analyse_json` is beside it for the analysed document and exists for this
+/// reason, and `scripts/result-from-python.py` is what asks both.
+#[pyfunction]
+#[pyo3(name = "_spread_json")]
+#[pyo3(signature = (
+    trial,
+    quantity,
+    slot,
+    weighing_epoch = None,
+    onset = None,
+    takeoff = None,
+    preset = None,
+    method_ids = None,
+    parameter = None,
+    values = None,
+    gravity_meters_per_second_squared = None,
+    weighing_parameters = None,
+    onset_parameters = None,
+    takeoff_parameters = None,
+    maximum_combinations = None,
+))]
+#[allow(clippy::too_many_arguments)]
+pub fn spread_json(
+    python: Python<'_>,
+    trial: &Trial,
+    quantity: &str,
+    slot: &Bound<'_, PyAny>,
+    weighing_epoch: Option<&BoundMethod>,
+    onset: Option<&BoundMethod>,
+    takeoff: Option<&BoundMethod>,
+    preset: Option<&Preset>,
+    method_ids: Option<Vec<String>>,
+    parameter: Option<String>,
+    values: Option<Vec<f64>>,
+    gravity_meters_per_second_squared: Option<f64>,
+    weighing_parameters: Option<BTreeMap<String, f64>>,
+    onset_parameters: Option<BTreeMap<String, f64>>,
+    takeoff_parameters: Option<BTreeMap<String, f64>>,
+    maximum_combinations: Option<usize>,
+) -> PyResult<String> {
+    let (response, stamp) = swept(
+        python,
+        trial,
+        quantity,
+        slot,
+        weighing_epoch,
+        onset,
+        takeoff,
+        preset,
+        method_ids,
+        parameter,
+        values,
+        gravity_meters_per_second_squared,
+        weighing_parameters,
+        onset_parameters,
+        takeoff_parameters,
+        maximum_combinations,
+    )?;
+    let document = plateforce_analysis::document::SpreadDocument::of(
+        env!("CARGO_PKG_VERSION"),
+        &stamp,
+        response,
+    );
+    // The envelope `_analyse_json` writes, because a reader of either has one shape to parse
+    // and the parity gate reads both through one function.
+    serde_json::to_string(&serde_json::json!({ "ok": document }))
+        .map_err(|error| MethodError::new_err(error.to_string()))
 }
 
 /// The engine's own cap, restated here because this signature offers it and a caller who

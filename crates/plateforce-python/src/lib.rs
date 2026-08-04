@@ -82,6 +82,10 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     // The measurement this software exists to publish, beside the analysis rather than
     // behind a switch, because it is the question the registry exists to answer.
     module.add_function(wrap_pyfunction!(spread::spread_over, module)?)?;
+    // The engine's own record of a sweep, for the reason `_analyse_json` is here: the shaped
+    // answer above is what a caller reads, and this is what a comparison against another
+    // surface's sweep can be held to.
+    module.add_function(wrap_pyfunction!(spread::spread_json, module)?)?;
 
     module.add_function(wrap_pyfunction!(capability::capability_json, module)?)?;
     module.add_function(wrap_pyfunction!(

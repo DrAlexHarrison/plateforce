@@ -26,6 +26,15 @@ carried by some surfaces and not others and recorded in `SURFACES_THAT_DIFFER`. 
 none of the three makes this gate refuse, so it cannot print that four surfaces computed the
 result while a field of that result went unread. `scripts/prove-parity-coverage-refuses.py`
 is where each of those refusals is shown to fire.
+
+Over two kinds of question, because a field's reach is a fact about the question and not
+about the field. An analysed document carries `plateforce_version` on the two surfaces that
+assemble it; a swept one carries it on every surface that answers, so one register keyed by
+field alone would have to state one of the two and be wrong about the other. Both registers
+are keyed by kind, and a request carrying a `sweep` block is a sweep. The sweep is the
+measurement this software exists to publish and it was the one thing no gate compared
+between surfaces: the terminal's own record of it went where no baseline would notice it
+moving.
 """
 
 import json
@@ -83,12 +92,34 @@ class Request(NamedTuple):
     sentinel request declares a convention matching 157 real samples of the trial the quiet
     request reads, and the claim is that declaring it moves no number. Two identical
     committed copies would say the same thing until somebody regenerated one of them.
+
+    `surfaces` is who is asked, read off the row rather than assumed to be everybody.
+    `kind` is what is asked, read off the request file, because the shape of the question
+    is the request's own statement rather than a second one a manifest could contradict.
     """
 
     name: str
     request: str
     baseline: str
     equals: str
+    surfaces: frozenset
+    kind: str
+
+
+# The two kinds of question this gate asks. A request carrying a `sweep` block asks how far
+# the number moves across a slot's alternatives; one without it asks what the analysis
+# reports. Each surface's arm makes this same test, in its own language, on the same key.
+ANALYSED = "analysed"
+SWEPT = "sweep"
+
+
+def kind_of(request_path):
+    """Which question a request file asks, taken from the file that asks it."""
+    path = GOLDEN / pathlib.Path(request_path).name
+    if not path.exists():
+        return ANALYSED
+    with open(path, encoding="utf-8") as handle:
+        return SWEPT if SWEPT in json.load(handle) else ANALYSED
 
 
 def requests_named_in_manifest():
@@ -100,24 +131,26 @@ def requests_named_in_manifest():
     """
     rows = []
     for line in REQUEST_MANIFEST.read_text(encoding="utf-8").splitlines():
-        # Not stripped whole, because a row whose third cell is empty ends in a tab and
-        # stripping it would read as a row of two cells. A request held to nothing is a
-        # refusal with a sentence of its own, and a parse error in its place says the wrong
-        # thing about what somebody forgot.
+        # Not stripped whole, because a row whose third or fourth cell is empty ends in a tab
+        # and stripping it would read as a row of fewer cells. A request held to nothing, or
+        # asked of nobody, is a refusal with a sentence of its own, and a parse error in its
+        # place says the wrong thing about what somebody forgot.
         row = line.rstrip("\n")
         if not row.strip() or row.lstrip().startswith("#"):
             continue
         cells = [cell.strip() for cell in row.split("\t")]
-        if len(cells) != 3:
+        if len(cells) != 4:
             raise SystemExit(
                 f"plateforce: {REQUEST_MANIFEST.name} row {row!r} does not carry a name, a "
-                "request file and the record it is held to"
+                "request file, the record it is held to and the surfaces it is asked of"
             )
-        name, request, held = cells
+        name, request, held, asked = cells
+        surfaces = frozenset(part for part in asked.split(",") if part)
+        kind = kind_of(request)
         if held.startswith("="):
-            rows.append(Request(name, request, "", held[1:]))
+            rows.append(Request(name, request, "", held[1:], surfaces, kind))
         else:
-            rows.append(Request(name, request, held, ""))
+            rows.append(Request(name, request, held, "", surfaces, kind))
     if not rows:
         raise SystemExit(f"plateforce: {REQUEST_MANIFEST} names no request")
     return rows
@@ -147,6 +180,69 @@ def request_manifest_faults(rows, writing=False):
     named = {row.name: row for row in rows}
     if len(named) != len(rows):
         faults.append("two rows of the request manifest carry one name")
+
+    # Who is asked what, in both directions. A row that quietly dropped a surface would
+    # report agreement between the ones left, and a surface no row asks is a row of
+    # `result-parity-surfaces.txt` this gate speaks for and never exercises.
+    listed = surfaces_named_in_manifest()
+    asked_somewhere = set()
+    for row in rows:
+        asked_somewhere |= row.surfaces
+        unknown = sorted(row.surfaces - listed)
+        if unknown:
+            faults.append(
+                f"{row.name} is asked of {unknown}, and {SURFACE_MANIFEST.name} names no such "
+                f"surface, so nothing would answer it"
+            )
+        if len(row.surfaces) < 2:
+            faults.append(
+                f"{row.name} is asked of {sorted(row.surfaces)}, and a request one surface "
+                "answers is a surface agreeing with itself. Every request owes two or more"
+            )
+        for surface in sorted(listed - row.surfaces):
+            if surface not in SURFACES_NOT_ASKED.get(row.kind, {}):
+                faults.append(
+                    f"{row.name} is not asked of {surface} and nothing here says why. A "
+                    "surface left off a request is a question that surface's readers cannot "
+                    "put to it, so it is stated with the work that would change it"
+                )
+    for surface in sorted(listed - asked_somewhere):
+        faults.append(
+            f"{SURFACE_MANIFEST.name} names {surface} and no request asks it, so this gate "
+            "speaks for a surface it never exercises"
+        )
+
+    # An entry whose account of itself rests on another kind of request being asked. Without
+    # this the sentence outlives the request: the register would go on saying the sweep is
+    # compared elsewhere after the row that compared it had gone, which is the shape the
+    # `spread` entry was already in when it said the other surfaces expose a call of their own.
+    kinds = {row.kind for row in rows}
+    for kind, register in sorted(SURFACES_THAT_DIFFER.items()):
+        for field, declared in sorted(register.items()):
+            if declared.answered_by and declared.answered_by not in kinds:
+                faults.append(
+                    f"{field} rests on a {declared.answered_by} request and this population "
+                    f"holds none, so its account of itself is a sentence nothing measures. "
+                    f"Discharged by {declared.discharged_by}"
+                )
+
+    for kind, unasked in sorted(SURFACES_NOT_ASKED.items()):
+        for surface, declared in sorted(unasked.items()):
+            asked_anyway = sorted(
+                row.name for row in rows if row.kind == kind and surface in row.surfaces
+            )
+            if asked_anyway:
+                faults.append(
+                    f"{surface} is recorded as unable to answer a {kind} request and "
+                    f"{asked_anyway} ask it, so the entry is out of date and the surface "
+                    f"answers for real. Discharged by {declared.discharged_by}"
+                )
+            elif not any(row.kind == kind for row in rows):
+                faults.append(
+                    f"{surface} is recorded as unable to answer a {kind} request and this "
+                    f"population holds no {kind} request at all, which reads as coverage and "
+                    f"covers nothing: {declared.reason}"
+                )
 
     for row in rows:
         if not (GOLDEN / pathlib.Path(row.request).name).exists():
@@ -197,18 +293,23 @@ def request_manifest_faults(rows, writing=False):
     return faults
 
 
-def answers_from(directory, request_name):
-    """One request's answers, one file per surface, named by the harness that collected them."""
+def answers_from(directory, row):
+    """One request's answers, one file per surface, named by the harness that collected them.
+
+    Over the surfaces the row is asked of rather than over every listed surface, and the row
+    is what the harness read to decide who to run, so a surface missing here is one that was
+    asked and did not answer.
+    """
     answers = {}
-    for surface in sorted(surfaces_named_in_manifest()):
-        path = pathlib.Path(directory) / f"{request_name}.{surface}.json"
+    for surface in sorted(row.surfaces):
+        path = pathlib.Path(directory) / f"{row.name}.{surface}.json"
         if not path.exists():
             raise SystemExit(
-                f"plateforce: {surface} left no answer to {request_name}, so this run holds "
-                "fewer surfaces than the manifest names"
+                f"plateforce: {surface} left no answer to {row.name}, so this run holds "
+                "fewer surfaces than that request is asked of"
             )
         with open(path, encoding="utf-8") as handle:
-            answers[surface] = result_in(json.load(handle), f"{surface} on {request_name}")
+            answers[surface] = result_in(json.load(handle), f"{surface} on {row.name}")
     return answers
 
 
@@ -302,7 +403,10 @@ def surfaces_publishing(answers, field):
 # to stop looking at it: each entry owes a function, `coverage_faults` runs it, and an entry
 # without one cannot be written. Widening `compared_fields` is the ordinary answer and this
 # is the exception, so an entry states why a committed value would be the wrong instrument.
-ASSERTED_ANOTHER_WAY = {
+#
+# Keyed by the kind of question, because a field reaching every surface on one kind and two
+# surfaces on another is one field in two states and a single entry could only state one.
+REGISTRY_ASSERTIONS = {
     "registry_digest": (
         "the digest moves with every registry edit, so a committed value would redden this "
         "gate for a reason that is not about parity, while two surfaces reading different "
@@ -318,6 +422,20 @@ ASSERTED_ANOTHER_WAY = {
     ),
 }
 
+ASSERTED_ANOTHER_WAY = {
+    ANALYSED: dict(REGISTRY_ASSERTIONS),
+    SWEPT: {
+        **REGISTRY_ASSERTIONS,
+        "plateforce_version": (
+            "the build that produced the numbers moves with every release, so a committed "
+            "value would redden this gate on a version bump, which is not a parity event. "
+            "Every surface that answers a sweep carries it, unlike an analysed document "
+            "where two do, so what is asserted is that they name one build",
+            lambda answers: surfaces_name_one_build(answers),
+        ),
+    },
+}
+
 class Divergence(NamedTuple):
     """One field some surfaces publish and others do not, as measured rather than as hoped.
 
@@ -330,12 +448,66 @@ class Divergence(NamedTuple):
 
     `discharged_by` names the work that retires the entry, so an entry cannot quietly become
     permanent by nobody remembering what it was waiting for.
+
+    `answered_by` names a kind of request that has to be in the population for the entry's
+    account of itself to hold. A discharge saying the other surfaces compute this elsewhere
+    is prose until something asks them, and the sentence would outlive the request that made
+    it true. Empty where the entry claims no such thing.
     """
 
     carried_by: frozenset
     carriers_agree: bool
     discharged_by: str
     reason: str
+    answered_by: str = ""
+
+
+class NotAsked(NamedTuple):
+    """One surface a kind of request is not put to, and what stands in the way.
+
+    Checked against measurement on every run, in both directions: a surface named here that
+    does answer reddens this gate, and a surface left off a row and named nowhere reddens it
+    too. So the population cannot narrow by a surface quietly dropping off a request, which
+    is the same defect as a field quietly dropping out of a comparison.
+
+    Two things put a surface here and the reason says which. Its entry point cannot state the
+    question at all, or it answers a document no single record can hold alongside the others.
+    Neither is the surface computing the wrong numbers, and an entry that stopped being either
+    is a row waiting to be widened.
+    """
+
+    discharged_by: str
+    reason: str
+
+
+SURFACES_NOT_ASKED = {
+    SWEPT: {
+        "r": NotAsked(
+            "a `pf_spread` that takes several slots, which Python's `slot` already does and "
+            "refuses beside `parameter` and `method_ids` for the same reason",
+            "`pf_spread` builds one axis per call, so the sweep the terminal computes over "
+            "three landmark constructs cannot be written as one R call. R sweeps one slot and "
+            "answers a narrower question than the record this request is held to",
+        ),
+        # Measured, not assumed: the arm is written and was run against this request. The tab
+        # computed the same 75 combinations, the same 75 labels, the same value under every
+        # one of them, and 20 of the 21 fields identical to the terminal byte for byte. What
+        # differs is the order of `variants`, because `spread::run` reports combinations in
+        # the order the caller listed the rules and the tab lists them as it ranks them for a
+        # reader while the terminal, Python and R all read the binding table. Holding the tab
+        # to this record would mean taking `variants` out of it, so the 75 values behind the
+        # headline would stop being committed anywhere to fit a third surface in.
+        "browser": NotAsked(
+            "a sweep whose variant order does not depend on the order the caller listed the "
+            "rules in, which would let one record hold the tab and the terminal together",
+            "the tab computes this sweep and agrees on every summary figure and on the value "
+            "of all 75 combinations, and reports them in the order it ranks rules for a "
+            "reader rather than the binding table's. One committed record cannot hold both "
+            "orders, and dropping `variants` from the record to fit would uncommit the "
+            "numbers the headline rests on",
+        ),
+    },
+}
 
 
 # A field some surfaces publish and others do not. This gate cannot hold one to a committed
@@ -348,7 +520,7 @@ class Divergence(NamedTuple):
 # or started disagreeing with itself has changed what a result carries, and a line here still
 # naming the old state is not a reason to pass over it. An entry is a divergence recorded,
 # never a divergence accepted.
-SURFACES_THAT_DIFFER = {
+ANALYSED_SURFACES_THAT_DIFFER = {
     "plateforce_version": Divergence(
         frozenset({"cli", "browser"}),
         True,
@@ -387,14 +559,37 @@ SURFACES_THAT_DIFFER = {
         "lives in R's binding and in no other surface's, so a terminal, a browser tab and a "
         "notebook receive nothing here",
     ),
+    # Re-ruled once the sweep was measured rather than described. The discharge used to read
+    # "the other surfaces expose the sweep as a call of its own", which is a claim about the
+    # shape of an API and not a comparison: nothing asked those calls anything, the eight
+    # Python tests that would have were skipping, and R's fixture held four summary figures
+    # and no registry field. So `SpreadDocument`'s identity landed where no baseline would
+    # notice it moving. The `sweep` request is what asks them now, and `answered_by` refuses
+    # this sentence if that request leaves the population.
     "spread": Divergence(
         frozenset({"cli"}),
         None,
-        "nothing outstanding; the other surfaces expose the sweep as a call of its own",
+        "the sweep request, which holds the terminal and Python to one committed record over "
+        "all 21 fields of a swept document, and names in SURFACES_NOT_ASKED what stands "
+        "between that record and the other two. What is left here is the nesting: the "
+        "terminal reports the headline sweep inside the analysed document and nobody else "
+        "does",
         "how far a number moves across a slot's defensible alternatives. The terminal sweeps "
         "with the analysis; the tab sweeps on its own schedule through a second entry point, "
         "and Python and R expose the sweep as a call of its own",
+        SWEPT,
     ),
+}
+
+# A swept document names one register and it is empty, because every surface asked a sweep
+# publishes every field of it. Kept rather than left out: `coverage_faults` reads this by
+# kind, and a field that starts reaching some surfaces and not others has to land somewhere
+# a reader of this file looks.
+SWEPT_SURFACES_THAT_DIFFER = {}
+
+SURFACES_THAT_DIFFER = {
+    ANALYSED: ANALYSED_SURFACES_THAT_DIFFER,
+    SWEPT: SWEPT_SURFACES_THAT_DIFFER,
 }
 
 
@@ -508,7 +703,20 @@ def surfaces_name_one_revision(answers):
     return []
 
 
-def compared_fields_measured_from(answers):
+def surfaces_name_one_build(answers):
+    """Asserted between the surfaces rather than against a committed value.
+
+    A sweep leaving a surface on its own says which build produced it, and a reader holding
+    two of them has no way to tell a version bump from two surfaces built out of step. The
+    committed value would move on every release; the disagreement is what parity is about.
+    """
+    builds = {name: answer.get("plateforce_version") for name, answer in answers.items()}
+    if len(set(builds.values())) > 1:
+        return [f"surfaces name different builds: {builds}"]
+    return []
+
+
+def compared_fields_measured_from(answers, kind):
     """What `compared_fields` should name: everything the surfaces all publish, less the
     fields asserted another way.
 
@@ -516,10 +724,10 @@ def compared_fields_measured_from(answers):
     checks, this list could only ever be widened by hand, so a field added to all four
     surfaces stayed invisible to the gate until somebody noticed.
     """
-    return sorted(fields_every_surface_publishes(answers) - set(ASSERTED_ANOTHER_WAY))
+    return sorted(fields_every_surface_publishes(answers) - set(ASSERTED_ANOTHER_WAY[kind]))
 
 
-def coverage_faults(answers, fields):
+def coverage_faults(answers, fields, kind, asked):
     """Every field a surface publishes is compared here, asserted another way, or a declared
     divergence. A field in none of the three is a field nothing looks at.
 
@@ -528,18 +736,19 @@ def coverage_faults(answers, fields):
     than publish a verdict narrower than its own sentence.
     """
     faults = []
-    named = surfaces_named_in_manifest()
-    if set(answers) != named:
+    asserted = ASSERTED_ANOTHER_WAY[kind]
+    differ = SURFACES_THAT_DIFFER[kind]
+    if set(answers) != set(asked):
         faults.append(
-            f"the manifest names {sorted(named)} and this run holds {sorted(answers)}, so "
-            "nothing below speaks for the surfaces this gate claims"
+            f"this request is asked of {sorted(asked)} and this run holds {sorted(answers)}, "
+            "so nothing below speaks for the surfaces it claims"
         )
         return faults
 
     everywhere = fields_every_surface_publishes(answers)
     somewhere = set.union(*(set(answer) for answer in answers.values()))
 
-    unread = sorted(everywhere - set(fields) - set(ASSERTED_ANOTHER_WAY))
+    unread = sorted(everywhere - set(fields) - set(asserted))
     if unread:
         faults.append(
             f"every surface publishes {unread} and nothing here looks at any of them, so "
@@ -554,13 +763,13 @@ def coverage_faults(answers, fields):
             f"publish it, so it cannot be held to one committed value"
         )
 
-    for field in sorted(set(fields) & set(ASSERTED_ANOTHER_WAY)):
+    for field in sorted(set(fields) & set(asserted)):
         faults.append(
             f"{field} is compared against the committed document and also declared asserted "
             "another way, so one of the two is wrong"
         )
 
-    for field, (reason, assertion) in sorted(ASSERTED_ANOTHER_WAY.items()):
+    for field, (reason, assertion) in sorted(asserted.items()):
         if field not in somewhere:
             faults.append(
                 f"{field} is declared asserted another way and no surface publishes it, which "
@@ -571,7 +780,7 @@ def coverage_faults(answers, fields):
 
     for field in sorted(somewhere - everywhere):
         carried = surfaces_publishing(answers, field)
-        declared = SURFACES_THAT_DIFFER.get(field)
+        declared = differ.get(field)
         if declared is None:
             faults.append(
                 f"{field} reaches {sorted(carried)} and not {sorted(set(answers) - carried)}, "
@@ -597,7 +806,7 @@ def coverage_faults(answers, fields):
                 f"Discharged by {declared.discharged_by}"
             )
 
-    for field, declared in sorted(SURFACES_THAT_DIFFER.items()):
+    for field, declared in sorted(differ.items()):
         if field in everywhere:
             faults.append(
                 f"{field} now reaches every surface, so it is comparable and belongs in "
@@ -620,13 +829,18 @@ def carriers_agree_about(answers, field, carried):
     return len({canonical(answers[name][field]) for name in carried}) == 1
 
 
+def article(word):
+    """The right article for a kind's name, so a kind added later reads as English."""
+    return "an" if word[:1].lower() in "aeiou" else "a"
+
+
 def agreement_reads(state):
     if state is None:
         return "carried by one surface, with nothing to agree about"
     return "agreeing" if state else "disagreeing"
 
 
-def write_one(baseline_path, answers, source=None):
+def write_one(baseline_path, answers, row, source=None):
     """One surface writes the baseline and every surface is then held to it.
 
     Regenerating from whichever surface answered first would record a defect as the standard
@@ -641,7 +855,7 @@ def write_one(baseline_path, answers, source=None):
     surface named was the one three others agreed with.
     """
     was = compared_fields_in(baseline_path) if pathlib.Path(baseline_path).exists() else []
-    fields = compared_fields_measured_from(answers)
+    fields = compared_fields_measured_from(answers, row.kind)
 
     # Regeneration widens and never narrows. A surface that stopped publishing a field would
     # otherwise take the field out of the list on the way past, and the gate would go on
@@ -654,7 +868,7 @@ def write_one(baseline_path, answers, source=None):
             "compared_fields by hand, which is the one direction that wants a decision"
         )
 
-    faults = coverage_faults(answers, fields)
+    faults = coverage_faults(answers, fields, row.kind, row.surfaces)
     if faults:
         for fault in faults:
             print(f"plateforce: {fault}", file=sys.stderr)
@@ -700,18 +914,22 @@ def write_one(baseline_path, answers, source=None):
     return document, note
 
 
-def check_one(request_name, baseline_path, answers):
+def check_one(row, baseline_path, answers):
     """One request against the record it is held to. Faults are returned, never printed.
 
     Returned so the population can report every request rather than the first one that
     disagreed. A run that stopped at the first fault would say which request is red and leave
     the reader guessing whether the rest were green or merely unasked.
     """
+    request_name = row.name
     fields = compared_fields_in(baseline_path)
     with open(baseline_path, encoding="utf-8") as handle:
         committed = json.load(handle)["result"]
 
-    faults = [f"{request_name}: {fault}" for fault in coverage_faults(answers, fields)]
+    faults = [
+        f"{request_name}: {fault}"
+        for fault in coverage_faults(answers, fields, row.kind, row.surfaces)
+    ]
 
     for name in sorted(answers):
         reported = projected(answers[name], fields, name)
@@ -737,11 +955,18 @@ def report_one(row, baseline_path, answers, fields, committed, values):
     """What was compared for one request, with the denominator of every count in it."""
     everywhere = fields_every_surface_publishes(answers)
     held = f"{row.equals}'s record" if row.equals else pathlib.Path(baseline_path).name
+    listed = len(surfaces_named_in_manifest())
     print(
-        f"  {row.name}: {len(answers)} of {len(answers)} surfaces computed {held}, "
+        f"  {row.name}: {len(answers)} of {listed} listed surfaces computed {held}, "
         f"{values} numbers each, {len(fields)} of {len(everywhere)} fields every surface "
-        "publishes compared"
+        "asked publishes compared"
     )
+    # The surfaces this question cannot be put to, named beside the count above so the count
+    # cannot be read as every surface having answered. A surface here answers a narrower
+    # question than the record, or none.
+    for surface in sorted(surfaces_named_in_manifest() - row.surfaces):
+        declared = SURFACES_NOT_ASKED[row.kind][surface]
+        print(f"    {surface} is not asked this: {declared.reason}")
     # A field this request leaves empty is compared, and four surfaces holding nothing agree
     # perfectly. So the count is reported beside the one above: a name in the list is coverage
     # of the wire and not yet coverage of a value on this request, and the two read
@@ -775,11 +1000,16 @@ def write(directory, source=None):
 
     planned = []
     for row in rows:
-        answers = answers_from(directory, row.name)
+        answers = answers_from(directory, row)
         if row.equals:
             print(f"{row.name} is held to {row.equals}'s record and writes none of its own")
             continue
-        planned.append((str(ROOT / row.baseline), *write_one(str(ROOT / row.baseline), answers, source)))
+        planned.append(
+            (
+                str(ROOT / row.baseline),
+                *write_one(str(ROOT / row.baseline), answers, row, source),
+            )
+        )
 
     for baseline_path, document, note in planned:
         with open(baseline_path, "w", encoding="utf-8") as handle:
@@ -799,9 +1029,9 @@ def check(directory):
     committed_by_request = {}
     fields_by_request = {}
     for row in rows:
-        answers = answers_from(directory, row.name)
+        answers = answers_from(directory, row)
         baseline_path = str(ROOT / baseline_of(rows, row))
-        found, fields, committed, values = check_one(row.name, baseline_path, answers)
+        found, fields, committed, values = check_one(row, baseline_path, answers)
         faults += found
         committed_by_request[row.name] = committed
         fields_by_request[row.name] = fields
@@ -822,20 +1052,28 @@ def check(directory):
         raise SystemExit(1)
 
     surfaces = len(surfaces_named_in_manifest())
+    # Two denominators rather than one. Every request is computed, and every surface a
+    # request is asked of answers it, which are different claims once a question exists that
+    # some surface's entry point cannot state.
+    collected = sum(len(row.surfaces) for row in rows)
     print(
-        f"{surfaces} of {surfaces} surfaces computed {len(rows)} of {len(rows)} committed "
-        f"requests, {carried} numbers across the population"
+        f"{len(rows)} of {len(rows)} committed requests computed, {collected} of {collected} "
+        f"surface answers collected over {surfaces} listed surfaces, {carried} numbers across "
+        "the population"
     )
     for report in reports:
         report_one(*report)
 
     # The denominator of the sentence above, so it cannot be read as a claim about the whole
     # document. Every field is accounted for: compared here, asserted another way, or a
-    # divergence the surfaces carry and this comparison cannot reach.
-    print(
-        f"  {len(ASSERTED_ANOTHER_WAY)} fields every surface publishes are asserted another "
-        f"way rather than compared: {sorted(ASSERTED_ANOTHER_WAY)}"
-    )
+    # divergence the surfaces carry and this comparison cannot reach. Per kind, because a
+    # field is in different states on an analysed document and on a swept one.
+    for kind in sorted({row.kind for row in rows}):
+        asserted = ASSERTED_ANOTHER_WAY[kind]
+        print(
+            f"  on {article(kind)} {kind} request, {len(asserted)} fields every surface "
+            f"publishes are asserted another way rather than compared: {sorted(asserted)}"
+        )
     valued = sorted(
         {
             field
@@ -851,15 +1089,24 @@ def check(directory):
         f"EMPTY_ON_EVERY_REQUEST: {sorted(EMPTY_ON_EVERY_REQUEST)}"
     )
 
-    answers = reports[0][2]
-    everywhere = fields_every_surface_publishes(answers)
-    for field in sorted(set.union(*(set(answer) for answer in answers.values())) - everywhere):
-        declared = SURFACES_THAT_DIFFER[field]
-        print(
-            f"  {field} reaches {sorted(surfaces_publishing(answers, field))} of the "
-            f"{surfaces}, {agreement_reads(declared.carriers_agree)}, discharged by "
-            f"{declared.discharged_by}"
-        )
+    # One request per kind, because the register is per kind and a run that read the first
+    # request's answers would print the analysed register's reach against every kind asked.
+    for kind in sorted({row.kind for row in rows}):
+        answers = next(answers for row, _, answers, *_ in reports if row.kind == kind)
+        asked = len(answers)
+        everywhere = fields_every_surface_publishes(answers)
+        uneven = sorted(set.union(*(set(answer) for answer in answers.values())) - everywhere)
+        if not uneven:
+            print(f"  on {article(kind)} {kind} request, every field reaches every surface asked")
+            continue
+        for field in uneven:
+            declared = SURFACES_THAT_DIFFER[kind][field]
+            print(
+                f"  on {article(kind)} {kind} request, {field} reaches "
+                f"{sorted(surfaces_publishing(answers, field))} of the {asked} asked, "
+                f"{agreement_reads(declared.carriers_agree)}, discharged by "
+                f"{declared.discharged_by}"
+            )
 
 
 def every_number(value):

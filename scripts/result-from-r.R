@@ -9,6 +9,15 @@ asked <- plateforce:::decode(paste(
   collapse = "\n"
 ))
 
+# A request carrying a `sweep` block asks how far the number moves across several slots at
+# once, and `pf_spread` takes one slot per call. Answering it with the analysis below would
+# put an analysed document where a swept one is expected, so this says which question it
+# cannot be asked instead. `SURFACES_NOT_ASKED` in scripts/result_parity.py names the work.
+if (!is.null(asked$sweep)) {
+  stop("pf_spread sweeps one slot per call and this request names ",
+       length(asked$sweep$slots), call. = FALSE)
+}
+
 trial <- plateforce::pf_read_force_file(
   asked$trial,
   sample_rate_hz = asked$sample_rate_hz,

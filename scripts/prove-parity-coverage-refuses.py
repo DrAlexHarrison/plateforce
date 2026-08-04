@@ -38,27 +38,29 @@ import result_parity as gate
 
 ROOT = pathlib.Path(__file__).parent.parent
 BASELINE = ROOT / "tests" / "golden" / "result-parity.json"
+SWEEP_BASELINE = ROOT / "tests" / "golden" / "result-parity-sweep.json"
 
-def answers_that_pass():
-    """The four surfaces as they answer today, assembled from the committed result.
+
+def answers_from_baseline(baseline, kind, asked):
+    """The surfaces as they answer today, assembled from a committed result.
 
     The fields beyond the compared ones are placed from the gate's own register rather than
     from a table here, so this file cannot drift from what the gate expects and then report the
     drift as a case that proved something. A field recorded as agreeing gets one value across
     its carriers, one recorded as disagreeing gets a different value on each, and the surfaces
-    are exactly the ones the manifest names.
+    are exactly the ones that request is asked of.
     """
-    document = json.loads(BASELINE.read_text(encoding="utf-8"))
+    document = json.loads(baseline.read_text(encoding="utf-8"))
     result = document["result"]
-    answers = {surface: dict(result) for surface in gate.surfaces_named_in_manifest()}
+    answers = {surface: dict(result) for surface in asked}
 
     # Published by every surface and covered by an assertion of its own rather than by the
-    # comparison. The digest's assertion reads the value, so the four have to match.
-    for field in gate.ASSERTED_ANOTHER_WAY:
+    # comparison. Each assertion reads the value, so the surfaces have to match.
+    for field in gate.ASSERTED_ANOTHER_WAY[kind]:
         for answer in answers.values():
             answer[field] = "content-0"
 
-    for field, declared in gate.SURFACES_THAT_DIFFER.items():
+    for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
         for surface in declared.carried_by:
             answers[surface][field] = (
                 f"{surface}-{field}" if declared.carriers_agree is False else f"one-{field}"
@@ -66,23 +68,43 @@ def answers_that_pass():
     return answers, document["compared_fields"]
 
 
-def faults_when(name, change, expected):
+def answers_that_pass():
+    return answers_from_baseline(BASELINE, gate.ANALYSED, gate.surfaces_named_in_manifest())
+
+
+def swept_answers_that_pass():
+    """The sweep, over the surfaces that can be asked one.
+
+    A separate control because the register is per kind: an analysed document carries
+    `plateforce_version` on two surfaces and a swept one on every surface that answers, so a
+    case written against one says nothing about the other.
+    """
+    asked = gate.surfaces_named_in_manifest() - set(gate.SURFACES_NOT_ASKED[gate.SWEPT])
+    return answers_from_baseline(SWEEP_BASELINE, gate.SWEPT, asked), asked
+
+
+def faults_when(name, change, expected, kind=None, build=None):
     """Apply one change to a passing run and require a fault that names `expected`.
 
     The register is restored afterwards because one case edits it: a recorded disagreement is
     only repairable by a case that first records one, and leaving that behind would change
     what every case after it is measured against.
     """
-    was = dict(gate.SURFACES_THAT_DIFFER)
-    answers, fields = answers_that_pass()
+    kind = kind or gate.ANALYSED
+    was = dict(gate.SURFACES_THAT_DIFFER[kind])
+    if build is None:
+        answers, fields = answers_that_pass()
+        asked = gate.surfaces_named_in_manifest()
+    else:
+        (answers, fields), asked = build()
     fields = list(fields)
     try:
         fields = change(answers, fields) or fields
         print(f"applied {name}", flush=True)
-        faults = gate.coverage_faults(answers, fields)
+        faults = gate.coverage_faults(answers, fields, kind, asked)
     finally:
-        gate.SURFACES_THAT_DIFFER.clear()
-        gate.SURFACES_THAT_DIFFER.update(was)
+        gate.SURFACES_THAT_DIFFER[kind].clear()
+        gate.SURFACES_THAT_DIFFER[kind].update(was)
     hit = [fault for fault in faults if expected in fault]
     if not hit:
         print(f"  NOT REFUSED: no fault mentions {expected!r}", file=sys.stderr)
@@ -100,13 +122,26 @@ def a_control_that_must_pass():
     """
     answers, fields = answers_that_pass()
     print("applied nothing, the control", flush=True)
-    faults = gate.coverage_faults(answers, fields)
+    faults = gate.coverage_faults(answers, fields, gate.ANALYSED, gate.surfaces_named_in_manifest())
     if faults:
         print("  THE CONTROL DOES NOT PASS, so no case below means anything:", file=sys.stderr)
         for fault in faults:
             print(f"    {fault}", file=sys.stderr)
         return False
     print(f"  passed: {len(fields)} compared fields, four surfaces, no fault", flush=True)
+    return True
+
+
+def a_swept_control_that_must_pass():
+    (answers, fields), asked = swept_answers_that_pass()
+    print("applied nothing, the swept control", flush=True)
+    faults = gate.coverage_faults(answers, fields, gate.SWEPT, asked)
+    if faults:
+        print("  THE CONTROL DOES NOT PASS, so no swept case means anything:", file=sys.stderr)
+        for fault in faults:
+            print(f"    {fault}", file=sys.stderr)
+        return False
+    print(f"  passed: {len(fields)} compared fields, {len(asked)} surfaces, no fault", flush=True)
     return True
 
 
@@ -188,8 +223,18 @@ def repair_a_recorded_disagreement(answers, fields):
     it cannot go quiet again the next time an entry is discharged. Every entry today records
     agreement or a single carrier, so the disagreement has to be recorded here first.
     """
-    entry = gate.SURFACES_THAT_DIFFER["trial"]
-    gate.SURFACES_THAT_DIFFER["trial"] = entry._replace(carriers_agree=False)
+    entry = gate.SURFACES_THAT_DIFFER[gate.ANALYSED]["trial"]
+    gate.SURFACES_THAT_DIFFER[gate.ANALYSED]["trial"] = entry._replace(carriers_agree=False)
+
+
+def make_two_surfaces_name_different_builds(answers, fields):
+    """A sweep leaving two surfaces built out of step, which no committed value can see.
+
+    `plateforce_version` is compared on no request: an analysed document carries it on two
+    surfaces and a swept one moves with every release, so both are asserted rather than held
+    to a record. This is what asserting it has to catch.
+    """
+    answers["python"]["plateforce_version"] = "0.0.0-somewhere-else"
 
 
 CASES = [
@@ -235,9 +280,9 @@ CASES = [
         "different registries",
     ),
     (
-        "a run holding fewer surfaces than the manifest names",
+        "a run holding fewer surfaces than the request is asked of",
         ask_fewer_surfaces_than_the_manifest_names,
-        "the manifest names",
+        "nothing below speaks for the surfaces it claims",
     ),
     (
         "the field asserted another way, published by nobody",
@@ -257,13 +302,55 @@ CASES = [
 ]
 
 
+# The sweep, whose register is a second one. Every case above is written against an analysed
+# document, and a swept document is where this project's founding measurement lives.
+SWEPT_CASES = [
+    (
+        "two surfaces reporting one sweep from builds that are not the same build",
+        make_two_surfaces_name_different_builds,
+        "different builds",
+    ),
+    (
+        "a field one surface publishes on a sweep and the others do not",
+        add_a_field_to_one_surface,
+        "sample_rate_hz_read",
+    ),
+]
+
+
 # The request manifest. A population described wrongly is a gate speaking for requests it
 # never asked, which is the same defect one level up from the coverage cases above.
 
+def every_surface():
+    return ",".join(sorted(gate.surfaces_named_in_manifest()))
+
+
+def every_surface_a_sweep_reaches():
+    """The surfaces a swept request is asked of, derived rather than written out.
+
+    A surface added to the manifest, or one whose entry point gains the ability to state a
+    sweep, changes this population. Written here as a list it would go stale silently and the
+    control would start failing for a reason that is not a defect.
+    """
+    reached = gate.surfaces_named_in_manifest() - set(gate.SURFACES_NOT_ASKED[gate.SWEPT])
+    return ",".join(sorted(reached))
+
+
+# Three rows, because the register holds an entry whose account of itself rests on a swept
+# request being in the population. A population of analysed requests alone makes that entry
+# refuse, which is what it is there to do.
 A_POPULATION_THAT_PASSES = [
-    "quiet\ttests/golden/result-parity-request.json\ttests/golden/result-parity.json",
-    "sentinel\ttests/golden/result-parity-request-sentinel.json\t=quiet",
+    f"quiet\ttests/golden/result-parity-request.json\ttests/golden/result-parity.json\t{every_surface()}",
+    f"sentinel\ttests/golden/result-parity-request-sentinel.json\t=quiet\t{every_surface()}",
+    f"sweep\ttests/golden/result-parity-request-sweep.json\ttests/golden/result-parity-sweep.json\t{every_surface_a_sweep_reaches()}",
 ]
+
+DEFAULT_REQUESTS = [
+    "result-parity-request.json",
+    "result-parity-request-sentinel.json",
+    "result-parity-request-sweep.json",
+]
+DEFAULT_BASELINES = ["result-parity.json", "result-parity-sweep.json"]
 
 
 def a_population_on_disk(directory, rows, requests=None, baselines=None):
@@ -271,17 +358,17 @@ def a_population_on_disk(directory, rows, requests=None, baselines=None):
 
     Written out rather than mocked, because the two refusals that matter most read the
     directory rather than the manifest: a request file nobody asks and a record nobody is
-    held to are both invisible to anything that only reads the rows.
+    held to are both invisible to anything that only reads the rows. A file whose name carries
+    `sweep` is written with a sweep block, because the gate reads the kind of a question off
+    the file that asks it.
     """
     root = pathlib.Path(directory)
     golden = root / "tests" / "golden"
     golden.mkdir(parents=True, exist_ok=True)
-    for name in requests if requests is not None else [
-        "result-parity-request.json",
-        "result-parity-request-sentinel.json",
-    ]:
-        (golden / name).write_text("{}\n", encoding="utf-8")
-    for name in baselines if baselines is not None else ["result-parity.json"]:
+    for name in requests if requests is not None else DEFAULT_REQUESTS:
+        body = '{"sweep": {"slots": []}}\n' if "sweep" in name else "{}\n"
+        (golden / name).write_text(body, encoding="utf-8")
+    for name in baselines if baselines is not None else DEFAULT_BASELINES:
         (golden / name).write_text("{}\n", encoding="utf-8")
     manifest = root / "result-parity-requests.txt"
     manifest.write_text("# a population\n" + "\n".join(rows) + "\n", encoding="utf-8")
@@ -331,6 +418,11 @@ def a_manifest_control_that_must_pass():
     return True
 
 
+GAP = "gap\ttests/golden/result-parity-request-gap.json"
+WITH_A_GAP = DEFAULT_REQUESTS + ["result-parity-request-gap.json"]
+ANALYSED_ROWS = [A_POPULATION_THAT_PASSES[0], A_POPULATION_THAT_PASSES[1]]
+SWEEP_ROW = A_POPULATION_THAT_PASSES[2]
+
 MANIFEST_CASES = [
     (
         # The defect that created the population: two request files, wired to nothing, for a
@@ -338,59 +430,45 @@ MANIFEST_CASES = [
         "a request file on disk that no row of the manifest names",
         dict(
             rows=A_POPULATION_THAT_PASSES,
-            requests=[
-                "result-parity-request.json",
-                "result-parity-request-sentinel.json",
-                "result-parity-request-interrupted.json",
-            ],
+            requests=DEFAULT_REQUESTS + ["result-parity-request-interrupted.json"],
             expected="asks a question and no row of",
         ),
     ),
     (
-        "a fifth request added and its baseline forgotten",
+        "a further request added and its baseline forgotten",
         dict(
             rows=A_POPULATION_THAT_PASSES
-            + ["gap\ttests/golden/result-parity-request-gap.json\ttests/golden/result-parity-gap.json"],
-            requests=[
-                "result-parity-request.json",
-                "result-parity-request-sentinel.json",
-                "result-parity-request-gap.json",
-            ],
+            + [f"{GAP}\ttests/golden/result-parity-gap.json\t{every_surface()}"],
+            requests=WITH_A_GAP,
             expected="there is no such record",
         ),
     ),
     (
         "a row held to nothing at all",
         dict(
-            rows=A_POPULATION_THAT_PASSES
-            + ["gap\ttests/golden/result-parity-request-gap.json\t"],
-            requests=[
-                "result-parity-request.json",
-                "result-parity-request-sentinel.json",
-                "result-parity-request-gap.json",
-            ],
+            rows=A_POPULATION_THAT_PASSES + [f"{GAP}\t\t{every_surface()}"],
+            requests=WITH_A_GAP,
             expected="held to no record at all",
         ),
     ),
     (
         "a row naming a request file that is not there",
         dict(
-            rows=A_POPULATION_THAT_PASSES
-            + ["gap\ttests/golden/result-parity-request-gap.json\t=quiet"],
+            rows=A_POPULATION_THAT_PASSES + [f"{GAP}\t=quiet\t{every_surface()}"],
             expected="and there is no such file",
         ),
     ),
     (
         "a row declared equal to a row that does not exist",
         dict(
-            rows=[A_POPULATION_THAT_PASSES[0], A_POPULATION_THAT_PASSES[1].replace("=quiet", "=loud")],
+            rows=[ANALYSED_ROWS[0], ANALYSED_ROWS[1].replace("=quiet", "=loud"), SWEEP_ROW],
             expected="and no row is named that",
         ),
     ),
     (
         "a row declared equal to itself, which asserts nothing",
         dict(
-            rows=[A_POPULATION_THAT_PASSES[0], A_POPULATION_THAT_PASSES[1].replace("=quiet", "=sentinel")],
+            rows=[ANALYSED_ROWS[0], ANALYSED_ROWS[1].replace("=quiet", "=sentinel"), SWEEP_ROW],
             expected="declared equal to itself",
         ),
     ),
@@ -398,10 +476,9 @@ MANIFEST_CASES = [
         "a chain of rows each declared equal to the next",
         dict(
             rows=[
-                A_POPULATION_THAT_PASSES[0].replace(
-                    "tests/golden/result-parity.json", "=sentinel"
-                ),
-                A_POPULATION_THAT_PASSES[1],
+                ANALYSED_ROWS[0].replace("tests/golden/result-parity.json", "=sentinel"),
+                ANALYSED_ROWS[1],
+                SWEEP_ROW,
             ],
             expected="One hop",
         ),
@@ -409,7 +486,7 @@ MANIFEST_CASES = [
     (
         "two rows carrying one name",
         dict(
-            rows=[A_POPULATION_THAT_PASSES[0], A_POPULATION_THAT_PASSES[0]],
+            rows=[ANALYSED_ROWS[0], ANALYSED_ROWS[0], SWEEP_ROW],
             expected="two rows of the request manifest carry one name",
         ),
     ),
@@ -417,7 +494,7 @@ MANIFEST_CASES = [
         "a committed record no row is held to",
         dict(
             rows=A_POPULATION_THAT_PASSES,
-            baselines=["result-parity.json", "result-parity-gap.json"],
+            baselines=DEFAULT_BASELINES + ["result-parity-gap.json"],
             expected="a committed record no row is held to",
         ),
     ),
@@ -426,13 +503,79 @@ MANIFEST_CASES = [
         "a regeneration that would leave a request file unasked",
         dict(
             rows=A_POPULATION_THAT_PASSES,
-            requests=[
-                "result-parity-request.json",
-                "result-parity-request-sentinel.json",
-                "result-parity-request-gap.json",
-            ],
+            requests=WITH_A_GAP,
             expected="asks a question and no row of",
             writing=True,
+        ),
+    ),
+    (
+        "a row asked of a surface no manifest names",
+        dict(
+            rows=[f"{ANALYSED_ROWS[0]},abacus", ANALYSED_ROWS[1], SWEEP_ROW],
+            expected="names no such surface",
+        ),
+    ),
+    (
+        # A population of one agrees with itself, which is the shape this project keeps
+        # catching one level down, in a divergence carried by a single surface.
+        "a request one surface answers",
+        dict(
+            rows=[
+                ANALYSED_ROWS[0].rsplit("\t", 1)[0] + "\tcli",
+                ANALYSED_ROWS[1],
+                SWEEP_ROW,
+            ],
+            expected="agreeing with itself",
+        ),
+    ),
+    (
+        "a surface left off a request and named nowhere",
+        dict(
+            rows=[
+                ANALYSED_ROWS[0].replace(every_surface(), every_surface_a_sweep_reaches()),
+                ANALYSED_ROWS[1],
+                SWEEP_ROW,
+            ],
+            expected="nothing here says why",
+        ),
+    ),
+    (
+        "a listed surface no request asks at all",
+        dict(
+            rows=[
+                row.replace(every_surface(), every_surface_a_sweep_reaches())
+                for row in A_POPULATION_THAT_PASSES
+            ],
+            expected="and no request asks it",
+        ),
+    ),
+    (
+        "a surface recorded as unable to answer a sweep, answering one",
+        dict(
+            rows=ANALYSED_ROWS
+            + [SWEEP_ROW.replace(every_surface_a_sweep_reaches(), every_surface())],
+            expected="so the entry is out of date and the surface answers for real",
+        ),
+    ),
+    (
+        # Two refusals over one population, because a swept request leaving the population
+        # takes two accounts with it: the surface that cannot be asked one, and the register
+        # entry that says the sweep is compared elsewhere.
+        "a population holding no swept request, with a surface recorded as unable to answer one",
+        dict(
+            rows=ANALYSED_ROWS,
+            requests=DEFAULT_REQUESTS[:2],
+            baselines=DEFAULT_BASELINES[:1],
+            expected="reads as coverage and covers nothing",
+        ),
+    ),
+    (
+        "a register entry resting on a swept request the population no longer holds",
+        dict(
+            rows=ANALYSED_ROWS,
+            requests=DEFAULT_REQUESTS[:2],
+            baselines=DEFAULT_BASELINES[:1],
+            expected="its account of itself is a sentence nothing measures",
         ),
     ),
 ]
@@ -535,6 +678,17 @@ def main():
     survived += [name for name, change, expected in CASES if not faults_when(name, change, expected)]
 
     print()
+    if not a_swept_control_that_must_pass():
+        raise SystemExit(1)
+    survived += [
+        name
+        for name, change, expected in SWEPT_CASES
+        if not faults_when(
+            name, change, expected, kind=gate.SWEPT, build=swept_answers_that_pass
+        )
+    ]
+
+    print()
     if not a_manifest_control_that_must_pass():
         raise SystemExit(1)
     for name, case in MANIFEST_CASES:
@@ -549,7 +703,7 @@ def main():
         if not hollow_faults_when(name, committed, fields, expected):
             survived.append(name)
 
-    total = len(CASES) + len(MANIFEST_CASES) + len(HOLLOW_CASES)
+    total = len(CASES) + len(SWEPT_CASES) + len(MANIFEST_CASES) + len(HOLLOW_CASES)
     print()
     print(f"{total - len(survived)} of {total} cases were refused")
     if survived:

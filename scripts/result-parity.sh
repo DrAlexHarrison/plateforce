@@ -9,7 +9,8 @@
 # Two manifests, because the gate has two populations and neither is a line in this file:
 # `result-parity-surfaces.txt` names who is asked, `result-parity-requests.txt` names what
 # they are asked. The Python reads both as well, so the harness cannot ask one set of either
-# and report about another.
+# and report about another. Which surfaces answer which request is the request manifest's
+# fourth column, read here and read again there for the same reason.
 set -o errexit -o nounset -o pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -50,7 +51,7 @@ answers="$(mktemp -d)"
 trap 'rm -rf "$answers"' EXIT
 
 for request_row in "${request_rows[@]}"; do
-  IFS=$'\t' read -r request_name request_path _ <<< "$request_row"
+  IFS=$'\t' read -r request_name request_path _ request_surfaces <<< "$request_row"
   if [[ ! -f "$root/$request_path" ]]; then
     echo "the request manifest names $request_path and there is no such file" >&2
     exit 1
@@ -59,6 +60,13 @@ for request_row in "${request_rows[@]}"; do
 
   for surface_row in "${surface_rows[@]}"; do
     IFS=$'\t' read -r surface command <<< "$surface_row"
+    # Asked of the surfaces the row names and no others. A surface left off is one that
+    # cannot be asked this question at all, which `SURFACES_NOT_ASKED` states with the work
+    # that would change it; running it here would collect an answer to a different question
+    # and hand the Python a document to compare.
+    if [[ ",$request_surfaces," != *",$surface,"* ]]; then
+      continue
+    fi
     answer="$answers/$request_name.$surface.json"
     complaint="$answers/$request_name.$surface.err"
 
