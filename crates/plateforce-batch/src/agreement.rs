@@ -797,8 +797,8 @@ impl BatchCompareResult {
     /// The relations on disk, with the record beside them.
     ///
     /// A compare run answers how far two methods disagree, so a table of paired numbers with
-    /// no record of which rules produced which column is the artefact this software exists to
-    /// argue against. The refusal to write one without its record is the same one the trial
+    /// no record of which rules produced which column leaves every number in it
+    /// unattributable. The refusal to write one without its record is the same one the trial
     /// writer applies, for the same reason.
     pub fn write_csv(
         &self,

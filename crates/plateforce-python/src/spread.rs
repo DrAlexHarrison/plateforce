@@ -467,7 +467,7 @@ fn axis_of(
     };
     if ids.is_empty() {
         return Err(MethodError::new_err(format!(
-            "this build runs no rule for {slot}, so there is nothing to sweep"
+            "this analysis runs no rule for {slot}, so there is nothing to sweep"
         )));
     }
     Ok(spread::Axis {

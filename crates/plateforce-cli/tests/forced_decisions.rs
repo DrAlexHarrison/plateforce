@@ -1,8 +1,8 @@
 //! What the terminal does when a choice on the path has no defensible default.
 //!
-//! The whole product rests on this: a number produced without the operator naming the rule
-//! behind it is the artefact this software exists to stop. So the run declines, names every
-//! open choice in the field's own words, and prints what can be passed instead.
+//! A number produced without the operator naming the rule behind it carries no record of what
+//! produced it. So the run declines, names every open choice in the field's own words, and
+//! prints what can be passed instead.
 
 use std::process::{Command, Output};
 

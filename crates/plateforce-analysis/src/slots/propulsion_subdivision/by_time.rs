@@ -2,7 +2,7 @@
 //!
 //! Arbitrary but reproducible, against the event-anchored split beside it. Both are published
 //! partitions of the same interval and they are not equivalent, so any metric named after a
-//! sub-phase is total to which one ran.
+//! sub-phase depends on which one ran.
 //!
 //! The interval it splits is whatever the bound propulsion rules placed, so this boundary
 //! moves when either of them does and its chain names both.

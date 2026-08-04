@@ -139,8 +139,8 @@ fn a_rule_computed_from_the_landmarks_reaches_the_table_and_the_record() {
         assert_eq!(answered, rows.len(), "{column} on {} trials", rows.len());
     }
 
-    // The number without its chain is the artefact this software exists to argue against, so
-    // both ids are looked for in the record rather than only in the table.
+    // A number without its chain names nothing that produced it, so both ids are looked for in
+    // the record rather than only in the table.
     let (_, chain) = table(&out, "provenance.csv");
     let recorded: std::collections::BTreeSet<&str> = chain
         .iter()
