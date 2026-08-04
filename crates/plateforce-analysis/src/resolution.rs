@@ -264,6 +264,53 @@ impl<'a> Resolution<'a> {
             })
     }
 
+    /// A value the choice of rule settles, which a caller may state only in agreement.
+    ///
+    /// Some operators are not free on every rule that composes them. `onset.op.search_upper_bound`
+    /// publishes four landmarks to search back from and `onset.threshold.last_within_band`
+    /// implements one, because searching back from a different landmark is a different rule.
+    /// Such a value was previously written straight to the record, which does not mark the name
+    /// consulted, so a caller stating one of the other three had it dropped and the rule ran its
+    /// own. The name came back in `unread_parameters`, which is a report rather than an answer.
+    ///
+    /// Refused rather than dropped, and the refusal names the operator that owns the choice
+    /// rather than the rule that composed it, because the accepted values are the operator's.
+    ///
+    /// The source is the caller's claim where the caller stated the value, so a published
+    /// pipeline that supplied it is still credited with it. Unstated it is `Assumed`, which is
+    /// this vocabulary's word for the rule's own value rather than the reader's.
+    ///
+    /// `Stated` would be the other reading, that picking the rule picks the value as surely as
+    /// typing it. It is defensible in the abstract and this codebase has already ruled against
+    /// it: `a_value_stated_for_a_folder_is_recorded_as_stated` asserts that a run with no
+    /// caller input contains no `stated` record at all, on the ground that without the flag
+    /// every value is the rule's own. Recording an entailed value as `Stated` puts the reader's
+    /// signature on 14 values in a record they did not touch.
+    pub(crate) fn entailed(
+        &mut self,
+        operator_id: &str,
+        name: &str,
+        value: &'static str,
+    ) -> Result<(), RuleRefusal> {
+        self.consulted.insert(name.to_string());
+        let source = match self.options.get(name) {
+            Some(chosen) if chosen != value => {
+                return Err(RuleRefusal::Refused(Box::new(
+                    plateforce_core::Refusal::name_not_accepted(
+                        operator_id,
+                        name,
+                        chosen.clone(),
+                        vec![value.to_string()],
+                    ),
+                )))
+            }
+            Some(_) => self.stated_source(name),
+            None => ParameterSource::Assumed,
+        };
+        self.record(name, value.to_string(), source);
+        Ok(())
+    }
+
     pub(crate) fn dispersion(&mut self) -> Result<DispersionEstimator, RuleRefusal> {
         self.enumerated(
             "dispersion",

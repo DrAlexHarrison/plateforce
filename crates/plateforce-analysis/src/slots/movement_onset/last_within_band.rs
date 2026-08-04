@@ -9,7 +9,7 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
 use crate::slots::movement_onset::{
-    record_inherited_spread, OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND,
+    record_inherited_spread, CROSSING_SELECTION, OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND,
 };
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
@@ -43,9 +43,10 @@ pub(crate) fn crossing(
     // The two operators this rule binds by being chosen. A caller that names this rule has
     // stated them as surely as if it had typed them, and the value is what a reader needs
     // to reproduce the number, so it is recorded rather than left implicit in which
-    // function ran.
-    resolved.record("selection", "last".into(), ParameterSource::Stated);
-    resolved.record("bound", "minimum_force".into(), ParameterSource::Stated);
+    // function ran. Stating either in disagreement asks for a different rule, and is refused
+    // under the operator that publishes the alternatives rather than dropped.
+    resolved.entailed(CROSSING_SELECTION, "selection", "last")?;
+    resolved.entailed(SEARCH_UPPER_BOUND, "bound", "minimum_force")?;
     let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
     let back_offset_samples = resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
 

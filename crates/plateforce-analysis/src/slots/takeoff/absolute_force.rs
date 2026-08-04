@@ -1,6 +1,5 @@
 //! `takeoff.threshold.absolute_force`: the first sustained run below a residual threshold.
 
-use plateforce_core::provenance::ParameterSource;
 use plateforce_core::takeoff::takeoff_first_sustained_run;
 use plateforce_core::{Trial, WeighingEpoch};
 
@@ -20,8 +19,9 @@ pub(crate) fn crossing(
     // This rule takes the first qualifying run and the longest-run rule records under this
     // same entry, so the selection is written out rather than left to be inferred from the
     // absence of the other. A reader comparing two records reads two values, not a value
-    // against a silence.
-    resolved.record("selection", "first".into(), ParameterSource::Assumed);
+    // against a silence. Asking this rule for the longest run asks for that other rule, and
+    // is refused under the operator that publishes both rather than dropped.
+    resolved.entailed(super::TAKEOFF_OP_CROSSING_SELECTION, "selection", "first")?;
     super::record_search_floor_at_weighing_epoch_end(trial, epoch, resolved);
     let minimum_flight_samples = resolved
         .milliseconds_as_samples("persistence_ms", 0.0, rate)
