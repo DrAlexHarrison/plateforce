@@ -246,21 +246,41 @@ const request = await evaluate(`(async () => {
 })()`);
 
 const outDir = await mkdtemp(join(tmpdir(), 'plateforce-check-batch-'));
-const terminal = JSON.parse(
-  execFileSync(
-    'cargo',
-    [
-      'run', '-q', '-p', 'plateforce-cli', '--',
-      '--registry', 'registry', 'batch', FIXTURES,
-      '--out-dir', outDir, '--trial-suffix', TRIAL_SUFFIX,
-      '--column', '0', '--sample-rate-hz', String(SAMPLE_RATE_HZ), '--sentinel', 'none',
-      '--weighing', request.bound[0], '--onset', request.bound[1], '--takeoff', request.bound[2],
-      ...request.values.flatMap((assignment) => ['--set', assignment]),
-      '--format', 'json',
-    ],
-    { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' } },
-  ),
-);
+// A run over this folder ends 65, EX_DATAERR, and the document it prints is complete. Most
+// of these recordings end while the athlete is still off the plate, so no touchdown is in
+// the record to find and the rules resting on flight time decline by name. That is the
+// folder rather than a fault: the same trials are absent from the browser's table for the
+// same reason, which is what this check compares.
+//
+// So the answer is read at 0 and at 65 and at nothing else. Any other code is the terminal
+// failing to produce a document at all, and it is raised carrying its code rather than
+// swallowed, because a check that accepted every code would pass on a build that cannot run.
+const RECORDING_DECLINED = 65;
+const terminal = JSON.parse(runBatch());
+
+function runBatch() {
+  try {
+    return execFileSync(
+      'cargo',
+      [
+        'run', '-q', '-p', 'plateforce-cli', '--',
+        '--registry', 'registry', 'batch', FIXTURES,
+        '--out-dir', outDir, '--trial-suffix', TRIAL_SUFFIX,
+        '--column', '0', '--sample-rate-hz', String(SAMPLE_RATE_HZ), '--sentinel', 'none',
+        '--weighing', request.bound[0], '--onset', request.bound[1], '--takeoff', request.bound[2],
+        ...request.values.flatMap((assignment) => ['--set', assignment]),
+        '--format', 'json',
+      ],
+      { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' } },
+    );
+  } catch (failure) {
+    if (failure.status === RECORDING_DECLINED && failure.stdout) return failure.stdout;
+    throw new Error(
+      `the terminal batch ended ${failure.status}, and this check reads 0 or ${RECORDING_DECLINED}: ` +
+        (failure.stderr || failure.message),
+    );
+  }
+}
 
 const terminalRows = new Map(
   (terminal.ok?.results ?? []).map((row) => [row.trial_id, row]),
