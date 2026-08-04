@@ -54,7 +54,7 @@ pf_spread <- function(trial,
     if (!length(method_ids)) {
       refuse_here(
         "slot_has_no_rules",
-        paste0("this build runs rules for ", paste(unique(bindings[["slot"]]),
+        paste0("this analysis runs rules for ", paste(unique(bindings[["slot"]]),
                                                    collapse = ", ")),
         slot = slot,
         available = unique(bindings[["slot"]])

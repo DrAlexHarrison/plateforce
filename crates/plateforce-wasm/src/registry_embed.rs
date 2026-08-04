@@ -62,7 +62,7 @@ mod tests {
         assert_eq!(super::load().unwrap().registry.declared_version, on_disk);
         assert!(
             on_disk.is_some(),
-            "the shipped registry names a revision, so this build has one to report"
+            "the shipped registry names a revision, so there is one to report"
         );
     }
 
