@@ -238,23 +238,28 @@ await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, devi
 await new Promise((resolve) => setTimeout(resolve, 400));
 const narrow = await evaluate(`(() => {
   const control = document.querySelector('#metric-grid .metric__provenance .chip');
+  if (!control) return { reached: false };
   const box = control.getBoundingClientRect();
   control.click();
   const account = document.querySelector('#drawer-body pre.account');
   return {
+    reached: Boolean(account),
     side: Math.round(Math.min(box.width, box.height)),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    scrolls: account.scrollWidth > account.clientWidth,
-    lines: parseFloat(getComputedStyle(account).fontSize),
+    scrolls: account ? account.scrollWidth > account.clientWidth : null,
+    size: account ? parseFloat(getComputedStyle(account).fontSize) : null,
   };
 })()`);
 await send('Emulation.clearDeviceMetricsOverride');
 
 check('at 390 px the control clears 44 px on its short side',
-  narrow.side >= 44, `${narrow.side} px`);
+  narrow.reached && narrow.side >= 44,
+  narrow.reached ? `${narrow.side} px` : 'no account to open at 390 px');
 check('at 390 px an open account does not take the page sideways',
-  narrow.overflow <= 0,
-  `${narrow.overflow} px of horizontal overflow, the account ${narrow.scrolls ? 'scrolling' : 'sitting'} inside its own frame at ${narrow.lines} px`);
+  narrow.reached && narrow.overflow <= 0,
+  narrow.reached
+    ? `${narrow.overflow} px of horizontal overflow, the account ${narrow.scrolls ? 'scrolling' : 'sitting'} inside its own frame at ${narrow.size} px`
+    : 'no account to open at 390 px');
 
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
