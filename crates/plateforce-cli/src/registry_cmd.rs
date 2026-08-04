@@ -191,9 +191,9 @@ fn status(method: &Method, renderer: &Renderer) -> String {
 /// One parameter, and whether the reader has to answer it.
 ///
 /// A name alone reads the same whether the rule will supply a value or the reader must, and
-/// 66 of the registry's 202 parameters are the second: required, with nothing behind them.
-/// Both shapes of default are read, so a parameter whose options are named rather than
-/// numbered needs no second edit here.
+/// many registry parameters are the second: required, with nothing behind them. Both shapes
+/// of default are read, so a parameter whose options are named rather than numbered needs no
+/// second edit here.
 fn describe_parameter(parameter: &plateforce_registry::Parameter) -> String {
     let mut described = parameter.name.clone();
     if let Some(value) = parameter.default {

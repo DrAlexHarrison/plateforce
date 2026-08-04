@@ -31,7 +31,7 @@
       {
         "bound_parameters": [
           [
-            "passband_edge_hz",
+            "passband_edge",
             "none"
           ]
         ],
@@ -39,7 +39,7 @@
         "method_from_recommendation": false,
         "method_id": "filter.none",
         "parameter_sources": {
-          "passband_edge_hz": "assumed"
+          "passband_edge": "assumed"
         },
         "registry_backed": true,
         "unread_parameters": []
