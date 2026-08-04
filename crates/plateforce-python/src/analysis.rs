@@ -1510,18 +1510,47 @@ mod tests {
     /// engine unbound: the notebook's `BoundMethod` came back with an empty parameter list
     /// where the terminal recorded `dispersion = sample, assumed`, and two entries whose only
     /// default is a name refused outright with a message saying the registry gives them none.
-    /// All three rules here default `dispersion` by name, so a build that reads one shape and
-    /// not the other answers this on none of them.
+    ///
+    /// Asserted on the binding rather than on the record. Written first against the record's
+    /// `assumed`, it passed with the read reverted: the engine holds its own fallback for
+    /// `dispersion` and reports `assumed` for a name that never arrived, so the state under
+    /// test was out of the assertion's reach. Both shapes here, and the parameter list is
+    /// where they differ, one entry defaulting by name alone and one carrying both kinds.
     #[test]
-    fn a_name_the_registry_filled_in_is_recorded_the_way_a_number_is() {
-        let response = analysed(BTreeMap::new());
-
-        for rule in [WEIGHING_RULE, ONSET_RULE, TAKEOFF_RULE] {
+    fn a_name_the_registry_filled_in_is_bound_the_way_a_number_is() {
+        // The optional one first, so a build that drops the read fails this assertion rather
+        // than the refusal the required rows below it raise, whose message is about the
+        // interpreter and not about the claim.
+        for (rule, expected) in [
+            (
+                WEIGHING_RULE,
+                vec![("accumulation", "two_pass"), ("dispersion", "sample")],
+            ),
+            (
+                "takeoff.op.short_run_handling",
+                vec![("short_run_handling", "rank_then_filter")],
+            ),
+            (
+                "takeoff.op.residual_comparison",
+                vec![("comparison", "signed")],
+            ),
+        ] {
+            let bound =
+                crate::registry::bound_from_the_registry_this_build_carries(rule, BTreeMap::new());
+            let expected: Vec<(String, String)> = expected
+                .iter()
+                .map(|(name, value)| ((*name).to_string(), (*value).to_string()))
+                .collect();
             assert_eq!(
-                source_of(&response, rule, "dispersion"),
-                ParameterSource::Assumed,
-                "{rule} ran on the registry's own dispersion and the record names the caller"
+                bound.bound_names, expected,
+                "{rule} did not bind the names the registry defaults for it"
             );
+            for (name, _) in &expected {
+                assert!(
+                    bound.names_the_registry_filled().contains(name),
+                    "{rule} bound {name} from the registry and reports the caller chose it"
+                );
+            }
         }
     }
 
