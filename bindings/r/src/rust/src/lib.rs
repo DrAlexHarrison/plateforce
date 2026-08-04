@@ -13,7 +13,7 @@ pub mod shim;
 
 use std::collections::BTreeMap;
 
-use plateforce_analysis::capability::{capability, Operation, OutputFormat};
+use plateforce_analysis::capability::{capability, AcquisitionIntake, Operation, OutputFormat};
 use plateforce_analysis::document::SpreadDocument;
 use plateforce_analysis::spread::{self, SpreadRequest};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, Binding, BINDINGS};
@@ -796,7 +796,14 @@ pub fn capability_json() -> String {
         Operation::Version,
     ];
     let formats: [OutputFormat; 0] = [];
-    match serde_json::to_value(capability(&operations, &formats)) {
+    // `pf_trial()` takes a block from `pf_acquisition()`, so a trial built here carries what
+    // the plate and its settings were into every fingerprint it produces. The R test holds
+    // this against that function's own formals, in both directions.
+    match serde_json::to_value(capability(
+        &operations,
+        &formats,
+        AcquisitionIntake::StatedByCaller,
+    )) {
         Ok(value) => canonical(&value),
         Err(error) => {
             refuse::<serde_json::Value>(Refusal::of("serialisation_failed", error.to_string()))

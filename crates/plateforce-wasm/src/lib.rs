@@ -19,7 +19,7 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, SPINE_CONSTRUCTS};
-use plateforce_analysis::capability::{capability, Operation, OutputFormat};
+use plateforce_analysis::capability::{capability, AcquisitionIntake, Operation, OutputFormat};
 use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
 use plateforce_core::signal::{reported_samples, ReportedSamples, Sentinel};
@@ -220,6 +220,13 @@ const EXPORTS: &[&str] = &[
 /// shape. Nothing here reports a build digest: the same commit produces three different
 /// wasm digests on three runners, so a digest would make this a comparison that can only
 /// fail. Every field is semantic, ids and slots and constructs and refusal codes.
+/// Whether a caller of this surface can state the acquisition block.
+///
+/// The tab analyses a trace it was handed and nothing carries the plate's own settings in
+/// with it, so every result it produces fingerprints as incomplete. An export that takes a
+/// block moves this to `StatedByCaller`, and the test below refuses the two answers apart.
+const ACQUISITION_INTAKE: AcquisitionIntake = AcquisitionIntake::AbsentFromThisSurface;
+
 #[wasm_bindgen(js_name = capabilityJson)]
 pub fn capability_json() -> Result<String, JsError> {
     let operations: Vec<Operation> = EXPORTS
@@ -228,7 +235,11 @@ pub fn capability_json() -> Result<String, JsError> {
         .flatten()
         .copied()
         .collect();
-    replied(&capability(&operations, &[OutputFormat::Json]))
+    replied(&capability(
+        &operations,
+        &[OutputFormat::Json],
+        ACQUISITION_INTAKE,
+    ))
 }
 
 /// A parsed force file, before any column has been declared to be the force channel.
@@ -557,6 +568,60 @@ mod tests {
         assert!(!manifest.contains("\"compare\""), "{manifest}");
         assert!(!manifest.contains("\"reach\""), "{manifest}");
         assert!(manifest.contains("\"batch\""), "{manifest}");
+    }
+
+    /// What this surface says about the acquisition block is what its exports do about it.
+    ///
+    /// Two directions. An export that takes a block while the manifest says none reaches this
+    /// surface publishes the tab as unable to state what it can state, and a reader comparing
+    /// surfaces picks another one for the recording. A manifest claiming the block with no
+    /// export behind it is the failure the whole comparison exists to make visible.
+    #[test]
+    fn the_block_the_manifest_claims_is_the_block_an_export_takes() {
+        // The name an export carries when it is the one that takes the block.
+        const IN_THE_NAME_OF_THE_EXPORT: &str = "acquisition";
+        let taken_by: Vec<&&str> = EXPORTS
+            .iter()
+            .filter(|export| export.to_lowercase().contains(IN_THE_NAME_OF_THE_EXPORT))
+            .collect();
+        let claimed = ACQUISITION_INTAKE == AcquisitionIntake::StatedByCaller;
+        println!(
+            "exports taking the acquisition block: {} of {}: {taken_by:?}",
+            taken_by.len(),
+            EXPORTS.len()
+        );
+        assert_eq!(
+            claimed,
+            !taken_by.is_empty(),
+            "the manifest says the block is {} and {} of {} exports take one",
+            if claimed {
+                "stated here"
+            } else {
+                "absent here"
+            },
+            taken_by.len(),
+            EXPORTS.len()
+        );
+    }
+
+    /// Every member the block holds reaches the tab's own answer, named rather than counted:
+    /// a listing naming four teaches a reader to go and find four.
+    #[test]
+    fn the_tab_names_every_member_of_the_acquisition_block() {
+        let manifest = capability_json().expect("the manifest serialises");
+        let unnamed: Vec<&&str> = plateforce_core::Acquisition::MEMBERS
+            .iter()
+            .filter(|member| !manifest.contains(&format!("\"{member}\"")))
+            .collect();
+        assert!(
+            unnamed.is_empty(),
+            "{} of {} members are absent from the tab's manifest: {unnamed:?}",
+            unnamed.len(),
+            plateforce_core::Acquisition::MEMBERS.len()
+        );
+        // The value is asserted against the exports above rather than pinned here, so a tab
+        // that gains an intake flips one declaration and not two.
+        assert!(manifest.contains("\"stated_by_caller\":"), "{manifest}");
     }
 
     /// JSON strings are the whole boundary of this crate, so a container format arriving
