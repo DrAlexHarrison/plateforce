@@ -66,14 +66,28 @@ pub fn run(
     match measure(&prepared.trial.trial, &prepared.request, quantity) {
         Err(refusal) => Outcome::declined(Declined::recorded(*refusal)),
         Ok(response) => {
+            // A sweep that leaves on its own says which build and which registry produced it.
+            // One inside an analysed result inherits that document's identity, so `describe`
+            // stays as it is: it renders the panel `analyse` prints too, and a second copy of
+            // the identity there would be the same fact twice on one screen.
+            //
+            // No revision is named. `docs/schema.md` gives `registry_version` the caller's pin
+            // and nothing else, and this surface offers no way to pin one. The registry's own
+            // declared revision is a different question and is not laundered into this answer.
+            let reported = plateforce_analysis::document::SpreadDocument::of(
+                env!("CARGO_PKG_VERSION"),
+                None,
+                Some(prepared.registry.content_digest.clone()),
+                response,
+            );
             let document = match format {
-                Format::Json => match serde_json::to_value(&response) {
+                Format::Json => match serde_json::to_value(&reported) {
                     Ok(value) => canonical(&value),
                     Err(error) => {
                         return Outcome::declined_line(Fault::Internal, format!("{error}"))
                     }
                 },
-                Format::Text => describe(&response, renderer),
+                Format::Text => describe(&reported.spread, renderer),
             };
             Outcome::complete(document)
         }
