@@ -147,9 +147,7 @@ fn the_run_records_which_convention_it_applied_and_what_matched() {
     assert_eq!(none_declared.samples_matching_the_convention, 0);
     assert_eq!(none_declared.samples_carrying_no_number, 0);
     assert!(
-        !quiet
-            .iter()
-            .any(|line| line.contains("match the declared")),
+        !quiet.iter().any(|line| line.contains("match the declared")),
         "and nothing is reported missing, though a rule may still warn: {quiet:?}"
     );
     std::fs::remove_dir_all(&directory).ok();

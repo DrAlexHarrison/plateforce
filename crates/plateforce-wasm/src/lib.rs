@@ -22,9 +22,7 @@ use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, 
 use plateforce_analysis::capability::{capability, AcquisitionIntake, Operation, OutputFormat};
 use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
-use plateforce_core::signal::{
-    reported_samples, trial_from_column, ReportedSamples, Sentinel,
-};
+use plateforce_core::signal::{reported_samples, trial_from_column, ReportedSamples, Sentinel};
 use plateforce_core::Trial;
 
 pub fn version() -> &'static str {
@@ -395,9 +393,8 @@ impl LoadedTrial {
         // convention to do it, and answered an interrupted recording with the intact trial's
         // numbers to the last digit. `plateforce_core::signal::trial_from_column` states what
         // that cost and what the alternative cost.
-        let (trial, reported) =
-            trial_from_column(column.to_vec(), sample_rate_hz, sentinel)
-                .map_err(|e| JsError::new(&e.to_string()))?;
+        let (trial, reported) = trial_from_column(column.to_vec(), sample_rate_hz, sentinel)
+            .map_err(|e| JsError::new(&e.to_string()))?;
         let info = describe(&trial, force_column, sentinel_convention, reported, false);
         Ok(LoadedTrial { trial, info })
     }

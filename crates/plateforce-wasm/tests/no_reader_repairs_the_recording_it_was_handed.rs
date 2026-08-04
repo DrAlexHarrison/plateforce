@@ -110,7 +110,10 @@ fn the_tab_declines_the_landmark_the_damaged_stance_puts_out_of_reach() {
     assert_eq!(refusals[0]["code"], "no_crossing");
     assert_eq!(refusals[0]["slot"], "movement_onset");
     assert_eq!(
-        result["warnings"].as_array().expect("warnings is a list").len(),
+        result["warnings"]
+            .as_array()
+            .expect("warnings is a list")
+            .len(),
         1,
         "warnings: {:?}",
         result["warnings"]
@@ -142,10 +145,12 @@ fn the_tab_declines_the_landmark_the_damaged_stance_puts_out_of_reach() {
 /// gate compares.
 ///
 /// The measurement that found the defect, kept as the assertion. Projected over those fields
-/// the tab's two answers differed in 0 places while the terminal's differed in 25, which is
-/// the whole of what "the browser cannot tell them apart" means. A count rather than a list:
-/// a legitimate change to either recording moves the count without changing what it means,
-/// and 0 is the only value that says the reader is blind.
+/// the tab's two answers differed in 0 places, which is the whole of what "the tab cannot tell
+/// them apart" means. They differ in 7 of 15 now, and the terminal differs in the same 7,
+/// measured through this same projection.
+///
+/// A count rather than a list: a legitimate change to either recording moves the count without
+/// changing what it means, and 0 is the only value that says the reader is blind.
 #[test]
 fn the_tab_answers_the_damaged_recording_differently_from_the_clean_one() {
     let damaged = tab_answer(INTERRUPTED, "none");
@@ -224,9 +229,12 @@ fn the_tab_hands_back_the_trace_the_file_wrote() {
     ] {
         let loaded = LoadedTrial::from_force_file(&file, 0, SAMPLE_RATE_HZ, convention)
             .expect("the column binds");
-        let info: serde_json::Value =
-            serde_json::from_str(&loaded.info_json().expect("the tab describes what it loaded"))
-                .expect("the description parses");
+        let info: serde_json::Value = serde_json::from_str(
+            &loaded
+                .info_json()
+                .expect("the tab describes what it loaded"),
+        )
+        .expect("the description parses");
         assert_eq!(
             info["sample_count"], ROWS_IN_THE_RECORDING,
             "under {convention} the tab loaded a different number of samples from the file's"

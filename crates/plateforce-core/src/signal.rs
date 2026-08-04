@@ -438,7 +438,14 @@ mod tests {
     #[test]
     fn the_home_hands_back_the_trace_the_file_wrote() {
         let values = [
-            584.3, 0.0, -1.0, 9999.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 612.7,
+            584.3,
+            0.0,
+            -1.0,
+            9999.0,
+            f64::NAN,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            612.7,
         ];
         for convention in [
             None,
