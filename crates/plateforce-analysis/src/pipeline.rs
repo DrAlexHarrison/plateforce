@@ -939,7 +939,7 @@ fn expect_derived_choice(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use plateforce_core::trial::CentralTendency;
     use plateforce_core::{
@@ -1210,6 +1210,263 @@ mod tests {
                     .join("; ")
             );
         }
+    }
+
+    /// The quantities a request naming one entry comes back with, read off a result rather
+    /// than off the row that declares them.
+    ///
+    /// A key carrying neither a number nor the state that says its arithmetic ran is a
+    /// quantity nobody produced, so it is not one this entry offers a caller. `None` for an
+    /// entry this recording gave nothing to: it produced none of its own quantities, so every
+    /// comparison against it comes back overlapping whatever the taxonomy says, and a verdict
+    /// that cannot go the other way is not a reading.
+    fn quantities_produced_by(
+        trial: &Trial,
+        binding: &crate::binding::Binding,
+    ) -> Option<BTreeSet<String>> {
+        let response = run(trial, &request_reaching(binding)).ok()?;
+        if response
+            .refusals
+            .iter()
+            .any(|rule| rule.method_id == binding.id)
+        {
+            return None;
+        }
+        Some(
+            response
+                .metrics
+                .iter()
+                .filter(|metric| metric.value.is_some() || metric.carried_no_number)
+                .map(|metric| metric.key.clone())
+                .collect(),
+        )
+    }
+
+    /// Whether each of two entries reports a quantity the other withholds, which is what one
+    /// pair contributes to the reading below.
+    fn each_reports_a_key_the_other_does_not(
+        left: &BTreeSet<String>,
+        right: &BTreeSet<String>,
+    ) -> bool {
+        left.difference(right).next().is_some() && right.difference(left).next().is_some()
+    }
+
+    /// A construct is one slot and a request carries one rule per slot, so two rules filed
+    /// under one construct are two answers a caller picks between. What that choice costs is
+    /// measured by running both rules and comparing what came back, never by reading the
+    /// edges either one declares.
+    ///
+    /// Two shapes are whole. Every rule reports the same keys and the choice moves values,
+    /// which is what the five onset rules do. Or every rule reports keys of its own and the
+    /// choice is between objects, which is what `phase.toml` records the phase models as: the
+    /// one place a user must choose, because the models produce different sets of metrics
+    /// rather than different values for one metric.
+    ///
+    /// A construct mixing the two is the fault this reads for. Some of its rules share a key,
+    /// so they answer its question together; another reports only keys those never report, so
+    /// it answers a different question from the same slot, and a caller reaching for it loses
+    /// theirs with nothing on the result saying so. That is the shape `propulsion_subdivision`
+    /// was cut out of `phase_model` for, where two subdivisions sharing one key sat beside
+    /// three models each reporting its own.
+    #[test]
+    fn a_construct_holds_rules_that_all_answer_its_question_or_all_answer_their_own() {
+        let trial = synthetic();
+        let registry = plateforce_registry::Registry::load(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../registry"
+        ))
+        .expect("the shipped registry loads");
+
+        // The registry's own population, so the constructs this build can rule on are reported
+        // against the constructs that exist rather than against themselves.
+        let mut entries_per_registry_construct: BTreeMap<&str, usize> = BTreeMap::new();
+        for method in registry.methods.values() {
+            *entries_per_registry_construct
+                .entry(method.construct.as_str())
+                .or_default() += 1;
+        }
+        let registry_constructs_holding_two_or_more = entries_per_registry_construct
+            .values()
+            .filter(|count| **count >= 2)
+            .count();
+        let bound_ids: BTreeSet<&str> = BINDINGS.iter().map(|binding| binding.id).collect();
+        let registry_entries_with_no_rule = registry
+            .methods
+            .keys()
+            .filter(|id| !bound_ids.contains(id.as_str()))
+            .count();
+
+        let mut entries_per_construct: BTreeMap<&str, Vec<&crate::binding::Binding>> =
+            BTreeMap::new();
+        for binding in BINDINGS {
+            entries_per_construct
+                .entry(binding.construct)
+                .or_default()
+                .push(binding);
+        }
+        let constructs_holding_two_or_more = entries_per_construct
+            .values()
+            .filter(|entries| entries.len() >= 2)
+            .count();
+
+        let mut ruled_on = 0usize;
+        let mut left_unruled = 0usize;
+        let mut entries_this_recording_gave_nothing_to = 0usize;
+        let mut faults: Vec<String> = Vec::new();
+
+        for (construct, entries) in &entries_per_construct {
+            if entries.len() < 2 {
+                continue;
+            }
+            let mut measured: Vec<(&str, BTreeSet<String>)> = Vec::new();
+            let mut unmeasured: Vec<&str> = Vec::new();
+            for binding in entries {
+                match quantities_produced_by(&trial, binding) {
+                    Some(produced) => measured.push((binding.id, produced)),
+                    None => unmeasured.push(binding.id),
+                }
+            }
+            entries_this_recording_gave_nothing_to += unmeasured.len();
+
+            if measured.len() < 2 {
+                left_unruled += 1;
+                println!(
+                    "{construct}: not ruled on, {} of {} entries produced a quantity on this \
+                     recording, and a pair needs two: {unmeasured:?} produced none",
+                    measured.len(),
+                    entries.len()
+                );
+                continue;
+            }
+
+            let mut answering_alone: Vec<(&str, &str)> = Vec::new();
+            let mut answering_together: Vec<(&str, &str)> = Vec::new();
+            for (index, (left_id, left_keys)) in measured.iter().enumerate() {
+                for (right_id, right_keys) in measured.iter().skip(index + 1) {
+                    if each_reports_a_key_the_other_does_not(left_keys, right_keys) {
+                        answering_alone.push((left_id, right_id));
+                    } else {
+                        answering_together.push((left_id, right_id));
+                    }
+                }
+            }
+            ruled_on += 1;
+            println!(
+                "{construct}: {} of {} entries measured, pairs each reporting a key of its own: \
+                 {}, pairs reporting every key the other does: {}",
+                measured.len(),
+                entries.len(),
+                answering_alone.len(),
+                answering_together.len()
+            );
+            if !unmeasured.is_empty() {
+                println!("  outside the reading: {unmeasured:?}");
+            }
+            if answering_alone.is_empty() || answering_together.is_empty() {
+                continue;
+            }
+            let produced_by = |wanted: &str| {
+                measured
+                    .iter()
+                    .find(|(id, _)| *id == wanted)
+                    .map(|(_, keys)| keys.clone())
+                    .unwrap_or_default()
+            };
+            for (left_id, right_id) in &answering_alone {
+                let (shared_left, shared_right) = answering_together[0];
+                let left_keys = produced_by(left_id);
+                let right_keys = produced_by(right_id);
+                faults.push(format!(
+                    "{construct} holds rules that do not all answer one question. {left_id} \
+                     reports {:?}, alone in reporting {:?}, and {right_id} reports {:?}, alone in \
+                     reporting {:?}, while {shared_left} and {shared_right} report every key the \
+                     other does. A request carries one rule for {construct}, so a caller reaching \
+                     for either of the first two loses what the other reports, and nothing on the \
+                     result says so.",
+                    left_keys,
+                    left_keys.difference(&right_keys).collect::<Vec<_>>(),
+                    right_keys,
+                    right_keys.difference(&left_keys).collect::<Vec<_>>(),
+                ));
+            }
+        }
+
+        println!(
+            "registry: {} constructs, {} computation entries, {registry_constructs_holding_two_or_more} \
+             constructs holding two or more entries, {registry_entries_with_no_rule} entries this \
+             build runs no rule for",
+            entries_per_registry_construct.len(),
+            registry.methods.len(),
+        );
+        println!(
+            "this build: {} constructs carry a rule, {constructs_holding_two_or_more} of them \
+             carry two or more, {ruled_on} ruled on, {left_unruled} left unruled, \
+             {entries_this_recording_gave_nothing_to} entries produced nothing on this recording",
+            entries_per_construct.len(),
+        );
+        // The population this reading was written against. A guard whose subject shrank below
+        // it would pass by having less to read.
+        assert!(
+            ruled_on >= 10,
+            "only {ruled_on} constructs were ruled on, so this read almost nothing"
+        );
+        assert!(faults.is_empty(), "{}", faults.join("\n\n"));
+    }
+
+    /// The reading above is worth nothing unless it answers both ways, so both answers are
+    /// taken here from committed entries, through the same function and the same predicate.
+    ///
+    /// The third pair is the fault as it shipped. `phase.propulsion_subdivision.by_time` was
+    /// filed under `phase_model` until the subdivision became a construct of its own, and from
+    /// that slot it reported every key the single-unweighting model did and one more, while
+    /// reporting none of what the time epochs report. One slot, one rule sharing a key and one
+    /// rule reporting only its own, which is the shape the reading refuses.
+    #[test]
+    fn the_reading_that_tells_one_answer_from_two_answers_both_ways() {
+        let trial = synthetic();
+        let produced = |id: &str| {
+            let binding = BINDINGS
+                .iter()
+                .find(|binding| binding.id == id)
+                .unwrap_or_else(|| panic!("{id} is not a rule this build runs"));
+            quantities_produced_by(&trial, binding)
+                .unwrap_or_else(|| panic!("{id} produced nothing on this recording"))
+        };
+
+        let noise_relative = produced("onset.threshold.noise_relative");
+        let absolute_force = produced("onset.threshold.absolute_force");
+        assert!(
+            !each_reports_a_key_the_other_does_not(&noise_relative, &absolute_force),
+            "two onset rules answering one question read as answering their own: {:?} against {:?}",
+            noise_relative,
+            absolute_force
+        );
+
+        let one_unweighting_phase = produced("phase.model.unweighting_single.mcmahon2018");
+        let fixed_time_epochs = produced("phase.anchor.time_epochs.schmidtbleicher");
+        assert!(
+            each_reports_a_key_the_other_does_not(&one_unweighting_phase, &fixed_time_epochs),
+            "a phase model and a set of fixed time epochs read as answering one question: {:?} against {:?}",
+            one_unweighting_phase,
+            fixed_time_epochs
+        );
+
+        let split_at_half_the_duration = produced("phase.propulsion_subdivision.by_time");
+        assert!(
+            !each_reports_a_key_the_other_does_not(
+                &split_at_half_the_duration,
+                &one_unweighting_phase
+            ),
+            "the subdivision withholds a key the single-unweighting model reports: {:?} against {:?}",
+            split_at_half_the_duration,
+            one_unweighting_phase
+        );
+        assert!(
+            each_reports_a_key_the_other_does_not(&split_at_half_the_duration, &fixed_time_epochs),
+            "the subdivision and the time epochs read as answering one question: {:?} against {:?}",
+            split_at_half_the_duration,
+            fixed_time_epochs
+        );
     }
 
     #[test]
