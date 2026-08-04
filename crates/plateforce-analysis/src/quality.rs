@@ -357,10 +357,12 @@ fn onset_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Quali
 /// step, because no takeoff rule composes a backward offset, so the index the rule returned is
 /// the index the search reached.
 ///
-/// Two of the five shipped takeoff rules take this floor and record it. The other three search
-/// the whole recording and record that instead, so `takeoff.op.search_floor_at_trial_start` puts
-/// their floor at the first sample, which forbids nothing, and they are excluded here by the
-/// same test that excludes a weighing window anchored at the start of the trace.
+/// Two of the five shipped takeoff rules take this floor. The other three record their floor
+/// under `takeoff.op.search_floor_at_trial_start` instead, so the lookup below finds nothing for
+/// them and the comparison is never reached. That exclusion is structural rather than
+/// arithmetic, which is why the guard holds the comparison against a rule that records this
+/// floor and searches past it: without that case a comparison firing on every rule that records
+/// a floor would still leave the other three quiet.
 ///
 /// Measured on subject 01's first trial under a weighing window of 4.4 s, which ends at sample
 /// 5280 inside the flight phase: `takeoff.threshold.absolute_force` and
@@ -374,8 +376,8 @@ fn takeoff_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Qua
         TAKEOFF_WEIGHING_EPOCH_END_SECONDS,
     )?;
     let floor_index = response.weighing_end_index;
-    // A floor at the first sample of the recording forbids nothing, so a takeoff there is the
-    // rule reading the whole trace rather than the rule reading its own boundary.
+    // A floor at the first sample forbids nothing, so a takeoff there was found rather than
+    // returned. No shipped weighing rule reaches it: all three refuse a window of zero length.
     if floor_index == 0 || takeoff_index != floor_index {
         return None;
     }
