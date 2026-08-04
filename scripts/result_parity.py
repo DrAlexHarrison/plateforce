@@ -27,6 +27,13 @@ none of the three makes this gate refuse, so it cannot print that four surfaces 
 result while a field of that result went unread. `scripts/prove-parity-coverage-refuses.py`
 is where each of those refusals is shown to fire.
 
+Measured from the surfaces and then checked against the document, because the two are not the
+same universe. Those three registers are keyed by what the answers hold, and `serde` drops a
+field the whole population leaves empty, so such a field is compared by nobody, asserted by
+nobody and missing from nobody: every count stays true and every one of them is narrower than
+the result. The fields are therefore read off the struct that declares them, and one reaching
+no wire at all is named in `NEVER_ON_THE_WIRE` with the request that would fill it.
+
 Over two kinds of question, because a field's reach is a fact about the question and not
 about the field. An analysed document carries `plateforce_version` on the two surfaces that
 assemble it; a swept one carries it on every surface that answers, so one register keyed by
@@ -36,6 +43,7 @@ are keyed by kind, and a request carrying a `sweep` block is a sweep.
 
 import json
 import pathlib
+import re
 import sys
 from typing import NamedTuple
 
@@ -395,6 +403,73 @@ def surfaces_publishing(answers, field):
     return frozenset(name for name, answer in answers.items() if field in answer)
 
 
+# Where the two documents this gate compares are declared, and the struct each kind of question
+# is answered in.
+DOCUMENT_SOURCE = ROOT / "crates" / "plateforce-analysis" / "src"
+DOCUMENT_OF_KIND = {ANALYSED: "ResultDocument", SWEPT: "SpreadDocument"}
+
+_STRUCT = re.compile(r"^pub struct (\w+)\b")
+_FIELD = re.compile(r"^\s{4}pub ([a-z_][a-z_0-9]*)\s*:\s*(.+?),?\s*$")
+_RENAMED = re.compile(r'rename\s*=\s*"([^"]+)"')
+
+
+def keys_a_document_declares(struct, seen=None):
+    """Every key the named document writes on the wire, read off the struct that declares it.
+
+    The reach measured from the answers is the intersection of what the surfaces published, and
+    a field absent from all four is outside it: `serde` drops a field the whole population
+    leaves empty, so it appears in no answer, matches no register, and the gate goes on
+    reporting that every field was accounted for. `plate_profile` is exactly that shape, a
+    provenance field on the document and on nobody's answer.
+
+    So the universe is the declaration rather than the answers. A field carrying
+    `#[serde(flatten)]` contributes the keys of the type it names instead of its own, which is
+    how `SpreadDocument` puts fifteen of the sweep's keys at the top level.
+    """
+    seen = seen or set()
+    if struct in seen:
+        raise SystemExit(f"plateforce: {struct} flattens into itself")
+    for path in sorted(DOCUMENT_SOURCE.rglob("*.rs")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for at, line in enumerate(lines):
+            found = _STRUCT.match(line)
+            if not found or found.group(1) != struct or not line.rstrip().endswith("{"):
+                continue
+            return _keys_from(lines, at + 1, struct, seen | {struct})
+    raise SystemExit(
+        f"plateforce: no struct named {struct} under {DOCUMENT_SOURCE}, so the fields this gate "
+        "should account for could not be read at all"
+    )
+
+
+def _keys_from(lines, at, struct, seen):
+    keys = set()
+    attributes = []
+    for line in lines[at:]:
+        if line.startswith("}"):
+            break
+        stripped = line.strip()
+        if stripped.startswith("#["):
+            attributes.append(stripped)
+            continue
+        found = _FIELD.match(line)
+        if not found:
+            if stripped and not stripped.startswith("//"):
+                attributes = []
+            continue
+        name, kind = found.group(1), found.group(2)
+        written = "".join(attributes)
+        attributes = []
+        if "flatten" in written:
+            keys |= keys_a_document_declares(kind.strip(), seen)
+            continue
+        renamed = _RENAMED.search(written)
+        keys.add(renamed.group(1) if renamed else name)
+    if not keys:
+        raise SystemExit(f"plateforce: {struct} declares no field this gate can read")
+    return keys
+
+
 # A field every surface publishes that this gate does not compare against the committed
 # document, with the assertion that covers it instead. Naming a field here is not permission
 # to stop looking at it: each entry owes a function, `coverage_faults` runs it, and an entry
@@ -617,6 +692,51 @@ EMPTY_ON_EVERY_REQUEST = {
 }
 
 
+class NeverOnTheWire(NamedTuple):
+    """One field the document declares that no answer in this population carries at all.
+
+    A field every surface leaves out is invisible to every register above this one. Those are
+    keyed by what the answers hold, and `serde` drops a field the whole population leaves
+    empty, so the field is not compared, not asserted, not uneven, and not missing either. The
+    gate's own sentence about the fields it covered goes on being true and goes on being
+    narrower than the document.
+
+    Checked in both directions on every run: a name here the document does not declare reddens
+    this gate, and so does a name here that some surface's answer carries. So the entry cannot
+    outlive the gap, which is what separates it from a list that only ever grows.
+
+    `discharged_by` names the work that retires it, which for every entry of this shape is a
+    request that fills the field, because a field on the wire is a field the comparison reaches
+    with no register at all.
+    """
+
+    discharged_by: str
+    reason: str
+
+
+# A field the document declares and no committed request puts on any wire. One entry.
+#
+# Keyed by the kind of question, because the two documents declare different fields. A swept
+# document names an empty register: every field `SpreadDocument` declares reaches every surface
+# asked, and the register is kept rather than left out so a field that stops reaching them
+# lands somewhere a reader of this file looks.
+NEVER_ON_THE_WIRE = {
+    ANALYSED: {
+        "plate_profile": NeverOnTheWire(
+            "a request whose acquisition block is filled from a saved plate, which needs the "
+            "plate stated in the request file and a spelling of it on the surfaces that "
+            "assemble the document",
+            "the saved plate the acquisition block was filled from. It is absent rather than "
+            "null on purpose, because a run with no saved plate behind it has nothing to "
+            "attribute, and every committed request states none. So the four surfaces agree "
+            "about a field none of them writes, and what a result says about the plate it came "
+            "off is the one part of its provenance this gate has never compared",
+        ),
+    },
+    SWEPT: {},
+}
+
+
 def is_empty(value):
     """What counts as the surfaces agreeing about a shape rather than about a value."""
     return value in ([], {}, "", None)
@@ -809,6 +929,54 @@ def coverage_faults(answers, fields, kind, asked):
                 f"{declared.reason}"
             )
 
+    faults += undeclared_reach_faults(everywhere, somewhere, differ, kind)
+    return faults
+
+
+def undeclared_reach_faults(everywhere, somewhere, differ, kind):
+    """Every field the document declares is accounted for, and the account is against the
+    document rather than against what happened to arrive.
+
+    The registers above measure their universe from the answers, so a field on none of them is
+    outside every one of them. This is the direction that cannot be asked that way: the fields
+    are read off the struct that declares them, and each has to be compared, asserted another
+    way, a declared divergence, or named as reaching no wire at all.
+    """
+    faults = []
+    document = DOCUMENT_OF_KIND[kind]
+    declared = keys_a_document_declares(document)
+    never = NEVER_ON_THE_WIRE[kind]
+
+    # The control, and it is what makes the parse above evidence rather than a hope. A read that
+    # found the wrong struct, or stopped early, or matched nothing, reports a universe the
+    # surfaces are not in, and this names the fields that proved it.
+    invented = sorted(everywhere - declared)
+    if invented:
+        faults.append(
+            f"every surface publishes {invented} and {document} declares no such field, so the "
+            f"{len(declared)} fields this coverage is measured against are not the document's"
+        )
+
+    for field in sorted(declared - everywhere - set(differ) - set(never)):
+        faults.append(
+            f"{document} declares {field} and no answer to this request carries it, and nothing "
+            "here says why. A field the whole population leaves empty is dropped from every "
+            "wire, so it is compared by nobody and missing from nobody. Add a request that "
+            "fills it, or name it in NEVER_ON_THE_WIRE with the request that would"
+        )
+
+    for field, absent in sorted(never.items()):
+        if field not in declared:
+            faults.append(
+                f"{field} is named as reaching no wire and {document} declares no such field, "
+                f"which reads as coverage and covers nothing: {absent.reason}"
+            )
+        elif field in somewhere:
+            faults.append(
+                f"{field} is named as reaching no wire and it is on the wire, so the entry is "
+                f"out of date and the field is a divergence or a comparison for real. "
+                f"Discharged by {absent.discharged_by}"
+            )
     return faults
 
 
@@ -1064,6 +1232,19 @@ def check(directory):
             f"  on {article(kind)} {kind} request, {len(asserted)} fields every surface "
             f"publishes are asserted another way rather than compared: {sorted(asserted)}"
         )
+        # The document's own denominator, so the counts above cannot be read as the whole of
+        # what a result carries. A field named here is one no surface writes at all, which is
+        # why no count taken from the answers can see it.
+        document = DOCUMENT_OF_KIND[kind]
+        declared = keys_a_document_declares(document)
+        never = NEVER_ON_THE_WIRE[kind]
+        print(
+            f"  on {article(kind)} {kind} request, {document} declares {len(declared)} fields "
+            f"and {len(declared) - len(never)} of them reach a wire; the {len(never)} that "
+            f"reach none are named in NEVER_ON_THE_WIRE: {sorted(never)}"
+        )
+        for field, absent in sorted(never.items()):
+            print(f"    {field} is on no surface's answer: {absent.reason}")
     valued = sorted(
         {
             field
