@@ -292,11 +292,20 @@ test_that("an R session states what conditioned the signal and the record names 
   expect_length(stated[["unread_parameters"]], 0)
 })
 
-test_that("naming the rule the phase runs anyway records what leaving it unnamed records", {
+test_that("naming the rule the phase runs anyway is recorded as the session's own choice", {
   named <- conditioned(
     conditioning = list(conditioned_force_signal = "filter.none")
   )
-  expect_identical(named, conditioned())
+  unnamed <- conditioned()
+
+  expect_identical(as.character(named[["method_source"]]), "stated")
+  expect_identical(as.character(unnamed[["method_source"]]), "assumed")
+
+  # Held equal on the one field under test, so anything else that moved is reported here
+  # rather than being covered by the difference this expects.
+  levelled <- named
+  levelled[["method_source"]] <- unnamed[["method_source"]]
+  expect_identical(levelled, unnamed)
 })
 
 test_that("an edge this rule does not take is refused with the one it does", {
