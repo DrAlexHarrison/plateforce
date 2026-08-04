@@ -11,6 +11,7 @@ on:
     paths:
       - "crates/plateforce-core/**"
       - "crates/plateforce-registry/**"
+      - "crates/plateforce-analysis/**"
       - "crates/plateforce-python/**"
       - "registry/**"
       - "Cargo.toml"

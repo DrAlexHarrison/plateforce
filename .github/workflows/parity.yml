@@ -161,3 +161,10 @@ jobs:
       # cannot get through rather than on a string.
       - name: A reader reaches a jump height in a minute, and meets every rule that produced it
         run: node scripts/check-minute.mjs web 8753
+
+      # The three checks above were 59 of 59 green on a page whose spread panel did not say what
+      # the spread was taken over, because none of them can see an axis that was never offered:
+      # zero hits for axes_varied, held_fixed or the rendered wording across all three. A figure
+      # a reader cannot scope is the founding defect at panel size, so it is asked directly.
+      - name: A reader can see which rules a spread was taken over and which stood still
+        run: node scripts/check-spread-scope.mjs web 8754
