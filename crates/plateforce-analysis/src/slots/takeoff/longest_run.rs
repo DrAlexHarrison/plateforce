@@ -12,11 +12,11 @@ pub(crate) fn crossing(
     warnings: &mut Vec<String>,
 ) -> Result<usize, RuleRefusal> {
     let rate = trial.sample_rate_hz();
-    // The operator this rule binds by being chosen. Measured on 244 trials it moves takeoff
-    // 843 ms on 155 of them against the first-run reading, so which of the two ran is the
-    // whole answer and it is recorded rather than left implicit in which function ran. That
-    // is also why asking this rule for the first run is refused rather than dropped: the two
-    // answers are 843 ms apart on most trials.
+    // The operator this rule binds by being chosen. It prefers a later run than the first
+    // flight phase on 155 of 244 trials, so which of the two ran is the whole answer and it
+    // is recorded rather than left implicit in which function ran. That is also why asking
+    // this rule for the first run is refused rather than dropped: on those trials the two
+    // answers are a different landmark, not a rounding difference.
     resolved.entailed(
         super::TAKEOFF_OP_CROSSING_SELECTION,
         "selection",

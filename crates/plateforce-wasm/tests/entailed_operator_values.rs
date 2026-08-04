@@ -6,8 +6,8 @@
 //! a value used to be written straight to the record, which does not mark the name consulted,
 //! so a caller asking for one of the other three had it dropped and the rule ran its own. The
 //! name came back in `unread_parameters`, which is a report rather than an answer, and on
-//! `takeoff.op.crossing_selection` the two answers the caller was choosing between are 843 ms
-//! apart on 155 of 244 trials.
+//! `takeoff.op.crossing_selection` the two values the caller was choosing between resolve to
+//! different flight phases on 155 of 244 trials rather than to nearby samples of one.
 //!
 //! Refusing is the answer. It names the operator that publishes the alternatives and the value
 //! that does run, so a caller who asked for something this rule is not learns which rule to ask
