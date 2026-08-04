@@ -174,10 +174,6 @@
       {
         "bound_parameters": [
           [
-            "comparison",
-            "signed"
-          ],
-          [
             "persistence_ms",
             "0"
           ],
@@ -190,9 +186,40 @@
         "method_from_recommendation": false,
         "method_id": "takeoff.threshold.absolute_force",
         "parameter_sources": {
-          "comparison": "assumed",
           "persistence_ms": "assumed",
           "threshold_n": "stated"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "selection",
+            "first"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.op.crossing_selection",
+        "parameter_sources": {
+          "selection": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "comparison",
+            "signed"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.op.residual_comparison",
+        "parameter_sources": {
+          "comparison": "assumed"
         },
         "registry_backed": true,
         "unread_parameters": []
