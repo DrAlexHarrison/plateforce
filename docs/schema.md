@@ -340,7 +340,31 @@ file beside its rules. Three rules govern it:
 
 Unpinned, `registry_version` is written as null rather than left out, and every surface
 carries the key on every result. A key a document sometimes omits cannot be told apart from a
-field a surface never carried, and nothing in the document says which happened.
+field a surface never carried, and nothing in the document says which happened. The same rule
+governs the batch record, whose `registry_version` was typed as a string and wrote `""` for an
+absent pin until 2026-08-04, so a run nobody pinned and a run pinned to the empty string read
+alike.
+
+### Which surface asks for the block
+
+A trace of forces carries none of the acquisition block, so it is stated by whoever runs the
+analysis and no surface can derive it. Three ask: a folder run through `--acquisition
+<member>=<value>`, repeatable, and the R and Python trials through an acquisition argument.
+The terminal's single-trial command and the browser do not, so every result either writes is
+incomplete and cannot be declared to match. That is a gap in those two surfaces and not a
+property of the data they read.
+
+### What a run publishes when the block is unfilled
+
+Nothing. `run_fingerprint` is null on a run whose acquisition block is short of a member, and
+carries the digest when the block is filled. A marked digest was the alternative and it fails
+the rule above: two runs off two differently configured plates render one string and compare
+equal, which is the matching the ruling forbids. `acquisition_complete` says which case a
+reader is looking at, and `acquisition.missing` names what would fill it.
+
+What this costs is that a reader cannot see that two incomplete runs performed the same
+computation. That is the inference the ruling denies, because the settings deciding whether
+two labs agree were never recorded.
 
 ## A protocol entry
 

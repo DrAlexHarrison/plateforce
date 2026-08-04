@@ -109,3 +109,81 @@ fn a_quantity_this_build_does_not_compute_is_refused() {
     assert_ne!(output.status.code(), Some(0));
     assert!(output.stdout.is_empty(), "no number is published");
 }
+
+/// The sweep records the registry revision its caller cited.
+///
+/// This surface accepts `--registry-version`, prints in its own help that the result will name
+/// the revision, and discarded it: measured against `analyse` under the identical flag, the
+/// analysis carried the pin and the sweep carried null. The panel that answers how far the
+/// choice of method moves a number was the one surface that could not say which registry
+/// produced its answer.
+///
+/// The control is the same sweep without the flag, which must carry null. Asserting only the
+/// pinned side would pass on a surface writing the string into every document.
+#[test]
+fn a_pinned_sweep_names_the_revision_and_an_unpinned_one_names_none() {
+    let pinned = spread(
+        &["--format", "json", "--registry-version", "PIN-2026-08-04"],
+        true,
+    );
+    assert_eq!(pinned.status.code(), Some(0));
+    let pinned = body(&pinned);
+
+    let unpinned = spread(&["--format", "json"], true);
+    assert_eq!(unpinned.status.code(), Some(0));
+    let unpinned = body(&unpinned);
+
+    assert_eq!(
+        pinned["registry_version"].as_str(),
+        Some("PIN-2026-08-04"),
+        "the sweep dropped the revision its caller cited"
+    );
+    assert!(
+        unpinned.get("registry_version").is_some(),
+        "the document does not carry registry_version at all"
+    );
+    assert!(
+        unpinned["registry_version"].is_null(),
+        "an unpinned sweep named {}, which reads as a revision somebody chose",
+        unpinned["registry_version"]
+    );
+}
+
+/// What the registry claims about itself rides beside the pin rather than inside it.
+///
+/// The sweep's document carried no such field while an analysed result did, so the two
+/// documents this build writes about one registry answered a different number of questions.
+#[test]
+fn the_sweep_names_what_the_registry_declares_without_laundering_it_into_the_pin() {
+    let pinned = body(&spread(
+        &["--format", "json", "--registry-version", "PIN-2026-08-04"],
+        true,
+    ));
+    let unpinned = body(&spread(&["--format", "json"], true));
+
+    let declared = unpinned["registry_declared_version"].as_str();
+    assert!(
+        declared.is_some(),
+        "the sweep does not say what the registry declares about itself"
+    );
+    assert_eq!(
+        pinned["registry_declared_version"].as_str(),
+        declared,
+        "the registry's own claim moved when the caller's pin did"
+    );
+    assert_ne!(
+        pinned["registry_declared_version"].as_str(),
+        Some("PIN-2026-08-04"),
+        "the caller's pin was written into the registry's claim"
+    );
+
+    // The digest is measured from the files that were read, so it is there whether or not
+    // anybody pinned anything, and it is the control that says this sweep read a registry at
+    // all rather than reporting three nulls.
+    assert!(
+        unpinned["registry_digest"]
+            .as_str()
+            .is_some_and(|digest| digest.starts_with("content-")),
+        "the sweep names no registry digest, so the two nulls above say nothing"
+    );
+}
