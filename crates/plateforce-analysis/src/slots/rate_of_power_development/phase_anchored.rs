@@ -65,13 +65,28 @@ fn compute(
             bound,
             refusal: None,
         },
-        // Peak power at the first sample of the phase leaves no line to draw, and a phase
-        // running off the trace is the boundaries rather than this rule, so both name the
-        // interval a reader would move.
+        // A phase running off the trace, or one of a single sample, is the boundaries rather
+        // than this rule, and the interval is what a reader moves to fix it.
+        Err(_) if end.saturating_sub(start) < 2 || end >= context.trial.len() => {
+            DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
+                    ID, start, end,
+                ))),
+            )
+        }
+        // Peak power at the first sample of the phase leaves no line to draw. The phase was
+        // read and every sample in it was compared, so it is the recording answering rather
+        // than an interval nobody could search.
         Err(_) => DerivedOutcome::declined(
             bound,
-            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
-                ID, start, end,
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
+                ID,
+                end - start,
+                std::collections::BTreeMap::from([(
+                    "search_bound_seconds".to_string(),
+                    context.trial.time_at(end),
+                )]),
             ))),
         ),
     }

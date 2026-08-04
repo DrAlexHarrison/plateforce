@@ -75,12 +75,25 @@ fn compute(
             bound,
             refusal: None,
         },
-        // A window holding fewer than two samples, or one whose lowest power is its last
-        // sample, so there is no subsequent peak to draw the line to.
-        Err(_) => DerivedOutcome::declined(
+        Err(_) if end.saturating_sub(start) < 2 => DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
                 ID, start, end,
+            ))),
+        ),
+        // The window holds samples and its lowest power is the last of them, so no peak
+        // follows the trough. On a countermovement jump under the net force term that is
+        // where the trough sits: force has fallen away from system weight while velocity is
+        // at its largest, and the product of the two is the most negative power in the jump.
+        Err(_) => DerivedOutcome::declined(
+            bound,
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
+                ID,
+                end - start,
+                std::collections::BTreeMap::from([(
+                    "search_bound_seconds".to_string(),
+                    context.trial.time_at(end.saturating_sub(1)),
+                )]),
             ))),
         ),
     }
