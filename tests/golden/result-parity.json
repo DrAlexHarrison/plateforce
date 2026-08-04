@@ -227,6 +227,22 @@
       {
         "bound_parameters": [
           [
+            "weighing_epoch_end_seconds",
+            "1.0000"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.op.search_floor_at_weighing_epoch_end",
+        "parameter_sources": {
+          "weighing_epoch_end_seconds": "measured"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
             "integration_anchor",
             "integration.anchor.single_point"
           ],
@@ -392,7 +408,8 @@
           "filter.none",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
-          "takeoff.op.residual_comparison"
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
         "key": "takeoff_time_seconds",
         "label": "Takeoff",
@@ -413,7 +430,8 @@
           "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
-          "takeoff.op.residual_comparison"
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
         "key": "time_to_takeoff_seconds",
         "label": "Time to takeoff",
@@ -428,7 +446,8 @@
           "filter.none",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
-          "takeoff.op.residual_comparison"
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
         "key": "flight_time_seconds",
         "label": "Flight time",
@@ -451,6 +470,7 @@
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end",
           "integration.rule.trapezoid",
           "integration.direction.forward",
           "integration.start.detected_onset",
@@ -476,7 +496,8 @@
           "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
-          "takeoff.op.residual_comparison"
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
         "key": "net_impulse_newton_seconds",
         "label": "Net impulse",
@@ -499,6 +520,7 @@
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end",
           "integration.rule.trapezoid",
           "integration.direction.forward",
           "integration.start.detected_onset",
@@ -524,7 +546,8 @@
           "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
-          "takeoff.op.residual_comparison"
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
         "key": "jump_height_from_flight_time_meters",
         "label": "Jump height, flight time",
@@ -547,6 +570,7 @@
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end",
           "integration.rule.trapezoid",
           "integration.direction.forward",
           "integration.start.detected_onset",

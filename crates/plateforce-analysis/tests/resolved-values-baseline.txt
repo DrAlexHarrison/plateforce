@@ -26,6 +26,7 @@ case onset noise_relative bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -58,6 +59,7 @@ case onset noise_relative k on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -90,6 +92,7 @@ case onset noise_relative direction below_only on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -122,6 +125,7 @@ case onset noise_relative direction two_sided on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -154,6 +158,7 @@ case onset noise_relative selection last on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -187,6 +192,7 @@ case onset noise_relative selection first on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -219,6 +225,7 @@ case onset noise_relative persistence on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -251,6 +258,7 @@ case onset noise_relative search floor on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -283,6 +291,7 @@ case onset noise_relative back offset on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -315,6 +324,7 @@ case onset noise_relative degenerate fraction on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -347,6 +357,7 @@ case onset noise_relative every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -380,6 +391,7 @@ case onset noise_relative names another rule carries on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -411,6 +423,7 @@ case onset relative_to_system_weight bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -442,6 +455,7 @@ case onset relative_to_system_weight pct on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -473,6 +487,7 @@ case onset relative_to_system_weight superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -504,6 +519,7 @@ case onset relative_to_system_weight every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -537,6 +553,7 @@ case onset absolute_force bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -569,6 +586,7 @@ case onset absolute_force threshold on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -601,6 +619,7 @@ case onset absolute_force superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -633,6 +652,7 @@ case onset absolute_force direction two_sided on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -665,6 +685,7 @@ case onset absolute_force direction below_only on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -697,6 +718,7 @@ case onset absolute_force every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -729,6 +751,7 @@ case onset last_within_band bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -760,6 +783,7 @@ case onset last_within_band k on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -791,6 +815,7 @@ case onset last_within_band inverse lookback on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -822,6 +847,7 @@ case onset last_within_band back offset on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -853,6 +879,7 @@ case onset last_within_band every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -880,6 +907,7 @@ case onset adaptive_trailing_window bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -907,6 +935,7 @@ case onset adaptive_trailing_window window on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -934,6 +963,7 @@ case onset adaptive_trailing_window k on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -961,6 +991,7 @@ case onset adaptive_trailing_window population on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -988,6 +1019,7 @@ case onset adaptive_trailing_window sample on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1015,6 +1047,7 @@ case onset adaptive_trailing_window every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1047,6 +1080,7 @@ case takeoff absolute_force bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1079,6 +1113,7 @@ case takeoff absolute_force threshold on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1111,6 +1146,7 @@ case takeoff absolute_force superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1143,6 +1179,7 @@ case takeoff absolute_force persistence on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1175,6 +1212,7 @@ case takeoff absolute_force magnitude on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1207,6 +1245,7 @@ case takeoff absolute_force signed on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1239,6 +1278,7 @@ case takeoff absolute_force every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1271,6 +1311,7 @@ case takeoff longest_run bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method takeoff.op.short_run_handling backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
@@ -1304,6 +1345,7 @@ case takeoff longest_run filter then rank on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method takeoff.op.short_run_handling backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
@@ -1337,6 +1379,7 @@ case takeoff longest_run rank then filter on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method takeoff.op.short_run_handling backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
@@ -1370,6 +1413,7 @@ case takeoff longest_run every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method takeoff.op.short_run_handling backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
@@ -1401,6 +1445,7 @@ case takeoff descending_crossing bare on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1431,6 +1476,7 @@ case takeoff descending_crossing confirmation on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1461,6 +1507,7 @@ case takeoff descending_crossing threshold on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1491,6 +1538,7 @@ case takeoff flight_noise_k_sd bare on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1521,6 +1569,7 @@ case takeoff flight_noise_k_sd trim on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1551,6 +1600,7 @@ case takeoff flight_noise_k_sd k on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1581,6 +1631,7 @@ case takeoff flight_noise_k_sd population on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1611,6 +1662,7 @@ case takeoff flight_noise_k_sd every value stated on synthetic
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1643,6 +1695,7 @@ case weighing fixed_window bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1675,6 +1728,7 @@ case weighing fixed_window half second on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1707,6 +1761,7 @@ case weighing fixed_window moved on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1739,6 +1794,7 @@ case weighing fixed_window median on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1771,6 +1827,7 @@ case weighing fixed_window mean on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1803,6 +1860,7 @@ case weighing fixed_window population on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1835,6 +1893,7 @@ case weighing fixed_window sample on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1867,6 +1926,7 @@ case weighing fixed_window superseded spelling on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1899,6 +1959,7 @@ case weighing fixed_window every value stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1931,6 +1992,7 @@ case weighing manual_placement moved on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1963,6 +2025,7 @@ case weighing manual_placement anchored on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -1995,6 +2058,7 @@ case weighing adaptive_lowest_variance bare on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2027,6 +2091,7 @@ case weighing adaptive_lowest_variance cumulative on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2059,6 +2124,7 @@ case weighing adaptive_lowest_variance two pass on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2091,6 +2157,7 @@ case weighing adaptive_lowest_variance population on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2123,6 +2190,7 @@ case weighing adaptive_lowest_variance moved on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2155,6 +2223,7 @@ case weighing adaptive_lowest_variance half second on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2187,6 +2256,7 @@ case weighing adaptive_lowest_variance floor published on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2220,6 +2290,7 @@ case weighing adaptive_lowest_variance floor binding on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2253,6 +2324,7 @@ case gravity 9.8 on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2285,6 +2357,7 @@ case gravity 9.81 on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2317,6 +2390,7 @@ case touchdown stated on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2344,6 +2418,7 @@ case onset dragged on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2376,6 +2451,7 @@ case takeoff dragged on synthetic
   method takeoff.threshold.absolute_force backed false override true
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2403,6 +2479,7 @@ case both dragged on synthetic
   method takeoff.threshold.absolute_force backed false override true
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2430,6 +2507,7 @@ case onset after takeoff on synthetic
   method takeoff.threshold.absolute_force backed false override true
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2463,6 +2541,7 @@ case nothing registry backed on synthetic
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2495,6 +2574,7 @@ case everything registry backed on synthetic
   method takeoff.threshold.absolute_force backed true override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed true override false
   method jumpheight.takeoff.flight_time backed true override false
   method jumpheight.takeoff.impulse_momentum backed true override false
@@ -2527,6 +2607,7 @@ case bump onset absolute_force bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2559,6 +2640,7 @@ case bump onset absolute_force direction below_only on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2591,6 +2673,7 @@ case bump onset absolute_force direction two_sided on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2623,6 +2706,7 @@ case bump onset absolute_force both and last on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2656,6 +2740,7 @@ case bump onset noise_relative bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2688,6 +2773,7 @@ case bump onset noise_relative direction below_only on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2720,6 +2806,7 @@ case bump onset noise_relative direction two_sided on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2752,6 +2839,7 @@ case bump onset noise_relative persistence on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2783,6 +2871,7 @@ case bump onset relative_to_system_weight bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2814,6 +2903,7 @@ case bump onset last_within_band bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2841,6 +2931,7 @@ case bump onset adaptive_trailing_window bare on pre_movement_bump
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2873,6 +2964,7 @@ case two flight phases first sustained run on two_flight_phases
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2905,6 +2997,7 @@ case two flight phases longest run on two_flight_phases
   method takeoff.threshold.absolute_force backed false override false
   method takeoff.op.crossing_selection backed false override false
   method takeoff.op.residual_comparison backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method takeoff.op.short_run_handling backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
@@ -2937,6 +3030,7 @@ case two flight phases descending crossing on two_flight_phases
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.descending_crossing backed false override false
+  method takeoff.op.search_floor_at_trial_start backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false
@@ -2967,6 +3061,7 @@ case two flight phases flight noise on two_flight_phases
   method onset.op.persistence backed false override false
   method onset.op.search_floor_at_weighing_epoch_end backed false override false
   method takeoff.threshold.flight_noise_k_sd backed false override false
+  method takeoff.op.search_floor_at_weighing_epoch_end backed false override false
   method impulse.net_vertical.as_performance_determinant backed false override false
   method jumpheight.takeoff.flight_time backed false override false
   method jumpheight.takeoff.impulse_momentum backed false override false

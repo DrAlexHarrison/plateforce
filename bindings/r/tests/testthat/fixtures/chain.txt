@@ -9,3 +9,4 @@ onset.op.search_floor_at_weighing_epoch_end weighing_epoch_end_seconds=1.0000(me
 takeoff.threshold.absolute_force persistence_ms=0(assumed) threshold_n=20(assumed)
 takeoff.op.crossing_selection selection=first(assumed)
 takeoff.op.residual_comparison comparison=signed(assumed)
+takeoff.op.search_floor_at_weighing_epoch_end weighing_epoch_end_seconds=1.0000(measured)
