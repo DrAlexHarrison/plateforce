@@ -21,11 +21,14 @@ pub enum SweepRefusal {
     },
     /// The step is one this run never bound, so there is no rule to compare against.
     ///
-    /// `binds_it` is the one way to bind this construct rather than both ways: the three
-    /// landmarks have a flag of their own and nothing else does, so a sentence offering both
-    /// offers a flag that does not exist to one caller and an assignment that is refused to
-    /// the other.
-    NothingBound { construct: String, binds_it: String },
+    /// `binds_it` is the one way to bind this construct rather than every way, and nothing at
+    /// all where a request reaches the construct by neither route. A sentence offering both
+    /// ways offered a flag that does not exist to one caller and an assignment that is refused
+    /// to the other, and which of the two worked inverted between them.
+    NothingBound {
+        construct: String,
+        binds_it: Option<String>,
+    },
 }
 
 impl std::fmt::Display for SweepRefusal {
@@ -44,10 +47,19 @@ impl std::fmt::Display for SweepRefusal {
             SweepRefusal::NothingBound {
                 construct,
                 binds_it,
-            } => write!(
-                formatter,
-                "a comparison varies a step this run bound, and nothing is bound for {construct}, so {binds_it} names the rule the others are compared against"
-            ),
+            } => {
+                write!(
+                    formatter,
+                    "a comparison varies a step this run bound, and nothing is bound for {construct}"
+                )?;
+                match binds_it {
+                    Some(flag) => write!(
+                        formatter,
+                        ", so {flag} names the rule the others are compared against"
+                    ),
+                    None => Ok(()),
+                }
+            }
         }
     }
 }
@@ -98,18 +110,27 @@ fn step_named(word: &str) -> Option<&'static str> {
     })
 }
 
-/// The one flag that binds a construct, named as a caller would write it.
+/// The one way to bind a construct, named as a caller would write it, or nothing where a
+/// request reaches this construct by neither route.
 ///
-/// Read off the binding table rather than listed here: a construct reached through the
-/// request's `derived` map is bound by `--derive` and the three reached by their own fields
-/// are bound by those, so a construct that becomes bindable reaches this sentence without an
-/// edit.
-fn binds(construct: &str, slot: &str) -> String {
-    if plateforce_analysis::binding::derived_constructs().contains(&construct) {
-        format!("--derive {construct}={}", "<method>")
-    } else {
-        format!("--{slot}")
-    }
+/// Read off the dispatch the binding table declares rather than from a list here. A landmark
+/// arrives on its own named field and everything the request reaches through `derived` arrives
+/// as an assignment, and those are the two a caller writes.
+///
+/// `None` rather than a guess for anything else. A remedy clause naming a word no surface
+/// takes reads as an instruction and sends the caller straight to a second refusal, which is
+/// what this sentence did for every construct it was written for.
+pub fn binds(construct: &str) -> Option<String> {
+    plateforce_analysis::BINDINGS
+        .iter()
+        .find(|binding| binding.construct == construct)
+        .and_then(|binding| match binding.dispatch {
+            plateforce_analysis::binding::Dispatch::Spine => Some(format!("--{}", binding.slot)),
+            plateforce_analysis::binding::Dispatch::Derived(_) => {
+                Some(format!("--derive {construct}=<method>"))
+            }
+            _ => None,
+        })
 }
 
 /// A name written in a comparison that answers to no rule.
@@ -182,7 +203,7 @@ pub fn axis_over(request: &AnalysisRequest, against: &[String]) -> Result<Axis, 
     let Some(bound) = bound_for(request, construct) else {
         return Err(SweepRefusal::NothingBound {
             construct: construct.to_string(),
-            binds_it: binds(construct, slot),
+            binds_it: binds(construct),
         });
     };
 

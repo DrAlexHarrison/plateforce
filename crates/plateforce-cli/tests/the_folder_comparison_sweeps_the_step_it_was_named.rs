@@ -298,3 +298,62 @@ fn a_comparison_refuses_a_name_it_cannot_run_by_naming_what_it_takes() {
         "{two}"
     );
 }
+
+/// Every remedy a comparison's refusal offers is a word this surface takes.
+///
+/// Over every construct the binding table declares, not over the three somebody thought to
+/// write a case for. The same sentence named `--peak_force`, `--conditioned_force_signal` and
+/// `--derive movement_onset=<method>`, and not one of the three is a line the terminal
+/// accepts, so a caller following the sentence met a second refusal.
+///
+/// Held against the terminal's own help text rather than a list of flags written here, which
+/// would be a second copy of the command able to drift from it.
+#[test]
+fn every_remedy_a_comparison_offers_is_a_line_this_terminal_takes() {
+    let help = std::process::Command::new(env!("CARGO_BIN_EXE_plateforce"))
+        .args(["batch", "--help"])
+        .env("NO_COLOR", "1")
+        .output()
+        .expect("the built binary runs");
+    let help = String::from_utf8_lossy(&help.stdout).to_string();
+
+    let mut offered = 0;
+    let mut silent = 0;
+    for construct in plateforce_analysis::binding::executable_constructs() {
+        let Some(remedy) = plateforce_batch::binds(construct) else {
+            silent += 1;
+            continue;
+        };
+        offered += 1;
+        match remedy.strip_prefix("--derive ") {
+            // The assignment has to be one `--derive` itself accepts, which is the predicate
+            // the terminal runs the caller's line through.
+            Some(assignment) => {
+                let named = assignment.split('=').next().unwrap_or_default();
+                assert_eq!(named, construct, "{remedy}");
+                assert!(help.contains("--derive"), "the terminal has no --derive");
+                assert!(
+                    plateforce_batch::derive::accepts(
+                        named,
+                        plateforce_analysis::binding::bindings_for_construct(named)
+                            .next()
+                            .map(|binding| binding.id)
+                            .unwrap_or_default()
+                    )
+                    .is_ok(),
+                    "--derive refuses {named}, which this sentence tells a caller to write"
+                );
+            }
+            // Anything else is a flag, and the terminal's help is what says whether it exists.
+            None => assert!(
+                help.contains(&format!("{remedy} ")) || help.contains(&format!("{remedy}\n")),
+                "the refusal offers {remedy}, and `batch --help` does not list it"
+            ),
+        }
+    }
+    println!(
+        "{offered} of {} constructs offer a remedy, {silent} state the fact alone",
+        offered + silent
+    );
+    assert!(offered >= 4, "only {offered} constructs were checked");
+}
