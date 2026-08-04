@@ -331,14 +331,19 @@ function renderMetrics() {
 
   const host = $('analysis-warnings');
   host.replaceChildren();
-  // A rule that declined is a different answer from a rule that ran and complained, and the
-  // record carries the two in separate lists. Only the second was ever drawn, so a value a
-  // rule refused to produce arrived as an empty card with the reason discarded: the card
-  // states that a number is absent, and this states which rule declined and what it takes.
+  // A rule that declined and a rule that ran and complained are different answers, and the
+  // record carries them in two lists. Only the second was drawn, so a declining rule reached
+  // the reader as a sentence with nothing attached saying which rule said it, and on a trial
+  // where no landmark was placed it reached them as nothing at all.
+  //
+  // The engine writes a declining rule's sentence into both lists, so the sentence a refusal
+  // carries is dropped from the second: one fact, said once, by the rule that said it.
+  const declined = new Set((state.analysis.refusals || []).map((refusal) => refusal.message));
   for (const refusal of state.analysis.refusals || []) {
     host.append(notice('danger', 'A rule declined', refusalSentence(refusal)));
   }
   for (const warning of state.analysis.warnings) {
+    if (declined.has(warning)) continue;
     host.append(notice('warning', 'The rule reported a problem', warning));
   }
 }

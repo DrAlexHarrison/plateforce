@@ -552,10 +552,19 @@ const choices = await evaluate(`(async () => {
           claimedAsDefault: (after.from_registry_default || []).includes(name),
           source: record?.parameter_sources?.[name] ?? null,
           written: valueIn(record, name),
-          onScreen: declined
-            ? [...document.querySelectorAll('#analysis-warnings .notice')]
-              .some((n) => n.textContent.includes(name) && n.textContent.includes(pick))
-            : null,
+          // Said once, and by the rule that said it. The engine writes a declining rule's
+          // sentence into the warnings as well, so a page drawing both says one fact twice
+          // and a page drawing only the warning says it with no rule attached. Counting the
+          // notices carrying the pair tells all three apart.
+          onScreen: declined ? (() => {
+            const carrying = [...document.querySelectorAll('#analysis-warnings .notice')]
+              .filter((n) => n.textContent.includes(name) && n.textContent.includes(pick));
+            const said = (state.analysis?.refusals || []).find((r) => r.parameter === name);
+            const titled = said && carrying.some((n) =>
+              n.querySelector('p').textContent.startsWith(
+                (entryFor(said.method_id)?.title ?? said.method_id) + ':'));
+            return carrying.length === 1 && Boolean(titled);
+          })() : null,
         };
         if (declined) refused.push(row);
         else if ((record?.unread_parameters || []).includes(name)) unread.push(row);
@@ -623,11 +632,11 @@ check('a stated choice comes back recorded as stated, under the value that was p
     (choices.unread.length ? ` (${[...new Set(choices.unread.map((row) => row.name))].join(', ')})` : '') +
     (choices.dropped.length ? ` | dropped silently: ${choices.dropped.map((row) => `${row.name} source ${row.source} recorded ${row.written}`).join('; ')}` : ''));
 
-check('a name this build does not run is declined, and the refusal is on the page',
-  choices.refused.every((row) => row.onScreen === true),
+check('a name this build does not run is declined, and the page says so once, under the rule that declined',
+  choices.refused.length > 0 && choices.refused.every((row) => row.onScreen === true),
   choices.refused.length === 0
     ? 'no offered name was declined by its rule, so nothing here was read'
-    : `${choices.refused.length} declined, ${choices.refused.filter((row) => row.onScreen).length} shown: ` +
+    : `${choices.refused.length} declined, ${choices.refused.filter((row) => row.onScreen).length} said once and named: ` +
       choices.refused.map((row) => `${row.name}=${row.pick}`).join(', '));
 
 const failures = results.filter((result) => !result.passed);
