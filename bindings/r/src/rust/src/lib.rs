@@ -619,9 +619,43 @@ pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
     run_and_report(handle, request)
 }
 
+/// The athlete's mass, refused by name where the document carries a number no mass can be.
+///
+/// R writes requests and never reads them, so a value the caller typed is met here. Built
+/// from the same two core codes the terminal and the notebook refuse with, so one bad number
+/// reads as one sentence whichever surface was handed it.
+fn checked_body_mass(analysis: &plateforce_analysis::AnalysisRequest) -> Result<(), Refusal> {
+    let Some(kilograms) = analysis.body_mass_kilograms else {
+        return Ok(());
+    };
+    if !kilograms.is_finite() {
+        return Err(Refusal::from(
+            plateforce_core::Refusal::parameter_not_finite(
+                "",
+                plateforce_analysis::BODY_MASS_GLOBAL,
+                kilograms,
+            ),
+        ));
+    }
+    // Zero and below divide into an infinity or flip the sign of every quantity scaled by it,
+    // and the record would carry the value as one the caller stated.
+    if kilograms <= 0.0 {
+        return Err(Refusal::from(plateforce_core::Refusal::value_not_accepted(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+            vec!["a mass above zero".to_string()],
+        )));
+    }
+    Ok(())
+}
+
 /// One home for running a request and shaping the report, so a run under a pipeline and a
 /// run under rules the caller named produce the same document.
 fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
+    if let Err(refusal) = checked_body_mass(&request.analysis) {
+        return refuse::<AnalysisReport>(refusal);
+    }
     let complete = handle.acquisition.is_complete();
     let stamp = request.stamp();
     match run(&handle.trial, &request.analysis) {
@@ -654,6 +688,9 @@ pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
         Ok(request) => request,
         Err(refusal) => return refuse::<SpreadDocument>(*refusal),
     };
+    if let Err(refusal) = checked_body_mass(&request.sweep.base) {
+        return refuse::<SpreadDocument>(refusal);
+    }
     match spread::run(&handle.trial, &request.sweep) {
         Ok(response) => ok(SpreadDocument::of(
             env!("CARGO_PKG_VERSION"),

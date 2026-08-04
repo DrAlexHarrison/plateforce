@@ -4,7 +4,7 @@
 # list is an array, a length-one atomic vector is a scalar, and any other atomic vector is
 # an array. `NULL` is omitted by the caller rather than written as null.
 
-as_json <- function(value) {
+as_json <- function(value, name = "") {
   if (is.null(value)) {
     return("null")
   }
@@ -13,18 +13,34 @@ as_json <- function(value) {
       return(if (is.null(names(value))) "[]" else "{}")
     }
     if (is.null(names(value))) {
-      return(paste0("[", paste(vapply(value, as_json, character(1)), collapse = ","), "]"))
+      return(paste0(
+        "[",
+        paste(vapply(value, as_json, character(1), name = name), collapse = ","),
+        "]"
+      ))
     }
     pairs <- vapply(seq_along(value), function(index) {
-      paste0(as_json_string(names(value)[index]), ":", as_json(value[[index]]))
+      field <- names(value)[index]
+      paste0(as_json_string(field), ":", as_json(value[[index]], name = field))
     }, character(1))
     return(paste0("{", paste(pairs, collapse = ","), "}"))
   }
-  scalars <- vapply(value, as_json_atom, character(1))
+  scalars <- vapply(value, as_json_atom, character(1), name = name)
   if (length(scalars) == 1L) scalars else paste0("[", paste(scalars, collapse = ","), "]")
 }
 
-as_json_atom <- function(value) {
+as_json_atom <- function(value, name) {
+  # `NaN`, `NA_real_` and the infinities, each of which used to leave here as a value the
+  # engine never met: the first two as `null`, which reads as a value nobody stated, and the
+  # infinities as bare `Inf`, which is not JSON and came back naming a column of the document
+  # rather than the parameter. A number the caller typed is refused under its own name.
+  if (is.numeric(value) && (is.na(value) || !is.finite(value))) {
+    refuse_here(
+      "parameter_not_finite",
+      paste0(name, " must be a finite number, got ", format(value)),
+      parameter = name
+    )
+  }
   if (is.na(value)) {
     return("null")
   }

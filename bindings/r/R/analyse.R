@@ -23,6 +23,7 @@ countermovement_jump <- S7::new_class(
     touchdown_index = S7::class_any,
     levels = S7::class_list,
     bound_methods = S7::class_list,
+    bound_globals = S7::class_list,
     signals = S7::class_list,
     warnings = S7::class_character,
     refusals = S7::class_list,
@@ -84,6 +85,9 @@ pf_value <- function(x, quantity) {
 #' @param gravity_meters_per_second_squared Gravitational acceleration. A bound parameter
 #'   rather than a constant, because published tools disagree on it, and it appears in the
 #'   record beside the number it moved.
+#' @param body_mass_kilograms The athlete's mass, which is not the weighed system mass:
+#'   system weight includes any bar and bodyweight does not. Absent, no mass is on the
+#'   record, and a mass that is not a finite number above zero is refused by name.
 #' @param weighing_parameters,onset_parameters,takeoff_parameters Named numeric lists, as
 #'   the registry names each rule's parameters.
 #' @param weighing_options,onset_options,takeoff_options Named character lists, for the
@@ -130,6 +134,7 @@ analyse_countermovement_jump <- function(trial,
                                         takeoff = NULL,
                                         preset = NULL,
                                         gravity_meters_per_second_squared = NULL,
+                                        body_mass_kilograms = NULL,
                                         weighing_parameters = NULL,
                                         onset_parameters = NULL,
                                         takeoff_parameters = NULL,
@@ -148,6 +153,7 @@ analyse_countermovement_jump <- function(trial,
     weighing = weighing, onset = onset, takeoff = takeoff, derived = derived,
     conditioning = conditioning,
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
+    body_mass_kilograms = body_mass_kilograms,
     weighing_parameters = weighing_parameters, onset_parameters = onset_parameters,
     takeoff_parameters = takeoff_parameters,
     weighing_options = weighing_options, onset_options = onset_options,
@@ -170,6 +176,7 @@ analysis_request_of <- function(weighing, onset, takeoff,
                                 derived = NULL,
                                 conditioning = NULL,
                                 gravity_meters_per_second_squared = NULL,
+                                body_mass_kilograms = NULL,
                                 weighing_parameters = NULL, onset_parameters = NULL,
                                 takeoff_parameters = NULL,
                                 weighing_options = NULL, onset_options = NULL,
@@ -201,6 +208,7 @@ analysis_request_of <- function(weighing, onset, takeoff,
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     gravity_source = gravity_claim(gravity_meters_per_second_squared),
+    body_mass_kilograms = body_mass_kilograms,
     registry_digest = registry_digest(registry),
     registry_version = registry_version,
     registry_declared_version = registry_declared_version(registry),
@@ -315,6 +323,9 @@ jump_from_response <- function(response) {
     touchdown_index = one_based(response[["touchdown_index"]]),
     levels = response[["levels"]],
     bound_methods = by_method,
+    # What the whole analysis was bound to, keyed by the name the record reports each value
+    # by. No rule's row can carry these: they belong to the request rather than to an entry.
+    bound_globals = by_name(response[["bound_globals"]]),
     signals = lapply(response[["signals"]], signal_from_list),
     warnings = as.character(unlist(response[["warnings"]])),
     refusals = lapply(response[["refusals"]], refusal_condition),
@@ -325,3 +336,13 @@ jump_from_response <- function(response) {
 }
 
 one_based <- function(index) if (is.null(index)) NULL else as.integer(index) + 1L
+
+# A value the request bound for the whole analysis, reachable by its own name rather than by
+# position, because a caller asking what mass a result ran under knows the name and not the
+# order. A request that bound none gives an empty list.
+by_name <- function(bound) {
+  if (is.null(bound) || !length(bound)) {
+    return(list())
+  }
+  stats::setNames(bound, vapply(bound, function(one) one[["name"]], character(1)))
+}
