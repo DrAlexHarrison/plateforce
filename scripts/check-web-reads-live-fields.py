@@ -13,17 +13,28 @@ import re
 import sys
 
 # The records the browser destructures by name, and where each one's fields are declared.
+#
+# `BuildInfo` is here because the browser asks it which of three maps a construct travels in
+# and then writes the request accordingly. A field renamed there does not render an empty
+# string, it sends a construct under the wrong name and the engine refuses the whole request,
+# which is the loudest failure any of these three can produce and was the least guarded.
 RECORDS = {
     'BoundMethod': 'crates/plateforce-analysis/src/resolution.rs',
     'AnalysisResponse': 'crates/plateforce-analysis/src/response.rs',
+    'BuildInfo': 'crates/plateforce-wasm/src/lib.rs',
 }
 
 # How a record is spelled in `web/`, as the variable the field hangs off. Anchored on a word
 # boundary so `boundEntry.surfacing`, a registry candidate rather than a record, is not read
 # as one.
+#
+# The build reaches two spellings: off the tab as `state.build`, and as the argument named
+# `build` that the decision model is handed. One pattern covers both, and it needs the dot,
+# so `buildDecisionModel` and `buildRequest` are not read as reads.
 READERS = {
     'BoundMethod': r'\bbound(?:\?)?\.(\w+)',
     'AnalysisResponse': r'\bstate\.analysis(?:\?)?\.(\w+)',
+    'BuildInfo': r'\bbuild(?:\?)?\.(\w+)',
 }
 
 # Names reached on the record as an object rather than as a declared field.
@@ -31,9 +42,15 @@ OBJECT_METHODS = {'hasOwnProperty'}
 
 
 def serialised_fields(path: str, struct: str) -> set:
-    """The field names a struct puts on the wire, dropping the ones serde is told to skip."""
+    """The field names a struct puts on the wire, dropping the ones serde is told to skip.
+
+    Visibility is not read, on the struct or on its fields. What serde writes is decided by
+    its own attributes and never by `pub`, so a private field is on the wire exactly like a
+    public one and a scanner that demands `pub` reports a record it cannot see as a record
+    that does not exist.
+    """
     source = open(path).read()
-    opening = re.search(rf'^pub struct {struct} \{{$', source, re.M)
+    opening = re.search(rf'^(?:pub )?struct {struct} \{{$', source, re.M)
     if not opening:
         raise SystemExit(f'{path} declares no struct named {struct}')
     body = source[opening.end():source.index('\n}\n', opening.end())]
@@ -48,7 +65,7 @@ def serialised_fields(path: str, struct: str) -> set:
             if rename:
                 renamed = rename.group(1)
             continue
-        declared = re.match(r'pub (\w+):', stripped)
+        declared = re.match(r'(?:pub )?(\w+):', stripped)
         if not declared:
             continue
         if not skip_next:

@@ -38,6 +38,7 @@ export function buildDecisionModel(registry, build, path = []) {
   }
 
   const spine = new Set(build.spine_constructs);
+  const conditioning = new Set(build.conditioning_constructs);
   const onThePath = new Set([...build.spine_constructs, ...path]);
 
   const rows = [];
@@ -50,9 +51,13 @@ export function buildDecisionModel(registry, build, path = []) {
       rowFor(registry, documentedByConstruct.get(binding.construct) || [], runnable, {
         construct: binding.construct,
         // The word the request uses for this construct: its own field for the three it
-        // names that way, and the construct id for every rule reached through `derived`.
+        // names that way, and the construct id for every rule reached through a map.
         key: spine.has(binding.construct) ? binding.slot : binding.construct,
         spine: spine.has(binding.construct),
+        // Which map carries it. Three routes reach a construct and a request naming one
+        // through the wrong route is refused whole, so the row carries the answer the build
+        // gave rather than leaving each surface to work it out again.
+        conditioning: conditioning.has(binding.construct),
         pipelineIndex,
       }),
     );
