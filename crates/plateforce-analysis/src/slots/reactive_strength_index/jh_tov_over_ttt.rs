@@ -54,7 +54,7 @@ fn compute(
 
     let gravity = context.gravity_meters_per_second_squared;
     let velocity =
-        takeoff_velocity_meters_per_second(context.trial, context.epoch, &landmarks, gravity);
+        takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     let height_meters = jump_height_from_takeoff_velocity(velocity, gravity);
     let seconds = time_to_takeoff_seconds(&landmarks, context.trial.sample_interval_seconds());
 

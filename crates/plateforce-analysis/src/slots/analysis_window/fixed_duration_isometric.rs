@@ -51,7 +51,7 @@ fn place(
     let length_seconds = resolved.number(LENGTH_PARAMETER, LENGTH_DEFAULT_SECONDS);
     let bound = resolved.finish();
 
-    let Some(onset) = context.onset_index else {
+    let Some(onset) = context.onset_index() else {
         return DerivedOutcome::declined(bound, context.unavailable(ID, &[ONSET_CONSTRUCT]));
     };
 

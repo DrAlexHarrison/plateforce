@@ -7,8 +7,6 @@
 
 pub mod takeoff_to_touchdown;
 
-use plateforce_core::Landmarks;
-
 use crate::derived::DerivedContext;
 
 /// The construct id, as `registry/constructs.toml` declares it.
@@ -25,11 +23,13 @@ pub const TOUCHDOWN_FIELD: &str = "touchdown_index";
 /// `Landmarks` fills an unstated touchdown with the last sample of the recording, which is the
 /// right reading for a window and the wrong one here: it would report every sample after
 /// takeoff as flight, on a recording that runs for a minute as readily as on one that stops at
-/// the landing. So the request's own field is what this reads.
-pub fn seconds(context: &DerivedContext, landmarks: &Landmarks) -> Option<f64> {
-    context.touchdown_index?;
+/// the landing. So the placed touchdown is what this reads, and it takes the two samples one
+/// at a time rather than as the three-landmark bundle, because the onset is not one of them.
+pub fn seconds(context: &DerivedContext, takeoff_index: usize) -> Option<f64> {
+    let touchdown_index = context.touchdown_index()?;
     Some(plateforce_core::flight_time_seconds(
-        landmarks,
+        takeoff_index,
+        touchdown_index,
         context.trial.sample_interval_seconds(),
     ))
 }

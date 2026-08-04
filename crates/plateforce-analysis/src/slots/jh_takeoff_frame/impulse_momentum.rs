@@ -48,7 +48,7 @@ fn compute(
 
     let gravity = context.gravity_meters_per_second_squared;
     let velocity =
-        takeoff_velocity_meters_per_second(context.trial, context.epoch, &landmarks, gravity);
+        takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     DerivedOutcome {
         values: vec![(
             super::KEY,

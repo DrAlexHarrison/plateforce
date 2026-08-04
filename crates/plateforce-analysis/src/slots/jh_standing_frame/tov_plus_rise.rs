@@ -41,7 +41,7 @@ fn compute(
     let gravity = context.gravity_meters_per_second_squared;
     let displacement = centre_of_mass::displacement(
         context.trial,
-        context.epoch,
+        context.epoch(),
         landmarks.onset_index,
         gravity,
         &mut resolved,
@@ -61,7 +61,7 @@ fn compute(
     };
 
     let velocity =
-        takeoff_velocity_meters_per_second(context.trial, context.epoch, &landmarks, gravity);
+        takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     DerivedOutcome {
         values: vec![(
             super::KEY,

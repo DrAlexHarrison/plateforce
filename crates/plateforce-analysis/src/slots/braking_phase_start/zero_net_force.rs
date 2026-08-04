@@ -55,7 +55,7 @@ fn place(
         Err(refusal) => return DerivedOutcome::declined(resolved.finish(), refusal),
     };
 
-    let (Some(onset), Some(takeoff)) = (context.onset_index, context.takeoff_index) else {
+    let (Some(onset), Some(takeoff)) = (context.onset_index(), context.takeoff_index()) else {
         let missing = boundaries::absent(context, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]);
         return DerivedOutcome::declined(resolved.finish(), context.unavailable(ID, &missing));
     };
@@ -64,7 +64,7 @@ fn place(
         SearchSignal::VelocityArgmin => {
             let velocity = crate::centre_of_mass::velocity(
                 context.trial,
-                context.epoch,
+                context.epoch(),
                 onset,
                 context.gravity_meters_per_second_squared,
                 &mut resolved,
@@ -80,7 +80,7 @@ fn place(
                     braking_start_by_force_return(
                         context.trial.force(),
                         onset,
-                        context.epoch.system_weight_newtons,
+                        context.epoch().system_weight_newtons,
                         peak,
                     )
                 });
