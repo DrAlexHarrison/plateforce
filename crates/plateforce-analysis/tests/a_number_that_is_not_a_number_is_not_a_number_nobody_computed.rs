@@ -156,7 +156,11 @@ fn an_intact_recording_puts_a_metric_in_neither_state() {
     assert_eq!(carrying_no_number(&response), BTreeSet::new());
     assert_eq!(without_a_value(&response), BTreeSet::new());
     assert_eq!(
-        response.metrics.iter().filter(|m| m.value.is_some()).count(),
+        response
+            .metrics
+            .iter()
+            .filter(|m| m.value.is_some())
+            .count(),
         response.metrics.len(),
         "every quantity this request asks for has a value on the intact recording"
     );

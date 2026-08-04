@@ -879,6 +879,13 @@ fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
     renderer.wrap(&format!("{head} {}", signal.remedy), 6)
 }
 
+/// The whole text document, assembled from every part of the run a reader meets.
+///
+/// The argument list is long because the parts are genuinely separate: the numbers, the sweep,
+/// the registry that produced them, what the caller asked for, how wide the terminal is, what
+/// declined, what was flagged, and how much of the recording was read. Bundling them would
+/// name a thing that does not exist just to satisfy a count.
+#[allow(clippy::too_many_arguments)]
 fn text_body(
     response: &AnalysisResponse,
     spread: Option<&plateforce_analysis::spread::SpreadResponse>,

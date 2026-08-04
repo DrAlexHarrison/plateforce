@@ -393,7 +393,11 @@ mod tests {
     /// function existed, so the split cannot silently stop adding up to it.
     #[test]
     fn the_two_counts_add_up_to_what_the_partition_drops() {
-        for convention in [Sentinel::Zero, Sentinel::NegativeOne, Sentinel::Value(9999.0)] {
+        for convention in [
+            Sentinel::Zero,
+            Sentinel::NegativeOne,
+            Sentinel::Value(9999.0),
+        ] {
             let values = [
                 45.0,
                 0.0,

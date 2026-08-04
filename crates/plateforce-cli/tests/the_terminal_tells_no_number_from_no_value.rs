@@ -18,7 +18,8 @@ use std::process::Command;
 
 /// One recording of subject 01 with three samples of its quiet stance unreadable, inside the
 /// one-second weighing window this request binds.
-const INTERRUPTED: &str = "../plateforce-conformance/damaged/subject01_trial1_interrupted.force.txt";
+const INTERRUPTED: &str =
+    "../plateforce-conformance/damaged/subject01_trial1_interrupted.force.txt";
 const INTACT: &str = "../plateforce-conformance/fixtures/subject01_trial1.force.txt";
 
 const SAMPLES_CARRYING_NO_NUMBER: usize = 3;
@@ -114,7 +115,10 @@ fn the_page_and_the_record_agree_about_which_rows_carried_no_number() {
 
     let printed = analyse(INTERRUPTED, "text");
     println!("{printed}");
-    assert_eq!(labels_the_page_marked(&printed, "not a number"), not_a_number);
+    assert_eq!(
+        labels_the_page_marked(&printed, "not a number"),
+        not_a_number
+    );
     assert_eq!(labels_the_page_marked(&printed, "no value"), no_value);
 }
 
@@ -142,6 +146,12 @@ fn an_intact_recording_marks_no_row_either_way() {
     assert_eq!(no_value, BTreeSet::new());
 
     let printed = analyse(INTACT, "text");
-    assert_eq!(labels_the_page_marked(&printed, "not a number"), BTreeSet::new());
-    assert_eq!(labels_the_page_marked(&printed, "no value"), BTreeSet::new());
+    assert_eq!(
+        labels_the_page_marked(&printed, "not a number"),
+        BTreeSet::new()
+    );
+    assert_eq!(
+        labels_the_page_marked(&printed, "no value"),
+        BTreeSet::new()
+    );
 }
