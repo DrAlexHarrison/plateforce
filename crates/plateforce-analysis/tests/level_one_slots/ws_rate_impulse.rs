@@ -135,6 +135,174 @@ fn computed_by(response: &AnalysisResponse, key: &str) -> Option<String> {
         .and_then(|metric| metric.computed_by.clone())
 }
 
+/// The entries besides its own whose values a rule of this family reads.
+///
+/// Two of the family's choices are published on an entry other than the rule that runs under
+/// them: whether system weight comes out before integrating, and what power is. A rule reads
+/// them, records them, and names the owning entry among the entries its number rests on, on
+/// the model of the four integration entries every jump-height rule inherits. So the names a
+/// rule may legitimately read are its own entry's plus those, and the pair is written out
+/// here rather than being inferred from whatever the rule happened to consult.
+fn entries_read_through(method_id: &str) -> &'static [&'static str] {
+    match method_id {
+        "impulse.epoch_from_onset" | "impulse.to_fraction_of_peak_force" => &["impulse.convention"],
+        "rpd.phase_anchored" | "rpd.peak_to_peak_anchored.amti" => {
+            &["power.instantaneous.force_x_velocity"]
+        }
+        _ => &[],
+    }
+}
+
+/// Every value a caller states reaches the rule it was stated to, and every id the record
+/// carries resolves in the shipped registry.
+///
+/// Two directions, and the second is the one that bites. A name the request carried and the
+/// rule never consulted lands in `unread_parameters`, so the caller's number moved nothing
+/// while the record showed a reader who had chosen. And a name the rule was given has to come
+/// back in what it read, or the value reached no arithmetic.
+///
+/// An id that resolves nowhere leaves a reader unable to look up what produced the number,
+/// which is the same as not naming it.
+#[test]
+fn every_rule_in_this_family_reads_what_it_is_given_and_records_a_name_a_reader_can_look_up() {
+    let registry = crate::common::registry();
+    let trial = committed_trial("subject01_trial1");
+
+    let mut asked: Vec<(&str, &str, BTreeMap<String, f64>, BTreeMap<String, String>)> =
+        rate_rules()
+            .into_iter()
+            .map(|(id, parameters, options)| (RATE_CONSTRUCT, id, parameters, options))
+            .collect();
+    for method_id in [
+        "impulse.epoch_from_onset",
+        "impulse.to_fraction_of_peak_force",
+    ] {
+        asked.push((
+            IMPULSE_CONSTRUCT,
+            method_id,
+            BTreeMap::from([
+                ("epoch_ms".to_string(), 200.0),
+                ("fraction_pct".to_string(), 50.0),
+            ]),
+            BTreeMap::from([("convention".to_string(), "net".to_string())]),
+        ));
+    }
+    for method_id in ["rpd.phase_anchored", "rpd.peak_to_peak_anchored.amti"] {
+        asked.push((
+            POWER_RATE_CONSTRUCT,
+            method_id,
+            BTreeMap::new(),
+            BTreeMap::from([
+                ("force_term".to_string(), "total".to_string()),
+                ("sign_convention".to_string(), "upward_positive".to_string()),
+            ]),
+        ));
+    }
+
+    let mut unread = Vec::new();
+    let mut never_arrived = Vec::new();
+    let mut unresolved = Vec::new();
+    let mut checked = 0usize;
+    let mut names_checked = 0usize;
+    for (construct, method_id, parameters, options) in &asked {
+        // The names this rule may read: its own entry's, and those of the entries it reads
+        // through. An epoch stated at a rule that reads a fraction is dropped rather than
+        // counted against it, which is a fact about this list rather than about the rule.
+        let mut published: Vec<String> = Vec::new();
+        for id in std::iter::once(method_id.to_string()).chain(
+            entries_read_through(method_id)
+                .iter()
+                .map(|id| id.to_string()),
+        ) {
+            let entry = registry
+                .methods
+                .get(id.as_str())
+                .unwrap_or_else(|| panic!("{id} is not in the shipped registry"));
+            published.extend(
+                entry
+                    .parameters
+                    .iter()
+                    .map(|parameter| parameter.name.clone()),
+            );
+        }
+
+        let mut request = asking(construct, method_id, parameters.clone(), options.clone());
+        let choice = request
+            .derived
+            .get_mut(*construct)
+            .expect("the rule is named");
+        choice.parameters.retain(|name, _| published.contains(name));
+        choice.options.retain(|name, _| published.contains(name));
+        let stated: Vec<String> = choice
+            .parameters
+            .keys()
+            .chain(choice.options.keys())
+            .cloned()
+            .collect();
+
+        let response = run(&trial, &request).unwrap_or_else(|error| panic!("{method_id}: {error}"));
+        let bound = response
+            .bound_methods
+            .iter()
+            .find(|method| method.method_id == *method_id)
+            .unwrap_or_else(|| panic!("{method_id} left no record of what it read"));
+        if !bound.unread_parameters.is_empty() {
+            unread.push(format!("{method_id}: {:?}", bound.unread_parameters));
+        }
+        for name in &stated {
+            names_checked += 1;
+            if !bound
+                .bound_parameters
+                .iter()
+                .any(|(recorded, _)| recorded == name)
+            {
+                never_arrived.push(format!(
+                    "{method_id} was given {name} and recorded no value"
+                ));
+            }
+        }
+        for method in &response.bound_methods {
+            if !registry.methods.contains_key(method.method_id.as_str()) {
+                unresolved.push(format!("{method_id} recorded {}", method.method_id));
+            }
+        }
+        checked += 1;
+    }
+
+    assert!(
+        unread.is_empty(),
+        "{} of {checked} rules carried a value they never read:\n  {}",
+        unread.len(),
+        unread.join("\n  ")
+    );
+    assert!(
+        never_arrived.is_empty(),
+        "{} of {names_checked} stated values reached no rule:\n  {}",
+        never_arrived.len(),
+        never_arrived.join("\n  ")
+    );
+    assert!(
+        unresolved.is_empty(),
+        "{} records name an id that resolves in no registry entry:\n  {}",
+        unresolved.len(),
+        unresolved.join("\n  ")
+    );
+    assert_eq!(
+        checked,
+        asked.len(),
+        "a rule was skipped without being named"
+    );
+    println!(
+        "{checked} rules read all {names_checked} values stated to them, and every id their \
+         records carry resolves in the registry's {} entries",
+        registry.methods.len()
+    );
+    assert!(
+        names_checked >= 12,
+        "only {names_checked} values were stated, so this read almost nothing"
+    );
+}
+
 /// Every rate rule answers on subject 01 trial 1, each under its own id, and the spread
 /// between them is what the choice of rule costs.
 ///
