@@ -225,11 +225,14 @@ pub fn distrusted(signals: &[QualitySignal]) -> bool {
         .any(|signal| signal.status == QualityStatus::Disagrees)
 }
 
+/// The number a metric reported, and nothing where it reported none.
+///
+/// No second non-finite test here. `Metric::from_declaration` is the one place a metric is
+/// built and it never puts a value that is not finite into `value`, so a filter here would be
+/// the same policy spelled a second time, and a reader could not tell which of the two was
+/// the one that decides.
 fn metric(response: &AnalysisResponse, key: &str) -> Option<f64> {
-    response
-        .metric(key)
-        .and_then(|entry| entry.value)
-        .filter(|value| value.is_finite())
+    response.metric(key).and_then(|entry| entry.value)
 }
 
 /// A value one bound rule read, at the precision it read it rather than the precision it is

@@ -7,4 +7,5 @@ rows_read 6000
 columns_per_row 1
 blank_lines_skipped 0
 sentinel_convention none
-samples_treated_as_missing 0
+samples_matching_the_convention 0
+samples_carrying_no_number 0

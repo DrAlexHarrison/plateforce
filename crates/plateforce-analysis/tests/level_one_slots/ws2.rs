@@ -24,7 +24,10 @@ fn net_peak_force_is_the_gross_peak_less_one_system_weight_by_either_route() {
         let (Some(onset), Some(takeoff)) = (response.onset_index, response.takeoff_index) else {
             panic!("{name} placed no landmarks, so there is no window to take a peak over");
         };
-        let system_weight_newtons = response.levels.system_weight_newtons;
+        let system_weight_newtons = response
+            .levels
+            .system_weight_newtons
+            .expect("a placed landmark implies a weight");
         let window = &trial.force()[onset..takeoff];
 
         let gross_peak_newtons = window.iter().copied().fold(f64::MIN, f64::max);
@@ -82,7 +85,11 @@ fn the_two_readings_of_net_diverge_once_onset_sits_below_system_weight() {
 
     let gap = |response: &plateforce_analysis::AnalysisResponse| {
         let onset = response.onset_index.expect("onset resolved");
-        (response.levels.system_weight_newtons - trial.force()[onset]).abs()
+        let system_weight_newtons = response
+            .levels
+            .system_weight_newtons
+            .expect("a placed onset implies a weight");
+        (system_weight_newtons - trial.force()[onset]).abs()
     };
 
     let shallow_gap = gap(&shallow);

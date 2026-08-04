@@ -9,7 +9,7 @@ use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, Metric,
     WeighingChoice, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
-use plateforce_core::signal::{partition_sentinels, Sentinel};
+use plateforce_core::signal::{reported_samples, ReportedSamples, Sentinel};
 use plateforce_core::{read_delimited_column, Refusal, Trial};
 use plateforce_registry::{Registry, Surfacing};
 
@@ -281,7 +281,7 @@ pub fn run(
 pub(crate) struct ReadTrial {
     pub trial: Trial,
     pub rows_read: usize,
-    pub sentinel_rows: usize,
+    pub reported_samples: ReportedSamples,
 }
 
 /// Every method the request named, keyed by the construct it fills, refused when the id has
@@ -616,16 +616,19 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         SentinelConvention::NegativeOne => Some(Sentinel::NegativeOne),
         SentinelConvention::None => None,
     };
-    let sentinel_rows = sentinel
-        .map(|convention| partition_sentinels(&values, convention).1.len())
-        .unwrap_or(0);
+    // The two reasons a sample is reported, counted apart by the one function that counts
+    // them. This surface used to count the convention's matches and the recording's gaps as
+    // one total, which reads 0 on a recording with three unreadable samples when no
+    // convention is declared and 160 on the same recording under the zero convention, where
+    // 157 of the 160 are an athlete in the air.
+    let reported = reported_samples(&values, sentinel);
 
     let trial = Trial::new(values, sample_rate_hz)
         .map_err(|error| Outcome::declined(Declined::recorded(Refusal::from(error))))?;
     Ok(ReadTrial {
         trial,
         rows_read: report.rows_read,
-        sentinel_rows,
+        reported_samples: reported,
     })
 }
 
@@ -787,7 +790,7 @@ fn render(
         plateforce_analysis::document::TrialSource {
             name: args.trial.display().to_string(),
             rows_read: trial.rows_read,
-            sentinel_rows: trial.sentinel_rows,
+            samples_matching_the_convention: trial.reported_samples.matched_the_convention,
         },
         &registry_stamp(registry, args),
         // No acquisition block reaches this surface, and a dataset that cannot fill one
@@ -815,6 +818,7 @@ fn render(
             renderer,
             &refusals,
             &response.signals,
+            trial.rows_read,
         ),
     };
 
@@ -883,6 +887,7 @@ fn text_body(
     renderer: &Renderer,
     refusals: &[Declined],
     signals: &[QualitySignal],
+    rows_read: usize,
 ) -> String {
     let mut document = String::new();
     let widest = response
@@ -892,19 +897,47 @@ fn text_body(
         .max()
         .unwrap_or(0);
 
+    // A gap in the recording, said before the numbers it reached. This column said nothing
+    // about it at all, so a reader of the terminal met eight quantities without a value and
+    // no account of why any of them had none.
+    if response.samples_carrying_no_number > 0 {
+        for line in renderer.wrap(
+            &format!(
+                "{} of {} samples carry no number, so every quantity computed over a window \
+                 holding one of them is not a number.",
+                response.samples_carrying_no_number, rows_read
+            ),
+            2,
+        ) {
+            let _ = writeln!(document, "{line}");
+        }
+    }
+
     let mut said: Vec<usize> = Vec::new();
     for metric in &response.metrics {
-        match metric.value {
-            Some(value) => {
+        match (metric.value, metric.carried_no_number) {
+            (Some(value), _) => {
                 let _ = writeln!(
                     document,
                     "  {:<widest$}  {:>12.4} {}",
                     metric.label, value, metric.unit_symbol
                 );
             }
+            // The arithmetic ran and produced a value that is not a number, which is a
+            // different state from a rule that found nothing, and it is what a gap in the
+            // recording reaching a quantity looks like. This column used to print `NaN`
+            // here, by accident of formatting a float, while the same command's JSON wrote
+            // the same three characters it writes for a quantity nobody computed.
+            (None, true) => {
+                let _ = writeln!(
+                    document,
+                    "  {:<widest$}  {:>12} {}",
+                    metric.label, "not a number", metric.unit_symbol
+                );
+            }
             // A rule that ran correctly and found nothing is its own state, and it is not
             // an empty cell.
-            None => {
+            (None, false) => {
                 let _ = writeln!(
                     document,
                     "  {:<widest$}  {:>12} {}",

@@ -8,6 +8,7 @@
     "onset_index",
     "refusals",
     "registry_version",
+    "samples_carrying_no_number",
     "signals",
     "takeoff_index",
     "touchdown_index",
@@ -248,6 +249,7 @@
     },
     "metrics": [
       {
+        "carried_no_number": false,
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
@@ -261,6 +263,7 @@
         "value": 600.0044080833333
       },
       {
+        "carried_no_number": false,
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
@@ -274,6 +277,7 @@
         "value": 61.18342227808001
       },
       {
+        "carried_no_number": false,
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
@@ -287,6 +291,7 @@
         "value": 3.5433333333333334
       },
       {
+        "carried_no_number": false,
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
@@ -302,6 +307,7 @@
         "value": 1.8566666666666667
       },
       {
+        "carried_no_number": false,
         "computed_by": "time_to_takeoff.onset_to_takeoff",
         "contributing_method_ids": [
           "filter.none",
@@ -318,6 +324,7 @@
         "value": null
       },
       {
+        "carried_no_number": false,
         "computed_by": "flight_time.takeoff_to_touchdown",
         "contributing_method_ids": [
           "filter.none",
@@ -333,6 +340,7 @@
         "value": 0.47250000000000003
       },
       {
+        "carried_no_number": false,
         "computed_by": "impulse.net_vertical.as_performance_determinant",
         "contributing_method_ids": [
           "filter.none",
@@ -349,6 +357,7 @@
         "value": null
       },
       {
+        "carried_no_number": false,
         "computed_by": "impulse.net_vertical.as_performance_determinant",
         "contributing_method_ids": [
           "filter.none",
@@ -365,6 +374,7 @@
         "value": null
       },
       {
+        "carried_no_number": false,
         "computed_by": "jumpheight.takeoff.impulse_momentum",
         "contributing_method_ids": [
           "filter.none",
@@ -381,6 +391,7 @@
         "value": null
       },
       {
+        "carried_no_number": false,
         "computed_by": "jumpheight.takeoff.flight_time",
         "contributing_method_ids": [
           "filter.none",
@@ -396,6 +407,7 @@
         "value": 0.2737679765625
       },
       {
+        "carried_no_number": false,
         "computed_by": "rsimod.jh_tov_over_ttt",
         "contributing_method_ids": [
           "filter.none",
@@ -415,6 +427,7 @@
     "onset_index": 4252,
     "refusals": [],
     "registry_version": null,
+    "samples_carrying_no_number": 0,
     "signals": [
       {
         "label": "The start of the jump, against the instant of takeoff",

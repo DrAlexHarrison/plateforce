@@ -22,7 +22,7 @@ use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, 
 use plateforce_analysis::capability::{capability, Operation, OutputFormat};
 use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
-use plateforce_core::signal::{partition_sentinels, Sentinel};
+use plateforce_core::signal::{reported_samples, ReportedSamples, Sentinel};
 use plateforce_core::Trial;
 
 pub fn version() -> &'static str {
@@ -261,7 +261,11 @@ struct LoadedTrialInfo {
     duration_seconds: f64,
     force_column: usize,
     sentinel_convention: String,
-    samples_treated_as_missing: usize,
+    /// The two reasons a sample is reported, apart. This block published the total under one
+    /// name and the result document published the same total under a second, so one surface
+    /// had two spellings of one policy and neither could say which reason it counted.
+    samples_matching_the_convention: usize,
+    samples_carrying_no_number: usize,
     minimum_newtons: f64,
     maximum_newtons: f64,
     synthetic: bool,
@@ -320,18 +324,11 @@ impl LoadedTrial {
         // refusal and no warning, while the terminal, the notebook and R each declined the
         // landmark and said why. `bindings/r/src/rust/src/lib.rs` reached the same conclusion
         // in its own reader and states what holding costs in centimetres there.
-        let flagged = sentinel.map(|s| partition_sentinels(column, s).1);
-        let treated_as_missing = flagged.map_or(0, |dropped| dropped.len());
+        let reported = reported_samples(column, sentinel);
 
         let trial = Trial::new(column.to_vec(), sample_rate_hz)
             .map_err(|e| JsError::new(&e.to_string()))?;
-        let info = describe(
-            &trial,
-            force_column,
-            sentinel_convention,
-            treated_as_missing,
-            false,
-        );
+        let info = describe(&trial, force_column, sentinel_convention, reported, false);
         Ok(LoadedTrial { trial, info })
     }
 
@@ -343,7 +340,10 @@ impl LoadedTrial {
     #[wasm_bindgen(js_name = demonstration)]
     pub fn demonstration() -> LoadedTrial {
         let trial = demo::recorded_countermovement_jump();
-        let info = describe(&trial, 0, "none", 0, false);
+        // Drawn rather than recorded, so it carries neither reason. Counted rather than
+        // written as zeros: a drawn trace that grew a hole would say so.
+        let reported = reported_samples(trial.force(), None);
+        let info = describe(&trial, 0, "none", reported, false);
         LoadedTrial { trial, info }
     }
 
@@ -400,7 +400,7 @@ impl LoadedTrial {
                 document::TrialSource {
                     name: trial_name.unwrap_or_default(),
                     rows_read: self.info.sample_count,
-                    sentinel_rows: self.info.samples_treated_as_missing,
+                    samples_matching_the_convention: self.info.samples_matching_the_convention,
                 },
                 // Nothing pinned: this surface runs the registry compiled into the bundle,
                 // and a tab asserting a revision about bytes it did not choose would be
@@ -452,7 +452,7 @@ fn describe(
     trial: &Trial,
     force_column: usize,
     sentinel_convention: &str,
-    samples_treated_as_missing: usize,
+    reported: ReportedSamples,
     synthetic: bool,
 ) -> LoadedTrialInfo {
     LoadedTrialInfo {
@@ -461,7 +461,8 @@ fn describe(
         duration_seconds: trial.duration_seconds(),
         force_column,
         sentinel_convention: sentinel_convention.to_string(),
-        samples_treated_as_missing,
+        samples_matching_the_convention: reported.matched_the_convention,
+        samples_carrying_no_number: reported.carried_no_number,
         minimum_newtons: trial.force().iter().copied().fold(f64::INFINITY, f64::min),
         maximum_newtons: trial
             .force()

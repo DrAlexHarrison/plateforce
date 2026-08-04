@@ -24,8 +24,10 @@ test_that("the reader reports what the record says it read", {
   expect_identical(as.character(run$trial@sample_count), fixture_field("trial.txt", "sample_count"))
   expect_identical(as.character(run$trial@read_report[["rows_read"]]),
                    fixture_field("trial.txt", "rows_read"))
-  expect_identical(as.character(run$trial@read_report[["samples_treated_as_missing"]]),
-                   fixture_field("trial.txt", "samples_treated_as_missing"))
+  expect_identical(as.character(run$trial@read_report[["samples_matching_the_convention"]]),
+                   fixture_field("trial.txt", "samples_matching_the_convention"))
+  expect_identical(as.character(run$trial@read_report[["samples_carrying_no_number"]]),
+                   fixture_field("trial.txt", "samples_carrying_no_number"))
 })
 
 test_that("every quantity equals the number the engine produced for it", {

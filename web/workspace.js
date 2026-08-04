@@ -19,10 +19,14 @@ export function enterWorkspace() {
 
   const info = JSON.parse(state.loadedTrial.infoJson());
   state.info = info;
+  // Two sentences for two facts. One sentence over one total said both things about one
+  // number, and on a jump trace under the zero convention most of that number is the
+  // athlete in the air rather than anything the recording lost.
   $('trial-summary').textContent =
     `${info.sample_count.toLocaleString()} samples at ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
     (info.synthetic ? '. Drawn rather than recorded.' : '') +
-    (info.samples_treated_as_missing ? ` ${info.samples_treated_as_missing} samples match the missing-data convention you declared and carry no measurement.` : '');
+    (info.samples_matching_the_convention ? ` ${info.samples_matching_the_convention} samples read the missing-data convention you declared.` : '') +
+    (info.samples_carrying_no_number ? ` ${info.samples_carrying_no_number} samples carry no number at all, which is a gap in the recording.` : '');
 
   if (!state.chart) {
     const container = $('chart');

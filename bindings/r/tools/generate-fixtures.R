@@ -50,7 +50,9 @@ write_lines("trial.txt", c(
   paste("columns_per_row", trial@read_report[["columns_per_row"]]),
   paste("blank_lines_skipped", trial@read_report[["blank_lines_skipped"]]),
   paste("sentinel_convention", trial@read_report[["sentinel_convention"]]),
-  paste("samples_treated_as_missing", trial@read_report[["samples_treated_as_missing"]])
+  paste("samples_matching_the_convention",
+        trial@read_report[["samples_matching_the_convention"]]),
+  paste("samples_carrying_no_number", trial@read_report[["samples_carrying_no_number"]])
 ))
 
 quantities <- names(result@values)

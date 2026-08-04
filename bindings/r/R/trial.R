@@ -4,8 +4,13 @@ NULL
 #' One force trace
 #'
 #' `@read_report` records what the reader did: the sentinel convention it applied, how many
-#' samples that convention treated as missing, and for a file, the delimiter, the force
-#' column and the rows it read.
+#' samples matched that convention, how many carried no number at all, and for a file, the
+#' delimiter, the force column and the rows it read.
+#'
+#' The two counts are separate because they are two facts. On a jump trace the zero
+#' convention a vendor writes for a missing measurement is also the correct reading of an
+#' unloaded plate, so it matches the whole flight phase, and a reader told only the total
+#' cannot tell a gap in the recording from the athlete being in the air.
 #'
 #' @noRd
 trial <- S7::new_class(
@@ -28,10 +33,11 @@ trial <- S7::new_class(
     "%d samples at %g Hz, %g s\n",
     x@sample_count, x@sample_rate_hz, x@duration_seconds
   ))
-  missing_samples <- x@read_report[["samples_treated_as_missing"]]
   cat(sprintf(
-    "sentinel convention %s, %d samples held at the last reading\n",
-    x@read_report[["sentinel_convention"]], missing_samples
+    "sentinel convention %s, %d samples matching it, %d samples carrying no number\n",
+    x@read_report[["sentinel_convention"]],
+    x@read_report[["samples_matching_the_convention"]],
+    x@read_report[["samples_carrying_no_number"]]
   ))
   invisible(x)
 }
@@ -43,8 +49,10 @@ trial <- S7::new_class(
 #'   every velocity, displacement, impulse and rate of force development with it, so this
 #'   has no default.
 #' @param sentinel_convention How this export writes a missing sample: `"none"`, `"zero"`
-#'   or `"negative_one"`. A sample matching the convention is held at the last real
-#'   reading and counted, and the count is reported rather than folded into the trace.
+#'   or `"negative_one"`. A sample matching the convention is counted and left where it is:
+#'   closing the gap would shift every timestamp after it, and holding it at the last real
+#'   reading would write a force the plate never measured into the trace. Samples carrying
+#'   no number are counted separately, whatever convention is declared.
 #' @param acquisition What the plate and its settings were, from [pf_acquisition()]. A
 #'   block missing any member makes every result from this trial carry
 #'   `acquisition_complete = FALSE`.

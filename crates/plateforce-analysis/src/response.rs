@@ -182,7 +182,31 @@ pub fn quantity(key: &str) -> Option<&'static Quantity> {
 pub struct Metric {
     pub key: String,
     pub label: String,
+    /// The number, and `None` where there is none. Never a value that is not finite: those
+    /// arrive as `None` with `carried_no_number` set beside them.
+    ///
+    /// A caller reading this can put it straight into arithmetic. It used to be able to hold
+    /// a NaN, which four call sites in this crate and two on other surfaces each filtered out
+    /// again for themselves, and which reached a notebook as a `Measured` asserting a
+    /// measured value of NaN with a full provenance chain behind it.
     pub value: Option<f64>,
+    /// True when the arithmetic ran and produced a value that is not finite.
+    ///
+    /// Without this the two states a reader most needs to tell apart are the same three
+    /// characters on the wire. `serde_json` writes a non-finite float as `null`, exactly as
+    /// it writes a quantity no rule produced, so "the software computed this and got not a
+    /// number" and "the software declined to compute this" were indistinguishable. The first
+    /// is a gap in the recording reaching the number; the second is an honest refusal, and
+    /// `refusals` says which rule made it.
+    ///
+    /// Measured on `subject01_trial1_interrupted`: 8 of 11 metrics read `null`, and 2 of
+    /// those 8 are this state. They are exactly the two computed over the weighing window
+    /// that holds the recording's three unreadable samples.
+    ///
+    /// Always written, never skipped when false, for the reason `registry_version` is always
+    /// written: a key a document sometimes omits cannot be told apart from a surface that
+    /// never carried it.
+    pub carried_no_number: bool,
     /// As the registry spells it. `docs/schema.md` carries the same spelling on every
     /// construct and every parameter.
     pub unit: String,
@@ -231,10 +255,16 @@ impl Metric {
     ) -> Self {
         let shared =
             quantity(declared.key).unwrap_or_else(|| panic!("{} is not declared", declared.key));
+        // The one place a non-finite result becomes a state a reader can name. Every metric
+        // this build reports is constructed here, so a rule cannot hand a NaN past this line
+        // whatever it computed.
+        let carried_no_number = value.is_some_and(|number| !number.is_finite());
+        let value = value.filter(|number| number.is_finite());
         Self {
             key: shared.key.to_string(),
             label: shared.label.to_string(),
             value,
+            carried_no_number,
             unit: shared.unit.to_string(),
             unit_symbol: unit_symbol(shared.unit).to_string(),
             contributing_method_ids,
@@ -256,17 +286,54 @@ impl AnalysisResponse {
     }
 }
 
+/// What an interface draws on the trace.
+///
+/// Every member is optional and none of them is ever a value that is not finite. The first
+/// two were `f64`, which promised a reader a number on every result and delivered `null`
+/// whenever the weighing window held a sample carrying no number: `serde_json` writes a
+/// non-finite `f64` as `null` whether or not the field admits absence, so those two sat
+/// beside two `Option<f64>` siblings meaning something else by the same three characters,
+/// and the pair whose type promised most were the pair that lied.
+///
+/// Which of the two a `null` here is, a quantity that was not computed or a quantity whose
+/// arithmetic produced no number, is answered by the metric of the same key, where
+/// `carried_no_number` says so. `weighing_standard_deviation_newtons` is not a reported
+/// quantity, and `the_weighing_statistics_and_their_metrics_agree_about_having_no_number`
+/// holds it to the metric that shares its window.
 #[derive(Debug, Clone, Serialize)]
 pub struct Levels {
-    pub system_weight_newtons: f64,
-    pub weighing_standard_deviation_newtons: f64,
+    pub system_weight_newtons: Option<f64>,
+    pub weighing_standard_deviation_newtons: Option<f64>,
     pub onset_band_lower_newtons: Option<f64>,
     pub onset_band_upper_newtons: Option<f64>,
     pub takeoff_threshold_newtons: Option<f64>,
 }
 
+/// A level an interface can draw, and `None` for anything that is not a finite number.
+///
+/// One function rather than a `filter` at each of the five construction sites, so a level
+/// that stopped being checked would be a missing call rather than a missing clause.
+pub fn drawable(value: f64) -> Option<f64> {
+    value.is_finite().then_some(value)
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct AnalysisResponse {
+    /// Samples of the recording that carried no number, counted over the trace as it was
+    /// handed to `run` rather than over whatever a conditioning rule made of it, because the
+    /// question is about the recording and the answer must not move when a caller asks for a
+    /// filter.
+    ///
+    /// On the response rather than on each surface's own reader report, so a notebook and an
+    /// R session carry it as well as a terminal and a browser tab, and so the count has one
+    /// home. Every surface publishes this response, and none of them could answer this
+    /// question before: on a recording with three unreadable samples the terminal and the
+    /// tab both said 0 and neither notebook nor R said anything at all.
+    ///
+    /// The reader's own count of what its declared convention matched is a different fact and
+    /// stays with the reader. A zero convention on a jump trace matches the whole flight
+    /// phase, so the two added together are a number nobody can take apart.
+    pub samples_carrying_no_number: usize,
     pub weighing_start_index: usize,
     pub weighing_end_index: usize,
     pub onset_index: Option<usize>,

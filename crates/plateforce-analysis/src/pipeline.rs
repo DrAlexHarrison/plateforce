@@ -36,6 +36,12 @@ pub fn run(
     let mut warnings = Vec::new();
     let gravity = request.gravity_meters_per_second_squared;
 
+    // Counted over the recording as it arrived, before any conditioning rule has had a look
+    // at it. A filter run over a trace with a gap in it spreads that gap across its window,
+    // so counting afterwards would report the filter rather than the recording.
+    let samples_carrying_no_number =
+        plateforce_core::signal::reported_samples(trial.force(), None).carried_no_number;
+
     // Everything below reads the signal this phase produced, so it runs first and its rules
     // are named ahead of every other rule in each metric's chain.
     let conditioned = run_conditioning_phase(trial, request, &mut warnings)?;
@@ -470,17 +476,24 @@ pub fn run(
     )?;
 
     let mut response = AnalysisResponse {
+        samples_carrying_no_number,
         weighing_start_index: epoch.start_index,
         weighing_end_index: epoch.end_index,
         onset_index,
         takeoff_index,
         touchdown_index,
         levels: Levels {
-            system_weight_newtons: epoch.system_weight_newtons,
-            weighing_standard_deviation_newtons: epoch.standard_deviation_newtons,
-            onset_band_lower_newtons: Some(epoch.system_weight_newtons - onset_band),
-            onset_band_upper_newtons: Some(epoch.system_weight_newtons + onset_band),
-            takeoff_threshold_newtons: Some(takeoff.threshold_newtons),
+            system_weight_newtons: crate::response::drawable(epoch.system_weight_newtons),
+            weighing_standard_deviation_newtons: crate::response::drawable(
+                epoch.standard_deviation_newtons,
+            ),
+            onset_band_lower_newtons: crate::response::drawable(
+                epoch.system_weight_newtons - onset_band,
+            ),
+            onset_band_upper_newtons: crate::response::drawable(
+                epoch.system_weight_newtons + onset_band,
+            ),
+            takeoff_threshold_newtons: crate::response::drawable(takeoff.threshold_newtons),
         },
         bound_methods,
         bound_globals: request.bound_globals(),

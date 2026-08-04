@@ -41,7 +41,10 @@ fn every_committed_trial_settles_or_says_what_the_recording_lacks() {
         let outcome = first_sustained_band_entry(
             trial.force(),
             touchdown,
-            response.levels.system_weight_newtons,
+            response
+                .levels
+                .system_weight_newtons
+                .expect("a placed touchdown implies a weight"),
             BAND_PCT,
             dwell_samples,
         );

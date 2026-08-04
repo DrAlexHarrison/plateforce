@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use plateforce_core::read::read_delimited_column;
-use plateforce_core::signal::{partition_sentinels, Sentinel as CoreSentinel};
+use plateforce_core::signal::{partition_sentinels, reported_samples, Sentinel as CoreSentinel};
 use plateforce_core::{Exclusions as CoreExclusions, Refusal, Trial as CoreTrial};
 use pyo3::buffer::PyBuffer;
 use pyo3::prelude::*;
@@ -230,7 +230,7 @@ pub fn partition_sentinel_values(
     let values = read_float64_values(python, values, "values")?;
     let (kept, dropped_indices) = partition_sentinels(&values, sentinel.inner);
     let dropped_samples = dropped_indices.len();
-    let (matched, no_number) = counted_apart(&values, Some(sentinel.inner));
+    let reported = reported_samples(&values, Some(sentinel.inner));
     Ok(SentinelPartition {
         kept,
         dropped_indices,
@@ -243,33 +243,10 @@ pub fn partition_sentinel_values(
                 )),
                 sentinel_convention: Some(sentinel_name(&sentinel.inner)),
             },
-            matched_the_convention: Some(matched),
-            carried_no_number: Some(no_number),
+            matched_the_convention: Some(reported.matched_the_convention),
+            carried_no_number: Some(reported.carried_no_number),
         },
     })
-}
-
-/// Samples matching the declared convention against samples carrying no number at all.
-///
-/// `partition_sentinels` reports one total over both, and one number cannot say which. The
-/// distinction is not academic on a force plate: the zero convention a vendor writes for a
-/// measurement it does not have is also the correct reading of a plate with nothing on it,
-/// so on a jump trace it matches the whole flight phase. A reader told only the total cannot
-/// tell a gap in the recording from the athlete being in the air.
-///
-/// A value that is not finite is counted there and nowhere else, so the two are disjoint and
-/// add up to the total the partition reports.
-fn counted_apart(values: &[f64], sentinel: Option<CoreSentinel>) -> (usize, usize) {
-    let mut matched = 0;
-    let mut no_number = 0;
-    for &value in values {
-        if !value.is_finite() {
-            no_number += 1;
-        } else if sentinel.is_some_and(|convention| convention.matches(value)) {
-            matched += 1;
-        }
-    }
-    (matched, no_number)
 }
 
 /// What the reader decided while turning a file into a trace.
@@ -343,7 +320,9 @@ impl Trial {
         let declared = sentinel.as_ref().map(|declared| declared.inner);
         let convention = declared.unwrap_or(NON_FINITE_ONLY);
         let (_, dropped_indices) = partition_sentinels(&values, convention);
-        let (matched, no_number) = counted_apart(&values, declared);
+        let reported = reported_samples(&values, declared);
+        let matched = reported.matched_the_convention;
+        let no_number = reported.carried_no_number;
 
         let inner =
             CoreTrial::new(values, sample_rate_hz).map_err(|e| map_trial_error(python, e))?;

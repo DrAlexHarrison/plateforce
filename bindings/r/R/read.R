@@ -20,8 +20,8 @@ NULL
 #'   or `"negative_one"`.
 #' @param acquisition What the plate and its settings were, from [pf_acquisition()].
 #' @return A `trial` whose `@read_report` names the delimiter, the column, the rows read,
-#'   the columns per row, the blank lines skipped, and the samples the sentinel convention
-#'   treated as missing.
+#'   the columns per row, the blank lines skipped, the samples that matched the sentinel
+#'   convention, and the samples that carried no number at all.
 #' @export
 pf_read_force_file <- function(path,
                                sample_rate_hz = NULL,
