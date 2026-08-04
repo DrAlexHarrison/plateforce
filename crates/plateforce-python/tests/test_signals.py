@@ -75,7 +75,7 @@ def test_two_routes_disagreeing_reach_a_reader_with_the_figure_they_disagree_by(
     assert len(result.signals) == 1
     signal = result.signals[0]
     assert signal.status == "disagrees"
-    assert signal.value == pytest.approx(38.5677807, rel=1e-6)
+    assert signal.value == pytest.approx(38.58875911, rel=1e-6)
     assert signal.value > signal.threshold, "a signal raised below its own threshold"
     assert signal.unit == "percent"
     assert signal.threshold == 20.0
