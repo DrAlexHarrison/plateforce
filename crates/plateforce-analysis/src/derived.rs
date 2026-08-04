@@ -6,10 +6,9 @@
 //! under the registry's other constructs runs after them, over what they placed, and is
 //! reached by construct id through a map on the request.
 //!
-//! WS-E1 classified the fifty-eight level-one entries mechanically and found they are not
-//! one problem: four constructs and fifteen entries condition the signal before the spine,
-//! one entry is a declaration on the spine itself, and twenty constructs and forty-two
-//! entries are computed after it. Generalising the spine buys none of them anything.
+//! The fifty-eight level-one entries are not one problem: four constructs and fifteen
+//! entries condition the signal before the spine, one entry is a declaration on the spine
+//! itself, and twenty constructs and forty-two entries are computed after it.
 //!
 //! Adding a rule is a file here and a row in `BINDINGS`. Nothing in `pipeline.rs` changes.
 
@@ -123,10 +122,6 @@ pub struct DerivedContext<'a> {
     /// Samples placed by rules that ran before this one, under the name the placing rule
     /// published them by. `run` resolves in `BINDINGS` declaration order, so a rule reading
     /// one of these is declared after the rule that places it.
-    ///
-    /// Ordering alone would be decorative without this: a rule that cannot see what an
-    /// earlier rule placed cannot consume it, and every alternative channel was a second
-    /// place for one fact to live.
     pub placed: &'a BTreeMap<&'static str, PlacedSample>,
     /// The constructs this request chose a rule for. A rule reads it to tell a choice
     /// nobody made from a choice that was made and declined, which are different faults

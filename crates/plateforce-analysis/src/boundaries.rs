@@ -3,11 +3,10 @@
 //!
 //! `integration.toml` states four choices on constructs of their own: the quadrature the
 //! net-force integral is evaluated by, the direction it runs, where it starts, and where the
-//! constant is pinned. This build runs no rule for any of the four, so a rule that reads a
-//! velocity states all four here rather than each rule stating its own, and the four ids are
-//! written into that rule's bound values under `ParameterSource::Assumed`. A boundary that
-//! moved with an integration setting no fingerprint carried would be the defect this registry
-//! documents, wearing our own badge.
+//! constant is pinned. No rule fills any of the four, so a rule that reads a velocity states
+//! all four here rather than each rule stating its own, and the four ids are written into
+//! that rule's bound values under `ParameterSource::Assumed`. A boundary that moved with an
+//! integration setting no fingerprint carried would be a silent default.
 //!
 //! The forward spec is the one `takeoff_velocity_meters_per_second` reads its impulse-momentum
 //! identity off, so a velocity landmark and the takeoff velocity beside it come from one curve.

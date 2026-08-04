@@ -1,8 +1,8 @@
 //! Force-plate kinetics.
 //!
-//! Every quantity is computed in exactly one place. The premise of this project is that
-//! independent implementations of the same named method disagree, so a second
-//! implementation of anything in here would be indefensible.
+//! Every quantity is computed in exactly one place. Independent implementations of the same
+//! named method disagree, so a second implementation of anything in here would move the
+//! number.
 //!
 //! Nothing in this crate decides a method. A caller passes a bound method from the
 //! registry and gets a result carrying what produced it.
@@ -65,11 +65,11 @@ pub use trial::{
 pub use gravity::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 
 /// Reported alongside every computed quantity so a number never travels without the
-/// choices that produced it. The absence of anything like this across the seven open
-/// force-plate tools is what the registry exists to fix.
-/// Field order is the wire order every surface is compared against, so it is a contract
-/// rather than a local preference. The first seven are the shared schema; the rest follow it
-/// and default when absent, so a record written against the shared schema alone still reads.
+/// choices that produced it.
+///
+/// Field order is the wire order every surface is compared against. The first seven are the
+/// shared schema; the rest follow it and default when absent, so a record written against the
+/// shared schema alone still reads.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Provenance {
     pub method_id: String,
@@ -94,8 +94,8 @@ pub struct Provenance {
     /// what produced it.
     pub depends_on: Vec<Provenance>,
     /// Where the method itself came from: chosen by the caller, or accepted from the
-    /// registry's recommendation. A bulk acceptance and a considered pick used to produce
-    /// byte-identical records.
+    /// registry's recommendation. A bulk acceptance and a considered pick are two records,
+    /// not one.
     #[serde(default = "method_source_default")]
     pub method_source: crate::provenance::ParameterSource,
     /// Names the request carried that this rule does not read, reported rather than dropped.
@@ -159,8 +159,8 @@ impl Provenance {
         }
     }
 
-    /// The values this rule read, as the pairs the older shape carried. Reading them back
-    /// out drops the source, which is why it is a named call and not the field itself.
+    /// The values this rule read, as name and value pairs. Reading them back out drops the
+    /// source, which is why it is a named call and not the field itself.
     pub fn bound_parameters(&self) -> Vec<(String, f64)> {
         self.parameters
             .iter()

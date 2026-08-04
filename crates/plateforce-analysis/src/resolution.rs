@@ -1,7 +1,7 @@
 //! What one rule read while it ran, and where each value came from.
 //!
 //! Built from the request instead, a fingerprint omits every value the rule chose for
-//! itself, which is the silent default this project exists to document.
+//! itself, which is a silent default.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -203,8 +203,7 @@ impl<'a> Resolution<'a> {
 
     /// An enumerated choice, refused rather than mapped onto a default when the value is
     /// not one this rule takes. Substituting quietly would record the word the caller wrote
-    /// beside a number a different rule produced, which is the defect this project
-    /// documents wearing our own badge.
+    /// beside a number a different rule produced.
     pub(crate) fn enumerated<T: Copy>(
         &mut self,
         name: &str,
@@ -269,9 +268,6 @@ impl<'a> Resolution<'a> {
     /// Some operators are not free on every rule that composes them. `onset.op.search_upper_bound`
     /// publishes four landmarks to search back from and `onset.threshold.last_within_band`
     /// implements one, because searching back from a different landmark is a different rule.
-    /// Such a value was previously written straight to the record, which does not mark the name
-    /// consulted, so a caller stating one of the other three had it dropped and the rule ran its
-    /// own. The name came back in `unread_parameters`, which is a report rather than an answer.
     ///
     /// Refused rather than dropped, and the refusal names the operator that owns the choice
     /// rather than the rule that composed it, because the accepted values are the operator's.
@@ -281,11 +277,9 @@ impl<'a> Resolution<'a> {
     /// this vocabulary's word for the rule's own value rather than the reader's.
     ///
     /// `Stated` would be the other reading, that picking the rule picks the value as surely as
-    /// typing it. It is defensible in the abstract and this codebase has already ruled against
-    /// it: `a_value_stated_for_a_folder_is_recorded_as_stated` asserts that a run with no
-    /// caller input contains no `stated` record at all, on the ground that without the flag
-    /// every value is the rule's own. Recording an entailed value as `Stated` puts the reader's
-    /// signature on 14 values in a record they did not touch.
+    /// typing it. `a_value_stated_for_a_folder_is_recorded_as_stated` holds the opposite: a run
+    /// with no caller input contains no `stated` record at all. Recording an entailed value as
+    /// `Stated` puts the reader's signature on 14 values in a record they did not touch.
     pub(crate) fn entailed(
         &mut self,
         operator_id: &str,
@@ -410,9 +404,7 @@ pub(crate) fn dispersion_label(dispersion: DispersionEstimator) -> &'static str 
 ///
 /// The sentence goes to `warnings` for somebody reading the trace. Both variants carry the
 /// fields a caller branches on, so no rule reaches a surface with a sentence and nothing
-/// else. A `Stated(String)` variant used to sit beside these two, and every refusal that
-/// took it was published under one code chosen at the boundary, which was the wrong code
-/// for every producer of it.
+/// else.
 #[derive(Debug, Clone)]
 pub enum RuleRefusal {
     /// The core's own error, which already carries its code and its fields.
@@ -452,9 +444,7 @@ impl From<RuleRefusal> for plateforce_core::Refusal {
 /// One rule that declined, with everything the rule itself could not know: which construct
 /// it was filling and which id a caller reached it by.
 ///
-/// Both were previously recovered at each surface by matching the start of a method id
-/// against a table of prefixes, whose last arm answered `takeoff.` for every name it did
-/// not recognise. Two surfaces carried a copy of that table.
+/// Carried on the rule rather than recovered at each surface from the shape of the method id.
 #[derive(Debug, Clone)]
 pub struct DeclinedRule {
     /// Named as the registry names constructs, so a caller can look it up.
@@ -466,10 +456,8 @@ pub struct DeclinedRule {
 /// On the wire it is the record a caller branches on, which is what every other surface
 /// already builds from it.
 ///
-/// Written here rather than left to each reader, because this used to be skipped entirely:
-/// a rule that declined reached R and the browser as a sentence in `warnings` and nothing
-/// else, so thirteen condition classes the R package publishes could not be raised on any
-/// landmark rule. A refusal that cannot cross is a result without its method.
+/// Written here rather than left to each reader: a refusal that cannot cross is a result
+/// without its method.
 impl Serialize for DeclinedRule {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         crate::document::refusal_from_rule(self).serialize(serializer)
@@ -493,7 +481,7 @@ pub struct BoundMethod {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preset: Option<PresetAttribution>,
     /// Whether the rule itself was accepted from the registry's recommendation rather than
-    /// picked. A bulk acceptance and a considered pick used to produce identical records.
+    /// picked. A bulk acceptance and a considered pick are two records, not one.
     #[serde(default)]
     pub method_from_recommendation: bool,
     /// The names in `bound_parameters` the rule read as quantities, with their values.

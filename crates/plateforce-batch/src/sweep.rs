@@ -1,10 +1,8 @@
 //! Which step of the analysis a comparison varies.
 //!
-//! A folder comparison used to vary movement onset and nothing else, so the surface that runs
-//! two hundred trials could sweep one construct of the thirteen the binding table carries, and
-//! it happened to be the one the founding measurement uses. The axis is read off the rules the
-//! caller named instead: every method id in this build is filed under exactly one construct, so
-//! naming a rule to compare against already names the step being compared.
+//! The axis is read off the rules the caller named: every method id in this build is filed
+//! under exactly one construct, so naming a rule to compare against already names the step
+//! being compared.
 
 use plateforce_analysis::AnalysisRequest;
 use plateforce_core::Refusal;

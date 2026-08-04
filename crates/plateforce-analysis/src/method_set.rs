@@ -151,9 +151,7 @@ impl MethodSet {
     /// not a refusal and the preset is never credited with the choice.
     ///
     /// A bound method the registry carries and no rule here runs refuses, naming the
-    /// method and the step, rather than the registry declining to load. A preset citing a
-    /// rule that has not landed would otherwise freeze every surface behind preset
-    /// maintenance.
+    /// method and the step, rather than the registry declining to load.
     ///
     /// The preset is taken already looked up. The shared refusal has no sentence for an id
     /// that names no preset, and the surface that reads the flag is the one holding the

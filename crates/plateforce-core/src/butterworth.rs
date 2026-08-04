@@ -307,9 +307,8 @@ mod tests {
         }
     }
 
-    /// The order-free correction is the defect this guard exists for, so it is exercised
-    /// rather than described: a fourth-order filter corrected as though it were second
-    /// order passes far more than half power at the cutoff the caller asked for.
+    /// A fourth-order filter corrected as though it were second order passes far more than
+    /// half power at the cutoff the caller asked for.
     #[test]
     fn the_second_order_correction_applied_to_a_fourth_order_filter_misses_the_cutoff() {
         let mistaken_cutoff_hz = 50.0 / dual_pass_cutoff_correction(2, 2);

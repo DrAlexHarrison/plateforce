@@ -318,10 +318,6 @@ fn extract(response: &crate::AnalysisResponse, quantity_key: &str) -> Option<f64
 /// itself says produced it, so a rule declining elsewhere in the analysis is not written
 /// against a number it had no part in. Where nothing on the chain declined this is `None`,
 /// because a cause nobody recorded is not a cause to report.
-///
-/// This field used to carry the first warning of the whole analysis whatever it was about,
-/// and where there was no warning it carried a written sentence naming a crossing that no
-/// rule had looked for.
 fn declined_for(response: &crate::AnalysisResponse, quantity_key: &str) -> Option<Refusal> {
     let chain = response
         .metrics
@@ -413,8 +409,8 @@ fn materialise(
         match (axis.slot.as_str(), parameter.as_str()) {
             // Stated, because naming an axis and the values along it is the caller choosing
             // every one of them. Left as the request's own default the rule that publishes a
-            // gravity would keep publishing it, and the panel would print a spread of zero over
-            // a knob that moved, which is the fault the refusal above exists to prevent.
+            // gravity would keep publishing it, and the panel would print a spread of zero
+            // over a knob that moved.
             ("" | "global", GRAVITY_FIELD) => candidate.state_gravity(Some(value)),
             ("weighing", name) => {
                 candidate
@@ -656,12 +652,8 @@ mod tests {
     /// time is bounded by takeoff and the return to the plate. A field filled from whatever
     /// went wrong anywhere would put the onset refusal on both.
     ///
-    /// Flight time used to come back empty here too, because it read the three landmarks as a
-    /// bundle that is only assembled when onset is placed, and the pair was two empty numbers
-    /// with one reason between them. It now answers, which is the sharper statement of the
-    /// same property and the reason this reads the chains rather than only the reasons: a
-    /// quantity that has a value cannot carry a reason whatever the code does, so an
-    /// assertion resting on its emptiness would have stopped being able to fail.
+    /// Flight time answers on that run, so the assertion rests on a quantity that carries a
+    /// value rather than on one whose emptiness would satisfy it either way.
     #[test]
     fn a_reason_is_only_written_against_a_quantity_the_declining_rule_produced() {
         let sweep = |quantity: &str| {

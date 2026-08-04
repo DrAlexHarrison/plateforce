@@ -3,7 +3,7 @@
 //! Every surface serialises this and its answer is recorded under its own name in one
 //! committed file. Two of the arrays are therefore not generated here: a surface passes the
 //! operations it actually dispatches and the container formats it can actually write, because
-//! those are facts about that surface and they differ between surfaces by design. The rest
+//! those are facts about that surface and they differ between surfaces. The rest
 //! come from tables every surface links, so a difference in one of them is a stale build
 //! rather than a capability.
 //!
@@ -105,9 +105,8 @@ pub fn capability(operations: &[Operation], output_formats: &[OutputFormat]) -> 
     output_formats.sort();
     output_formats.dedup();
 
-    // Generated from the enum rather than a list beside it. The vocabulary has gone from
-    // nine values to fourteen while this file was being written, and every one arrived here
-    // without an edit.
+    // Generated from the enum rather than a list beside it, so a code added to the vocabulary
+    // arrives here without an edit.
     let mut refusal_codes: Vec<RefusalRecord> = RefusalCode::ALL
         .iter()
         .map(|code| RefusalRecord {

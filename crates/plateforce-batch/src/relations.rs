@@ -276,9 +276,8 @@ pub struct RunRow {
     pub refusal_count: usize,
     pub acquisition_complete_count: usize,
     /// What the plate and its settings were, as the run stated them. Carried whole rather
-    /// than as a count, because `run_fingerprint` is taken over this row and the DECREE is
-    /// that a fingerprint carries an acquisition block: a row holding only the count would
-    /// fingerprint two runs off differently configured plates identically.
+    /// than as a count, because `run_fingerprint` is taken over this row: a row holding only
+    /// the count would fingerprint two runs off differently configured plates identically.
     ///
     /// Stated once for the folder, since a trace of forces carries none of it. The members
     /// still missing are `Acquisition::missing`, so a reader is told what to go and find

@@ -33,11 +33,7 @@ pub enum TrialError {
     },
 }
 
-/// The one mapping from the older error onto the refusal every surface reads.
-///
-/// Written as a conversion rather than a replacement so each caller can move when it suits
-/// it. Five crates read `TrialError`, and one commit retiring it across all of them would
-/// have to land in every workstream at once.
+/// The one mapping from `TrialError` onto the refusal every surface reads.
 impl From<TrialError> for crate::Refusal {
     fn from(error: TrialError) -> Self {
         match error {
@@ -225,18 +221,14 @@ pub struct ReportedSamples {
 }
 
 impl ReportedSamples {
-    /// The one number the four surfaces used to publish, kept so a caller that wants it does
-    /// not add the two up itself and so the two can be checked against it.
+    /// The two counts together, so a caller that wants the total does not add them up itself
+    /// and the split can be checked against it.
     pub fn total(&self) -> usize {
         self.matched_the_convention + self.carried_no_number
     }
 }
 
 /// Count the two reasons a sample is reported, apart.
-///
-/// The one home for that policy. It was spelled in four places, three of which reported the
-/// total under a name that reads like one fact, and the fourth of which was called by nobody
-/// outside its own surface.
 ///
 /// A value that is not finite is counted as carrying no number and nowhere else, so the two
 /// counts are disjoint and add up to the length of what `partition_sentinels` drops under the
@@ -258,7 +250,7 @@ mod tests {
     use super::*;
 
     /// Every variant reaches a refusal carrying the same fields, and four of the five carry
-    /// the same sentence. A caller that migrates sees no copy change on those four.
+    /// the same sentence.
     #[test]
     fn every_trial_error_becomes_a_refusal_that_says_the_same_thing() {
         use crate::{Refusal, RefusalCode};
@@ -389,8 +381,7 @@ mod tests {
     ///
     /// A count that double-counted a non-finite sample matching the convention, or missed
     /// one, would still look like a plausible pair of numbers beside a trace. Held against
-    /// `partition_sentinels`, which is the total the four surfaces published before this
-    /// function existed, so the split cannot silently stop adding up to it.
+    /// `partition_sentinels`, so the split cannot silently stop adding up to its total.
     #[test]
     fn the_two_counts_add_up_to_what_the_partition_drops() {
         for convention in [

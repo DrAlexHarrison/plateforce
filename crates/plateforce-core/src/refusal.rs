@@ -19,9 +19,8 @@ macro_rules! refusal_codes {
         }
 
         impl RefusalCode {
-            /// Every code this build can emit. Generated beside the enum rather than typed,
-            /// because a manifest asserting a vocabulary the binary has outgrown is the
-            /// defect the manifest exists to prevent.
+            /// Every code this build can emit, generated beside the enum so a manifest
+            /// cannot assert a vocabulary the binary has outgrown.
             pub const ALL: &'static [RefusalCode] = &[ $( RefusalCode::$variant, )+ ];
         }
     };
@@ -35,8 +34,7 @@ refusal_codes! {
     ParameterNotFinite,
     /// A value outside what its parameter takes, reported with the value and what is taken.
     /// Distinct from `ParameterNotFinite`, where the number is not a number, and from
-    /// `UnknownParameter`, where the name rather than the value is the fault: here the rule
-    /// understands the request and will not do it.
+    /// `UnknownParameter`, where the name rather than the value is the fault.
     ValueNotAccepted,
     TraceTooShort,
     ColumnNotFound,
@@ -58,8 +56,7 @@ refusal_codes! {
     /// The plate reported a reading its own levelling makes uninterpretable.
     PlateNotLevel,
     /// A document declaring a schema this build does not implement. Distinct from every
-    /// other code here: the remedy is a newer plateforce, not a different request, and
-    /// there is nothing the caller could have asked for instead.
+    /// other code here: the remedy is a newer plateforce, not a different request.
     SchemaUnsupported,
     /// Values a comparison paired that did not come from the same repetition. The trace is
     /// sound and the pairing is not, so a caller that reads this repairs the pairing rather
@@ -197,18 +194,16 @@ pub struct Refusal {
     /// step.
     ///
     /// The registry declares these and declares no `weighing` or `onset`, so a caller
-    /// handed one of those has a word it cannot look up. The two vocabularies also collide
-    /// on `takeoff`, which is why the string alone had to be pinned to one of them.
+    /// handed one of those has a word it cannot look up. The two vocabularies collide on
+    /// `takeoff`, so the string is pinned to the registry's.
     pub slot: Option<String>,
     pub parameter: Option<String>,
     pub value: Option<f64>,
     /// The declined value where the parameter's values are names rather than numbers, in
     /// the registry's own spelling for them.
     ///
-    /// A parameter whose values are named alternatives has no number to put in `value`, so
-    /// before this field the name reached a caller only inside the sentence, which is prose
-    /// a caller has to parse back apart. The registry files these as `NamedValue.key`, and
-    /// this is that key.
+    /// A parameter whose values are named alternatives has no number to put in `value`. The
+    /// registry files these as `NamedValue.key`, and this is that key.
     #[serde(default)]
     pub named_value: Option<String>,
     /// Everything else the rule read while declining. Ordered, so the sentence is stable
@@ -273,11 +268,8 @@ impl Refusal {
     }
 
     /// Restamps the id the refusal is reported under, and regenerates the sentence so the
-    /// two cannot disagree.
-    ///
-    /// One rule reached under two ids used to succeed under the id that resolves and
-    /// decline under one that does not, so which name a caller saw depended on whether the
-    /// rule worked.
+    /// two cannot disagree. One rule reached under two ids reports the same name whether it
+    /// works or declines.
     pub fn under(mut self, method_id: impl Into<String>) -> Self {
         self.method_id = method_id.into();
         self.regenerate();
@@ -419,9 +411,8 @@ impl Refusal {
     /// A name the parameter will not take, with the names it does take.
     ///
     /// The same code as the numeric form, because the fault is the same one: the rule
-    /// understood the request and will not do it. What differs is only that the value is a
-    /// name, so it arrives in `named_value` and a caller reads it from there rather than out
-    /// of the sentence.
+    /// understood the request and will not do it. The value being a name, it arrives in
+    /// `named_value` rather than in `value`.
     pub fn name_not_accepted(
         method_id: impl Into<String>,
         parameter: impl Into<String>,
@@ -499,8 +490,7 @@ impl Refusal {
     /// A document named a construct this build runs no step for.
     ///
     /// Shares `MethodNotImplemented` rather than taking a code of its own: the class is the
-    /// same, a request asking for something not on offer, and a code minted for this would
-    /// reach a manifest and an R condition class before the slot map retires the case.
+    /// same, a request asking for something not on offer.
     pub fn construct_not_on_the_path(
         construct_id: impl Into<String>,
         constructs_this_build_runs: Vec<String>,
@@ -517,13 +507,11 @@ impl Refusal {
 
     /// A named published pipeline this registry does not carry, with the ones it does.
     ///
-    /// Shares `MethodNotImplemented` for the reason `construct_not_on_the_path` does: the
-    /// class is one request asking for something not on offer, and a code minted here would
-    /// reach every surface's manifest and the R condition vocabulary for a single case.
+    /// Shares `MethodNotImplemented` for the reason `construct_not_on_the_path` does.
     ///
     /// The count rides in `detail` so the sentence reports the population with its
-    /// denominator, and so this case is told apart from the two others under the same code
-    /// by a field rather than by reading the sentence back apart.
+    /// denominator, and so a caller tells this case from the two others under the same code
+    /// by a field rather than by the sentence.
     pub fn preset_not_shipped(preset_id: impl Into<String>, shipped: Vec<String>) -> Self {
         Self::build(
             RefusalCode::MethodNotImplemented,
@@ -552,13 +540,13 @@ impl Refusal {
 
     /// A sweep axis the request it was asked of does not carry.
     ///
-    /// The same code as a rule handed a name it does not read, because the fault is the same
-    /// one: a name was passed, nothing reads it, and the names that are read are listed.
-    /// `MethodNotImplemented` would say the build runs no such step, which for a construct
-    /// the build runs a rule for and this request did not name is false.
+    /// The same code as a rule handed a name it does not read: a name was passed, nothing
+    /// reads it, and the names that are read are listed. `MethodNotImplemented` would say
+    /// the build runs no such step, which is false for a construct the build runs a rule for
+    /// and this request did not name.
     ///
-    /// `axes_offered` is the denominator the sentence quotes, and it is what tells this form
-    /// apart from a rule declining on a parameter name.
+    /// `axes_offered` is the denominator the sentence quotes, and it tells this form apart
+    /// from a rule declining on a parameter name.
     pub fn axis_not_in_this_request(axis: impl Into<String>, offered: Vec<String>) -> Self {
         Self::build(
             RefusalCode::UnknownParameter,
@@ -621,7 +609,6 @@ impl Refusal {
         )
     }
 
-    /// A parameter the registry marks required with no default, left unstated.
     /// Values a comparison paired that did not come from the same repetition, named so a
     /// caller can see which pairing to repair.
     pub fn observations_not_paired(method_id: impl Into<String>, pairs: Vec<String>) -> Self {
@@ -668,6 +655,7 @@ impl Refusal {
         )
     }
 
+    /// A parameter the registry marks required with no default, left unstated.
     pub fn required_parameter_unstated(
         method_id: impl Into<String>,
         parameter: impl Into<String>,
@@ -698,7 +686,7 @@ impl Refusal {
     }
 
     /// More than one column looks like a force channel. `available` names what would resolve
-    /// it, because a refusal states an action rather than an absence.
+    /// it.
     pub fn ambiguous_force_channels(force_like_columns: usize, resolves: Vec<String>) -> Self {
         Self::build(
             RefusalCode::AmbiguousForceChannels,
@@ -751,10 +739,8 @@ fn sentence(
         _ => method_id.to_string(),
     };
     match code {
-        // A rule that read candidates and rejected all of them names the counts it read.
-        // The bounded search that finds nothing at all has no candidates to count, so the
-        // two forms are told apart by the detail rather than by a code of their own: to a
-        // caller both are this rule placing nothing on this recording.
+        // A bounded search that finds nothing has no candidates to count, so the two forms
+        // under this code are told apart by the detail.
         RefusalCode::NoCrossing if detail.contains_key("candidates_read") => {
             let read: Vec<String> = detail
                 .iter()
@@ -801,7 +787,7 @@ fn sentence(
             named("available_seconds")
         ),
         RefusalCode::TraceTooShort if detail.contains_key("span_start_sample") => format!(
-            "{subject} was given samples {} to {} to work over, which selects none of the recording",
+            "{subject} was given samples {} to {}, which selects none of the recording",
             named("span_start_sample"),
             named("span_end_sample")
         ),
@@ -852,15 +838,14 @@ fn sentence(
         ),
         RefusalCode::MethodNotImplemented => match slot {
             Some(step) => format!(
-                "'{method_id}' was passed as the {step} method, and the rules available for that step are {available:?}"
+                "'{method_id}' was passed as the {step} method, and the rules for that step are {available:?}"
             ),
             None => format!(
                 "'{method_id}' is not a step this build runs, and the steps it runs are {available:?}"
             ),
         },
-        // A sweep axis is a name nothing on this request reads, which is the same fault as a
-        // rule handed a name it does not read. What differs is the subject: no rule read it,
-        // so the sentence names the request's axes instead of a rule's parameters.
+        // No rule read the axis, so the sentence names the request's axes rather than a
+        // rule's parameters.
         RefusalCode::UnknownParameter if detail.contains_key("axes_offered") => format!(
             "'{}' was passed as a sweep axis, and the {} axes this sweep can vary are {available:?}",
             parameter.unwrap_or("that name"),
@@ -919,8 +904,7 @@ mod tests {
     use super::*;
 
     /// What a refusal costs to carry, printed rather than asserted against a figure that
-    /// would go stale the next time a field is added. Two comments in this tree quoted this
-    /// number from memory and gave two different answers.
+    /// would go stale the next time a field is added.
     #[test]
     fn a_refusal_reports_what_it_costs_to_carry() {
         println!(
@@ -994,7 +978,7 @@ mod tests {
             RefusalCode::ParameterNotFinite
         );
         // A trace failure reached through a read is the same code as the trace failure
-        // itself, which is the whole point of the conversion living in one place.
+        // itself.
         assert_eq!(
             RefusalCode::from(&ReadError::Trace(TrialError::Empty)),
             RefusalCode::from(&TrialError::Empty)
@@ -1227,8 +1211,7 @@ mod tests {
     }
 
     /// A parameter whose values are names has no number to decline on, so the name it
-    /// declined has to be a field. Before it was, a caller could reach the name only by
-    /// parsing the sentence, which is the prose channel this type exists to replace.
+    /// declined is a field rather than prose inside the sentence.
     #[test]
     fn a_name_a_parameter_will_not_take_arrives_as_a_field() {
         let refused = Refusal::name_not_accepted(

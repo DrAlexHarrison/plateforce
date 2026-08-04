@@ -2,9 +2,7 @@
 //!
 //! The shorter rendering hides a column. It never drops a record: `provenance` is written in
 //! both and `results.provenance_id` is present in both, so what differs is whether the table
-//! view joins the chain into the display. A rendering that stopped recording would invert the
-//! finding it exists to serve, which is that the undergraduate needs every choice recorded
-//! more visibly than the graduate, not less.
+//! view joins the chain into the display.
 
 use crate::engine::BatchResult;
 use crate::relations::{AggregateRow, SignalRow};

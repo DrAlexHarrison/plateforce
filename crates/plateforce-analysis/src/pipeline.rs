@@ -153,11 +153,10 @@ pub fn run(
 
     if let (Some(onset), Some(takeoff_at)) = (onset_index, takeoff_index) {
         if onset >= takeoff_at {
-            // Named to the numbers it reaches. It used to say every interval below was
-            // meaningless, which was true while every interval was assembled from all three
-            // landmarks at once. Flight time and the height taken from it are measured from
-            // takeoff to the return to the plate and are unaffected by where onset landed, so
-            // a warning covering them would send a reader to discard a number that is sound.
+            // Named to the numbers it reaches. Flight time and the height taken from it are
+            // measured from takeoff to the return to the plate and are unaffected by where
+            // onset landed, so a warning covering them would send a reader to discard a
+            // number that is sound.
             warnings.push(
                 "onset is at or after takeoff, so every number bounded by onset is meaningless"
                     .into(),
@@ -190,8 +189,7 @@ pub fn run(
     // What each rule read is the rule's own answer, from `landmarks_read` beside its dispatch,
     // rather than this function's guess. Nine of the ten landmark rules read the weighing
     // epoch and one does not, one of the five onset rules reads the takeoff and four do not,
-    // so a single edge per construct stated here would have named rules that did not
-    // contribute, which is the fault this shape exists to end rather than to relocate.
+    // so a single edge per construct stated here would name rules that did not contribute.
     //
     // A landmark a caller dragged rests on nothing, because no value any rule read produced
     // it. The rule's own record still names the marker, so the chain says a hand placed it.
@@ -269,10 +267,8 @@ pub fn run(
     // ordering fact nobody stated.
     let bound_by_request = keys_the_request_bound(request);
 
-    // Each of these is run rather than reproduced. The copy that used to sit in this function
-    // was labelled with the entry's id while the entry itself never ran, so nobody could check
-    // the arithmetic against the rule the number named, and on the flight-time height the two
-    // disagreed by the ratio of the gravities they took.
+    // Each of these is run rather than reproduced, so the arithmetic behind a number is the
+    // arithmetic of the rule the number names.
     //
     // Nobody chose these rules, so each runs as the registry's default for its quantities and
     // says so through the record it leaves: the values it read are marked assumed unless the
@@ -589,10 +585,8 @@ fn number_and_chain(
 /// A quantity the spine reports whose arithmetic is a registry entry, produced by running that
 /// entry rather than by repeating it in the spine.
 ///
-/// The spine used to compute the flight-time height itself and label it with the entry's id.
-/// The entry publishes a gravity and declares 9.81; the spine's copy took the request's
-/// constant. So one id returned two numbers on one trial, differing only in whether the caller
-/// had named the rule, and neither result recorded which gravity produced it.
+/// The entry publishes its own gravity and declares 9.81, so running it is what keeps one id
+/// from returning two numbers on one trial.
 ///
 /// Nobody named the rule here, so it runs on nothing the caller stated and the record says so
 /// by itself: every value it read is marked assumed unless the request chose it elsewhere. A
@@ -646,8 +640,7 @@ fn run_spine_default(
     ));
     // A rule the spine ran for itself declines out loud, on the same terms as one the caller
     // named. Five of the six trials in the conformance corpus report no flight time, because
-    // the recording never returns to the plate after takeoff, and before this the result
-    // carried an empty height and said nothing at all about why.
+    // the recording never returns to the plate after takeoff.
     //
     // The exception is a recording no landmark was placed on. There the rules that failed to
     // place them have already recorded why under their own names, or the spine has warned that
@@ -1320,9 +1313,9 @@ mod tests {
     /// The picker cannot reach an id with no rule behind it, and the module surface can. A
     /// rule run under somebody else's id would put that author's citation on the answer.
     ///
-    /// The step is named as the registry names constructs. It used to be named with the
-    /// binding table's own word, and `weighing` and `onset` resolve to nothing in the
-    /// registry, so a caller reading the refusal held a name it could not look up.
+    /// The step is named as the registry names constructs. `weighing` and `onset` are the
+    /// binding table's own words and resolve to nothing in the registry, so a caller reading
+    /// one of those in a refusal holds a name it cannot look up.
     #[test]
     fn an_id_with_no_rule_behind_it_is_refused_rather_than_run_as_something_else() {
         let trial = synthetic();

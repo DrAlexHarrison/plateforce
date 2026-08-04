@@ -38,10 +38,8 @@ pub enum ReadError {
 
 /// The one mapping from a read failure onto the refusal every surface reads.
 ///
-/// Written here beside the error, as `TrialError`'s is written beside that one. Before it
-/// existed each surface answered a failed read for itself: the terminal published a sentence
-/// with no code at all, and the R package minted `file_not_read` and `file_unreadable` for
-/// one failure, neither of them in the vocabulary its own manifest publishes.
+/// Written here beside the error, as `TrialError`'s is written beside that one, so no surface
+/// answers a failed read for itself.
 impl From<ReadError> for crate::Refusal {
     fn from(error: ReadError) -> Self {
         match error {
@@ -107,8 +105,7 @@ pub struct ColumnReadReport {
 ///
 /// Each field is trimmed because exports pad their columns to a fixed width, and each
 /// line is trimmed because the lines separating blocks can carry spaces rather than being
-/// empty. A trailing carriage return is removed by either one, so it survives the loss of
-/// the other and is not what holds this together.
+/// empty. A trailing carriage return is removed by either one.
 pub fn read_delimited_column(
     text: &str,
     delimiter: char,
@@ -508,12 +505,9 @@ fn even_spacing(values: &[f64]) -> Option<f64> {
     consistent.then_some(first)
 }
 
-/// The force channel is the one that moves most while sitting on a positive baseline. A
-/// heuristic is not a measurement, so the reason travels with the suggestion and the
-/// interface offers every column.
 /// Columns that look like a vertical force channel: a positive baseline in the newton range
-/// that varies. This is the reader's existing judgement rather than a second inference, and
-/// it is what both the suggestion and the dual-plate refusal are taken over.
+/// that varies. Both the suggestion and the dual-plate refusal are taken over this one
+/// judgement rather than over two.
 fn force_like_columns(
     summaries: &[ColumnSummary],
     time_column: Option<usize>,
@@ -525,6 +519,9 @@ fn force_like_columns(
         .collect()
 }
 
+/// The force channel is the one that moves most while sitting on a positive baseline. A
+/// heuristic is not a measurement, so the reason travels with the suggestion and the
+/// interface offers every column.
 fn suggest_force_column(
     summaries: &[ColumnSummary],
     time_column: Option<usize>,
@@ -654,14 +651,9 @@ impl ForceFile {
     /// Whether a quantity taken over the whole system can be read from one column of this
     /// file, or a refusal naming both columns and what would resolve it.
     ///
-    /// `MISSION.md` P5 asks every real export for a correct answer or a refusal naming the
-    /// method and the parameter, never a confident wrong number. A dual-plate export read as
-    /// one plate is the confident wrong number: the system weight, the net impulse and the
-    /// jump height all come back for one leg, and nothing records that a second force
-    /// channel sat beside it.
-    ///
-    /// This is not dual-plate support and does not become it. It is a file declining to be
-    /// half-read.
+    /// A dual-plate export read as one plate returns the system weight, the net impulse and
+    /// the jump height for one leg, with nothing on the record to say a second force channel
+    /// sat beside it.
     pub fn check_system_quantity_is_readable(
         &self,
         declaration: PlateDeclaration,
