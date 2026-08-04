@@ -82,7 +82,10 @@ pub fn run(
             // reads, so the two commands cannot answer it differently.
             let reported = plateforce_analysis::document::SpreadDocument::of(
                 env!("CARGO_PKG_VERSION"),
-                &crate::analyse::registry_stamp(&prepared.registry, &args.analysis),
+                &crate::analyse::registry_stamp(
+                    &prepared.registry,
+                    args.analysis.registry_version.clone(),
+                ),
                 response,
             );
             let document = match format {

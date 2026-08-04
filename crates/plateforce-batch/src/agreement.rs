@@ -181,7 +181,28 @@ pub struct BatchCompareResult {
     /// The step the run swept, carried so the record says what was compared rather than only
     /// which rules were named.
     pub slot: String,
+    /// The registry construct that step fills. The registry declares `movement_onset` and
+    /// `system_weight` and declares no `onset` or `weighing`, so the slot word alone hands a
+    /// reader a name they cannot look up.
+    pub construct: String,
     pub method_ids: Vec<String>,
+    /// Rules this run bound that the sweep did not vary, each with the rule it was pinned to.
+    ///
+    /// Taken from the sweep's own account of what it held rather than derived a second time
+    /// here. Without it a figure taken over one step reads as a figure taken over the run.
+    pub held_fixed: Vec<plateforce_analysis::spread::HeldRule>,
+    /// What the caller said about the capture, and which saved plate they were told it by.
+    pub capture: Option<plateforce_core::Capture>,
+    /// How the traces were read, so a reader of the record can read them the same way. The
+    /// sample rate above all: these exports carry none, and reading 1200 Hz as 1000 moves
+    /// every velocity, displacement, impulse and rate of force development by 20 percent.
+    pub format: crate::identity::SourceFormat,
+    pub trial_identity: String,
+    /// Samples that read as the declared convention writes a measurement nobody took, and
+    /// samples that carried no number at all. Two states, counted apart, because a run that
+    /// treated one as the other computed system weight from something that is not force.
+    pub samples_matching_the_convention: usize,
+    pub samples_carrying_no_number: usize,
     /// Trials that produced a value for every method, which is the denominator of any
     /// paired statistic taken over this run.
     pub complete_pairs: usize,
@@ -378,10 +399,13 @@ impl LimitsRequest {
 }
 
 /// A compare run: one trace, several methods, paired values out.
+///
+/// The axis arrives whole rather than as the word the sweep is keyed by and the rules beside
+/// it. Taken apart, the construct the axis also carries has no field to arrive on and every
+/// caller dropped it, so the record named the step by a word the registry does not declare.
 pub struct BatchCompareRequest {
     pub analysis: BatchRequest,
-    pub slot: String,
-    pub method_ids: Vec<String>,
+    pub axis: crate::sweep::Axis,
     pub quantity: String,
 }
 
@@ -416,6 +440,9 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
     let mut paired = Vec::new();
     let mut refusals = Vec::new();
     let mut trial_count = 0usize;
+    let mut held_fixed = Vec::new();
+    let mut matched_the_convention_total = 0usize;
+    let mut carried_no_number_total = 0usize;
 
     // A file the identity could not name is refused by name here as it is under `analyse`,
     // because a sweep that dropped it would answer how far two rules disagree over a
@@ -439,14 +466,21 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
             .unwrap_or_default();
 
         let trial = match entry.source.read(&set.format) {
-            Ok((trial, _, _)) => trial,
+            Ok((trial, _, reported)) => {
+                // The reader's own account of what it treated as missing, totalled as the
+                // analysing run totals it. Discarded here, the record said nothing about a
+                // marker read as force, which moves system weight and everything after it.
+                matched_the_convention_total += reported.matched_the_convention;
+                carried_no_number_total += reported.carried_no_number;
+                trial
+            }
             Err(error) => {
                 refusals.push(RefusalRow {
                     trial_id: trial_id.clone(),
                     ordinal: 0,
                     code: "column_not_found".to_string(),
                     method_id: String::new(),
-                    slot: request.slot.clone(),
+                    slot: request.axis.slot.clone(),
                     parameter: String::new(),
                     value: String::new(),
                     detail: String::new(),
@@ -460,17 +494,23 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
         let sweep = SpreadRequest {
             base: request.analysis.analysis.clone(),
             axes: vec![Axis {
-                slot: request.slot.clone(),
+                slot: request.axis.slot.clone(),
                 parameter: None,
                 values: Vec::new(),
-                method_ids: request.method_ids.clone(),
+                method_ids: request.axis.method_ids.clone(),
             }],
             quantity_key: request.quantity.clone(),
-            maximum_combinations: request.method_ids.len().max(1),
+            maximum_combinations: request.axis.method_ids.len().max(1),
         };
 
         match plateforce_analysis::spread::run(&trial, &sweep) {
             Ok(response) => {
+                // The sweep's own statement of what it did not vary, taken from it rather than
+                // worked out again here. The base request and the axis are the same on every
+                // trial, so the first answer is the run's answer.
+                if held_fixed.is_empty() {
+                    held_fixed = response.held_fixed;
+                }
                 for variant in response.variants {
                     paired.push(PairedRow {
                         trial_id: trial_id.clone(),
@@ -535,14 +575,21 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
         });
     }
 
-    let complete_pairs = complete_pairs(&paired, request.method_ids.len());
+    let complete_pairs = complete_pairs(&paired, request.axis.method_ids.len());
     BatchCompareResult {
         paired,
         provenance: chains.into_values().flatten().collect(),
         refusals,
         quantity: request.quantity.clone(),
-        slot: request.slot.clone(),
-        method_ids: request.method_ids.clone(),
+        slot: request.axis.slot.clone(),
+        construct: request.axis.construct.clone(),
+        method_ids: request.axis.method_ids.clone(),
+        held_fixed,
+        capture: request.analysis.capture.clone(),
+        format: set.format.clone(),
+        trial_identity: set.identity.describe(),
+        samples_matching_the_convention: matched_the_convention_total,
+        samples_carrying_no_number: carried_no_number_total,
         complete_pairs,
         trial_count,
         files_found: set.files_found,
@@ -751,17 +798,49 @@ fn label(dispersion: DispersionEstimator) -> &'static str {
 /// is taken over reaches the same function rather than writing a second one.
 pub use plateforce_core::agreement::coefficient_of_variation as subject_coefficient_of_variation;
 
-/// The record a compare run carries: what it ran over, and what identifies it.
+/// The record a compare run carries: what it ran over, what it varied, and what identifies it.
+///
+/// Every fact a reader would otherwise have to fetch from somewhere else is here as the thing
+/// itself. The digests identify the run; they do not describe it, and a reader holding a
+/// digest and no block cannot say what plate the numbers came off or at what rate they were
+/// sampled.
 #[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize)]
 pub struct CompareRunRow {
     pub plateforce_version: String,
-    pub registry_digest: String,
+    /// The revision the caller pinned, and null when they pinned none. Null rather than
+    /// absent, as every other record on this surface writes it: a missing key cannot be told
+    /// apart from a surface that never carried the field.
+    pub registry_version: Option<String>,
+    /// The revision the registry names about itself. What the data claims, never what the
+    /// caller cited.
+    pub registry_declared_version: Option<String>,
+    pub registry_digest: Option<String>,
     pub request_digest: String,
     pub quantity: String,
     /// The step the sweep varied. A record that named the rules but not the step they filled
     /// says which rules ran and not what they were compared as.
     pub slot: String,
+    /// The same step as the registry declares it, so a reader looks the construct up rather
+    /// than a word that appears in no registry file.
+    pub construct: String,
     pub method_ids: Vec<String>,
+    /// The rules this run bound and did not vary. The other half of what the figure is over:
+    /// a spread across takeoff rules taken under one onset rule is not a spread across the
+    /// run, and only this says which onset rule stood still.
+    pub held_fixed: Vec<plateforce_analysis::spread::HeldRule>,
+    /// The plate and its settings as the caller stated them, carried whole. A trace of forces
+    /// says none of it, so a comparison that dropped it published numbers no other lab could
+    /// tell apart from their own.
+    pub acquisition: plateforce_core::Acquisition,
+    pub acquisition_complete: bool,
+    /// The saved plate the block was filled from, absent where the caller typed the members
+    /// or stated none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plate_profile: Option<plateforce_core::PlateProfileAttribution>,
+    /// How the traces were read: the delimiter, the column, the rate, the missing-sample
+    /// convention and which names in the folder were trials.
+    pub format: crate::identity::SourceFormat,
+    pub trial_identity: String,
     /// Names carrying a declared trial suffix. The denominator the file counts are over.
     pub files_found: usize,
     /// Names the run met carrying none of them, outside `files_found` rather than inside it.
@@ -775,23 +854,62 @@ pub struct CompareRunRow {
     pub paired_rows: usize,
     pub failed_rows: usize,
     pub distinct_provenance_count: usize,
+    /// Samples read as the declared convention writes a measurement nobody took, and samples
+    /// that carried no number at all, counted apart.
+    pub samples_matching_the_convention: usize,
+    pub samples_carrying_no_number: usize,
+    /// What two labs compare to say they ran the same comparison, and null where the
+    /// acquisition block was not filled. Withheld rather than published incomplete, so a run
+    /// nobody can declare a match for carries nothing that could be mistaken for one.
+    pub run_fingerprint: Option<String>,
 }
 
 impl BatchCompareResult {
     /// The run row, measured from what the run actually produced.
-    pub fn run_row(&self, registry_digest: &str, request_digest: &str) -> CompareRunRow {
+    ///
+    /// The stamp arrives whole for the reason `SpreadDocument::of` takes it whole, and is
+    /// destructured without a rest pattern so a fact added to it is a compile error here
+    /// rather than one this record quietly stops carrying. Three same-typed options passed
+    /// positionally accept a transposed pair and compile, and this pair has been transposed
+    /// before, publishing the registry's own claim under the caller's name.
+    pub fn run_row(
+        &self,
+        registry: &plateforce_core::provenance::RegistryStamp,
+        request_digest: &str,
+    ) -> CompareRunRow {
         let distinct: std::collections::BTreeSet<&str> = self
             .paired
             .iter()
             .map(|row| row.provenance_id.as_str())
             .collect();
-        CompareRunRow {
+        let plateforce_core::provenance::RegistryStamp {
+            version: registry_version,
+            declared_version: registry_declared_version,
+            digest: registry_digest,
+        } = registry.clone();
+        let plateforce_core::Capture {
+            acquisition,
+            plate_profile,
+        } = self.capture.clone().unwrap_or_default();
+
+        let mut row = CompareRunRow {
             plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
-            registry_digest: registry_digest.to_string(),
+            registry_version,
+            registry_declared_version,
+            registry_digest,
             request_digest: request_digest.to_string(),
             quantity: self.quantity.clone(),
             slot: self.slot.clone(),
+            construct: self.construct.clone(),
             method_ids: self.method_ids.clone(),
+            held_fixed: self.held_fixed.clone(),
+            // Read off the block rather than taken from the caller, which is how two surfaces
+            // came to publish a literal false beside a block nobody could give them.
+            acquisition_complete: acquisition.is_complete(),
+            acquisition,
+            plate_profile,
+            format: self.format.clone(),
+            trial_identity: self.trial_identity.clone(),
             files_found: self.files_found,
             files_without_declared_suffix: self.files_without_declared_suffix,
             files_unidentified: self.files_unidentified,
@@ -800,14 +918,27 @@ impl BatchCompareResult {
             paired_rows: self.paired.len(),
             failed_rows: self.paired.iter().filter(|row| row.value.is_none()).count(),
             distinct_provenance_count: distinct.len(),
-        }
+            samples_matching_the_convention: self.samples_matching_the_convention,
+            samples_carrying_no_number: self.samples_carrying_no_number,
+            run_fingerprint: None,
+        };
+        let ids: std::collections::BTreeSet<String> =
+            distinct.iter().map(|id| (*id).to_string()).collect();
+        row.run_fingerprint = crate::fingerprint::compare_run_fingerprint(&row, &ids)
+            .published()
+            .map(str::to_string);
+        row
     }
 
     /// `{"ok": {...}}`, the same envelope shape a single-mode run returns.
-    pub fn to_json(&self, registry_digest: &str, request_digest: &str) -> String {
+    pub fn to_json(
+        &self,
+        registry: &plateforce_core::provenance::RegistryStamp,
+        request_digest: &str,
+    ) -> String {
         serde_json::json!({
             "ok": {
-                "run": self.run_row(registry_digest, request_digest),
+                "run": self.run_row(registry, request_digest),
                 "paired": self.paired,
                 "provenance": self.provenance,
                 "refusals": self.refusals,
@@ -825,7 +956,7 @@ impl BatchCompareResult {
     pub fn write_csv(
         &self,
         directory: &std::path::Path,
-        registry_digest: &str,
+        registry: &plateforce_core::provenance::RegistryStamp,
         request_digest: &str,
     ) -> Result<Vec<std::path::PathBuf>, crate::WriteRefusal> {
         std::fs::create_dir_all(directory).map_err(|source| crate::WriteRefusal::Io {
@@ -841,7 +972,7 @@ impl BatchCompareResult {
             Ok(path)
         };
 
-        let record = serde_json::to_string_pretty(&self.run_row(registry_digest, request_digest))
+        let record = serde_json::to_string_pretty(&self.run_row(registry, request_digest))
             .unwrap_or_default();
         Ok(vec![
             write("compare-run.json", record)?,

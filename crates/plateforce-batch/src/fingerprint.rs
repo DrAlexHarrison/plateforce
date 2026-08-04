@@ -154,13 +154,52 @@ pub fn run_fingerprint(run: &RunRow, provenance_ids: &BTreeSet<String>) -> Finge
     // members are already here; hashing the name a lab files them under would make two labs
     // whose plates are configured identically fail to match over a nickname.
     without_itself.plate_profile = None;
+    fingerprint_of(
+        "run",
+        &without_itself,
+        run.acquisition_complete,
+        provenance_ids,
+    )
+}
+
+/// The same identity for a comparison, which describes what it varied as well as what it read.
+///
+/// A separate kind word, so a comparison and an analysis over one folder under one plate
+/// cannot digest alike. What goes in and what is dropped is the analysing run's rule, applied
+/// once below rather than restated here.
+pub fn compare_run_fingerprint(
+    run: &crate::agreement::CompareRunRow,
+    provenance_ids: &BTreeSet<String>,
+) -> Fingerprint {
+    let mut without_itself = run.clone();
+    without_itself.run_fingerprint = None;
+    without_itself.plate_profile = None;
+    fingerprint_of(
+        "compare_run",
+        &without_itself,
+        run.acquisition_complete,
+        provenance_ids,
+    )
+}
+
+/// A record's identity, and whether it may be published at all.
+///
+/// The one place the completeness rule reaches a digest. `Fingerprint` withholds an incomplete
+/// one, so a record whose acquisition block was never filled carries nothing that could be
+/// compared, and neither kind of run gets its own answer to that.
+fn fingerprint_of<T: serde::Serialize>(
+    kind: &str,
+    row: &T,
+    acquisition_complete: bool,
+    provenance_ids: &BTreeSet<String>,
+) -> Fingerprint {
     let body = json!({
-        "run": serde_json::to_value(&without_itself).unwrap_or(Value::Null),
+        "run": serde_json::to_value(row).unwrap_or(Value::Null),
         "provenance_ids": provenance_ids.iter().collect::<Vec<_>>(),
     });
     Fingerprint {
-        complete: run.acquisition_complete,
-        digest: digest("run", &body),
+        complete: acquisition_complete,
+        digest: digest(kind, &body),
     }
 }
 

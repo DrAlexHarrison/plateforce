@@ -23,16 +23,35 @@ const TWO_ONSET_RULES: [&str; 2] = [
 ];
 
 fn compare_request() -> BatchCompareRequest {
+    let analysis = analysis_request(1.0);
+    // Through the resolver every caller uses, so the construct on the record is the one the
+    // rules are filed under rather than a word written here beside them.
+    let axis = plateforce_batch::axis_over(
+        &analysis,
+        &TWO_ONSET_RULES
+            .iter()
+            .map(|id| (*id).to_string())
+            .collect::<Vec<String>>(),
+    )
+    .expect("two onset rules name the onset step");
     BatchCompareRequest {
-        analysis: BatchRequest::new(analysis_request(1.0)).resolving(&[
+        analysis: BatchRequest::new(analysis).resolving(&[
             "system_weight",
             "movement_onset",
             "takeoff",
         ]),
-        slot: "onset".to_string(),
-        method_ids: TWO_ONSET_RULES.iter().map(|id| id.to_string()).collect(),
+        axis,
         quantity: HEIGHT.to_string(),
     }
+}
+
+/// The stamp a test writes a record under. A digest that reads as a digest, so an assertion
+/// about the shape of the field is about the field rather than about this helper.
+fn a_registry_stamp() -> plateforce_core::provenance::RegistryStamp {
+    plateforce_core::provenance::RegistryStamp::unpinned(
+        Some("2026-07-25".to_string()),
+        Some("content-registry".to_string()),
+    )
 }
 
 #[test]
@@ -354,10 +373,9 @@ fn a_compare_run_leaves_the_machine_with_its_record_beside_it() {
         "the run produced pairs"
     );
 
-    let registry = registry();
     let out = directory.join("out");
     let written = result
-        .write_csv(&out, &registry.content_digest, "content-request")
+        .write_csv(&out, &a_registry_stamp(), "content-request")
         .expect("the directory takes them");
 
     let names: Vec<String> = written
@@ -396,7 +414,7 @@ fn a_compare_run_leaves_the_machine_with_its_record_beside_it() {
     assert_eq!(run.paired_rows, result.paired.len());
     assert_eq!(run.method_ids.len(), 2);
     assert_eq!(run.distinct_provenance_count, 2);
-    assert!(run.registry_digest.starts_with("content-"));
+    assert_eq!(run.registry_digest.as_deref(), Some("content-registry"));
     std::fs::remove_dir_all(&directory).ok();
 }
 
@@ -607,8 +625,12 @@ fn a_compare_run_records_what_it_walked_and_which_step_it_swept() {
         "{line}"
     );
 
-    let record = result.run_row("content-registry", "content-request");
+    let record = result.run_row(&a_registry_stamp(), "content-request");
     assert_eq!(record.slot, "onset", "the record names the step it swept");
+    assert_eq!(
+        record.construct, "movement_onset",
+        "and names it as the registry declares it"
+    );
     assert_eq!(record.files_found, copied);
     assert_eq!(record.files_without_declared_suffix, strays.len());
     assert_eq!(record.trial_count, copied);
