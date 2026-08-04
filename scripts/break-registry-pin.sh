@@ -168,7 +168,6 @@ apply "one surface disagrees about the pin" \
                 .pinned_to(Some("wsrp-a-pin-no-caller-made".to_string())),'
 expect_red "one surface disagrees about the pin" bash scripts/result-parity.sh --check
 restore crates/plateforce-wasm/src/lib.rs
-bash scripts/build-web.sh >/dev/null 2>&1
 
 echo
 echo "=== 8. one surface names a registry revision the others do not ==="
