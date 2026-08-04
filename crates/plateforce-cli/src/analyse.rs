@@ -65,6 +65,8 @@ pub struct Args {
     pub derive: Vec<String>,
     #[arg(long = "set", value_name = "ASSIGNMENT", help = SET_HELP)]
     pub set: Vec<String>,
+    #[arg(long = "choose", value_name = "ASSIGNMENT", help = CHOOSE_HELP)]
+    pub choose: Vec<String>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
@@ -81,6 +83,20 @@ pub(crate) const SET_SHAPE: &str = "<slot>.<name>=<value>";
 pub(crate) const SET_HELP: &str = "A value for a rule, written <slot>.<name>=<value>. Repeatable";
 pub(crate) const SET_HELP_FOR_A_FOLDER: &str =
     "A value for a rule, written <slot>.<name>=<value>. Repeatable, and it applies to every trial in the folder";
+
+/// What `--choose` takes. The same grammar `--set` takes, because a reader who wrote
+/// `--set onset.k=5` writes `--choose onset.selection=first`.
+///
+/// A separate flag rather than a value type inside `--set`, so a value's kind is known from
+/// the line rather than from the rule it reaches. `--set weighing.duration=fast` refuses by
+/// naming what a number is; a flag taking both could only refuse once the name had reached a
+/// rule, and every mistyped number would arrive there as a name.
+pub(crate) const CHOOSE_SHAPE: &str = "<slot>.<name>=<value>";
+
+/// Where the names a rule takes are listed, so a reader meets them in one place rather than
+/// in whichever refusal they happen to raise first.
+pub(crate) const CHOOSE_HELP: &str =
+    "A name a rule takes, written <slot>.<name>=<value>. Repeatable, and `registry show <method>` lists the names each rule takes";
 
 /// The number a file writes where it has no sample, for a reader that takes the value
 /// rather than the word.
@@ -126,14 +142,19 @@ pub(crate) fn prepare(
         Ok(derived) => derived,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
-    let stated = match stated_parameters(&args.set, &derived.keys().cloned().collect::<Vec<_>>()) {
+    let also: Vec<String> = derived.keys().cloned().collect();
+    let stated = match stated_parameters(&args.set, &also) {
         Ok(stated) => stated,
+        Err(declined) => return Err(Outcome::declined(declined)),
+    };
+    let named = match stated_options(&args.choose, &also) {
+        Ok(named) => named,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
 
     // A named pipeline is adopted before the decision rail rather than after it: its source
     // published the choices it binds, so a caller who named one has answered them.
-    let mut request = build_request(&registry, &chosen, &derived, &stated);
+    let mut request = build_request(&registry, &chosen, &derived, &stated, &named);
     if let Err(declined) = crate::preset::adopt(&mut request, &registry, args.preset.as_ref()) {
         return Err(Outcome::declined(declined));
     }
@@ -225,6 +246,99 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
     Ok(chosen)
 }
 
+/// Which step of this run a qualified name is written against, and which of its parameters.
+///
+/// Read against the steps the run actually has rather than off the first dot in the name.
+/// Three of the fifteen constructs this build binds are named with a dot in them, all three
+/// of them jump-height constructs carrying nine rules, and splitting on the first dot reports
+/// every value written against one of them as naming a step that does not exist.
+///
+/// The longest match wins, so a step whose name begins another step's name takes only the
+/// names written against itself.
+fn slot_and_parameter<'a>(qualified: &'a str, slots: &[&str]) -> Option<(&'a str, &'a str)> {
+    slots
+        .iter()
+        .filter(|slot| qualified.starts_with(*slot) && qualified[slot.len()..].starts_with('.'))
+        .max_by_key(|slot| slot.len())
+        .map(|slot| (&qualified[..slot.len()], &qualified[slot.len() + 1..]))
+        .filter(|(_, name)| !name.is_empty())
+}
+
+/// Every step a value can be written against on this run: the three on the path, and any
+/// construct this run named for something computed from the landmarks.
+fn steps_of_this_run(also: &[String]) -> Vec<&str> {
+    let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
+    slots.extend(also.iter().map(String::as_str));
+    slots
+}
+
+/// One assignment read against the steps this run has, for both flags that take one.
+///
+/// The shape of an assignment is a fault in the line and reaches no rule, so it carries no
+/// published code. Two flags rather than one shared grammar function would let the two drift
+/// into refusing differently for the same malformed line.
+fn assignment_of<'a>(
+    flag: &str,
+    shape: &str,
+    assignment: &'a str,
+    slots: &[&str],
+) -> Result<(&'a str, &'a str, &'a str), Declined> {
+    let Some((qualified, written)) = assignment.split_once('=') else {
+        return Err(Declined::line(
+            Fault::Request,
+            format!("{flag} takes {shape}, and '{assignment}' carries no ="),
+        ));
+    };
+    // Two ways to reach no step, and they are answered differently: a name carrying no step at
+    // all is a line the reader will rewrite from the grammar, and a name carrying one this run
+    // does not have is a line they will rewrite from the list.
+    if !qualified.contains('.') {
+        return Err(Declined::line(
+            Fault::Request,
+            format!("{flag} takes {shape}, and '{qualified}' names no slot"),
+        ));
+    }
+    // A value written against a step this run does not have would otherwise be read, accepted
+    // and never passed to anything.
+    let Some((slot, name)) = slot_and_parameter(qualified, slots) else {
+        return Err(Declined::line(
+            Fault::Request,
+            format!(
+                "{flag} {qualified} names no step of this run, which has {}",
+                slots.join(", ")
+            ),
+        ));
+    };
+    Ok((slot, name, written))
+}
+
+/// `--choose`, keyed by the same word `--set` takes. A name a rule offers, never a number.
+///
+/// Which names a rule takes is the rule's own to answer, so an unaccepted one is refused by
+/// the rule with the list it offers rather than checked twice, once here against a copy.
+pub(crate) fn stated_options(
+    assignments: &[String],
+    also: &[String],
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, Declined> {
+    let slots = steps_of_this_run(also);
+    let mut chosen: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    for assignment in assignments {
+        let (slot, name, written) = assignment_of("--choose", CHOOSE_SHAPE, assignment, &slots)?;
+        let named = written.trim();
+        if named.is_empty() {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--choose {slot}.{name} was given no name"),
+            ));
+        }
+        chosen
+            .entry(slot.to_string())
+            .or_default()
+            .insert(name.to_string(), named.to_string());
+    }
+    Ok(chosen)
+}
+
 /// `--set`, keyed by the same word the method flag carries, so a reader who wrote `--onset`
 /// writes `--set onset.k`. Kept per slot, so two rules reading a name spelled the same way
 /// never receive each other's number.
@@ -232,38 +346,13 @@ pub(crate) fn stated_parameters(
     assignments: &[String],
     also: &[String],
 ) -> Result<BTreeMap<String, BTreeMap<String, f64>>, Declined> {
-    let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
-    // A construct this run named for something computed from the landmarks is a step this
-    // run has, so a value written against it reaches a rule.
-    slots.extend(also.iter().map(String::as_str));
+    let slots = steps_of_this_run(also);
     let mut stated: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
-    // The shape of the assignment is a fault in the line and reaches no rule, so it carries
-    // no published code. A number a rule cannot run on is a fault the engine has a code for,
-    // and it reaches the same code here as it would from inside a rule.
     for assignment in assignments {
-        let Some((qualified, written)) = assignment.split_once('=') else {
-            return Err(Declined::line(
-                Fault::Request,
-                format!("--set takes {SET_SHAPE}, and '{assignment}' carries no ="),
-            ));
-        };
-        let Some((slot, name)) = qualified.split_once('.') else {
-            return Err(Declined::line(
-                Fault::Request,
-                format!("--set takes {SET_SHAPE}, and '{qualified}' names no slot"),
-            ));
-        };
-        // A value written against a step this run does not have would otherwise be read,
-        // accepted and never passed to anything.
-        if !slots.contains(&slot) {
-            return Err(Declined::line(
-                Fault::Request,
-                format!(
-                    "--set {qualified} names the slot '{slot}', and this run has {}",
-                    slots.join(", ")
-                ),
-            ));
-        }
+        let (slot, name, written) = assignment_of("--set", SET_SHAPE, assignment, &slots)?;
+        let qualified = format!("{slot}.{name}");
+        // A number a rule cannot run on is a fault the engine has a code for, and it reaches
+        // the same code here as it would from inside a rule.
         let value: f64 = written.trim().parse().map_err(|_| {
             Declined::line(
                 Fault::Request,
@@ -429,9 +518,19 @@ fn build_request(
     chosen: &BTreeMap<String, String>,
     derived: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,
+    named: &BTreeMap<String, BTreeMap<String, String>>,
 ) -> AnalysisRequest {
     let parameters = |construct: &str| {
         stated
+            .get(decisions::slot_of(construct))
+            .cloned()
+            .unwrap_or_default()
+    };
+    // A name a reader stated reaches the rule under the same step word its numbers do. The
+    // two travel as separate maps because the record keeps them separate, and a fingerprint
+    // carries the split.
+    let options = |construct: &str| {
+        named
             .get(decisions::slot_of(construct))
             .cloned()
             .unwrap_or_default()
@@ -443,20 +542,20 @@ fn build_request(
             method_id: id(WEIGHING_CONSTRUCT),
             start_index: None,
             parameters: parameters(WEIGHING_CONSTRUCT),
-            options: BTreeMap::new(),
+            options: options(WEIGHING_CONSTRUCT),
             ..Default::default()
         },
         onset: MethodChoice {
             method_id: id(ONSET_CONSTRUCT),
             parameters: parameters(ONSET_CONSTRUCT),
-            options: BTreeMap::new(),
+            options: options(ONSET_CONSTRUCT),
             manual_index: None,
             ..Default::default()
         },
         takeoff: MethodChoice {
             method_id: id(TAKEOFF_CONSTRUCT),
             parameters: parameters(TAKEOFF_CONSTRUCT),
-            options: BTreeMap::new(),
+            options: options(TAKEOFF_CONSTRUCT),
             manual_index: None,
             ..Default::default()
         },
@@ -472,6 +571,7 @@ fn build_request(
                     MethodChoice {
                         method_id: method_id.clone(),
                         parameters: parameters(construct),
+                        options: options(construct),
                         ..Default::default()
                     },
                 )
@@ -569,18 +669,28 @@ fn render(
     }
 }
 
-/// The word the record carries for a status, matched over the whole vocabulary so a status
-/// added to it has to be ruled on here rather than reaching a reader under another status's
-/// name.
+/// The word the record carries for a status, as a line of prose reads it.
 ///
-/// The spellings are the ones the record carries, so a reader who runs this trace here and
-/// opens the same result in a browser or a notebook meets one word for one status.
-fn status_reads(status: QualityStatus) -> &'static str {
-    match status {
-        QualityStatus::Disagrees => "disagrees",
-        QualityStatus::Incomparable => "incomparable",
-        QualityStatus::AtSearchFloor => "at search floor",
-    }
+/// The word comes from the vocabulary rather than from a second match here, so a reader who
+/// runs this trace in a terminal and opens the same result in a browser or a notebook meets
+/// one word for one status. The separator is the only thing this surface decides.
+fn status_reads(status: QualityStatus) -> String {
+    status.wire_name().replace('_', " ")
+}
+
+/// How many decimals it takes to print two figures as the different numbers they are.
+///
+/// A fixed precision suits the magnitudes its author had in front of them. One decimal for a
+/// value and none for a threshold reads a 0.0475 s gap between two instants as "1.2 seconds,
+/// past 1 seconds", which is a gap four times the size against a threshold that looks like a
+/// round number somebody chose.
+///
+/// Both figures print at the same precision, because two numbers a reader is asked to compare
+/// at different precisions is the same defect one step smaller.
+fn decimals_telling_apart(value: f64, threshold: f64) -> usize {
+    (1..=4)
+        .find(|places| format!("{value:.0$}", places) != format!("{threshold:.0$}", places))
+        .unwrap_or(4)
 }
 
 /// What the software knows about a number, said where the reader is already looking.
@@ -595,8 +705,12 @@ fn status_reads(status: QualityStatus) -> &'static str {
 fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
     let head = match signal.value {
         Some(value) => format!(
-            "{}: {:.1} {}, past {:.0} {}.",
-            signal.label, value, signal.unit, signal.threshold, signal.unit
+            "{}: {value:.places$} {}, past {:.places$} {}.",
+            signal.label,
+            signal.unit,
+            signal.threshold,
+            signal.unit,
+            places = decimals_telling_apart(value, signal.threshold)
         ),
         None => format!("{}: {}.", signal.label, status_reads(signal.status)),
     };
@@ -758,31 +872,72 @@ fn displaced(bound: &BoundMethod) -> String {
 mod tests {
     use super::*;
 
-    /// The word this surface prints for a status against the word the record carries for it.
+    /// Every step this run has, against a value written for one of them.
     ///
-    /// A reader who runs a trace here and opens the same result in a browser or a notebook
-    /// meets one word for one status, and the two spellings live in two places, so nothing
-    /// but this holds them together.
+    /// The cases that matter are the three constructs whose own names carry a dot, because
+    /// splitting a qualified name on its first one reads `jump_height` out of
+    /// `jump_height.takeoff_frame` and reports a step this run has as a step it does not.
     #[test]
-    fn the_terminal_spells_each_status_the_way_the_record_spells_it() {
-        let every = [
-            QualityStatus::Disagrees,
-            QualityStatus::Incomparable,
-            QualityStatus::AtSearchFloor,
-        ];
-        for status in every {
-            let carried = serde_json::to_value(status)
-                .expect("a status serialises")
-                .as_str()
-                .expect("a status is carried as a word")
-                .replace('_', " ");
-            println!("{status:?}: the record carries {carried:?}");
-            assert_eq!(status_reads(status), carried);
-        }
+    fn a_value_reaches_the_step_it_names_however_many_dots_that_name_carries() {
+        let dotted = "jump_height.takeoff_frame";
+        let stated = stated_parameters(
+            &[
+                "onset.k=5".to_string(),
+                "jump_height.takeoff_frame.gravity=9.81".to_string(),
+            ],
+            std::slice::from_ref(&dotted.to_string()),
+        )
+        .expect("both values name a step this run has");
         println!(
-            "statuses agreeing with the record: {} of {}",
-            every.len(),
-            every.len()
+            "steps carrying a value: {:?}",
+            stated.keys().collect::<Vec<_>>()
         );
+        assert_eq!(stated["onset"]["k"], 5.0);
+        assert_eq!(stated[dotted]["gravity"], 9.81);
+    }
+
+    /// The control. A step this run does not have is still refused, so the match above is
+    /// reading the run's own list rather than accepting whatever it is given.
+    #[test]
+    fn a_value_naming_a_step_this_run_does_not_have_is_refused() {
+        let refused = stated_parameters(
+            &["jump_height.standing_frame.gravity=9.81".to_string()],
+            &[],
+        )
+        .expect_err("a step this run does not have is refused");
+        println!("{}", refused.terminal());
+        assert!(refused.terminal().contains("jump_height.standing_frame"));
+    }
+
+    /// A name that carries no dot at all names no step, and the longest-prefix match must not
+    /// turn that into a step whose name happens to start the same way.
+    #[test]
+    fn a_name_carrying_no_step_is_refused_rather_than_matched_by_its_opening() {
+        let refused = stated_parameters(&["onset=5".to_string()], &[])
+            .expect_err("a name with no step is refused");
+        println!("{}", refused.terminal());
+        assert!(refused.terminal().contains("onset"));
+    }
+
+    /// Two steps where one's name opens the other's, which is the case the longest match
+    /// exists for. The shorter step reads `takeoff_frame.gravity` as a parameter name and
+    /// takes a value written for its neighbour, and nothing about the shorter name is wrong,
+    /// so the run has no way to notice.
+    #[test]
+    fn a_step_whose_name_opens_another_takes_only_the_values_written_for_itself() {
+        let stated = stated_parameters(
+            &["jump_height.takeoff_frame.gravity=9.81".to_string()],
+            &[
+                "jump_height".to_string(),
+                "jump_height.takeoff_frame".to_string(),
+            ],
+        )
+        .expect("the value names a step this run has");
+        println!(
+            "steps carrying a value: {:?}",
+            stated.keys().collect::<Vec<_>>()
+        );
+        assert_eq!(stated["jump_height.takeoff_frame"]["gravity"], 9.81);
+        assert!(!stated.contains_key("jump_height"), "{stated:?}");
     }
 }

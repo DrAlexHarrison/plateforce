@@ -98,7 +98,7 @@ fn the_signal_sits_between_the_value_it_qualifies_and_the_next_one() {
         .expect("the following metric is printed");
     let said = lines
         .iter()
-        .position(|line| line.contains("past 20 percent"))
+        .position(|line| line.contains("past 20.0 percent"))
         .expect("the signal is printed");
     println!("qualified at {qualified}, signal at {said}, next metric at {next_metric}");
     assert!(qualified < said && said < next_metric);
@@ -109,7 +109,7 @@ fn the_signal_sits_between_the_value_it_qualifies_and_the_next_one() {
 #[test]
 fn a_signal_over_two_metrics_is_said_once() {
     let (document, _) = analyse(TRACE_WHOSE_ROUTES_DISAGREE, "text");
-    let times = document.matches("past 20 percent").count();
+    let times = document.matches("past 20.0 percent").count();
     println!("times the signal is said: {times}");
     assert_eq!(times, 1);
 }

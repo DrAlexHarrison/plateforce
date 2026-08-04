@@ -230,6 +230,11 @@ function renderMetrics() {
   const grid = $('metric-grid');
   grid.replaceChildren();
 
+  // Where each signal was said in full, so the cards it also qualifies point at it rather
+  // than repeating it. A signal about seven absent values is one finding, and a reader who
+  // meets the same three sentences on the sixth card learns nothing from it.
+  const saidUnder = new Map();
+
   for (const metric of state.analysis.metrics) {
     // Provisional taints its closure: a value rests on every rule that fed it, so a value
     // fed by a slot nobody has chosen is itself still to be chosen.
@@ -258,7 +263,15 @@ function renderMetrics() {
 
     if (metric.note) card.append(element('p', 'metric__note', metric.note));
     if (restingOn.length) card.append(stillToBeChosen(restingOn));
-    for (const signal of signalsQualifying(metric.key)) card.append(renderSignal(signal));
+    for (const signal of signalsQualifying(metric.key)) {
+      const already = saidUnder.get(signal);
+      if (already) {
+        card.append(signalSaidUnder(signal, already));
+      } else {
+        saidUnder.set(signal, { label: metric.label, card });
+        card.append(renderSignal(signal));
+      }
+    }
     // The rule that produced this number leads the rules that fed it. The record names the
     // two separately and the card was drawing only the second, so seven of eleven values
     // listed their inputs and not the rule that computed them.
@@ -283,6 +296,39 @@ function signalsQualifying(metricKey) {
   return (state.analysis.signals || []).filter((signal) => (signal.qualifies || []).includes(metricKey));
 }
 
+/*
+ * The two figures a signal compares, printed as the different numbers they are.
+ *
+ * One decimal each suits the magnitudes it was written for. Two instants a twentieth of a
+ * second apart both render as 1.2, so a reader is shown one number twice and told it is a
+ * comparison. Both figures take the fewest decimals that tell them apart, and the same number
+ * of them, since two figures compared at different precisions is the same defect smaller.
+ */
+function figureAgainstThreshold(signal) {
+  let places = 1;
+  while (places < 4 && signal.value.toFixed(places) === signal.threshold.toFixed(places)) places += 1;
+  return `${signal.value.toFixed(places)} ${signal.unit} against ${signal.threshold.toFixed(places)} ${signal.unit}`;
+}
+
+/*
+ * A value this signal is also about, on a card that is not the one carrying the signal.
+ *
+ * It names the comparison and where that comparison is stated, so a reader who scrolls to
+ * the fifth of seven values with nothing in them learns that all of them have one cause and
+ * reaches it in one interaction.
+ */
+function signalSaidUnder(signal, said) {
+  const line = element('button', `metric__signal-elsewhere metric__signal-elsewhere--${signal.status.replace(/_/g, '-')}`);
+  line.type = 'button';
+  // The comparison is named where it is stated rather than a second time here. Repeating a
+  // label this long turns the sixth of seven of these into six lines a reader scrolls past.
+  line.append(element('span', null, `The reason is stated under ${said.label}`));
+  line.addEventListener('click', () => {
+    said.card.scrollIntoView({ block: 'center' });
+  });
+  return line;
+}
+
 /* A rate stated with no action leaves the reader holding a diagnosis they cannot act on,
  * which is the half of this pattern that does the work. The threshold is shown because the
  * threshold is itself a choice, and a reader who disagrees with it can see what it was.
@@ -300,7 +346,7 @@ function renderSignal(signal) {
       'metric__signal-figure',
       signal.value == null
         ? signal.status.replace(/_/g, ' ')
-        : `${signal.value.toFixed(1)} ${signal.unit} against ${signal.threshold.toFixed(1)} ${signal.unit}`,
+        : figureAgainstThreshold(signal),
     ),
   );
 

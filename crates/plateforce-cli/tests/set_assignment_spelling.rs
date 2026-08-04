@@ -104,10 +104,13 @@ fn a_refused_assignment_names_the_same_grammar_the_help_shows() {
     println!("{}", names_no_slot.trim());
     assert!(names_no_slot.contains(SHAPE), "{names_no_slot}");
 
+    // The reader's own words are echoed back rather than a fragment split off them. A run
+    // that named the leading word would report `jump_height` for a value written against
+    // `jump_height.takeoff_frame`, which is a step this run has.
     let names_a_step_this_run_has_not = stderr_of(&run(&analysing(&["--set", "landing.k=5"])));
     println!("{}", names_a_step_this_run_has_not.trim());
     assert!(
-        names_a_step_this_run_has_not.contains("names the slot 'landing'"),
+        names_a_step_this_run_has_not.contains("landing.k names no step"),
         "{names_a_step_this_run_has_not}"
     );
     assert!(
@@ -130,5 +133,5 @@ fn the_word_the_method_flag_carries_is_the_word_the_assignment_takes() {
     let said = stderr_of(&by_construct);
     println!("--set movement_onset.k=5 says {}", said.trim());
     assert_eq!(by_construct.status.code(), Some(64), "{said}");
-    assert!(said.contains("names the slot 'movement_onset'"), "{said}");
+    assert!(said.contains("movement_onset.k names no step"), "{said}");
 }
