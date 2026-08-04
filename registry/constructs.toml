@@ -33,7 +33,7 @@ title = "Centre of mass rise measured from the instant of takeoff"
 label = "Jump height, measured from the instant of takeoff"
 unit = "meters"
 frame = "takeoff"
-notes = "Not comparable with standing_frame without a declared correction."
+notes = "Not comparable with jump height measured from standing without a declared correction."
 
 [[construct]]
 id = "jump_height.standing_frame"
@@ -62,7 +62,7 @@ id = "conditioned_force_signal"
 title = "Vertical ground reaction force after conditioning and before event detection"
 label = "Force on the plate, after the signal is cleaned up"
 unit = "newtons"
-notes = "Group A is a substrate rather than a sibling group. Every other construct is computed on this."
+notes = "A substrate rather than a sibling. Every other quantity here is computed on this signal."
 
 [[construct]]
 id = "filter_cutoff_frequency"

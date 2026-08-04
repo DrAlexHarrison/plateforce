@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
-"""No construct the registry declares is written down in the interface.
+"""No construct the registry declares is written down where a reader meets it.
+
+Two scans, because a construct id reaches a reader by two routes and each is invisible to
+the other's method.
 
 The rail is built from the rules the build declares it can run and labelled from the
 registry's own entries, so a construct id appearing as a literal in one of the modules that
 builds that model is a row the registry can no longer add or remove without an edit here.
 Adding a method is a data edit, and this is the half of that ruling the interface owes.
 
+The second route is the registry's own prose. Those strings are written in no module; they
+arrive while the page is running, so a construct id inside one is on screen while the module
+scan passes and says so. That is how one shipped: a reader adding jump height from the picker
+met "Not comparable with standing_frame without a declared correction" under the row's title,
+with 337 literals checked and clean.
+
 The chart is not scanned. It draws the three landmark tracks the response carries index
 fields for, and those field names are the engine's, not the registry's.
 
-Run with no arguments. Exits non-zero naming each literal and the module it sits in.
+Run with no arguments. Exits non-zero naming each name and where it sits.
 """
 
-import glob
 import os
 import re
 import sys
@@ -31,16 +39,38 @@ MODEL = [
     'web/state.js',
 ]
 
+# The registry fields a person reads as words rather than as data.
+READER_FACING = ('label', 'title', 'notes')
+
 QUOTED = re.compile(r"'([^'\\\n]*)'|\"([^\"\\\n]*)\"")
 
 
-def construct_ids() -> set:
+def constructs() -> list:
     with open('registry/constructs.toml', 'rb') as handle:
-        return {row['id'] for row in tomllib.load(handle).get('construct', [])}
+        return tomllib.load(handle).get('construct', [])
+
+
+def identifier_forms(declared: set) -> set:
+    """The spellings of a construct that no English sentence produces.
+
+    An id and its final dotted segment, kept only where the token carries an underscore or a
+    dot. `takeoff` and `landing` are construct ids and are also ordinary words, and a pattern
+    matching those reports 21 hits here of which 19 are sentences: "Elapsed time from movement
+    onset to takeoff" is not a leaked identifier. A count taken with that pattern reads exactly
+    like a count taken with this one, which is the reason the distinction is written down here
+    rather than left inside whoever wrote the expression.
+    """
+    forms = set()
+    for identifier in declared:
+        for token in (identifier, identifier.rsplit('.', 1)[-1]):
+            if '_' in token or '.' in token:
+                forms.add(token)
+    return forms
 
 
 def main() -> int:
-    declared = construct_ids()
+    rows = constructs()
+    declared = {row['id'] for row in rows}
     if len(declared) < 40:
         print(f'the registry yielded {len(declared)} constructs, so the scan has nothing to look for')
         return 1
@@ -57,19 +87,44 @@ def main() -> int:
             if written in declared:
                 named.append(f'  {os.path.basename(path)} writes down the construct {written}')
 
-    # A regex that stopped matching reports zero violations exactly as a clean tree does, so
-    # the floor is asserted rather than the absence of hits.
+    forms = identifier_forms(declared)
+    strings = [
+        (row['id'], field, row[field])
+        for row in rows
+        for field in READER_FACING
+        if row.get(field)
+    ]
+    leaked = []
+    for owner, field, text in strings:
+        for token in forms:
+            if re.search(r'(?<![\w.])' + re.escape(token) + r'(?![\w.])', text):
+                leaked.append(
+                    f'  constructs.toml {owner}.{field} spells the identifier {token}: {text}'
+                )
+
+    # Every floor is asserted rather than the absence of hits, because a scan that stopped
+    # reading and a tree with nothing to find print the same zero.
     if literals < 50:
         print(f'{literals} string literals found across {len(MODEL)} modules, so the scan matched nothing')
         return 1
+    if len(strings) < 100 or len(forms) < 40:
+        print(
+            f'{len(strings)} reader-facing registry strings against {len(forms)} identifier '
+            'forms, so the registry scan matched nothing'
+        )
+        return 1
 
-    for line in sorted(set(named)):
+    for line in sorted(set(named)) + sorted(set(leaked)):
         print(line)
     print(
         f'{literals} string literals across {len(MODEL)} interface modules, '
         f'checked against {len(declared)} declared constructs, {len(set(named))} written down'
     )
-    return 1 if named else 0
+    print(
+        f'{len(strings)} reader-facing registry strings across {len(READER_FACING)} fields, '
+        f'checked against {len(forms)} identifier forms, {len(set(leaked))} spelling one'
+    )
+    return 1 if named or leaked else 0
 
 
 if __name__ == '__main__':
