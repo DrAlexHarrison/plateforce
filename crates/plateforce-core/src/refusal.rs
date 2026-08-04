@@ -841,7 +841,7 @@ fn sentence(
                 "'{method_id}' was passed as the {step} method, and the rules for that step are {available:?}"
             ),
             None => format!(
-                "'{method_id}' is not a step this build runs, and the steps it runs are {available:?}"
+                "'{method_id}' is not a step this analysis runs, and the steps it runs are {available:?}"
             ),
         },
         // No rule read the axis, so the sentence names the request's axes rather than a

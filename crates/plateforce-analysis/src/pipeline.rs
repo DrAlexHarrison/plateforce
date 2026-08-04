@@ -515,7 +515,7 @@ fn expect_row(method_id: &'static str) -> &'static crate::binding::Binding {
     crate::binding::BINDINGS
         .iter()
         .find(|binding| binding.id == method_id)
-        .unwrap_or_else(|| panic!("{method_id} has no row in this build's binding table"))
+        .unwrap_or_else(|| panic!("{method_id} has no row in the binding table"))
 }
 
 /// What a landmark rule says it reads, or the end of the analysis where this build files no
