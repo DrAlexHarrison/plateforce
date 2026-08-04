@@ -973,7 +973,7 @@ fn text_body(
         // A signal qualifying several metrics is said once, under the first of them to
         // appear, rather than repeated under each.
         for (index, signal) in signals.iter().enumerate() {
-            if signal.qualifies.iter().any(|key| *key == metric.key) && !said.contains(&index) {
+            if signal.qualifies.contains(&metric.key) && !said.contains(&index) {
                 said.push(index);
                 for line in describe_signal(signal, renderer) {
                     let _ = writeln!(document, "{line}");

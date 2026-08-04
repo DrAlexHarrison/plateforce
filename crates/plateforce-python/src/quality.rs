@@ -30,7 +30,7 @@ impl QualitySignal {
     }
 
     pub(crate) fn qualifies_key(&self, key: &str) -> bool {
-        self.inner.qualifies.contains(&key)
+        self.inner.qualifies.iter().any(|held| held == key)
     }
 }
 
@@ -97,7 +97,7 @@ impl QualitySignal {
     /// places it beside the value it qualifies without a second lookup table.
     #[getter]
     fn qualifies(&self) -> Vec<&str> {
-        self.inner.qualifies.to_vec()
+        self.inner.qualifies.iter().map(String::as_str).collect()
     }
 
     fn __repr__(&self) -> String {

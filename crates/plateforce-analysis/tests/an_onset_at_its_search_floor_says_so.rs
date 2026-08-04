@@ -10,7 +10,9 @@
 use std::collections::BTreeMap;
 
 use plateforce_analysis::quality::QualityStatus;
-use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
+use plateforce_analysis::{
+    metrics_resting_on, run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice,
+};
 use plateforce_core::{read_trial_from_path, Trial};
 
 const FIXTURE: &str = concat!(
@@ -199,7 +201,10 @@ fn the_signal_hands_the_reader_a_value_a_surface_can_state_and_a_construct_it_ca
     assert_eq!(signal.unit, "seconds");
     assert_eq!(signal.remedy_construct, "movement_onset");
     assert!(
-        signal.qualifies.contains(&"onset_time_seconds"),
+        signal
+            .qualifies
+            .iter()
+            .any(|key| key == "onset_time_seconds"),
         "{:?}",
         signal.qualifies
     );
@@ -212,5 +217,93 @@ fn the_signal_hands_the_reader_a_value_a_surface_can_state_and_a_construct_it_ca
             .metric("time_to_takeoff_seconds")
             .is_some_and(|metric| metric.value.is_some()),
         "the result still carries the number the signal is about"
+    );
+}
+
+/// The keys the signal places itself beside, which are the numbers this rule moved rather than
+/// a list written next to it.
+///
+/// The sentence claims the larger set already: time to takeoff, the impulse and everything
+/// drawn from them. Written as a list of keys it named 2 of the 11 numbers on this response
+/// while 6 of them rest on the rule, so a reader meeting a takeoff velocity, a net impulse, a
+/// jump height and a reactive strength index computed from an onset the rule never found was
+/// told nothing about any of them.
+///
+/// Two controls on the same response, because a derivation returning every metric would satisfy
+/// the assertion above as comfortably as the right one: the conditioning rule, which every
+/// number rests on, reaches 11 of 11, and an onset rule this run did not choose reaches none.
+/// The second can come back empty for the reason the real query would, being a rule of the same
+/// kind that this build ships and this response's chains could have named.
+#[test]
+fn the_signal_names_every_number_the_onset_rule_moved() {
+    let trial = trial();
+    const RULE: &str = "onset.threshold.absolute_force";
+    let response = analyse(
+        &trial,
+        RULE,
+        BTreeMap::from([("threshold_n".to_string(), 20.0)]),
+    );
+    let raised = floor_signals(&response);
+    let signal = raised.first().expect("the rule returned its floor");
+
+    assert_eq!(
+        response.metrics.len(),
+        11,
+        "the denominator every count here is taken out of"
+    );
+    assert_eq!(
+        signal.qualifies,
+        vec![
+            "onset_time_seconds",
+            "time_to_takeoff_seconds",
+            "takeoff_velocity_meters_per_second",
+            "net_impulse_newton_seconds",
+            "jump_height_from_takeoff_meters",
+            "reactive_strength_index_modified",
+        ],
+        "the keys a surface places this signal beside"
+    );
+    // The five it does not name are the two the weighing window settles and the three measured
+    // from takeoff onward, which this rule did not place.
+    let unnamed: Vec<&str> = response
+        .metrics
+        .iter()
+        .map(|metric| metric.key.as_str())
+        .filter(|key| !signal.qualifies.iter().any(|named| named == key))
+        .collect();
+    println!(
+        "named {} of {}, quiet on {unnamed:?}",
+        signal.qualifies.len(),
+        response.metrics.len()
+    );
+    assert_eq!(
+        unnamed,
+        vec![
+            "system_weight_newtons",
+            "system_mass_kilograms",
+            "takeoff_time_seconds",
+            "flight_time_seconds",
+            "jump_height_from_flight_time_meters",
+        ],
+        "a number this rule did not move is qualified, or one it moved is not"
+    );
+
+    let every_number = metrics_resting_on(&response, "filter.none");
+    assert_eq!(
+        every_number.len(),
+        response.metrics.len(),
+        "every number is computed from the conditioned signal, so the control that cannot come \
+         back short did"
+    );
+
+    const NOT_CHOSEN: &str = "onset.threshold.last_within_band";
+    assert!(
+        onset_rules().iter().any(|(id, _)| *id == NOT_CHOSEN) && NOT_CHOSEN != RULE,
+        "the control names something other than an onset rule this build ships and this run left \
+         unchosen, so an empty answer would say nothing"
+    );
+    assert!(
+        metrics_resting_on(&response, NOT_CHOSEN).is_empty(),
+        "a rule this run did not choose is named by a chain on it"
     );
 }

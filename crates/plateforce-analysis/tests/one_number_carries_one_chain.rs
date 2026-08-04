@@ -9,7 +9,7 @@
 
 use std::collections::BTreeMap;
 
-use plateforce_analysis::chain::{chain_of, chains_of};
+use plateforce_analysis::chain::{chain_names, chain_of, chains_of, metrics_resting_on};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::reporting::fingerprint;
@@ -257,6 +257,49 @@ fn every_contributing_rule_is_somewhere_in_the_chain() {
     // reading fewer than the build reports passes by looking at less.
     assert!(checked >= 11, "only {checked} metrics were reached");
     assert!(ids >= 100, "only {ids} contributing ids were reached");
+}
+
+/// A rule the tree runs is a rule the number is said to rest on, so the two readings of one
+/// chain cannot drift apart.
+///
+/// `chain_of` walks the response into a tree and `metrics_resting_on` reads the same two flat
+/// lists without building one. A signal about a rule is placed by the second, and every surface
+/// draws the record from the first, so a rule the tree runs and the flat reading does not know
+/// would be a signal placed beside none of the numbers whose record shows it.
+///
+/// The counts below are the population, because a walk that reached one metric and one step
+/// would satisfy every assertion in the loop.
+#[test]
+fn a_rule_the_chain_runs_is_a_rule_the_number_rests_on() {
+    let response = analysed(5.0);
+    let mut steps_walked = 0usize;
+    let mut metrics_walked = 0usize;
+
+    for metric in &response.metrics {
+        let chain = chain_of(&response, metric, &stamp(), true);
+        for step in chain.flattened() {
+            let id = step.provenance.method_id.as_str();
+            assert!(
+                chain_names(metric, id),
+                "{} carries a step for {id} and is not said to rest on it",
+                metric.key
+            );
+            assert!(
+                metrics_resting_on(&response, id).contains(&metric.key),
+                "{id} runs inside {}'s chain and the numbers resting on it leave it out",
+                metric.key
+            );
+            steps_walked += 1;
+        }
+        metrics_walked += 1;
+    }
+
+    println!("{steps_walked} steps walked over {metrics_walked} metrics");
+    assert!(
+        metrics_walked >= 11,
+        "only {metrics_walked} metrics reached"
+    );
+    assert!(steps_walked >= 50, "only {steps_walked} steps reached");
 }
 
 /// The chain is the type the fingerprint takes, so a surface holding a response can identify

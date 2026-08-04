@@ -233,6 +233,41 @@ pub fn chain_of(
     }
 }
 
+/// Whether one number's chain names a rule: the arithmetic that computed it, or one of the
+/// rules its answer rests on.
+///
+/// The two lists this reads are the two `chain_of` builds its tree from, so a reader asking
+/// which numbers a rule moved and a reader reading the tree under one number are answered from
+/// one place.
+///
+/// A contributing id the response left no bound record for still counts. It is a value of a
+/// choice the root records rather than a step of its own, which is a fact about how the tree is
+/// shaped and not about whether the number rests on the rule: the four integration entries
+/// behind takeoff velocity are named by no other route.
+pub fn chain_names(metric: &Metric, method_id: &str) -> bool {
+    metric.computed_by.as_deref() == Some(method_id)
+        || metric
+            .contributing_method_ids
+            .iter()
+            .any(|id| id == method_id)
+}
+
+/// Every quantity whose chain names this rule, in the response's own order.
+///
+/// What a signal about a rule is about. A list of keys written beside the rule instead is the
+/// same fact spelled twice and the two are free to disagree: measured on subject 01's first
+/// trial under `onset.threshold.noise_relative` and `takeoff.threshold.absolute_force`, the two
+/// hand-written lists this replaced named 2 and 3 keys against the 6 and 8 of 11 metrics whose
+/// chains name those rules.
+pub fn metrics_resting_on(response: &AnalysisResponse, method_id: &str) -> Vec<String> {
+    response
+        .metrics
+        .iter()
+        .filter(|metric| chain_names(metric, method_id))
+        .map(|metric| metric.key.clone())
+        .collect()
+}
+
 /// The chain behind every number the analysis reported, in the response's own order.
 ///
 /// Every metric, including the ones that carry no value: a surface that reports what a rule
