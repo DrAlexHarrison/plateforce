@@ -9,6 +9,7 @@
 pub mod aggregate;
 pub mod agreement;
 pub mod decisions;
+pub mod derive;
 pub mod engine;
 pub mod exclusions;
 pub mod fingerprint;
@@ -29,6 +30,7 @@ pub use agreement::{
     BatchCompareResult, LimitsRequest, PairedRow, ReliabilityInterval, UnitOfAnalysis,
 };
 pub use decisions::{unresolved, UnresolvedDecision};
+pub use derive::DeriveRefusal;
 pub use engine::{analyse, BatchRequest, BatchResult, Coverage, RunRefusal};
 pub use exclusions::{GateFinding, GateRegistry, GateTally, PopulationExclusion, ValidityGate};
 pub use identity::{

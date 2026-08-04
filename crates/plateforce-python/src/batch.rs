@@ -172,6 +172,37 @@ impl BatchResult {
         )
     }
 
+    /// What the analysis already knew about the numbers it reported, per trial. A refusal
+    /// means no number was produced; a signal qualifies numbers that were.
+    #[getter]
+    fn signals<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        rows(
+            python,
+            serde_json::to_value(&self.inner.signals).unwrap_or_default(),
+        )
+    }
+
+    /// What each bound gate found, whether or not the request asked it to remove anything.
+    #[getter]
+    fn exclusions<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        rows(
+            python,
+            serde_json::to_value(&self.inner.exclusions).unwrap_or_default(),
+        )
+    }
+
+    /// The quantity columns, in the order the analysis reported them, and the unit each is
+    /// in as the registry spells it. Carried rather than read off a column name.
+    #[getter]
+    fn quantities(&self) -> Vec<String> {
+        self.inner.quantities.clone()
+    }
+
+    #[getter]
+    fn units(&self) -> std::collections::BTreeMap<String, String> {
+        self.inner.units.clone()
+    }
+
     #[getter]
     fn aggregates<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         rows(
@@ -259,7 +290,7 @@ pub fn batch_result_from_json(text: &str) -> PyResult<BatchResult> {
 /// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
 /// reading a vendor's missing marker as a force.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, derived = None, derived_parameters = None, derived_options = None))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -274,6 +305,13 @@ pub fn batch(
     trial_file_suffixes: Option<Vec<String>>,
     pattern: Option<&str>,
     resolved: Option<Vec<String>>,
+    derived: Option<std::collections::BTreeMap<String, String>>,
+    derived_parameters: Option<
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
+    >,
+    derived_options: Option<
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
+    >,
 ) -> PyResult<BatchResult> {
     let delimiter = delimiter
         .chars()
@@ -306,6 +344,12 @@ pub fn batch(
     let loaded =
         Registry::load(&registry).map_err(|error| PyValueError::new_err(error.to_string()))?;
 
+    // A construct computed from the landmarks has no argument of its own, so the rule, its
+    // values and its names are keyed by the construct, under the spelling the terminal's
+    // --derive takes and the single-trial call already uses.
+    let derived = derived.unwrap_or_default();
+    let derived_parameters = derived_parameters.unwrap_or_default();
+    let derived_options = derived_options.unwrap_or_default();
     let analysis = plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: weighing.to_string(),
@@ -322,7 +366,28 @@ pub fn batch(
         touchdown_index: None,
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
-        registry_backed_ids: Vec::new(),
+        // What this registry carries, so a rule the registry files is recorded as backed
+        // rather than as the run's own. Read off the loaded registry for the same reason the
+        // terminal reads it there: a list built from the caller's choices alone reports the
+        // operators the binding composes as absent from the registry they are filed in.
+        registry_backed_ids: loaded.methods.keys().cloned().collect(),
+        derived: derived
+            .iter()
+            .map(|(construct, method_id)| {
+                (
+                    construct.clone(),
+                    plateforce_analysis::MethodChoice {
+                        method_id: method_id.clone(),
+                        parameters: derived_parameters
+                            .get(construct)
+                            .cloned()
+                            .unwrap_or_default(),
+                        options: derived_options.get(construct).cloned().unwrap_or_default(),
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect(),
         ..Default::default()
     };
 

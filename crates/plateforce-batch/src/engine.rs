@@ -207,6 +207,19 @@ pub fn analyse(
     request: &BatchRequest,
     registry: &Registry,
 ) -> Result<BatchResult, RunRefusal> {
+    // A rule the request cannot bind would be refused identically on every file, so a folder
+    // of two hundred is refused once before the first is read, and the caller is told which
+    // rules are filed under the construct rather than being told two hundred times.
+    for (construct, choice) in &request.analysis.derived {
+        if let Err(refusal) = crate::derive::accepts(construct, &choice.method_id) {
+            return Err(RunRefusal {
+                code: refusal.code,
+                message: refusal.message().to_string(),
+                unresolved: Vec::new(),
+            });
+        }
+    }
+
     let open = unresolved(registry, &path_constructs(), &request.resolved_decisions);
     if !open.is_empty() {
         let named: Vec<String> = open.iter().map(UnresolvedDecision::message).collect();
@@ -352,6 +365,16 @@ pub fn analyse(
             values,
         });
         computed += 1;
+    }
+
+    // A rule the caller bound that declined on every trial produced no metric, so the column
+    // it was asked for would be absent from the table rather than blank in it. Appended after
+    // the walk so the columns a run did produce keep the order the analysis reported them in.
+    for (key, unit) in crate::derive::declared_quantities(&request.analysis.derived) {
+        if !quantities.iter().any(|named| named == key) {
+            quantities.push(key.to_string());
+            units.insert(key.to_string(), unit.to_string());
+        }
     }
 
     let excluded = exclusions
@@ -547,6 +570,12 @@ fn status_name(status: QualityStatus) -> String {
 /// Depth 0 is the arithmetic that made the quantity where the response names one, the
 /// landmark rules sit one below it, and an operator composed onto a landmark rule sits one
 /// below that.
+///
+/// The arithmetic's own values are read off the same bound record the landmarks' are. It is
+/// named in `computed_by` and not in `contributing_method_ids`, so a chain written from the
+/// contributing list alone carried its id and none of what it read: the gravity behind the
+/// flight-time height and the four integration choices behind every impulse figure reached
+/// the terminal's record and no folder run's.
 fn provenance_rows(response: &AnalysisResponse) -> Vec<ProvenanceRow> {
     let mut rows = Vec::new();
     for metric in &response.metrics {
@@ -555,15 +584,24 @@ fn provenance_rows(response: &AnalysisResponse) -> Vec<ProvenanceRow> {
         }
         let base_depth = usize::from(metric.computed_by.is_some());
         if let Some(arithmetic) = &metric.computed_by {
-            rows.push(ProvenanceRow {
-                provenance_id: String::new(),
-                quantity: metric.key.to_string(),
-                depth: 0,
-                method_id: arithmetic.to_string(),
-                parameter: String::new(),
-                value: String::new(),
-                source: String::new(),
-            });
+            match response
+                .bound_methods
+                .iter()
+                .find(|bound| bound.method_id == *arithmetic)
+            {
+                Some(bound) => rows.extend(rows_for_bound_method(metric, bound, 0)),
+                // A rule the response named and left no bound record for still opens the
+                // chain, because dropping it would put the landmarks under nothing.
+                None => rows.push(ProvenanceRow {
+                    provenance_id: String::new(),
+                    quantity: metric.key.to_string(),
+                    depth: 0,
+                    method_id: arithmetic.to_string(),
+                    parameter: String::new(),
+                    value: String::new(),
+                    source: String::new(),
+                }),
+            }
         }
         for method_id in &metric.contributing_method_ids {
             let depth = base_depth + usize::from(ONSET_OPERATOR_IDS.contains(&method_id.as_str()));

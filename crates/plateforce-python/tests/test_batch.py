@@ -1,0 +1,177 @@
+"""A folder run from a notebook.
+
+The batch entry point had no test at all, and it could not bind a rule for anything computed
+from the landmarks, could not state a value for one, and returned neither the quality signals
+nor the gate findings the other surfaces return. So a notebook reading a folder got the
+narrowest answer of the four surfaces and nothing said so.
+
+The registry here is the fixture one from `conftest`, so a failure means the binding changed
+rather than that the shipped registry gained an entry.
+"""
+
+import numpy as np
+import pytest
+
+from conftest import SAMPLE_RATE_HZ
+
+
+@pytest.fixture
+def trial_folder(tmp_path, force_newtons):
+    """Four traces of one subject, named so a declared pattern yields a subject."""
+    folder = tmp_path / "trials"
+    folder.mkdir()
+    for trial in range(1, 5):
+        shifted = force_newtons + np.float64(trial)
+        (folder / f"AT01_{trial}.force.txt").write_text(
+            "\n".join(f"{value:.6f}" for value in shifted)
+        )
+    return folder
+
+
+def run(folder, registry_path, **extra):
+    import plateforce as pf
+
+    return pf.batch(
+        folder,
+        registry=registry_path,
+        weighing="bwepoch.fixed_window",
+        onset="onset.threshold.noise_relative",
+        takeoff="takeoff.threshold.absolute_force",
+        sentinel=None,
+        delimiter="\t",
+        force_column_index=0,
+        sample_rate_hz=SAMPLE_RATE_HZ,
+        trial_file_suffixes=[".force.txt"],
+        resolved=["system_weight", "movement_onset", "takeoff"],
+        **extra,
+    )
+
+
+def test_a_rule_computed_from_the_landmarks_reaches_the_table(trial_folder, registry_path):
+    """The rule is bound, runs on every trial, and its quantity is a column of the result."""
+    without = run(trial_folder, registry_path)
+    assert "peak_force_newtons" not in without.quantities
+
+    result = run(
+        trial_folder,
+        registry_path,
+        derived={
+            "analysis_window": "window_end.takeoff.detected",
+            "peak_force": "force.peak.gross",
+        },
+    )
+    assert "peak_force_newtons" in result.quantities
+    assert result.units["peak_force_newtons"] == "newtons"
+    answered = [
+        row["values"]["peak_force_newtons"]
+        for row in result.results
+        if row["values"].get("peak_force_newtons") is not None
+    ]
+    assert len(answered) == result.run.trial_count == 4
+    assert all(value > 0.0 for value in answered)
+
+
+def test_a_value_stated_for_a_derived_rule_moves_the_number_and_reaches_the_record(
+    trial_folder, registry_path
+):
+    """A wider centred average cannot report a higher peak, and the record names the width.
+
+    The pair is what makes this a measurement rather than a smoke test: a run that ignored
+    the value writes one number twice, and a run that recorded a constant writes one record
+    twice.
+    """
+    seen = []
+    for window_seconds in (0.0, 0.05):
+        result = run(
+            trial_folder,
+            registry_path,
+            derived={
+                "analysis_window": "window_end.takeoff.detected",
+                "peak_force": "force.peak.estimator",
+            },
+            derived_parameters={"peak_force": {"averaging_window_seconds": window_seconds}},
+        )
+        peak = result.results[0]["values"]["peak_force_newtons"]
+        recorded = [
+            row["value"]
+            for row in result.provenance
+            if row["method_id"] == "force.peak.estimator"
+            and row["parameter"] == "averaging_window_seconds"
+        ]
+        assert recorded, f"the record names no averaging window at {window_seconds} s"
+        assert {float(value) for value in recorded} == {window_seconds}
+        seen.append(peak)
+
+    assert seen[0] > seen[1], seen
+
+
+def test_a_construct_this_build_runs_no_rule_for_is_refused_before_a_trial_is_read(
+    trial_folder, registry_path
+):
+    with pytest.raises(ValueError) as raised:
+        run(trial_folder, registry_path, derived={"not_a_construct": "anything"})
+    assert "phase_model" in str(raised.value)
+
+
+def test_an_id_filed_under_another_construct_is_refused_with_the_ones_filed_under_this_one(
+    trial_folder, registry_path
+):
+    with pytest.raises(ValueError) as raised:
+        run(
+            trial_folder,
+            registry_path,
+            derived={"peak_force": "onset.threshold.absolute_force"},
+        )
+    said = str(raised.value)
+    assert "force.peak." in said
+    assert "onset.threshold.noise_relative" not in said
+
+
+def test_the_relations_a_notebook_reads_are_the_ones_the_other_surfaces_write(
+    trial_folder, registry_path
+):
+    """Every relation in the envelope is reachable as an attribute.
+
+    Signals and exclusions reached CSV, the JSON envelope and the terminal and stopped at the
+    Python boundary, so a notebook was the one surface that could not see what a run already
+    knew about the numbers it was handing over.
+    """
+    import json
+
+    result = run(trial_folder, registry_path)
+    envelope = json.loads(result.to_json())["ok"]
+    for relation in ("results", "provenance", "refusals", "warnings", "signals", "exclusions"):
+        assert hasattr(result, relation), relation
+        assert len(getattr(result, relation)) == len(envelope[relation]), relation
+
+
+def test_the_request_digest_carries_which_registry_backed_the_rules(
+    trial_folder, registry_path, tmp_path
+):
+    """The digest that identifies a run used to be blind to the registry it was run against.
+
+    A folder run from a notebook passed an empty backed list, so the same rules over the same
+    folder fingerprinted one way here and another from the terminal, which reads the ids off
+    the registry it loaded. A digest that says two identical runs differ, or that two runs
+    against different registries are one, is the thing the fingerprint exists not to do.
+    """
+    second = tmp_path / "registry-two"
+    (second / "methods").mkdir(parents=True)
+    (second / "constructs.toml").write_text((registry_path / "constructs.toml").read_text())
+    (second / "methods" / "seed.toml").write_text(
+        (registry_path / "methods" / "seed.toml").read_text()
+        + """
+[[method]]
+id = "force.peak.net"
+construct = "peak_force"
+title = "The biggest force, system weight removed"
+rule = "Peak force is the maximum of the force series less system weight."
+status = "accepted"
+confidence = "high"
+"""
+    )
+
+    first_run = run(trial_folder, registry_path)
+    second_run = run(trial_folder, second)
+    assert first_run.run.request_digest != second_run.run.request_digest
+    assert first_run.run.registry_digest != second_run.run.registry_digest
