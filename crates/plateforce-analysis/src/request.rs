@@ -258,6 +258,8 @@ impl AnalysisRequest {
     /// names its registry entry declares. What lands here is the remainder: the values that
     /// belong to the analysis and to no entry in the registry.
     pub fn bound_globals(&self) -> Vec<crate::response::BoundGlobal> {
+        // A field added to this type breaks this line, and that is the guard rather than a
+        // bug: rule with a `_`, or give it a row below and let the record carry it.
         let AnalysisRequest {
             weighing: _,
             onset: _,
