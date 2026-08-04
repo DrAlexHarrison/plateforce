@@ -17,11 +17,18 @@ const WORK_ENERGY: &str = "jumpheight.takeoff.work_energy";
 const QUANTITY: &str = "jump_height_from_takeoff_meters";
 
 fn spread(extra: &[&str]) -> Output {
-    let mut arguments: Vec<&str> = vec![
-        "--registry",
-        "../../registry",
-        "--format",
-        "json",
+    run_spread(&["--format", "json"], extra)
+}
+
+/// The same run rendered as the table a terminal reader meets.
+fn spread_table(extra: &[&str]) -> Output {
+    run_spread(&[], extra)
+}
+
+fn run_spread(before_subcommand: &[&str], extra: &[&str]) -> Output {
+    let mut arguments: Vec<&str> = vec!["--registry", "../../registry"];
+    arguments.extend_from_slice(before_subcommand);
+    arguments.extend_from_slice(&[
         "spread",
         "../plateforce-conformance/fixtures/subject01_trial1.force.txt",
         "--column",
@@ -44,7 +51,7 @@ fn spread(extra: &[&str]) -> Output {
         "takeoff.threshold_n=20",
         "--quantity",
         QUANTITY,
-    ];
+    ]);
     arguments.extend(extra.iter().copied());
     std::process::Command::new(env!("CARGO_BIN_EXE_plateforce"))
         .args(&arguments)
@@ -236,5 +243,31 @@ fn the_record_names_what_varied_and_what_stood_still() {
         with["held_fixed"].as_array().expect("held").is_empty(),
         "nothing was held: {}",
         with["held_fixed"]
+    );
+}
+
+/// Every line of the panel reads at eighty columns, the width a redirected document renders
+/// at, and the held sentence survives the wrapping whole.
+#[test]
+fn the_held_line_reads_at_eighty_columns() {
+    let output = spread_table(&[]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        assert!(
+            line.chars().count() <= 80,
+            "{} columns: {line}",
+            line.chars().count()
+        );
+    }
+    let unwrapped = stdout.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(
+        unwrapped.contains("so this spread is not over it"),
+        "the held sentence is absent:\n{stdout}"
     );
 }

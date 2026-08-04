@@ -288,11 +288,13 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
         let _ = writeln!(block, "  varied {}", varied.join(", "));
     }
     for held in &response.held_fixed {
-        let _ = writeln!(
-            block,
-            "  held {} at {}, so this spread is not over it",
+        let sentence = format!(
+            "held {} at {}, so this spread is not over it",
             held.construct, held.method_id
         );
+        for line in renderer.wrap(&sentence, 2) {
+            let _ = writeln!(block, "{line}");
+        }
     }
 
     let _ = write!(
