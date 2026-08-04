@@ -89,7 +89,12 @@ pf_spread <- function(trial,
       NULL
     } else {
       as.integer(maximum_combinations)
-    }
+    },
+    # Measured here from the registry this call loaded, as `analyse_countermovement_jump`
+    # already does, so the sweep names the registry it read rather than one the compiled side
+    # would have to load a second time. No revision is sent because this package offers no
+    # way to pin one, and `docs/schema.md` reserves that field for a caller's pin.
+    registry_digest = registry_digest(registry)
   )
 
   unwrap(decode(rust_spread_json(trial@handle, request)))
