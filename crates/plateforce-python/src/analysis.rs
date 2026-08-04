@@ -13,7 +13,7 @@ use plateforce_analysis::{
 };
 use plateforce_core::{
     jump_height_from_flight_time as core_jump_height_from_flight_time, Measured as CoreMeasured,
-    Provenance as CoreProvenance, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    Provenance as CoreProvenance,
 };
 use pyo3::prelude::*;
 
@@ -173,30 +173,54 @@ fn chain_of(
     }
 }
 
-/// A step the software performs over values it already computed, rather than a rule the
-/// registry describes. Its inputs were measured from the trace, not supplied by a caller.
-fn measured_records(
-    pairs: Vec<(String, f64)>,
+/// The gravity one number ran under, read off the record rather than off the request.
+///
+/// A rule whose registry entry publishes a gravity of its own records it on its own row and
+/// may have run at a value the request never held. `jumpheight.takeoff.flight_time` is that
+/// rule: on a request nobody stated a gravity for it runs at the 9.81 its entry declares,
+/// while the request carries 9.80665, and this surface used to report the request's number
+/// beside a height the request's number did not produce.
+///
+/// Every other rule reads the analysis gravity and records nothing, because no entry of
+/// theirs declares such a parameter, so the request's value and the request's own claim are
+/// the answer for them.
+fn gravity_behind(
+    response: &AnalysisResponse,
+    method_id: &str,
+    analysis: (f64, plateforce_core::provenance::ParameterSource),
 ) -> Vec<plateforce_core::provenance::ParameterRecord> {
+    use plateforce_analysis::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
     use plateforce_core::provenance::{ParameterRecord, ParameterSource};
-    pairs
-        .into_iter()
-        .map(|(name, value)| ParameterRecord {
-            name,
-            value,
-            source: ParameterSource::Measured,
-        })
-        .collect()
+
+    let published_by_the_rule = response
+        .bound_methods
+        .iter()
+        .find(|bound| bound.method_id == method_id)
+        .and_then(|bound| {
+            let value = *bound.numeric_values.get(GRAVITY_PARAMETER)?;
+            let source = bound
+                .parameter_sources
+                .get(GRAVITY_PARAMETER)
+                .copied()
+                .unwrap_or(ParameterSource::Assumed);
+            Some((value, source))
+        });
+    let (value, source) = published_by_the_rule.unwrap_or(analysis);
+    vec![ParameterRecord {
+        name: plateforce_analysis::GRAVITY_GLOBAL.to_string(),
+        value,
+        source,
+    }]
 }
 
 fn software_step(
     method_id: &str,
-    bound_parameters: Vec<(String, f64)>,
+    bound_parameters: Vec<plateforce_core::provenance::ParameterRecord>,
     registry: &RegistryIdentity,
     acquisition_complete: bool,
 ) -> CoreProvenance {
     CoreProvenance {
-        parameters: measured_records(bound_parameters),
+        parameters: bound_parameters,
         registry_version: registry.version.clone(),
         registry_digest: registry.digest.clone(),
         acquisition_complete,
@@ -265,7 +289,7 @@ impl Derived<'_> {
         &self,
         key: &str,
         method_id: &str,
-        bound_parameters: Vec<(String, f64)>,
+        bound_parameters: Vec<plateforce_core::provenance::ParameterRecord>,
         depends_on: Vec<ProvenanceChain>,
     ) -> Option<Measured> {
         self.value(key).map(|value| {
@@ -553,7 +577,7 @@ pub(crate) fn analysis_request_of(
     onset: Option<&BoundMethod>,
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
-    gravity_meters_per_second_squared: f64,
+    gravity_meters_per_second_squared: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -608,6 +632,11 @@ pub(crate) fn analysis_request_of(
     })?
     .clone();
 
+    // The value and the claim about where it came from are written together, by the one
+    // routine every surface writes a gravity through.
+    let (gravity_meters_per_second_squared, gravity_source) =
+        plateforce_analysis::gravity_stated(gravity_meters_per_second_squared);
+
     let mut request = AnalysisRequest {
         weighing: match weighing_epoch {
             Some(method) => WeighingChoice {
@@ -634,6 +663,7 @@ pub(crate) fn analysis_request_of(
         },
         touchdown_index,
         gravity_meters_per_second_squared,
+        gravity_source,
         // What this registry carries. The binding composes operators onto the rule the
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
@@ -694,7 +724,7 @@ struct AnalysisDocument<'a> {
     onset = None,
     takeoff = None,
     preset = None,
-    gravity_meters_per_second_squared = STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    gravity_meters_per_second_squared = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -716,7 +746,7 @@ pub fn analyse_json(
     onset: Option<&BoundMethod>,
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
-    gravity_meters_per_second_squared: f64,
+    gravity_meters_per_second_squared: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -781,7 +811,7 @@ pub fn analyse_json(
     onset = None,
     takeoff = None,
     preset = None,
-    gravity_meters_per_second_squared = STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    gravity_meters_per_second_squared = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -803,7 +833,7 @@ pub fn analyse_countermovement_jump(
     onset: Option<&BoundMethod>,
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
-    gravity_meters_per_second_squared: f64,
+    gravity_meters_per_second_squared: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -885,10 +915,13 @@ pub fn analyse_countermovement_jump(
         registry: &registry,
         acquisition_complete,
     };
-    let gravity_parameter = vec![(
-        "gravity_meters_per_second_squared".to_string(),
-        gravity_meters_per_second_squared,
-    )];
+    // What the analysis was bound to, which is what every rule reading gravity ran under. A
+    // rule that publishes its own answers for itself, and `gravity_behind` asks its row.
+    let analysis_gravity = (
+        request.gravity_meters_per_second_squared,
+        request.gravity_source,
+    );
+    let gravity_of = |method_id: &str| gravity_behind(&response, method_id, analysis_gravity);
     let interval = vec![onset_chain.clone(), takeoff_chain.clone()];
     let whole_pipeline = vec![
         epoch_chain.clone(),
@@ -916,7 +949,7 @@ pub fn analyse_countermovement_jump(
         .measured(
             "takeoff_velocity_meters_per_second",
             TAKEOFF_VELOCITY_METHOD_ID,
-            gravity_parameter.clone(),
+            gravity_of(TAKEOFF_VELOCITY_METHOD_ID),
             whole_pipeline,
         )
         .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
@@ -924,7 +957,7 @@ pub fn analyse_countermovement_jump(
         .measured(
             "jump_height_from_takeoff_meters",
             JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID,
-            gravity_parameter.clone(),
+            gravity_of(JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID),
             vec![velocity.chain()],
         )
         .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
@@ -937,13 +970,13 @@ pub fn analyse_countermovement_jump(
     let jump_height_flight_time = derived.measured(
         "jump_height_from_flight_time_meters",
         JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID,
-        gravity_parameter.clone(),
+        gravity_of(JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID),
         flight_time.iter().map(Measured::chain).collect(),
     );
     let rsi = derived.measured(
         "reactive_strength_index_modified",
         RSI_MODIFIED_METHOD_ID,
-        Vec::new(),
+        gravity_of(RSI_MODIFIED_METHOD_ID),
         vec![jump_height.chain(), time_to_takeoff.chain()],
     );
 
@@ -955,7 +988,7 @@ pub fn analyse_countermovement_jump(
             value: derived.value("system_mass_kilograms").unwrap_or_default(),
             unit: derived.unit("system_mass_kilograms"),
             provenance: CoreProvenance {
-                parameters: measured_records(gravity_parameter),
+                parameters: gravity_of(""),
                 ..epoch_chain.provenance.clone()
             },
         },
@@ -993,10 +1026,22 @@ pub fn analyse_countermovement_jump(
             .iter()
             .flat_map(|bound| bound.unread_parameters.iter().cloned())
             .collect(),
+        // The values this analysis was bound to are read alongside the rules', because a
+        // gravity nobody was asked about is a value nobody chose in exactly the sense this
+        // list reports, and no rule's row can carry it.
         assumed_parameters: response
             .bound_methods
             .iter()
             .flat_map(|bound| bound.assumed_parameters())
+            .chain(
+                response
+                    .bound_globals
+                    .iter()
+                    .filter(|bound| {
+                        bound.source == plateforce_core::provenance::ParameterSource::Assumed
+                    })
+                    .map(|bound| bound.name.to_string()),
+            )
             .collect(),
         warnings: response.warnings.clone(),
         // The signals the analysis already raised. Raising them again here would run the
@@ -1023,16 +1068,19 @@ pub fn analyse_countermovement_jump(
 #[pyfunction]
 #[pyo3(signature = (
     flight_time_seconds,
-    gravity_meters_per_second_squared = STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    gravity_meters_per_second_squared = None,
     registry_version = None,
     acquisition_complete = false,
 ))]
 pub fn jump_height_from_flight_time(
     flight_time_seconds: f64,
-    gravity_meters_per_second_squared: f64,
+    gravity_meters_per_second_squared: Option<f64>,
     registry_version: Option<String>,
     acquisition_complete: bool,
 ) -> Measured {
+    use plateforce_core::provenance::{ParameterRecord, ParameterSource};
+    let (gravity_meters_per_second_squared, gravity_source) =
+        plateforce_analysis::gravity_stated(gravity_meters_per_second_squared);
     Measured::new(
         CoreMeasured {
             value: core_jump_height_from_flight_time(
@@ -1041,13 +1089,21 @@ pub fn jump_height_from_flight_time(
             ),
             unit: "meters",
             provenance: CoreProvenance {
-                parameters: measured_records(vec![
-                    ("flight_time_seconds".to_string(), flight_time_seconds),
-                    (
-                        "gravity_meters_per_second_squared".to_string(),
-                        gravity_meters_per_second_squared,
-                    ),
-                ]),
+                // The flight time was measured off a trace the caller holds; the gravity is
+                // whatever they said, or the constant nobody asked them about. One record
+                // giving both the same source claimed a measurement of the second.
+                parameters: vec![
+                    ParameterRecord {
+                        name: "flight_time_seconds".to_string(),
+                        value: flight_time_seconds,
+                        source: ParameterSource::Measured,
+                    },
+                    ParameterRecord {
+                        name: plateforce_analysis::GRAVITY_GLOBAL.to_string(),
+                        value: gravity_meters_per_second_squared,
+                        source: gravity_source,
+                    },
+                ],
                 registry_version,
                 acquisition_complete,
                 ..CoreProvenance::of(JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID)
