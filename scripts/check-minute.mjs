@@ -156,6 +156,50 @@ check('a jump height is on screen with no decision made',
   paint.wall === null && paint.jumpHeight != null,
   paint.wall ? `the wall is up: "${paint.wall}"` : `${paint.jumpHeight}, from ${paint.rule || 'no named rule'}`);
 
+// Two verdicts oblige the interface to say something about a rule nobody was asked about.
+// Asked of the rail, because the rail is built from what ran and a card is built from what
+// a metric read, and only the first is the population the verdict is owed to.
+//
+// A rule that reaches a reader only as a provenance name on a card has been named and has
+// not been given the treatment either verdict asks for: `default_and_show` wants the value
+// the rule used, which a card carries in a tooltip, and `surface_on_demand` wants an
+// affordance that says alternatives are behind it, which a button labelled with the rule
+// does not. So where a rule is missing from the rail this reports where it does reach,
+// which is a different sentence from nowhere at all and sends the reader somewhere real.
+const entitledToAPlace = `(async () => {
+  const state = (await import('./state.js')).state;
+  const verdict = new Map(state.registry.methods.map((m) => [m.id, [m.gui?.surfacing, m.title]]));
+  const OWED = new Set(['surface_on_demand', 'default_and_show']);
+  const drawn = [...document.querySelectorAll('#decision-list .ran-beside__title')]
+    .map((node) => node.textContent.trim());
+  const owed = [], missing = [];
+  for (const bound of state.analysis?.bound_methods ?? []) {
+    const [surfacing, title] = verdict.get(bound.method_id) ?? [];
+    if (!OWED.has(surfacing)) continue;
+    owed.push(bound.method_id);
+    if (drawn.includes(title)) continue;
+    const elsewhere = [...new Set([...document.querySelectorAll('#stage-workspace *')]
+      .filter((node) => [...node.childNodes].some((child) => child.nodeType === 3 && child.textContent.includes(title)))
+      .map((node) => String(node.className || node.tagName)))];
+    missing.push(bound.method_id + ' (' + surfacing + ', drawn as ' + (elsewhere.join(' and ') || 'nothing at all') + ')');
+  }
+  return { owed, missing, drawn: drawn.length };
+})()`;
+
+const entitled = (surfaced) => [
+  surfaced.owed.length > 0 && surfaced.missing.length === 0,
+  surfaced.owed.length === 0
+    ? 'no bound rule carries either verdict, so this check compared nothing'
+    : `${surfaced.owed.length - surfaced.missing.length} of ${surfaced.owed.length} entitled rules are drawn` +
+      (surfaced.missing.length ? `; without the treatment the verdict asks for: ${surfaced.missing.join(', ')}` : ''),
+];
+
+// The first paint is the moment the claim above is about, and it is the moment a reader has
+// settled nothing. A rail that waits for a choice before saying what ran withholds the
+// record for exactly as long as the reader has not acted, which is when they most need it.
+check('before any act, every rule entitled to a place on screen already has one',
+  ...entitled(await evaluate(entitledToAPlace)));
+
 check('that value is marked provisional and names the rule that produced it',
   Boolean(paint.provisional) && paint.rule.length > 0,
   paint.provisional ?? 'no provisional line');
@@ -224,39 +268,13 @@ check('a rule the registry says to name is on screen',
 // reached every rule entitled to it, which is a different question and the one that goes
 // wrong quietly.
 //
-// The rail is built from three hardcoded slots, and a rule is drawn beside the slot whose
-// construct it shares, so a rule bound under any fourth construct renders nowhere and says
-// nothing about it. That is guaranteed the first time a rule lands outside the three, and
-// invisible to a check that only asks whether the treatment exists somewhere.
-const surfaced = await evaluate(`(async () => {
-  const state = (await import('./state.js')).state;
-  const verdict = new Map(state.registry.methods.map((m) => [m.id, [m.gui?.surfacing, m.title]]));
-  const OWED = new Set(['surface_on_demand', 'default_and_show']);
-  const drawn = [...document.querySelectorAll('#decision-list .ran-beside__title')]
-    .map((node) => node.textContent.trim());
-  const owed = [], missing = [];
-  for (const bound of state.analysis?.bound_methods ?? []) {
-    const [surfacing, title] = verdict.get(bound.method_id) ?? [];
-    if (!OWED.has(surfacing)) continue;
-    owed.push(bound.method_id);
-    if (drawn.includes(title)) continue;
-    // Where the rule does reach, if it reaches anywhere. Reporting a rule that is drawn as a
-    // provenance name as being nowhere on screen sends the reader hunting for an absence
-    // that is really a treatment: this verdict asks for the value beside the name, and a
-    // provenance name carries the value in a tooltip.
-    const elsewhere = [...new Set([...document.querySelectorAll('#stage-workspace *')]
-      .filter((node) => [...node.childNodes].some((child) => child.nodeType === 3 && child.textContent.includes(title)))
-      .map((node) => String(node.className || node.tagName)))];
-    missing.push(bound.method_id + ' (' + surfacing + ', drawn as ' + (elsewhere.join(' and ') || 'nothing at all') + ')');
-  }
-  return { owed, missing, drawn: drawn.length };
-})()`);
+// The same question as the one asked at the first paint, asked again here because the two
+// moments hold different populations. Picking a rule on a forcing slot binds the sub-rules
+// it runs, so this state carries entries the opening one does not, and a rail that reaches
+// every rule at the first paint can still lose one the moment a reader chooses.
+const surfaced = await evaluate(entitledToAPlace);
 check('every rule the registry entitles to a place on screen has one',
-  surfaced.owed.length > 0 && surfaced.missing.length === 0,
-  surfaced.owed.length === 0
-    ? 'no bound rule carries either verdict, so this check compared nothing'
-    : `${surfaced.owed.length - surfaced.missing.length} of ${surfaced.owed.length} entitled rules are drawn` +
-      (surfaced.missing.length ? `; without the treatment the verdict asks for: ${surfaced.missing.join(', ')}` : ''));
+  ...entitled(surfaced));
 
 // The row existing is half the verdict. The other half is that the alternatives are one
 // interaction away, so the check takes the interaction rather than reading the row and
