@@ -562,6 +562,9 @@ select { cursor: pointer; }
   padding-top: var(--space-2);
   border-top: 1px dashed var(--border);
 }
+/* Sized by its own words. A grid item fills the column, and a pill as wide as the card
+   reads as a bar rather than as the one act in the block. */
+.metric__provenance .chip { justify-self: start; }
 
 /* One line per contributing method, so the provenance stays shorter than the value it
    sits under. */
@@ -805,6 +808,24 @@ table.data th { color: var(--text-secondary); font-weight: 600; text-transform: 
 table.data td.numeric { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
 table.data tr[data-extreme="low"] td, table.data tr[data-extreme="high"] td { background: var(--accent-quiet); }
 table.data td.failed { color: var(--danger); white-space: normal; }
+/* A row opens its own record from the name it is under. Underlined rather than boxed: a
+   button drawn in every cell of a column reads as a column of buttons rather than as names. */
+.row-record {
+  font: inherit;
+  display: block;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: underline dotted var(--text-tertiary);
+  cursor: pointer;
+}
+.row-record:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
 /* ---------------------------------------------------------------- drawer */
 
@@ -825,10 +846,16 @@ table.data td.failed { color: var(--danger); white-space: normal; }
 .drawer__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border); }
 .drawer__head h2 { font-size: var(--text-md); }
 .drawer__body { padding: var(--space-6); overflow-y: auto; display: grid; gap: var(--space-6); }
+/* A grid item is as wide as its widest content unless it is told otherwise, so a line too
+   long for the panel widened the panel instead of scrolling inside the block holding it. */
+.drawer__body > * { min-width: 0; }
 .drawer__body h3 { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: var(--space-2); }
 .drawer__body p, .drawer__body li { font-size: var(--text-sm); }
 .drawer__body ul { margin: 0; padding-left: var(--space-4); display: grid; gap: var(--space-2); }
 .rule-text { font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6; white-space: pre-wrap; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3); overflow-x: auto; }
+/* Each step's distance from the number is written in leading spaces, so a wrapped line
+   would put a rule that fed another rule at the depth of the one it fed. */
+.account { margin: 0; white-space: pre; }
 .drawer a { color: var(--accent); }
 
 /* ---------------------------------------------------------------- footer */
@@ -849,6 +876,7 @@ table.data td.failed { color: var(--danger); white-space: normal; }
      wrong default here, whatever the pointer media query reports. */
   .button--small { min-height: 44px; padding: 0 var(--space-3); }
   .provenance { min-height: 44px; }
+  .row-record { min-height: 44px; }
   .chip { min-height: 44px; padding: var(--space-2) var(--space-3); }
   .param select, .param input { min-height: 44px; }
   .add-quantity input, .add-quantity__option { min-height: 44px; }

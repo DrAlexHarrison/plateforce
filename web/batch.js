@@ -4,6 +4,7 @@
  * function rather than two front doors: the rendering is an argument. */
 
 import { element, formatNumber, secondaryDisplay } from './format.js';
+import { openAccounts } from './drawer.js';
 
 export const WITH_PROVENANCE = 'with-provenance';
 export const WITHOUT_PROVENANCE = 'without-provenance';
@@ -62,8 +63,25 @@ function plateLine(run, revisionNow) {
   return `${attribution.name}, revision ${attribution.revision}.${moved}`;
 }
 
+/*
+ * The account every number gives of itself, grouped under the trial it is about.
+ *
+ * A row reaches its own trial's accounts rather than the folder's, so two hundred trials
+ * stay two hundred records instead of one list nobody can index. The rows arrive on the
+ * result in the order the analysis reported the quantities.
+ */
+function accountsByTrial(result) {
+  const grouped = new Map();
+  for (const row of result.descriptions ?? []) {
+    if (!grouped.has(row.trial_id)) grouped.set(row.trial_id, []);
+    grouped.get(row.trial_id).push([row.quantity, row.account]);
+  }
+  return grouped;
+}
+
 function table(result, rendering) {
   const columns = columnsFor(result, rendering);
+  const accounts = accountsByTrial(result);
   const units = result.units ?? {};
   const scroll = element('div', 'table-scroll');
   const node = element('table', 'data');
@@ -82,6 +100,10 @@ function table(result, rendering) {
       const numeric = !KEY_COLUMNS.includes(column);
       const cell = element('td', numeric ? 'numeric' : null, raw === '' ? '' : String(raw));
       if (column === 'refusal_code' && raw) cell.className = 'failed';
+      // The trial's own name opens the trial's own record, so the accounts stay reachable
+      // under both renderings rather than travelling with a column one of them hides.
+      const held = column === 'trial_id' ? accounts.get(row.trial_id) : null;
+      if (held?.length) cell.replaceChildren(accountControl(row.trial_id, held));
       line.append(cell);
     }
     body.append(line);
@@ -89,6 +111,13 @@ function table(result, rendering) {
   node.append(body);
   scroll.append(node);
   return scroll;
+}
+
+function accountControl(trialId, accounts) {
+  const open = element('button', 'row-record', trialId);
+  open.type = 'button';
+  open.addEventListener('click', () => openAccounts(trialId, accounts));
+  return open;
 }
 
 /* The reduction renders beneath the table, from `aggregates`, with the count it was taken
