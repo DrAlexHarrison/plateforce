@@ -5,8 +5,10 @@
 //! properties here are about which instant each rule placed and whose name is on it, not
 //! about whether a rule ran.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
+use plateforce_analysis::binding::{derived_bindings, Binding};
+use plateforce_analysis::slots::phase_model::CONSTRUCT as PHASE_MODEL;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
@@ -466,6 +468,81 @@ fn keys_reported_by(response: &AnalysisResponse, rule: &str) -> Vec<String> {
         .filter(|metric| metric.computed_by.as_deref() == Some(rule))
         .map(|metric| metric.key.clone())
         .collect()
+}
+
+/// Every quantity a phase model publishes is one it places, and every key it places is one it
+/// publishes.
+///
+/// The population is read off the binding table rather than written here, so a third phase
+/// model arrives inside this guard rather than beside it. What it is against: the keys a model
+/// reported were built by zipping a list written in the rule's own file against the boundaries
+/// the model returned, and a zip stops at the shorter of the two. A model that gained a sixth
+/// boundary while its list stayed at five would have placed five, the registry row would have
+/// gone on publishing six, and the interface would have drawn a column no run ever fills.
+/// Neither direction of that is visible from a count.
+#[test]
+fn every_phase_model_places_exactly_the_quantities_its_row_declares() {
+    let trial = a_jump_that_lands();
+    let models: Vec<&Binding> = derived_bindings()
+        .filter(|binding| binding.construct == PHASE_MODEL)
+        .collect();
+    // The control. Every assertion below holds over an empty population, and a construct
+    // renamed out from under this filter would leave one.
+    assert!(
+        !models.is_empty(),
+        "no row of the binding table is filed under {PHASE_MODEL}, so this guard walked nothing"
+    );
+
+    let mut faults = Vec::new();
+    let mut placed = 0;
+    for model in &models {
+        let response = run(&trial, &naming(&[(model.construct, model.id)]))
+            .unwrap_or_else(|error| panic!("{} could not run: {error}", model.id));
+        let reported: BTreeSet<String> =
+            keys_reported_by(&response, model.id).into_iter().collect();
+        let declared: BTreeSet<String> = model
+            .quantities
+            .iter()
+            .map(|quantity| quantity.key.to_string())
+            .collect();
+        placed += reported.len();
+
+        // Both directions, and each catches what the other cannot. A declared key nobody
+        // reported is a column the registry promises and no run fills; a reported key nobody
+        // declared is a number a reader cannot look up.
+        let unfilled: Vec<&String> = declared.difference(&reported).collect();
+        if !unfilled.is_empty() {
+            faults.push(format!(
+                "{} publishes {} quantities and reported {}, leaving {unfilled:?} with no row \
+                 at all",
+                model.id,
+                declared.len(),
+                reported.len()
+            ));
+        }
+        let undeclared: Vec<&String> = reported.difference(&declared).collect();
+        if !undeclared.is_empty() {
+            faults.push(format!(
+                "{} reported {undeclared:?} and its row declares no such quantity, so a reader \
+                 holding the number cannot look it up",
+                model.id
+            ));
+        }
+    }
+
+    // What this guard covers, as a query rather than a figure written down. The two counts are
+    // the population and what it placed, and neither stands in for the other.
+    println!(
+        "{} phase models declared, {placed} quantities placed between them",
+        models.len()
+    );
+    assert!(
+        faults.is_empty(),
+        "{} of {} phase models place something other than what they publish:\n  {}",
+        faults.len(),
+        models.len(),
+        faults.join("\n  ")
+    );
 }
 
 /// The registry's own claim about this pair, and the reason a phase model is a decision a user

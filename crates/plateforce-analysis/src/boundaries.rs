@@ -17,6 +17,7 @@ use plateforce_core::phases::{BoundedCrossing, PhaseModelOutcome};
 
 use crate::derived::{DerivedContext, DerivedOutcome};
 use crate::resolution::{BoundValues, RuleRefusal};
+use crate::response::Quantity;
 
 /// A rule that searched for an instant, as the outcome carrying the time it reports and the
 /// sample a later rule reads it by.
@@ -129,25 +130,42 @@ fn declined_at_a_fallback(
     )
 }
 
-/// A phase model's five or two boundaries, or the refusal that says which of them the
-/// recording did not carry.
+/// A phase model's boundaries, or the refusal that says which of them the recording did not
+/// carry.
 ///
 /// A model declines whole rather than publishing the boundaries below the one it could not
 /// place, because the intervals between them are what the model asserts and an interval with
 /// an unmet end is not one of them.
+///
+/// The keys are read off the quantities the entry publishes rather than passed as a list of
+/// their own. A second list is a subset of the first the moment a model gains a boundary, and
+/// the zip below would have placed the shorter of the two and reported nothing about the rest:
+/// a quantity the registry publishes, the interface draws a column for, and no run ever fills.
 pub(crate) fn model_outcome(
     context: &DerivedContext,
     method_id: &str,
-    keys: &[&'static str],
+    quantities: &[Quantity],
     outcome: PhaseModelOutcome,
     bound: BoundValues,
 ) -> DerivedOutcome {
     match outcome {
+        // Over the quantities rather than over the indices, so a model that placed fewer
+        // boundaries than its entry publishes reports the rest as quantities with no value
+        // instead of leaving them out of the answer altogether. A reader can see a blank cell;
+        // nobody can see a key that never arrived.
         PhaseModelOutcome::Placed(model) => DerivedOutcome {
-            values: keys
+            values: quantities
                 .iter()
-                .zip(&model.indices)
-                .map(|(key, index)| (*key, Some(context.trial.time_at(*index))))
+                .enumerate()
+                .map(|(position, quantity)| {
+                    (
+                        quantity.key,
+                        model
+                            .indices
+                            .get(position)
+                            .map(|index| context.trial.time_at(*index)),
+                    )
+                })
                 .collect(),
             placed: Vec::new(),
             bound,
@@ -176,7 +194,10 @@ pub(crate) fn model_outcome(
             ))),
         ),
         PhaseModelOutcome::NothingToPlace => DerivedOutcome {
-            values: keys.iter().map(|key| (*key, None)).collect(),
+            values: quantities
+                .iter()
+                .map(|quantity| (quantity.key, None))
+                .collect(),
             placed: Vec::new(),
             bound,
             refusal: None,
