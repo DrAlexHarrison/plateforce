@@ -34,7 +34,10 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
 ///
 /// Twelve rules read the analysis gravity and none of them records it, because none of their
 /// registry entries declares such a parameter and a rule may not record a parameter its entry
-/// does not carry. The value moves four of eleven numbers.
+/// does not carry. The value moves five of eleven numbers: measured on subject 01's first
+/// trial at 9.80665 against 9.75, both jump heights, modified reactive strength, system mass
+/// and takeoff velocity move, and the six that do not are the two instants, the two spans,
+/// system weight and the net impulse.
 #[derive(Debug, Clone, Serialize)]
 pub struct BoundGlobal {
     pub name: &'static str,
