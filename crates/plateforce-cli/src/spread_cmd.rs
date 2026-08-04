@@ -32,6 +32,10 @@ pub struct Args {
     /// The quantity to sweep. Absent takes the one `analyse` reports without being asked
     #[arg(long, value_name = "KEY")]
     pub quantity: Option<String>,
+    /// A step to vary, repeated for each. Absent varies every step this run bound more than
+    /// one rule for
+    #[arg(long, value_name = "STEP")]
+    pub slot: Vec<String>,
 }
 
 pub fn run(
@@ -60,7 +64,16 @@ pub fn run(
         );
     }
 
-    match measure(&prepared.trial.trial, &prepared.request, quantity) {
+    let axes = if args.slot.is_empty() {
+        axes_over_every_rule(&prepared.request)
+    } else {
+        match axes_over_named_steps(&prepared.request, &args.slot) {
+            Ok(axes) => axes,
+            Err(sentence) => return Outcome::declined_line(Fault::Request, sentence),
+        }
+    };
+
+    match measure(&prepared.trial.trial, &prepared.request, quantity, axes) {
         Err(refusal) => Outcome::declined(Declined::recorded(*refusal)),
         Ok(response) => {
             // A sweep that leaves on its own says which build and which registry produced it.
@@ -95,6 +108,18 @@ pub fn run(
 /// A construct the request did not bind is not an axis. Sweeping it would run a rule nobody
 /// chose, which is what `spread::unsweepable` refuses.
 pub fn axes_over_every_rule(request: &AnalysisRequest) -> Vec<Axis> {
+    axes_over_every_step(request)
+        .into_iter()
+        .filter(|axis| axis.method_ids.len() > 1)
+        .collect()
+}
+
+/// Every step this run bound, as an axis over the rules this build runs for it, whether or
+/// not that is more than one.
+///
+/// The unfiltered set, so a caller who named a step by hand is told this build runs one rule
+/// for it rather than told no such step exists.
+fn axes_over_every_step(request: &AnalysisRequest) -> Vec<Axis> {
     let landmarks = PATH.iter().map(|construct| slot_of(construct).to_string());
     // Keyed by construct on the request, and the sweep reaches a derived rule by that same
     // word, so the construct is the slot for every one of them.
@@ -109,20 +134,64 @@ pub fn axes_over_every_rule(request: &AnalysisRequest) -> Vec<Axis> {
             parameter: None,
             values: Vec::new(),
         })
-        .filter(|axis| axis.method_ids.len() > 1)
         .collect()
+}
+
+/// The steps the caller named, as axes, or a sentence saying why one of them is not a step
+/// this run can vary.
+///
+/// A named step this build runs one rule for is refused rather than dropped. Dropped, the
+/// command would run, print a spread taken over the steps it kept, and say nothing about the
+/// step the caller asked about, which reads as an answer to the question they put.
+///
+/// The word is the one `--set` takes as its prefix, and the construct the panel prints is
+/// accepted too, because a reader narrowing a sweep is reading `varied system_weight` off
+/// the panel above it. What the record names is the construct either way.
+fn axes_over_named_steps(request: &AnalysisRequest, named: &[String]) -> Result<Vec<Axis>, String> {
+    let bound = axes_over_every_step(request);
+    let offered: Vec<&str> = bound.iter().map(|axis| axis.slot.as_str()).collect();
+    let mut chosen: Vec<Axis> = Vec::new();
+    for word in named {
+        let Some(axis) = bound.iter().find(|axis| answers_to(&axis.slot, word)) else {
+            return Err(format!(
+                "'{word}' is not a step this run bound: {offered:?}"
+            ));
+        };
+        if axis.method_ids.len() < 2 {
+            let runs = match axis.method_ids.len() {
+                0 => "no rule",
+                _ => "one rule",
+            };
+            return Err(format!(
+                "this build runs {runs} for {}, so there is nothing to sweep",
+                axis.slot
+            ));
+        }
+        if chosen.iter().any(|held| held.slot == axis.slot) {
+            return Err(format!("'{word}' is named twice, and one step is one axis"));
+        }
+        chosen.push(axis.clone());
+    }
+    Ok(chosen)
+}
+
+/// Whether a step answers to a word a caller typed: the word `--set` takes, or the construct
+/// the record and the panel name it by.
+fn answers_to(slot: &str, word: &str) -> bool {
+    slot == word || plateforce_analysis::binding::construct_for_slot(slot) == Some(word)
 }
 
 pub fn measure(
     trial: &Trial,
     request: &AnalysisRequest,
     quantity_key: &str,
+    axes: Vec<Axis>,
 ) -> Result<SpreadResponse, Box<plateforce_core::Refusal>> {
     sweep(
         trial,
         &SpreadRequest {
             base: request.clone(),
-            axes: axes_over_every_rule(request),
+            axes,
             quantity_key: quantity_key.to_string(),
             maximum_combinations: 512,
         },

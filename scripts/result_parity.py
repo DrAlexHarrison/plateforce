@@ -489,23 +489,10 @@ SURFACES_NOT_ASKED = {
             "three landmark constructs cannot be written as one R call. R sweeps one slot and "
             "answers a narrower question than the record this request is held to",
         ),
-        # Measured, not assumed: the arm is written and was run against this request. The tab
-        # computed the same 75 combinations, the same 75 labels, the same value under every
-        # one of them, and 20 of the 21 fields identical to the terminal byte for byte. What
-        # differs is the order of `variants`, because `spread::run` reports combinations in
-        # the order the caller listed the rules and the tab lists them as it ranks them for a
-        # reader while the terminal, Python and R all read the binding table. Holding the tab
-        # to this record would mean taking `variants` out of it, so the 75 values behind the
-        # headline would stop being committed anywhere to fit a third surface in.
-        "browser": NotAsked(
-            "a sweep whose variant order does not depend on the order the caller listed the "
-            "rules in, which would let one record hold the tab and the terminal together",
-            "the tab computes this sweep and agrees on every summary figure and on the value "
-            "of all 75 combinations, and reports them in the order it ranks rules for a "
-            "reader rather than the binding table's. One committed record cannot hold both "
-            "orders, and dropping `variants` from the record to fit would uncommit the "
-            "numbers the headline rests on",
-        ),
+        # The browser was here, asked of nothing because it reported the same 75 combinations
+        # in the order it ranks rules for a reader. `spread::run` now orders `variants` by the
+        # binding table whatever order the caller listed the rules in, so one record holds the
+        # tab and the terminal together and the tab is on the sweep row.
     },
 }
 
@@ -580,11 +567,11 @@ ANALYSED_SURFACES_THAT_DIFFER = {
     "spread": Divergence(
         frozenset({"cli"}),
         None,
-        "the sweep request, which holds the terminal and Python to one committed record over "
-        "all 21 fields of a swept document, and names in SURFACES_NOT_ASKED what stands "
-        "between that record and the other two. What is left here is the nesting: the "
-        "terminal reports the headline sweep inside the analysed document and nobody else "
-        "does",
+        "the sweep request, which holds the terminal, the tab and Python to one committed "
+        "record over all 21 fields of a swept document, and names in SURFACES_NOT_ASKED what "
+        "stands between that record and the surface still outside it. What is left here is "
+        "the nesting: the terminal reports the headline sweep inside the analysed document "
+        "and nobody else does",
         "how far a number moves across a slot's defensible alternatives. The terminal sweeps "
         "with the analysis; the tab sweeps on its own schedule through a second entry point, "
         "and Python and R expose the sweep as a call of its own",
