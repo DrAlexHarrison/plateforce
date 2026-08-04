@@ -9,7 +9,8 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
 use crate::slots::movement_onset::{
-    record_inherited_spread, CROSSING_SELECTION, OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND,
+    record_inherited_spread, BACKTRACK_TO_TOLERANCE, CROSSING_SELECTION, INVERSE_LOOKBACK_SECONDS,
+    NOISE_RELATIVE_ENTRY, OFFSET_MILLISECONDS, RETREAT_CAP_SAMPLES, SEARCH_UPPER_BOUND, TOLERANCE,
 };
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
@@ -39,15 +40,41 @@ pub(crate) fn crossing(
     let force = trial.force();
     let rate = trial.sample_rate_hz();
     let k = resolved.number("k", 5.0);
-    record_inherited_spread(resolved, inherited_spread);
+    record_inherited_spread(resolved, inherited_spread)?;
     // The two operators this rule binds by being chosen, recorded because a reader needs
     // their values to reproduce the number. Stating either in disagreement asks for a
     // different rule, and is refused under the operator that publishes the alternatives
     // rather than dropped.
     resolved.entailed(CROSSING_SELECTION, "selection", "last")?;
     resolved.entailed(SEARCH_UPPER_BOUND, "bound", "minimum_force")?;
-    let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
-    let back_offset_samples = resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
+    // A widened band needs an upper edge for the preload look back and no source states one
+    // for a rule read backwards, so this rule declines a collapsed band rather than widening
+    // it, and says so under the entry it records against.
+    resolved.entailed(NOISE_RELATIVE_ENTRY, "degenerate_band", "refuse")?;
+    let lookback_samples = resolved.seconds_as_samples(INVERSE_LOOKBACK_SECONDS, 0.5, rate);
+    // Two retreats, filed as two operators, and the name stated picks between them. Sams
+    // retreats to where force came back to the reference; the other family steps back a
+    // published number of milliseconds and reads the crossing as a trigger. Silence composes
+    // the fixed step, which is the operator this rule has always bound.
+    let retreat = match resolved.stated_name(TOLERANCE) {
+        Some(_) => {
+            resolved.entailed(BACKTRACK_TO_TOLERANCE, TOLERANCE, "at_system_weight")?;
+            PostCrossingRule::ToReferenceCrossing
+        }
+        None => PostCrossingRule::FixedOffset(resolved.milliseconds_as_samples(
+            OFFSET_MILLISECONDS,
+            30.0,
+            rate,
+        )),
+    };
+    // The retreat walks back to the reference with nothing stopping it, which is the published
+    // variant's own behaviour and the reason its entry publishes a cap. A caller who states
+    // one is told this rule runs uncapped rather than watching the walk ignore it.
+    resolved.runs_without(
+        BACKTRACK_TO_TOLERANCE,
+        RETREAT_CAP_SAMPLES,
+        &[INVERSE_LOOKBACK_SECONDS, TOLERANCE],
+    )?;
 
     let search_end = takeoff_index
         .and_then(|takeoff| countermovement_dip(force, takeoff))
@@ -75,7 +102,7 @@ pub(crate) fn crossing(
         k,
         search_end,
         lookback_samples,
-        PostCrossingRule::FixedOffset(back_offset_samples),
+        retreat,
         rate,
     )
     .map(|outcome| {

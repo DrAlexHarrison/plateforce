@@ -6,12 +6,10 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{format_number, Resolution, RuleRefusal};
 use crate::slots::movement_onset::{
-    direction, onset_search, record_inherited_spread, OnsetDirection,
+    direction, onset_search, record_inherited_spread, OnsetDirection, NOISE_RELATIVE_ENTRY,
 };
 
 pub(crate) const APPLIES_BACKTRACK: bool = true;
-
-const RULE_ID: &str = "onset.threshold.noise_relative";
 
 pub(crate) fn crossing(
     trial: &Trial,
@@ -23,13 +21,17 @@ pub(crate) fn crossing(
     let rate = trial.sample_rate_hz();
     let search = onset_search(trial, epoch, resolved)?;
     let k = resolved.number("k", 5.0);
-    record_inherited_spread(resolved, inherited_spread);
+    record_inherited_spread(resolved, inherited_spread)?;
     let chosen_direction = direction(resolved);
     // Refuse rather than substitute. A collapsed band means the window the rule
     // assumed was quiet was not, and a silent fallback would hide that.
     let degenerate_band = match resolved.stated("degenerate_fraction") {
         Some(fraction) => {
-            resolved.entailed(RULE_ID, "degenerate_band", "fraction_of_reference")?;
+            resolved.entailed(
+                NOISE_RELATIVE_ENTRY,
+                "degenerate_band",
+                "fraction_of_reference",
+            )?;
             resolved.record_measured(
                 "degenerate_fraction",
                 fraction,
@@ -39,7 +41,7 @@ pub(crate) fn crossing(
             DegenerateBandPolicy::FractionOfReference(fraction)
         }
         None => {
-            resolved.entailed(RULE_ID, "degenerate_band", "refuse")?;
+            resolved.entailed(NOISE_RELATIVE_ENTRY, "degenerate_band", "refuse")?;
             DegenerateBandPolicy::Refuse
         }
     };

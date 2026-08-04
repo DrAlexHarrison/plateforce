@@ -313,6 +313,52 @@ impl<'a> Resolution<'a> {
         name: &str,
         value: &'static str,
     ) -> Result<(), RuleRefusal> {
+        self.entailed_from(operator_id, name, value, ParameterSource::Assumed)
+    }
+
+    /// A name an entry publishes that the rule behind it runs without.
+    ///
+    /// `entailed` fits a choice between names and this does not: there is no value to record,
+    /// because the rule does the thing the name would bound and does it unbounded. Consulted
+    /// either way, so silence is silence rather than a name nobody asked about, and refused
+    /// where the caller wrote one, because a bound stated and dropped leaves the rule running
+    /// unbounded while the record shows a reader who asked otherwise.
+    ///
+    /// `reads` is the denominator the sentence quotes, so a caller sees what this operator
+    /// does take rather than only what it declines.
+    pub(crate) fn runs_without(
+        &mut self,
+        operator_id: &str,
+        name: &str,
+        reads: &[&str],
+    ) -> Result<(), RuleRefusal> {
+        self.consulted.insert(name.to_string());
+        if !self.parameters.contains_key(name) && !self.options.contains_key(name) {
+            return Ok(());
+        }
+        Err(RuleRefusal::Refused(Box::new(
+            plateforce_core::Refusal::unknown_parameter(
+                operator_id,
+                name,
+                reads.iter().map(|read| (*read).to_string()).collect(),
+            ),
+        )))
+    }
+
+    /// The same, for a value another rule already settled and this one runs on.
+    ///
+    /// `entailed` records `Assumed` where the caller said nothing, which is the right claim for
+    /// a value this rule's own choice fixes. A spread an onset band is scaled by is not that:
+    /// the weighing rule computed it, and whether a reader picked the divisor is a fact about
+    /// that rule's row. Carrying the claim across keeps the two rows saying one thing about one
+    /// act, rather than the onset row reporting the reader's divisor as the software's.
+    pub(crate) fn entailed_from(
+        &mut self,
+        operator_id: &str,
+        name: &str,
+        value: &str,
+        unstated_source: ParameterSource,
+    ) -> Result<(), RuleRefusal> {
         self.consulted.insert(name.to_string());
         let source = match self.options.get(name) {
             Some(chosen) if chosen != value => {
@@ -326,7 +372,7 @@ impl<'a> Resolution<'a> {
                 )))
             }
             Some(_) => self.stated_source(name),
-            None => ParameterSource::Assumed,
+            None => unstated_source,
         };
         self.record(name, value.to_string(), source);
         Ok(())

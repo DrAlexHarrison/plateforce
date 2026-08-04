@@ -53,23 +53,31 @@ pub(crate) fn direction(resolved: &mut Resolution) -> Result<OnsetDirection, Rul
 /// The registry files both names on the onset row, and in this build the weighing window
 /// settles both: the spread the threshold is scaled by is that window's, taken over quiet
 /// stance.
-pub(crate) fn record_inherited_spread(resolved: &mut Resolution, inherited_spread: (&str, bool)) {
+///
+/// A caller may write either name in agreement and is refused on disagreement, because a
+/// divisor stated here and a divisor stated on the weighing rule would scale one band two
+/// ways, and an empty-plate spread is a second recording this analysis was never handed.
+pub(crate) fn record_inherited_spread(
+    resolved: &mut Resolution,
+    inherited_spread: (&str, bool),
+) -> Result<(), RuleRefusal> {
     let (convention, stated) = inherited_spread;
-    resolved.record(
-        "sd_convention",
-        convention.to_string(),
-        if stated {
-            ParameterSource::Stated
-        } else {
-            ParameterSource::Assumed
-        },
-    );
-    resolved.record(
+    let inherited = if stated {
+        ParameterSource::Stated
+    } else {
+        ParameterSource::Assumed
+    };
+    resolved.entailed_from(NOISE_RELATIVE_ENTRY, "sd_convention", convention, inherited)?;
+    resolved.entailed(
+        NOISE_RELATIVE_ENTRY,
         "reference_distribution",
-        "quiet_stance_force".into(),
-        ParameterSource::Assumed,
-    );
+        "quiet_stance_force",
+    )
 }
+
+/// The entry the noise-relative threshold and its last-crossing composition both record
+/// against, and the row a reader looks the declined alternatives up in.
+pub(crate) const NOISE_RELATIVE_ENTRY: &str = "onset.threshold.noise_relative";
 
 pub(crate) fn onset_search(
     trial: &Trial,
@@ -277,6 +285,12 @@ pub const WEIGHING_EPOCH_END_SECONDS: &str = "weighing_epoch_end_seconds";
 /// in milliseconds. A caller writing 500 for this one meaning milliseconds would get a
 /// lookback longer than most recordings and no rule would have anything to object to.
 pub const INVERSE_LOOKBACK_SECONDS: &str = "inverse_lookback_seconds";
+/// Which return to the reference ends the retreat, which is what makes the crossing a
+/// trigger rather than the answer.
+pub const TOLERANCE: &str = "tolerance";
+/// The bound the published variant of the retreat has none of, which is the reason its own
+/// entry publishes the name.
+pub const RETREAT_CAP_SAMPLES: &str = "retreat_cap_samples";
 
 /// The entries this build composes onto an onset threshold rule. Each is a registry entry
 /// in its own right, with its own citation, default and published values.
@@ -306,8 +320,8 @@ fn operator_for(name: &str) -> Option<&'static str> {
         "direction" => Some("onset.op.direction"),
         "selection" => Some(CROSSING_SELECTION),
         // The window searched for an excursion the other side of the band, which is the
-        // trigger the retreat fires on.
-        INVERSE_LOOKBACK_SECONDS => Some(BACKTRACK_TO_TOLERANCE),
+        // trigger the retreat fires on, and where the retreat stops.
+        INVERSE_LOOKBACK_SECONDS | TOLERANCE | RETREAT_CAP_SAMPLES => Some(BACKTRACK_TO_TOLERANCE),
         // The landmark the search stops at, and where on this trace it landed.
         "bound" | "search_bound_seconds" => Some(SEARCH_UPPER_BOUND),
         _ => None,

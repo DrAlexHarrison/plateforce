@@ -7,6 +7,8 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
 
+const ID: &str = "takeoff.threshold.flight_noise_k_sd";
+
 /// This rule's seed is the bounding threshold, which the registry files separately from the
 /// residual threshold the other three rules compare against.
 pub(crate) const SEED_PARAMETER: &str = "bounding_threshold_n";
@@ -20,6 +22,10 @@ pub(crate) fn crossing(
 ) -> Result<usize, RuleRefusal> {
     let rate = trial.sample_rate_hz();
     super::record_search_floor_at_weighing_epoch_end(trial, epoch, resolved);
+    // `trim_fraction` trims both ends of the provisional flight phase, which is the middle
+    // fraction the entry names. A caller asking for either of the other two published windows
+    // is asking for a different span of the same flight, and is refused by name.
+    resolved.entailed(ID, "flight_window", "middle_fraction_of_flight")?;
     let trim_fraction = resolved.number("trim_fraction", 0.25);
     let k = resolved.number("k", 5.0);
     let dispersion = resolved.dispersion()?;

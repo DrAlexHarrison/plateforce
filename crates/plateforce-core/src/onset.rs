@@ -311,6 +311,21 @@ pub fn onset_last_sample_within_noise_band(
     let upper_threshold = reference_newtons + half_width;
     let scan_end = (search_end_index + 1).min(signal.len());
 
+    // A band of zero width admits every sample, so the last one inside it is the sample
+    // before the bound whatever the athlete did. `onset_noise_relative` reads the same
+    // collapse off the same two numbers and declines, and the two rules share a registry
+    // entry, so a reader picking between them would otherwise get a refusal from one and a
+    // converter artefact from the other.
+    if dispersion_newtons <= 0.0 || lower_threshold <= 0.0 {
+        return Err(TrialError::CollapsedBand {
+            method_id: method_ids::ONSET_THRESHOLD_NOISE_RELATIVE.to_string(),
+            parameter: "k".to_string(),
+            value: multiplier,
+            dispersion_newtons,
+            threshold_newtons: lower_threshold,
+        });
+    }
+
     let candidate = (0..scan_end)
         .rev()
         .find(|&index| signal[index] >= lower_threshold)

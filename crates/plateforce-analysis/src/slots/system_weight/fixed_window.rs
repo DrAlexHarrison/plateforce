@@ -37,11 +37,17 @@ pub(crate) fn place(
     // Where the window is anchored and what time that lands on are two facts. The caller
     // states a sample index; the seconds it means depend on the recording's rate, so only
     // the anchor is the caller's.
+    //
+    // Placing the start is what settles the anchor, so an anchor written beside a start that
+    // says otherwise is refused rather than dropped. `pre_signal` weighs a different span of
+    // the same recording and no start index reaches it, so it is refused by the same line.
     let (anchor, anchor_source) = match choice.start_index {
         Some(_) => ("stated_index", ParameterSource::Stated),
         None => ("trial_start", ParameterSource::Assumed),
     };
-    resolved.record("window_anchor", anchor.to_string(), anchor_source);
+    resolved
+        .entailed_from(&choice.method_id, "window_anchor", anchor, anchor_source)
+        .map_err(Refusal::from)?;
     resolved.record_measured(
         "start_seconds",
         trial.time_at(epoch.start_index),
