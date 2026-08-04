@@ -14,6 +14,7 @@
  */
 
 import { spawn, execFileSync } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { readFile, readdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -40,12 +41,17 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(port, resolve));
 
+// The profile lives in memory and is removed on every exit, the check-minute shape: each
+// leaked /tmp profile is ~160 MB and these scripts run many times over while a guard is
+// broken and put back.
+const profile = `/dev/shm/plateforce-check-batch-${port}`;
 const chrome = spawn('google-chrome', [
   '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=/tmp/plateforce-check-batch-${port}`, 'about:blank',
+  '--disable-gpu', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: 'ignore', detached: true });
 process.on('exit', () => {
   try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
+  try { rmSync(profile, { recursive: true, force: true }); } catch { /* already gone */ }
 });
 
 const targets = await (async () => {
