@@ -125,9 +125,14 @@ export function buildRequest() {
     derived: {},
     conditioning: {},
     touchdown_index: state.overrides.touchdown,
-    // Sent only when the operator has stated it. A literal here would be standard gravity's
-    // second home, and the engine already carries the one the registry declares.
-    ...(state.gravity != null && { gravity_meters_per_second_squared: state.gravity }),
+    // Sent only when the operator has stated it, and the value never travels without the
+    // claim that they stated it. A literal here would be standard gravity's second home,
+    // and a value sent alone arrives as one the engine filled in for a reader nobody asked,
+    // which is the record a reader who measured a gravity at their own plate would get.
+    ...(state.gravity != null && {
+      gravity_meters_per_second_squared: state.gravity,
+      gravity_source: 'stated',
+    }),
     // A method is only reported as registry backed when the registry both carries it and
     // passes its own validator.
     registry_backed_ids: state.build.registry_valid

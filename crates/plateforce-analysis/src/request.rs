@@ -216,9 +216,88 @@ impl Default for AnalysisRequest {
     }
 }
 
+/// The names this request binds for the whole analysis, as `bound_globals` reports them.
+pub const GRAVITY_GLOBAL: &str = "gravity_meters_per_second_squared";
+pub const BODY_MASS_GLOBAL: &str = "body_mass_kilograms";
+pub const TOUCHDOWN_GLOBAL: &str = "touchdown_index";
+
+/// A gravity somebody stated, or the constant nobody was asked about, with the claim that
+/// tells the two apart.
+///
+/// One home for the pair, because the value and the claim are two fields and a surface that
+/// writes one and leaves the other records a value its caller measured as one nobody was
+/// asked about. Every surface that offers a gravity goes through here.
+pub fn gravity_stated(value: Option<f64>) -> (f64, ParameterSource) {
+    match value {
+        Some(stated) => (stated, ParameterSource::Stated),
+        None => (standard_gravity(), ParameterSource::Assumed),
+    }
+}
+
 impl AnalysisRequest {
     pub(crate) fn is_backed(&self, method_id: &str) -> bool {
         self.registry_backed_ids.iter().any(|id| id == method_id)
+    }
+
+    /// Writes a gravity for the whole analysis, with the claim that says whether anybody
+    /// chose it. `None` is the caller declining to state one.
+    pub fn state_gravity(&mut self, value: Option<f64>) {
+        let (value, source) = gravity_stated(value);
+        self.gravity_meters_per_second_squared = value;
+        self.gravity_source = source;
+    }
+
+    /// Every value this request binds for the whole analysis rather than for one rule.
+    ///
+    /// Destructured without a rest pattern, on the model `request_digest` already uses: a
+    /// field added to this type stops this compiling rather than silently leaving the record
+    /// blind to it. The two populations are different, and both are exhaustive by the same
+    /// mechanism. A digest identifies a request; this reports what no rule's row can.
+    ///
+    /// A rule's choices are absent because a rule records its own, on its own row, under the
+    /// names its registry entry declares. What lands here is the remainder: the values that
+    /// belong to the analysis and to no entry in the registry.
+    pub fn bound_globals(&self) -> Vec<crate::response::BoundGlobal> {
+        let AnalysisRequest {
+            weighing: _,
+            onset: _,
+            takeoff: _,
+            touchdown_index,
+            gravity_meters_per_second_squared,
+            gravity_source,
+            registry_backed_ids: _,
+            derived: _,
+            conditioning: _,
+            body_mass_kilograms,
+        } = self;
+
+        let mut bound = vec![crate::response::BoundGlobal::of(
+            GRAVITY_GLOBAL,
+            *gravity_meters_per_second_squared,
+            "meters_per_second_squared",
+            *gravity_source,
+        )];
+        // Absent where the caller stated nothing, because a row for a value nobody supplied
+        // would report the software's silence as the caller's choice. A touchdown the caller
+        // did not place is found by the takeoff threshold, and the rule that owns that
+        // threshold is already on the record under its own id.
+        if let Some(kilograms) = body_mass_kilograms {
+            bound.push(crate::response::BoundGlobal::of(
+                BODY_MASS_GLOBAL,
+                *kilograms,
+                "kilograms",
+                ParameterSource::Stated,
+            ));
+        }
+        if let Some(index) = touchdown_index {
+            bound.push(crate::response::BoundGlobal::of(
+                TOUCHDOWN_GLOBAL,
+                *index as f64,
+                "samples",
+                ParameterSource::Stated,
+            ));
+        }
+        bound
     }
 
     /// Lays a published pipeline's bindings onto this request.

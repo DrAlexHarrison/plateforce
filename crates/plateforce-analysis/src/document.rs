@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use crate::quality::QualitySignal;
 use crate::resolution::{BoundMethod, DeclinedRule};
-use crate::response::{AnalysisResponse, Levels, Metric};
+use crate::response::{AnalysisResponse, BoundGlobal, Levels, Metric};
 use crate::spread::SpreadResponse;
 
 /// Where the trace came from, and what the reader had to be told about reading it.
@@ -40,6 +40,10 @@ pub struct ResultDocument {
     pub touchdown_index: Option<usize>,
     pub metrics: Vec<Metric>,
     pub bound_methods: Vec<BoundMethod>,
+    /// What the request bound for the whole analysis. Beside `bound_methods` because a
+    /// reader asking what produced a number asks both questions in one place, and no rule's
+    /// row can answer this one.
+    pub bound_globals: Vec<BoundGlobal>,
     pub levels: Levels,
     pub signals: Vec<QualitySignal>,
     pub warnings: Vec<String>,
@@ -105,6 +109,7 @@ impl ResultDocument {
             touchdown_index: response.touchdown_index,
             metrics: response.metrics.clone(),
             bound_methods: response.bound_methods.clone(),
+            bound_globals: response.bound_globals.clone(),
             levels: response.levels.clone(),
             signals: response.signals.clone(),
             warnings: response.warnings.clone(),

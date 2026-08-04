@@ -7,7 +7,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Refusal, Trial};
 
 use crate::AnalysisRequest;
@@ -301,10 +300,7 @@ fn materialise(
             // every one of them. Left as the request's own default the rule that publishes a
             // gravity would keep publishing it, and the panel would print a spread of zero over
             // a knob that moved, which is the fault the refusal above exists to prevent.
-            ("" | "global", GRAVITY_FIELD) => {
-                candidate.gravity_meters_per_second_squared = value;
-                candidate.gravity_source = ParameterSource::Stated;
-            }
+            ("" | "global", GRAVITY_FIELD) => candidate.state_gravity(Some(value)),
             ("weighing", name) => {
                 candidate
                     .weighing

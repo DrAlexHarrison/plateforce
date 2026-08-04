@@ -3,6 +3,7 @@
 
 use std::sync::LazyLock;
 
+use plateforce_core::provenance::ParameterSource;
 use serde::Serialize;
 
 use crate::resolution::{BoundMethod, DeclinedRule};
@@ -18,8 +19,44 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
         "seconds" => "s",
         "meters" => "m",
         "meters_per_second" => "m/s",
+        "meters_per_second_squared" => "m/s2",
         "newton_seconds" => "N.s",
         other => other,
+    }
+}
+
+/// A value the request binds for the whole analysis rather than for any one rule, and the
+/// claim about where it came from.
+///
+/// Filed under the word every surface already spells this namespace with. The sweep offers
+/// `global.gravity_meters_per_second_squared` as an axis and the browser's own axis is
+/// `global:gravity`, so a reader meeting this row has met its name before.
+///
+/// Twelve rules read the analysis gravity and none of them records it, because none of their
+/// registry entries declares such a parameter and a rule may not record a parameter its entry
+/// does not carry. So the value that moved four of eleven numbers appeared nowhere in a
+/// result, and a caller who measured a gravity at their own plate was indistinguishable from
+/// one who was never asked.
+#[derive(Debug, Clone, Serialize)]
+pub struct BoundGlobal {
+    pub name: &'static str,
+    pub value: f64,
+    /// As the registry spells units, with the symbol beside it for the same reason `Metric`
+    /// carries both: a surface drawing the short form must not derive it a second way.
+    pub unit: &'static str,
+    pub unit_symbol: &'static str,
+    pub source: ParameterSource,
+}
+
+impl BoundGlobal {
+    pub fn of(name: &'static str, value: f64, unit: &'static str, source: ParameterSource) -> Self {
+        Self {
+            name,
+            value,
+            unit,
+            unit_symbol: unit_symbol(unit),
+            source,
+        }
     }
 }
 
@@ -237,6 +274,9 @@ pub struct AnalysisResponse {
     pub touchdown_index: Option<usize>,
     pub levels: Levels,
     pub bound_methods: Vec<BoundMethod>,
+    /// What the request bound for the whole analysis, which no rule's row can carry because
+    /// no rule's entry declares it.
+    pub bound_globals: Vec<BoundGlobal>,
     pub metrics: Vec<Metric>,
     /// Windows the weighing rule could not choose between. One for a fixed window, and
     /// anything above one means the selection is an artefact of the arithmetic. Skipped

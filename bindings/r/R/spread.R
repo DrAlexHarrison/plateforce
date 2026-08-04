@@ -80,7 +80,8 @@ pf_spread <- function(trial,
       )),
       onset = drop_empty(list(method_id = onset, parameters = onset_parameters)),
       takeoff = drop_empty(list(method_id = takeoff, parameters = takeoff_parameters)),
-      gravity_meters_per_second_squared = gravity_meters_per_second_squared
+      gravity_meters_per_second_squared = gravity_meters_per_second_squared,
+      gravity_source = gravity_claim(gravity_meters_per_second_squared)
     )),
     axes = list(axis),
     quantity_key = quantity,

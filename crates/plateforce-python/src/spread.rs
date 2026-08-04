@@ -12,7 +12,6 @@
 use std::collections::BTreeMap;
 
 use plateforce_analysis::{bindings_for, spread};
-use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use pyo3::prelude::*;
 
 use crate::analysis::analysis_request_of;
@@ -170,7 +169,7 @@ impl Spread {
     method_ids = None,
     parameter = None,
     values = None,
-    gravity_meters_per_second_squared = STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+    gravity_meters_per_second_squared = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -189,7 +188,7 @@ pub fn spread_over(
     method_ids: Option<Vec<String>>,
     parameter: Option<String>,
     values: Option<Vec<f64>>,
-    gravity_meters_per_second_squared: f64,
+    gravity_meters_per_second_squared: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,

@@ -42,9 +42,12 @@ pub use binding::{
     WEIGHING_CONSTRUCT,
 };
 pub use pipeline::run;
-pub use request::{AnalysisRequest, MethodChoice, WeighingChoice};
+pub use request::{
+    gravity_stated, AnalysisRequest, MethodChoice, WeighingChoice, BODY_MASS_GLOBAL,
+    GRAVITY_GLOBAL, TOUCHDOWN_GLOBAL,
+};
 pub use resolution::{BoundMethod, DeclinedRule, RuleRefusal};
-pub use response::{AnalysisResponse, Levels, Metric};
+pub use response::{AnalysisResponse, BoundGlobal, Levels, Metric};
 pub use slots::movement_onset::ONSET_OPERATOR_IDS;
 pub use slots::system_weight::weighing_epoch_at;
 pub use slots::takeoff::TAKEOFF_OPERATOR_IDS;
