@@ -267,8 +267,7 @@ fn the_pinned_revision_and_the_registry_s_own_claim_are_two_fields() {
     );
 
     let pinned: serde_json::Value =
-        serde_json::from_str(&result_json_pinned(&["--registry-version", pin]))
-            .expect("it parses");
+        serde_json::from_str(&result_json_pinned(&["--registry-version", pin])).expect("it parses");
     let pinned = &pinned["ok"];
 
     assert_eq!(
