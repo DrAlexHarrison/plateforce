@@ -104,6 +104,14 @@ fn refusal_of(response: &AnalysisResponse, method_id: &str) -> Option<(RefusalCo
         })
 }
 
+/// One rule, the construct it fills, the key it reports and the measurements it needs.
+struct Case {
+    construct: &'static str,
+    method_id: &'static str,
+    key: &'static str,
+    stated: Vec<(&'static str, f64)>,
+}
+
 /// The lengths the heel-rise constant reads, which the entry states required and publishes no
 /// value for.
 fn heel_rise_measurements() -> Vec<(&'static str, f64)> {
@@ -131,28 +139,34 @@ fn ankle_measurements() -> Vec<(&'static str, f64)> {
 #[test]
 fn each_rule_computes_on_the_corpus_trial_and_names_the_entry_that_did_it() {
     let trial = corpus_trial();
-    let cases: [(&str, &str, &str, Vec<(&str, f64)>); 3] = [
-        (
-            TAKEOFF_FRAME,
-            DROP_FROM_BOX,
-            TAKEOFF_KEY,
-            vec![("box_height_m", 0.30)],
-        ),
-        (
-            TAKEOFF_FRAME,
-            ANKLE_CORRECTED,
-            TAKEOFF_KEY,
-            ankle_measurements(),
-        ),
-        (
-            STANDING_FRAME,
-            HEEL_RISE,
-            STANDING_KEY,
-            heel_rise_measurements(),
-        ),
+    let cases = [
+        Case {
+            construct: TAKEOFF_FRAME,
+            method_id: DROP_FROM_BOX,
+            key: TAKEOFF_KEY,
+            stated: vec![("box_height_m", 0.30)],
+        },
+        Case {
+            construct: TAKEOFF_FRAME,
+            method_id: ANKLE_CORRECTED,
+            key: TAKEOFF_KEY,
+            stated: ankle_measurements(),
+        },
+        Case {
+            construct: STANDING_FRAME,
+            method_id: HEEL_RISE,
+            key: STANDING_KEY,
+            stated: heel_rise_measurements(),
+        },
     ];
 
-    for (construct, method_id, key, stated) in cases {
+    for Case {
+        construct,
+        method_id,
+        key,
+        stated,
+    } in cases
+    {
         let response = run(&trial, &asking(construct, method_id, &stated))
             .expect("the request is well formed");
         let height = value(&response, key).unwrap_or_else(|| {
