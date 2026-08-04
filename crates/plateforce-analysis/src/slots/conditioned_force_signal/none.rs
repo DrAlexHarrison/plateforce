@@ -22,10 +22,6 @@ pub(crate) fn apply(
     let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     // Recorded as a value this rule read, so the fingerprint carries the answer rather than
     // carrying the rule's name over an empty binding.
-    resolved.record(
-        "passband_edge_hz",
-        "none".to_string(),
-        ParameterSource::Assumed,
-    );
+    resolved.record("passband_edge", "none".to_string(), ParameterSource::Assumed);
     ConditioningOutcome::unchanged(resolved.finish())
 }

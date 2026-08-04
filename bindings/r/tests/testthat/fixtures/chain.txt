@@ -1,5 +1,5 @@
 jumpheight.takeoff.impulse_momentum integration_anchor=integration.anchor.single_point(assumed) integration_direction=integration.direction.forward(assumed) integration_rule=integration.rule.trapezoid(assumed) integration_start=integration.start.detected_onset(assumed)
-  filter.none passband_edge_hz=none(assumed)
+  filter.none passband_edge=none(assumed)
   bwepoch.fixed_window duration=1(assumed) start_seconds=0(measured) centre=mean(assumed) dispersion=sample(assumed) window_anchor=trial_start(assumed)
   onset.threshold.noise_relative k=5(assumed) degenerate_band=refuse(assumed) reference_distribution=quiet_stance_force(assumed) sd_convention=sample(assumed)
     onset.op.backward_offset_fixed offset_ms=30(assumed)

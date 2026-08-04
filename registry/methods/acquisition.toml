@@ -19,7 +19,7 @@ confidence = "high"
 debate = "genuine"
 
 [[method.parameter]]
-name = "passband_edge_hz"
+name = "passband_edge"
 unit = "enumeration"
 notes = """
 The whole of this rule is the declaration, so the edge is stated as the word rather than as a

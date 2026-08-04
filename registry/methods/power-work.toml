@@ -562,7 +562,7 @@ rationale = """
 The source's own comment records that the formula was first published in a 1974 interval-training
 book with no reference beyond a courtesy line, and that one author later confirmed by telephone that
 he developed it with a student. A maintainer wrote the provenance paragraph in the source next to
-the constant, which is the behaviour this registry is trying to systematise.
+the constant.
 """
 
 [[method]]
@@ -886,9 +886,8 @@ surfacing = "never_a_user_choice"
 sensitivity = "not comparable to a plate-derived power"
 rationale = """
 Registered as a device class rather than as a force-plate variant: there is no ground reaction force
-in it at all. Registering the device class as a provenance attribute, separate from the formula
-field, is the clean design, and the published cross-modality comparison makes it exactly the kind of
-agreement question this registry exists to represent.
+in it at all. The device class is a provenance attribute rather than a formula field, and the
+published cross-modality comparison is an agreement question rather than a formula one.
 """
 
 [method.reach]

@@ -1,8 +1,8 @@
 # Group O. Agreement and reliability statistics.
 #
-# A method registry that cannot report its own uncertainty is half a tool. Everywhere else in the
-# registry the method choice moves a number; here it moves a verdict about whether the numbers can be
-# trusted at all, which means an error in this group silently launders errors in every other group.
+# Everywhere else in the registry the method choice moves a number; here it moves a verdict about
+# whether the numbers can be trusted at all, so an error in this group silently launders errors in
+# every other group.
 #
 # The measured magnitudes the vendor-agreement literature produced live on the entries they describe,
 # not here. What is a method in this group is the machinery of agreement itself.
@@ -119,8 +119,7 @@ population, sample. The limits are 1.96 standard deviations wide and the divisor
 interchangeable: they differ by the square root of n over n minus one, which is 5.4 percent at
 n = 10 and 2.6 percent at n = 20. Negligible on a large corpus and material on the size of study a
 practitioner actually runs, which is the population this entry exists to serve. No entry in this
-group carried a dispersion estimator while the software has carried one since the beginning
-precisely because the choice is not free.
+group states a dispersion estimator, and the software binds one, because the choice is not free.
 """
 
 [[method.citation]]
@@ -205,11 +204,10 @@ note = "One published comparison reached its conclusion through this statistic o
 
 [method.gui]
 surfacing = "refuse"
-sensitivity = "very high, and this project is the worked example"
+sensitivity = "very high"
 rationale = """
 Never offered as an agreement statistic. If a user asks for a correlation, give it with the limits of
-agreement attached. This project's own headline correlation is reported alongside bias and limits
-precisely because the correlation alone would understate the problem on one metric and overstate
+agreement attached. A correlation alone understates the problem on one metric and overstates
 agreement on the other.
 """
 

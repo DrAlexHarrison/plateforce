@@ -2,10 +2,9 @@
 #
 # This lineage consumes registry quantities rather than defining them, so it is registered narrowly
 # and the count is held to two rather than inflated to the several this literature could
-# superficially support. Its value to the registry is upstream: because the input is a whole metric
-# vector or a whole waveform, every method choice in every other group propagates into the clusters,
-# so two labs running the same clustering with different onset rules will discover different
-# strategies. Nobody in this literature appears to have noticed that.
+# superficially support. Because the input is a whole metric vector or a whole waveform, every
+# method choice in every other group propagates into the clusters, so two labs running the same
+# clustering with different onset rules will discover different strategies.
 
 [[method]]
 id = "analysis.movement_strategy_clustering.bird2022"
@@ -110,7 +109,6 @@ The three shapes found are a plateau in 43 percent of athletes, a double peak of
 magnitude in 42 percent, and a single hump in 15 percent. Any event-detection or phase rule that
 assumes a single concentric peak, or that locates an instant by peak-finding, behaves differently for
 roughly 42 percent of a population. That is a first-order sensitivity note for the onset and phase
-groups from n = 394, and it is the kind of thing a method registry can carry and a single-method tool
-cannot. Clean separation on every parameter except body mass is the control showing the clusters are
-strategy rather than size.
+groups from n = 394. Clean separation on every parameter except body mass is the control showing the
+clusters are strategy rather than size.
 """

@@ -2,8 +2,8 @@
 #
 # The four mutually inconsistent formulas the field reports are two normalised-difference algebras
 # plus the symmetry angle plus the clinical ratio, and the sum-against-mean scaling is a unit
-# convention worth a factor of two rather than a method. Verified algebraically: one published
-# spreadsheet form simplifies exactly to the two vendor forms.
+# convention worth a factor of two rather than a method. One published spreadsheet form simplifies
+# exactly to the two vendor forms.
 #
 # Every entry carries a mandatory window declaration. Not one published entry specified what interval
 # the per-limb number was integrated over, and on 59 athletes with identical trials and identical
