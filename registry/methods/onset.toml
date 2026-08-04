@@ -1,8 +1,7 @@
 # Group C. Movement onset. Twelve detectors and eight refinement operators.
 #
-# The group the project's founding result is about. A less disciplined sweep of the same literature
-# reports 35 to 40 onset methods by counting every threshold value separately, and per-tool filing
-# yields over 200. Twelve plus eight is what survives the per-kind-of-rule grain.
+# Counting every threshold value separately reports 35 to 40 onset methods for the same literature,
+# and per-tool filing yields over 200. Twelve plus eight is what survives the per-kind-of-rule grain.
 #
 # Every bias in this group is stated automated minus manual: positive means the automated rule fires
 # later than the manual reference, or reads a higher force at onset.
@@ -363,6 +362,18 @@ label = "Report no onset and say the reference epoch was not quiet"
 key = "fraction_of_reference"
 label = "Widen the band to a stated fraction of the reference force"
 
+[[method.parameter]]
+name = "degenerate_fraction"
+unit = "fraction"
+published_values = []
+notes = """
+The width the collapsed band is widened to, as a fraction of the reference force. Stating it
+entails degenerate_band = fraction_of_reference; leaving it unstated leaves degenerate_band at
+refuse, so this one name is the difference between an onset read off a widened band and no onset
+at all. No default is published because a band that collapsed says the epoch the rule weighed was
+not quiet, and a width filled in here would answer that with a number instead of reporting it.
+"""
+
 [[method.citation]]
 key = "owen2014"
 role = "proposes"
@@ -706,7 +717,7 @@ source = "sahrom2020"
 [[method.disagrees_with]]
 id = "onset.threshold.noise_relative"
 kind = "genuine"
-note = "Disagreement with evidence, which is rare here, and arguably a resolved debate the field has not absorbed."
+note = "Disagreement with evidence, which is rare here, and a debate that may already be resolved without the field having absorbed it."
 
 [method.gui]
 surfacing = "surface_on_demand"
@@ -972,8 +983,8 @@ name = "tolerance"
 unit = "enumeration"
 notes = """
 The last two are the same idea in incomparable units, one scaling with the noise and one not, so on
-a quiet plate they can differ by an order of magnitude in either direction. The tolerance unit must
-be shown in the interface, not just the number.
+a quiet plate they can differ by an order of magnitude in either direction. The number alone does
+not say which of the two was applied.
 """
 
 [[method.parameter.value]]
