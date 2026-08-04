@@ -168,3 +168,18 @@ jobs:
       # a reader cannot scope is the founding defect at panel size, so it is asked directly.
       - name: A reader can see which rules a spread was taken over and which stood still
         run: node scripts/check-spread-scope.mjs web 8754
+
+      # The two gates above answer whether the surfaces agree. These answer whether those gates
+      # can still disagree, one cause at a time, and neither was run by anything until now:
+      # prove-parity-coverage-refuses.py was silently failing on main, 12 of 13, because a case
+      # named a divergence-register entry that another branch had legitimately discharged, and a
+      # script nothing runs cannot report its own decay. Pure Python, under a second each.
+      #
+      # scripts/break-parity-population.sh is deliberately not here. It rebuilds two surfaces
+      # three times and takes about twenty minutes, so it is a thing a person runs against a
+      # branch rather than a step on every push. Recorded so its absence reads as a decision.
+      - name: The parity gate's own refusals fire, one cause at a time
+        run: python3 scripts/prove-parity-coverage-refuses.py
+
+      - name: The operator guards refuse, one cause at a time
+        run: python3 scripts/prove-operator-guards-refuse.py
