@@ -181,6 +181,24 @@
         "bound_parameters": [],
         "manual_override": false,
         "method_from_recommendation": false,
+        "method_id": "time_to_takeoff.onset_to_takeoff",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "flight_time.takeoff_to_touchdown",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "impulse.net_vertical.as_performance_determinant",
         "parameter_sources": {},
         "registry_backed": true,
@@ -272,6 +290,7 @@
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.adaptive_lowest_variance",
           "takeoff.threshold.flight_noise_k_sd",
           "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
@@ -286,6 +305,7 @@
         "computed_by": "time_to_takeoff.onset_to_takeoff",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.adaptive_lowest_variance",
           "onset.threshold.adaptive_trailing_window",
           "takeoff.threshold.flight_noise_k_sd",
           "takeoff.op.search_floor_at_weighing_epoch_end"
@@ -301,6 +321,7 @@
         "computed_by": "flight_time.takeoff_to_touchdown",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.adaptive_lowest_variance",
           "takeoff.threshold.flight_noise_k_sd",
           "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
@@ -309,7 +330,7 @@
         "note": null,
         "unit": "seconds",
         "unit_symbol": "s",
-        "value": null
+        "value": 0.47250000000000003
       },
       {
         "computed_by": "impulse.net_vertical.as_performance_determinant",
@@ -364,7 +385,6 @@
         "contributing_method_ids": [
           "filter.none",
           "bwepoch.adaptive_lowest_variance",
-          "onset.threshold.adaptive_trailing_window",
           "takeoff.threshold.flight_noise_k_sd",
           "takeoff.op.search_floor_at_weighing_epoch_end"
         ],
@@ -373,7 +393,7 @@
         "note": "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load.",
         "unit": "meters",
         "unit_symbol": "m",
-        "value": null
+        "value": 0.2737679765625
       },
       {
         "computed_by": "rsimod.jh_tov_over_ttt",
@@ -400,14 +420,12 @@
         "label": "The start of the jump, against the instant of takeoff",
         "qualifies": [
           "time_to_takeoff_seconds",
-          "flight_time_seconds",
           "takeoff_velocity_meters_per_second",
           "net_impulse_newton_seconds",
           "jump_height_from_takeoff_meters",
-          "jump_height_from_flight_time_meters",
           "reactive_strength_index_modified"
         ],
-        "remedy": "Takeoff is placed at 1.8567 s and the start of the jump at 3.5433 s, so the interval between them runs backwards and the seven quantities measured across it have no value on this trial. A stretch where the plate carries almost no force before the jump begins, a step onto it or a recording started early, satisfies a takeoff rule before the trace has left quiet standing. Compare the other published rules for takeoff, or analyse the span of the recording holding the jump, and watch both instants move.",
+        "remedy": "Takeoff is placed at 1.8567 s and the start of the jump at 3.5433 s, so the interval between them runs backwards and the five quantities measured across it have no value on this trial. A stretch where the plate carries almost no force before the jump begins, a step onto it or a recording started early, satisfies a takeoff rule before the trace has left quiet standing. Compare the other published rules for takeoff, or analyse the span of the recording holding the jump, and watch both instants move.",
         "remedy_construct": "takeoff",
         "status": "onset_not_before_takeoff",
         "threshold": 1.8566666666666667,
@@ -418,7 +436,7 @@
     "takeoff_index": 2228,
     "touchdown_index": 2795,
     "warnings": [
-      "onset is at or after takeoff, so every interval below is meaningless"
+      "onset is at or after takeoff, so every number bounded by onset is meaningless"
     ],
     "weighing_end_index": 1399,
     "weighing_start_index": 199

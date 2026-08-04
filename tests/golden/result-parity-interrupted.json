@@ -247,6 +247,24 @@
         "bound_parameters": [],
         "manual_override": false,
         "method_from_recommendation": false,
+        "method_id": "time_to_takeoff.onset_to_takeoff",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "flight_time.takeoff_to_touchdown",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
         "method_id": "impulse.net_vertical.as_performance_determinant",
         "parameter_sources": {},
         "registry_backed": true,
@@ -325,6 +343,7 @@
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.crossing_selection",
           "onset.op.direction",
@@ -342,6 +361,7 @@
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
@@ -358,6 +378,7 @@
         "computed_by": "time_to_takeoff.onset_to_takeoff",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.crossing_selection",
           "onset.op.direction",
@@ -379,6 +400,7 @@
         "computed_by": "flight_time.takeoff_to_touchdown",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
@@ -389,7 +411,7 @@
         "note": null,
         "unit": "seconds",
         "unit_symbol": "s",
-        "value": null
+        "value": 0.5991666666666667
       },
       {
         "computed_by": "impulse.net_vertical.as_performance_determinant",
@@ -462,11 +484,6 @@
         "contributing_method_ids": [
           "filter.none",
           "bwepoch.fixed_window",
-          "onset.threshold.noise_relative",
-          "onset.op.crossing_selection",
-          "onset.op.direction",
-          "onset.op.persistence",
-          "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
@@ -477,7 +494,7 @@
         "note": "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load.",
         "unit": "meters",
         "unit_symbol": "m",
-        "value": null
+        "value": 0.44022460156250015
       },
       {
         "computed_by": "rsimod.jh_tov_over_ttt",
