@@ -5,7 +5,7 @@
 //! properties here are about which instant each rule placed and whose name is on it, not
 //! about whether a rule ran.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use plateforce_analysis::binding::{derived_bindings, Binding};
 use plateforce_analysis::slots::phase_model::CONSTRUCT as PHASE_MODEL;
@@ -470,18 +470,25 @@ fn keys_reported_by(response: &AnalysisResponse, rule: &str) -> Vec<String> {
         .collect()
 }
 
-/// Every quantity a phase model publishes is one it places, and every key it places is one it
-/// publishes.
+/// Every quantity a phase model publishes carries a number on a recording the model places on,
+/// and every key it reports is one its row publishes.
 ///
 /// The population is read off the binding table rather than written here, so a third phase
-/// model arrives inside this guard rather than beside it. What it is against: the keys a model
-/// reported were built by zipping a list written in the rule's own file against the boundaries
-/// the model returned, and a zip stops at the shorter of the two. A model that gained a sixth
-/// boundary while its list stayed at five would have placed five, the registry row would have
-/// gone on publishing six, and the interface would have drawn a column no run ever fills.
-/// Neither direction of that is visible from a count.
+/// model arrives inside this guard rather than beside it.
+///
+/// Asserted on the values rather than on the keys, and the difference is the whole guard. The
+/// keys now come off the same quantities the row publishes, so a key set compared against that
+/// row is a set compared with itself and cannot fail. The boundaries are the independent
+/// population: they come back from `plateforce_core::phases`, one index per boundary the model
+/// found, and a model whose row publishes six while its search returns five leaves a column the
+/// registry promises, the interface draws, and no recording ever fills. On this trace all three
+/// models place, so a quantity with no number here is that mismatch and nothing else.
+///
+/// The other direction, a number reported under a key the row does not publish, is asserted for
+/// every derived rule where the metrics are built, in `pipeline.rs`, and repeating it here
+/// would be an assertion that cannot fail.
 #[test]
-fn every_phase_model_places_exactly_the_quantities_its_row_declares() {
+fn every_phase_model_fills_every_quantity_its_row_publishes() {
     let trial = a_jump_that_lands();
     let models: Vec<&Binding> = derived_bindings()
         .filter(|binding| binding.construct == PHASE_MODEL)
@@ -494,46 +501,36 @@ fn every_phase_model_places_exactly_the_quantities_its_row_declares() {
     );
 
     let mut faults = Vec::new();
-    let mut placed = 0;
+    let mut valued = 0;
+    let mut published = 0;
     for model in &models {
         let response = run(&trial, &naming(&[(model.construct, model.id)]))
             .unwrap_or_else(|error| panic!("{} could not run: {error}", model.id));
-        let reported: BTreeSet<String> =
-            keys_reported_by(&response, model.id).into_iter().collect();
-        let declared: BTreeSet<String> = model
+        published += model.quantities.len();
+
+        let empty: Vec<&str> = model
             .quantities
             .iter()
-            .map(|quantity| quantity.key.to_string())
+            .map(|quantity| quantity.key)
+            .filter(|key| value(&response, key).is_none())
             .collect();
-        placed += reported.len();
-
-        // Both directions, and each catches what the other cannot. A declared key nobody
-        // reported is a column the registry promises and no run fills; a reported key nobody
-        // declared is a number a reader cannot look up.
-        let unfilled: Vec<&String> = declared.difference(&reported).collect();
-        if !unfilled.is_empty() {
+        valued += model.quantities.len() - empty.len();
+        if !empty.is_empty() {
             faults.push(format!(
-                "{} publishes {} quantities and reported {}, leaving {unfilled:?} with no row \
-                 at all",
+                "{} publishes {} quantities and places {} boundaries on this recording, so \
+                 {empty:?} reach a reader as columns nothing fills",
                 model.id,
-                declared.len(),
-                reported.len()
-            ));
-        }
-        let undeclared: Vec<&String> = reported.difference(&declared).collect();
-        if !undeclared.is_empty() {
-            faults.push(format!(
-                "{} reported {undeclared:?} and its row declares no such quantity, so a reader \
-                 holding the number cannot look it up",
-                model.id
+                model.quantities.len(),
+                model.quantities.len() - empty.len()
             ));
         }
     }
 
-    // What this guard covers, as a query rather than a figure written down. The two counts are
-    // the population and what it placed, and neither stands in for the other.
+    // What this guard covers, as a query rather than a figure written down. The population and
+    // what it filled, counted apart, because a guard reporting one of them says nothing about
+    // a model that ran and placed nothing.
     println!(
-        "{} phase models declared, {placed} quantities placed between them",
+        "{} phase models publish {published} quantities, {valued} of them filled on this recording",
         models.len()
     );
     assert!(
