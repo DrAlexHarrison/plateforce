@@ -573,6 +573,7 @@ pub(crate) fn analysis_request_of(
     touchdown_index: Option<usize>,
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+    derived_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<(AnalysisRequest, RegistryIdentity)> {
     // A pipeline fills the constructs its source states, so a caller who named one leaves
     // those arguments out. Whatever is still unnamed once it has been laid on is refused by
@@ -594,6 +595,7 @@ pub(crate) fn analysis_request_of(
         .map(|(construct, method)| (construct, method.borrow(python).clone()))
         .collect();
     let derived_parameters = derived_parameters.unwrap_or_default();
+    let derived_options = derived_options.unwrap_or_default();
     expect_derived_bound(python, &derived)?;
 
     // Every rule this call holds carries the registry it came from, and a pipeline carries
@@ -640,12 +642,21 @@ pub(crate) fn analysis_request_of(
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
         registry_backed_ids: registry.method_ids.as_ref().clone(),
+        // A rule computed from the landmarks reads the enumerations its entry declares, the
+        // same as one on the path, and the folder call has been able to state them since it
+        // gained the argument. One trial could not, so a construct whose rule turns on a
+        // named choice ran under whatever the registry binds when nobody chooses, and the
+        // record said assumed while the caller was holding the choice they wanted.
         derived: derived
             .iter()
             .map(|(construct, method)| {
                 (
                     construct.clone(),
-                    choice_of(method, derived_parameters.get(construct).cloned(), None),
+                    choice_of(
+                        method,
+                        derived_parameters.get(construct).cloned(),
+                        derived_options.get(construct).cloned(),
+                    ),
                 )
             })
             .collect(),
@@ -712,6 +723,7 @@ struct AnalysisDocument<'a> {
     touchdown_index = None,
     derived = None,
     derived_parameters = None,
+    derived_options = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn analyse_json(
@@ -734,6 +746,7 @@ pub fn analyse_json(
     touchdown_index: Option<usize>,
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+    derived_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<String> {
     let (request, registry) = analysis_request_of(
         python,
@@ -754,6 +767,7 @@ pub fn analyse_json(
         touchdown_index,
         derived,
         derived_parameters,
+        derived_options,
     )?;
 
     let response = plateforce_analysis::run(&trial.inner, &request)
@@ -800,6 +814,7 @@ pub fn analyse_json(
     touchdown_index = None,
     derived = None,
     derived_parameters = None,
+    derived_options = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn analyse_countermovement_jump(
@@ -822,6 +837,7 @@ pub fn analyse_countermovement_jump(
     touchdown_index: Option<usize>,
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+    derived_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<CountermovementJump> {
     let (request, registry) = analysis_request_of(
         python,
@@ -842,6 +858,7 @@ pub fn analyse_countermovement_jump(
         touchdown_index,
         derived,
         derived_parameters,
+        derived_options,
     )?;
     let acquisition_complete = trial.acquisition_complete();
 
