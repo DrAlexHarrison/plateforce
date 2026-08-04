@@ -230,6 +230,11 @@ function renderMetrics() {
   const grid = $('metric-grid');
   grid.replaceChildren();
 
+  // Where each signal was said in full, so the cards it also qualifies point at it rather
+  // than repeating it. A signal about seven absent values is one finding, and a reader who
+  // meets the same three sentences on the sixth card learns nothing from it.
+  const saidUnder = new Map();
+
   for (const metric of state.analysis.metrics) {
     // Provisional taints its closure: a value rests on every rule that fed it, so a value
     // fed by a slot nobody has chosen is itself still to be chosen.
@@ -258,7 +263,15 @@ function renderMetrics() {
 
     if (metric.note) card.append(element('p', 'metric__note', metric.note));
     if (restingOn.length) card.append(stillToBeChosen(restingOn));
-    for (const signal of signalsQualifying(metric.key)) card.append(renderSignal(signal));
+    for (const signal of signalsQualifying(metric.key)) {
+      const already = saidUnder.get(signal);
+      if (already) {
+        card.append(signalSaidUnder(signal, already));
+      } else {
+        saidUnder.set(signal, { label: metric.label, card });
+        card.append(renderSignal(signal));
+      }
+    }
     card.append(provenanceRow(metric.contributing_method_ids));
     grid.append(card);
   }
@@ -278,6 +291,25 @@ function renderMetrics() {
  */
 function signalsQualifying(metricKey) {
   return (state.analysis.signals || []).filter((signal) => (signal.qualifies || []).includes(metricKey));
+}
+
+/*
+ * A value this signal is also about, on a card that is not the one carrying the signal.
+ *
+ * It names the comparison and where that comparison is stated, so a reader who scrolls to
+ * the fifth of seven values with nothing in them learns that all of them have one cause and
+ * reaches it in one interaction.
+ */
+function signalSaidUnder(signal, said) {
+  const line = element('button', `metric__signal-elsewhere metric__signal-elsewhere--${signal.status.replace(/_/g, '-')}`);
+  line.type = 'button';
+  // The comparison is named where it is stated rather than a second time here. Repeating a
+  // label this long turns the sixth of seven of these into six lines a reader scrolls past.
+  line.append(element('span', null, `The reason is stated under ${said.label}`));
+  line.addEventListener('click', () => {
+    said.card.scrollIntoView({ block: 'center' });
+  });
+  return line;
 }
 
 /* A rate stated with no action leaves the reader holding a diagnosis they cannot act on,

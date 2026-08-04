@@ -529,6 +529,30 @@ select { cursor: pointer; }
 .metric__signal--incomparable .metric__signal-figure { color: var(--text-secondary); }
 .metric__signal-remedy { color: var(--text); }
 
+/* The same finding, on the other values it is about. One line rather than the paragraph,
+   and it reaches the paragraph in one interaction. */
+.metric__signal-elsewhere {
+  display: grid;
+  align-content: center;
+  /* Sized by its own line rather than stretched down the card. Seven of these on one page
+     is the case this exists for, and a stretched one is as tall as the paragraph it spares
+     the reader. */
+  align-self: start;
+  gap: var(--space-1);
+  text-align: left;
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface-inset);
+  border: 1px dashed var(--border);
+  cursor: pointer;
+}
+.metric__signal-elsewhere:hover { border-style: solid; color: var(--text); }
+
 .metric__provenance {
   display: grid;
   /* An implicit grid column sizes to max-content, which puts a long method title past the
