@@ -832,6 +832,15 @@ impl BoundMethod {
     pub(crate) fn registry_identity(&self) -> &RegistryIdentity {
         &self.entry.registry_identity
     }
+
+    /// The names `bind` filled from the entry's own default because the caller named none.
+    ///
+    /// A binding carries these in `bound_parameters` beside the caller's own values, and the
+    /// two are indistinguishable there. The request has a field for the difference and it can
+    /// only be filled from here.
+    pub(crate) fn from_registry_default(&self) -> &[String] {
+        &self.defaulted
+    }
 }
 
 #[pymethods]

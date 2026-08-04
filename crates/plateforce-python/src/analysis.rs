@@ -5,7 +5,7 @@
 //! registry-bound method into the request that layer takes, and shapes what comes back
 //! into the chain of choices a Python caller reads.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod as ResolvedMethod, MethodChoice,
@@ -103,15 +103,34 @@ fn expect_derived_bound(
     Ok(())
 }
 
-/// The registry entry's own parameters, plus any the caller stated directly. A name no
-/// rule reads is not dropped in silence: it comes back in `unread_parameters`.
+/// The registry entry's own parameters, plus any the caller stated directly, and the names
+/// among them that came from the entry rather than from the caller. A name no rule reads is
+/// not dropped in silence: it comes back in `unread_parameters`.
+///
+/// Both together, never the values alone. A binding's `bound_parameters` carries the entry's
+/// defaults beside the caller's own values and the two are indistinguishable there, so a
+/// request built from it and nothing else told the engine that every one of them was chosen.
+/// `stated_source` in plateforce-analysis then recorded a registry default as the reader's
+/// own decision, which is the one claim this software exists to get right. Measured on
+/// `tests/golden/result-parity-request-inverted.json`: three parameters no caller named,
+/// among them a takeoff rule's `k` and an onset rule's `window_seconds`, came back as
+/// `stated` here while the terminal, R and the browser each said `assumed`.
 fn quantities_of(
     method: &BoundMethod,
     stated: Option<BTreeMap<String, f64>>,
-) -> BTreeMap<String, f64> {
+) -> (BTreeMap<String, f64>, BTreeSet<String>) {
+    let stated = stated.unwrap_or_default();
+    // A name the caller stated is theirs even where the entry publishes a default for it,
+    // because `bind` records a default only where nothing was supplied.
+    let from_registry_default: BTreeSet<String> = method
+        .from_registry_default()
+        .iter()
+        .filter(|name| !stated.contains_key(*name))
+        .cloned()
+        .collect();
     let mut parameters: BTreeMap<String, f64> = method.bound_parameters.iter().cloned().collect();
-    parameters.extend(stated.unwrap_or_default());
-    parameters
+    parameters.extend(stated);
+    (parameters, from_registry_default)
 }
 
 /// A choice for a slot the caller named a rule for, or one carrying only their values for a
@@ -136,11 +155,13 @@ fn choice_of(
     parameters: Option<BTreeMap<String, f64>>,
     options: Option<BTreeMap<String, String>>,
 ) -> MethodChoice {
+    let (parameters, from_registry_default) = quantities_of(method, parameters);
     MethodChoice {
         method_id: method.method_id().to_string(),
-        parameters: quantities_of(method, parameters),
+        parameters,
         options: options.unwrap_or_default(),
         manual_index: None,
+        from_registry_default,
         ..Default::default()
     }
 }
@@ -646,13 +667,18 @@ pub(crate) fn analysis_request_of(
 
     let mut request = AnalysisRequest {
         weighing: match weighing_epoch {
-            Some(method) => WeighingChoice {
-                method_id: method.method_id().to_string(),
-                start_index: weighing_start_index,
-                parameters: quantities_of(method, weighing_parameters),
-                options: weighing_options.unwrap_or_default(),
-                ..Default::default()
-            },
+            Some(method) => {
+                let (parameters, from_registry_default) =
+                    quantities_of(method, weighing_parameters);
+                WeighingChoice {
+                    method_id: method.method_id().to_string(),
+                    start_index: weighing_start_index,
+                    parameters,
+                    options: weighing_options.unwrap_or_default(),
+                    from_registry_default,
+                    ..Default::default()
+                }
+            }
             None => WeighingChoice {
                 start_index: weighing_start_index,
                 parameters: weighing_parameters.unwrap_or_default(),
