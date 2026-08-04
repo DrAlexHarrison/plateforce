@@ -14,8 +14,10 @@ pub const CONSTRUCT: &str = "flight_time";
 
 pub const KEY: &str = "flight_time_seconds";
 
-/// The request field carrying the sample the athlete came back down on.
-pub const TOUCHDOWN_FIELD: &str = "touchdown_index";
+/// The request field carrying the sample the athlete came back down on. The analysis-wide
+/// name, so the refusal below and the value a stated landing is recorded under cannot drift
+/// into two spellings of one field.
+pub const TOUCHDOWN_FIELD: &str = crate::request::TOUCHDOWN_GLOBAL;
 
 /// The interval from the placed takeoff to the return to the plate, or nothing where the
 /// request stated no return.

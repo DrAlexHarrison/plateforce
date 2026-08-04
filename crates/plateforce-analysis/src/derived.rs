@@ -92,6 +92,39 @@ pub fn rules_behind(
     ids
 }
 
+/// The landing the caller placed, written onto the row of every rule that read it.
+///
+/// A landing the software found is the return above the threshold the takeoff rule resolved,
+/// and the chain already names that rule. A landing the caller stated came from no rule at
+/// all, and without this the two reach identical records: on a jump that lands, moving the
+/// stated landing 300 samples took flight time from 0.676 s to 0.926 s and the flight-time
+/// height from 0.560 m to 1.051 m, and both pairs fingerprinted the same. The entry the record
+/// names says the landing is "the first sample at which force returned above the threshold that
+/// placed takeoff", so the unrecorded case was the record asserting a rule that had not run.
+///
+/// Written as a value rather than as a step, because no entry places it: the sample is the
+/// caller's, and `Stated` is what the record already says about a value a caller supplied. The
+/// index itself and not a flag, because two different hand-placed landings give two different
+/// flight times and a flag would report them as one.
+///
+/// Written per rule that read the landing, so a number that never asked for it does not carry
+/// it. One home called from both phases, on the model of `bound_with_operators`: a rule the
+/// spine runs for itself and a rule a caller named record the same fact the same way.
+pub fn record_stated_touchdown(
+    context: &DerivedContext,
+    bound: &mut BoundValues,
+    stated_index: Option<usize>,
+) {
+    let Some(index) = stated_index else { return };
+    if !context.names_read().contains(&TOUCHDOWN) {
+        return;
+    }
+    let name = crate::request::TOUCHDOWN_GLOBAL.to_string();
+    bound.parameters.push((name.clone(), index.to_string()));
+    bound.numbers.insert(name.clone(), index as f64);
+    bound.sources.insert(name, ParameterSource::Stated);
+}
+
 /// What every rule computed from the landmarks is handed.
 pub struct DerivedContext<'a> {
     /// The signal every rule reads, which is what the conditioning phase produced. Public and

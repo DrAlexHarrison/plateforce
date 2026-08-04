@@ -631,7 +631,8 @@ fn run_spine_default(
         method_id: binding.id.to_string(),
         ..Default::default()
     };
-    let outcome = rule(&context, &choice, warnings);
+    let mut outcome = rule(&context, &choice, warnings);
+    crate::derived::record_stated_touchdown(&context, &mut outcome.bound, request.touchdown_index);
     bound_methods.push(bound_method(
         binding.id,
         outcome.bound,
@@ -756,7 +757,12 @@ fn run_derived_phase(
             &placed,
             &request.derived,
         );
-        let outcome = rule(&context, choice, warnings);
+        let mut outcome = rule(&context, choice, warnings);
+        crate::derived::record_stated_touchdown(
+            &context,
+            &mut outcome.bound,
+            request.touchdown_index,
+        );
 
         // A record naming only the last step understates what produced the number, and one
         // naming every earlier step cites rules it never used. Built per quantity, because two
