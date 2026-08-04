@@ -5,7 +5,7 @@
 import { $, state } from './state.js';
 import { element } from './format.js';
 import { findMethod } from './registry.js';
-import { notice, boundValueText } from './analysis.js';
+import { notice, boundValueText, ruleSourceText } from './analysis.js';
 
 /*
  * One number's account, as the engine wrote it.
@@ -48,6 +48,13 @@ export function openDrawer(method, fallbackId, bound) {
   body.replaceChildren();
   $('drawer-title').textContent =
     method?.title || state.build.bindings.find((entry) => entry.id === fallbackId)?.title || fallbackId;
+
+  // Ahead of everything the entry says about itself, because a reader who has just opened a
+  // rule from beside a number is asking who put it there before they ask what it does. Absent
+  // where the panel was opened from the registry rather than from a result, which carries no
+  // claim about any run.
+  const chosen = ruleSourceText(bound);
+  if (chosen) body.append(element('p', 'rule-source', chosen));
 
   if (!method) {
     const binding = state.build.bindings.find((entry) => entry.id === fallbackId);

@@ -470,6 +470,44 @@ export function methodTitle(id) {
   );
 }
 
+/*
+ * Who chose the rule itself, in the vocabulary its values are already shown in.
+ *
+ * A rule the reader picked and a rule that ran because nobody named one move the number by
+ * exactly the same amount, so a surface rendering them alike hands a reader a methods section
+ * they cannot check. The record names a source per rule and these are its words.
+ *
+ * Keyed by the wire word the record carries, and a word with no sentence here renders as
+ * itself: a source added to the vocabulary reaches a reader as something they can look up
+ * rather than as silence, which is the failure this whole surface exists to stop.
+ */
+const HOW_A_RULE_WAS_CHOSEN = {
+  stated: (rule) => `you chose ${rule}`,
+  recommended: (rule) => `you took ${rule} from the recommendation`,
+  assumed: (rule) => `nobody chose ${rule}`,
+  cited: (rule, preset) => `${preset ? `the ${preset} pipeline` : 'a published pipeline'} bound ${rule}`,
+  measured: (rule) => `${rule} was read off this trace`,
+  provisional: (rule) => `nobody has chosen ${rule}`,
+};
+
+/*
+ * The record's claim about one rule, as a sentence.
+ *
+ * `rule` names what the sentence is about, because a row whose own control names no rule
+ * leaves "this rule" pointing at nothing and the caller is the only one who knows which it is.
+ */
+export function ruleSourceText(bound, rule = 'this rule') {
+  const source = bound?.method_source;
+  if (!source) return null;
+  const sentence = HOW_A_RULE_WAS_CHOSEN[source];
+  return sentence ? sentence(rule, bound.preset?.id) : `${rule}: ${source}`;
+}
+
+/* The record's row for one rule, which carries where its values came from and who chose it. */
+export function boundRecordFor(methodId) {
+  return state.analysis?.bound_methods?.find((entry) => entry.method_id === methodId) || null;
+}
+
 /* A value the request did not carry moved the number as far as one it did, so every value
  * in the fingerprint carries the source the record named for it. */
 export function boundValueText(bound, separator = ' ') {
@@ -520,7 +558,9 @@ function provenanceRow(methodIds) {
     const absence = binding?.composed_from
       ? `composition of ${binding.composed_from}`
       : 'no registry row carries this id';
-    item.title = [id, parameters, unread, bound?.registry_backed ? '' : absence]
+    // Beside the id rather than only in the panel this chip opens, so a reader running a
+    // pointer down the list meets the claim without opening eleven panels to collect it.
+    item.title = [id, ruleSourceText(bound), parameters, unread, bound?.registry_backed ? '' : absence]
       .filter(Boolean)
       .join(' | ');
     item.addEventListener('click', () => openDrawer(method, id, bound));

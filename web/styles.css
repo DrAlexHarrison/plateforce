@@ -687,6 +687,13 @@ select { cursor: pointer; }
 .ran-beside__value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .chip--quiet { border-style: dashed; color: var(--text-tertiary); }
 
+/* Who chose the rule on a row, in the weight the values beside it already carry. Every rule
+   has one, so it is a sentence and not a pill: a mark on all of them would read as a badge on
+   the exceptional ones and carry none of the fact. Under a control it sits at half the gap
+   that follows, so it reads as belonging to the rule above rather than to the values below. */
+.rule-source { font-size: var(--text-xs); color: var(--text-secondary); }
+.decision > .rule-source { margin-top: var(--space-1); }
+
 .tag {
   display: inline-flex;
   align-items: center;
