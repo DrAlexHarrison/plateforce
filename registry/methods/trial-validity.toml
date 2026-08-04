@@ -474,6 +474,13 @@ role = "proposes"
 reference = "Derived in this registry; no publication proposes it, nothing has been measured with it, and it has not been run against the validation corpus"
 obtained = true
 
+[[method.citation]]
+key = "jaric2002"
+role = "proposes"
+reference = "Jaric S 2002, Sports Med 32(10):615-631; held as the record page, complete abstract plus reference list, not full text. The two-thirds exponent this entry defaults to"
+doi = "10.2165/00007256-200232100-00002"
+obtained = false
+
 [[method.bias]]
 magnitude = 1.5
 unit = "ratio"

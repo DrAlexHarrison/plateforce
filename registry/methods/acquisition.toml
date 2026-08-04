@@ -148,6 +148,12 @@ role = "uses"
 reference = "Kinovea.Filtering/Butterworth.cs, MIT, as vendored by Chronojump"
 obtained = true
 
+[[method.citation]]
+key = "jumpmetrics"
+role = "uses"
+reference = "JumpMetrics, Sams and Hawkin at a 50 Hz cutoff, which is the value this entry defaults to"
+obtained = true
+
 [[method.bias]]
 magnitude = -0.26
 unit = "fraction"
@@ -1053,6 +1059,12 @@ newton averaged over a second. The value only has to fall between the two.
 key = "biomex"
 role = "uses"
 reference = "biomex.studio jump page, auto-enabled when the BioWare parser fires"
+obtained = true
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. The ceiling separates a plate carrying a standing adult, several hundred newtons, from one zeroed under them, under a newton averaged over a second at this plate's 1.4 N quantisation; no source consulted for this rule states a detection ceiling"
 obtained = true
 
 [[method.bias]]
