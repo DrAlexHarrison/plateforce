@@ -43,12 +43,17 @@ pub fn run(
         weighing.standard_deviation_convention_stated,
     );
 
+    // A caller who states index zero placed the window, at the start. Reading zero as
+    // nobody having placed it made one record answer the question twice: the rule records
+    // `window_anchor` as `stated_index` from a stated source for any stated index, so a
+    // stated zero said the caller placed it and said nobody did, in the same result. This
+    // field is the one that reaches the fingerprint, so the disagreement travelled.
     let mut bound_methods = conditioned.bound_methods;
     bound_methods.push(bound_method(
         &request.weighing.method_id,
         weighing.bound,
         request.is_backed(&request.weighing.method_id),
-        request.weighing.start_index.is_some_and(|start| start != 0),
+        request.weighing.start_index.is_some(),
     ));
 
     let mut refusals: Vec<DeclinedRule> = Vec::new();
