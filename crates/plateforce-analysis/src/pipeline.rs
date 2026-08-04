@@ -1338,16 +1338,15 @@ mod tests {
                 };
                 let (left_keys, right_keys) = (keys_of(left_id), keys_of(right_id));
                 Verdict::Faulted(format!(
-                    "{construct} declares rules_answer = \"one_question\", and {left_id} reports \
-                     {:?} while {right_id} reports {:?}, so each reports a quantity the other \
-                     withholds: {:?} against {:?}. A request carries one rule for {construct}, so \
-                     a caller reaching for either loses what the other reports, and nothing on \
-                     the result says so. Either the two answer different questions and belong in \
+                    "{construct} declares rules_answer = \"one_question\", and {left_id} is alone \
+                     in reporting {:?} while {right_id} is alone in reporting {:?}, over {} \
+                     quantities in common. A request carries one rule for {construct}, so a \
+                     caller reaching for either loses what the other reports, and nothing on the \
+                     result says so. Either the two answer different questions and belong in \
                      separate constructs, or the construct is declared wrongly.",
-                    left_keys,
-                    right_keys,
                     left_keys.difference(&right_keys).collect::<Vec<_>>(),
                     right_keys.difference(&left_keys).collect::<Vec<_>>(),
+                    left_keys.intersection(&right_keys).count(),
                 ))
             }
             Some(plateforce_registry::RulesAnswer::TheirOwnQuestions) => {
@@ -1357,11 +1356,13 @@ mod tests {
                 let (left_keys, right_keys) = (keys_of(left_id), keys_of(right_id));
                 Verdict::Faulted(format!(
                     "{construct} declares rules_answer = \"their_own_questions\", and {left_id} \
-                     reports {:?} while {right_id} reports {:?}, so neither withholds a quantity \
-                     from the other. They answer one question rather than their own, and a caller \
-                     told the choice settles which quantities exist is being told the wrong thing \
-                     about what it costs.",
-                    left_keys, right_keys,
+                     withholds {:?} from {right_id} while {right_id} withholds {:?}, over {} \
+                     quantities in common. Neither is alone in what it reports, so they answer one \
+                     question rather than their own, and a caller told the choice settles which \
+                     quantities exist is told the wrong thing about what it costs.",
+                    left_keys.difference(&right_keys).collect::<Vec<_>>(),
+                    right_keys.difference(&left_keys).collect::<Vec<_>>(),
+                    left_keys.intersection(&right_keys).count(),
                 ))
             }
         }
@@ -1497,7 +1498,9 @@ mod tests {
                     Verdict::ForkedByDeclaration => {
                         forked.insert(construct);
                     }
-                    Verdict::Faulted(sentence) => faults.push(format!("On {recording}. {sentence}")),
+                    Verdict::Faulted(sentence) => {
+                        faults.push(format!("On {recording}. {sentence}"))
+                    }
                 }
             }
         }
@@ -1525,6 +1528,10 @@ mod tests {
             "only {} constructs were ruled on, so this read almost nothing",
             ruled_on.len()
         );
+        // What was read comes before what was covered. A construct contradicting its row is the
+        // finding; a shape going unread is a fact about the population, and asserting it first
+        // would answer a fault with a sentence about coverage.
+        assert!(faults.is_empty(), "{}", faults.join("\n\n"));
         // Both sound shapes are present in what was read. A run finding only one of them would
         // leave the other arm of the reading unexercised by the shipped registry.
         assert!(
@@ -1533,7 +1540,6 @@ mod tests {
             whole.len(),
             forked.len()
         );
-        assert!(faults.is_empty(), "{}", faults.join("\n\n"));
     }
 
     /// The reading above is worth nothing unless it answers both ways, so both answers are
@@ -1641,8 +1647,7 @@ mod tests {
         // exists to catch and the one a two-entry construct could not produce before it.
         let onset_declared_forked =
             read_construct("movement_onset", Some(TheirOwnQuestions), &one_question);
-        let models_declared_one =
-            read_construct("phase_model", Some(OneQuestion), &their_own);
+        let models_declared_one = read_construct("phase_model", Some(OneQuestion), &their_own);
         for (verdict, expected) in [
             (&onset_declared_forked, "their_own_questions"),
             (&models_declared_one, "one_question"),
