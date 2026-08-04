@@ -261,7 +261,7 @@ pub fn analyse(
     let median_weight =
         median(&force[..samples(bindings.median_window_seconds, bindings)]).unwrap_or(f64::NAN);
 
-    let lowest_variance = WeighingEpoch::lowest_variance(
+    let (lowest_variance, _) = WeighingEpoch::lowest_variance(
         trial,
         samples(bindings.lowest_variance_window_seconds, bindings),
         takeoff_jm,

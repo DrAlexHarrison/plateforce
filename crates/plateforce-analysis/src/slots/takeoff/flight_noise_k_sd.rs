@@ -19,6 +19,7 @@ pub(crate) fn crossing(
     resolved: &mut Resolution,
 ) -> Result<usize, RuleRefusal> {
     let rate = trial.sample_rate_hz();
+    super::record_search_floor_at_weighing_epoch_end(trial, epoch, resolved);
     let trim_fraction = resolved.number("trim_fraction", 0.25);
     let k = resolved.number("k", 5.0);
     let dispersion = resolved.dispersion()?;

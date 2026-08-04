@@ -1,7 +1,7 @@
 //! `bwepoch.adaptive_lowest_variance`: the quietest window the recording holds.
 
 use plateforce_core::provenance::ParameterSource;
-use plateforce_core::statistics::median;
+use plateforce_core::statistics::{median, WeighingWindowSearch};
 use plateforce_core::{DispersionEstimator, Refusal, Trial, VarianceAccumulation, WeighingEpoch};
 
 use crate::resolution::Resolution;
@@ -31,6 +31,30 @@ fn apply_variance_floor(
         epoch.standard_deviation_newtons = floor_newtons;
     }
 }
+
+/// How many windows the rule compared and how many the low-force gate removed before it
+/// compared anything.
+///
+/// The two travel together: the rejected count on its own says nothing about how much of the
+/// recording was ruled out, and the candidate count on its own hides that anything was.
+fn record_window_counts(search: &WeighingWindowSearch, resolved: &mut Resolution) {
+    for (name, count) in [
+        (COMPARED_WINDOW_COUNT, search.candidate_window_count),
+        (REJECTED_WINDOW_COUNT, search.rejected_window_count),
+    ] {
+        resolved.record_measured(
+            name,
+            count as f64,
+            count.to_string(),
+            ParameterSource::Measured,
+        );
+    }
+}
+
+/// The names the two counts are recorded under, read from here by the reader that looks them
+/// up again.
+pub const COMPARED_WINDOW_COUNT: &str = "compared_window_count";
+pub const REJECTED_WINDOW_COUNT: &str = "rejected_window_count";
 
 pub(crate) fn search(
     trial: &Trial,
@@ -68,7 +92,7 @@ pub(crate) fn search(
         format!("{reject_at_or_below_newtons:.4}"),
         ParameterSource::Measured,
     );
-    let mut epoch = WeighingEpoch::lowest_variance(
+    let (mut epoch, search) = WeighingEpoch::lowest_variance(
         trial,
         window_samples,
         trial.len(),
@@ -77,6 +101,10 @@ pub(crate) fn search(
         dispersion,
     )
     .map_err(Refusal::from)?;
+    // The gate above takes windows out of the running, 985 of 4801 on subject 01's first
+    // trial, and a rule that removed a fifth of what it compared has to say so. Both counts,
+    // because a rejection count without the population it came from is not a proportion.
+    record_window_counts(&search, resolved);
     // A minimum with exact ties does not identify one window, and on this corpus the
     // tie has run to 138 windows on the worst trial.
     if epoch.tied_window_count > 1 {

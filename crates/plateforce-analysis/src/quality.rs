@@ -16,6 +16,9 @@ use crate::slots::movement_onset::{
     BACKWARD_OFFSET_FIXED, FLOOR_SECONDS, OFFSET_MILLISECONDS, SEARCH_FLOOR,
     SEARCH_FLOOR_AT_WEIGHING_EPOCH_END, WEIGHING_EPOCH_END_SECONDS,
 };
+use crate::slots::takeoff::{
+    TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END, TAKEOFF_WEIGHING_EPOCH_END_SECONDS,
+};
 
 const TAKEOFF_FRAME_HEIGHT: &str = "jump_height_from_takeoff_meters";
 const FLIGHT_TIME_HEIGHT: &str = "jump_height_from_flight_time_meters";
@@ -136,6 +139,9 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
     if let Some(signal) = onset_placed_at_its_search_floor(response) {
         found.push(signal);
     }
+    if let Some(signal) = takeoff_placed_at_its_search_floor(response) {
+        found.push(signal);
+    }
     found
 }
 
@@ -196,9 +202,11 @@ fn onset_placed_at_or_after_takeoff(response: &AnalysisResponse) -> Option<Quali
 ///
 /// `AtSearchFloor` does not either, and this one is a decision rather than a consequence. A
 /// rule that returns its own boundary has still done what it publishes, on a recording where
-/// that is what it does. The distance between it and the rules that found a departure is the
-/// disagreement between published methods, measured, and a spread that dropped the rule
-/// would report the methods as closer together than they are.
+/// that is what it does. The distance between it and the rules that searched somewhere else is
+/// the disagreement between published methods, measured, and a spread that dropped the rule
+/// would report the methods as closer together than they are. The ruling covers the onset half
+/// and the takeoff half alike: on subject 01's first trial dropping the two takeoff rules that
+/// return their floor would hide jump heights of 1.4 cm against 37.0 cm.
 ///
 /// `OnsetNotBeforeTakeoff` does not, and here the reason is that there is nothing to drop.
 /// Every quantity it qualifies already has no value, so a spread over them never saw one. What
@@ -340,6 +348,57 @@ fn onset_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Quali
     })
 }
 
+/// Whether the takeoff a rule reported is the first instant it was allowed to look at.
+///
+/// The same comparison as the onset half and for the same reason: a forward search starts at
+/// its floor, so the sample it returns is at or after that floor and the two are equal exactly
+/// when the search returned without finding anything later. Both sides are sample indices, so
+/// there is no tolerance to choose and no float compared. Simpler than the onset half by one
+/// step, because no takeoff rule composes a backward offset, so the index the rule returned is
+/// the index the search reached.
+///
+/// Two of the five shipped takeoff rules take this floor and record it. The other three search
+/// the whole recording and record that instead, so `takeoff.op.search_floor_at_trial_start` puts
+/// their floor at the first sample, which forbids nothing, and they are excluded here by the
+/// same test that excludes a weighing window anchored at the start of the trace.
+///
+/// Measured on subject 01's first trial under a weighing window of 4.4 s, which ends at sample
+/// 5280 inside the flight phase: `takeoff.threshold.absolute_force` and
+/// `takeoff.threshold.flight_noise_k_sd` both report 5280, while the three that search the whole
+/// recording report 5014. Jump height from the impulse reads 1.4 cm against 37.0 cm.
+fn takeoff_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<QualitySignal> {
+    let takeoff_index = response.takeoff_index?;
+    let floor_seconds = bound_value(
+        response,
+        TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
+        TAKEOFF_WEIGHING_EPOCH_END_SECONDS,
+    )?;
+    let floor_index = response.weighing_end_index;
+    // A floor at the first sample of the recording forbids nothing, so a takeoff there is the
+    // rule reading the whole trace rather than the rule reading its own boundary.
+    if floor_index == 0 || takeoff_index != floor_index {
+        return None;
+    }
+
+    Some(QualitySignal {
+        label: "Takeoff, against the instant this rule's search begins".to_string(),
+        value: Some(floor_seconds),
+        unit: "seconds",
+        threshold: 0.0,
+        status: QualityStatus::AtSearchFloor,
+        remedy: format!(
+            "This rule begins searching for the flight phase where the weighing window ends, at \
+             {floor_seconds:.4} s, and the plate was already below its threshold there, so the \
+             takeoff it reports is the start of its own search rather than a flight phase it \
+             found in the recording. Flight time, the impulse and everything drawn from them \
+             run to that instant. Compare the other published rules for takeoff, or move the \
+             weighing window, and watch this time change."
+        ),
+        remedy_construct: crate::TAKEOFF_CONSTRUCT,
+        qualifies: vec![TAKEOFF_TIME, TIME_TO_TAKEOFF, FLIGHT_TIME],
+    })
+}
+
 /// The impulse route and the flight-time route answer the same question from different
 /// halves of the trace, so they check each other, and which of the two reads higher says
 /// which landmark to look at.
@@ -420,18 +479,38 @@ fn jump_height_routes_disagree(response: &AnalysisResponse) -> Option<QualitySig
 mod tests {
     use super::*;
 
+    /// The statuses this file checks the spelling of, and its own position in the list.
+    ///
+    /// The match is what carries the list forward: a variant added to the vocabulary makes it
+    /// non-exhaustive and stops this file compiling, in the same file the list lives in. The
+    /// assertion below is what makes the two agree, so a variant given a position outside the
+    /// list turns it red rather than passing unnoticed.
+    fn position_in_the_list(status: QualityStatus) -> usize {
+        match status {
+            QualityStatus::Disagrees => 0,
+            QualityStatus::Incomparable => 1,
+            QualityStatus::AtSearchFloor => 2,
+            QualityStatus::OnsetNotBeforeTakeoff => 3,
+        }
+    }
+
+    const EVERY_STATUS: [QualityStatus; 4] = [
+        QualityStatus::Disagrees,
+        QualityStatus::Incomparable,
+        QualityStatus::AtSearchFloor,
+        QualityStatus::OnsetNotBeforeTakeoff,
+    ];
+
     /// The word a surface prints and the word the JSON carries are one word, proved against
     /// the serialiser rather than against a second list written here.
-    ///
-    /// Every variant is named, so the match below stops compiling when the vocabulary grows
-    /// and nobody can add a status whose spelling nothing checks.
     #[test]
     fn every_status_prints_the_word_the_wire_carries() {
-        for status in [
-            QualityStatus::Disagrees,
-            QualityStatus::Incomparable,
-            QualityStatus::AtSearchFloor,
-        ] {
+        for (index, status) in EVERY_STATUS.into_iter().enumerate() {
+            assert_eq!(
+                index,
+                position_in_the_list(status),
+                "{status:?} sits at a different place in the list than the match gives it"
+            );
             let serialised = serde_json::to_value(status).expect("a status serialises");
             assert_eq!(
                 serde_json::Value::String(status.wire_name().to_string()),
@@ -439,5 +518,16 @@ mod tests {
                 "{status:?} prints one word and serialises as another"
             );
         }
+    }
+
+    /// Four words, four statuses. A variant sharing another's word would read to every surface
+    /// as the status it borrowed from.
+    #[test]
+    fn no_two_statuses_travel_under_one_word() {
+        let mut words: Vec<&str> = EVERY_STATUS.iter().map(|s| s.wire_name()).collect();
+        words.sort_unstable();
+        let spoken = words.len();
+        words.dedup();
+        assert_eq!(spoken, words.len(), "two statuses share a word: {words:?}");
     }
 }

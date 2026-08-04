@@ -205,6 +205,29 @@ nominal rule tests the two differently.
 """
 
 [[method.parameter]]
+name = "rejected_window_count"
+unit = "count"
+published_values = []
+required = false
+notes = """
+Measured, not chosen: how many candidate windows the gate above removed before any variance was
+compared. On subject 01's first trial it removes 985 of 4801, a fifth of the recording's windows,
+and which windows those are decides the answer as directly as the variance does. Reported beside
+the count of windows the search compared, since a rejection count without its population is not a
+proportion.
+"""
+
+[[method.parameter]]
+name = "compared_window_count"
+unit = "count"
+published_values = []
+required = false
+notes = """
+Measured, not chosen: how many windows the search actually compared, which is the denominator for
+the count above and for the tie count the rule warns on.
+"""
+
+[[method.parameter]]
 name = "accumulation"
 unit = "enumeration"
 notes = "The search compares the variance of every candidate window, so how the variance is accumulated decides which window wins whenever two are close."
