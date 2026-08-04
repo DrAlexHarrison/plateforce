@@ -200,6 +200,59 @@ pub fn partition_sentinels(values: &[f64], sentinel: Sentinel) -> (Vec<f64>, Vec
     (kept, dropped)
 }
 
+/// Samples matching the declared convention against samples carrying no number at all.
+///
+/// `partition_sentinels` reports one total over both, and one number cannot say which. The
+/// distinction is not academic on a force plate: the zero convention a vendor writes for a
+/// measurement it does not have is also the correct reading of a plate with nothing on it,
+/// so on a jump trace it matches the whole flight phase. A reader told only the total cannot
+/// tell a gap in the recording from the athlete being in the air.
+///
+/// Measured on `subject01_trial1_interrupted` under the zero convention, the total is 160:
+/// 157 samples of an athlete in the air and 3 samples the recording lost, in one number
+/// nobody can take apart. Under no convention at all the same total is 0, and the 3 are
+/// still there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ReportedSamples {
+    /// Samples reading the value the declared convention writes for a measurement that was
+    /// not taken. Zero when the caller declared no convention, because a reader who declared
+    /// nothing matched nothing.
+    pub matched_the_convention: usize,
+    /// Samples carrying no number, which is a gap in the recording rather than a convention
+    /// a reader could have declared differently. Counted whether or not a convention was
+    /// declared, because the recording is the same either way.
+    pub carried_no_number: usize,
+}
+
+impl ReportedSamples {
+    /// The one number the four surfaces used to publish, kept so a caller that wants it does
+    /// not add the two up itself and so the two can be checked against it.
+    pub fn total(&self) -> usize {
+        self.matched_the_convention + self.carried_no_number
+    }
+}
+
+/// Count the two reasons a sample is reported, apart.
+///
+/// The one home for that policy. It was spelled in four places, three of which reported the
+/// total under a name that reads like one fact, and the fourth of which was called by nobody
+/// outside its own surface.
+///
+/// A value that is not finite is counted as carrying no number and nowhere else, so the two
+/// counts are disjoint and add up to the length of what `partition_sentinels` drops under the
+/// same convention. `the_two_counts_add_up_to_what_the_partition_drops` holds that.
+pub fn reported_samples(values: &[f64], sentinel: Option<Sentinel>) -> ReportedSamples {
+    let mut reported = ReportedSamples::default();
+    for &value in values {
+        if !value.is_finite() {
+            reported.carried_no_number += 1;
+        } else if sentinel.is_some_and(|convention| convention.matches(value)) {
+            reported.matched_the_convention += 1;
+        }
+    }
+    reported
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -312,5 +365,57 @@ mod tests {
     #[test]
     fn an_empty_trace_is_rejected_rather_than_returning_a_number() {
         assert!(Trial::new(Vec::new(), 1200.0).is_err());
+    }
+
+    /// The two reasons are counted apart, and the trace that carries both is the one that
+    /// shows why the total cannot stand in for either.
+    #[test]
+    fn the_two_reasons_a_sample_is_reported_are_counted_apart() {
+        let values = [45.0, 0.0, f64::NAN, 0.0, 51.0];
+
+        let declared = reported_samples(&values, Some(Sentinel::Zero));
+        assert_eq!(declared.matched_the_convention, 2);
+        assert_eq!(declared.carried_no_number, 1);
+
+        // The same recording with nothing declared. The convention count falls to zero
+        // because the reader declared nothing; the gap is still there, because the gap
+        // belongs to the recording rather than to the reader.
+        let undeclared = reported_samples(&values, None);
+        assert_eq!(undeclared.matched_the_convention, 0);
+        assert_eq!(undeclared.carried_no_number, 1);
+    }
+
+    /// The disjointness the doc comment claims, held rather than asserted in prose.
+    ///
+    /// A count that double-counted a non-finite sample matching the convention, or missed
+    /// one, would still look like a plausible pair of numbers beside a trace. Held against
+    /// `partition_sentinels`, which is the total the four surfaces published before this
+    /// function existed, so the split cannot silently stop adding up to it.
+    #[test]
+    fn the_two_counts_add_up_to_what_the_partition_drops() {
+        for convention in [Sentinel::Zero, Sentinel::NegativeOne, Sentinel::Value(9999.0)] {
+            let values = [
+                45.0,
+                0.0,
+                -1.0,
+                9999.0,
+                f64::NAN,
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                51.0,
+            ];
+            let dropped = partition_sentinels(&values, convention).1.len();
+            assert_eq!(reported_samples(&values, Some(convention)).total(), dropped);
+        }
+    }
+
+    /// A trace with nothing to report reads zero for both, so a caller cannot read one of
+    /// these counts as evidence that the counter ran.
+    #[test]
+    fn a_clean_trace_reports_neither_reason() {
+        let reported = reported_samples(&[45.0, 51.0, 47.0], Some(Sentinel::Zero));
+        assert_eq!(reported.matched_the_convention, 0);
+        assert_eq!(reported.carried_no_number, 0);
+        assert_eq!(reported.total(), 0);
     }
 }
