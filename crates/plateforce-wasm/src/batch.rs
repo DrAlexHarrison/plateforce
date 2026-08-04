@@ -28,6 +28,10 @@ struct BrowserBatchRequest {
     /// Constructs the person resolved by an explicit act rather than by arriving at a default.
     #[serde(default)]
     resolved: Vec<String>,
+    /// What the person said about the plate every file in the folder came off. Stated once
+    /// for the run, because a trace of forces carries none of it.
+    #[serde(default)]
+    capture: crate::StatedCapture,
 }
 
 /// Run a batch over dropped files and return the envelope every surface returns.
@@ -51,7 +55,9 @@ pub fn batch_json(request_json: &str) -> Result<String, JsError> {
         .map_err(|error| JsError::new(&format!("the embedded registry did not load: {error}")))?;
 
     let resolved: Vec<&str> = request.resolved.iter().map(String::as_str).collect();
-    let batch = BatchRequest::new(request.analysis).resolving(&resolved);
+    let batch = BatchRequest::new(request.analysis)
+        .resolving(&resolved)
+        .describing(request.capture.resolved()?);
 
     Ok(plateforce_batch::envelope(&analyse(
         &set,

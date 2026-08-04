@@ -12,7 +12,7 @@
 //! being told about it, and one that is not a member is refused against the list rather than
 //! read and dropped.
 
-use plateforce_core::Acquisition;
+use plateforce_core::{Acquisition, MemberFault};
 
 use crate::analyse::stated_twice;
 use crate::exit::{Declined, Fault};
@@ -55,13 +55,7 @@ pub(crate) fn stated_acquisition(assignments: &[String]) -> Result<Acquisition, 
         let written = written.trim();
 
         if !Acquisition::MEMBERS.contains(&member) {
-            return Err(Declined::line(
-                Fault::Request,
-                format!(
-                    "--acquisition {member} names nothing the block holds, which has {}",
-                    Acquisition::MEMBERS.join(", ")
-                ),
-            ));
+            return Err(not_a_member(member));
         }
         if written.is_empty() {
             return Err(Declined::line(
@@ -83,37 +77,33 @@ pub(crate) fn stated_acquisition(assignments: &[String]) -> Result<Acquisition, 
     Ok(block)
 }
 
-/// One stated member onto the block.
+/// One stated member onto the block, in the words this surface says it in.
 ///
-/// Matched against the same `MEMBERS` list the check above reads, so a member the block gains
-/// and this arm does not is a compile-time hole rather than a silent drop: the final arm is
-/// unreachable for every declared member and states what it means when it is reached.
+/// The block itself decides whether a name is a member and whether the text is the kind that
+/// member holds, so a member added to the block reaches this flag without being told about it
+/// and there is no arm here to forget.
 fn assign(block: &mut Acquisition, member: &str, written: &str) -> Result<(), Declined> {
-    match member {
-        "filter_at_capture" => block.filter_at_capture = Some(written.to_string()),
-        "tare_state" => block.tare_state = Some(written.to_string()),
-        "plate_natural_frequency_hz" => {
-            block.plate_natural_frequency_hz = Some(written.parse().map_err(|_| {
-                Declined::line(
-                    Fault::Request,
-                    format!(
-                        "--acquisition plate_natural_frequency_hz was given '{written}', which is not a number"
-                    ),
-                )
-            })?)
-        }
-        "floor_surface" => block.floor_surface = Some(written.to_string()),
-        "firmware_version" => block.firmware_version = Some(written.to_string()),
-        // Reachable only when the block declares a member this function was not taught, which
-        // is a build that can accept a value it cannot store.
-        other => {
-            return Err(Declined::line(
-                Fault::Internal,
-                format!("the acquisition block declares {other} and this surface cannot store it"),
-            ))
-        }
-    }
-    Ok(())
+    block
+        .set_member(member, written)
+        .map_err(|fault| match fault {
+            MemberFault::Unknown => not_a_member(member),
+            MemberFault::NotANumber => Declined::line(
+                Fault::Request,
+                format!("--acquisition {member} was given '{written}', which is not a number"),
+            ),
+        })
+}
+
+/// The refusal a caller learns the members from, said once so the two places that raise it
+/// cannot come to name different sets.
+fn not_a_member(member: &str) -> Declined {
+    Declined::line(
+        Fault::Request,
+        format!(
+            "--acquisition {member} names nothing the block holds, which has {}",
+            Acquisition::MEMBERS.join(", ")
+        ),
+    )
 }
 
 #[cfg(test)]

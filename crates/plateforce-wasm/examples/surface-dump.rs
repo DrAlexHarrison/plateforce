@@ -602,7 +602,7 @@ fn main() {
         for (name, payload) in requests() {
             report(
                 &format!("analyse {trace} {name}"),
-                trial.analyse(&payload, Some((*trace).to_string())),
+                trial.analyse(&payload, Some((*trace).to_string()), None),
             );
         }
         for (name, payload) in sweeps() {

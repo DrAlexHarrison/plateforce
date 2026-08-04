@@ -15,7 +15,7 @@ pub mod batch;
 pub mod demo;
 pub mod registry_embed;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, SPINE_CONSTRUCTS};
@@ -242,6 +242,72 @@ pub fn capability_json() -> Result<String, JsError> {
     ))
 }
 
+/// What the tab was told about the plate, in the words the person answered in.
+///
+/// Members arrive as text and reach the block through the block's own parser, so a name the
+/// block does not hold is refused here rather than dropped, and the tab and the terminal read
+/// one member the same way. A saved plate arrives as the members it holds rather than as a
+/// digest, because a tab computing the revision itself would be a second implementation of
+/// the one thing that tells two revisions of a plate apart.
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StatedCapture {
+    /// What runs, member by member.
+    #[serde(default)]
+    acquisition: std::collections::BTreeMap<String, String>,
+    /// The saved plate the answers were read from, when the person picked one.
+    #[serde(default)]
+    plate: Option<StatedPlate>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StatedPlate {
+    name: String,
+    #[serde(default)]
+    members: std::collections::BTreeMap<String, String>,
+}
+
+impl StatedCapture {
+    /// The block this run carries, and the saved plate behind it.
+    pub(crate) fn resolved(self) -> Result<plateforce_core::Capture, JsError> {
+        let stated = block_of(&self.acquisition)?;
+        let Some(plate) = self.plate else {
+            return Ok(plateforce_core::Capture::stated(stated));
+        };
+        let saved = block_of(&plate.members)?;
+        let (acquisition, superseded_members) = stated.over(&saved);
+        Ok(plateforce_core::Capture {
+            acquisition,
+            plate_profile: Some(plateforce_core::PlateProfileAttribution {
+                name: plate.name,
+                revision: plateforce_core::PlateProfileAttribution::revision_of(&saved),
+                superseded_members,
+            }),
+        })
+    }
+}
+
+fn block_of(
+    members: &std::collections::BTreeMap<String, String>,
+) -> Result<plateforce_core::Acquisition, JsError> {
+    let mut block = plateforce_core::Acquisition::default();
+    for (member, written) in members {
+        block.set_member(member, written).map_err(|fault| {
+            JsError::new(&match fault {
+                plateforce_core::MemberFault::Unknown => format!(
+                    "{member} names nothing the acquisition block holds, which has {}",
+                    plateforce_core::Acquisition::MEMBERS.join(", ")
+                ),
+                plateforce_core::MemberFault::NotANumber => {
+                    format!("{member} was given '{written}', which is not a number")
+                }
+            })
+        })?;
+    }
+    Ok(block)
+}
+
 /// A parsed force file, before any column has been declared to be the force channel.
 #[wasm_bindgen]
 pub struct ForceFile {
@@ -396,14 +462,20 @@ impl LoadedTrial {
     ///
     /// The name of the trace is the caller's, because the module is handed text and never a
     /// file. A caller that names none has a trace this surface cannot name.
+    ///
+    /// The plate is the caller's too. This surface passed a literal `false` for the block's
+    /// completeness under a comment saying none reaches it, so every result it had ever
+    /// produced fingerprinted as incomplete and no reader could change that.
     #[wasm_bindgen(js_name = analyse)]
     pub fn analyse(
         &self,
         request_json: &str,
         trial_name: Option<String>,
+        capture_json: Option<String>,
     ) -> Result<String, JsError> {
         let request: AnalysisRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
+        let capture = stated_capture(capture_json.as_deref())?;
         let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
         match plateforce_analysis::run(&self.trial, &request) {
             Ok(response) => replied(&document::ResultDocument::of(
@@ -420,9 +492,7 @@ impl LoadedTrial {
                     loaded.registry.declared_version.clone(),
                     Some(loaded.digest.clone()),
                 ),
-                // No acquisition block reaches this surface, and a dataset that cannot fill
-                // one fingerprints as incomplete rather than as matching.
-                false,
+                &capture,
                 &response,
                 std::collections::BTreeMap::new(),
                 // The tab sweeps on its own schedule through `spread`, so an analysis that
@@ -457,6 +527,25 @@ impl LoadedTrial {
             Err(refusal) => refused(&refusal),
         }
     }
+}
+
+/// What the caller said about the plate, or the empty block when they said nothing.
+///
+/// An empty block rather than a refusal, because a run told nothing about the plate is a run
+/// whose result fingerprints as incomplete and names what would fill it, which is a different
+/// thing from a run that cannot happen.
+pub(crate) fn stated_capture(
+    capture_json: Option<&str>,
+) -> Result<plateforce_core::Capture, JsError> {
+    let Some(text) = capture_json else {
+        return Ok(plateforce_core::Capture::default());
+    };
+    let stated: StatedCapture = serde_json::from_str(text).map_err(|error| {
+        JsError::new(&format!(
+            "what the tab said about the plate did not parse: {error}"
+        ))
+    })?;
+    stated.resolved()
 }
 
 fn describe(

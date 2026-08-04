@@ -645,8 +645,10 @@ dependencies = [
  "plateforce-core",
  "plateforce-registry",
  "plateforce-serve",
+ "serde",
  "serde_json",
  "terminal_size",
+ "toml",
 ]
 
 [[package]]

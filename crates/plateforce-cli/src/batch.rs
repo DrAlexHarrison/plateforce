@@ -96,6 +96,8 @@ pub struct Args {
     pub registry_version: Option<String>,
     #[arg(long = "acquisition", value_name = "ASSIGNMENT", help = crate::acquisition_arg::ACQUISITION_HELP)]
     pub acquisition: Vec<String>,
+    #[arg(long, value_name = "NAME", help = crate::plate_source::PLATE_HELP)]
+    pub plate: Option<String>,
     /// Hide the fingerprint column in the printed table. The record is written either way
     #[arg(long)]
     pub without_provenance: bool,
@@ -104,6 +106,7 @@ pub struct Args {
 pub fn run(
     args: &Args,
     registry_directory: Option<&std::path::Path>,
+    plates_directory: Option<&std::path::Path>,
     format: Format,
     document_destination: Option<&std::path::Path>,
     renderer: &crate::render::Renderer,
@@ -204,8 +207,12 @@ pub fn run(
 
     // Stated once for the folder rather than per file, because a trace of forces carries none
     // of it and every file in one folder came off one plate on one day.
-    let acquisition = match crate::acquisition_arg::stated_acquisition(&args.acquisition) {
-        Ok(acquisition) => acquisition,
+    let capture = match crate::plate_source::capture_for(
+        args.plate.as_deref(),
+        &args.acquisition,
+        plates_directory,
+    ) {
+        Ok(capture) => capture,
         Err(declined) => return Outcome::declined(declined),
     };
 
@@ -213,7 +220,7 @@ pub fn run(
     let request = BatchRequest::new(built)
         .resolving(&resolved)
         .pinned_to(args.registry_version.clone())
-        .describing(acquisition);
+        .describing(capture);
 
     match args.mode {
         Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format),

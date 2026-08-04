@@ -6,6 +6,7 @@ Commands:
   analyse     Compute every number one trace supports, with the rule behind each
   batch       Run every trial in a folder under one request
   capability  Report what this build can do, for comparison against every other surface
+  plate       Record a plate's settings once, and read back the ones this machine holds
   reach       Report what this registry reaches, per construct, and what stands in the way of the rest
   registry    Read the registry
   spread      Sweep a quantity over every rule this build runs for each step on its path
@@ -15,6 +16,7 @@ Commands:
 
 Options:
       --registry <DIR>   Read the registry in this directory rather than the one compiled in
+      --plates <DIR>     Keep saved plates in this directory rather than beside this machine's other settings
       --format <FORMAT>  Write the result as readable text or as JSON [default: text] [possible values: text, json]
       --out <PATH>       Write the result to this path
       --color <COLOR>    When to colour the output [default: auto] [possible values: auto, always, never]

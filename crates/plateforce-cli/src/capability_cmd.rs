@@ -43,6 +43,10 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
             Operation::RegistryShow,
             Operation::RegistryValidate,
         ]),
+        // Recording a plate's settings maps to nothing, for the reason `serve` does: it
+        // writes and reads a file on this machine and computes nothing over a trace. What the
+        // settings then do to a result is `analyse` and `batch`, which are already here.
+        "plate" => Some(&[]),
         // The sweep under a name of its own, for a quantity other than the one `analyse`
         // reports without being asked.
         "spread" => Some(&[Operation::Spread]),

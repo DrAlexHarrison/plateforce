@@ -371,6 +371,14 @@ SURFACES_THAT_DIFFER = {
         "two surfaces handed a path know it; Python and R are handed a trial somebody else "
         "opened",
     ),
+    "acquisition": Divergence(
+        frozenset({"cli", "browser"}),
+        True,
+        "nothing outstanding; the two surfaces that assemble `ResultDocument` agree",
+        "what the plate and its settings were, carried whole by the two surfaces that assemble "
+        "`ResultDocument`. Python and R take the block on the trial they are handed and report "
+        "`acquisition_complete`, which is compared on all four",
+    ),
     "descriptions": Divergence(
         frozenset({"r"}),
         None,
