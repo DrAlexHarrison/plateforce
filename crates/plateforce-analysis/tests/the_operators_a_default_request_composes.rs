@@ -131,15 +131,14 @@ fn every_construct_anchors_its_search_at_the_same_place_and_composes_no_deprecat
     let operators = composed_operators(&response);
     println!("{} operators composed: {operators:?}", operators.len());
 
-    let floors_offered: BTreeMap<&str, Vec<&String>> =
-        registry
-            .methods
-            .keys()
-            .filter(|id| is_operator(id) && id.contains("search_floor"))
-            .fold(BTreeMap::new(), |mut found, id| {
-                found.entry(construct_of(id)).or_default().push(id);
-                found
-            });
+    let floors_offered: BTreeMap<&str, Vec<&String>> = registry
+        .methods
+        .keys()
+        .filter(|id| is_operator(id) && id.contains("search_floor"))
+        .fold(BTreeMap::new(), |mut found, id| {
+            found.entry(construct_of(id)).or_default().push(id);
+            found
+        });
     let with_a_choice: Vec<&&str> = floors_offered
         .iter()
         .filter(|(_, offered)| offered.len() > 1)
