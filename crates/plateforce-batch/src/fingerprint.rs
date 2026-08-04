@@ -242,7 +242,8 @@ mod tests {
             force_column_index: 0,
             sample_rate_hz: 1200.0,
             sentinel: String::new(),
-            sentinel_rows_dropped: 0,
+            samples_matching_the_convention: 0,
+            samples_carrying_no_number: 0,
             run_fingerprint: None,
         }
     }

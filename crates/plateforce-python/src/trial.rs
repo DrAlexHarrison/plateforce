@@ -4,17 +4,15 @@
 use std::path::PathBuf;
 
 use plateforce_core::read::read_delimited_column;
-use plateforce_core::signal::{partition_sentinels, reported_samples, Sentinel as CoreSentinel};
+use plateforce_core::signal::{
+    partition_sentinels, reported_samples, trial_from_column, Sentinel as CoreSentinel,
+};
 use plateforce_core::{Exclusions as CoreExclusions, Refusal, Trial as CoreTrial};
 use pyo3::buffer::PyBuffer;
 use pyo3::prelude::*;
 
 use crate::errors::{map_trial_error, raise_refusal, TrialError};
 use crate::result::Exclusions;
-
-/// NaN never compares equal to itself, so this convention matches no reading and the
-/// partition reports only the samples that are not finite.
-const NON_FINITE_ONLY: CoreSentinel = CoreSentinel::Value(f64::NAN);
 
 /// The five acquisition facts that are not already on the trial.
 ///
@@ -317,14 +315,13 @@ impl Trial {
         read_report: Option<ReadReport>,
     ) -> PyResult<Self> {
         let declared = sentinel.as_ref().map(|declared| declared.inner);
-        let convention = declared.unwrap_or(NON_FINITE_ONLY);
-        let (_, dropped_indices) = partition_sentinels(&values, convention);
-        let reported = reported_samples(&values, declared);
+        // Through the one home. This surface used to reach the same total a second way, by
+        // partitioning against a stand-in convention and taking the length of what it dropped,
+        // so one function held two spellings of one number.
+        let (inner, reported) = trial_from_column(values, sample_rate_hz, declared)
+            .map_err(|e| map_trial_error(python, e))?;
         let matched = reported.matched_the_convention;
         let no_number = reported.carried_no_number;
-
-        let inner =
-            CoreTrial::new(values, sample_rate_hz).map_err(|e| map_trial_error(python, e))?;
 
         // The two counts rather than the total: a convention matching a stretch of the
         // recording is the caller's declaration meeting real data, and a sample carrying no
@@ -341,7 +338,7 @@ impl Trial {
             acquisition,
             exclusions: Exclusions {
                 inner: CoreExclusions {
-                    dropped_samples: dropped_indices.len(),
+                    dropped_samples: reported.total(),
                     reason,
                     sentinel_convention: sentinel.as_ref().map(|s| sentinel_name(&s.inner)),
                 },

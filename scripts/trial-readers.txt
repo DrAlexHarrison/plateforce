@@ -1,0 +1,26 @@
+# Every reader that turns values it was handed into a trial, and the one home each reaches.
+#
+# One row per reader: a name, the file, the function, and what it reads. Read by
+# `scripts/check-one-sentinel-home.py`, which holds each named function to reaching
+# `plateforce_core::signal::trial_from_column` and to building no trial of its own.
+#
+# The policy a reader applies to a sample it cannot take as a measurement is the one thing
+# every surface here has to agree about, and it is the one thing three of them have each
+# spelled differently. R held every match at the last real reading; the browser held every
+# unreadable sample and reached past the declared convention to do it, so it answered an
+# interrupted recording with the intact trial's numbers to the last digit; the batch reader
+# removed the samples, which closed the gap and shifted every timestamp after it. Each was
+# repaired on its own, and the repair aimed at the second was written in the same commit that
+# left the third alone. One home is what stops the next one.
+#
+# A row whose function this check cannot find is a refusal rather than a pass, because a
+# renamed function matches nothing and matching nothing looks exactly like agreeing.
+#
+# The R reader is here and is not a workspace member, which is the whole reason this check is
+# a script over the sources rather than a test: R and Python are the two surfaces a Rust test
+# in this workspace cannot reach at all, and R is where the policy was first found wrong.
+cli	crates/plateforce-cli/src/analyse.rs	read_trial	a column of a delimited file the caller named on the command line
+browser	crates/plateforce-wasm/src/lib.rs	from_force_file	a column of a file the tab parsed in the page, which is never written anywhere
+python	crates/plateforce-python/src/trial.rs	of_values	any float64 buffer a notebook hands the constructor
+r	bindings/r/src/rust/src/lib.rs	build_trial	a numeric vector an R session hands `pf_trial`, and the column `pf_read` took from a file
+batch	crates/plateforce-batch/src/identity.rs	read	a column of every file one run walked, under one format declared for the whole run

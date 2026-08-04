@@ -1,0 +1,25 @@
+# Every place shipped source builds a trial without going through the one home, and why.
+#
+# One row per function: the file, the function, and what it builds the trial out of. Read by
+# `scripts/check-one-sentinel-home.py`, which refuses a construction site named nowhere and
+# refuses a row naming a site that no longer builds one. Both directions, because a register
+# that only caught new sites would let a repaired one sit here forever reading as a limitation
+# somebody accepted.
+#
+# Being here is never permission to hold or remove a sample. It is the statement that the
+# values reaching the constructor are not a recording a reader parsed, so no sentinel
+# convention could apply to them: a trace this repository drew, or a trace the engine
+# recomputed from one it was already given. Every row that reads a file belongs in
+# `scripts/trial-readers.txt` instead, and there are none here.
+#
+# `read_trial_from_path` is the one row a reader of this file should look at twice. It reads a
+# file and takes no convention, so it counts nothing and reports nothing, and a surface that
+# reached for it would inherit a silent choice. No surface does: it is reached by tests and by
+# the conformance harness, which compares this engine against a frozen vendor run over the
+# private corpus and is not shipped. Routing it through the home means giving it a convention
+# and a pair of counts, which is a change to its callers rather than to it.
+crates/plateforce-core/src/read.rs	read_trial_from_path	a column of a file, with no convention asked for and no count reported. Reached by tests and by the conformance harness, and by no surface
+crates/plateforce-analysis/src/pipeline.rs	run_conditioning_phase	the force a conditioning rule returned, which the engine computed from a trial a reader already built
+crates/plateforce-analysis/src/slots/system_weight/mod.rs	weighing_epoch_at	the same trace from a stated sample onward, so the samples are the ones the reader loaded and the constructor is being handed a slice of them
+crates/plateforce-wasm/src/demo.rs	synthetic_countermovement_jump	a trace this repository draws, sample by sample, so nothing in it was ever missing
+crates/plateforce-wasm/src/demo.rs	recorded_countermovement_jump	the committed opening trace, compiled in rather than read at run time

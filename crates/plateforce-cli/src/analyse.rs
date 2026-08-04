@@ -9,7 +9,7 @@ use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, Metric,
     WeighingChoice, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
-use plateforce_core::signal::{reported_samples, ReportedSamples, Sentinel};
+use plateforce_core::signal::{trial_from_column, ReportedSamples, Sentinel};
 use plateforce_core::{read_delimited_column, Refusal, Trial};
 use plateforce_registry::{Registry, Surfacing};
 
@@ -637,14 +637,12 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         SentinelConvention::NegativeOne => Some(Sentinel::NegativeOne),
         SentinelConvention::None => None,
     };
-    // The two reasons a sample is reported, counted apart by the one function that counts
-    // them. This surface used to count the convention's matches and the recording's gaps as
-    // one total, which reads 0 on a recording with three unreadable samples when no
-    // convention is declared and 160 on the same recording under the zero convention, where
-    // 157 of the 160 are an athlete in the air.
-    let reported = reported_samples(&values, sentinel);
-
-    let trial = Trial::new(values, sample_rate_hz)
+    // Through the one home, which counts the two reasons apart and leaves the trace alone.
+    // This surface used to count the convention's matches and the recording's gaps as one
+    // total, which reads 0 on a recording with three unreadable samples when no convention is
+    // declared and 160 on the same recording under the zero convention, where 157 of the 160
+    // are an athlete in the air.
+    let (trial, reported) = trial_from_column(values, sample_rate_hz, sentinel)
         .map_err(|error| Outcome::declined(Declined::recorded(Refusal::from(error))))?;
     Ok(ReadTrial {
         trial,

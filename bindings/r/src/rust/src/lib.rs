@@ -20,7 +20,7 @@ use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, Binding, BINDI
 use plateforce_core::acquisition::Acquisition;
 use plateforce_core::read::read_delimited_column;
 use plateforce_core::reporting::describe;
-use plateforce_core::signal::reported_samples;
+use plateforce_core::signal::trial_from_column;
 use plateforce_core::{Measured, Provenance, ProvenanceChain, Sentinel, Trial};
 use plateforce_registry::{Method, Registry};
 use serde::{Deserialize, Serialize};
@@ -345,10 +345,10 @@ fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Box<Refusal>> {
 /// three quiet-stance samples zeroed, holding moved jump height 2.06 cm and time to takeoff
 /// 69 ms away from what the terminal and Python report from the same file.
 ///
-/// The counting itself is `plateforce_core::signal::reported_samples`, which is where the
-/// policy lives for every surface. This reader used to spell it here with a
-/// `Sentinel::Value(f64::NAN)` standing in for no convention at all, which counted the gaps
-/// and could never separate them from the convention's own matches.
+/// The policy itself is `plateforce_core::signal::trial_from_column`, which is where it lives
+/// for every surface. This reader used to spell it here with a `Sentinel::Value(f64::NAN)`
+/// standing in for no convention at all, which counted the gaps and could never separate them
+/// from the convention's own matches.
 fn build_trial(
     values: &[f64],
     sample_rate_hz: Option<f64>,
@@ -365,8 +365,7 @@ fn build_trial(
     })?;
     let convention = convention.unwrap_or_else(|| "none".to_string());
     let sentinel = sentinel_from(&convention)?;
-    let reported = reported_samples(values, sentinel);
-    let trial = Trial::new(values.to_vec(), sample_rate_hz)
+    let (trial, reported) = trial_from_column(values.to_vec(), sample_rate_hz, sentinel)
         .map_err(|error| Box::new(Refusal::of("trace_too_short", error.to_string())))?;
     let report = TrialReport {
         sample_count: trial.len(),

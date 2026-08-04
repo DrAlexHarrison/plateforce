@@ -7,7 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use plateforce_core::signal::{partition_sentinels, Sentinel};
+use plateforce_core::signal::{trial_from_column, ReportedSamples, Sentinel};
 use plateforce_core::{read_delimited_column, ColumnReadReport, ReadError, Trial};
 use serde::{Deserialize, Serialize};
 
@@ -116,11 +116,11 @@ impl TrialSource {
         }
     }
 
-    /// The trace, what the reader saw, and how many samples the declared sentinel removed.
+    /// The trace, what the reader saw, and the two reasons a sample was reported.
     pub fn read(
         &self,
         format: &SourceFormat,
-    ) -> Result<(Trial, ColumnReadReport, usize), ReadError> {
+    ) -> Result<(Trial, ColumnReadReport, ReportedSamples), ReadError> {
         let text = match self {
             TrialSource::Path(path) => {
                 std::fs::read_to_string(path).map_err(|source| ReadError::Io {
@@ -132,15 +132,20 @@ impl TrialSource {
         };
         let (values, report) =
             read_delimited_column(&text, format.delimiter, format.force_column_index)?;
-        let (kept, dropped) = match format.sentinel {
-            Some(missing) => partition_sentinels(&values, Sentinel::Value(missing)),
-            None => (values, Vec::new()),
-        };
-        Ok((
-            Trial::new(kept, format.sample_rate_hz)?,
-            report,
-            dropped.len(),
-        ))
+        // Through the one home, as every other surface reads. This one removed the samples
+        // instead, which closed the gap and shifted every timestamp after it: on
+        // `subject01_trial1` the zero convention matches the whole flight phase, so declaring
+        // it deleted 157 samples of flight and moved jump height from flight time from
+        // 0.44022460156250015 m to 0.2689609062500001 m, 17.13 cm, under a warning saying the
+        // samples were not read as force. On the interrupted recording it removed the three
+        // unreadable samples along with the flight and answered in full, where the terminal,
+        // the notebook, R and the tab all decline the landmark.
+        let (trial, reported) = trial_from_column(
+            values,
+            format.sample_rate_hz,
+            format.sentinel.map(Sentinel::Value),
+        )?;
+        Ok((trial, report, reported))
     }
 }
 
