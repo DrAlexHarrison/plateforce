@@ -21,8 +21,18 @@ use crate::exit::{Declined, Fault};
 /// help describes something the parser does not accept cannot happen here.
 pub(crate) const ACQUISITION_SHAPE: &str = "<member>=<value>";
 
+/// The help this flag shows.
+///
+/// It names no other command as the place to look the members up. An earlier draft said
+/// `plateforce capability` lists them, and it does not: its document carries `methods`,
+/// `operations`, `output_formats`, `plateforce_version`, `refusal_codes` and `schema`, and
+/// none of the five members appears anywhere in it. A help line sending a reader to a command
+/// that cannot answer is the same defect as a flag that accepts a value and drops it.
+///
+/// The refusal is where the list comes from, and it reads the block itself, so what a caller
+/// is shown cannot fall behind what the block holds.
 pub(crate) const ACQUISITION_HELP: &str =
-    "A fact about the capture, written <member>=<value>. Repeatable, and `plateforce capability` lists the members. A block missing any member fingerprints as incomplete rather than as matching";
+    "A fact about the capture, written <member>=<value>. Repeatable, and naming a member the block does not hold answers with the ones it does. A block short of any member fingerprints as incomplete rather than as matching";
 
 /// The block a run states, or the empty block when it states nothing.
 ///
@@ -162,13 +172,39 @@ mod tests {
         assert_eq!(block.missing(), vec!["firmware_version"]);
     }
 
+    /// The refusal is where a caller learns the members, because the help sends them nowhere
+    /// else, so it has to name every one rather than a representative few.
     #[test]
-    fn a_member_the_block_does_not_hold_is_refused_against_the_list() {
+    fn a_member_the_block_does_not_hold_is_refused_against_the_whole_list() {
         let declined = stated(&["debounce_ms=50"]).expect_err("the block holds no debounce");
         let message = format!("{declined:?}");
 
         assert!(message.contains("debounce_ms"), "{message}");
-        assert!(message.contains("firmware_version"), "{message}");
+        for member in Acquisition::MEMBERS {
+            assert!(
+                message.contains(member),
+                "the refusal does not name {member}, so a caller reading it learns four of five: {message}"
+            );
+        }
+    }
+
+    /// The help describes this flag and sends the reader nowhere that cannot answer.
+    ///
+    /// An earlier draft said `plateforce capability` lists the members. It does not: that
+    /// document carries `methods`, `operations`, `output_formats`, `plateforce_version`,
+    /// `refusal_codes` and `schema`, and none of the five members appears in it. A help line
+    /// pointing at a command that cannot answer is the same defect as a flag that accepts a
+    /// value and drops it, and it shipped in the first draft of the fix for that defect.
+    #[test]
+    fn the_help_names_no_command_to_look_the_members_up_in() {
+        assert!(
+            !ACQUISITION_HELP.contains("plateforce "),
+            "the help sends the reader to another command: {ACQUISITION_HELP}"
+        );
+        assert!(
+            ACQUISITION_HELP.contains(ACQUISITION_SHAPE),
+            "the help does not state the grammar the parser accepts: {ACQUISITION_HELP}"
+        );
     }
 
     /// Refused rather than settled by position, for the reason `--set` refuses it: two runs
