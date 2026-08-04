@@ -66,6 +66,13 @@ pub struct DerivedContext<'a> {
     /// built from these, so a rule names the rules it rests on rather than every rule that
     /// happened to run before it.
     read: RefCell<BTreeSet<&'static str>>,
+    /// Registry entries one number rests on that placed no sample, against the key of the
+    /// number that rests on them.
+    ///
+    /// The four integration entries are what this exists for. They are choices made inside
+    /// the arithmetic rather than rules that place a landmark, so `read` cannot reach them,
+    /// and two of them give different velocities from one recording.
+    rested_on: RefCell<BTreeMap<&'static str, Vec<String>>>,
 }
 
 impl<'a> DerivedContext<'a> {
@@ -95,7 +102,35 @@ impl<'a> DerivedContext<'a> {
             placed,
             requested,
             read: RefCell::new(BTreeSet::new()),
+            rested_on: RefCell::new(BTreeMap::new()),
         }
+    }
+
+    /// Entries one number this rule produces rests on, beyond the rules that placed samples
+    /// for it.
+    ///
+    /// Declared per quantity rather than per rule, because one entry can describe two numbers
+    /// that rest on different things. `impulse.net_vertical.as_performance_determinant` covers
+    /// both the net impulse and the takeoff velocity, and the velocity is read off an
+    /// integrated series while the impulse is integrated directly, so only one of them rests
+    /// on the integration entries.
+    pub fn rests_on(&self, quantity_key: &'static str, entry_ids: &[&str]) {
+        let mut recorded = self.rested_on.borrow_mut();
+        let behind = recorded.entry(quantity_key).or_default();
+        for id in entry_ids {
+            if !behind.iter().any(|held| held == id) {
+                behind.push((*id).to_string());
+            }
+        }
+    }
+
+    /// The entries this rule declared one of its numbers rests on, in declaration order.
+    pub fn entries_behind(&self, quantity_key: &str) -> Vec<String> {
+        self.rested_on
+            .borrow()
+            .get(quantity_key)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// The rules whose samples this one read, in the order the names sort, without repeats.
