@@ -27,6 +27,15 @@ failed=0
 
 # Runs the gate and requires it to fail naming `expected`. A case whose gate failed for some
 # other reason is reported as a case that proved nothing.
+#
+# Every search here forces text mode. `grep` on this machine routes to a ugrep that classifies
+# input holding one invalid multibyte sequence as binary and returns no lines, in silence.
+# Demonstrated on this shell: a here-string carrying the expected sentence plus two stray bytes
+# returns not-found, and the same query against the same sentence alone returns found, so the
+# control says the query works and the miss is the binary classification. The gate's own output
+# is ASCII today, `file` reports "ASCII text" on a full green run, so this is a guard rather
+# than a repair. It matters because a truncation anywhere upstream can slice a multi-byte
+# character in half, which is how a lead's all-gates run read green over a red gate.
 requires_red() {
     local case_name="$1" expected="$2" output status
     set +o errexit
@@ -38,13 +47,13 @@ requires_red() {
         failed=1
         return
     fi
-    if ! grep -qF -- "$expected" <<< "$output"; then
+    if ! grep -aqF -- "$expected" <<< "$output"; then
         echo "  CAUGHT, BUT NOT BY THIS: nothing in the failure mentions '$expected'" >&2
         echo "$output" | tail -12 | sed 's/^/      /' >&2
         failed=1
         return
     fi
-    echo "  red: $(grep -F -- "$expected" <<< "$output" | head -1 | cut -c1-140)"
+    echo "  red: $(grep -aF -- "$expected" <<< "$output" | head -1 | cut -c1-140)"
 }
 
 # `git checkout HEAD --` rather than `git checkout --`, which restores from the index and would
@@ -59,7 +68,10 @@ restore() {
 
 assert_anchor() {
     local file="$1" anchor="$2"
-    if ! grep -qF -- "$anchor" "$file"; then
+    # Text mode for the reason above, and it bites harder here: a source file this reads as
+    # binary would report its anchor absent, and the case would abort claiming the edit had
+    # already landed.
+    if ! grep -aqF -- "$anchor" "$file"; then
         echo "the anchor is not in $file, so this case would change nothing: $anchor" >&2
         exit 1
     fi
