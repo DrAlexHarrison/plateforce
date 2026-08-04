@@ -177,9 +177,84 @@ fn held_fixed(base: &AnalysisRequest, axes: &[Axis], computed_by: Option<&str>) 
     held
 }
 
+/// Where the binding table declares a construct, and the far end for one it declares
+/// nowhere, so an axis this build runs no rule for still lands somewhere fixed.
+fn table_rank_of_construct(construct: &str) -> usize {
+    crate::binding::BINDINGS
+        .iter()
+        .position(|binding| binding.construct == construct)
+        .unwrap_or(usize::MAX)
+}
+
+/// Where the binding table declares a rule, on the same terms.
+fn table_rank_of_rule(method_id: &str) -> usize {
+    crate::binding::BINDINGS
+        .iter()
+        .position(|binding| binding.id == method_id)
+        .unwrap_or(usize::MAX)
+}
+
+/// What an axis sorts by: the construct's place in the table, then the name it varies, then
+/// the rules along it. Enough to put two axes over one construct in a fixed order without
+/// reading the order the caller wrote them in.
+fn axis_order(axis: &Axis) -> (usize, String, String, Vec<usize>) {
+    let construct = construct_named(&axis.slot);
+    (
+        table_rank_of_construct(&construct),
+        construct,
+        axis.parameter.clone().unwrap_or_default(),
+        axis.method_ids.iter().map(|id| table_rank_of_rule(id)).collect(),
+    )
+}
+
+/// The last tiebreak, for two axes over one parameter of one construct carrying different
+/// value lists. Lexicographic over the values, which are already in ascending order.
+fn values_order(left: &Axis, right: &Axis) -> std::cmp::Ordering {
+    left.values
+        .iter()
+        .zip(right.values.iter())
+        .map(|(left, right)| left.total_cmp(right))
+        .find(|order| order.is_ne())
+        .unwrap_or_else(|| left.values.len().cmp(&right.values.len()))
+}
+
+/// One sweep, one document, whichever surface asked for it.
+///
+/// The axes and the rules along them are a set of choices, and the order a caller listed
+/// them in is a fact about that caller rather than about the sweep. Reported as written, the
+/// same sweep left the terminal and the browser tab differing in 520 paths of `variants`
+/// while all 17 other compared fields agreed and the 75 labels matched as a set, because the
+/// tab sends rules in the order it ranks them for a reader and the terminal reads the
+/// binding table. So the record is ordered here, once, and a surface wanting a reader's
+/// ranking re-ranks what it renders.
+///
+/// This also fixes which combinations a capped sweep runs, which was otherwise the caller's
+/// list order deciding what the cap cut.
+fn ordered_by_the_binding_table(axes: &[Axis]) -> Vec<Axis> {
+    let mut ordered: Vec<Axis> = axes
+        .iter()
+        .map(|axis| {
+            let mut axis = axis.clone();
+            axis.method_ids.sort_by(|left, right| {
+                table_rank_of_rule(left)
+                    .cmp(&table_rank_of_rule(right))
+                    .then_with(|| left.cmp(right))
+            });
+            axis.values.sort_by(f64::total_cmp);
+            axis
+        })
+        .collect();
+    ordered.sort_by(|left, right| {
+        axis_order(left)
+            .cmp(&axis_order(right))
+            .then_with(|| values_order(left, right))
+    });
+    ordered
+}
+
 pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box<Refusal>> {
-    let combinations_requested: usize =
-        request.axes.iter().map(Axis::len).product::<usize>().max(1);
+    let axes = ordered_by_the_binding_table(&request.axes);
+    let combinations_requested: usize = axes.iter().map(Axis::len).product::<usize>().max(1);
     let cap = request.maximum_combinations.max(1);
     let combinations_run = combinations_requested.min(cap);
     let capped = combinations_requested > cap;
@@ -212,7 +287,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
 
     let mut variants = Vec::with_capacity(combinations_run);
     for index in 0..combinations_run {
-        let (candidate, settings) = materialise(&request.base, &request.axes, index)?;
+        let (candidate, settings) = materialise(&request.base, &axes, index)?;
         let method_ids = vec![
             candidate.weighing.method_id.clone(),
             candidate.onset.method_id.clone(),
@@ -268,8 +343,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
 
     Ok(SpreadResponse {
         quantity_key: request.quantity_key.clone(),
-        axes_varied: request
-            .axes
+        axes_varied: axes
             .iter()
             .map(|axis| AxisRecord {
                 slot: axis.slot.clone(),
@@ -279,7 +353,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                 parameter: axis.parameter.clone(),
             })
             .collect(),
-        held_fixed: held_fixed(&request.base, &request.axes, computed_by.as_deref()),
+        held_fixed: held_fixed(&request.base, &axes, computed_by.as_deref()),
         unit,
         unit_symbol,
         combinations_requested,
@@ -642,6 +716,144 @@ mod tests {
         assert_eq!(reason.parameter.as_deref(), Some("k"));
         assert_eq!(reason.value, Some(100_000.0));
         assert_eq!(reason.slot.as_deref(), Some("movement_onset"));
+    }
+
+    /// Every rule this build runs for one construct, as one axis, in the order the caller's
+    /// own list happens to be in.
+    fn axis_over(slot: &str) -> Axis {
+        Axis {
+            slot: slot.to_string(),
+            parameter: None,
+            values: Vec::new(),
+            method_ids: crate::binding::bindings_for(slot)
+                .map(|binding| binding.id.to_string())
+                .collect(),
+        }
+    }
+
+    /// What the caller wrote, as the record of the request rather than of the answer, so the
+    /// two lists below can be shown to differ before their answers are compared.
+    fn as_written(axes: &[Axis]) -> Vec<(String, Vec<String>)> {
+        axes.iter()
+            .map(|axis| (axis.slot.clone(), axis.method_ids.clone()))
+            .collect()
+    }
+
+    /// One sweep is one document whichever order the caller listed the rules in, which is
+    /// what lets a single record hold the terminal and the browser tab together. The tab
+    /// sends rules in the order it ranks them for a reader and the terminal reads the
+    /// binding table; on the committed sweep request the two agreed on all 17 other compared
+    /// fields and on the 75 labels as a set, and differed in 520 paths of `variants`.
+    #[test]
+    fn the_order_the_caller_listed_the_rules_in_does_not_reach_the_document() {
+        let listed = vec![
+            axis_over("weighing"),
+            axis_over("onset"),
+            axis_over("takeoff"),
+        ];
+        let mut ranked: Vec<Axis> = listed.iter().rev().cloned().collect();
+        for axis in &mut ranked {
+            axis.method_ids.reverse();
+        }
+        assert_ne!(
+            as_written(&listed),
+            as_written(&ranked),
+            "the two callers wrote one list, so what follows compares a request with itself"
+        );
+
+        let sweep = |axes: Vec<Axis>| {
+            run(
+                &synthetic(),
+                &SpreadRequest {
+                    base: base(),
+                    axes,
+                    quantity_key: "jump_height_from_takeoff_meters".into(),
+                    maximum_combinations: 512,
+                },
+            )
+            .expect("every axis names a construct this request bound")
+        };
+        let combinations: usize = listed.iter().map(Axis::len).product();
+        let from_the_table = sweep(listed);
+        let from_a_ranking = sweep(ranked);
+
+        // The population, because two empty lists serialise identically and would satisfy
+        // every assertion below without a sweep having run.
+        assert!(
+            combinations > 1,
+            "this build runs one combination, so no order exists to disagree about"
+        );
+        assert_eq!(from_the_table.variants.len(), combinations);
+        assert!(
+            from_the_table.succeeded > 0,
+            "no combination produced a value, so the documents agree about nothing in them"
+        );
+
+        assert_eq!(
+            serde_json::to_string(&from_the_table.variants).expect("variants serialise"),
+            serde_json::to_string(&from_a_ranking.variants).expect("variants serialise"),
+            "one sweep exported from two callers is two documents"
+        );
+        assert_eq!(from_the_table.axes_varied, from_a_ranking.axes_varied);
+
+        // Ordered by the table rather than merely agreeing with itself. Two callers who
+        // reversed each other would agree perfectly on any single fixed order, so what the
+        // order IS gets asserted too: the first combination names the first rule the table
+        // declares for each construct, and the axes run in the table's order.
+        let first_declared: Vec<String> = ["weighing", "onset", "takeoff"]
+            .iter()
+            .map(|slot| {
+                crate::binding::bindings_for(slot)
+                    .next()
+                    .expect("this build runs a rule for each of the three")
+                    .id
+                    .to_string()
+            })
+            .collect();
+        assert_eq!(from_the_table.variants[0].method_ids, first_declared);
+        assert_eq!(
+            from_the_table
+                .axes_varied
+                .iter()
+                .map(|axis| axis.slot.as_str())
+                .collect::<Vec<_>>(),
+            ["weighing", "onset", "takeoff"]
+        );
+    }
+
+    /// The values along a parameter axis are a set of choices too, and a caller who typed
+    /// them in another order was reporting the same sweep.
+    #[test]
+    fn the_order_the_caller_typed_the_values_in_does_not_reach_the_document() {
+        let sweep = |values: Vec<f64>| {
+            run(
+                &synthetic(),
+                &SpreadRequest {
+                    base: base(),
+                    axes: vec![Axis {
+                        slot: "onset".into(),
+                        parameter: Some("k".into()),
+                        values,
+                        method_ids: Vec::new(),
+                    }],
+                    quantity_key: "time_to_takeoff_seconds".into(),
+                    maximum_combinations: 512,
+                },
+            )
+            .expect("k is a parameter this rule publishes")
+        };
+        let ascending = sweep(vec![2.0, 3.0, 5.0, 10.0]);
+        let scattered = sweep(vec![5.0, 10.0, 2.0, 3.0]);
+        assert_eq!(ascending.variants.len(), 4);
+        assert!(
+            ascending.succeeded > 0,
+            "no combination produced a value, so the documents agree about nothing in them"
+        );
+        assert_eq!(
+            serde_json::to_string(&ascending.variants).expect("variants serialise"),
+            serde_json::to_string(&scattered.variants).expect("variants serialise"),
+        );
+        assert_eq!(ascending.variants[0].label, "k 2");
     }
 
     /// The reason names a rule the quantity itself says produced it, so a rule declining
