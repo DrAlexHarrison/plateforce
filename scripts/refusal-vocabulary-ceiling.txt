@@ -3,4 +3,4 @@
 # The ceiling falls as codes close, and is lowered in the commit that closes them. It rises
 # only in a commit that widens what the gate reads, where the number that rises is a true
 # count replacing a false one, and that commit says so.
-r 13
+r 12
