@@ -629,6 +629,10 @@ fn run_spine_default(
     );
     let choice = MethodChoice {
         method_id: binding.id.to_string(),
+        // Nobody named this rule. The spine runs it to keep one id from returning two
+        // numbers on one trial, so the row it leaves is the software's own choice and says
+        // so rather than carrying the reader's signature.
+        method_from_registry_default: true,
         ..Default::default()
     };
     let mut outcome = rule(&context, &choice, warnings);
@@ -869,16 +873,12 @@ fn run_conditioning_phase(
             continue;
         };
 
-        let chosen = match stated {
-            Some(choice) => MethodChoice {
-                method_id: method_id.to_string(),
-                ..choice.clone()
-            },
-            None => MethodChoice {
-                method_id: method_id.to_string(),
-                ..Default::default()
-            },
-        };
+        let mut chosen = stated.cloned().unwrap_or_default();
+        chosen.method_id = method_id.to_string();
+        // A construct nobody named a rule for runs the one the registry declares, and the
+        // record says whose choice that was. A caller who did name it keeps their claim, and
+        // one whose interface pre-selected the rule keeps the claim they sent about that.
+        chosen.method_from_registry_default |= named.is_none();
         let source = settled.trial.as_ref().unwrap_or(trial);
         let outcome = rule(source, &chosen, warnings);
         // A conditioning rule that declines stops the run rather than being noted beside a
