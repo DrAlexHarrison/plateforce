@@ -1,0 +1,74 @@
+name: every id a reader meets resolves
+
+# A published example is the artefact this project exists to make trustworthy. An id in one
+# that resolves nowhere sends a reader to a registry that has never held it, and an id a
+# result names that the shipped CLI cannot look up is the same defect one step later.
+#
+# Two questions on one build. What the READMEs print is a claim about documentation. What a
+# real result names is a claim about the running engine, and it reaches ids no table holds:
+# the rules computed from the landmarks, and the contributing ids each metric lists.
+#
+# Both arms carry their own controls and neither can pass while blind: each fails if it
+# checked nothing, and the README arm proves `registry show` resolves a known id before
+# believing any miss, then proves it refuses one that does not exist.
+#
+# `crates/**` is broad on purpose rather than by neglect: the second arm runs the engine end
+# to end, so a change anywhere in the analysis can alter which ids a result names.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'crates/**'
+      - 'docs/readme-id-allowlist.txt'
+      - 'registry/**'
+      - 'scripts/check-readme-ids.sh'
+      - 'scripts/check-result-ids-resolve.sh'
+      - '.github/workflows/registry-ids.yml'
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'crates/**'
+      - 'docs/readme-id-allowlist.txt'
+      - 'registry/**'
+      - 'scripts/check-readme-ids.sh'
+      - 'scripts/check-result-ids-resolve.sh'
+      - '.github/workflows/registry-ids.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ids-resolve:
+    name: ids in the READMEs and in a real result resolve through the shipped CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: registry-ids-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            registry-ids-
+
+      # Named here rather than left to the arms, so a workspace that will not compile fails
+      # as itself instead of inside a gate about ids, which reports every published id as
+      # missing and sends somebody to correct a README against a compile error.
+      - name: Build the CLI both arms look ids up through
+        run: cargo build --quiet -p plateforce-cli
+
+      - name: Every dotted token printed in a README is an id a reader can look up
+        run: ./scripts/check-readme-ids.sh
+
+      # The whole path rather than a table read: this analyses the one public trace and asks
+      # `registry show` for every id the result names, in the order and by the route a
+      # stranger holding a fingerprint would meet them.
+      - name: Every method id in a real result resolves through registry show
+        run: ./scripts/check-result-ids-resolve.sh
