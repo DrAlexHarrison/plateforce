@@ -252,6 +252,29 @@ def trial(force_newtons):
 
 
 @pytest.fixture
+def landing_trial(force_newtons):
+    """The shared trace with a landing on the end.
+
+    Without one nothing places a touchdown, so there is no flight time and no flight-time
+    height, and the one rule that publishes a gravity of its own never runs. A guard written
+    over the shared fixture would report every assertion about them as satisfied while never
+    reaching either.
+    """
+    import numpy as np
+    import plateforce as pf
+
+    landing = np.concatenate(
+        [
+            np.full(int(0.2 * SAMPLE_RATE_HZ), 2400.0),
+            np.full(int(0.5 * SAMPLE_RATE_HZ), 588.4),
+        ]
+    )
+    return pf.Trial(
+        np.concatenate([force_newtons, landing]), sample_rate_hz=SAMPLE_RATE_HZ
+    )
+
+
+@pytest.fixture
 def complete_acquisition():
     import plateforce as pf
 

@@ -52,36 +52,39 @@ binding_frame <- function(names, values, sources) {
   )
 }
 
-# The engine records a source per name as the rule reads it, and that record is taken here
-# rather than worked back out. A value the caller typed, one the rule fell back to, and one
-# it measured off this trace move the number identically.
-provenance_from_bound_method <- function(bound, stamp, acquisition_complete) {
-  recorded <- bound[["parameter_sources"]]
-  pairs <- bound[["bound_parameters"]]
-  names <- vapply(pairs, function(pair) as.character(pair[[1]]), character(1))
-  values <- vapply(pairs, function(pair) as.character(pair[[2]]), character(1))
-  sources <- vapply(names, function(name) {
-    said <- recorded[[name]]
-    if (is.null(said)) {
-      refuse_here(
-        "parameter_source_unrecorded",
-        "this rule's record does not say where the value came from",
-        method_id = as.character(bound[["method_id"]]),
-        parameter = name
-      )
-    }
-    as.character(said)
-  }, character(1), USE.NAMES = FALSE)
+# A record's list of name, value and source, as the data frame the provenance class holds.
+binding_frame_from <- function(records) {
+  binding_frame(
+    vapply(records, function(record) as.character(record[["name"]]), character(1)),
+    vapply(records, function(record) as.character(record[["value"]]), character(1)),
+    vapply(records, function(record) as.character(record[["source"]]), character(1))
+  )
+}
 
+# Empty rather than NA where the record says nothing: a revision nobody pinned is not a value
+# this session failed to read.
+said_in <- function(record, name) {
+  value <- record[[name]]
+  if (is.null(value)) character(0) else as.character(value)
+}
+
+# The record the engine wrote, as the class this package hands a caller.
+#
+# Read rather than rebuilt. The chain behind one number is derived in
+# `plateforce_analysis::chain_of` and reaches here whole, so what an R session holds is what a
+# folder run and a notebook hold. This package used to assemble the chain from `bound_methods`
+# and `contributing_method_ids`, which put every contributing rule at one depth under a root
+# carrying none of the arithmetic's own values, and recorded every named choice as a parameter.
+provenance_from_record <- function(record) {
   provenance(
-    method_id = bound[["method_id"]],
-    parameters = binding_frame(names, values, sources),
-    choices = EMPTY_BINDING(),
-    registry_version = stamp$version,
-    registry_declared_version = stamp$declared_version,
-    registry_digest = stamp$digest,
-    acquisition_complete = acquisition_complete,
-    depends_on = list()
+    method_id = said_in(record, "method_id"),
+    parameters = binding_frame_from(record[["parameters"]]),
+    choices = binding_frame_from(record[["choices"]]),
+    registry_version = said_in(record, "registry_version"),
+    registry_declared_version = said_in(record, "registry_declared_version"),
+    registry_digest = said_in(record, "registry_digest"),
+    acquisition_complete = isTRUE(record[["acquisition_complete"]]),
+    depends_on = lapply(record[["depends_on"]], provenance_from_record)
   )
 }
 

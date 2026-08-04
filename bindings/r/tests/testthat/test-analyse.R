@@ -21,19 +21,22 @@ test_that("a value a rule did compute carries the rule and what it was bound to"
     onset = "onset.threshold.noise_relative",
     takeoff = "takeoff.threshold.absolute_force"
   )
-  weight <- pf_value(result, "system_weight_newtons")
-  chain <- weight@provenance@depends_on
+  weighing <- pf_value(result, "system_weight_newtons")@provenance
 
-  expect_true(length(chain) >= 1)
-  # What conditioned the signal is named before what read it, because every number below
-  # was measured on the series the first rule produced.
-  expect_identical(chain[[1]]@method_id, "filter.none")
-  weighing <- link_named(chain, "bwepoch.fixed_window")
+  # The system weight is the weighing rule's own answer, so that rule roots the record rather
+  # than sitting a step under a root that names no arithmetic.
+  expect_identical(weighing@method_id, "bwepoch.fixed_window")
   expect_true(nrow(weighing@parameters) > 0)
   expect_true(all(weighing@parameters[["source"]] %in%
     c("stated", "assumed", "measured", "provisional")))
+
+  # What conditioned the signal sits under it, because the number was measured on the series
+  # that rule produced.
+  expect_identical(link_named(weighing@depends_on, "filter.none")@method_id, "filter.none")
 })
 
+# Every value the weighing rule read, quantities and named choices alike, each beside where it
+# came from. A reader asking where one name came from is not asking which of the two it is.
 weighed <- function(...) {
   result <- analyse_countermovement_jump(
     quiet_trial(),
@@ -42,10 +45,8 @@ weighed <- function(...) {
     takeoff = "takeoff.threshold.absolute_force",
     ...
   )
-  # By id rather than by position. Reading the first link assumed the weighing rule opened
-  # the chain, which stopped being true the moment a rule ran before it.
-  chain <- pf_value(result, "system_weight_newtons")@provenance@depends_on
-  link_named(chain, "bwepoch.fixed_window")@parameters
+  record <- pf_value(result, "system_weight_newtons")@provenance
+  rbind(record@parameters, record@choices)
 }
 
 source_of <- function(bound, name) bound[bound[["name"]] == name, "source"]
@@ -124,9 +125,12 @@ test_that("the revision a caller pinned and the one the registry claims are two 
   # And on the record each number carries, not on the run alone. A field filled only where
   # it is asserted passes an assertion made in that one place.
   record <- pf_value(pinned, "jump_height_from_takeoff_meters")@provenance
-  expect_identical(record@registry_version, pin)
-  expect_identical(record@registry_declared_version, declared)
-  for (link in record@depends_on) {
+  steps <- every_step(record)
+
+  # Every depth, not the rules one step under the root. The control first: a walk that stopped
+  # reaching the tree would satisfy every line below by looking at nothing.
+  expect_gt(length(steps), 1L)
+  for (link in steps) {
     expect_identical(link@registry_version, pin)
     expect_identical(link@registry_declared_version, declared)
   }

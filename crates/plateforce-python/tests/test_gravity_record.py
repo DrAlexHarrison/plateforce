@@ -10,12 +10,9 @@ keys come from the analysis rather than from a list written here. Four attribute
 down would go stale the day a fifth started reading gravity, and would pass while doing it.
 """
 
-import numpy as np
 import pytest
 
 import plateforce as pf
-
-from conftest import SAMPLE_RATE_HZ
 
 GRAVITY = "gravity_meters_per_second_squared"
 
@@ -24,26 +21,6 @@ GRAVITY = "gravity_meters_per_second_squared"
 # would state.
 STANDARD = 9.80665
 PUBLISHED = 9.81
-
-
-@pytest.fixture
-def landing_trial(force_newtons):
-    """The shared trace with a landing on the end.
-
-    Without one nothing places a touchdown, so there is no flight time and no flight-time
-    height, and the one rule that publishes a gravity of its own never runs. A guard written
-    over the shared fixture would report every assertion here as satisfied while never
-    reaching the rule it was written for.
-    """
-    landing = np.concatenate(
-        [
-            np.full(int(0.2 * SAMPLE_RATE_HZ), 2400.0),
-            np.full(int(0.5 * SAMPLE_RATE_HZ), 588.4),
-        ]
-    )
-    return pf.Trial(
-        np.concatenate([force_newtons, landing]), sample_rate_hz=SAMPLE_RATE_HZ
-    )
 
 
 def keyword(gravity):

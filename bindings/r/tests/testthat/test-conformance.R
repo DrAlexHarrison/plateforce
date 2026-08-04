@@ -53,15 +53,11 @@ test_that("the landmarks equal the ones the engine placed", {
 
 test_that("the chain behind a jump height is the chain the engine bound", {
   run <- analysed()
-  chain <- run$result@values[["jump_height_from_takeoff_meters"]]@provenance@depends_on
-  live <- vapply(chain, function(step) {
-    bound <- step@parameters
-    paste(step@method_id,
-          paste(paste0(bound[["name"]], "=", bound[["value"]], "(", bound[["source"]], ")"),
-                collapse = " "))
-  }, character(1))
+  record <- run$result@values[["jump_height_from_takeoff_meters"]]@provenance
 
-  expect_identical(live, fixture_lines("chain.txt"))
+  # The whole tree, at every depth, rather than the rules one step under the root. A
+  # comparison over one level passes a record that lost everything above it.
+  expect_identical(chain_lines(record), fixture_lines("chain.txt"))
 })
 
 test_that("two published routes to one jump height disagree, and both are named", {

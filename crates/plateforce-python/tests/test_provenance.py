@@ -17,6 +17,74 @@ def jump(trial, bound_methods):
     return pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
 
 
+# The engine's name for the quantity each getter answers for. Two of them are spelled
+# differently here from the way the engine spells them, so the pairing has to be written; the
+# guard below asserts it covers every getter that hands back a number, so one added without an
+# entry reddens rather than going unread.
+GETTER_QUANTITIES = {
+    "flight_time_seconds": "flight_time_seconds",
+    "jump_height_flight_time_meters": "jump_height_from_flight_time_meters",
+    "jump_height_takeoff_frame_meters": "jump_height_from_takeoff_meters",
+    "net_impulse_newton_seconds": "net_impulse_newton_seconds",
+    "onset_time_seconds": "onset_time_seconds",
+    "reactive_strength_index_modified": "reactive_strength_index_modified",
+    "system_mass_kilograms": "system_mass_kilograms",
+    "system_weight_newtons": "system_weight_newtons",
+    "takeoff_time_seconds": "takeoff_time_seconds",
+    "takeoff_velocity_meters_per_second": "takeoff_velocity_meters_per_second",
+    "time_to_takeoff_seconds": "time_to_takeoff_seconds",
+}
+
+
+def as_data(provenance):
+    """One record and every record above it, as plain data two of them can be compared on."""
+    return (
+        provenance.method_id,
+        provenance.method_source,
+        provenance.preset,
+        dict(provenance.bound_parameters),
+        dict(provenance.enumerated_choices),
+        provenance.registry_version,
+        provenance.registry_declared_version,
+        provenance.registry_digest,
+        provenance.acquisition_complete,
+        tuple(as_data(step) for step in provenance.depends_on),
+    )
+
+
+def getters_handing_back_a_number(jump):
+    return {
+        name
+        for name in dir(jump)
+        if not name.startswith("_") and isinstance(getattr(jump, name), pf.Measured)
+    }
+
+
+def test_a_number_reached_two_ways_carries_one_record(landing_trial, bound_methods):
+    """`value()` and the getter beside it are two routes to one number, and a reader who took
+    the first used to be handed a different record from a reader who took the second: a step
+    naming the arithmetic with no values and no inputs, against a chain naming the whole
+    pipeline. Which route somebody happened to take is not a fact about the analysis.
+
+    The trace lands, so every getter answers and nothing below passes by being skipped."""
+    epoch, onset, takeoff = bound_methods
+    jump = pf.analyse_countermovement_jump(landing_trial, epoch, onset, takeoff)
+
+    held = getters_handing_back_a_number(jump)
+    assert held == set(GETTER_QUANTITIES), (
+        "a getter hands back a number and this guard does not know which quantity it is: "
+        f"{sorted(held.symmetric_difference(GETTER_QUANTITIES))}"
+    )
+
+    for getter, quantity in sorted(GETTER_QUANTITIES.items()):
+        by_name = getattr(jump, getter)
+        by_key = jump.value(quantity)
+        assert by_name.value == by_key.value, getter
+        assert by_name.unit == by_key.unit, getter
+        assert as_data(by_name.provenance) == as_data(by_key.provenance), getter
+        assert by_name.describe() == by_key.describe(), getter
+
+
 def test_a_result_is_not_a_float_and_will_not_pretend_to_be_one(jump):
     height = jump.jump_height_takeoff_frame_meters
     assert isinstance(height, pf.Measured)

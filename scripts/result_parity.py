@@ -559,6 +559,17 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "lives in R's binding and in no other surface's, so a terminal, a browser tab and a "
         "notebook receive nothing here",
     ),
+    "provenance": Divergence(
+        frozenset({"r"}),
+        None,
+        "the terminal, the tab and a notebook publishing the chain their own consumers "
+        "already derive. All four read one derivation now, `plateforce_analysis::chain_of`, "
+        "and three of them keep it inside the process rather than writing it into the "
+        "document they hand out",
+        "the chain of rules behind each number, one record per metric. R's package reads it "
+        "off the wire because R links the engine and cannot reach the derivation any other "
+        "way; the other three hold the tree in memory and publish the numbers alone",
+    ),
     # Re-ruled once the sweep was measured rather than described. The discharge used to read
     # "the other surfaces expose the sweep as a call of its own", which is a claim about the
     # shape of an API and not a comparison: nothing asked those calls anything, the eight

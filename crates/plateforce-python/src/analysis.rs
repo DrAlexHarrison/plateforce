@@ -8,8 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::{
-    bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod as ResolvedMethod, MethodChoice,
-    WeighingChoice, ONSET_OPERATOR_IDS,
+    bindings_for, chain_of, AnalysisRequest, AnalysisResponse, MethodChoice, Metric, WeighingChoice,
 };
 use plateforce_core::{
     jump_height_from_flight_time as core_jump_height_from_flight_time, Measured as CoreMeasured,
@@ -20,8 +19,12 @@ use pyo3::prelude::*;
 use crate::errors::{raise_refusal, MethodNotImplementedError, TrialError};
 use crate::quality::QualitySignal;
 use crate::registry::{BoundMethod, Preset, RegistryIdentity};
-use crate::result::{Exclusions, Measured, ProvenanceChain};
+use crate::result::{Exclusions, Measured};
 use crate::trial::Trial;
+
+/// The registry entry behind the height a flight time alone gives, for the entry point that
+/// takes a flight time from a contact mat and reads no response.
+const JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID: &str = "jumpheight.takeoff.flight_time";
 
 /// Steps the software performs that no registry entry describes, reported on every result
 /// rather than left to be discovered.
@@ -30,17 +33,6 @@ use crate::trial::Trial;
 // the same number arrived carrying a resolvable id through the browser and an unresolvable one
 // through Python. That is a parity break on the exact property the product exists to guarantee,
 // and it is worse than either surface being uniformly wrong.
-const TAKEOFF_VELOCITY_METHOD_ID: &str = "impulse.net_vertical.as_performance_determinant";
-const NET_IMPULSE_METHOD_ID: &str = "impulse.net_vertical.as_performance_determinant";
-const JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID: &str = "jumpheight.takeoff.impulse_momentum";
-const JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID: &str = "jumpheight.takeoff.flight_time";
-const RSI_MODIFIED_METHOD_ID: &str = "rsimod.jh_tov_over_ttt";
-
-// Turning two landmark indices into an elapsed time carried no entry until the registry
-// gained one for each. Both ids resolve, so neither is reported as unregistered.
-const TIME_TO_TAKEOFF_METHOD_ID: &str = "time_to_takeoff.onset_to_takeoff";
-const FLIGHT_TIME_METHOD_ID: &str = "flight_time.takeoff_to_touchdown";
-
 const UNREGISTERED_METHOD_IDS: &[&str] = &[];
 
 /// Registry entries this build can run, taken from the one list every surface reads. An
@@ -166,103 +158,55 @@ fn choice_of(
     }
 }
 
-/// The provenance of one resolved rule, carrying what it read split the way the fingerprint
-/// carries it: quantities against choices between named alternatives.
-fn chain_of(
-    resolved: &ResolvedMethod,
-    registry: &RegistryIdentity,
-    acquisition_complete: bool,
-    depends_on: Vec<ProvenanceChain>,
-) -> ProvenanceChain {
-    let provenance = resolved.into_provenance(
-        &registry.stamp,
-        acquisition_complete,
-        depends_on
-            .iter()
-            .map(|input| input.provenance.clone())
-            .collect(),
-    );
-    ProvenanceChain {
-        enumerated_choices: provenance
-            .choices
-            .iter()
-            .map(|choice| (choice.name.clone(), choice.value.clone()))
-            .collect(),
-        provenance,
-        depends_on,
+/// The weighing slot's choice, taken from the one place every slot's choice is built.
+///
+/// Destructured without a rest pattern, so a claim `MethodChoice` gains is a compile error here
+/// rather than one the weighing slot quietly stops sending. This arm used to be written out
+/// beside `choice_of` and end in `..Default::default()`, which is one slot's worth of the
+/// request assembled twice.
+fn weighing_choice(chosen: MethodChoice, start_index: Option<usize>) -> WeighingChoice {
+    // A weighing window placed by hand travels as `start_index`, which is the argument this
+    // takes, and `choice_of` sets no dragged index on any slot.
+    let MethodChoice {
+        method_id,
+        parameters,
+        options,
+        manual_index: _,
+        recommended,
+        method_from_recommendation,
+        from_registry_default,
+        cited,
+        preset,
+    } = chosen;
+    WeighingChoice {
+        method_id,
+        start_index,
+        parameters,
+        options,
+        recommended,
+        method_from_recommendation,
+        from_registry_default,
+        cited,
+        preset,
     }
 }
 
-/// The gravity one number ran under, read off the record rather than off the request.
+/// The quantities whose value moves when the gravity the analysis was bound to moves.
 ///
-/// A rule whose registry entry publishes a gravity of its own records it on its own row and
-/// may have run at a value the request never held. `jumpheight.takeoff.flight_time` is that
-/// rule: on a request nobody stated a gravity for it runs at the 9.81 its entry declares,
-/// while the request carries 9.80665, and this surface used to report the request's number
-/// beside a height the request's number did not produce.
+/// A rule may only record a parameter its own registry entry declares, and of the twelve rules
+/// that read this value one declares it, so for these five the number that moved them reaches
+/// no rule's row. `AnalysisResponse::bound_globals` carries it once for the whole analysis; a
+/// `Measured` travels away from the result it came out of, so it carries it as well.
 ///
-/// Every other rule reads the analysis gravity and records nothing, because no entry of
-/// theirs declares such a parameter, so the request's value and the request's own claim are
-/// the answer for them.
-fn gravity_behind(
-    response: &AnalysisResponse,
-    method_id: &str,
-    analysis: (f64, plateforce_core::provenance::ParameterSource),
-) -> Vec<plateforce_core::provenance::ParameterRecord> {
-    use plateforce_analysis::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
-    use plateforce_core::provenance::{ParameterRecord, ParameterSource};
-
-    let published_by_the_rule = response
-        .bound_methods
-        .iter()
-        .find(|bound| bound.method_id == method_id)
-        .and_then(|bound| {
-            let value = *bound.numeric_values.get(GRAVITY_PARAMETER)?;
-            let source = bound
-                .parameter_sources
-                .get(GRAVITY_PARAMETER)
-                .copied()
-                .unwrap_or(ParameterSource::Assumed);
-            Some((value, source))
-        });
-    let (value, source) = published_by_the_rule.unwrap_or(analysis);
-    vec![ParameterRecord {
-        name: plateforce_analysis::GRAVITY_GLOBAL.to_string(),
-        value,
-        source,
-    }]
-}
-
-fn software_step(
-    method_id: &str,
-    bound_parameters: Vec<plateforce_core::provenance::ParameterRecord>,
-    registry: &RegistryIdentity,
-    acquisition_complete: bool,
-) -> CoreProvenance {
-    // Destructured without a rest pattern, so a fact added to the stamp is a compile error
-    // here rather than one this step quietly stops carrying.
-    let plateforce_core::provenance::RegistryStamp {
-        version,
-        declared_version,
-        digest,
-    } = registry.stamp.clone();
-    CoreProvenance {
-        parameters: bound_parameters,
-        registry_version: version,
-        registry_declared_version: declared_version,
-        registry_digest: digest,
-        acquisition_complete,
-        ..CoreProvenance::of(method_id)
-    }
-}
-
-fn resolved_slot<'a>(response: &'a AnalysisResponse, method_id: &str) -> &'a ResolvedMethod {
-    response
-        .bound_methods
-        .iter()
-        .find(|bound| bound.method_id == method_id)
-        .expect("every method the request named is reported back against its id")
-}
+/// `tests/test_gravity_record.py` measures which numbers move and holds this list to the
+/// measurement, in both directions.
+const QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY: &[&str] = &[
+    "jump_height_from_flight_time_meters",
+    "jump_height_from_takeoff_meters",
+    "reactive_strength_index_modified",
+    "system_mass_kilograms",
+    "takeoff_velocity_meters_per_second",
+];
 
 /// A landmark rule that placed nothing, raised as the error it was rather than as a
 /// sentence, so a caller can branch on the parameter that failed.
@@ -291,17 +235,12 @@ struct Derived<'a> {
     response: &'a AnalysisResponse,
     registry: &'a RegistryIdentity,
     acquisition_complete: bool,
+    /// What the request bound for the whole analysis, which no rule's row can carry because
+    /// no rule's entry declares it.
+    analysis_gravity: (f64, plateforce_core::provenance::ParameterSource),
 }
 
 impl Derived<'_> {
-    fn value(&self, key: &str) -> Option<f64> {
-        self.response
-            .metrics
-            .iter()
-            .find(|metric| metric.key == key)
-            .and_then(|metric| metric.value)
-    }
-
     /// From the quantity declaration rather than from the result, so a key that produced no
     /// value on this trial still reports the unit it would have been in.
     fn unit(&self, key: &str) -> &'static str {
@@ -310,79 +249,95 @@ impl Derived<'_> {
             .unwrap_or_default()
     }
 
-    /// A quantity the software derives from the landmarks, under an id of its own. Ten of
-    /// the ids this package emits do not resolve in the registry, which is why every result
-    /// lists them rather than presenting them as looked-up methods.
-    fn measured(
-        &self,
-        key: &str,
-        method_id: &str,
-        bound_parameters: Vec<plateforce_core::provenance::ParameterRecord>,
-        depends_on: Vec<ProvenanceChain>,
-    ) -> Option<Measured> {
-        self.value(key).map(|value| {
-            Measured::new(
-                CoreMeasured {
-                    value,
-                    unit: self.unit(key),
-                    provenance: software_step(
-                        method_id,
-                        bound_parameters,
-                        self.registry,
-                        self.acquisition_complete,
-                    ),
-                },
-                Vec::new(),
-                depends_on,
-            )
-        })
+    /// One number and the chain of rules behind it, or nothing where this analysis reported
+    /// no number under that name.
+    ///
+    /// The one route to a record on this surface. `value()` and each named getter come
+    /// through here, so which of the two a caller asked through cannot change what the
+    /// record says. It used to: a getter returned a hand-assembled chain naming the whole
+    /// pipeline and `value()` returned the same quantity with a step carrying no parameters
+    /// and no inputs at all.
+    ///
+    /// The tree itself is `plateforce_analysis::chain_of`'s, which is where every surface
+    /// reads it.
+    fn one(&self, key: &str) -> Option<Measured> {
+        let metric = self.response.metric(key)?;
+        let value = metric.value?;
+        let mut chain = chain_of(
+            self.response,
+            metric,
+            &self.registry.stamp,
+            self.acquisition_complete,
+        );
+        chain
+            .provenance
+            .parameters
+            .extend(self.gravity_behind(metric));
+        Some(Measured::new(
+            CoreMeasured {
+                value,
+                unit: self.unit(key),
+                provenance: chain.provenance,
+            },
+            chain.enumerated_choices,
+            chain.depends_on,
+        ))
     }
 
-    /// Every quantity the response reported, keyed by the engine's own name for it, with
-    /// the provenance of the rule that produced it.
+    /// The gravity one number ran under, for the quantities that move with it, read off the
+    /// record rather than off the request.
+    ///
+    /// A rule whose registry entry publishes a gravity of its own records it on its own row
+    /// and may have run at a value the request never held. `jumpheight.takeoff.flight_time`
+    /// is that rule: on a request nobody stated a gravity for it runs at the 9.81 its entry
+    /// declares while the request carries 9.80665, so its own row and the analysis value are
+    /// two different numbers and only one of them produced the height.
+    fn gravity_behind(&self, metric: &Metric) -> Vec<plateforce_core::provenance::ParameterRecord> {
+        use plateforce_analysis::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
+        use plateforce_core::provenance::{ParameterRecord, ParameterSource};
+
+        if !QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY.contains(&metric.key.as_str()) {
+            return Vec::new();
+        }
+        let published_by_the_rule = metric
+            .computed_by
+            .as_deref()
+            .and_then(|id| {
+                self.response
+                    .bound_methods
+                    .iter()
+                    .find(|bound| bound.method_id == id)
+            })
+            .and_then(|bound| {
+                let value = *bound.numeric_values.get(GRAVITY_PARAMETER)?;
+                let source = bound
+                    .parameter_sources
+                    .get(GRAVITY_PARAMETER)
+                    .copied()
+                    .unwrap_or(ParameterSource::Assumed);
+                Some((value, source))
+            });
+        let (value, source) = published_by_the_rule.unwrap_or(self.analysis_gravity);
+        vec![ParameterRecord {
+            name: plateforce_analysis::GRAVITY_GLOBAL.to_string(),
+            value,
+            source,
+        }]
+    }
+
+    /// Every quantity the response reported a number for, keyed by the engine's own name for
+    /// it, each carrying the record `one` built.
     ///
     /// Read through `value()` rather than through a getter per quantity. Eleven getters
     /// were written when eleven quantities existed, and a rule bound for any other
     /// construct reports a key none of them names, so a transcription would go stale the
     /// first time one landed.
     fn every_value(&self) -> BTreeMap<String, Measured> {
-        let mut values = BTreeMap::new();
-        for metric in &self.response.metrics {
-            let Some(value) = metric.value else { continue };
-            let provenance = match &metric.computed_by {
-                Some(id) => software_step(id, Vec::new(), self.registry, self.acquisition_complete),
-                None => software_step("", Vec::new(), self.registry, self.acquisition_complete),
-            };
-            values.insert(
-                metric.key.clone(),
-                Measured::new(
-                    CoreMeasured {
-                        value,
-                        unit: self.unit(&metric.key),
-                        provenance,
-                    },
-                    Vec::new(),
-                    Vec::new(),
-                ),
-            );
-        }
-        values
-    }
-
-    /// A quantity a resolved registry rule produced directly, so its provenance is that
-    /// rule's rather than an id of the software's own.
-    fn by_rule(&self, key: &str, chain: &ProvenanceChain) -> Option<Measured> {
-        self.value(key).map(|value| {
-            Measured::new(
-                CoreMeasured {
-                    value,
-                    unit: self.unit(key),
-                    provenance: chain.provenance.clone(),
-                },
-                chain.enumerated_choices.clone(),
-                chain.depends_on.clone(),
-            )
-        })
+        self.response
+            .metrics
+            .iter()
+            .filter_map(|metric| self.one(&metric.key).map(|held| (metric.key.clone(), held)))
+            .collect()
     }
 }
 
@@ -666,26 +621,10 @@ pub(crate) fn analysis_request_of(
         plateforce_analysis::gravity_stated(gravity_meters_per_second_squared);
 
     let mut request = AnalysisRequest {
-        weighing: match weighing_epoch {
-            Some(method) => {
-                let (parameters, from_registry_default) =
-                    quantities_of(method, weighing_parameters);
-                WeighingChoice {
-                    method_id: method.method_id().to_string(),
-                    start_index: weighing_start_index,
-                    parameters,
-                    options: weighing_options.unwrap_or_default(),
-                    from_registry_default,
-                    ..Default::default()
-                }
-            }
-            None => WeighingChoice {
-                start_index: weighing_start_index,
-                parameters: weighing_parameters.unwrap_or_default(),
-                options: weighing_options.unwrap_or_default(),
-                ..Default::default()
-            },
-        },
+        weighing: weighing_choice(
+            unbound_or(weighing_epoch, weighing_parameters, weighing_options),
+            weighing_start_index,
+        ),
         onset: MethodChoice {
             manual_index: onset_index,
             ..unbound_or(onset, onset_parameters, onset_options)
@@ -918,141 +857,42 @@ pub fn analyse_countermovement_jump(
         .takeoff_index
         .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
 
-    let epoch_chain = chain_of(
-        resolved_slot(&response, &request.weighing.method_id),
-        &registry,
-        acquisition_complete,
-        Vec::new(),
-    );
-    // An operator is a registry entry with its own citation and its own default, so it
-    // stands in the chain beside the epoch the threshold rule rests on rather than folded
-    // into that rule's parameters.
-    let mut onset_inputs: Vec<ProvenanceChain> = response
-        .bound_methods
-        .iter()
-        .filter(|bound| ONSET_OPERATOR_IDS.contains(&bound.method_id.as_str()))
-        .map(|bound| chain_of(bound, &registry, acquisition_complete, Vec::new()))
-        .collect();
-    onset_inputs.push(epoch_chain.clone());
-    let onset_chain = chain_of(
-        resolved_slot(&response, &request.onset.method_id),
-        &registry,
-        acquisition_complete,
-        onset_inputs,
-    );
-    let takeoff_chain = chain_of(
-        resolved_slot(&response, &request.takeoff.method_id),
-        &registry,
-        acquisition_complete,
-        vec![epoch_chain.clone()],
-    );
-
     let derived = Derived {
         response: &response,
         registry: &registry,
         acquisition_complete,
+        analysis_gravity: (
+            request.gravity_meters_per_second_squared,
+            request.gravity_source,
+        ),
     };
-    // What the analysis was bound to, which is what every rule reading gravity ran under. A
-    // rule that publishes its own answers for itself, and `gravity_behind` asks its row.
-    let analysis_gravity = (
-        request.gravity_meters_per_second_squared,
-        request.gravity_source,
-    );
-    let gravity_of = |method_id: &str| gravity_behind(&response, method_id, analysis_gravity);
-    let interval = vec![onset_chain.clone(), takeoff_chain.clone()];
-    let whole_pipeline = vec![
-        epoch_chain.clone(),
-        onset_chain.clone(),
-        takeoff_chain.clone(),
-    ];
-
-    let time_to_takeoff = derived
-        .measured(
-            "time_to_takeoff_seconds",
-            TIME_TO_TAKEOFF_METHOD_ID,
-            Vec::new(),
-            interval.clone(),
-        )
-        .ok_or_else(|| refusal_of(python, &response, "onset"))?;
-    let net_impulse = derived
-        .measured(
-            "net_impulse_newton_seconds",
-            NET_IMPULSE_METHOD_ID,
-            Vec::new(),
-            whole_pipeline.clone(),
-        )
-        .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
-    let velocity = derived
-        .measured(
-            "takeoff_velocity_meters_per_second",
-            TAKEOFF_VELOCITY_METHOD_ID,
-            gravity_of(TAKEOFF_VELOCITY_METHOD_ID),
-            whole_pipeline,
-        )
-        .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
-    let jump_height = derived
-        .measured(
-            "jump_height_from_takeoff_meters",
-            JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID,
-            gravity_of(JUMP_HEIGHT_FROM_VELOCITY_METHOD_ID),
-            vec![velocity.chain()],
-        )
-        .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
-    let flight_time = derived.measured(
-        "flight_time_seconds",
-        FLIGHT_TIME_METHOD_ID,
-        Vec::new(),
-        vec![takeoff_chain.clone()],
-    );
-    let jump_height_flight_time = derived.measured(
-        "jump_height_from_flight_time_meters",
-        JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID,
-        gravity_of(JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID),
-        flight_time.iter().map(Measured::chain).collect(),
-    );
-    let rsi = derived.measured(
-        "reactive_strength_index_modified",
-        RSI_MODIFIED_METHOD_ID,
-        gravity_of(RSI_MODIFIED_METHOD_ID),
-        vec![jump_height.chain(), time_to_takeoff.chain()],
-    );
-
-    let system_weight = derived
-        .by_rule("system_weight_newtons", &epoch_chain)
-        .ok_or_else(|| refusal_of(python, &response, "weighing"))?;
-    let system_mass = Measured::new(
-        CoreMeasured {
-            value: derived.value("system_mass_kilograms").unwrap_or_default(),
-            unit: derived.unit("system_mass_kilograms"),
-            provenance: CoreProvenance {
-                parameters: gravity_of(""),
-                ..epoch_chain.provenance.clone()
-            },
-        },
-        epoch_chain.enumerated_choices.clone(),
-        Vec::new(),
-    );
+    // A quantity the spine always reports, and the slot whose rule declined when it is
+    // missing, so a caller meets the refusal that rule made rather than an absent attribute.
+    let required = |key: &str, slot: &str| {
+        derived
+            .one(key)
+            .ok_or_else(|| refusal_of(python, &response, slot))
+    };
 
     Ok(CountermovementJump {
-        system_weight_newtons: system_weight,
-        system_mass_kilograms: system_mass,
+        system_weight_newtons: required("system_weight_newtons", "weighing")?,
+        system_mass_kilograms: required("system_mass_kilograms", "weighing")?,
         weighing_epoch_tied_window_count: response.weighing_epoch_tied_window_count,
         onset_index,
-        onset_time_seconds: derived
-            .by_rule("onset_time_seconds", &onset_chain)
-            .ok_or_else(|| refusal_of(python, &response, "onset"))?,
+        onset_time_seconds: required("onset_time_seconds", "onset")?,
         takeoff_index,
-        takeoff_time_seconds: derived
-            .by_rule("takeoff_time_seconds", &takeoff_chain)
-            .ok_or_else(|| refusal_of(python, &response, "takeoff"))?,
+        takeoff_time_seconds: required("takeoff_time_seconds", "takeoff")?,
         touchdown_index: response.touchdown_index,
-        time_to_takeoff_seconds: time_to_takeoff,
-        flight_time_seconds: flight_time,
-        net_impulse_newton_seconds: net_impulse,
-        takeoff_velocity_meters_per_second: velocity,
-        jump_height_takeoff_frame_meters: jump_height,
-        jump_height_flight_time_meters: jump_height_flight_time,
-        reactive_strength_index_modified: rsi,
+        time_to_takeoff_seconds: required("time_to_takeoff_seconds", "onset")?,
+        flight_time_seconds: derived.one("flight_time_seconds"),
+        net_impulse_newton_seconds: required("net_impulse_newton_seconds", "takeoff")?,
+        takeoff_velocity_meters_per_second: required(
+            "takeoff_velocity_meters_per_second",
+            "takeoff",
+        )?,
+        jump_height_takeoff_frame_meters: required("jump_height_from_takeoff_meters", "takeoff")?,
+        jump_height_flight_time_meters: derived.one("jump_height_from_flight_time_meters"),
+        reactive_strength_index_modified: derived.one("reactive_strength_index_modified"),
         trial_exclusions: trial.exclusions_for_result(),
         unregistered_methods: UNREGISTERED_METHOD_IDS
             .iter()
@@ -1280,4 +1120,151 @@ pub fn rise_looks_like_a_landing(
     let spec = plateforce_core::takeoff::landing_shape::LandingShapeSpec::default();
     peak_rise_rate_bodyweights_per_second >= spec.landing_rise_rate_floor_bodyweights_per_second
         && peak_bodyweights >= spec.landing_peak_floor_bodyweights
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use plateforce_core::provenance::ParameterSource;
+    use plateforce_core::Trial;
+
+    const SAMPLE_RATE_HZ: f64 = 1200.0;
+
+    /// The rules the committed inverted parity request binds, which is the request that first
+    /// separated this surface from the other three. Every one of them publishes a default for
+    /// a name that request leaves unstated.
+    const WEIGHING_RULE: &str = "bwepoch.adaptive_lowest_variance";
+    const ONSET_RULE: &str = "onset.threshold.adaptive_trailing_window";
+    const TAKEOFF_RULE: &str = "takeoff.threshold.flight_noise_k_sd";
+
+    /// A countermovement jump that leaves the plate and lands back on it, so the weighing rule
+    /// has a quiet stretch to search and every landmark is placed.
+    fn a_jump_that_lands() -> Trial {
+        let mut force = vec![600.0; 1200];
+        for (index, sample) in force.iter_mut().enumerate() {
+            *sample += ((index % 17) as f64 - 8.0) * 0.4;
+        }
+        force.extend((0..240).map(|index| 600.0 - 220.0 * (index as f64 / 240.0)));
+        force.extend((0..240).map(|index| 380.0 + 220.0 * (index as f64 / 240.0)));
+        force.extend((0..660).map(|index| 600.0 + 900.0 * (index as f64 / 660.0)));
+        force.extend(std::iter::repeat_n(0.0, 811));
+        force.extend(std::iter::repeat_n(2400.0, 240));
+        force.extend(std::iter::repeat_n(600.0, 600));
+        Trial::new(force, SAMPLE_RATE_HZ).expect("the fixture is long enough to analyse")
+    }
+
+    /// One analysis through the request this surface writes, with each rule bound the way a
+    /// notebook binds it: the values the caller names ride on the binding and every other name
+    /// takes the entry's own default.
+    fn analysed(stated: BTreeMap<&str, BTreeMap<String, f64>>) -> AnalysisResponse {
+        let bound = |id: &str| {
+            crate::registry::bound_from_the_registry_this_build_carries(
+                id,
+                stated.get(id).cloned().unwrap_or_default(),
+            )
+        };
+        let weighing = bound(WEIGHING_RULE);
+        let onset = bound(ONSET_RULE);
+        let takeoff = bound(TAKEOFF_RULE);
+        let request = AnalysisRequest {
+            weighing: weighing_choice(choice_of(&weighing, None, None), None),
+            onset: choice_of(&onset, None, None),
+            takeoff: choice_of(&takeoff, None, None),
+            registry_backed_ids: weighing.registry_identity().method_ids.as_ref().clone(),
+            ..Default::default()
+        };
+        plateforce_analysis::run(&a_jump_that_lands(), &request).expect("the request is bound")
+    }
+
+    fn source_of(response: &AnalysisResponse, method_id: &str, name: &str) -> ParameterSource {
+        let bound = response
+            .bound_methods
+            .iter()
+            .find(|bound| bound.method_id == method_id)
+            .unwrap_or_else(|| panic!("{method_id} left no record on this response"));
+        *bound
+            .parameter_sources
+            .get(name)
+            .unwrap_or_else(|| panic!("{method_id} recorded no source for {name}"))
+    }
+
+    /// A value the registry filled in reaches the engine claiming nobody chose it.
+    ///
+    /// The binding carries the entry's defaults beside the caller's own values and the two are
+    /// indistinguishable there, so a request built from the values alone told the engine that
+    /// every one of them was chosen, and the engine recorded a default nobody was asked about
+    /// as the reader's own decision.
+    ///
+    /// Both halves, on one rule and one run. A build answering `assumed` for everything
+    /// satisfies the first assertion and fails the second, and one answering `stated` for
+    /// everything fails the first, so neither passes by giving one answer.
+    #[test]
+    fn a_value_the_registry_filled_in_is_not_recorded_as_one_the_caller_stated() {
+        let response = analysed(BTreeMap::from([(
+            WEIGHING_RULE,
+            BTreeMap::from([("window_seconds".to_string(), 1.0)]),
+        )]));
+
+        assert_eq!(
+            source_of(
+                &response,
+                WEIGHING_RULE,
+                "reject_at_or_below_fraction_of_weight"
+            ),
+            ParameterSource::Assumed,
+            "a gate nobody stated is recorded as the caller's own decision"
+        );
+        assert_eq!(
+            source_of(&response, WEIGHING_RULE, "window_seconds"),
+            ParameterSource::Stated,
+            "a window the caller named is recorded as one they did not"
+        );
+    }
+
+    /// And on the two slots the weighing rule does not speak for, so the claim cannot reach one
+    /// slot and be dropped on the others.
+    #[test]
+    fn every_slot_says_which_of_its_values_the_registry_filled_in() {
+        let response = analysed(BTreeMap::new());
+
+        for (rule, name) in [
+            (WEIGHING_RULE, "window_seconds"),
+            (ONSET_RULE, "k"),
+            (TAKEOFF_RULE, "k"),
+        ] {
+            assert_eq!(
+                source_of(&response, rule, name),
+                ParameterSource::Assumed,
+                "{rule} ran on the registry's own {name} and the record names the caller"
+            );
+        }
+    }
+
+    /// The control on the guard above: the same three names, stated, and the same three rules
+    /// record the caller. A build that lost the claim reports `stated` in both places, and one
+    /// that hard-coded it reports `assumed` in both.
+    #[test]
+    fn a_value_the_caller_named_is_recorded_as_theirs_on_every_slot() {
+        let response = analysed(BTreeMap::from([
+            (
+                WEIGHING_RULE,
+                BTreeMap::from([("window_seconds".to_string(), 0.5)]),
+            ),
+            (ONSET_RULE, BTreeMap::from([("k".to_string(), 3.0)])),
+            (TAKEOFF_RULE, BTreeMap::from([("k".to_string(), 3.0)])),
+        ]));
+
+        for (rule, name) in [
+            (WEIGHING_RULE, "window_seconds"),
+            (ONSET_RULE, "k"),
+            (TAKEOFF_RULE, "k"),
+        ] {
+            assert_eq!(
+                source_of(&response, rule, name),
+                ParameterSource::Stated,
+                "{rule} ran on the caller's own {name} and the record names the registry"
+            );
+        }
+    }
 }
