@@ -667,14 +667,39 @@ const STATE_SELECTORS = {
   displayed: '.ran-beside__row--default-and-show',
   named: '.ran-beside__row--surface-on-demand',
 };
+// `answerTheDecisions` is what paints the resolved state, and it is not decoration. A card is
+// provisional while any rule in its chain belongs to a decision nobody has answered, so a
+// resolved card exists only once they are answered. Until the chain was built from what each
+// rule reads, two cards read as resolved without anybody answering anything: `Takeoff` and
+// `Flight time` omitted the weighing rule from their chains, so the interface called two
+// numbers settled while the weighing decision behind them was still open, and this check took
+// its resolved reading from one of them. It now takes it from a card that is resolved because
+// the reader resolved it.
 const PAINTED_BY = [
-  { rule: 'onset.threshold.noise_relative', dragLate: false },
-  { rule: 'onset.threshold.last_within_band', dragLate: false },
-  { rule: 'onset.threshold.noise_relative', dragLate: true },
+  { rule: 'onset.threshold.noise_relative', dragLate: false, answerTheDecisions: false },
+  { rule: 'onset.threshold.last_within_band', dragLate: false, answerTheDecisions: false },
+  { rule: 'onset.threshold.noise_relative', dragLate: true, answerTheDecisions: false },
+  { rule: 'onset.threshold.noise_relative', dragLate: false, answerTheDecisions: true },
 ];
+const readPaintedStates = () => evaluate(`(() => {
+  const selectors = ${JSON.stringify(STATE_SELECTORS)};
+  const seen = {};
+  for (const theme of ['light', 'dark']) {
+    document.documentElement.dataset.theme = theme;
+    seen[theme] = {};
+    for (const [state, selector] of Object.entries(selectors)) {
+      const node = document.querySelector(selector);
+      if (!node) continue;
+      const style = getComputedStyle(node);
+      seen[theme][state] = [style.backgroundColor, style.borderStyle, style.borderColor, style.color].join(' ');
+    }
+  }
+  document.documentElement.dataset.theme = 'auto';
+  return seen;
+})()`);
 const states = {};
-for (const { rule, dragLate } of PAINTED_BY) {
-  const painted = await evaluate(`(async () => {
+for (const { rule, dragLate, answerTheDecisions } of PAINTED_BY) {
+  await evaluate(`(async () => {
     const state = (await import('./state.js')).state;
     const analysis = await import('./analysis.js');
     state.overrides.onset = null;
@@ -687,21 +712,24 @@ for (const { rule, dragLate } of PAINTED_BY) {
       analysis.runAnalysis();
       await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     }
-    const selectors = ${JSON.stringify(STATE_SELECTORS)};
-    const seen = {};
-    for (const theme of ['light', 'dark']) {
-      document.documentElement.dataset.theme = theme;
-      seen[theme] = {};
-      for (const [state, selector] of Object.entries(selectors)) {
-        const node = document.querySelector(selector);
-        if (!node) continue;
-        const style = getComputedStyle(node);
-        seen[theme][state] = [style.backgroundColor, style.borderStyle, style.borderColor, style.color].join(' ');
-      }
-    }
-    document.documentElement.dataset.theme = 'auto';
-    return seen;
   })()`);
+  // The one act that answers every open choice, and it is the button beside the choices
+  // rather than the one in front of the numbers: `resolveAnyWall` reads `#analysis-warnings`
+  // and nothing is walled here. Two decisions stand open on this trial, the weighing rule
+  // nobody has picked and the onset rule's own multi-valued parameter, and a card stays
+  // provisional while either does.
+  if (answerTheDecisions) {
+    const answered = await evaluate(`(() => {
+      const button = [...document.querySelectorAll('#decision-list button')]
+        .find((b) => b.textContent.startsWith('Take the recommended'));
+      if (button) button.click();
+      return Boolean(button);
+    })()`);
+    if (!answered) throw new Error('no act on the page answers the open decisions, so the resolved state cannot be painted');
+    await settle("document.querySelectorAll('#metric-grid .metric:not(.metric--provisional)').length > 0",
+      'a card that rests on no unanswered decision');
+  }
+  const painted = await readPaintedStates();
   for (const [theme, found] of Object.entries(painted)) {
     states[theme] ??= {};
     for (const [state, value] of Object.entries(found)) states[theme][state] ??= value;
