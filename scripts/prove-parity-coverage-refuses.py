@@ -17,6 +17,10 @@ The request manifest, over what the population is. Two request files sat in this
 wired to nothing and no gate said so, which is the defect the population answers; every way
 back into it is a case here, including the one that let those two files be forgotten.
 
+The record of divergent values, over the fields no projection can hold. A field two surfaces
+carry cannot go in the result every surface is held to, and leaving it out of the record left
+the carriers agreeing with each other and compared with nothing.
+
 The population's coverage of values, over whether any request fills a compared field. Four
 surfaces agreeing about an empty list agree about a shape, and the sentence this gate prints
 does not say so on its own.
@@ -954,6 +958,114 @@ MANIFEST_CASES = [
 ]
 
 
+# The record of the values no projection can hold. A field two surfaces carry cannot go in
+# `result`, which every surface is held to whole, so it is held in `carried_by_some` instead,
+# and every refusal that block rests on is a case here. Without them the block is a second
+# standard nothing is measured against, which is the defect one level up from a baseline no
+# row is held to.
+
+def a_divergence_held_to_the_record(kind, answers):
+    """One recorded divergence these answers put on a wire, read off the register.
+
+    Named nowhere, for the reason `a_recorded_divergence` is named nowhere: a case naming
+    `plate_profile` goes quiet the moment that entry names something that would move a record,
+    and this script is run by hand.
+    """
+    for field in sorted(gate.divergences_held_to_a_record(kind)):
+        if gate.surfaces_publishing(answers, field):
+            return field
+    raise SystemExit(
+        f"plateforce: no {kind} divergence is both held to a record and on a wire here, so "
+        "there is no record for a case to break"
+    )
+
+
+def a_record_that_matches():
+    """A committed block of divergent values, and the answers it was taken from.
+
+    Taken from the answers by the gate's own writer rather than assembled here, so a case is a
+    change against what a regeneration would commit rather than against a document written in
+    this file.
+    """
+    (answers, _), _ = plate_answers_that_pass()
+    return gate.divergent_values_measured_from(answers, gate.ANALYSED), answers
+
+
+def record_faults_when(name, change, expected):
+    """Apply one change to a matching record and require a fault that names `expected`.
+
+    No register is restored afterwards, because no case here edits one: each changes the
+    committed block or one carrier's answer, and both are built fresh for every case.
+    """
+    committed, answers = a_record_that_matches()
+    change(committed, answers)
+    print(f"applied {name}", flush=True)
+    faults = gate.divergent_record_faults(committed, answers, gate.ANALYSED)
+    hit = [fault for fault in faults if expected in fault]
+    if not hit:
+        print(f"  NOT REFUSED: no fault mentions {expected!r}", file=sys.stderr)
+        for fault in faults:
+            print(f"    the faults raised were: {fault}", file=sys.stderr)
+        return False
+    print(f"  refused: {hit[0].splitlines()[0][:150]}", flush=True)
+    return True
+
+
+def a_record_control_that_must_pass():
+    committed, answers = a_record_that_matches()
+    print("applied nothing, the record control", flush=True)
+    faults = gate.divergent_record_faults(committed, answers, gate.ANALYSED)
+    if faults:
+        print("  THE CONTROL DOES NOT PASS, so no record case means anything:", file=sys.stderr)
+        for fault in faults:
+            print(f"    {fault}", file=sys.stderr)
+        return False
+    print(f"  passed: {len(committed)} divergent values held to the record, no fault")
+    return True
+
+
+def take_a_value_out_of_the_record(committed, answers):
+    """A field on two wires and nothing committed for it, which is where every one of these
+    fields sat until the block existed."""
+    committed.pop(a_divergence_held_to_the_record(gate.ANALYSED, answers))
+
+
+def move_a_carrier_away_from_the_record(committed, answers):
+    """One carrier reporting something the record does not say.
+
+    The claim a record makes that carriers-agree cannot: two surfaces wrong the same way agree
+    perfectly, and only a committed value puts the change in front of a reviewer.
+    """
+    field = a_divergence_held_to_the_record(gate.ANALYSED, answers)
+    carrier = sorted(gate.surfaces_publishing(answers, field))[0]
+    answers[carrier][field] = "went-its-own-way"
+
+
+def record_a_value_the_register_does_not_record(committed, answers):
+    """A value in the block for a field nothing holds to it, which is a standard nothing is
+    measured against."""
+    committed["registry_digest"] = "content-0"
+
+
+RECORD_CASES = [
+    (
+        "a divergence on a wire that the record holds no value for",
+        take_a_value_out_of_the_record,
+        "the record holds no value for it",
+    ),
+    (
+        "a carrier reporting something the record does not say",
+        move_a_carrier_away_from_the_record,
+        "does not match the record of",
+    ),
+    (
+        "a value in the record for a field the register does not record",
+        record_a_value_the_register_does_not_record,
+        "the register does not record that field",
+    ),
+]
+
+
 # The population's coverage of values. Three fields were compared and empty in every answer,
 # and the gate said four surfaces computed the result.
 
@@ -1080,6 +1192,13 @@ def main():
             survived.append(name)
 
     print()
+    if not a_record_control_that_must_pass():
+        raise SystemExit(1)
+    for name, change, expected in RECORD_CASES:
+        if not record_faults_when(name, change, expected):
+            survived.append(name)
+
+    print()
     if not a_hollow_control_that_must_pass():
         raise SystemExit(1)
     for name, build, expected in HOLLOW_CASES:
@@ -1092,6 +1211,7 @@ def main():
         + len(PLATE_CASES)
         + len(SWEPT_CASES)
         + len(MANIFEST_CASES)
+        + len(RECORD_CASES)
         + len(HOLLOW_CASES)
     )
     print()

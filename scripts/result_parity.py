@@ -65,14 +65,14 @@ from typing import NamedTuple
 # A floor rather than the exact count, which would fail every time a metric is added. It is
 # here because a comparison that agreed on an empty document would report success.
 #
-# Measured rather than picked, by the count this module prints: the four committed requests
-# carry 22, 22, 9 and 17 numbers, 70 between them. The floor sits well below that so a metric
-# coming or going is not an alarm, and far enough above zero to catch a population that
-# collapsed. It is a population figure because a request whose subject is a partial result
-# carries fewer numbers honestly: the interrupted recording carries 9, and holding it to a
-# per-request floor of 10 would redden the gate for answering the question it was written to
-# ask. The per-request floor is instead one number, below, which a document agreeing about
-# nothing cannot meet.
+# Measured rather than picked, by the count this module prints: the six rows of the request
+# manifest carry 23, 23, 12, 20, 23 and 91 numbers, 192 between them. The floor sits well below
+# that so a metric coming or going is not an alarm, and far enough above zero to catch a
+# population that collapsed. It is a population figure because a request whose subject is a
+# partial result carries fewer numbers honestly: the interrupted recording carries 12, and
+# holding it to a per-request floor of 20 would redden the gate for answering the question it
+# was written to ask. The per-request floor is instead one number, below, which a document
+# agreeing about nothing cannot meet.
 NUMBERS_THE_POPULATION_CARRIES = 10
 
 # Every surface the gate speaks for, and every request it speaks about, read from the
