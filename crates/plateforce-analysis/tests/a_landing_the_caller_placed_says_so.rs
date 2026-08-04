@@ -116,19 +116,18 @@ fn rows_naming_the_landing(response: &AnalysisResponse) -> Vec<(String, Paramete
     response
         .bound_methods
         .iter()
-        .filter_map(|row| {
-            row.bound_parameters
-                .iter()
-                .any(|(name, _)| name == LANDING)
-                .then(|| {
-                    (
-                        row.method_id.clone(),
-                        row.parameter_sources
-                            .get(LANDING)
-                            .copied()
-                            .unwrap_or(ParameterSource::Assumed),
-                    )
-                })
+        .filter(|row| row.bound_parameters.iter().any(|(name, _)| name == LANDING))
+        .map(|row| {
+            (
+                row.method_id.clone(),
+                row.parameter_sources
+                    .get(LANDING)
+                    .copied()
+                    // A name on the row with no source recorded beside it, which would report
+                    // the caller's landing as a value nobody chose. Named rather than skipped,
+                    // so the assertion below sees it.
+                    .unwrap_or(ParameterSource::Assumed),
+            )
         })
         .collect()
 }
@@ -278,7 +277,10 @@ fn every_rule_carrying_the_landing_is_one_that_reads_it() {
         .collect();
     let rows = stated.bound_methods.len();
 
-    println!("{} of {rows} recorded rules name the landing: {naming:?}", naming.len());
+    println!(
+        "{} of {rows} recorded rules name the landing: {naming:?}",
+        naming.len()
+    );
     assert!(
         !naming.is_empty(),
         "no rule named the caller's landing, so the guards above are reading an empty set"
