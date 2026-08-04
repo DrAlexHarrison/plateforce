@@ -678,6 +678,21 @@ fn status_reads(status: QualityStatus) -> String {
     status.wire_name().replace('_', " ")
 }
 
+/// How many decimals it takes to print two figures as the different numbers they are.
+///
+/// A fixed precision suits the magnitudes its author had in front of them. One decimal for a
+/// value and none for a threshold reads a 0.0475 s gap between two instants as "1.2 seconds,
+/// past 1 seconds", which is a gap four times the size against a threshold that looks like a
+/// round number somebody chose.
+///
+/// Both figures print at the same precision, because two numbers a reader is asked to compare
+/// at different precisions is the same defect one step smaller.
+fn decimals_telling_apart(value: f64, threshold: f64) -> usize {
+    (1..=4)
+        .find(|places| format!("{value:.0$}", places) != format!("{threshold:.0$}", places))
+        .unwrap_or(4)
+}
+
 /// What the software knows about a number, said where the reader is already looking.
 ///
 /// A value, the threshold it passed, and an action naming the construct whose rule the
@@ -690,8 +705,12 @@ fn status_reads(status: QualityStatus) -> String {
 fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
     let head = match signal.value {
         Some(value) => format!(
-            "{}: {:.1} {}, past {:.0} {}.",
-            signal.label, value, signal.unit, signal.threshold, signal.unit
+            "{}: {value:.places$} {}, past {:.places$} {}.",
+            signal.label,
+            signal.unit,
+            signal.threshold,
+            signal.unit,
+            places = decimals_telling_apart(value, signal.threshold)
         ),
         None => format!("{}: {}.", signal.label, status_reads(signal.status)),
     };

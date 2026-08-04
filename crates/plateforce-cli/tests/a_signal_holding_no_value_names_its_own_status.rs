@@ -190,7 +190,9 @@ fn a_signal_carrying_a_number_still_prints_it_against_its_threshold() {
 
     let (text, _) = analyse(A_TRACE_WHOSE_ROUTES_BOTH_RUN, "text");
     let printed = as_one_line(&text);
-    let expected = format!("{value:.1} percent, past 20 percent.");
+    // Both figures at one precision, and the fewest decimals that tell them apart. These two
+    // differ in the first, so the threshold reads 20.0 rather than 20.
+    let expected = format!("{value:.1} percent, past 20.0 percent.");
     println!("the record says {value}, and the terminal was read for: {expected}");
     assert!(printed.contains(&expected), "{printed}");
 }

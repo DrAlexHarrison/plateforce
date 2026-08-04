@@ -294,6 +294,20 @@ function signalsQualifying(metricKey) {
 }
 
 /*
+ * The two figures a signal compares, printed as the different numbers they are.
+ *
+ * One decimal each suits the magnitudes it was written for. Two instants a twentieth of a
+ * second apart both render as 1.2, so a reader is shown one number twice and told it is a
+ * comparison. Both figures take the fewest decimals that tell them apart, and the same number
+ * of them, since two figures compared at different precisions is the same defect smaller.
+ */
+function figureAgainstThreshold(signal) {
+  let places = 1;
+  while (places < 4 && signal.value.toFixed(places) === signal.threshold.toFixed(places)) places += 1;
+  return `${signal.value.toFixed(places)} ${signal.unit} against ${signal.threshold.toFixed(places)} ${signal.unit}`;
+}
+
+/*
  * A value this signal is also about, on a card that is not the one carrying the signal.
  *
  * It names the comparison and where that comparison is stated, so a reader who scrolls to
@@ -329,7 +343,7 @@ function renderSignal(signal) {
       'metric__signal-figure',
       signal.value == null
         ? signal.status.replace(/_/g, ' ')
-        : `${signal.value.toFixed(1)} ${signal.unit} against ${signal.threshold.toFixed(1)} ${signal.unit}`,
+        : figureAgainstThreshold(signal),
     ),
   );
 
