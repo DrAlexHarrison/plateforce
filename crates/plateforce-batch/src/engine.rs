@@ -168,6 +168,29 @@ pub struct BatchResult {
     pub coverage: Coverage,
 }
 
+impl BatchResult {
+    /// The trials every figure taken over this run is taken over: the ones that produced
+    /// numbers, less the ones a gate the request applied removed.
+    ///
+    /// One home, because two call sites that each decided for themselves what the population
+    /// was is how a mean and a reliability figure came to be reported beside a denominator
+    /// neither of them was taken over. Ordered as the results table is, so a figure summed
+    /// over it adds the same values in the same order as before this existed.
+    pub fn population(&self) -> Vec<String> {
+        let removed: BTreeSet<&str> = self
+            .exclusions
+            .iter()
+            .filter(|exclusion| exclusion.applied)
+            .map(|exclusion| exclusion.trial_id.as_str())
+            .collect();
+        self.results
+            .iter()
+            .filter(|row| row.refusal_code.is_empty() && !removed.contains(row.trial_id.as_str()))
+            .map(|row| row.trial_id.clone())
+            .collect()
+    }
+}
+
 /// The constructs a jump-height request walks, read from the binding layer rather than
 /// listed here, so a slot added there reaches this precondition without an edit.
 fn path_constructs() -> [&'static str; 3] {
