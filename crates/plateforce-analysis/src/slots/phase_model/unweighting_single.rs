@@ -9,7 +9,7 @@
 //! development predict the modified reactive strength index while yielding time and yielding
 //! rate do not, so collapsing the two averages a predictive sub-interval with one that is not.
 
-use plateforce_core::phases::phase_model_unweighting_single;
+use plateforce_core::phases::{phase_model_unweighting_single, PhaseModelOutcome};
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::boundaries;
@@ -54,31 +54,15 @@ fn place(
         return DerivedOutcome::declined(bound, context.unavailable(ID, &missing));
     };
 
-    let boundaries_placed =
-        boundaries::propulsive_peak_index(context, onset, takeoff).and_then(|peak| {
+    let model = boundaries::propulsive_peak_index(context, onset, takeoff)
+        .map(|peak| {
             phase_model_unweighting_single(
                 context.trial.force(),
                 context.epoch.system_weight_newtons,
                 onset,
                 peak,
             )
-        });
-    let Some(model) = boundaries_placed else {
-        return DerivedOutcome {
-            values: vec![(START_KEY, None), (END_KEY, None)],
-            placed: Vec::new(),
-            bound,
-            refusal: None,
-        };
-    };
-
-    DerivedOutcome {
-        values: vec![
-            (START_KEY, Some(context.trial.time_at(model.indices[0]))),
-            (END_KEY, Some(context.trial.time_at(model.indices[1]))),
-        ],
-        placed: Vec::new(),
-        bound,
-        refusal: None,
-    }
+        })
+        .unwrap_or(PhaseModelOutcome::NothingToPlace);
+    boundaries::model_outcome(context, ID, &[START_KEY, END_KEY], model, bound)
 }

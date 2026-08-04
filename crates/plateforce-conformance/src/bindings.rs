@@ -349,12 +349,15 @@ pub fn analyse(
     };
     let unweighting_end = [
         braking_start_by_velocity_minimum(&velocity_series, onset_for_phases, takeoff_jm),
+        // The reference tool publishes whatever the search returns, its own bound included,
+        // so the harness reads the index the way that tool does.
         braking_start_by_force_return(
             force,
             onset_for_phases,
             braking_reference_newtons,
             peak_index,
-        ),
+        )
+        .map(|crossing| crossing.index),
         braking_start_by_force_minimum(
             force,
             onset_for_phases,
