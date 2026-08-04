@@ -17,9 +17,16 @@
 # same manufactured split one paragraph up, arriving through the sync instead of through the
 # library path.
 #
-# R is found on the path and then asked to say what it is, because a name this short is one
-# some machines have given to something else, and a wrong program here would report a surface
-# that does not exist. Set `R_LIBS` to install somewhere other than the default library.
+# Installed into `target/r-surface/library` rather than the user library, so a gate run does not
+# reach outside the checkout. This row used to run a bare `R CMD INSTALL`, which writes to the
+# machine's default library, so any lane running the capability gate transiently removed and
+# rebuilt the package every other lane's R arm reads: one reported `there is no package called
+# 'plateforce'` and found it gone on retry. The comment here used to say "set `R_LIBS` to install
+# somewhere other than the default library", which recorded the hazard instead of closing it.
+#
+# The sync, the install and the two refusals it carries, that `R` on this path really is R and
+# that a reported success actually landed a package, are scripts/r-surface.sh's whole subject, so
+# it is called rather than repeated here.
 #
 # The sync and the install write to the other stream, because the caller reads this one as
 # the surface's answer.
@@ -27,11 +34,7 @@ set -o errexit -o nounset -o pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if ! R --version 2>/dev/null | head -1 | grep -q '^R version'; then
-    echo "the R on this path is not R, so this surface could not be asked" >&2
-    exit 2
-fi
+bash "$root/scripts/r-surface.sh" --install-only >&2
 
-PLATEFORCE_SYNC_FROM=worktree bash "$root/bindings/r/tools/sync-engine.sh" >&2
-R CMD INSTALL "$root/bindings/r" --no-byte-compile >&2
-exec Rscript -e 'cat(plateforce::capability_json())'
+library="$root/target/r-surface/library"
+exec env R_LIBS="$library" Rscript --vanilla -e 'cat(plateforce::capability_json())'
