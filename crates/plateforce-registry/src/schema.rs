@@ -2,6 +2,29 @@
 
 use serde::{Deserialize, Serialize};
 
+/// What the rules filed under one construct are to each other.
+///
+/// A request carries one rule per construct, so a construct holding two rules is a choice the
+/// caller makes. Two shapes are sound and they are not the same choice. Under `OneQuestion`
+/// the rules report the same quantities and picking one moves the values. Under
+/// `TheirOwnQuestions` each rule reports quantities the others do not, so picking one settles
+/// which quantities exist at all.
+///
+/// The difference is not readable from any single row, which is why it sits on the construct
+/// and not on the entries: from one entry's row nothing says whether the entry beside it
+/// answers the same question. Nor is it a relation, because it does not vary pair by pair and
+/// a relation would want an edge for every pair and a new edge on every pair a new rule makes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RulesAnswer {
+    /// Alternative answers to the construct's question. The five onset rules place one
+    /// instant five ways.
+    OneQuestion,
+    /// Alternative questions under one heading. The three phase models publish different sets
+    /// of landmarks, so the choice is between objects rather than between values.
+    TheirOwnQuestions,
+}
+
 /// What is being measured, sitting above the methods that measure it.
 ///
 /// Standing-frame and takeoff-frame jump height differ by about 144 mm for the same
@@ -20,6 +43,15 @@ pub struct Construct {
     pub unit: String,
     #[serde(default)]
     pub frame: Option<String>,
+    /// What this construct's rules are to each other, where the software can run two of them
+    /// and read the answer back off a recording.
+    ///
+    /// Optional because a construct holding one runnable rule describes no choice. Stated
+    /// wherever a measurement can contradict it, which is what
+    /// `a_construct_holds_rules_that_all_answer_its_question_or_all_answer_their_own`
+    /// requires and checks.
+    #[serde(default)]
+    pub rules_answer: Option<RulesAnswer>,
     #[serde(default)]
     pub notes: Option<String>,
 }
