@@ -377,6 +377,75 @@ impl Derived<'_> {
     }
 }
 
+/// One value the request bound for the whole analysis, with the claim that says who chose it.
+///
+/// Distinct from a rule's parameter: a gravity and an athlete's mass belong to the analysis
+/// and to no registry entry, so no rule's row can carry either. `assumed_parameters` names
+/// the ones nobody chose and cannot report a value the caller stated, which is the half a
+/// notebook reading its own record needs.
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "BoundGlobal"
+)]
+#[derive(Clone)]
+pub struct BoundGlobal {
+    name: String,
+    value: f64,
+    unit: String,
+    unit_symbol: String,
+    source: &'static str,
+}
+
+impl BoundGlobal {
+    fn of(bound: &plateforce_analysis::BoundGlobal) -> Self {
+        Self {
+            name: bound.name.to_string(),
+            value: bound.value,
+            unit: bound.unit.to_string(),
+            unit_symbol: bound.unit_symbol.to_string(),
+            source: bound.source.wire_name(),
+        }
+    }
+}
+
+#[pymethods]
+impl BoundGlobal {
+    #[getter]
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[getter]
+    fn value(&self) -> f64 {
+        self.value
+    }
+
+    #[getter]
+    fn unit(&self) -> &str {
+        &self.unit
+    }
+
+    #[getter]
+    fn unit_symbol(&self) -> &str {
+        &self.unit_symbol
+    }
+
+    /// `stated` where the caller chose it, `assumed` where the request type filled it in.
+    #[getter]
+    fn source(&self) -> &'static str {
+        self.source
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "BoundGlobal(name={:?}, value={}, unit={:?}, source={:?})",
+            self.name, self.value, self.unit, self.source
+        )
+    }
+}
+
 /// The results of one countermovement jump, each carrying the chain of choices behind it.
 #[pyclass(
     frozen,
@@ -405,6 +474,8 @@ pub struct CountermovementJump {
     unread_parameters: Vec<String>,
     assumed_parameters: Vec<String>,
     warnings: Vec<String>,
+    /// What the whole analysis was bound to, which no rule's row can carry.
+    bound_globals: Vec<BoundGlobal>,
     /// What the software noticed about the values above, as the records the engine raised.
     signals: Vec<QualitySignal>,
     /// Every quantity the engine reported, by its own name for it, reached through
@@ -541,6 +612,15 @@ impl CountermovementJump {
     #[getter]
     fn assumed_parameters(&self) -> Vec<String> {
         self.assumed_parameters.clone()
+    }
+
+    /// Every value the request bound for the whole analysis, and who chose each.
+    ///
+    /// A run that stated no mass carries no row for one, so a reader asking what mass a
+    /// number ran under is answered by the record rather than by the absence of an error.
+    #[getter]
+    fn bound_globals(&self) -> Vec<BoundGlobal> {
+        self.bound_globals.clone()
     }
 
     /// What the rules reported about this trace while placing the landmarks.
@@ -1072,6 +1152,7 @@ pub fn analyse_countermovement_jump(
                     .map(|bound| bound.name.to_string()),
             )
             .collect(),
+        bound_globals: response.bound_globals.iter().map(BoundGlobal::of).collect(),
         warnings: response.warnings.clone(),
         // The signals the analysis already raised. Raising them again here would run the
         // same function over the same response a second time, and a signal that disagreed
