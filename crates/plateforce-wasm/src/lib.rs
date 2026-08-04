@@ -222,10 +222,10 @@ const EXPORTS: &[&str] = &[
 /// fail. Every field is semantic, ids and slots and constructs and refusal codes.
 /// Whether a caller of this surface can state the acquisition block.
 ///
-/// The tab analyses a trace it was handed and nothing carries the plate's own settings in
-/// with it, so every result it produces fingerprints as incomplete. An export that takes a
-/// block moves this to `StatedByCaller`, and the test below refuses the two answers apart.
-const ACQUISITION_INTAKE: AcquisitionIntake = AcquisitionIntake::AbsentFromThisSurface;
+/// `analyse` and the batch request both take a capture whose members fill the block, so the
+/// page can state everything the fingerprint asks for. The test below holds this answer to
+/// what the crate builds, in both directions.
+const ACQUISITION_INTAKE: AcquisitionIntake = AcquisitionIntake::StatedByCaller;
 
 #[wasm_bindgen(js_name = capabilityJson)]
 pub fn capability_json() -> Result<String, JsError> {
