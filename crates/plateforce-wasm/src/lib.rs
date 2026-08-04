@@ -261,7 +261,7 @@ struct LoadedTrialInfo {
     duration_seconds: f64,
     force_column: usize,
     sentinel_convention: String,
-    sentinel_samples_replaced: usize,
+    samples_treated_as_missing: usize,
     minimum_newtons: f64,
     maximum_newtons: f64,
     synthetic: bool,
@@ -307,27 +307,31 @@ impl LoadedTrial {
             }
         };
 
-        // A sentinel is not a measurement and neither is an unreadable field. Both are
-        // held at the last real reading and counted, and the count is shown next to the
-        // trace rather than folded into it.
+        // A sample matching the declared convention is counted and left where it is.
+        //
+        // Holding it at the last real reading writes a force the plate never measured into
+        // the trace, and a zero sentinel is physically indistinguishable from a correct
+        // reading during flight: an unloaded plate reads zero or one quantisation step, and a
+        // vendor writing `0.00` to mean "no measurement" writes the same bytes. Holding also
+        // reached past the declared convention to every unreadable field, so a recording with
+        // three unreadable samples in its quiet stance was repaired here whatever the caller
+        // declared. Measured on `subject01_trial1_interrupted`: this tab reported the intact
+        // trial's system weight, time to takeoff and jump height to the last digit, with no
+        // refusal and no warning, while the terminal, the notebook and R each declined the
+        // landmark and said why. `bindings/r/src/rust/src/lib.rs` reached the same conclusion
+        // in its own reader and states what holding costs in centimetres there.
         let flagged = sentinel.map(|s| partition_sentinels(column, s).1);
-        let mut replaced = 0usize;
-        let mut force = Vec::with_capacity(column.len());
-        for (index, value) in column.iter().enumerate() {
-            let missing = !value.is_finite()
-                || flagged
-                    .as_ref()
-                    .is_some_and(|dropped| dropped.binary_search(&index).is_ok());
-            if missing {
-                replaced += 1;
-                force.push(force.last().copied().unwrap_or(0.0));
-            } else {
-                force.push(*value);
-            }
-        }
+        let treated_as_missing = flagged.map_or(0, |dropped| dropped.len());
 
-        let trial = Trial::new(force, sample_rate_hz).map_err(|e| JsError::new(&e.to_string()))?;
-        let info = describe(&trial, force_column, sentinel_convention, replaced, false);
+        let trial =
+            Trial::new(column.to_vec(), sample_rate_hz).map_err(|e| JsError::new(&e.to_string()))?;
+        let info = describe(
+            &trial,
+            force_column,
+            sentinel_convention,
+            treated_as_missing,
+            false,
+        );
         Ok(LoadedTrial { trial, info })
     }
 
@@ -396,7 +400,7 @@ impl LoadedTrial {
                 document::TrialSource {
                     name: trial_name.unwrap_or_default(),
                     rows_read: self.info.sample_count,
-                    sentinel_rows: self.info.sentinel_samples_replaced,
+                    sentinel_rows: self.info.samples_treated_as_missing,
                 },
                 // Nothing pinned: this surface runs the registry compiled into the bundle,
                 // and a tab asserting a revision about bytes it did not choose would be
@@ -445,7 +449,7 @@ fn describe(
     trial: &Trial,
     force_column: usize,
     sentinel_convention: &str,
-    sentinel_samples_replaced: usize,
+    samples_treated_as_missing: usize,
     synthetic: bool,
 ) -> LoadedTrialInfo {
     LoadedTrialInfo {
@@ -454,7 +458,7 @@ fn describe(
         duration_seconds: trial.duration_seconds(),
         force_column,
         sentinel_convention: sentinel_convention.to_string(),
-        sentinel_samples_replaced,
+        samples_treated_as_missing,
         minimum_newtons: trial.force().iter().copied().fold(f64::INFINITY, f64::min),
         maximum_newtons: trial
             .force()

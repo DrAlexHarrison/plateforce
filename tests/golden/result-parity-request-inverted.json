@@ -1,0 +1,23 @@
+{
+  "delimiter": "\t",
+  "force_column": 0,
+  "onset": {
+    "method_id": "onset.threshold.adaptive_trailing_window",
+    "parameters": {
+      "k": 5.0
+    }
+  },
+  "sample_rate_hz": 1200,
+  "sentinel_convention": "none",
+  "takeoff": {
+    "method_id": "takeoff.threshold.flight_noise_k_sd",
+    "parameters": {}
+  },
+  "trial": "crates/plateforce-conformance/fixtures/synthetic_untrimmed_step_off_after_jump.force.txt",
+  "weighing": {
+    "method_id": "bwepoch.adaptive_lowest_variance",
+    "parameters": {
+      "window_seconds": 1.0
+    }
+  }
+}
