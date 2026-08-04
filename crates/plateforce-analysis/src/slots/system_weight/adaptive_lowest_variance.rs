@@ -8,9 +8,9 @@ use crate::resolution::Resolution;
 
 pub(crate) const WINDOW_LENGTH_PARAMETER: &str = "window_seconds";
 
-/// Fallback for the gate below, matching the entry's declared default. The 20 N it replaces
-/// was 2.5 percent of an 80 kg athlete and 1.7 percent of a 120 kg one, so the same nominal
-/// rule tested the two differently.
+/// Fallback for the gate below, matching the entry's declared default. A fixed 20 N gate is
+/// 2.5 percent of an 80 kg athlete and 1.7 percent of a 120 kg one, so the same nominal rule
+/// tests the two differently.
 const REJECT_AT_OR_BELOW_FRACTION_OF_WEIGHT: f64 = 0.025;
 
 /// biomex clamps the searched spread up to a fraction of bodyweight before any threshold is

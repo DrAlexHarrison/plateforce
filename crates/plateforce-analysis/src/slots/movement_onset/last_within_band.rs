@@ -40,11 +40,10 @@ pub(crate) fn crossing(
     let rate = trial.sample_rate_hz();
     let k = resolved.number("k", 5.0);
     record_inherited_spread(resolved, inherited_spread);
-    // The two operators this rule binds by being chosen. A caller that names this rule has
-    // stated them as surely as if it had typed them, and the value is what a reader needs
-    // to reproduce the number, so it is recorded rather than left implicit in which
-    // function ran. Stating either in disagreement asks for a different rule, and is refused
-    // under the operator that publishes the alternatives rather than dropped.
+    // The two operators this rule binds by being chosen, recorded because a reader needs
+    // their values to reproduce the number. Stating either in disagreement asks for a
+    // different rule, and is refused under the operator that publishes the alternatives
+    // rather than dropped.
     resolved.entailed(CROSSING_SELECTION, "selection", "last")?;
     resolved.entailed(SEARCH_UPPER_BOUND, "bound", "minimum_force")?;
     let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
@@ -52,12 +51,10 @@ pub(crate) fn crossing(
 
     let search_end = takeoff_index
         .and_then(|takeoff| countermovement_dip(force, takeoff))
-        // The rule searches back from the countermovement dip, which is the force minimum
-        // before the propulsive peak, and the peak is bounded by takeoff. So a recording
-        // that settles no takeoff leaves this rule nothing to search back from, and the
-        // remedy is the takeoff rule rather than anything on this one. The operator that
-        // wants the landmark is the search bound, not the threshold, and it is the one
-        // named: a bare noise-relative threshold needs no takeoff.
+        // A recording that settles no takeoff leaves this rule nothing to search back from,
+        // and the remedy is the takeoff rule rather than anything on this one. The operator
+        // that wants the landmark is the search bound, not the threshold: a bare
+        // noise-relative threshold needs no takeoff.
         .ok_or_else(|| {
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::dependency_unresolved(
                 SEARCH_UPPER_BOUND,

@@ -4,7 +4,6 @@
 //! A peak taken over the whole recording is the landing on a countermovement jump, not the
 //! jump, so the window is the larger choice of the two and it is recorded as its own.
 //!
-//! The three disagree in ways worth stating, because they are what this construct is for.
 //! Gross and net differ by exactly one system weight, which is movement-independent in
 //! newtons and entirely movement-dependent as a fraction: measured over the six committed
 //! trials, system weight is 0.5826 to 0.6431 of the net peak, mean 0.6167. The estimator

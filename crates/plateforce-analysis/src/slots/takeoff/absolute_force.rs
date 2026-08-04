@@ -17,8 +17,7 @@ pub(crate) fn crossing(
 ) -> Result<usize, RuleRefusal> {
     let rate = trial.sample_rate_hz();
     // This rule takes the first qualifying run and the longest-run rule records under this
-    // same entry, so the selection is written out rather than left to be inferred from the
-    // absence of the other. A reader comparing two records reads two values, not a value
+    // same entry, so a reader comparing two records reads two values rather than a value
     // against a silence. Asking this rule for the longest run asks for that other rule, and
     // is refused under the operator that publishes both rather than dropped.
     resolved.entailed(super::TAKEOFF_OP_CROSSING_SELECTION, "selection", "first")?;

@@ -57,9 +57,7 @@ fn compute(
 
     // Takeoff and the return to the plate. The projectile equation reads the time off the
     // plate and the gravity, and neither of those rests on where the jump began, so this
-    // reads the two samples it uses rather than the three-landmark bundle. Through the bundle
-    // it declined on a recording whose onset rule found nothing, and its chain named that
-    // rule and every operator it bound.
+    // reads the two samples it uses rather than the three-landmark bundle.
     let Some(takeoff_index) = context.takeoff_index() else {
         return DerivedOutcome::declined(
             resolved.finish(),
