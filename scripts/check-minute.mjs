@@ -566,26 +566,41 @@ const remedy = await evaluate(`(async () => {
   await new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
   const height = (key) => state.analysis.metrics.find((m) => m.key === key)?.value ?? null;
+  // A signal states its paragraph once and carries a reference on every other value it
+  // qualifies, so a card meets it either way. Counting only the paragraph would read the
+  // second height as unqualified when the reader can reach the reason from it in one click.
   const cards = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
+    card.querySelector('.metric__signal, .metric__signal-elsewhere'));
+  const stating = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
     card.querySelector('.metric__signal'));
+  const referring = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
+    card.querySelector('.metric__signal-elsewhere'));
   return {
     fromTheEngine: (state.analysis.signals ?? []).length,
     impulse: height('jump_height_from_takeoff_meters'),
     flight: height('jump_height_from_flight_time_meters'),
     warnings: state.analysis.warnings.length,
     beside: cards.map((card) => card.querySelector('.metric__label').textContent),
-    figure: cards[0]?.querySelector('.metric__signal-figure')?.textContent ?? null,
-    remedy: cards[0]?.querySelector('.metric__signal-remedy')?.textContent ?? null,
-    reaches: Boolean(cards[0]?.querySelector('.metric__signal button')),
+    stated: stating.length,
+    referred: referring.length,
+    pointsAtTheStatement: referring.every((card) =>
+      card.querySelector('.metric__signal-elsewhere')?.textContent
+        ?.includes(stating[0]?.querySelector('.metric__label')?.textContent ?? '\u0000')),
+    figure: stating[0]?.querySelector('.metric__signal-figure')?.textContent ?? null,
+    remedy: stating[0]?.querySelector('.metric__signal-remedy')?.textContent ?? null,
+    reaches: Boolean(stating[0]?.querySelector('.metric__signal button')),
     inAPanel: Boolean(document.querySelector('#analysis-warnings .metric__signal')),
   };
 })()`);
 
 check('the engine flags the confident wrong number, in line beside both heights',
   remedy.fromTheEngine === 1 && remedy.beside.length === 2 && Boolean(remedy.remedy) &&
-    remedy.reaches && !remedy.inAPanel,
+    remedy.reaches && !remedy.inAPanel &&
+    remedy.stated === 1 && remedy.referred === 1 && remedy.pointsAtTheStatement,
   `${remedy.fromTheEngine} signal from the engine, ${remedy.warnings} warnings; ` +
-  `impulse ${remedy.impulse}, flight ${remedy.flight}; beside ${remedy.beside.join(' and ') || 'nothing'}; ` +
+  `impulse ${remedy.impulse}, flight ${remedy.flight}; beside ${remedy.beside.join(' and ') || 'nothing'}, ` +
+  `${remedy.stated} stating it and ${remedy.referred} pointing at the one that does` +
+  `${remedy.pointsAtTheStatement ? '' : ', and a reference names a card that does not state it'}; ` +
   `${remedy.figure ?? 'no figure'}`);
 
 // An intermediate frame of a number counting up to its new value is a number no method
