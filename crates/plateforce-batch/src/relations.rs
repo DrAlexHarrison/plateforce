@@ -179,6 +179,68 @@ impl WarningRow {
     }
 }
 
+/// One row per thing the analysis already knew about a number it reported.
+///
+/// Keyed by trial and ordinal like `refusals`, because one trial can carry several. Distinct
+/// from both neighbours on purpose: a refusal means no number was produced, a warning is a
+/// sentence, and a signal qualifies numbers that were produced and carries the fields a reader
+/// acts on. Folding it into `warnings` would drop the value, the threshold, the status and the
+/// keys it qualifies, which is everything except the prose.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SignalRow {
+    pub trial_id: String,
+    pub ordinal: usize,
+    /// As the record spells it: `disagrees`, `incomparable`, `at_search_floor`.
+    pub status: String,
+    pub label: String,
+    /// Empty where the comparison produced no number, which is a different state from zero.
+    pub value: Option<f64>,
+    pub unit: String,
+    pub threshold: f64,
+    /// The quantity columns in `results` this signal is about, comma separated. A reader
+    /// joining on `trial_id` alone would not know which of eleven columns it qualifies.
+    pub qualifies: String,
+    /// The construct whose bound rule the reader would change.
+    pub remedy_construct: String,
+    /// An action, never a verdict, as the analysis composed it.
+    pub remedy: String,
+}
+
+impl SignalRow {
+    pub fn header() -> Vec<String> {
+        [
+            "trial_id",
+            "ordinal",
+            "status",
+            "label",
+            "value",
+            "unit",
+            "threshold",
+            "qualifies",
+            "remedy_construct",
+            "remedy",
+        ]
+        .iter()
+        .map(|name| name.to_string())
+        .collect()
+    }
+
+    pub fn cells(&self) -> Vec<String> {
+        vec![
+            self.trial_id.clone(),
+            self.ordinal.to_string(),
+            self.status.clone(),
+            self.label.clone(),
+            self.value.map(format_value).unwrap_or_default(),
+            self.unit.clone(),
+            format_value(self.threshold),
+            self.qualifies.clone(),
+            self.remedy_construct.clone(),
+            self.remedy.clone(),
+        ]
+    }
+}
+
 /// One row describing the run. Every count here states the population it was taken over.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunRow {

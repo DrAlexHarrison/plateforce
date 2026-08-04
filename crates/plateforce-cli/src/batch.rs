@@ -352,6 +352,14 @@ fn render_table(rendered: &plateforce_batch::Rendered) -> String {
     for row in &rendered.rows {
         let _ = writeln!(text, "{}", line(row, &widths));
     }
+    // Directly under the rows they qualify, and above any reduction, because a mean taken
+    // over a column carries whatever the column carries.
+    if !rendered.signals.is_empty() {
+        let _ = writeln!(text);
+        for signal in &rendered.signals {
+            let _ = writeln!(text, "{signal}");
+        }
+    }
     if !rendered.summary.is_empty() {
         let _ = writeln!(text);
         for summary in &rendered.summary {

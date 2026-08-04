@@ -46,6 +46,7 @@ impl BatchResult {
             self.write_relation(directory, "results", self.results_batch()?, &record)?,
             self.write_relation(directory, "provenance", self.provenance_batch()?, &record)?,
             self.write_relation(directory, "refusals", self.refusals_batch()?, &record)?,
+            self.write_relation(directory, "signals", self.signals_batch()?, &record)?,
         ])
     }
 
@@ -156,6 +157,48 @@ impl BatchResult {
                 text(self.refusals.iter().map(|row| row.detail.clone())),
                 text(self.refusals.iter().map(|row| row.available.clone())),
                 text(self.refusals.iter().map(|row| row.message.clone())),
+            ],
+        )
+    }
+
+    /// A signal's value is nullable and its threshold is not: a comparison that produced no
+    /// number still ran against a stated one.
+    fn signals_batch(&self) -> Result<RecordBatch, ParquetError> {
+        batch(
+            "signals",
+            vec![
+                Field::new("trial_id", DataType::Utf8, false),
+                Field::new("ordinal", DataType::UInt32, false),
+                Field::new("status", DataType::Utf8, false),
+                Field::new("label", DataType::Utf8, false),
+                Field::new("value", DataType::Float64, true),
+                Field::new("unit", DataType::Utf8, false),
+                Field::new("threshold", DataType::Float64, false),
+                Field::new("qualifies", DataType::Utf8, false),
+                Field::new("remedy_construct", DataType::Utf8, false),
+                Field::new("remedy", DataType::Utf8, false),
+            ],
+            vec![
+                text(self.signals.iter().map(|row| row.trial_id.clone())),
+                counts(self.signals.iter().map(|row| row.ordinal)),
+                text(self.signals.iter().map(|row| row.status.clone())),
+                text(self.signals.iter().map(|row| row.label.clone())),
+                Arc::new(Float64Array::from(
+                    self.signals
+                        .iter()
+                        .map(|row| row.value)
+                        .collect::<Vec<Option<f64>>>(),
+                )) as ArrayRef,
+                text(self.signals.iter().map(|row| row.unit.clone())),
+                Arc::new(Float64Array::from(
+                    self.signals
+                        .iter()
+                        .map(|row| row.threshold)
+                        .collect::<Vec<f64>>(),
+                )) as ArrayRef,
+                text(self.signals.iter().map(|row| row.qualifies.clone())),
+                text(self.signals.iter().map(|row| row.remedy_construct.clone())),
+                text(self.signals.iter().map(|row| row.remedy.clone())),
             ],
         )
     }

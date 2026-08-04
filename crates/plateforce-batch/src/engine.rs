@@ -7,6 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::document::refusal_from_rule;
+use plateforce_analysis::quality::{QualitySignal, QualityStatus};
 use plateforce_analysis::{
     AnalysisRequest, AnalysisResponse, BoundMethod, DeclinedRule, Metric, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
@@ -19,7 +20,9 @@ use crate::decisions::{unresolved, UnresolvedDecision};
 use crate::exclusions::{GateRegistry, PopulationExclusion, ValidityGate};
 use crate::fingerprint::{provenance_id, request_digest, run_fingerprint};
 use crate::identity::{TrialSet, UnidentifiedFile};
-use crate::relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
+use crate::relations::{
+    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
+};
 
 /// What one batch run was asked to do.
 pub struct BatchRequest {
@@ -156,6 +159,8 @@ pub struct BatchResult {
     pub provenance: Vec<ProvenanceRow>,
     pub refusals: Vec<RefusalRow>,
     pub warnings: Vec<WarningRow>,
+    /// What the analysis already knew about the numbers it reported, per trial.
+    pub signals: Vec<SignalRow>,
     /// Written only when the request bound an aggregation rule.
     pub aggregates: Vec<AggregateRow>,
     /// What each bound gate found, whether or not the request asked it to remove anything.
@@ -202,6 +207,7 @@ pub fn analyse(
     let mut provenance: BTreeMap<String, Vec<ProvenanceRow>> = BTreeMap::new();
     let mut refusals: Vec<RefusalRow> = Vec::new();
     let mut warnings: Vec<WarningRow> = Vec::new();
+    let mut signals: Vec<SignalRow> = Vec::new();
     let mut exclusions: Vec<PopulationExclusion> = Vec::new();
     let mut computed = 0usize;
     let mut refused = 0usize;
@@ -267,6 +273,12 @@ pub fn analyse(
                 ordinal: index,
                 message: sentence.clone(),
             });
+        }
+        // A number a rule produced from the boundary of its own search is still a number, and
+        // it lands in the table beside numbers a rule found in the trace. The analysis has
+        // already worked that out by here, so the run carries it rather than recomputing it.
+        for (index, signal) in response.signals.iter().enumerate() {
+            signals.push(signal_row(trial_id, index, signal));
         }
         // What the reader treated as missing travels with the trial it was taken from, not
         // only as a run total, because a run of 244 that dropped 30 rows in one trace and a
@@ -403,6 +415,7 @@ pub fn analyse(
         provenance: flattened,
         refusals,
         warnings,
+        signals,
         aggregates: Vec::new(),
         exclusions,
         coverage,
@@ -474,6 +487,39 @@ pub(crate) fn refusal_row(trial_id: &str, ordinal: usize, refused: &Refusal) -> 
         // The sentence the record generates, which is the one carrying the id the boundary
         // stamped on. The rule's own sentence predates that stamp.
         message: refused.message().to_string(),
+    }
+}
+
+/// One signal as a row, with every field the analysis attached to it.
+///
+/// Nothing is recomputed and nothing is rephrased: `remedy` is the sentence the analysis
+/// composed, and the status is the word the record already carries.
+fn signal_row(trial_id: &str, ordinal: usize, signal: &QualitySignal) -> SignalRow {
+    SignalRow {
+        trial_id: trial_id.to_string(),
+        ordinal,
+        status: status_name(signal.status),
+        label: signal.label.clone(),
+        value: signal.value,
+        unit: signal.unit.to_string(),
+        threshold: signal.threshold,
+        qualifies: signal.qualifies.join(","),
+        remedy_construct: signal.remedy_construct.to_string(),
+        remedy: signal.remedy.clone(),
+    }
+}
+
+/// The word a status travels under, read off the record rather than spelled again here.
+///
+/// `QualityStatus` is serialised on every surface that returns a response, so taking the name
+/// from that serialisation is the one way this table and the JSON envelope cannot disagree
+/// about what a status is called, and a status added to the vocabulary reaches this column
+/// named rather than blank. The fallback is the variant itself, because a status that reached
+/// a reader as an empty cell would read as a signal with nothing wrong with it.
+fn status_name(status: QualityStatus) -> String {
+    match serde_json::to_value(status) {
+        Ok(serde_json::Value::String(name)) => name,
+        _ => format!("{status:?}"),
     }
 }
 

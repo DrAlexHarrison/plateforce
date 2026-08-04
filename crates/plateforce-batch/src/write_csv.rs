@@ -8,7 +8,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::engine::BatchResult;
-use crate::relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
+use crate::relations::{
+    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
+};
 
 /// One table a caller can ask for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +19,7 @@ pub enum Relation {
     Provenance,
     Refusals,
     Warnings,
+    Signals,
     Aggregates,
     Run,
 }
@@ -28,6 +31,7 @@ impl Relation {
             Relation::Provenance => "provenance.csv",
             Relation::Refusals => "refusals.csv",
             Relation::Warnings => "warnings.csv",
+            Relation::Signals => "signals.csv",
             Relation::Aggregates => "aggregates.csv",
             Relation::Run => "run.json",
         }
@@ -40,6 +44,7 @@ pub const EVERY_RELATION: &[Relation] = &[
     Relation::Provenance,
     Relation::Refusals,
     Relation::Warnings,
+    Relation::Signals,
     Relation::Aggregates,
 ];
 
@@ -114,6 +119,10 @@ impl BatchResult {
             Relation::Warnings => render_table(
                 WarningRow::header(),
                 self.warnings.iter().map(WarningRow::cells),
+            ),
+            Relation::Signals => render_table(
+                SignalRow::header(),
+                self.signals.iter().map(SignalRow::cells),
             ),
             Relation::Aggregates => render_table(
                 AggregateRow::header(),
