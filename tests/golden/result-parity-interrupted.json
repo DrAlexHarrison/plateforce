@@ -1,0 +1,531 @@
+{
+  "compared_fields": [
+    "acquisition_complete",
+    "bound_globals",
+    "bound_methods",
+    "levels",
+    "metrics",
+    "onset_index",
+    "refusals",
+    "registry_version",
+    "signals",
+    "takeoff_index",
+    "touchdown_index",
+    "warnings",
+    "weighing_end_index",
+    "weighing_start_index"
+  ],
+  "result": {
+    "acquisition_complete": false,
+    "bound_globals": [
+      {
+        "name": "gravity_meters_per_second_squared",
+        "source": "assumed",
+        "unit": "meters_per_second_squared",
+        "unit_symbol": "m/s2",
+        "value": 9.80665
+      }
+    ],
+    "bound_methods": [
+      {
+        "bound_parameters": [
+          [
+            "passband_edge_hz",
+            "none"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "filter.none",
+        "parameter_sources": {
+          "passband_edge_hz": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "centre",
+            "mean"
+          ],
+          [
+            "dispersion",
+            "sample"
+          ],
+          [
+            "duration",
+            "1"
+          ],
+          [
+            "start_seconds",
+            "0.0000"
+          ],
+          [
+            "window_anchor",
+            "trial_start"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "bwepoch.fixed_window",
+        "parameter_sources": {
+          "centre": "assumed",
+          "dispersion": "assumed",
+          "duration": "stated",
+          "start_seconds": "measured",
+          "window_anchor": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "degenerate_band",
+            "refuse"
+          ],
+          [
+            "k",
+            "5"
+          ],
+          [
+            "reference_distribution",
+            "quiet_stance_force"
+          ],
+          [
+            "sd_convention",
+            "sample"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "onset.threshold.noise_relative",
+        "parameter_sources": {
+          "degenerate_band": "assumed",
+          "k": "stated",
+          "reference_distribution": "assumed",
+          "sd_convention": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "selection",
+            "first"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "onset.op.crossing_selection",
+        "parameter_sources": {
+          "selection": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "direction",
+            "below_only"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "onset.op.direction",
+        "parameter_sources": {
+          "direction": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "span_ms",
+            "30"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "onset.op.persistence",
+        "parameter_sources": {
+          "span_ms": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "weighing_epoch_end_seconds",
+            "1.0000"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "onset.op.search_floor_at_weighing_epoch_end",
+        "parameter_sources": {
+          "weighing_epoch_end_seconds": "measured"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "persistence_ms",
+            "0"
+          ],
+          [
+            "threshold_n",
+            "20"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.threshold.absolute_force",
+        "parameter_sources": {
+          "persistence_ms": "assumed",
+          "threshold_n": "stated"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "selection",
+            "first"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.op.crossing_selection",
+        "parameter_sources": {
+          "selection": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "comparison",
+            "signed"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.op.residual_comparison",
+        "parameter_sources": {
+          "comparison": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "weighing_epoch_end_seconds",
+            "1.0000"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "takeoff.op.search_floor_at_weighing_epoch_end",
+        "parameter_sources": {
+          "weighing_epoch_end_seconds": "measured"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "impulse.net_vertical.as_performance_determinant",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "gravity",
+            "9.81"
+          ]
+        ],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "jumpheight.takeoff.flight_time",
+        "parameter_sources": {
+          "gravity": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "jumpheight.takeoff.impulse_momentum",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "rsimod.jh_tov_over_ttt",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      }
+    ],
+    "levels": {
+      "onset_band_lower_newtons": null,
+      "onset_band_upper_newtons": null,
+      "system_weight_newtons": null,
+      "takeoff_threshold_newtons": 20.0,
+      "weighing_standard_deviation_newtons": null
+    },
+    "metrics": [
+      {
+        "computed_by": null,
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window"
+        ],
+        "key": "system_weight_newtons",
+        "label": "System weight",
+        "note": "Includes any external load. System weight is not bodyweight.",
+        "unit": "newtons",
+        "unit_symbol": "N",
+        "value": null
+      },
+      {
+        "computed_by": null,
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window"
+        ],
+        "key": "system_mass_kilograms",
+        "label": "System mass",
+        "note": "System weight over the gravity this analysis was bound to.",
+        "unit": "kilograms",
+        "unit_symbol": "kg",
+        "value": null
+      },
+      {
+        "computed_by": null,
+        "contributing_method_ids": [
+          "filter.none",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "onset_time_seconds",
+        "label": "Movement onset",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": null
+      },
+      {
+        "computed_by": null,
+        "contributing_method_ids": [
+          "filter.none",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "takeoff_time_seconds",
+        "label": "Takeoff",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": 4.178333333333334
+      },
+      {
+        "computed_by": "time_to_takeoff.onset_to_takeoff",
+        "contributing_method_ids": [
+          "filter.none",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "time_to_takeoff_seconds",
+        "label": "Time to takeoff",
+        "note": "Bounded by two threshold crossings, which is why it is the least reproducible number here.",
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": null
+      },
+      {
+        "computed_by": "flight_time.takeoff_to_touchdown",
+        "contributing_method_ids": [
+          "filter.none",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "flight_time_seconds",
+        "label": "Flight time",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": null
+      },
+      {
+        "computed_by": "impulse.net_vertical.as_performance_determinant",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "takeoff_velocity_meters_per_second",
+        "label": "Takeoff velocity",
+        "note": "Net impulse over system mass. An identity, not an estimate.",
+        "unit": "meters_per_second",
+        "unit_symbol": "m/s",
+        "value": null
+      },
+      {
+        "computed_by": "impulse.net_vertical.as_performance_determinant",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "net_impulse_newton_seconds",
+        "label": "Net impulse",
+        "note": null,
+        "unit": "newton_seconds",
+        "unit_symbol": "N.s",
+        "value": null
+      },
+      {
+        "computed_by": "jumpheight.takeoff.impulse_momentum",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "jump_height_from_takeoff_meters",
+        "label": "Jump height, takeoff frame",
+        "note": "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction.",
+        "unit": "meters",
+        "unit_symbol": "m",
+        "value": null
+      },
+      {
+        "computed_by": "jumpheight.takeoff.flight_time",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "jump_height_from_flight_time_meters",
+        "label": "Jump height, flight time",
+        "note": "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load.",
+        "unit": "meters",
+        "unit_symbol": "m",
+        "value": null
+      },
+      {
+        "computed_by": "rsimod.jh_tov_over_ttt",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "reactive_strength_index_modified",
+        "label": "RSI modified",
+        "note": "Impulse-momentum jump height over time to takeoff, so it inherits both choices. The registry carries a second numerator, rsimod.jh_ft_over_ttt, which uses flight-time height and is a different number.",
+        "unit": "meters_per_second",
+        "unit_symbol": "m/s",
+        "value": null
+      }
+    ],
+    "onset_index": null,
+    "refusals": [
+      {
+        "available": [],
+        "code": "no_crossing",
+        "detail": {
+          "search_bound_seconds": 5.0
+        },
+        "message": "onset.threshold.noise_relative(k = 5) found no crossing within the search bound of 5 s",
+        "method_id": "onset.threshold.noise_relative",
+        "named_value": null,
+        "parameter": "k",
+        "slot": "movement_onset",
+        "value": 5.0
+      }
+    ],
+    "registry_version": null,
+    "signals": [],
+    "takeoff_index": 5014,
+    "touchdown_index": 5733,
+    "warnings": [
+      "onset.threshold.noise_relative(k = 5) found no crossing within the search bound of 5 s"
+    ],
+    "weighing_end_index": 1200,
+    "weighing_start_index": 0
+  }
+}
