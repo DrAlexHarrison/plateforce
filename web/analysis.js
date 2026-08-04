@@ -89,6 +89,10 @@ function whereTheValuesCameFrom(slot) {
     recommended: [...(selection?.recommended ?? [])],
     from_registry_default: [...(selection?.fromDefault ?? [])],
     method_from_recommendation: selection?.methodFromRecommendation ?? false,
+    // A slot the reader never opened is bound to the registry's own first ranked rule by
+    // `boundMethodId`, so the request always names one. Sending nothing here reported that
+    // arrival as a pick, which is the reader's signature on a rule they never saw.
+    method_from_registry_default: selection?.methodStated !== true,
   };
 }
 

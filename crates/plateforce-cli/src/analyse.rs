@@ -839,8 +839,9 @@ fn build_request(
 /// having spoken rather than the software claiming they did.
 ///
 /// A construct written against with no rule named carries no id, which is the engine's word
-/// for a reader who stated values and left the rule to the phase. Naming the rule the phase
-/// runs anyway and leaving it unnamed produce the same record.
+/// for a reader who stated values and left the rule to the phase. That leaves the same record
+/// as omitting the construct: the values are the reader's and the rule is the registry's,
+/// recorded as assumed. Naming the rule is the one act that makes it the reader's.
 pub(crate) fn conditioning_choices(
     rules: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,

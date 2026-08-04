@@ -229,20 +229,12 @@ fn a_name_the_conditioning_rule_does_not_read_comes_back_unread() {
     );
 }
 
-/// Naming the rule this phase runs anyway, and naming none and stating values against it,
-/// leave the same record. The key in the map buys somewhere to put the values, never a
-/// different account of what ran.
+/// Putting the key in the map without naming a rule leaves the record a request that omits
+/// the construct entirely leaves. The key buys somewhere to put the values, never a different
+/// account of what ran.
 #[test]
-fn naming_the_conditioning_rule_and_leaving_it_unnamed_record_the_same_run() {
+fn holding_a_place_for_values_without_naming_a_rule_records_the_run_unchanged() {
     let trial = committed_trial(COMMITTED_TRIALS[0]);
-    let mut named = default_request();
-    named.conditioning.insert(
-        CONSTRUCT.to_string(),
-        MethodChoice {
-            method_id: CONDITIONING_ID.to_string(),
-            ..Default::default()
-        },
-    );
     let mut unnamed = default_request();
     unnamed
         .conditioning
@@ -252,8 +244,71 @@ fn naming_the_conditioning_rule_and_leaving_it_unnamed_record_the_same_run() {
         let response = run(&trial, &request).expect("the request runs");
         format!("{:?}", response.bound_methods)
     };
-    assert_eq!(record(named), record(default_request()));
     assert_eq!(record(unnamed), record(default_request()));
+}
+
+/// Naming the rule this phase runs anyway changes one thing about the record and nothing
+/// else: who chose the rule.
+///
+/// The values, their sources and every other rule's row are identical, because the same rule
+/// ran on the same signal. What differs is that one caller picked it and the other never
+/// mentioned it, and a record that spelled both `stated` would put a reader's signature on a
+/// rule they never saw.
+#[test]
+fn naming_the_conditioning_rule_credits_the_caller_and_changes_nothing_else() {
+    let trial = committed_trial(COMMITTED_TRIALS[0]);
+    let mut named = default_request();
+    named.conditioning.insert(
+        CONSTRUCT.to_string(),
+        MethodChoice {
+            method_id: CONDITIONING_ID.to_string(),
+            ..Default::default()
+        },
+    );
+
+    let rows = |request| {
+        run(&trial, &request)
+            .expect("the request runs")
+            .bound_methods
+    };
+    let picked = rows(named);
+    let unmentioned = rows(default_request());
+
+    assert_eq!(
+        picked.len(),
+        unmentioned.len(),
+        "naming the rule the phase runs anyway changed which rules ran"
+    );
+    let mut differing = Vec::new();
+    for (picked, unmentioned) in picked.iter().zip(unmentioned.iter()) {
+        // Compared with the one field under test held equal, so this reports every other
+        // difference rather than being satisfied by the one it expects.
+        let mut levelled = picked.clone();
+        levelled.method_source = unmentioned.method_source;
+        assert_eq!(
+            format!("{levelled:?}"),
+            format!("{unmentioned:?}"),
+            "naming the rule moved something other than the claim about who chose it"
+        );
+        if picked.method_source != unmentioned.method_source {
+            differing.push((
+                picked.method_id.clone(),
+                picked.method_source,
+                unmentioned.method_source,
+            ));
+        }
+    }
+
+    assert_eq!(
+        differing,
+        vec![(
+            CONDITIONING_ID.to_string(),
+            ParameterSource::Stated,
+            ParameterSource::Assumed
+        )],
+        "one of the {} rules differs in who chose it, and it is the one the request named",
+        picked.len()
+    );
 }
 
 /// The table says which rules condition, and this build binds exactly the one the spec

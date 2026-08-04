@@ -112,12 +112,28 @@ fn a_stated_conditioning_choice_reaches_the_record_as_the_readers() {
     println!("{EDGE} unstated: assumed, stated: stated");
 }
 
-/// Naming the rule the phase runs anyway leaves the same record as leaving it unnamed, so the
-/// flag buys a reader the ability to say it and never a different account of what ran.
+/// Naming the rule the phase runs anyway changes one thing in the record and nothing else:
+/// who chose it. The same rule reads the same signal and binds the same values either way, so
+/// the flag buys a reader nothing about the arithmetic and exactly one thing about the
+/// account, which is the act of having picked the rule.
 #[test]
-fn naming_the_conditioning_rule_records_what_running_it_unnamed_records() {
-    let named = conditioning_record(&["--condition", "conditioned_force_signal=filter.none"]);
-    assert_eq!(named, conditioning_record(&[]));
+fn naming_the_conditioning_rule_is_recorded_as_the_readers_own_choice() {
+    let mut named = conditioning_record(&["--condition", "conditioned_force_signal=filter.none"]);
+    let unnamed = conditioning_record(&[]);
+
+    assert_eq!(named["method_source"], "stated");
+    assert_eq!(
+        unnamed["method_source"], "assumed",
+        "a rule nobody named reads as one the reader picked: {unnamed}"
+    );
+
+    // Held equal on the one field under test, so this reports any other difference rather
+    // than being satisfied by the difference it expects.
+    named["method_source"] = unnamed["method_source"].clone();
+    assert_eq!(
+        named, unnamed,
+        "naming the rule moved something other than the claim about who chose it"
+    );
 }
 
 /// An edge this rule does not take is refused, in one sentence naming the rule, the name and
