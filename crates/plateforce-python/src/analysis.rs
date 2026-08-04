@@ -125,6 +125,22 @@ fn quantities_of(
     (parameters, from_registry_default)
 }
 
+/// The same for the parameters an entry varies by name, which travel to the engine in their
+/// own map and would otherwise leave the binding at its edge.
+///
+/// A caller who wrote `entry.bind(selection="longest_run")` and handed the binding to an
+/// analysis stated a rule's behaviour, and the run has to read it. Written the moment `bind`
+/// learned to hold a name at all: a binding that carries one and a request that cannot is the
+/// silent drop this file's other half already documents, in the other shape.
+fn names_of(
+    method: &BoundMethod,
+    stated: Option<BTreeMap<String, String>>,
+) -> BTreeMap<String, String> {
+    let mut options: BTreeMap<String, String> = method.bound_names.iter().cloned().collect();
+    options.extend(stated.unwrap_or_default());
+    options
+}
+
 /// A choice for a slot the caller named a rule for, or one carrying only their values for a
 /// slot a published pipeline is about to fill.
 fn unbound_or(
@@ -147,13 +163,20 @@ fn choice_of(
     parameters: Option<BTreeMap<String, f64>>,
     options: Option<BTreeMap<String, String>>,
 ) -> MethodChoice {
+    // A name stated here overrides the one the binding holds, so it is the caller's and not
+    // the registry's however the binding reached it. Taken before `quantities_of`, whose
+    // claim about what nobody stated has to answer for both shapes at once.
+    let stated_by_name: BTreeSet<String> = options.iter().flat_map(|o| o.keys().cloned()).collect();
     let (parameters, from_registry_default) = quantities_of(method, parameters);
     MethodChoice {
         method_id: method.method_id().to_string(),
         parameters,
-        options: options.unwrap_or_default(),
+        options: names_of(method, options),
         manual_index: None,
-        from_registry_default,
+        from_registry_default: from_registry_default
+            .difference(&stated_by_name)
+            .cloned()
+            .collect(),
         ..Default::default()
     }
 }
@@ -1395,9 +1418,13 @@ mod tests {
     /// takes the entry's own default.
     fn analysed(stated: BTreeMap<&str, BTreeMap<String, f64>>) -> AnalysisResponse {
         let bound = |id: &str| {
+            let numbers = stated.get(id).cloned().unwrap_or_default();
             crate::registry::bound_from_the_registry_this_build_carries(
                 id,
-                stated.get(id).cloned().unwrap_or_default(),
+                numbers
+                    .into_iter()
+                    .map(|(name, value)| (name, crate::registry::Stated::Number(value)))
+                    .collect(),
             )
         };
         let weighing = bound(WEIGHING_RULE);
@@ -1475,6 +1502,102 @@ mod tests {
                 "{rule} ran on the registry's own {name} and the record names the caller"
             );
         }
+    }
+
+    /// The same claim for a default the registry states as a name rather than as a number.
+    ///
+    /// `bind` read only the numeric default, so a parameter defaulted by name reached the
+    /// engine unbound: the notebook's `BoundMethod` came back with an empty parameter list
+    /// where the terminal recorded `dispersion = sample, assumed`, and two entries whose only
+    /// default is a name refused outright with a message saying the registry gives them none.
+    ///
+    /// Asserted on the binding rather than on the record. Written first against the record's
+    /// `assumed`, it passed with the read reverted: the engine holds its own fallback for
+    /// `dispersion` and reports `assumed` for a name that never arrived, so the state under
+    /// test was out of the assertion's reach. Both shapes here, and the parameter list is
+    /// where they differ, one entry defaulting by name alone and one carrying both kinds.
+    #[test]
+    fn a_name_the_registry_filled_in_is_bound_the_way_a_number_is() {
+        // The optional one first, so a build that drops the read fails this assertion rather
+        // than the refusal the required rows below it raise, whose message is about the
+        // interpreter and not about the claim.
+        for (rule, expected) in [
+            (
+                WEIGHING_RULE,
+                vec![("accumulation", "two_pass"), ("dispersion", "sample")],
+            ),
+            (
+                "takeoff.op.short_run_handling",
+                vec![("short_run_handling", "rank_then_filter")],
+            ),
+            (
+                "takeoff.op.residual_comparison",
+                vec![("comparison", "signed")],
+            ),
+        ] {
+            let bound =
+                crate::registry::bound_from_the_registry_this_build_carries(rule, BTreeMap::new());
+            let expected: Vec<(String, String)> = expected
+                .iter()
+                .map(|(name, value)| ((*name).to_string(), (*value).to_string()))
+                .collect();
+            assert_eq!(
+                bound.bound_names, expected,
+                "{rule} did not bind the names the registry defaults for it"
+            );
+            for (name, _) in &expected {
+                assert!(
+                    bound.names_the_registry_filled().contains(name),
+                    "{rule} bound {name} from the registry and reports the caller chose it"
+                );
+            }
+        }
+    }
+
+    /// The control on the guard above, and the reason `bind` learned to hold a name at all:
+    /// a caller who states one is recorded as having stated it.
+    ///
+    /// Stated through the binding rather than beside it, which is the path that carries a name
+    /// from a notebook. A build that reads the caller's name and drops it answers `assumed`
+    /// here and passes the guard above, so the pair is what separates a binding that carries
+    /// the name from one that merely defaults it.
+    #[test]
+    fn a_name_the_caller_stated_through_the_binding_is_recorded_as_theirs() {
+        let bound = crate::registry::bound_from_the_registry_this_build_carries(
+            TAKEOFF_RULE,
+            BTreeMap::from([(
+                "dispersion".to_string(),
+                crate::registry::Stated::Name("population".to_string()),
+            )]),
+        );
+        let weighing = crate::registry::bound_from_the_registry_this_build_carries(
+            WEIGHING_RULE,
+            BTreeMap::new(),
+        );
+        let onset = crate::registry::bound_from_the_registry_this_build_carries(
+            ONSET_RULE,
+            BTreeMap::new(),
+        );
+        let request = AnalysisRequest {
+            weighing: weighing_choice(choice_of(&weighing, None, None), None),
+            onset: choice_of(&onset, None, None),
+            takeoff: choice_of(&bound, None, None),
+            registry_backed_ids: weighing.registry_identity().method_ids.as_ref().clone(),
+            ..Default::default()
+        };
+        let response =
+            plateforce_analysis::run(&a_jump_that_lands(), &request).expect("the request is bound");
+
+        assert_eq!(
+            source_of(&response, TAKEOFF_RULE, "dispersion"),
+            ParameterSource::Stated,
+            "a dispersion the caller named on the binding is recorded as the registry's own"
+        );
+        assert_eq!(
+            source_of(&response, ONSET_RULE, "dispersion"),
+            ParameterSource::Assumed,
+            "a rule the caller said nothing to reports the caller anyway"
+        );
     }
 
     /// The control on the guard above: the same three names, stated, and the same three rules

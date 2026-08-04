@@ -553,6 +553,19 @@ pub struct MethodEntry {
     pub(crate) registry_identity: RegistryIdentity,
 }
 
+/// One value a caller stated, in whichever of the two shapes a parameter varies by.
+///
+/// A parameter varies by number or by name and never both, so a request arriving in the other
+/// shape is answered rather than coerced. Read as a number alone, `takeoff.op.crossing_selection`
+/// accepted `selection = 1` on a parameter whose values are `first` and `longest_run`, and
+/// nothing downstream could see it: an enumeration publishes no `published_values`, so the
+/// check that catches an off-list number never looked.
+#[derive(Debug, Clone)]
+pub(crate) enum Stated {
+    Number(f64),
+    Name(String),
+}
+
 /// One rule of the registry this build carries, bound to the values stated and to the entry's
 /// own default for every name that was not.
 ///
@@ -562,7 +575,7 @@ pub struct MethodEntry {
 #[cfg(test)]
 pub(crate) fn bound_from_the_registry_this_build_carries(
     method_id: &str,
-    stated: BTreeMap<String, f64>,
+    stated: BTreeMap<String, Stated>,
 ) -> BoundMethod {
     let carried = registry_this_build_carries().expect("the wheel carries a registry");
     let registry = Registry {
@@ -590,7 +603,7 @@ impl MethodEntry {
     /// Apart from `bind` because that call reaches its values through a `PyDict` and this one
     /// does not, so a guard over what a request claims about a value nobody stated can run
     /// without an interpreter.
-    pub(crate) fn binding_over(&self, supplied: BTreeMap<String, f64>) -> PyResult<BoundMethod> {
+    pub(crate) fn binding_over(&self, supplied: BTreeMap<String, Stated>) -> PyResult<BoundMethod> {
         let known: BTreeMap<&str, &CoreParameter> = self
             .inner
             .parameters
@@ -601,18 +614,24 @@ impl MethodEntry {
         // Sorted, so two bindings of the same values fingerprint the same however the
         // caller happened to order the keyword arguments.
         let mut bound: Vec<(String, f64)> = Vec::new();
+        let mut chosen: Vec<(String, String)> = Vec::new();
         let mut defaulted: Vec<String> = Vec::new();
         let mut unpublished: Vec<String> = Vec::new();
 
         for (name, definition) in &known {
+            let varies_by_name = !definition.named_values.is_empty();
             let value = match supplied.get(*name) {
-                Some(given) => *given,
-                None => match definition.default {
-                    Some(default) => {
+                Some(given) => given.clone(),
+                None => match (definition.default, &definition.default_key) {
+                    (Some(default), _) => {
                         defaulted.push((*name).to_string());
-                        default
+                        Stated::Number(default)
                     }
-                    None => {
+                    (None, Some(key)) => {
+                        defaulted.push((*name).to_string());
+                        Stated::Name(key.clone())
+                    }
+                    (None, None) => {
                         if definition.required {
                             return Err(parameter_error(
                                 &self.inner.id,
@@ -627,20 +646,64 @@ impl MethodEntry {
                     }
                 },
             };
-            if !definition.published_values.is_empty()
-                && !definition.published_values.contains(&value)
-            {
-                unpublished.push((*name).to_string());
+
+            match value {
+                Stated::Number(number) if varies_by_name => {
+                    return Err(self.takes_a_name(name, definition, &number.to_string()))
+                }
+                Stated::Number(number) => {
+                    if !definition.published_values.is_empty()
+                        && !definition.published_values.contains(&number)
+                    {
+                        unpublished.push((*name).to_string());
+                    }
+                    bound.push(((*name).to_string(), number));
+                }
+                Stated::Name(key) if !varies_by_name => {
+                    return Err(parameter_error(
+                        &self.inner.id,
+                        name,
+                        format!(
+                            "{}({}) is a number, and '{}' is a name",
+                            self.inner.id, name, key
+                        ),
+                    ))
+                }
+                Stated::Name(key) => {
+                    if !definition.named_values.iter().any(|value| value.key == key) {
+                        return Err(self.takes_a_name(name, definition, &key));
+                    }
+                    chosen.push(((*name).to_string(), key));
+                }
             }
-            bound.push(((*name).to_string(), value));
         }
 
         Ok(BoundMethod {
             entry: self.clone(),
             bound_parameters: bound,
+            bound_names: chosen,
             defaulted,
             unpublished,
         })
+    }
+
+    /// A value that is not one of the names this parameter takes, answered with the names it
+    /// does take. The offered list is the whole point: a caller who reached here guessed, and
+    /// a refusal that does not say what the entry accepts sends them to the registry file.
+    fn takes_a_name(&self, name: &str, definition: &CoreParameter, given: &str) -> PyErr {
+        let offered: Vec<&str> = definition
+            .named_values
+            .iter()
+            .map(|value| value.key.as_str())
+            .collect();
+        parameter_error(
+            &self.inner.id,
+            name,
+            format!(
+                "{}({}) takes one of {:?}, got '{}'",
+                self.inner.id, name, offered, given
+            ),
+        )
     }
 }
 
@@ -775,8 +838,11 @@ impl MethodEntry {
     /// Fix this method's parameter values, checking each against the entry.
     ///
     /// A parameter with a registry default may be omitted and the default is recorded as
-    /// bound. A required parameter with no default has to be supplied. A value outside the
-    /// entry's `published_values` binds and is listed in `unpublished_parameters`.
+    /// bound, whether the entry states that default as a number or as one of the names it
+    /// publishes. A required parameter with no default of either shape has to be supplied. A
+    /// value outside the entry's `published_values` binds and is listed in
+    /// `unpublished_parameters`; a name the entry does not publish is refused, because an
+    /// enumeration has no continuum for an unlisted value to sit on.
     #[pyo3(signature = (**parameters))]
     fn bind(&self, parameters: Option<&Bound<'_, PyDict>>) -> PyResult<BoundMethod> {
         let known: BTreeMap<&str, &CoreParameter> = self
@@ -786,11 +852,11 @@ impl MethodEntry {
             .map(|parameter| (parameter.name.as_str(), parameter))
             .collect();
 
-        let mut supplied: BTreeMap<String, f64> = BTreeMap::new();
+        let mut supplied: BTreeMap<String, Stated> = BTreeMap::new();
         if let Some(given) = parameters {
             for (key, value) in given.iter() {
                 let name: String = key.extract()?;
-                if !known.contains_key(name.as_str()) {
+                let Some(definition) = known.get(name.as_str()) else {
                     let offered: Vec<&str> = known.keys().copied().collect();
                     return Err(parameter_error(
                         &self.inner.id,
@@ -800,6 +866,16 @@ impl MethodEntry {
                             self.inner.id, name, offered
                         ),
                     ));
+                };
+                // The entry decides which shape to read the argument in, so a string reaching
+                // a numeric parameter and a number reaching an enumeration are each answered
+                // by the parameter they arrived at rather than by whichever extract ran first.
+                if !definition.named_values.is_empty() {
+                    let chosen: String = value
+                        .extract()
+                        .map_err(|_| self.takes_a_name(&name, definition, &value.to_string()))?;
+                    supplied.insert(name, Stated::Name(chosen));
+                    continue;
                 }
                 let number: f64 = value.extract().map_err(|_| {
                     parameter_error(
@@ -827,7 +903,7 @@ impl MethodEntry {
                         ),
                     ));
                 }
-                supplied.insert(name, number);
+                supplied.insert(name, Stated::Number(number));
             }
         }
 
@@ -871,6 +947,10 @@ impl MethodEntry {
 pub struct BoundMethod {
     pub(crate) entry: MethodEntry,
     pub(crate) bound_parameters: Vec<(String, f64)>,
+    /// The names bound for parameters the registry varies by name rather than by number.
+    /// Beside the numbers rather than among them, because the engine reads the two through
+    /// separate maps and a name flattened into a number is the option nobody can spell.
+    pub(crate) bound_names: Vec<(String, String)>,
     defaulted: Vec<String>,
     unpublished: Vec<String>,
 }
@@ -902,11 +982,18 @@ impl BoundMethod {
         self.entry.clone()
     }
 
+    /// Every value this binding fixed, numbers as numbers and named options as their key.
+    ///
+    /// One mapping rather than two, because a reader asking what a rule bound is asking one
+    /// question. Which shape a name comes back in is the entry's answer, not this call's.
     #[getter]
     fn parameters<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let bound = PyDict::new(python);
         for (name, value) in &self.bound_parameters {
             bound.set_item(name, value)?;
+        }
+        for (name, key) in &self.bound_names {
+            bound.set_item(name, key)?;
         }
         Ok(bound)
     }
@@ -929,6 +1016,11 @@ impl BoundMethod {
             .bound_parameters
             .iter()
             .map(|(name, value)| format!("{name}={value}"))
+            .chain(
+                self.bound_names
+                    .iter()
+                    .map(|(name, key)| format!("{name}={key}")),
+            )
             .collect::<Vec<_>>()
             .join(", ");
         format!("BoundMethod('{}', {})", self.entry.inner.id, body)

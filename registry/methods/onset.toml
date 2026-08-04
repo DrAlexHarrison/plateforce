@@ -798,7 +798,7 @@ unit = "fraction"
 published_values = [0.6, 0.9]
 default = 0.6
 default_source = "tenan2017"
-required = false
+required = true
 
 [[method.parameter]]
 name = "assumed_signal_to_noise"

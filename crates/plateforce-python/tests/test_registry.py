@@ -84,8 +84,40 @@ def test_the_entry_says_whether_this_build_can_run_it(registry):
 
 
 def test_binding_records_the_registry_default_and_says_it_defaulted(registry):
+    """Both shapes of default, because `bind` read only the numeric one.
+
+    An entry whose default is a name came back with that name missing from `parameters`,
+    and where its `required` was also set it refused, in a message saying the registry gives
+    it no default while the entry beside it names one.
+    """
     bound = registry.method("bwepoch.fixed_window").bind()
-    assert bound.parameters == {"duration": 1.0}
+    assert bound.parameters == {"duration": 1.0, "centre": "mean"}
+    assert bound.defaulted_parameters == ["centre", "duration"]
+
+
+def test_a_name_the_entry_does_not_publish_is_refused_with_the_ones_it_takes(registry):
+    with pytest.raises(pf.ParameterError) as raised:
+        registry.method("bwepoch.fixed_window").bind(centre="trimmed_mean")
+    message = str(raised.value)
+    assert "trimmed_mean" in message
+    assert "mean" in message and "median" in message
+    assert raised.value.parameter == "centre"
+
+
+def test_a_number_stated_for_a_named_parameter_is_refused(registry):
+    """`selection = 1` bound clean on a parameter taking `first` or `longest_run`.
+
+    An enumeration publishes no `published_values`, so the check that reports an off-list
+    number had nothing to compare against and the binding carried a value no rule accepts.
+    """
+    with pytest.raises(pf.ParameterError) as raised:
+        registry.method("bwepoch.fixed_window").bind(centre=1.0)
+    assert "mean" in str(raised.value)
+
+
+def test_a_name_the_caller_states_is_bound_and_not_reported_as_defaulted(registry):
+    bound = registry.method("bwepoch.fixed_window").bind(centre="median")
+    assert bound.parameters == {"duration": 1.0, "centre": "median"}
     assert bound.defaulted_parameters == ["duration"]
 
 

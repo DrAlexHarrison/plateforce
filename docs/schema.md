@@ -199,10 +199,26 @@ unit = "watts"
 `unit` on a number is not optional. Dimensionless is a unit and saying so is what stops the
 next author omitting it for a real one.
 
-An entry may list its options and declare no default. A parameter that is required with no
-default refuses by name when a request omits it, which is the honest shape for a choice the
-literature does not settle, and setting a `default_key` on one would invent a default to
-fill a field.
+#### What `required` claims
+
+`required` is a claim about the rule, not about the caller: the rule cannot produce a result
+without a value for this parameter. It does not mean the request has to carry one.
+
+Which gives two shapes, and the difference is whether a default sits beside it.
+
+**Required with a default.** The registry supplies the value where the request names none,
+and the record calls it `assumed` rather than the reader's own choice. The pair is what lets
+the software say that a value the literature publishes six ways was chosen by nobody:
+`onset.threshold.noise_relative` takes `k` as required at a default of 5, and a run that
+never mentions `k` is answering a question it was not asked. This is the common shape and the
+worked examples above both use it.
+
+**Required with no default.** The request is refused by name, which is the honest shape for a
+choice the literature does not settle, and setting a `default_key` on one would invent a
+default to fill a field.
+
+A parameter that is not required is one the rule runs without. Absent, no value binds for it
+and nothing is assumed on the reader's behalf.
 
 ### Citations, and what each source did
 
