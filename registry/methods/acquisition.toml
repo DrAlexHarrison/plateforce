@@ -18,6 +18,19 @@ status = "accepted"
 confidence = "high"
 debate = "genuine"
 
+[[method.parameter]]
+name = "passband_edge_hz"
+unit = "enumeration"
+notes = """
+The whole of this rule is the declaration, so the edge is stated as the word rather than as a
+frequency. An undeclared absence of filtering and a filter somebody forgot to write down read the
+same in every result that omits this name.
+"""
+
+[[method.parameter.value]]
+key = "none"
+label = "No passband edge, the recording is read as it was digitised"
+
 [[method.citation]]
 key = "street2001"
 role = "proposes"

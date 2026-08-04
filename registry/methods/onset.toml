@@ -321,14 +321,47 @@ rather than an empirical derivation. It disagrees with the parent literature, wh
 name = "sd_convention"
 unit = "enumeration"
 notes = """
-population or sample. The same author group uses population SD in one paper and sample SD in
-another, which is a real registry distinction rather than a typographic one.
+The same author group uses population SD in one paper and sample SD in another, which is a real
+registry distinction rather than a typographic one.
 """
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.parameter]]
 name = "reference_distribution"
 unit = "enumeration"
-notes = "quiet_stance_force or empty_plate, per noise_ref.distribution. 8 SD of empty plate is not 5 SD of stance."
+notes = "Filed as a fork in its own right under noise_ref.distribution. 8 SD of empty plate is not 5 SD of stance."
+
+[[method.parameter.value]]
+key = "quiet_stance_force"
+label = "The spread of force while the athlete stands still on the plate"
+
+[[method.parameter.value]]
+key = "empty_plate"
+label = "The spread of force with nobody on the plate"
+
+[[method.parameter]]
+name = "degenerate_band"
+unit = "enumeration"
+notes = """
+What happens when k standard deviations of the reference epoch collapses to nothing. A band of zero
+width is crossed by the first sample that differs from system weight at all, so the onset it reports
+is a property of the converter rather than of the movement.
+"""
+
+[[method.parameter.value]]
+key = "refuse"
+label = "Report no onset and say the reference epoch was not quiet"
+
+[[method.parameter.value]]
+key = "fraction_of_reference"
+label = "Widen the band to a stated fraction of the reference force"
 
 [[method.citation]]
 key = "owen2014"
@@ -938,11 +971,24 @@ debate = "genuine"
 name = "tolerance"
 unit = "enumeration"
 notes = """
-Published tolerances: exactly at system weight; within 0 to 2 N of it; within one standard
-deviation of it. The last two are the same idea in incomparable units, one scaling with the noise
-and one not, so on a quiet plate they can differ by an order of magnitude in either direction. The
-tolerance unit must be shown in the interface, not just the number.
+The last two are the same idea in incomparable units, one scaling with the noise and one not, so on
+a quiet plate they can differ by an order of magnitude in either direction. The tolerance unit must
+be shown in the interface, not just the number.
 """
+
+[[method.parameter.value]]
+key = "at_system_weight"
+label = "Retreat until force reaches system weight exactly"
+
+[[method.parameter.value]]
+key = "within_newtons"
+label = "Retreat until force is within a stated number of newtons of system weight"
+notes = "Published between 0 and 2 newtons."
+
+[[method.parameter.value]]
+key = "within_standard_deviations"
+label = "Retreat until force is within a stated number of standard deviations of system weight"
+notes = "Scales with the plate's noise, which the newton form does not, so the two rank differently on a quiet plate and on a noisy one."
 
 [[method.parameter]]
 name = "retreat_cap_samples"
@@ -1113,13 +1159,24 @@ debate = "genuine"
 [[method.parameter]]
 name = "selection"
 unit = "enumeration"
-published_values = []
 notes = """
-first, last, longest_run. The apparent first-against-last fork between two open tools is
-discretisation rather than a fork: within a search bounded above by the minimum force, a
-countermovement-jump trace crosses once, so last-above equals first-below minus one sample. The
-residual genuine difference is a noise-rejection policy on the same axis as persistence.
+The apparent first-against-last fork between two open tools is discretisation rather than a fork:
+within a search bounded above by the minimum force, a countermovement-jump trace crosses once, so
+last-above equals first-below minus one sample. The residual genuine difference is a noise-rejection
+policy on the same axis as persistence.
 """
+
+[[method.parameter.value]]
+key = "first"
+label = "The earliest crossing in the search"
+
+[[method.parameter.value]]
+key = "last"
+label = "The latest crossing in the search"
+
+[[method.parameter.value]]
+key = "longest_run"
+label = "The crossing that opens the longest qualifying run"
 
 [[method.citation]]
 key = "bilalovski"
@@ -1339,7 +1396,27 @@ debate = "single_position"
 [[method.parameter]]
 name = "bound"
 unit = "enumeration"
-notes = "minimum_force, peak_force, takeoff, time_of_minimum_force."
+notes = "Which downstream landmark closes the search, so a last-crossing rule cannot pick up a crossing the movement itself produced."
+
+[[method.parameter.value]]
+key = "minimum_force"
+label = "The force minimum that follows the unweighting"
+source = "acu_sprint"
+
+[[method.parameter.value]]
+key = "time_of_minimum_force"
+label = "The instant the force minimum falls at"
+source = "sams_shiny"
+
+[[method.parameter.value]]
+key = "peak_force"
+label = "The largest force in the recording"
+source = "acu_sprint"
+notes = "The bound ACU SPRINT uses for the isometric pull, where the trace only rises."
+
+[[method.parameter.value]]
+key = "takeoff"
+label = "The instant takeoff was placed at"
 
 [[method.citation]]
 key = "acu_sprint"
@@ -1375,10 +1452,22 @@ debate = "single_position"
 name = "direction"
 unit = "enumeration"
 notes = """
-below_only, above_only, two_sided. An implementation detail for a countermovement jump, which
-always unweights first, and a genuine method fork for a squat jump, an isometric pull or a squat,
-which only rise. The same code is correct for one task and wrong for another.
+An implementation detail for a countermovement jump, which always unweights first, and a genuine
+method fork for a squat jump, an isometric pull or a squat, which only rise. The same code is
+correct for one task and wrong for another.
 """
+
+[[method.parameter.value]]
+key = "below_only"
+label = "Only a departure below the standing band counts"
+
+[[method.parameter.value]]
+key = "above_only"
+label = "Only a departure above the standing band counts"
+
+[[method.parameter.value]]
+key = "two_sided"
+label = "A departure in either direction counts"
 
 [[method.citation]]
 key = "bilalovski"
@@ -1445,8 +1534,15 @@ required = true
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
-published_values = []
-notes = "population, sample. The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
+notes = "The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.citation]]
 key = "chronojump_r"

@@ -211,11 +211,39 @@ required = true
 name = "flight_window"
 unit = "enumeration"
 notes = """
-Published windows: a fixed 300 ms of flight, the middle 50 percent of the provisional flight, and a
-fixed 300-sample trim hard-coded to 1000 Hz with an explicit instruction to halve it at 500 Hz. The
-middle-50-percent form correctly avoids contaminating the estimate with the takeoff and landing
+Which samples of the provisional flight phase the residual threshold is re-estimated over. The
+middle-fraction form is the one that avoids contaminating the estimate with the takeoff and landing
 transients.
 """
+
+[[method.parameter.value]]
+key = "fixed_span_from_takeoff"
+label = "A span of stated length measured from the provisional takeoff"
+source = "mcmahon2018"
+notes = "Published at 300 milliseconds."
+
+[[method.parameter.value]]
+key = "middle_fraction_of_flight"
+label = "The middle fraction of the provisional flight phase, trimmed at both ends"
+notes = "Published at the middle 50 percent, which is a trim of a quarter of the flight at each end."
+
+[[method.parameter.value]]
+key = "fixed_sample_trim"
+label = "A trim of a stated number of samples at each end of the provisional flight"
+notes = "Published as 300 samples against 1000 Hz, with an instruction to halve the count at 500 Hz, so the span it selects is a different duration on any other rate."
+
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+notes = "The window this rule measures over is a fraction of one flight phase, so the divisor is not negligible the way it is over a long epoch."
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.citation]]
 key = "mcmahon2018"
@@ -529,15 +557,22 @@ debate = "genuine"
 [[method.parameter]]
 name = "selection"
 unit = "enumeration"
-published_values = []
 required = true
 notes = """
-first, longest_run. The choice is only visible on a recording that holds more than one qualifying
-run, and then it decides the answer completely: measured on 244 trials, the longest-run reading
-places takeoff 843 ms later than the first-run reading on 155 of them, because the athlete standing
-off the plate after the jump outlasts the flight. The first-run reading fails in the opposite
-population, where an athlete unloads the plate without leaving it.
+The choice is only visible on a recording that holds more than one qualifying run, and then it
+decides the answer completely: measured on 244 trials, the longest-run reading places takeoff 843 ms
+later than the first-run reading on 155 of them, because the athlete standing off the plate after
+the jump outlasts the flight. The first-run reading fails in the opposite population, where an
+athlete unloads the plate without leaving it.
 """
+
+[[method.parameter.value]]
+key = "first"
+label = "The earliest run of force below the threshold"
+
+[[method.parameter.value]]
+key = "longest_run"
+label = "The longest run of force below the threshold, wherever it sits"
 
 [[method.disagrees_with]]
 id = "takeoff.op.short_run_handling"
@@ -568,13 +603,20 @@ debate = "genuine"
 [[method.parameter]]
 name = "short_run_handling"
 unit = "enumeration"
-published_values = []
 required = true
 notes = """
-rank_then_filter, filter_then_rank. Under rank_then_filter a run too short to be a flight can win
-the comparison and then disqualify the trial, so a valid flight phase present in the recording is
-never examined. The two agree whenever the longest run is already long enough.
+Under rank_then_filter a run too short to be a flight can win the comparison and then disqualify the
+trial, so a valid flight phase present in the recording is never examined. The two agree whenever
+the longest run is already long enough.
 """
+
+[[method.parameter.value]]
+key = "rank_then_filter"
+label = "Rank every run by length, then test the winner against the minimum flight time"
+
+[[method.parameter.value]]
+key = "filter_then_rank"
+label = "Discard the runs below the minimum flight time, then rank what is left"
 
 [[method.disagrees_with]]
 id = "takeoff.op.crossing_selection"
@@ -604,13 +646,20 @@ debate = "vendor_or_legacy"
 [[method.parameter]]
 name = "comparison"
 unit = "enumeration"
-published_values = []
 required = true
 notes = """
-signed, magnitude. An unloaded plate can read negative. Under the signed comparison such a sample
-is below any positive threshold and counts as flight; under the magnitude comparison it does not,
-so a plate whose zero has drifted low reports a different flight phase under each.
+An unloaded plate can read negative. Under the signed comparison such a sample is below any positive
+threshold and counts as flight; under the magnitude comparison it does not, so a plate whose zero
+has drifted low reports a different flight phase under each.
 """
+
+[[method.parameter.value]]
+key = "signed"
+label = "Compare force against the threshold as it reads, sign included"
+
+[[method.parameter.value]]
+key = "magnitude"
+label = "Compare the distance of force from zero against the threshold"
 
 [method.gui]
 surfacing = "default_and_hide"
