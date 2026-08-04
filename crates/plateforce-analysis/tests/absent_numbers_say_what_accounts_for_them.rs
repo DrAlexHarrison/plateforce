@@ -164,7 +164,7 @@ fn the_columns_the_signal_names_are_exactly_the_columns_that_came_back_empty() {
         .expect("the condition is reported")
         .qualifies
         .iter()
-        .copied()
+        .map(String::as_str)
         .collect();
 
     println!("absent: {absent:?}");

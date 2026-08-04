@@ -146,8 +146,8 @@ fn a_step_off_produces_two_jump_heights_and_only_that_trace_is_flagged() {
     // would send the reader to a rule whose every published alternative changes nothing.
     assert_eq!(fired[0].remedy_construct, "takeoff");
     assert!(fired[0].remedy.contains("takeoff"));
-    assert!(fired[0].qualifies.contains(&FROM_TAKEOFF));
-    assert!(fired[0].qualifies.contains(&FROM_FLIGHT));
+    assert!(fired[0].qualifies.iter().any(|key| key == FROM_TAKEOFF));
+    assert!(fired[0].qualifies.iter().any(|key| key == FROM_FLIGHT));
     println!("signal: {} | {}", fired[0].label, fired[0].remedy);
 }
 
