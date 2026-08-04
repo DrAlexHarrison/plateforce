@@ -2,8 +2,7 @@
 //!
 //! The four relations arrive as lists of dictionaries and the converters are opt-in, so the
 //! object pulls in no third-party package. Asking for one that is not installed says which
-//! package would answer and what is available without it, rather than raising the import
-//! error the caller cannot act on.
+//! package would answer and what is available without it.
 
 use std::path::PathBuf;
 
@@ -350,8 +349,7 @@ pub fn batch(
         Registry::load(&registry).map_err(|error| PyValueError::new_err(error.to_string()))?;
 
     // A construct computed from the landmarks has no argument of its own, so the rule, its
-    // values and its names are keyed by the construct, under the spelling the terminal's
-    // --derive takes and the single-trial call already uses.
+    // values and its names are keyed by the construct.
     let derived = derived.unwrap_or_default();
     let derived_parameters = derived_parameters.unwrap_or_default();
     let derived_options = derived_options.unwrap_or_default();
@@ -372,9 +370,8 @@ pub fn batch(
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         // What this registry carries, so a rule the registry files is recorded as backed
-        // rather than as the run's own. Read off the loaded registry for the same reason the
-        // terminal reads it there: a list built from the caller's choices alone reports the
-        // operators the binding composes as absent from the registry they are filed in.
+        // rather than as the run's own. A list built from the caller's choices alone reports
+        // the operators a binding composes as absent from the registry they are filed in.
         registry_backed_ids: loaded.methods.keys().cloned().collect(),
         derived: derived
             .iter()

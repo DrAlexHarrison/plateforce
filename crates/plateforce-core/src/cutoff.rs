@@ -7,9 +7,8 @@
 //! answered a question it was not asked. The interval a caller wants a cutoff for is
 //! therefore an argument, and a rule declines the interval rather than the method.
 //!
-//! One tool computes the whiteness statistic, prints it to a console and surfaces it
-//! nowhere. The statistic travels with the cutoff here, because a cutoff nobody can trace
-//! to the number that chose it is the unrecorded choice this software exists to end.
+//! The statistic travels with the cutoff, because a cutoff nobody can trace to the number
+//! that chose it is an unrecorded choice.
 
 use crate::butterworth::{low_pass_dual_pass_zero_lag, ButterworthError, StateInitialisation};
 use crate::statistics::compensated_sum;

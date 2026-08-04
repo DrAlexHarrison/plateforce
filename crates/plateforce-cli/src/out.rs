@@ -12,11 +12,8 @@ use clap::ValueEnum;
 use crate::exit::{Fault, Stream};
 use crate::render::Colour;
 
-/// The operator's answer reaches the stream as well as the renderer.
-///
-/// Two places deciding whether an escape byte survives is one place too many, and the one
-/// that loses is the operator: an `always` the renderer honoured was stripped again here
-/// because the destination was a pipe. `auto` is what keeps a redirected document clean.
+/// The operator's answer reaches the stream as well as the renderer, so an `always` the
+/// renderer honoured is not stripped again here when the destination is a pipe.
 fn passing(colour: Colour) -> anstream::ColorChoice {
     match colour {
         Colour::Always => anstream::ColorChoice::Always,

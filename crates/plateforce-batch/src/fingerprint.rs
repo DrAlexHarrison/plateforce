@@ -204,10 +204,8 @@ mod tests {
 
     /// A filled acquisition block, so the comparisons below are over the digest.
     ///
-    /// Every fixture here used to leave it empty, which made the run incomplete, and an
-    /// incomplete `Fingerprint` matches nothing: `assert_ne!` between two of them passes
-    /// whatever the digests are, so a guard written to prove two runs differ would have
-    /// proved it against two identical ones just as well.
+    /// An incomplete `Fingerprint` matches nothing, so `assert_ne!` between two of them
+    /// passes whatever the digests are.
     fn a_recorded_plate() -> plateforce_core::Acquisition {
         plateforce_core::Acquisition {
             filter_at_capture: Some("none".to_string()),
@@ -327,8 +325,8 @@ mod tests {
         );
     }
 
-    /// A run nobody recorded the plate for publishes nothing to compare, which is the 2026-07-25
-    /// ruling: it fingerprints as incomplete rather than as matching.
+    /// A run nobody recorded the plate for publishes nothing to compare: it fingerprints as
+    /// incomplete rather than as matching.
     ///
     /// Taken over two runs whose digests differ, so a `published` returning the digest would
     /// redden here rather than being satisfied by one value equalling itself.

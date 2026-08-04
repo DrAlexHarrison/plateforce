@@ -35,9 +35,8 @@ struct ConstructReach {
     id: String,
     label: String,
     reachable: bool,
-    /// Whether this build has a rule bound for it. A different question from whether a
-    /// recording could support one, and the only one of the two that a gate can hold to a
-    /// floor, because a barrier declared honestly moves the first number down.
+    /// Whether this build has a rule bound for it, which is a different question from whether
+    /// a recording could support one.
     computed: bool,
     barriers: BTreeSet<&'static str>,
     /// What would settle an undetermined barrier, carried rather than replaced by a guess.
@@ -191,11 +190,9 @@ fn text_body(
         }
     }
 
-    // Three populations, each against its own denominator and never added together. The
-    // first is what this build computes today and is the one a floor is held to. The second
-    // counts constructs nothing stands in the way of, and it falls as barriers are classified
-    // honestly, so a reader handed only that number reads a registry nobody has classified
-    // yet as a product that computes everything.
+    // Three populations, each against its own denominator and never added together. The first
+    // is what this build computes and is the one a floor is held to. The second counts
+    // constructs nothing stands in the way of, and it falls as barriers are classified.
     let _ = writeln!(document);
     let _ = write!(
         document,
@@ -211,9 +208,8 @@ fn text_body(
 mod tests {
     use super::*;
 
-    /// Five field values, four report words, and `both` is the one that carries two. A
-    /// mapping that collapsed it would name one barrier on 15 of the 76 walled entries and
-    /// be wrong about its own scope.
+    /// Five field values, four report words, and `both` is the one that carries two. A mapping
+    /// that collapsed it would name one barrier on 15 of the 76 walled entries.
     #[test]
     fn every_boundary_the_registry_files_names_a_barrier_a_reader_can_act_on() {
         let filed = [

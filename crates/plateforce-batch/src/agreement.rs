@@ -25,9 +25,8 @@ use crate::relations::{ProvenanceRow, RefusalRow};
 
 /// The statistic ids this crate can resolve, in one table.
 ///
-/// One place resolves a statistic id, so adopting a registry-driven binding kind is one call
-/// site rather than a sweep. A rule that reported one id when it worked and another when it
-/// did not is the defect this table exists to prevent.
+/// One place resolves a statistic id, so a rule reports the same id whether it works or
+/// declines.
 const STATISTIC_IDS: &[(&str, Statistic)] = &[
     ("agreement.bland_altman_loa", Statistic::LimitsOfAgreement),
     (

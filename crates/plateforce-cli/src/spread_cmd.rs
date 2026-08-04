@@ -1,9 +1,8 @@
 //! How far the choice of rule moves a number, on this trial.
 //!
-//! Not an advanced feature and never behind a flag. Five of six real course documents ask an
-//! undergraduate to compute jump height two or three ways and explain the disagreement, so
-//! this is their assignment rather than an expert affordance. It rides in `analyse`'s own
-//! output for the headline quantity, and this command reports it for any other.
+//! Five of six course documents ask an undergraduate to compute jump height two or three ways
+//! and explain the disagreement. It rides in `analyse`'s own output for the headline quantity,
+//! and this command reports it for any other.
 
 use std::fmt::Write as _;
 
@@ -20,8 +19,7 @@ use crate::out::Format;
 use crate::registry_cmd::canonical;
 use crate::render::{Renderer, Role};
 
-/// The quantity `analyse` reports the spread for without being asked. Jump height is what the
-/// audience came for and what the founding measurement is over.
+/// The quantity `analyse` reports the spread for without being asked.
 pub const HEADLINE_QUANTITY: &str = "jump_height_from_takeoff_meters";
 
 /// One axis per construct the run bound, holding every rule this build can run for it. The
@@ -48,9 +46,8 @@ pub fn run(
     };
     let quantity = args.quantity.as_deref().unwrap_or(HEADLINE_QUANTITY);
 
-    // Asked of the analysis rather than of a list kept beside it. A key nothing computes
-    // sweeps every combination, fails every one, and reports an empty spread with exit 0,
-    // so a misspelling reads as a run that worked.
+    // Asked of the analysis rather than of a list kept beside it. A key nothing computes would
+    // sweep every combination, fail every one, and report an empty spread with exit 0.
     let reported = match plateforce_analysis::run(&prepared.trial.trial, &prepared.request) {
         Ok(response) => response.metrics,
         Err(refusal) => return Outcome::declined(Declined::recorded(*refusal)),
@@ -59,7 +56,7 @@ pub fn run(
         let names: Vec<&str> = reported.iter().map(|metric| metric.key.as_str()).collect();
         return Outcome::declined_line(
             Fault::Request,
-            format!("'{quantity}' is not a quantity this build reports, and it reports {names:?}"),
+            format!("'{quantity}' is not one of the quantities this run reports: {names:?}"),
         );
     }
 
@@ -68,14 +65,8 @@ pub fn run(
         Ok(response) => {
             // A sweep that leaves on its own says which build and which registry produced it.
             // One inside an analysed result inherits that document's identity, so `describe`
-            // stays as it is: it renders the panel `analyse` prints too, and a second copy of
-            // the identity there would be the same fact twice on one screen.
-            //
-            // The pin is the one the caller wrote, taken from the same `registry_stamp` that
-            // answers this for `analyse`, so the two commands cannot answer it differently.
-            // This surface accepts `--registry-version`, prints in its own help that the
-            // result will name the revision, and used to discard it: a sweep a caller pinned
-            // and one they did not left here identical.
+            // renders the panel alone. The pin comes from the same `registry_stamp` `analyse`
+            // reads, so the two commands cannot answer it differently.
             let reported = plateforce_analysis::document::SpreadDocument::of(
                 env!("CARGO_PKG_VERSION"),
                 &crate::analyse::registry_stamp(&prepared.registry, &args.analysis),
@@ -98,13 +89,11 @@ pub fn run(
 /// Every step this run bound that carries more than one rule, as an axis over those rules.
 ///
 /// The three landmarks and, since a request can bind them, the constructs computed from the
-/// landmarks. Restricting this to the landmarks meant the panel never varied the rule that
-/// computes the quantity it was sweeping: on subject 01 trial 1 it reported 3.11 cm for
-/// jump height while the three rules reporting that key span 3.38 cm, and the reported
-/// maximum of 0.41585 excluded a published rule answering 0.44436 for the same quantity.
+/// landmarks. A sweep that held the rule computing the quantity still reported 3.11 cm on
+/// subject 01 trial 1 where the three rules reporting that key span 3.38 cm.
 ///
 /// A construct the request did not bind is not an axis. Sweeping it would run a rule nobody
-/// chose, which is the reason `spread::unsweepable` refuses one.
+/// chose, which is what `spread::unsweepable` refuses.
 pub fn axes_over_every_rule(request: &AnalysisRequest) -> Vec<Axis> {
     let landmarks = PATH.iter().map(|construct| slot_of(construct).to_string());
     // Keyed by construct on the request, and the sweep reaches a derived rule by that same
@@ -214,9 +203,7 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
         }
     }
 
-    // A spread is a number over a set of choices, and the set is printed beside it. Without
-    // this a figure taken while the rule that computes the quantity stood still read exactly
-    // like a figure taken over everything.
+    // A spread is a number over a set of choices, and the set is printed beside it.
     let varied: Vec<String> = response
         .axes_varied
         .iter()

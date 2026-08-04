@@ -3,10 +3,7 @@ NULL
 
 #' How far the method choice moves one number
 #'
-#' Sweeps a slot's alternatives on one trial and reports the spread over them. This is the
-#' question the whole registry exists to answer, so it sits beside
-#' [analyse_countermovement_jump()] rather than behind a switch, and it takes no option to
-#' enable it.
+#' Sweeps a slot's alternatives on one trial and reports the spread over them.
 #'
 #' @param trial A [trial].
 #' @param quantity The engine's name for the quantity to sweep, for example
@@ -90,13 +87,11 @@ pf_spread <- function(trial,
     } else {
       as.integer(maximum_combinations)
     },
-    # Measured here from the registry this call loaded, as `analyse_countermovement_jump`
-    # already does, so the sweep names the registry it read rather than one the compiled side
-    # would have to load a second time. No revision is sent because this package offers no
-    # way to pin one, and `docs/schema.md` reserves that field for a caller's pin.
+    # Measured from the registry this call loaded, as `analyse_countermovement_jump` does,
+    # so the sweep names the registry it read.
     registry_digest = registry_digest(registry),
     # What the registry claims about itself, read from the same registry the digest was
-    # measured over. A separate question from the pin above and never written into it.
+    # measured over. A separate question from the pin above.
     registry_declared_version = registry_declared_version(registry)
   )
 

@@ -1,8 +1,7 @@
 //! The plateforce command line.
 //!
 //! Output is ASCII by default and colour is opt-in through the terminal's own signals.
-//! Windows ConHost does not enable ANSI unless a registry value says so, and a scientific
-//! tool that prints escape codes into a log file has failed at its job.
+//! Windows ConHost does not enable ANSI unless a registry value says so.
 
 mod acquisition_arg;
 mod analyse;
@@ -210,14 +209,12 @@ fn report_parse_failure(error: clap::Error) -> ExitCode {
     }
 }
 
-/// A flag whose value went missing must not resolve itself to the default, quietly, in the
-/// tool that exists to document what silent defaults cost. Two of them naming two
-/// directories must not resolve to whichever came last either.
+/// A flag whose value went missing does not resolve itself to the default, and two of them
+/// naming two directories do not resolve to whichever came last.
 ///
-/// The occurrences are counted off the command line rather than read back from the parse.
-/// A global argument is propagated to the subcommand it precedes, and both levels then hold
-/// the last value alone, so a line naming two directories parses as one and the other
-/// disappears.
+/// The occurrences are counted off the command line rather than read back from the parse. A
+/// global argument is propagated to the subcommand it precedes, and both levels then hold the
+/// last value alone, so a line naming two directories parses as one.
 ///
 /// Naming none reads the registry this build carries, rather than a relative `registry`
 /// directory that resolves differently depending on where the operator is standing.
@@ -266,9 +263,8 @@ fn deliver(
     }
 
     // A refusal with no result to sit beside travels on its own stream, so a reader who
-    // redirected the result to a file still learns why a number is absent. A caller who
-    // asked for JSON gets the record rather than a sentence to parse back apart, in the
-    // envelope every surface returns.
+    // redirected the result to a file still learns why a number is absent. A caller who asked
+    // for JSON gets the record, in the envelope every surface returns.
     if outcome.document.is_none() {
         for refusal in &outcome.refusals {
             match format {
@@ -376,9 +372,9 @@ mod tests {
         .is_err());
     }
 
-    /// Naming no directory names no directory. It used to resolve to the relative path
-    /// `registry`, so the same command read a different set of methods depending on where
-    /// the operator stood, and reported a different digest without saying why.
+    /// Naming no directory names no directory. Resolving to the relative path `registry`
+    /// would read a different set of methods depending on where the operator stood, and
+    /// report a different digest without saying why.
     #[test]
     fn no_flag_names_no_directory_and_reads_what_this_build_carries() {
         assert_eq!(directory_of(&["registry", "census"]).unwrap(), None);

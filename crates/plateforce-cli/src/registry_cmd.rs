@@ -72,11 +72,9 @@ fn census(registry: &Registry, format: Format) -> Outcome {
         })));
     }
 
-    // Every population is reported apart and none is summed with another. Both derived
-    // counts are taken over
-    // the computation entries and say so, because indentation under the wrong line is how a
-    // count loses its denominator. Both of this project's headline counts were assertions
-    // until somebody recounted them.
+    // Every population is reported apart and none is summed with another. Both derived counts
+    // are taken over the computation entries and say so, because indentation under the wrong
+    // line is how a count loses its denominator.
     let mut document = String::new();
     let _ = writeln!(document, "{:<36}{}", "constructs", constructs);
     let _ = writeln!(document, "{:<36}{computation}", "computation entries");
@@ -190,15 +188,10 @@ fn status(method: &Method, renderer: &Renderer) -> String {
     }
 }
 
-/// TOML floats carry a decimal point and `f64`'s Display drops it on a whole number, so
-/// `20` on screen would not match the `20.0` in the file a reader goes on to search.
 /// One parameter, and whether the reader has to answer it.
 ///
 /// A name alone reads the same whether the rule will supply a value or the reader must, and
 /// 66 of the registry's 202 parameters are the second: required, with nothing behind them.
-/// A forced decision rendered as an optional one is the silent default this software exists
-/// to make impossible, one step out from the number.
-///
 /// Both shapes of default are read, so a parameter whose options are named rather than
 /// numbered needs no second edit here.
 fn describe_parameter(parameter: &plateforce_registry::Parameter) -> String {
@@ -220,12 +213,8 @@ fn describe_parameter(parameter: &plateforce_registry::Parameter) -> String {
     described
 }
 
-/// The values a parameter takes, one to a line under it.
-///
-/// A name alone tells a reader that a choice exists and not what may be chosen, and the keys
-/// used to be run together on the parameter line under the word `published`, which is the
-/// word `published_values` carries for numbers a paper printed. These are the values the rule
-/// accepts, which is a different fact.
+/// The values a parameter takes, one to a line under it. These are the values the rule
+/// accepts, which is a different fact from `published_values`, the numbers a paper printed.
 fn value_lines(parameter: &plateforce_registry::Parameter, renderer: &Renderer) -> Vec<String> {
     let key_columns = parameter
         .named_values
@@ -261,6 +250,8 @@ fn value_lines(parameter: &plateforce_registry::Parameter, renderer: &Renderer) 
     lines
 }
 
+/// TOML floats carry a decimal point and `f64`'s Display drops it on a whole number, so `20`
+/// on screen would not match the `20.0` in the file a reader goes on to search.
 fn join_numbers(values: &[f64]) -> String {
     values
         .iter()

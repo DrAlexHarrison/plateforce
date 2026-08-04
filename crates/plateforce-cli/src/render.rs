@@ -1,9 +1,8 @@
 //! How a line is drawn, and what it may carry when it reaches a terminal.
 //!
 //! Every glyph is ASCII unless the operator asks otherwise: `cmd.exe` under a raster font
-//! mangles box drawing, and a rule nobody can read is worse than a rule drawn with hyphens.
-//! Hierarchy is built from layout, so colour is left to carry the one fact the registry
-//! records about an entry rather than to separate a heading from a body.
+//! mangles box drawing. Hierarchy is built from layout, so colour is left to carry the one
+//! fact the registry records about an entry rather than to separate a heading from a body.
 
 use std::io::IsTerminal;
 

@@ -73,8 +73,7 @@ pub fn open(
 
 /// The rules this build can run for a slot, minus the ones the registry says are never a
 /// user's to pick. An entry that forces the decision need not be runnable, and a runnable
-/// rule the registry has not filed is still offered, flagged, because hiding it would be the
-/// silent exclusion this software exists to document.
+/// rule the registry has not filed is still offered, flagged rather than hidden.
 fn candidates_for(registry: &Registry, slot: &str) -> Vec<Candidate> {
     bindings_for(slot)
         .filter_map(|binding| {
@@ -128,11 +127,9 @@ fn published_choices(method: &Method) -> Vec<(String, Vec<f64>)> {
 }
 
 /// A parameter is unresolved when its construct forces the decision, the rule requires it,
-/// the literature publishes more than one value for it, and the request named none.
-///
-/// All four conditions carry weight. Dropping the requirement test makes
-/// `takeoff.threshold.absolute_force`'s persistence into an unmade decision on a construct
-/// that carries no forced entry at all, so a fully specified run would refuse.
+/// the literature publishes more than one value for it, and the request named none. Dropping
+/// the requirement test makes `takeoff.threshold.absolute_force`'s persistence an unmade
+/// decision on a construct carrying no forced entry, so a fully specified run would refuse.
 pub fn open_parameters(
     registry: &Registry,
     construct: &str,
@@ -196,7 +193,7 @@ pub fn describe(
     for decision in open {
         lines.push(String::new());
         // The field's spoken words name the choice and the registry's id identifies it, on
-        // one row. `onset` appears in none of six course documents.
+        // one row.
         lines.push(format!(
             "  {} <METHOD>   {}   {}",
             decision.flag, decision.label, decision.construct

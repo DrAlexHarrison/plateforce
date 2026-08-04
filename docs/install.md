@@ -1,7 +1,7 @@
 # Installing plateforce
 
-Organised by what you have in front of you. Every route below needs no compiler, no Python
-and no package manager, and every one of them analyses your trace on your own machine.
+Every route below needs no compiler, no Python and no package manager, and every one of
+them analyses your trace on your own machine.
 
 Downloads are on the [releases page](https://github.com/DrAlexHarrison/plateforce/releases).
 There is also a browser build at
@@ -37,8 +37,7 @@ warning and with no network connection on first launch.
 
 **Who signed it.** macOS reports the signer as Saturday Inc. plateforce is Apache-2.0,
 authored by Alex Harrison, and is not a Saturday Inc product. It is signed under that
-company's Apple Developer membership because Apple charges per membership, and a second one
-would cost 99 dollars a year to ship the same free software.
+company's Apple Developer membership.
 
 ## Windows
 

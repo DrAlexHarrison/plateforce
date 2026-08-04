@@ -27,9 +27,7 @@ macro_rules! parameter_sources {
             /// The word this source travels under, wherever a surface writes it as text.
             ///
             /// Declared beside the variant, so a source added to the vocabulary is named here
-            /// rather than reaching a reader in its debug form. `QualityStatus::wire_name`
-            /// answers the same question the same way, and for the same reason: two surfaces
-            /// had begun answering it for themselves.
+            /// rather than reaching a reader in its debug form.
             pub fn wire_name(self) -> &'static str {
                 match self {
                     $( $name::$variant => $wire, )+
@@ -76,10 +74,7 @@ impl ParameterSource {
 /// Which registry produced a number, as the three separate facts a reader asks for.
 ///
 /// One record rather than three arguments. All three are `Option<String>`, so a call site
-/// that transposed a pair would compile and publish a digest under a revision's name. Two of
-/// them already were transposed: the terminal and the browser passed the registry's own
-/// claim into the field reserved for the caller's pin, and every result they wrote told a
-/// reader the author had chosen a revision nobody chose.
+/// that transposed a pair would compile and publish a digest under a revision's name.
 ///
 /// Every consumer destructures it without a rest pattern, so a fact added here is a compile
 /// error at each site rather than a field that quietly stops being reported.
@@ -102,8 +97,7 @@ impl RegistryStamp {
     }
 
     /// The stamp for a registry read without a pin, which is every run whose caller named no
-    /// revision. The commonest case, and the one the defect this type exists to prevent was
-    /// found in.
+    /// revision.
     pub fn unpinned(declared_version: Option<String>, digest: Option<String>) -> Self {
         Self {
             version: None,

@@ -169,8 +169,7 @@ pub struct AnalysisRequest {
     ///
     /// A construct this build runs and the request does not name still runs, under the rule
     /// declared as its default, and that rule is on the record like any other. Leaving it
-    /// out is not the same as declining to condition: it is the software choosing, and a
-    /// choice nobody can read is the defect this field exists to close.
+    /// out is not the same as declining to condition: it is the software choosing.
     #[serde(default)]
     pub conditioning: BTreeMap<String, MethodChoice>,
     /// The athlete's mass, which is a different quantity from the weighed system mass:
@@ -310,8 +309,8 @@ impl AnalysisRequest {
     /// so the result carries both numbers and which one ran.
     ///
     /// A construct the caller already named a rule for is refused rather than overwritten in
-    /// either direction. Reporting a pipeline's name over a rule that pipeline does not
-    /// state is the defect this project documents in a competitor.
+    /// either direction, so a pipeline's name is never reported over a rule that pipeline
+    /// does not state.
     ///
     /// A slot the source is silent about is left to the software's normal resolution and is
     /// never attributed here, which is a fact about the source rather than about this build.

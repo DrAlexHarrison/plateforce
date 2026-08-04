@@ -126,9 +126,8 @@ impl GateRegistry {
 
     /// Ask for a gate's finding to remove the trial rather than only name it.
     ///
-    /// One entry in the registry would reject all 244 trials of this project's own corpus if
-    /// it ran unscoped, so a build that applied gates by default could return an empty set
-    /// and report success.
+    /// One entry in the registry would reject all 244 trials of the corpus if it ran
+    /// unscoped, so gates applied by default could return an empty set and report success.
     pub fn apply(&mut self, method_id: &str) {
         self.applied.insert(method_id.to_string());
     }

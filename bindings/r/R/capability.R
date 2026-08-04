@@ -7,7 +7,7 @@ NULL
 #' formats it can write, and every way it can decline with the exit status a shell reads.
 #'
 #' The operations are the ones this package exports rather than a list forwarded from the
-#' engine. A forwarded document agrees with itself whatever any surface can actually do.
+#' engine.
 #'
 #' @return A single JSON string with sorted keys and no spacing, so a comparison against
 #'   another surface is a plain diff.

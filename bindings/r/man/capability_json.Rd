@@ -16,7 +16,7 @@ formats it can write, and every way it can decline with the exit status a shell 
 }
 \details{
 The operations are the ones this package exports rather than a list forwarded from the
-engine. A forwarded document agrees with itself whatever any surface can actually do.
+engine.
 }
 \examples{
 substr(capability_json(), 1, 40)

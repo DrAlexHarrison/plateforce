@@ -1,7 +1,4 @@
-# Requests are written here and read by the engine. R writes JSON and never reads it: a
-# reader in R would be a second reading of a document the compiled side already holds
-# parsed, and the two would disagree about a number's precision before they disagreed
-# about anything worth arguing over.
+# Requests are written here and read by the engine. R writes JSON and never reads it.
 #
 # The shape rules are stated rather than inferred. A named list is an object, an unnamed
 # list is an array, a length-one atomic vector is a scalar, and any other atomic vector is
@@ -37,8 +34,7 @@ as_json_atom <- function(value) {
   if (is.character(value)) {
     return(as_json_string(value))
   }
-  # Fifteen significant digits round-trips a binary64 through text without widening it,
-  # and a number written short here is a number the engine was never given.
+  # Seventeen significant digits round-trip a binary64 through text without widening it.
   format(value, digits = 17, scientific = FALSE, trim = TRUE)
 }
 

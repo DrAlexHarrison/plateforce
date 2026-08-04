@@ -1,45 +1,28 @@
 //! What the plate and its settings were, asked of the caller on the command line.
 //!
-//! No terminal surface asked for this. Both of them passed a literal `false` for
-//! `acquisition_complete` and carried a comment saying no block reaches here, so every result
-//! either has ever written fingerprints as incomplete and no caller could change that. R and
-//! Python both ask, which left the block fillable only from a surface that needs a programming
-//! language.
-//!
 //! One repeatable flag rather than five, in the grammar `--set`, `--choose` and `--place`
-//! already use, so a caller who has written one writes this one. The member names come from
-//! `Acquisition::MEMBERS`, so a member added to the block is a name this flag accepts without
-//! being told about it, and one that is not a member is refused against the list rather than
-//! read and dropped.
+//! already use. The member names come from `Acquisition::MEMBERS`, so a member added to the
+//! block is a name this flag accepts without being told about it, and one that is not a member
+//! is refused against the list rather than read and dropped.
 
 use plateforce_core::{Acquisition, MemberFault};
 
 use crate::analyse::stated_twice;
 use crate::exit::{Declined, Fault};
 
-/// What `--acquisition` takes, in one string for the help and the refusals, so a flag whose
-/// help describes something the parser does not accept cannot happen here.
+/// What `--acquisition` takes, in one string for the help and the refusals, so the two cannot
+/// describe different grammars.
 pub(crate) const ACQUISITION_SHAPE: &str = "<member>=<value>";
 
-/// The help this flag shows.
-///
-/// It names no other command as the place to look the members up. An earlier draft said
-/// `plateforce capability` lists them, and it does not: its document carries `methods`,
-/// `operations`, `output_formats`, `plateforce_version`, `refusal_codes` and `schema`, and
-/// none of the five members appears anywhere in it. A help line sending a reader to a command
-/// that cannot answer is the same defect as a flag that accepts a value and drops it.
-///
-/// The refusal is where the list comes from, and it reads the block itself, so what a caller
-/// is shown cannot fall behind what the block holds.
+/// The help this flag shows. It names no command as the place to look the members up, because
+/// no other command carries them: the refusal reads the block itself and lists them.
 pub(crate) const ACQUISITION_HELP: &str =
-    "A fact about the capture, written <member>=<value>. Repeatable, and naming a member the block does not hold answers with the ones it does. A block short of any member fingerprints as incomplete rather than as matching";
+    "A fact about the capture, written <member>=<value>. Repeatable, and a block short of any member fingerprints as incomplete rather than as matching";
 
 /// The block a run states, or the empty block when it states nothing.
 ///
-/// An empty block is returned rather than `None`, because a run that stated nothing and a run
-/// that stated two of five are the same kind of thing to every reader downstream: incomplete,
-/// with the members it is missing nameable. The caller decides whether an empty block is worth
-/// carrying.
+/// An empty block rather than `None`, because a run that stated nothing and a run that stated
+/// two of five are the same thing downstream: incomplete, with the missing members nameable.
 pub(crate) fn stated_acquisition(assignments: &[String]) -> Result<Acquisition, Declined> {
     let mut block = Acquisition::default();
     let mut as_written: Vec<(String, String)> = Vec::new();
@@ -63,9 +46,8 @@ pub(crate) fn stated_acquisition(assignments: &[String]) -> Result<Acquisition, 
                 format!("--acquisition {member} was given no value"),
             ));
         }
-        // A member stated twice is refused for the reason `--set` refuses one: the run of a
-        // caller who wrote both would otherwise be byte-identical to the run of a caller who
-        // wrote only the second, with nothing recorded anywhere saying so.
+        // Refused for the reason `--set` refuses a repeated name: the run of a caller who wrote
+        // both would otherwise be byte-identical to the run of a caller who wrote one.
         if let Some((_, first)) = as_written.iter().find(|(name, _)| name == member) {
             return Err(stated_twice("--acquisition", member, first, written));
         }
@@ -119,8 +101,8 @@ mod tests {
         )
     }
 
-    /// The whole point of the flag: a caller who states every member gets a block that can be
-    /// declared to match another lab's.
+    /// A caller who states every member gets a block that can be declared to match another
+    /// lab's.
     #[test]
     fn every_member_stated_is_a_complete_block() {
         let block = stated(&[
@@ -135,8 +117,7 @@ mod tests {
         assert!(block.is_complete(), "{:?}", block.missing());
     }
 
-    /// Stating nothing is the state every terminal run was in before this flag, and it is
-    /// incomplete rather than absent, so the reason is nameable.
+    /// Stating nothing is incomplete rather than absent, so the reason is nameable.
     #[test]
     fn stating_nothing_is_an_incomplete_block_that_names_what_is_missing() {
         let block = stated(&[]).expect("stating nothing is not a fault");
@@ -178,13 +159,9 @@ mod tests {
         }
     }
 
-    /// The help describes this flag and sends the reader nowhere that cannot answer.
-    ///
-    /// An earlier draft said `plateforce capability` lists the members. It does not: that
-    /// document carries `methods`, `operations`, `output_formats`, `plateforce_version`,
-    /// `refusal_codes` and `schema`, and none of the five members appears in it. A help line
-    /// pointing at a command that cannot answer is the same defect as a flag that accepts a
-    /// value and drops it, and it shipped in the first draft of the fix for that defect.
+    /// The help sends the reader to no command that cannot answer. `plateforce capability`
+    /// carries `methods`, `operations`, `output_formats`, `plateforce_version`,
+    /// `refusal_codes` and `schema`, and none of the five members appears in it.
     #[test]
     fn the_help_names_no_command_to_look_the_members_up_in() {
         assert!(

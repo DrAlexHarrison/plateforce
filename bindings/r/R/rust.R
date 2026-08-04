@@ -1,9 +1,8 @@
 #' @useDynLib plateforce, .registration = TRUE
 NULL
 
-# The compiled entry points, one line each. Every answer is a JSON document and every
-# document is turned into R data by the same compiled walk, so no file in this package
-# reads JSON a second way.
+# The compiled entry points, one line each. Every answer is a JSON document, turned into R
+# data by the same compiled walk.
 
 decode <- function(document) .Call(wrap__pf_decode, document)
 

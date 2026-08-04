@@ -1,13 +1,11 @@
 //! What the software already knows about a number it is showing, said beside that number.
 //!
 //! A signal is read off values this response already carries. Nothing here computes a
-//! quantity, because a second derivation of a quantity is the failure this project
-//! documents, and a signal that disagreed with the number it qualifies would be worse than
-//! no signal at all.
+//! quantity: a signal that disagreed with the number it qualifies would be worse than no
+//! signal at all.
 //!
 //! Every signal carries an action rather than a verdict. A rate stated without one leaves
-//! the reader holding a diagnosis they cannot act on, which is the half of the in-line
-//! quality pattern that does the work.
+//! the reader holding a diagnosis they cannot act on.
 
 use serde::Serialize;
 
@@ -37,10 +35,9 @@ const REACTIVE_STRENGTH_INDEX_MODIFIED: &str = "reactive_strength_index_modified
 /// `Landmarks`, and a signal that named fewer keys than that would leave a reader holding a
 /// blank cell with nothing pointing at it.
 ///
-/// It held seven while flight time and the height taken from it read the three landmarks as a
-/// bundle. They are measured from takeoff to the return to the plate, they answer whatever
-/// onset did, and a signal claiming to account for them would tell a reader that a number in
-/// front of them is absent.
+/// Flight time and the height taken from it are absent from the list: they are measured from
+/// takeoff to the return to the plate, they answer whatever onset did, and a signal claiming
+/// to account for them would tell a reader that a number in front of them is absent.
 const MEASURED_ACROSS_THE_INTERVAL: [&str; 5] = [
     TIME_TO_TAKEOFF,
     TAKEOFF_VELOCITY,
@@ -52,7 +49,7 @@ const MEASURED_ACROSS_THE_INTERVAL: [&str; 5] = [
 /// How far the two routes to a jump height may differ before the difference is no longer
 /// the difference between the routes.
 ///
-/// Measured on this project's corpus: observed flight runs 7.6 percent longer than the
+/// Measured on the corpus: observed flight runs 7.6 percent longer than the
 /// flight implied by takeoff velocity, so the flight-time route overestimates the
 /// takeoff-frame route by roughly 16 percent. A disagreement above that is not the known
 /// bias between two correct answers. The number is a choice, so it rides on the signal
@@ -71,8 +68,8 @@ pub enum QualityStatus {
     /// A rule returned the first instant it was permitted to examine, so the landmark it
     /// reports is the boundary of its own search rather than anything it found in the trace.
     ///
-    /// Not a fault in the rule and not a fault in the recording. The arithmetic is right and
-    /// the rule did what it publishes, which is why this reports rather than refuses.
+    /// The arithmetic is right and the rule did what it publishes, so this reports rather
+    /// than refuses.
     AtSearchFloor,
     /// The jump's start was placed at or after its takeoff, so the interval between them runs
     /// backwards and every quantity measured across it goes without a value.
@@ -87,11 +84,8 @@ pub enum QualityStatus {
 impl QualityStatus {
     /// The word this status travels under, wherever a surface writes it as text.
     ///
-    /// Matched exhaustively, so a status added to the vocabulary is ruled on here rather
-    /// than reaching a reader unnamed. Two surfaces had begun answering this question for
-    /// themselves, one by matching and one by round-tripping through the serialiser with the
-    /// variant's debug form as a fallback, which would have put `AtSearchFloor` into a
-    /// spreadsheet cell the day the serialiser stopped answering.
+    /// Matched exhaustively, so a status added to the vocabulary is named here rather than
+    /// reaching a reader unnamed.
     pub fn wire_name(self) -> &'static str {
         match self {
             QualityStatus::Disagrees => "disagrees",
@@ -126,9 +120,10 @@ pub struct QualitySignal {
     pub qualifies: Vec<&'static str>,
 }
 
-/// `Serialize` on both types above is load-bearing rather than decorative: the browser's
-/// only analysis path returns a serialised response, so a signal that does not travel in
-/// it reaches no reader.
+/// Every signal this response supports, in the order a reader meets them.
+///
+/// The browser's only analysis path returns a serialised response, so a signal that does not
+/// serialise reaches no reader.
 pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
     let mut found = Vec::new();
     // First, because it accounts for absences rather than qualifying values, and a reader
@@ -210,8 +205,8 @@ fn onset_placed_at_or_after_takeoff(response: &AnalysisResponse) -> Option<Quali
 /// rule that returns its own boundary has still done what it publishes, on a recording where
 /// that is what it does. The distance between it and the rules that searched somewhere else is
 /// the disagreement between published methods, measured, and a spread that dropped the rule
-/// would report the methods as closer together than they are. The ruling covers the onset half
-/// and the takeoff half alike: on subject 01's first trial dropping the two takeoff rules that
+/// would report the methods as closer together than they are. That covers the onset half and
+/// the takeoff half alike: on subject 01's first trial dropping the two takeoff rules that
 /// return their floor would hide jump heights of 1.4 cm against 37.0 cm.
 ///
 /// `OnsetNotBeforeTakeoff` does not, and here the reason is that there is nothing to drop.

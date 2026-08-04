@@ -1,7 +1,7 @@
 # plateforce
 
 Force-plate analysis where a result carries the method that produced it. You pick a
-published method from the registry, and the number you get back remembers which one.
+published method from the registry.
 
 ```
 pip install plateforce
@@ -14,8 +14,8 @@ installed the same version.
 
 **`plateforce` is not `forceplate`.** The similarly named CRAN package, by Hartmann, Koger
 and Johannsen, analyses posturography: centre-of-pressure measures from quiet standing.
-This one computes jump kinetics from a vertical ground reaction force trace. The two are
-unrelated and neither is a port of the other.
+This one computes jump kinetics from a vertical ground reaction force trace. Neither is a
+port of the other.
 
 ## Analysing one jump
 
@@ -213,7 +213,7 @@ TrialError: force_newtons has dtype float32 and plateforce reads float64. Conver
 .astype('float64') so the widening is recorded as your choice
 ```
 
-numpy is not a dependency of this package and is not installed with it.
+numpy is not a dependency of this package.
 
 ## Two fields worth reading
 

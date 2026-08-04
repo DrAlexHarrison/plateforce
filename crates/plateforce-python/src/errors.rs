@@ -1,8 +1,7 @@
 //! Python exception types, and the mapping that carries a core error across intact.
 //!
-//! A core failure already names the method and the parameter that failed. Flattening one
-//! into a generic exception would throw away the only part a user can act on, so the
-//! message is passed through verbatim and the same fields are attached to the instance.
+//! A core failure already names the method and the parameter that failed, so the message
+//! is passed through verbatim and the same fields are attached to the instance.
 
 use plateforce_core::TrialError as CoreTrialError;
 use plateforce_core::{Refusal, RefusalCode};
@@ -102,9 +101,8 @@ pub fn map_trial_error(python: Python<'_>, error: CoreTrialError) -> PyErr {
 /// gives it rather than decided here.
 ///
 /// The match takes no wildcard arm, so a new code has to be ruled on rather than falling
-/// through to whichever class happened to be last. Two codes take a class of their own
-/// because a caller catches them by name: a rule that found no crossing and a band that
-/// collapsed to nothing are the two a pipeline retries differently.
+/// through to whichever class happened to be last. A rule that found no crossing and a band
+/// that collapsed to nothing take a class each, because a pipeline retries them differently.
 fn class_of(code: RefusalCode) -> fn(String) -> PyErr {
     match code {
         RefusalCode::NoCrossing => NoCrossingError::new_err,
@@ -133,18 +131,15 @@ fn class_of(code: RefusalCode) -> fn(String) -> PyErr {
 
 /// A refusal the engine recorded, raised with every field it carries.
 ///
-/// The fields are the ones an R condition carries, under the same names and the same code,
-/// which is what makes a refusal one thing across the two languages rather than two. The
-/// class is chosen from the code so a caller that catches by type and one that reads `code`
-/// are reading one decision.
+/// The fields are the ones an R condition carries, under the same names and the same code.
+/// The class is chosen from the code, so a caller that catches by type and one that reads
+/// `code` are reading one decision.
 pub fn raise_refusal(python: Python<'_>, refusal: &Refusal) -> PyErr {
     let raised = class_of(refusal.code)(refusal.message().to_string());
     let instance = raised.value(python);
     // Everything the rule read while declining, reachable as a mapping and as an attribute
-    // each. The mapping is the shape an R condition carries, so a caller crossing the two
-    // languages reads one thing; the attributes are how a Python caller reaches a number
-    // without a lookup. Written before the named fields, so a name the two share resolves to
-    // the field rather than to a reading of the same name.
+    // each. Written before the named fields, so a name the two share resolves to the field
+    // rather than to a reading of the same name.
     for (name, value) in &refusal.detail {
         let _ = instance.setattr(name.as_str(), *value);
     }
@@ -163,8 +158,7 @@ pub fn raise_refusal(python: Python<'_>, refusal: &Refusal) -> PyErr {
 /// names and the same class they would have caught.
 ///
 /// A rule declining while other numbers computed is a partial result, not a failed one, so
-/// it travels as an instance nobody raised. Built by the same function as a raised refusal,
-/// so the two cannot drift into two descriptions of one failure.
+/// it travels as an instance nobody raised. Built by the same function as a raised refusal.
 pub fn refusal_object(python: Python<'_>, refusal: &Refusal) -> Py<PyAny> {
     raise_refusal(python, refusal)
         .value(python)

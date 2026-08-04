@@ -3,7 +3,7 @@
 //! Those four are entries on `net_impulse` and `takeoff_velocity`, not parameters of any
 //! jump-height entry, so no jump-height rule states them and every one of them inherits the
 //! same four. Each is recorded on the rule that read the series: a displacement integrated
-//! under a quadrature nobody stated is the silent default this registry documents.
+//! under a quadrature nobody stated is a silent default.
 
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{

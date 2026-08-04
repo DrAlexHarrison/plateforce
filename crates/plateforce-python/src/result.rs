@@ -1,8 +1,7 @@
 //! What a result carries besides its number.
 //!
-//! `Measured` deliberately has no `__float__`. A number that can slip into arithmetic
-//! without its method attached is the failure this package exists to make impossible, so
-//! reaching the bare value is an explicit `.value`.
+//! `Measured` has no `__float__`. Reaching the bare number is an explicit `.value`, so a
+//! value cannot slip into arithmetic without its method attached.
 
 use plateforce_core::reporting::{describe, format_parameters};
 use plateforce_core::{Exclusions as CoreExclusions, Measured as CoreMeasured};
@@ -298,12 +297,10 @@ impl Exclusions {
     /// Samples reading the value the declared convention writes for a measurement that was
     /// not taken.
     ///
-    /// Reported apart from the count above because the two are not the same fact and one
-    /// number cannot carry both. A plate with nothing on it reads zero or one quantisation
-    /// step, and a vendor writing 0.00 to mean "no measurement" writes the same bytes, so on
-    /// a jump trace the zero convention matches the whole flight phase: 157 samples of one
-    /// real trial, every one of them a correct reading. A caller told only that 160 samples
-    /// were reported cannot tell that 157 of them are the flight.
+    /// A plate with nothing on it reads zero or one quantisation step, and a vendor writing
+    /// 0.00 to mean "no measurement" writes the same bytes, so on a jump trace the zero
+    /// convention matches the whole flight phase: 157 samples of one real trial, every one
+    /// of them a correct reading.
     #[getter]
     fn samples_matching_the_convention(&self) -> Option<usize> {
         self.matched_the_convention

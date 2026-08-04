@@ -63,5 +63,5 @@ the three numbers on every build and prints the age of that reading.
 
 ## Package name
 
-There is an unrelated CRAN package named `forceplate`. This package is `plateforce`, and
-the two are not related.
+There is a CRAN package named `forceplate`. This package is `plateforce`, and the two are
+not related.

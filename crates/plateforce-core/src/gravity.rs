@@ -3,22 +3,16 @@
 //! Jump height is proportional to gravity by both routes. The impulse route gives
 //! `h = g J^2 / 2 W^2` and the flight-time route `h = g t^2 / 8`, so a relative error in `g`
 //! is the same relative error in height on both, and the ratio between them is untouched.
-//! That last part is why this is a small correction to any one number and not a correction to
-//! this project's headline comparison at all.
 //!
-//! It is worth doing anyway, for a reason particular to what this software is for. Gravity
-//! varies by half a percent across the Earth's surface, no competing tool records which value
-//! it used, and two labs at different latitudes computing "the same" jump height are not
-//! computing the same quantity. Recording it is the same move as recording a method id.
+//! Gravity varies by half a percent across the Earth's surface, so two labs at different
+//! latitudes computing "the same" jump height are not computing the same quantity.
 //!
-//! Measured against standard gravity: Bellingham, where this project's corpus was collected,
-//! is +0.029%; Phoenix is -0.119%; Mexico City -0.281%. Every one of those exceeds a hundredth
-//! of a percent, and it takes only 318 m of elevation or ten degrees of latitude to get there,
-//! so the location term is never negligible at the threshold a user is likely to care about.
+//! Measured against standard gravity: Bellingham, where the corpus was collected, is +0.029%;
+//! Phoenix is -0.119%; Mexico City -0.281%. Every one of those exceeds a hundredth of a
+//! percent, and it takes only 318 m of elevation or ten degrees of latitude to get there.
 
-/// Standard gravity, the defined constant. The default, because it is the value that is true
-/// by definition rather than by measurement, and because a user who states no location has
-/// given us nothing better.
+/// Standard gravity, the defined constant. The default, because it is true by definition
+/// rather than by measurement.
 pub const STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED: f64 = 9.80665;
 
 /// Free-air correction, in metres per second squared per metre of elevation. Gravity falls as

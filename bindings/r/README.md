@@ -61,9 +61,7 @@ from them are system weight and mass, onset and takeoff time, time to takeoff, f
 time, takeoff velocity, net impulse, jump height by the takeoff-velocity route and by the
 flight-time route, and modified reactive strength index.
 
-Reading a force file needs the delimiter and the force column stated. Batch analysis over
-a directory, Parquet and Arrow output, and the method-spread sweep are on the other
-surfaces of this project and are not reachable from R.
+Reading a force file needs the delimiter and the force column stated.
 
 ## The same numbers as every other surface
 

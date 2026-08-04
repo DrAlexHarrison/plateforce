@@ -1,7 +1,7 @@
 //! Trial validity gates, which report and never remove.
 //!
-//! A gate that quietly drops a trial is the failure this registry exists to document, so
-//! nothing here returns a shortened list. Each gate returns what it observed, what it
+//! A gate that quietly drops a trial is a silent exclusion, so nothing here returns a
+//! shortened list. Each gate returns what it observed, what it
 //! compared that against, and the count it was taken over. Whether a firing gate excludes
 //! anything is a decision made above this crate, with the report in hand.
 //!
@@ -11,11 +11,9 @@ use crate::statistics::{index_of_minimum, mean_and_standard_deviation, Dispersio
 
 /// A count and the count it was taken over.
 ///
-/// The two are one value because a numerator that travels without its denominator is the
-/// defect this project publishes about, and a type that cannot express one without the
-/// other is a stronger guarantee than a convention that says to include it. There is
-/// deliberately no proportion on this type: a bare percentage is what hides a moving
-/// denominator.
+/// The two are one value because a numerator that travels without its denominator is a
+/// defect the registry records. No proportion on this type: a bare percentage hides a
+/// moving denominator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counted {
     rejected: usize,
@@ -368,8 +366,7 @@ mod tests {
         assert!(report.candidates.iter().filter(|c| !c.accepted).count() == 2);
     }
 
-    /// A rejected candidate stays in the report. A shortened list is the silent exclusion
-    /// the entry exists to prevent.
+    /// A rejected candidate stays in the report. A shortened list is a silent exclusion.
     #[test]
     fn rejected_candidates_are_reported_rather_than_removed() {
         let candidates = [(100, 160, 0.05), (400, 900, 0.42)];

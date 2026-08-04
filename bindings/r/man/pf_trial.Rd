@@ -19,8 +19,9 @@ every velocity, displacement, impulse and rate of force development with it, so 
 has no default.}
 
 \item{sentinel_convention}{How this export writes a missing sample: `"none"`, `"zero"`
-or `"negative_one"`. A sample matching the convention is held at the last real
-reading and counted, and the count is reported rather than folded into the trace.}
+or `"negative_one"`. A sample matching the convention is counted and left where it is,
+because closing the gap would shift every timestamp after it. Samples carrying no
+number are counted separately, whatever convention is declared.}
 
 \item{acquisition}{What the plate and its settings were, from [pf_acquisition()]. A
 block missing any member makes every result from this trial carry

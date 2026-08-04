@@ -30,8 +30,8 @@ or `"negative_one"`.}
 }
 \value{
 A `trial` whose `@read_report` names the delimiter, the column, the rows read,
-  the columns per row, the blank lines skipped, and the samples the sentinel convention
-  treated as missing.
+  the columns per row, the blank lines skipped, the samples that matched the sentinel
+  convention, and the samples that carried no number at all.
 }
 \description{
 The file is read by the engine. Nothing in this package parses it, so there is one

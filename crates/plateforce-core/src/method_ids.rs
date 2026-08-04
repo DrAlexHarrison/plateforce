@@ -1,9 +1,7 @@
 //! Every registry id this crate names, in one place.
 //!
 //! An id spelled into a `format!` in one function and into a binding table in another is two
-//! vocabularies that agree until they do not. One rule here used to succeed under an id that
-//! resolves and decline under one that does not, so which name a caller saw depended on
-//! whether the rule worked.
+//! vocabularies that agree until they do not.
 
 pub const BWEPOCH_FIXED_WINDOW: &str = "bwepoch.fixed_window";
 pub const BWEPOCH_ADAPTIVE_LOWEST_VARIANCE: &str = "bwepoch.adaptive_lowest_variance";

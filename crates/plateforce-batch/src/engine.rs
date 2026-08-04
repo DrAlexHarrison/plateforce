@@ -126,7 +126,7 @@ impl Coverage {
     }
 
     /// Printed rather than inferred from a green result, because a run that quietly covered
-    /// six trials instead of 244 is the failure this project documents.
+    /// six trials instead of 244 succeeds the same way.
     pub fn line(&self) -> String {
         format!(
             "{}, {} of {} named, results {} of {} trials, computed {} of {}, refused {} of {}, excluded {} of {}",
@@ -183,10 +183,9 @@ impl BatchResult {
     /// The trials every figure taken over this run is taken over: the ones that produced
     /// numbers, less the ones a gate the request applied removed.
     ///
-    /// One home, because two call sites that each decided for themselves what the population
-    /// was is how a mean and a reliability figure came to be reported beside a denominator
+    /// One home, so a mean and a reliability figure cannot be reported beside a denominator
     /// neither of them was taken over. Ordered as the results table is, so a figure summed
-    /// over it adds the same values in the same order as before this existed.
+    /// over it adds the same values in the same order.
     pub fn population(&self) -> Vec<String> {
         let removed: BTreeSet<&str> = self
             .exclusions
@@ -315,9 +314,7 @@ pub fn analyse(
 
         let response = match plateforce_analysis::run(&trial, &request.analysis) {
             Ok(response) => response,
-            // The code is the one the engine decided it was declining under. This surface
-            // used to write `method_not_implemented` on every one of these and leave every
-            // other column empty, which named a fault the request had not committed.
+            // The code is the one the engine decided it was declining under.
             Err(declined) => {
                 let code = declined.code.wire_name();
                 refusals.push(refusal_row(trial_id, ordinal(&refusals), &declined));

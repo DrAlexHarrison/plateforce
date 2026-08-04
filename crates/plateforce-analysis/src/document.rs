@@ -22,10 +22,9 @@ pub struct TrialSource {
     /// taken. The reader's own fact, because only the reader was told which convention to
     /// apply.
     ///
-    /// This used to carry one total over this and the rows that carried no number at all,
-    /// under a name that reads like one fact. On a jump trace the zero convention a vendor
-    /// writes for a missing measurement is also the correct reading of an unloaded plate, so
-    /// it matches the whole flight phase, and the total read 160 on a recording whose real
+    /// On a jump trace the zero convention a vendor writes for a missing measurement is also
+    /// the correct reading of an unloaded plate, so it matches the whole flight phase: one
+    /// total over this and the rows carrying no number reads 160 on a recording whose real
     /// answer is 157 samples of flight and 3 samples of a gap.
     ///
     /// The gap is not here. It belongs to the recording rather than to the reader, so it is
@@ -99,9 +98,8 @@ pub struct ResultDocument {
 /// writes it.
 ///
 /// A spread that leaves inside a `ResultDocument` inherits that document's identity. A spread
-/// that leaves on its own carried none at all, on any of the four surfaces, so the panel that
-/// demonstrates this project's argument left the software with no way to say which build and
-/// which registry produced it.
+/// that leaves on its own carries these three fields, so it still says which build and which
+/// registry produced it.
 ///
 /// The three identity fields are spelled as `ResultDocument` spells them and are supplied by
 /// the calling surface for the same reason: the layer that loaded the registry is the layer
@@ -287,9 +285,7 @@ mod tests {
         assert_eq!(refused.slot.as_deref(), Some("takeoff"));
     }
 
-    /// A rule that declined on a name rather than a number publishes the name it declined
-    /// on. Every one of these used to publish `unknown_parameter` with the whole sentence
-    /// in the `parameter` column, which named a fault the request had not committed.
+    /// A rule that declined on a name rather than a number publishes the name it declined on.
     #[test]
     fn a_value_the_rule_will_not_take_keeps_its_own_code_across_the_boundary() {
         let refused = refusal_from_rule(&declined(

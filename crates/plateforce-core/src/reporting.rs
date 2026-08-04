@@ -34,19 +34,9 @@ impl Fingerprint {
     /// The digest a surface writes, and nothing at all when the acquisition block was not
     /// filled.
     ///
-    /// The only way out of this type, so the wire cannot disagree with `PartialEq` above. It
-    /// used to have a second: a `Display` that rendered an incomplete fingerprint as its
-    /// digest with `-incomplete` after it. Two incomplete runs off two differently configured
-    /// plates rendered the same string and compared equal, which is the matching the ruling
-    /// of 2026-07-25 forbids, reached through the other interface of the one type that exists
-    /// to forbid it.
-    ///
-    /// What this costs is real: a reader can no longer see that two incomplete runs performed
-    /// the same computation. That inference is the one the ruling denies, because the settings
-    /// that would decide whether two labs agree were never recorded, so withholding it is the
-    /// behaviour rather than a shortfall of it. `Acquisition::missing` names what to go and
-    /// find, and a surface reporting a null digest beside it says which runs would fingerprint
-    /// once somebody does.
+    /// The only way out of this type, so the wire cannot disagree with `PartialEq` above.
+    /// `Acquisition::missing` names what to go and find, and a surface reporting a null
+    /// digest beside it says which runs would fingerprint once somebody does.
     pub fn published(&self) -> Option<&str> {
         self.complete.then_some(self.digest.as_str())
     }
@@ -89,10 +79,9 @@ pub fn fingerprint(
             at("registry_version"),
             step.registry_version.clone().unwrap_or_default(),
         ));
-        // `registry_declared_version` is deliberately not material. Two labs whose rule bytes
-        // are identical computed the same quantity whatever their VERSION files say, and the
-        // digest above already separates labs whose bytes differ. Hashing the claim would make
-        // a VERSION-only edit break every match already recorded against those rules.
+        // `registry_declared_version` is not material: two labs whose rule bytes are identical
+        // computed the same quantity whatever their VERSION files say, and hashing the claim
+        // would break every recorded match on a VERSION-only edit.
     }
 
     material.push((
@@ -168,8 +157,7 @@ pub fn format_parameters(parameters: &[(String, f64)]) -> String {
 /// result was computed without reading a registry.
 ///
 /// The two revisions are worded apart rather than printed as one number, because a reader who
-/// cannot tell them apart reads the registry's claim as the author's citation. That is the
-/// sentence this line used to print on every unpinned terminal run.
+/// cannot tell them apart reads the registry's claim as the author's citation.
 fn registry_line(provenance: &Provenance) -> Option<String> {
     let mut said = String::new();
     if let Some(pinned) = provenance.registry_version.as_deref() {
@@ -372,9 +360,8 @@ mod tests {
                 })
                 .collect(),
             registry_version: Some("fixture-1".to_string()),
-            // Deliberately unlike the pin above. A fixture whose registry claimed the same
-            // revision the caller pinned would read the same whichever field a value came
-            // out of, which is how two surfaces published one under the other's name.
+            // Unlike the pin above. A fixture whose registry claimed the same revision the
+            // caller pinned would read the same whichever field a value came out of.
             registry_declared_version: Some("fixture-declares-2".to_string()),
             registry_digest: Some("content-abc".to_string()),
             acquisition_complete: true,
@@ -421,8 +408,7 @@ mod tests {
 
     /// Each revision is worded as whose it is, and a reader is never handed one of them
     /// bare. A line that printed the revision alone reads identically whether the caller
-    /// cited it or the registry claimed it about itself, which is the sentence the terminal
-    /// printed on every unpinned run until 2026-08-03.
+    /// cited it or the registry claimed it about itself.
     #[test]
     fn the_registry_line_says_whose_each_revision_is() {
         let (measured, chain) = jump_height_chain();

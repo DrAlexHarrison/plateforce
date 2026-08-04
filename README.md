@@ -1,8 +1,6 @@
 # plateforce
 
-A useful tool for processing force-plate data.
-
-It reads a force trace and computes jump kinetics. Every value it returns carries the rule that
+Reads a force trace and computes jump kinetics. Every value it returns carries the rule that
 produced it, that rule's parameters, and that rule's citation.
 
 ## Why that matters

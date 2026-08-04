@@ -33,9 +33,8 @@ impl Fault {
     }
 }
 
-/// The class a published refusal code belongs to, read off the engine's own table rather
-/// than restated here. A second table would be free to disagree with the first, in the crate
-/// that exists to report what every surface agrees on.
+/// The class a published refusal code belongs to, read off the engine's own table rather than
+/// restated here, since a second table would be free to disagree with the first.
 pub fn fault_for(code: RefusalCode) -> Fault {
     match exit_code(code) {
         64 => Fault::Request,
@@ -50,8 +49,7 @@ pub fn fault_for(code: RefusalCode) -> Fault {
 ///
 /// A rule or a reader that declined produced a record, and that record is what every surface
 /// publishes: a code a caller branches on, the rule, the parameter, and the sentence the
-/// engine generated. A fault in the command line reaches no rule and has no such record, and
-/// a code minted for it here would be a code no other surface can raise.
+/// engine generated. A fault in the command line reaches no rule and has no such record.
 #[derive(Debug, Clone)]
 pub struct Declined {
     // Boxed because a `Declined` travels as the error half of a `Result` on the path that
@@ -119,9 +117,8 @@ pub enum Stream {
 /// What a subcommand hands back, before anything reaches a stream.
 #[derive(Debug, Default)]
 pub struct Outcome {
-    /// The rendered result. `None` when nothing computed, and the whole document or nothing:
-    /// a caller that has written half a document into this field has already lost the
-    /// property that makes stdout parseable.
+    /// The rendered result. `None` when nothing computed, and the whole document or nothing,
+    /// so stdout stays parseable.
     pub document: Option<String>,
     /// Why the run fell short. This crate composes no sentence the engine already has.
     pub refusals: Vec<Declined>,
@@ -200,9 +197,9 @@ mod tests {
         println!("faults mapped to a sysexits code: {} of 4", mapped.len());
     }
 
-    /// `ALL` is generated beside the enum, so a sixteenth code joins this assertion without
-    /// an edit here. A code this shell sorted into `Internal` while the engine gave it 64
-    /// would exit 70 on a request fault, which is the two-tables failure stated as a number.
+    /// `ALL` is generated beside the enum, so a sixteenth code joins this assertion without an
+    /// edit here. A code this shell sorted into `Internal` while the engine gave it 64 would
+    /// exit 70 on a request fault.
     #[test]
     fn every_published_code_reaches_the_status_the_engine_gives_it() {
         for code in RefusalCode::ALL {
@@ -252,9 +249,8 @@ mod tests {
         assert_eq!(stream_for(&refused), Stream::Stderr);
     }
 
-    /// A caller branches on the code, and a fault in the line has none to branch on. Saying
-    /// so is the one honest answer: a code invented here would name a failure no other
-    /// surface can raise, in the file that exists to hold the surfaces to one vocabulary.
+    /// A caller branches on the code, and a fault in the line has none to branch on: a code
+    /// invented here would name a failure no other surface can raise.
     #[test]
     fn a_recorded_refusal_publishes_its_code_and_a_line_fault_publishes_none() {
         let recorded = Declined::recorded(Refusal::registry_invalid("methods/onset.toml"));
@@ -272,8 +268,7 @@ mod tests {
         );
     }
 
-    /// The screen shows the candidates and the wire carries the record. One refusal, two
-    /// renderings, and the code is on both paths.
+    /// The screen shows the candidates, the wire carries the record, and the code is on both.
     #[test]
     fn a_layout_replaces_the_sentence_on_screen_and_never_on_the_wire() {
         let refusal = Refusal::decision_not_made(

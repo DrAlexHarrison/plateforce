@@ -6,12 +6,10 @@
 //!
 //! Every surface links this one. A browser, a command line, a Python package and an R
 //! package that each decided for themselves which rules to expose and what to pass when
-//! the user says nothing would disagree with each other, which is the finding this
-//! project exists to publish.
+//! the user says nothing would disagree with each other.
 //!
 //! Where an id below is absent from the registry it is still offered, flagged. Hiding an
-//! executable rule because its paperwork is unfinished is the silent exclusion this
-//! project exists to document.
+//! executable rule because its paperwork is unfinished would be a silent exclusion.
 //!
 //! Two kinds of absence, and they are not the same claim. A composition is a registry
 //! method bound with an operator, so it inherits that row's citations and needs no row of
