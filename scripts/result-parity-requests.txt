@@ -1,0 +1,18 @@
+# One request per line: a name, the file that asks it, and the record it is held to.
+#
+# The gate used to ask one question, a clean five-second trial, and three of the fields it
+# compared were empty in the answer. Four surfaces agreed about the shape of `refusals`,
+# `signals` and `warnings` and about no value in any of them. A population is what puts a
+# value in each, so the agreement is about something.
+#
+# The third column is either a baseline file, or `=name` naming another row this one must
+# answer identically. A row with neither is a refusal rather than a skip, and so is a request
+# file in tests/golden that no row names: two such files sat in this repository wired to
+# nothing, which is why this manifest exists.
+#
+# A request is added in the same commit as the baseline that holds it, or as the row it is
+# declared equal to.
+quiet	tests/golden/result-parity-request.json	tests/golden/result-parity.json
+sentinel	tests/golden/result-parity-request-sentinel.json	=quiet
+interrupted	tests/golden/result-parity-request-interrupted.json	tests/golden/result-parity-interrupted.json
+inverted	tests/golden/result-parity-request-inverted.json	tests/golden/result-parity-inverted.json
