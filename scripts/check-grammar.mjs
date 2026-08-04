@@ -559,7 +559,8 @@ const choices = await evaluate(`(async () => {
           onScreen: declined ? (() => {
             const carrying = [...document.querySelectorAll('#analysis-warnings .notice')]
               .filter((n) => n.textContent.includes(name) && n.textContent.includes(pick));
-            const said = (state.analysis?.refusals || []).find((r) => r.parameter === name);
+            const said = (state.analysis?.refusals || []).find((r) => r.parameter === name)
+              ?? (state.analysisRefusal?.parameter === name ? state.analysisRefusal : null);
             const titled = said && carrying.some((n) =>
               n.querySelector('p').textContent.startsWith(
                 (entryFor(said.method_id)?.title ?? said.method_id) + ':'));

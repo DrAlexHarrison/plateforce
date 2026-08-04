@@ -214,7 +214,7 @@ export function runAnalysis() {
     state.analysisRefusal = answer.refusal;
     $('metric-grid').replaceChildren();
     $('analysis-warnings').replaceChildren(
-      notice('danger', 'The analysis could not run', answer.refusal.message),
+      notice('danger', 'The analysis could not run', refusalSentence(answer.refusal)),
     );
     return;
   }
