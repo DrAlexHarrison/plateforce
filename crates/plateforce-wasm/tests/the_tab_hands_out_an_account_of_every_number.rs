@@ -39,8 +39,7 @@ fn analysed() -> serde_json::Value {
     let answered = LoadedTrial::demonstration()
         .analyse(REQUEST, Some("demonstration".to_string()), None)
         .unwrap_or_else(|_| panic!("the tab answers the request its own page posts"));
-    let parsed: serde_json::Value =
-        serde_json::from_str(&answered).expect("the document parses");
+    let parsed: serde_json::Value = serde_json::from_str(&answered).expect("the document parses");
     parsed
         .get("ok")
         .cloned()

@@ -45,7 +45,12 @@ impl BatchResult {
         Ok(vec![
             self.write_relation(directory, "results", self.results_batch()?, &record)?,
             self.write_relation(directory, "provenance", self.provenance_batch()?, &record)?,
-            self.write_relation(directory, "descriptions", self.descriptions_batch()?, &record)?,
+            self.write_relation(
+                directory,
+                "descriptions",
+                self.descriptions_batch()?,
+                &record,
+            )?,
             self.write_relation(directory, "refusals", self.refusals_batch()?, &record)?,
             self.write_relation(directory, "signals", self.signals_batch()?, &record)?,
             self.write_relation(directory, "exclusions", self.exclusions_batch()?, &record)?,
@@ -147,7 +152,11 @@ impl BatchResult {
             vec![
                 text(self.descriptions.iter().map(|row| row.trial_id.clone())),
                 text(self.descriptions.iter().map(|row| row.quantity.clone())),
-                text(self.descriptions.iter().map(|row| row.provenance_id.clone())),
+                text(
+                    self.descriptions
+                        .iter()
+                        .map(|row| row.provenance_id.clone()),
+                ),
                 text(self.descriptions.iter().map(|row| row.account.clone())),
             ],
         )

@@ -148,11 +148,7 @@ fn the_page_shows_the_accounts_the_record_holds() {
     let mut missing: Vec<String> = Vec::new();
     let mut lines = 0usize;
     for (quantity, account) in accounts {
-        for line in account
-            .as_str()
-            .expect("an account is a sentence")
-            .lines()
-        {
+        for line in account.as_str().expect("an account is a sentence").lines() {
             lines += 1;
             if !page.contains(&flattened(line)) {
                 missing.push(format!("{quantity}: {}", flattened(line)));
