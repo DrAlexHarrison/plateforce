@@ -166,6 +166,17 @@ unit = "seconds"
 notes = "Peak centre of mass velocity and takeoff are different instants, and both appear in the literature."
 
 [[construct]]
+id = "propulsion_subdivision"
+title = "The instant the propulsion phase is divided into two named sub-phases"
+label = "Where the push is split in two"
+unit = "seconds"
+notes = """
+Independent of which landmarks the phase model promotes. Both published partitions divide the
+interval the propulsion rules placed and neither says anything about whether the force minimum is
+a boundary, so a reader may answer this and the phase model separately.
+"""
+
+[[construct]]
 id = "lifting_phase_start"
 title = "The instant the positive lifting phase begins on a loaded lift"
 label = "Start of the lift"
@@ -182,6 +193,12 @@ notes = "Two rules differ by the braking sub-phase, whose duration is load depen
 id = "landing_phase_end"
 title = "The instant the landing phase ends"
 label = "End of the landing"
+unit = "seconds"
+
+[[construct]]
+id = "landing_subdivision"
+title = "The instant the landing phase is divided into impact and stabilising"
+label = "Where the landing is split in two"
 unit = "seconds"
 
 [[construct]]
