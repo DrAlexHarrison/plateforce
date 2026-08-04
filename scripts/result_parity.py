@@ -395,6 +395,15 @@ def check(baseline_path, answers):
         f"  {len(fields)} of {len(everywhere)} fields every surface publishes were compared, "
         f"{len(ASSERTED_ANOTHER_WAY)} asserted another way: {sorted(ASSERTED_ANOTHER_WAY)}"
     )
+    # A field this request leaves empty is compared, and four surfaces holding nothing agree
+    # perfectly. So the count is reported beside the one above: a name in the list is coverage
+    # of the wire and not yet coverage of a value, and the two read identically without this.
+    hollow = sorted(field for field in fields if committed[field] in ([], {}, "", None))
+    if hollow:
+        print(
+            f"  {len(hollow)} of {len(fields)} compared fields are empty on this request, so "
+            f"the surfaces agree about the shape and not yet about a value: {hollow}"
+        )
     for field in uneven:
         print(f"  {field} reaches {sorted(surfaces_publishing(answers, field))} of the four")
 
