@@ -32,9 +32,23 @@ when the athlete is not quiet.
 """
 
 [[method.parameter]]
-name = "anchor"
+name = "window_anchor"
 unit = "enumeration"
-notes = "trial_start, pre_signal, user_offset. Rate-dependent sample counts are a fingerprint hazard."
+notes = "Rate-dependent sample counts are a fingerprint hazard: one stated sample index spans different amounts of time on two recordings."
+
+[[method.parameter.value]]
+key = "trial_start"
+label = "The first sample of the recording"
+
+[[method.parameter.value]]
+key = "stated_index"
+label = "A sample index the reader states"
+
+[[method.parameter.value]]
+key = "pre_signal"
+label = "The span ending where the jump signal begins"
+source = "owen2014"
+notes = "Owen places the second immediately before the signal rather than at the start of the file, so the two anchors weigh different samples of the same recording."
 
 [[method.citation]]
 key = "owen2014"

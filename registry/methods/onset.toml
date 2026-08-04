@@ -321,14 +321,30 @@ rather than an empirical derivation. It disagrees with the parent literature, wh
 name = "sd_convention"
 unit = "enumeration"
 notes = """
-population or sample. The same author group uses population SD in one paper and sample SD in
-another, which is a real registry distinction rather than a typographic one.
+The same author group uses population SD in one paper and sample SD in another, which is a real
+registry distinction rather than a typographic one.
 """
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.parameter]]
 name = "reference_distribution"
 unit = "enumeration"
-notes = "quiet_stance_force or empty_plate, per noise_ref.distribution. 8 SD of empty plate is not 5 SD of stance."
+notes = "Filed as a fork in its own right under noise_ref.distribution. 8 SD of empty plate is not 5 SD of stance."
+
+[[method.parameter.value]]
+key = "quiet_stance_force"
+label = "The spread of force while the athlete stands still on the plate"
+
+[[method.parameter.value]]
+key = "empty_plate"
+label = "The spread of force with nobody on the plate"
 
 [[method.citation]]
 key = "owen2014"
@@ -1113,13 +1129,24 @@ debate = "genuine"
 [[method.parameter]]
 name = "selection"
 unit = "enumeration"
-published_values = []
 notes = """
-first, last, longest_run. The apparent first-against-last fork between two open tools is
-discretisation rather than a fork: within a search bounded above by the minimum force, a
-countermovement-jump trace crosses once, so last-above equals first-below minus one sample. The
-residual genuine difference is a noise-rejection policy on the same axis as persistence.
+The apparent first-against-last fork between two open tools is discretisation rather than a fork:
+within a search bounded above by the minimum force, a countermovement-jump trace crosses once, so
+last-above equals first-below minus one sample. The residual genuine difference is a noise-rejection
+policy on the same axis as persistence.
 """
+
+[[method.parameter.value]]
+key = "first"
+label = "The earliest crossing in the search"
+
+[[method.parameter.value]]
+key = "last"
+label = "The latest crossing in the search"
+
+[[method.parameter.value]]
+key = "longest_run"
+label = "The crossing that opens the longest qualifying run"
 
 [[method.citation]]
 key = "bilalovski"
@@ -1375,10 +1402,22 @@ debate = "single_position"
 name = "direction"
 unit = "enumeration"
 notes = """
-below_only, above_only, two_sided. An implementation detail for a countermovement jump, which
-always unweights first, and a genuine method fork for a squat jump, an isometric pull or a squat,
-which only rise. The same code is correct for one task and wrong for another.
+An implementation detail for a countermovement jump, which always unweights first, and a genuine
+method fork for a squat jump, an isometric pull or a squat, which only rise. The same code is
+correct for one task and wrong for another.
 """
+
+[[method.parameter.value]]
+key = "below_only"
+label = "Only a departure below the standing band counts"
+
+[[method.parameter.value]]
+key = "above_only"
+label = "Only a departure above the standing band counts"
+
+[[method.parameter.value]]
+key = "two_sided"
+label = "A departure in either direction counts"
 
 [[method.citation]]
 key = "bilalovski"
@@ -1445,8 +1484,15 @@ required = true
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
-published_values = []
-notes = "population, sample. The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
+notes = "The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.citation]]
 key = "chronojump_r"

@@ -177,6 +177,9 @@ fn sorted(value: &serde_json::Value) -> serde_json::Value {
     }
 }
 
+/// Where a labelled line's value starts, which is where anything written under one lines up.
+const VALUE_INDENT_COLUMNS: usize = 14;
+
 /// A rule the field has moved past is worth noticing on the row rather than in the reader's
 /// memory of what the five statuses mean.
 fn status(method: &Method, renderer: &Renderer) -> String {
@@ -214,15 +217,48 @@ fn describe_parameter(parameter: &plateforce_registry::Parameter) -> String {
             join_numbers(&parameter.published_values)
         ));
     }
-    let named: Vec<&str> = parameter
+    described
+}
+
+/// The values a parameter takes, one to a line under it.
+///
+/// A name alone tells a reader that a choice exists and not what may be chosen, and the keys
+/// used to be run together on the parameter line under the word `published`, which is the
+/// word `published_values` carries for numbers a paper printed. These are the values the rule
+/// accepts, which is a different fact.
+fn value_lines(parameter: &plateforce_registry::Parameter, renderer: &Renderer) -> Vec<String> {
+    let key_columns = parameter
         .named_values
         .iter()
-        .map(|value| value.key.as_str())
-        .collect();
-    if !named.is_empty() {
-        described.push_str(&format!(", published {}", named.join(", ")));
+        .map(|value| value.key.chars().count())
+        .max()
+        .unwrap_or(0);
+    let mut lines = Vec::new();
+    for value in &parameter.named_values {
+        let label = value.label.as_deref().unwrap_or_default().trim();
+        if label.is_empty() {
+            lines.extend(renderer.wrap(&value.key, VALUE_INDENT_COLUMNS));
+            continue;
+        }
+        // Continuations align under the label rather than under the key, so a long label
+        // reads as one column instead of wrapping back into the key beside it.
+        let mut wrapped = renderer.wrap(label, VALUE_INDENT_COLUMNS + key_columns + 2);
+        match wrapped.first_mut() {
+            Some(first) => {
+                first.replace_range(
+                    ..VALUE_INDENT_COLUMNS + key_columns,
+                    &format!(
+                        "{}{:<key_columns$}",
+                        " ".repeat(VALUE_INDENT_COLUMNS),
+                        value.key
+                    ),
+                );
+                lines.extend(wrapped);
+            }
+            None => lines.push(format!("{}{}", " ".repeat(VALUE_INDENT_COLUMNS), value.key)),
+        }
     }
-    described
+    lines
 }
 
 fn join_numbers(values: &[f64]) -> String {
@@ -307,6 +343,9 @@ fn show_method(method: &Method, renderer: &Renderer) -> String {
         for line in renderer.field_wrapped("parameter", &describe_parameter(parameter)) {
             let _ = writeln!(document, "{line}");
         }
+        for line in value_lines(parameter, renderer) {
+            let _ = writeln!(document, "{line}");
+        }
     }
     for bias in &method.biases {
         let described = format!(
@@ -334,7 +373,7 @@ fn show_method(method: &Method, renderer: &Renderer) -> String {
             failure.detectability,
             failure.corpus
         );
-        for line in renderer.wrap(failure.definition.trim(), 14) {
+        for line in renderer.wrap(failure.definition.trim(), VALUE_INDENT_COLUMNS) {
             let _ = writeln!(document, "{line}");
         }
     }

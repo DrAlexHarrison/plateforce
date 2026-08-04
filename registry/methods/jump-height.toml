@@ -28,7 +28,16 @@ debate = "single_position"
 name = "frame"
 unit = "enumeration"
 required = true
-notes = "takeoff or standing. Both frames are physically valid. What is wrong is not stating which one was computed."
+notes = "Both frames are physically valid. What is wrong is not stating which one was computed."
+
+[[method.parameter.value]]
+key = "takeoff"
+label = "Apex above the centre of mass at the instant of takeoff"
+
+[[method.parameter.value]]
+key = "standing"
+label = "Apex above the centre of mass in quiet standing"
+notes = "Taller than the takeoff frame by the heel rise, which this entry's bias row puts at 0.144 meters."
 
 [[method.citation]]
 key = "eythorsdottir2024"

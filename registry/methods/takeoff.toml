@@ -211,11 +211,26 @@ required = true
 name = "flight_window"
 unit = "enumeration"
 notes = """
-Published windows: a fixed 300 ms of flight, the middle 50 percent of the provisional flight, and a
-fixed 300-sample trim hard-coded to 1000 Hz with an explicit instruction to halve it at 500 Hz. The
-middle-50-percent form correctly avoids contaminating the estimate with the takeoff and landing
+Which samples of the provisional flight phase the residual threshold is re-estimated over. The
+middle-fraction form is the one that avoids contaminating the estimate with the takeoff and landing
 transients.
 """
+
+[[method.parameter.value]]
+key = "fixed_span_from_takeoff"
+label = "A span of stated length measured from the provisional takeoff"
+source = "mcmahon2018"
+notes = "Published at 300 milliseconds."
+
+[[method.parameter.value]]
+key = "middle_fraction_of_flight"
+label = "The middle fraction of the provisional flight phase, trimmed at both ends"
+notes = "Published at the middle 50 percent, which is a trim of a quarter of the flight at each end."
+
+[[method.parameter.value]]
+key = "fixed_sample_trim"
+label = "A trim of a stated number of samples at each end of the provisional flight"
+notes = "Published as 300 samples against 1000 Hz, with an instruction to halve the count at 500 Hz, so the span it selects is a different duration on any other rate."
 
 [[method.citation]]
 key = "mcmahon2018"
