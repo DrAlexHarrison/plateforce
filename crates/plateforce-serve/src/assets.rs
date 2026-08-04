@@ -25,8 +25,7 @@ pub fn not_part_of_the_interface() -> &'static [&'static str] {
 }
 
 /// `/` is the document. Everything else is an exact lookup against the compiled-in table,
-/// and no filesystem path is ever built from a request, so path traversal is not a class of
-/// bug this server can have.
+/// and no filesystem path is ever built from a request.
 pub fn asset_for(request_target: &str) -> Option<&'static Asset> {
     let path = request_target
         .split(['?', '#'])

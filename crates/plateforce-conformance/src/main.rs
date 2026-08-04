@@ -1,7 +1,4 @@
 //! Print the conformance of the Rust core against the frozen reference run.
-//!
-//! The point of this command is that somebody can satisfy themselves the numbers are
-//! right without reading any Rust.
 
 use plateforce_conformance::bindings::ReferenceBindings;
 use plateforce_conformance::corpus::{Corpus, CorpusFormat};
@@ -22,8 +19,8 @@ OPTIONS:
     --sample-rate <HZ>         default 1200
     --all-columns              list every column, not only the ones that disagree
 
-Rebinding one choice and rerunning is how this corpus measures what a choice is
-worth. Each of these moves the Rust away from the reference on purpose:
+Rebinding one choice and rerunning measures what that choice is worth. Each of
+these moves the Rust away from the reference:
 
     --gravity <F>              9.81 as bound, 9.80665 is the standard value
     --dispersion <WHICH>       population as bound, sample is what R's sd computes

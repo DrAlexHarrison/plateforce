@@ -1,8 +1,8 @@
 //! A rule with no test cannot be told apart from one whose condition became unreachable.
 //!
-//! Ten rules were in that state at once, which is not a thing a reviewer sees: each was
-//! added correctly, and only the whole set read as a gap. So the set is checked here rather
-//! than left to whoever adds the next one.
+//! A gap like that is not a thing a reviewer sees: each rule is added correctly on its own,
+//! and only the whole set reads as one. So the set is checked here rather than left to
+//! whoever adds the next rule.
 
 /// The declaration block, so a variant is found by being declared rather than by being used.
 fn variants_declared() -> Vec<String> {
@@ -63,9 +63,8 @@ fn every_rule_the_loader_enforces_is_named_by_a_test() {
 }
 
 /// `docs/schema.md` is the published contract for a format that ships into other people's
-/// repositories, and it stated 8 rules while the loader enforced 24. A document asserting a
-/// guarantee narrower than the code provides is worse than one asserting a wider guarantee,
-/// because a reader writes against the narrow one and is refused by the wide one.
+/// repositories. A document naming fewer rules than the loader enforces sends a reader to
+/// write against the narrow contract and be refused by the wide one.
 #[test]
 fn every_rule_the_loader_enforces_is_named_in_the_published_contract() {
     let contract = include_str!("../../../docs/schema.md");
@@ -83,7 +82,7 @@ fn every_rule_the_loader_enforces_is_named_in_the_published_contract() {
 }
 
 /// The control. Without it a scan that silently matched nothing would report every rule as
-/// tested, which is the shape the check above exists to catch one level down.
+/// tested.
 #[test]
 fn the_scan_reads_the_vocabulary_rather_than_an_empty_list() {
     let declared = variants_declared();

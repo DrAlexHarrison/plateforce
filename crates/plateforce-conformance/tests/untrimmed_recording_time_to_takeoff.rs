@@ -1,9 +1,8 @@
 //! `MISSION.md` P5 names one defect as the pillar's own test: an untrimmed recording that
 //! returns a time to takeoff of a few tens of milliseconds, with no warning.
 //!
-//! The test reproduces the defect before it closes it. A test that only asserted the fixed
-//! behaviour could not tell a fix from a fixture that never had the defect, and this project
-//! has shipped that mistake before.
+//! The test reproduces the defect before it closes it. A test asserting only the fixed
+//! behaviour cannot tell a fix from a fixture that never had the defect.
 //!
 //! The fixture is synthetic and says so in its name. Every corpus recording is trimmed:
 //! surveyed across the 242 trials the shipped rules place a takeoff on, 0 return a time to

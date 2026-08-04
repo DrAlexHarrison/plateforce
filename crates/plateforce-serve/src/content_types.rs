@@ -3,10 +3,10 @@
 // and the type the server sends are one table. Regular comments rather than module doc,
 // because an included file lands mid-file where inner doc comments are illegal.
 
-/// Two of these are load-bearing rather than cosmetic. A module script served as anything
-/// but a JavaScript type is refused outright by the browser and the page stays blank; a
-/// WebAssembly module served as anything but `application/wasm` instantiates through the
-/// non-streaming path, slower, recorded by nothing but a console warning.
+/// A module script served as anything but a JavaScript type is refused outright by the
+/// browser and the page stays blank; a WebAssembly module served as anything but
+/// `application/wasm` instantiates through the non-streaming path, slower, recorded by
+/// nothing but a console warning.
 pub const CONTENT_TYPES: &[(&str, &str)] = &[
     ("html", "text/html; charset=utf-8"),
     ("css", "text/css; charset=utf-8"),

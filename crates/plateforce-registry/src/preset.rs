@@ -6,9 +6,8 @@
 //!
 //! A preset binds only the slots its source states. A slot the source is silent about is
 //! left to the software's normal resolution and is never attributed to the preset. A
-//! preset that filled in the rest would manufacture provenance, which is the defect this
-//! project documents in a competitor: a settings screen naming a method and a citation
-//! over a code path computing something else.
+//! preset that filled in the rest would manufacture provenance: a settings screen naming a
+//! method and a citation over a code path computing something else.
 
 use std::collections::BTreeMap;
 
@@ -65,8 +64,7 @@ pub struct PresetFile {
 
 impl Preset {
     /// False when any citation rests on an abstract or a secondary source. A preset is only
-    /// as citable as the weakest source behind it, and a row that hid that would be a
-    /// citation affordance unable to do its job.
+    /// as citable as the weakest source behind it.
     pub fn every_source_obtained(&self) -> bool {
         !self.citations.is_empty() && self.citations.iter().all(|citation| citation.obtained)
     }
@@ -119,7 +117,7 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
             seen_constructs.push(&binding.construct);
 
             // A composition is checked through the entry it composes, which is the row
-            // carrying the citations it inherits. The id itself has no row by design.
+            // carrying the citations it inherits. The id itself has no row.
             let checked_id = binding
                 .composed_from
                 .as_ref()

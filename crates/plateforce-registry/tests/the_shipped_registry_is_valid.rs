@@ -1,10 +1,9 @@
 //! The registry in this repository has to pass its own validation, here rather than in CI.
 //!
-//! `Registry::load` validates, and until this file existed the only thing that called it on the
-//! shipped tree was the Python wheel smoke test in CI. So a registry edit could pass the whole
-//! workspace suite locally, be pushed, and fail three minutes later on a rule the repository
-//! already knew how to check. That happened on the entry this test was written beside: a
-//! disagreement declared in one direction only, which validation catches and nothing local ran.
+//! `Registry::load` validates, so without a local caller on the shipped tree a registry edit
+//! passes the whole workspace suite here and fails minutes later in CI, on a rule the
+//! repository already knows how to check. A disagreement declared in one direction only is
+//! the shape of edit that does it.
 
 use plateforce_registry::Registry;
 

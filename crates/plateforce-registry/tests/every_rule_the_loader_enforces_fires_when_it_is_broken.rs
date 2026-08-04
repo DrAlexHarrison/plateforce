@@ -248,8 +248,7 @@ fn a_bias_equalling_a_parameter_that_declares_no_default_is_refused() {
 }
 
 /// The number and the parameter it claims to equal, held together. Without this the
-/// magnitude is right at the published default and wrong everywhere else, which is the
-/// state the registry was in before the field existed.
+/// magnitude is right at the published default and wrong everywhere else.
 #[test]
 fn a_bias_disagreeing_with_the_parameter_it_equals_is_refused() {
     let kinds = methods_broken(
