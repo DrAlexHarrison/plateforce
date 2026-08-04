@@ -8,11 +8,11 @@ use common::{
 };
 use plateforce_batch::agreement::{
     bland_altman, bound_statistic_ids, correlation_with_limits, guard_same_repetition, olp,
-    pairs_from,
+    pairs_from, DISPERSION_VALUES, UNIT_OF_ANALYSIS_VALUES,
 };
 use plateforce_batch::{
     analyse, bind_statistic, compare, AgreementRefusal, BatchCompareRequest, BatchRequest,
-    LimitsRequest, TrialIdentity, TrialSet,
+    LimitsRequest, TrialIdentity, TrialSet, UnitOfAnalysis,
 };
 use plateforce_core::DispersionEstimator;
 
@@ -643,4 +643,63 @@ fn a_compare_run_refuses_an_unnamed_file_rather_than_dropping_it() {
     );
     assert_eq!(named[0].code, "trial_identity_unparsed");
     std::fs::remove_dir_all(&directory).ok();
+}
+
+/// Every value these two choices take is a word a caller can state, and every word they offer
+/// is a value the request takes.
+///
+/// The words a refusal names are what a caller acts on, and the values are what the software
+/// holds. A value with no word is a choice nobody can ask for; a word with no value is one the
+/// refusal offers and the parse declines. Neither is visible from the other side alone.
+///
+/// The matches below are exhaustive over the values rather than counted, so a value added to
+/// either choice does not compile here until it is paired with a word. `DispersionEstimator` is
+/// declared in `plateforce-core` and read across the workspace, so this is the one place a
+/// value added there and a word offered here are held together.
+#[test]
+fn every_value_these_choices_take_is_a_word_a_caller_can_state() {
+    let unit_word = |value: UnitOfAnalysis| match value {
+        UnitOfAnalysis::Trial => "trial",
+        UnitOfAnalysis::Subject => "subject",
+    };
+    let dispersion_word = |value: DispersionEstimator| match value {
+        DispersionEstimator::Population => "population",
+        DispersionEstimator::Sample => "sample",
+    };
+
+    // The control. Both walks below hold over an empty list, and a list that emptied is a
+    // refusal offering a caller nothing to state.
+    assert!(
+        !UNIT_OF_ANALYSIS_VALUES.is_empty() && !DISPERSION_VALUES.is_empty(),
+        "one of these choices offers no word at all"
+    );
+
+    for (value, word) in UNIT_OF_ANALYSIS_VALUES {
+        assert_eq!(
+            unit_word(value),
+            word,
+            "unit_of_analysis pairs {value:?} with a word this guard does not know it by"
+        );
+        let request = LimitsRequest::declared(Some(word), Some("sample")).unwrap_or_else(|_| {
+            panic!("unit_of_analysis offers {word} and the request declined it")
+        });
+        assert_eq!(request.unit_of_analysis, value);
+    }
+
+    for (value, word) in DISPERSION_VALUES {
+        assert_eq!(
+            dispersion_word(value),
+            word,
+            "dispersion pairs {value:?} with a word this guard does not know it by"
+        );
+        let request = LimitsRequest::declared(Some("trial"), Some(word))
+            .unwrap_or_else(|_| panic!("dispersion offers {word} and the request declined it"));
+        assert_eq!(request.dispersion, value);
+    }
+
+    println!(
+        "{} unit_of_analysis words and {} dispersion words, each a value the request takes",
+        UNIT_OF_ANALYSIS_VALUES.len(),
+        DISPERSION_VALUES.len()
+    );
 }

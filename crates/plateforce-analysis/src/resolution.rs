@@ -394,10 +394,7 @@ pub(crate) fn format_number(value: f64) -> String {
 }
 
 pub(crate) fn dispersion_label(dispersion: DispersionEstimator) -> &'static str {
-    match dispersion {
-        DispersionEstimator::Population => "population",
-        DispersionEstimator::Sample => "sample",
-    }
+    dispersion.as_published_str()
 }
 
 /// Why a rule produced nothing.

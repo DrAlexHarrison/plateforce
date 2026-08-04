@@ -275,12 +275,48 @@ impl AgreementRefusal {
     }
 }
 
-/// The two enumerations `agreement.bland_altman_loa` publishes in prose.
+/// The two enumerations `agreement.bland_altman_loa` publishes in prose, each value beside the
+/// word a caller states it by.
 ///
 /// They sit here rather than in the registry because `Parameter.published_values` holds
 /// numbers and these are words. When the schema carries enumerated values, these go.
-const UNIT_OF_ANALYSIS_VALUES: [&str; 2] = ["trial", "subject"];
-const DISPERSION_VALUES: [&str; 2] = ["population", "sample"];
+///
+/// Paired rather than listed apart from the values they name. A list of words beside a match
+/// on those words is two lists, and the words are what a refusal offers a caller: a value this
+/// software takes with no word in the list is one nobody can ask for, and a word in the list
+/// nothing takes is one the refusal offers and the parse declines.
+/// `every_value_these_choices_take_is_a_word_a_caller_can_state` holds each to the other.
+///
+/// The estimator's own words come from `DispersionEstimator`, which is where they are spelled
+/// for every crate that names one. This crate offering a caller a word that surface spells
+/// differently would be two vocabularies for one fact.
+pub const UNIT_OF_ANALYSIS_VALUES: [(UnitOfAnalysis, &str); 2] = [
+    (UnitOfAnalysis::Trial, "trial"),
+    (UnitOfAnalysis::Subject, "subject"),
+];
+pub const DISPERSION_VALUES: [(DispersionEstimator, &str); 2] = [
+    (
+        DispersionEstimator::EVERY[0],
+        DispersionEstimator::PUBLISHED[0],
+    ),
+    (
+        DispersionEstimator::EVERY[1],
+        DispersionEstimator::PUBLISHED[1],
+    ),
+];
+
+/// The words one of those enumerations offers, which is what a refusal names.
+fn words_of<T: Copy>(values: &[(T, &'static str)]) -> Vec<String> {
+    values.iter().map(|(_, word)| (*word).to_string()).collect()
+}
+
+/// The value a word names, or nothing where the enumeration has no such word.
+fn value_of<T: Copy>(values: &[(T, &'static str)], written: &str) -> Option<T> {
+    values
+        .iter()
+        .find(|(_, word)| *word == written)
+        .map(|(value, _)| *value)
+}
 
 /// Whether a paired statistic is taken over trials or over athletes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -312,38 +348,27 @@ impl LimitsRequest {
             missing.push("dispersion".to_string());
         }
         if !missing.is_empty() {
-            let mut legal: Vec<String> = UNIT_OF_ANALYSIS_VALUES
-                .iter()
-                .map(|v| v.to_string())
-                .collect();
-            legal.extend(DISPERSION_VALUES.iter().map(|v| v.to_string()));
+            let mut legal = words_of(&UNIT_OF_ANALYSIS_VALUES);
+            legal.extend(words_of(&DISPERSION_VALUES));
             return Err(AgreementRefusal::RequiredParametersUnstated {
                 parameters: missing,
                 legal,
             });
         }
-        let unit = match unit_of_analysis.unwrap_or_default() {
-            "subject" => UnitOfAnalysis::Subject,
-            "trial" => UnitOfAnalysis::Trial,
-            _ => {
-                return Err(AgreementRefusal::RequiredParametersUnstated {
-                    parameters: vec!["unit_of_analysis".to_string()],
-                    legal: UNIT_OF_ANALYSIS_VALUES
-                        .iter()
-                        .map(|v| v.to_string())
-                        .collect(),
-                })
-            }
+        let Some(unit) = value_of(
+            &UNIT_OF_ANALYSIS_VALUES,
+            unit_of_analysis.unwrap_or_default(),
+        ) else {
+            return Err(AgreementRefusal::RequiredParametersUnstated {
+                parameters: vec!["unit_of_analysis".to_string()],
+                legal: words_of(&UNIT_OF_ANALYSIS_VALUES),
+            });
         };
-        let spread = match dispersion.unwrap_or_default() {
-            "population" => DispersionEstimator::Population,
-            "sample" => DispersionEstimator::Sample,
-            _ => {
-                return Err(AgreementRefusal::RequiredParametersUnstated {
-                    parameters: vec!["dispersion".to_string()],
-                    legal: DISPERSION_VALUES.iter().map(|v| v.to_string()).collect(),
-                })
-            }
+        let Some(spread) = value_of(&DISPERSION_VALUES, dispersion.unwrap_or_default()) else {
+            return Err(AgreementRefusal::RequiredParametersUnstated {
+                parameters: vec!["dispersion".to_string()],
+                legal: words_of(&DISPERSION_VALUES),
+            });
         };
         Ok(Self {
             unit_of_analysis: unit,
@@ -719,10 +744,7 @@ pub fn per_subject_values(
 }
 
 fn label(dispersion: DispersionEstimator) -> &'static str {
-    match dispersion {
-        DispersionEstimator::Population => "population",
-        DispersionEstimator::Sample => "sample",
-    }
+    dispersion.as_published_str()
 }
 
 /// One subject's coefficient of variation, re-exported so a caller building the set the mean

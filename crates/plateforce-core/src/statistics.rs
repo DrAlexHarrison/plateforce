@@ -15,6 +15,39 @@ pub enum DispersionEstimator {
 }
 
 impl DispersionEstimator {
+    /// Every value this choice takes, in the word every surface spells it by.
+    ///
+    /// The words are here rather than at each place that needs one. Four functions in three
+    /// crates spelled them for themselves, and a match that is exhaustive stops a value
+    /// arriving without a word while doing nothing about two of those functions disagreeing
+    /// about which word. Two vocabularies for one fact is the defect this project exists
+    /// against, one layer out from two implementations of one quantity.
+    pub const PUBLISHED: [&'static str; 2] = ["population", "sample"];
+
+    /// The word this value is spelled by, indexed into the list above rather than written out,
+    /// so a value added to this choice does not compile until the list names it too.
+    pub fn as_published_str(self) -> &'static str {
+        match self {
+            DispersionEstimator::Population => Self::PUBLISHED[0],
+            DispersionEstimator::Sample => Self::PUBLISHED[1],
+        }
+    }
+
+    /// The value a word names, or nothing where this choice has no such word.
+    pub fn from_published_str(written: &str) -> Option<Self> {
+        Self::EVERY
+            .into_iter()
+            .find(|value| value.as_published_str() == written)
+    }
+
+    /// Every value, so a caller offering the choice walks the values rather than the words and
+    /// cannot offer one that parses back to nothing.
+    ///
+    /// Held to `PUBLISHED` by `every_value_this_choice_takes_has_one_word_and_one_home`, which
+    /// is the direction the exhaustive match above cannot ask: a word may be added to the list
+    /// without a value ever taking it.
+    pub const EVERY: [Self; 2] = [DispersionEstimator::Population, DispersionEstimator::Sample];
+
     fn degrees_of_freedom_offset(self) -> f64 {
         match self {
             DispersionEstimator::Population => 0.0,
@@ -394,5 +427,35 @@ mod tests {
     fn index_of_minimum_takes_the_earliest_of_a_tie() {
         assert_eq!(index_of_minimum(&[3.0, 1.0, 1.0, 2.0]), Some(1));
         assert_eq!(index_of_maximum(&[3.0, 1.0, 3.0, 2.0]), Some(0));
+    }
+
+    /// The list of words and the list of values are one enumeration, walked from either end.
+    ///
+    /// The match in `as_published_str` indexes `PUBLISHED`, so a value added to this choice
+    /// cannot compile without a word. Nothing in the types asks the other two questions: a word
+    /// added to the list that no value takes, which a caller would be offered and refused, and
+    /// a value left out of `EVERY`, which is a choice the software holds and never offers.
+    #[test]
+    fn every_value_this_choice_takes_has_one_word_and_one_home() {
+        assert_eq!(
+            DispersionEstimator::EVERY.len(),
+            DispersionEstimator::PUBLISHED.len(),
+            "{} values are enumerated and {} words are published, so one of the two is short",
+            DispersionEstimator::EVERY.len(),
+            DispersionEstimator::PUBLISHED.len(),
+        );
+        for word in DispersionEstimator::PUBLISHED {
+            let value = DispersionEstimator::from_published_str(word)
+                .unwrap_or_else(|| panic!("{word} is published and no value takes it"));
+            assert_eq!(value.as_published_str(), word);
+        }
+        for value in DispersionEstimator::EVERY {
+            assert_eq!(
+                DispersionEstimator::from_published_str(value.as_published_str()),
+                Some(value),
+                "{value:?} spells itself as a word that parses back to something else"
+            );
+        }
+        assert_eq!(DispersionEstimator::from_published_str("unbiased"), None);
     }
 }
