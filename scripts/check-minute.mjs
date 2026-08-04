@@ -725,27 +725,34 @@ check('the five states of a value are told apart without reading the words',
     : missing.length ? `never rendered, so never compared: ${missing.join(', ')}`
     : `${read.length} readings across two themes, all distinct: ${[...new Set(read)].join(', ')}`);
 
-// Last, because it takes every offer in turn and leaves the rail holding all of them, which
-// is a page no check above was written against.
-//
 // The picker names a quantity and clicking it puts that construct on the path. Whether the
 // engine will take it is a second fact, and the browser reads the rules this build runs
 // without being told how each one is reached, so the two lists can differ and nothing says
 // so until a reader clicks. An offer the engine refuses does not degrade: the request comes
 // back refused, and every number on the page goes with it.
 //
-// Taken one at a time and asserted after each, so a failure names the offer that did it
-// rather than the state twelve offers later.
+// One at a time, and the path is put back after each, because a refused request stays
+// refused while the construct that caused it is still on the path. Left to accumulate, one
+// bad offer reports every offer after it as bad too, and the count names twelve culprits
+// where there is one.
 const offered = await evaluate(`(async () => (await import('./add-quantity.js')).offerableConstructs().map((o) => o.construct))()`);
 const refused = [];
 for (const construct of offered) {
   const outcome = await evaluate(`(async () => {
     const { state } = await import('./state.js');
+    const { buildDecisionModel } = await import('./registry.js');
+    const { runAnalysis } = await import('./analysis.js');
+    const { renderDecisions } = await import('./decisions.js');
     (await import('./add-quantity.js')).addToPath(${JSON.stringify(construct)});
-    return {
+    const read = {
       refusal: state.analysisRefusal ? state.analysisRefusal.message : null,
       metrics: document.querySelectorAll('#metric-grid .metric').length,
     };
+    state.path = state.path.filter((entry) => entry !== ${JSON.stringify(construct)});
+    state.slots = buildDecisionModel(state.registry, state.build, state.path);
+    renderDecisions();
+    runAnalysis();
+    return read;
   })()`);
   if (outcome.refusal) refused.push(`${construct}: ${outcome.refusal}`);
   else if (outcome.metrics === 0) refused.push(`${construct}: the grid emptied with no refusal to read`);
