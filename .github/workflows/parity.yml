@@ -125,7 +125,7 @@ jobs:
       # The only gate here that compares a computed number rather than a manifest. Two
       # surfaces can publish identical vocabularies and return different jump heights, and
       # nothing above this line can see that.
-      - name: Every listed surface computes the one committed request to the same numbers
+      - name: Every listed surface computes every committed request to the same numbers
         run: ./scripts/result-parity.sh --check
 
       # A field the engine renames and migrates across its Rust callers leaves the browser
