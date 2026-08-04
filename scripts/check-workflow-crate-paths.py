@@ -122,6 +122,7 @@ def main() -> int:
     members = workspace_members()
     failures: list[str] = []
     checked = 0
+    asserted = 0          # rows whose closure is non-empty, so the row could have failed
 
     for name, manifest_path in sorted(ROOTS.items()):
         workflow = ROOT / ".github" / "workflows" / name
@@ -143,6 +144,7 @@ def main() -> int:
             # serve gains one, which is the reason to keep it rather than to trust it.
             state = "closure is empty, so this row asserts nothing today"
         else:
+            asserted += 1
             state = "ok" if not missing else "MISSING " + ", ".join(missing)
         print(f"{name:24s} closure {len(needed)}: {', '.join(needed) or 'none'}  {state}")
         for crate in missing:
@@ -155,7 +157,13 @@ def main() -> int:
     if checked != len(ROOTS):
         failures.append(f"checked {checked} of {len(ROOTS)} declared workflows")
 
-    print(f"\n{checked} of {len(ROOTS)} declared workflows checked against their closures")
+    # Two numbers rather than one. A reader who sees only "3 of 3 checked" is given a
+    # denominator whose members did not all do the same amount of work, and one of them
+    # currently cannot fail. The second number is the one that says what was established.
+    print(
+        f"\n{checked} of {len(ROOTS)} declared workflows read, "
+        f"{asserted} of them with a non-empty closure this run could have failed on"
+    )
     if failures:
         print("\nfailures:")
         for line in failures:
