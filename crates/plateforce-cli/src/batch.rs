@@ -170,9 +170,9 @@ pub fn run(
     // A run over a folder multiplies one unmade choice by the trial count, so it is refused
     // before a single trial is read, and it is refused the way one trial is: by naming the
     // choice and what can be passed, rather than by naming the flag that is missing.
-    let derived = match plateforce_batch::derive::assignments("--derive", &args.derive) {
+    let derived = match derived_methods(&args.derive) {
         Ok(derived) => derived,
-        Err(refusal) => return Outcome::declined(declined_binding(refusal)),
+        Err(declined) => return Outcome::declined(declined),
     };
     // Values written against a construct this run named for something computed from the
     // landmarks, so `--set peak_force.window_seconds` reaches the rule under the same word
@@ -272,6 +272,29 @@ fn request_for(
             .collect(),
         ..Default::default()
     }
+}
+
+/// `--derive <construct>=<method>`, read against what this build runs.
+///
+/// A construct written twice is refused through the same helper `--set` and `--choose` refuse
+/// through, so the three repeatable flags on this command answer one question one way. Keeping
+/// the last was the shape this arrived in, on the reasoning that `clap` keeps the last for a
+/// repeated `--onset`. It does not: it refuses, and a second value under one name has no
+/// reading this software can act on either way.
+fn derived_methods(
+    lines: &[String],
+) -> Result<std::collections::BTreeMap<String, String>, Declined> {
+    let mut chosen = std::collections::BTreeMap::new();
+    for line in lines {
+        let (construct, method_id) =
+            plateforce_batch::derive::choice("--derive", line).map_err(declined_binding)?;
+        if let Some(first) = chosen.insert(construct.clone(), method_id.clone()) {
+            return Err(crate::analyse::stated_twice(
+                "--derive", &construct, &first, &method_id,
+            ));
+        }
+    }
+    Ok(chosen)
 }
 
 /// A rule the run cannot bind, in the shape the caller's other refusals arrive in.

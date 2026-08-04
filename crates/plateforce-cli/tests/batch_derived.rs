@@ -311,3 +311,65 @@ fn an_assignment_carrying_no_equals_is_refused_as_a_line_rather_than_as_a_rule()
         "no trial was read before the refusal"
     );
 }
+
+/// A construct written twice is refused, exactly as `--set` and `--choose` refuse on the same
+/// command line.
+///
+/// This kept the last value and dropped the first, on the reasoning that `clap` keeps the last
+/// for a repeated `--onset`. Measured, `clap` refuses: `the argument '--onset <METHOD>' cannot
+/// be used multiple times`. So the precedent said the opposite of what was built on it, and
+/// `--derive` was silently keeping a value while `--choose` beside it refused.
+///
+/// The sentence is asserted against the one `--choose` produces on the same run rather than
+/// against a copy of the wording, so the two cannot drift into refusing differently for the
+/// same shape of line.
+#[test]
+fn a_construct_written_twice_is_refused_the_way_the_other_repeatable_flags_refuse() {
+    let out = scratch("twice");
+    let output = batch(
+        &out,
+        &[
+            "--derive",
+            "analysis_window=window_end.takeoff.detected",
+            "--derive",
+            "analysis_window=window_end.fixed_duration.isometric",
+        ],
+    );
+    let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
+    println!("{}", said.lines().next().unwrap_or_default());
+    assert_eq!(output.status.code(), Some(THE_REQUEST_COULD_NOT_BE_READ));
+    assert!(
+        !out.join("results.csv").exists(),
+        "no trial was read before the refusal"
+    );
+
+    let chosen = scratch("twice-choose");
+    let beside = batch(
+        &chosen,
+        &[
+            "--choose",
+            "onset.selection=first",
+            "--choose",
+            "onset.selection=last",
+        ],
+    );
+    let other = String::from_utf8(beside.stderr).expect("the refusal is UTF-8");
+    assert_eq!(beside.status.code(), Some(THE_REQUEST_COULD_NOT_BE_READ));
+
+    // The same sentence with the flag and the names swapped in. Compared by the shape the two
+    // share rather than by a literal, which is what makes this catch a second wording.
+    let shape = |line: &str| {
+        line.split_once(" was given ")
+            .map(|(_, rest)| format!(" was given {rest}"))
+            .unwrap_or_else(|| panic!("no shared shape in {line}"))
+    };
+    let mine = shape(said.lines().next().unwrap_or_default());
+    let theirs = shape(other.lines().next().unwrap_or_default());
+    println!("--derive {mine}\n--choose {theirs}");
+    assert!(mine.ends_with(", and a name takes one value"), "{mine}");
+    assert!(theirs.ends_with(", and a name takes one value"), "{theirs}");
+    assert!(
+        said.contains("--derive analysis_window") && other.contains("--choose onset.selection"),
+        "each names its own flag and its own name"
+    );
+}
