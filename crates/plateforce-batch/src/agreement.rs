@@ -361,6 +361,28 @@ pub struct BatchCompareRequest {
     pub quantity: String,
 }
 
+/// Every rule a variant ran under, with the rules the sweep varied put back.
+///
+/// `Variant::method_ids` is built from the three landmark fields alone, so a sweep over a
+/// construct computed from the landmarks returns the same three ids for every variant. Two
+/// numbers that differ then carry one chain and one `provenance_id`, which is the record
+/// asserting sameness where the values disagree. `settings` is the sweep's own statement of
+/// what it varied, so any id in it that the list does not already carry is appended.
+///
+/// A value axis puts a number in `settings` rather than a rule id, and a number is not a rule,
+/// so only entries the binding table answers to are taken.
+fn swept_rules_included(mut method_ids: Vec<String>, settings: &[(String, String)]) -> Vec<String> {
+    for (_, value) in settings {
+        let is_a_rule = plateforce_analysis::BINDINGS
+            .iter()
+            .any(|binding| binding.id == value);
+        if is_a_rule && !method_ids.contains(value) {
+            method_ids.push(value.clone());
+        }
+    }
+    method_ids
+}
+
 /// Sweep the named methods over every trial and return the paired relation.
 ///
 /// One trace in, several methods over it, so every pair comes from one repetition by
@@ -430,7 +452,7 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                         trial_id: trial_id.clone(),
                         subject: subject.clone(),
                         variant_label: variant.label,
-                        method_ids: variant.method_ids,
+                        method_ids: swept_rules_included(variant.method_ids, &variant.settings),
                         quantity: request.quantity.clone(),
                         value: variant.value,
                         // A variant that failed is listed with its reason and stays in the
@@ -456,6 +478,11 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
 
     // A variant names the rules it ran under, so the chain behind each paired value is
     // recorded and keyed rather than left as a label a reader has to interpret.
+    //
+    // `Variant::method_ids` carries the three landmark fields and nothing else, so two variants
+    // differing only in a rule computed from the landmarks arrive here identical. The sweep's
+    // own `settings` is the record of what it varied, so the swept rule is taken from there and
+    // the chain distinguishes what the numbers distinguish.
     let mut chains: BTreeMap<String, Vec<ProvenanceRow>> = BTreeMap::new();
     for row in &mut paired {
         let rows: Vec<ProvenanceRow> = row

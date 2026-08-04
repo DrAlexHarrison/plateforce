@@ -16,6 +16,7 @@ pub mod fingerprint;
 pub mod identity;
 pub mod relations;
 pub mod render;
+pub mod sweep;
 pub mod synthetic;
 pub mod write_csv;
 pub mod write_json;
@@ -40,5 +41,6 @@ pub use relations::{
     AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
 };
 pub use render::{Rendered, Rendering};
+pub use sweep::{axis_over, SweepRefusal};
 pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
 pub use write_json::envelope;

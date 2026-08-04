@@ -297,6 +297,18 @@ fn derived_methods(
     Ok(chosen)
 }
 
+/// A comparison that cannot be set up, in the shape the caller's other refusals arrive in.
+///
+/// A name no rule answers to carries the published code, because it is the same fault as
+/// naming an unknown rule anywhere else. The other two are faults in the line: they describe a
+/// combination of flags rather than a rule that failed.
+fn declined_axis(refusal: plateforce_batch::SweepRefusal) -> Declined {
+    match refusal {
+        plateforce_batch::SweepRefusal::UnknownMethod(recorded) => Declined::recorded(*recorded),
+        other => Declined::line(Fault::Request, other.to_string()),
+    }
+}
+
 /// A rule the run cannot bind, in the shape the caller's other refusals arrive in.
 ///
 /// The two halves keep the split the record makes: a line the reader will rewrite from the
@@ -360,12 +372,18 @@ fn run_compare(
         );
     }
 
-    let mut method_ids: Vec<String> = args.onset.clone().into_iter().collect();
-    method_ids.extend(args.against.iter().cloned());
+    // The step being compared is read off the rules named to compare, because every id in this
+    // build is filed under exactly one construct. A folder comparison used to vary movement
+    // onset whatever was written, so twelve of the thirteen constructs computed from the
+    // landmarks could not be compared over a folder at all.
+    let axis = match plateforce_batch::axis_over(&request.analysis, &args.against) {
+        Ok(axis) => axis,
+        Err(refusal) => return Outcome::declined(declined_axis(refusal)),
+    };
     let compare_request = BatchCompareRequest {
         analysis: request,
-        slot: "onset".to_string(),
-        method_ids,
+        slot: axis.slot,
+        method_ids: axis.method_ids,
         quantity: args.quantity.clone(),
     };
 
