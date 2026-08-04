@@ -115,6 +115,19 @@ const settle = async (expression, label) => {
   throw new Error(`timed out waiting for ${label}${lastRaise ? `, last raise: ${lastRaise.message}` : ''}`);
 };
 
+/* Waiting on something a check below asserts, answered rather than raised. A raise here ends
+ * the run, and a run that ends reports no check red at all, so breaking the very thing a check
+ * exists to catch would read as this file being broken rather than as the check working. */
+const waitFor = async (expression, attempts = 60) => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      if (await evaluate(expression)) return true;
+    } catch { /* the page has not reached that far */ }
+    await new Promise((wait) => setTimeout(wait, 125));
+  }
+  return false;
+};
+
 const results = [];
 const check = (name, passed, read) => results.push({ name, passed, read });
 
@@ -159,22 +172,29 @@ await settle("!document.getElementById('plate-drawer').hidden", 'the plate');
 const fields = await evaluate(`(() => [...document.querySelectorAll('#plate-members label')].map((l) => l.textContent))()`);
 check('the chip opens the plate, with one field per member the block declares',
   fields.join(',') === declared.manifest.join(',') && declared.held.join(',') === declared.manifest.join(','),
-  `${fields.length} fields (${fields.join(', ')}) against ${declared.manifest.length} members the manifest names`);
+  `${fields.length} fields (${fields.join(', ')}) against ${declared.manifest.length} the manifest names ` +
+  `(${declared.manifest.join(', ')})`);
 
-/* Every member answered, then saved under a name, which is the one act the decree asks for. */
-const stateThePlate = async (values) => {
-  await evaluate(`(() => {
-    const answers = ${JSON.stringify(values)};
-    for (const [member, value] of Object.entries(answers)) {
-      const field = document.getElementById('plate-member-' + member);
-      field.value = value;
-      field.dispatchEvent(new Event('change'));
-    }
-    return true;
-  })()`);
-};
+/*
+ * Every member answered, then saved under a name, which is the one act the decree asks for.
+ *
+ * A member the page offers no field for is collected rather than raised on: the check above is
+ * the one that owns whether the fields match the block, and a raise here would end the run
+ * before it could say so.
+ */
+const stateThePlate = async (values) => evaluate(`(() => {
+  const answers = ${JSON.stringify(values)};
+  const unoffered = [];
+  for (const [member, value] of Object.entries(answers)) {
+    const field = document.getElementById('plate-member-' + member);
+    if (!field) { unoffered.push(member); continue; }
+    field.value = value;
+    field.dispatchEvent(new Event('change'));
+  }
+  return unoffered;
+})()`);
 const answers = Object.fromEntries(declared.manifest.map((m) => [m, ANSWERED[m] ?? ANSWERED_FALLBACK]));
-await stateThePlate(answers);
+const unoffered = await stateThePlate(answers);
 await evaluate(`(() => {
   const name = document.getElementById('plate-name');
   name.value = ${JSON.stringify(PLATE_NAME)};
@@ -182,7 +202,7 @@ await evaluate(`(() => {
   document.getElementById('plate-save').click();
   return true;
 })()`);
-await settle("document.getElementById('plate-chip-name').textContent === " + JSON.stringify(PLATE_NAME), 'the chip');
+await waitFor(`document.getElementById('plate-chip-name').textContent === ${JSON.stringify(PLATE_NAME)}`);
 
 const recorded = await evaluate(`(async () => {
   const { state } = await import('./state.js');
@@ -205,11 +225,13 @@ const asPairs = (held) => Object.entries(held)
 const carried = asPairs(recorded.block);
 check('a plate stated once carries every member into the record, complete and attributed',
   recorded.complete === true
+    && unoffered.length === 0
     && carried === asPairs(answers)
     && recorded.attribution?.name === PLATE_NAME
     && (recorded.attribution?.revision ?? '').length > 0,
-  `complete ${recorded.complete}, the record holds ${carried} against ${asPairs(answers)} stated, ` +
-  `under ${recorded.attribution?.name} ${recorded.attribution?.revision}`);
+  `complete ${recorded.complete}, the record holds ${carried || 'nothing'} against ${asPairs(answers)} stated` +
+  (unoffered.length ? `, with no field offered for ${unoffered.join(', ')}` : '') +
+  `, under ${recorded.attribution?.name ?? 'no plate'} ${recorded.attribution?.revision ?? ''}`);
 
 const named = new Map(recorded.rows);
 check('the result names its plate where it names what produced the numbers',
@@ -224,7 +246,7 @@ check('the result names its plate where it names what produced the numbers',
  * in the record as what it displaced: an overlay that kept only the winner leaves a reader
  * unable to see that a replacement happened at all.
  */
-const revisionBefore = recorded.attribution.revision;
+const revisionBefore = recorded.attribution?.revision ?? null;
 await stateThePlate({ [RESTATED_MEMBER]: RESTATED_VALUE });
 await new Promise((wait) => setTimeout(wait, 200));
 const displaced = await evaluate(`(async () => {
@@ -241,6 +263,7 @@ check('an answer stated over the plate displaces it, and the result carries both
   displaced.ran === RESTATED_VALUE
     && displaced.superseded[RESTATED_MEMBER] === answers[RESTATED_MEMBER]
     && displaced.replaced.length === 1
+    && revisionBefore !== null
     && displaced.revision === revisionBefore,
   `${RESTATED_MEMBER} ran as ${displaced.ran}, replacing ${JSON.stringify(displaced.superseded)}, ` +
   `shown as ${JSON.stringify(displaced.replaced)}; the plate's own revision is ${displaced.revision === revisionBefore ? 'unmoved' : 'moved, though nobody saved it'}`);
@@ -253,7 +276,7 @@ await evaluate(`(() => {
   document.getElementById('plate-save').click();
   return true;
 })()`);
-await settle("document.getElementById('plate-chip-name').textContent === 'Rig 2'", 'the second plate');
+await waitFor("document.getElementById('plate-chip-name').textContent === 'Rig 2'");
 const changed = await evaluate(`(async () => {
   const { state } = await import('./state.js');
   const option = [...document.querySelectorAll('#plate-options [role="radio"]')]
@@ -354,16 +377,15 @@ await settle("!document.getElementById('plate-drawer').hidden", 'the plate');
 await stateThePlate({ [RESTATED_MEMBER]: RESTATED_VALUE });
 await evaluate(`(() => { document.getElementById('plate-save').click(); return true; })()`);
 await evaluate("document.querySelector('#plate-drawer [data-close-drawer]').click()");
-await settle(
+await waitFor(
   `[...document.querySelectorAll('#batch-result .panel__sub')].some((p) => p.textContent.includes('now reads'))`,
-  'the table saying the plate moved',
 );
 const stale = await evaluate(`(async () => {
   const { state } = await import('./state.js');
   const { revisionNow } = await import('./plate.js');
   return {
-    line: [...document.querySelectorAll('#batch-result .panel__sub')].find((p) => p.textContent.includes('revision')).textContent,
-    ranUnder: JSON.parse(state.run.envelope).ok.run.plate_profile.revision,
+    line: [...document.querySelectorAll('#batch-result .panel__sub')].find((p) => p.textContent.includes('revision'))?.textContent ?? null,
+    ranUnder: JSON.parse(state.run.envelope).ok.run.plate_profile?.revision ?? null,
     now: revisionNow(${JSON.stringify(PLATE_NAME)}),
     onScreen: state.analysis?.plate_profile?.revision ?? null,
   };

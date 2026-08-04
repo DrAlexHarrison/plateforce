@@ -610,9 +610,11 @@ select { cursor: pointer; }
 /* The plate the tab analyses against, in the corner on every stage and one click from
    changing. It carries the count with its denominator rather than a tick, because a plate
    short of a member produces results that cannot be declared to match another lab's. */
-.plate-chip { min-height: 32px; padding: var(--space-1) var(--space-3); max-width: 12rem; }
+.plate-chip { min-height: 32px; padding: var(--space-1) var(--space-3); }
 .plate-chip__icon { width: 14px; height: 14px; flex: none; }
-.plate-chip__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 600; }
+/* The cap sits on the name so a long one ellipsises on its own. Capping the chip made the
+   name and the count compete for one budget, and the name lost at four characters. */
+.plate-chip__name { min-width: 0; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 600; }
 .plate-chip__count { flex: none; font-variant-numeric: tabular-nums; }
 
 .plate-options { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }

@@ -250,8 +250,10 @@ function renderMemberFields() {
       drawRun();
     });
     field.append(label, input);
+    // The picker one section up says which plate is picked, so the hint carries the answer
+    // rather than a name that can run to forty characters under every field.
     if (written(saved[member])) {
-      field.append(element('p', 'field__hint', `${state.plate.picked}: ${saved[member]}`));
+      field.append(element('p', 'field__hint', `Plate: ${saved[member]}`));
     }
     host.append(field);
   }
