@@ -253,12 +253,11 @@ pub fn takeoff_reestimated_flight_threshold(
             .iter()
             .position(|&value| value <= provisional_threshold_newtons)
             .ok_or_else(failure)?;
-    // The provisional flight phase is the run that begins at the provisional takeoff, so it
-    // ends where force returns above the seed threshold.
-    let last_low = signal[provisional..]
-        .iter()
-        .position(|&value| value > provisional_threshold_newtons)
-        .map_or(signal.len() - 1, |offset| provisional + offset - 1);
+    let last_low = search_from
+        + tail
+            .iter()
+            .rposition(|&value| value <= provisional_threshold_newtons)
+            .ok_or_else(failure)?;
 
     let unchanged = ReestimatedFlight {
         takeoff_index: provisional,
