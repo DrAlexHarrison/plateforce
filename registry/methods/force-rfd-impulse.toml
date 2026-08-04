@@ -66,7 +66,7 @@ three independent packages against a within-session minimum detectable change of
 
 [[method]]
 id = "force.peak.net"
-construct = "peak_force"
+construct = "net_peak_force"
 group = "H"
 title = "Peak force with system weight subtracted"
 rule = "Peak force is the maximum of the force series after system weight has been subtracted."

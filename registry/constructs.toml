@@ -230,9 +230,25 @@ title = "The largest vertical force produced during the effort"
 label = "The biggest force"
 unit = "newtons"
 notes = """
-Gross and net differ by exactly one system weight, and the choice is not an offset: gross peak force
-is onset-independent and net is onset-dependent, so it decides whether peak force belongs to the
-onset-sensitive family at all.
+The weight of the athlete and anything they carry is inside this number. The largest force with
+that weight taken out is a construct of its own, and the two travel under names a reader cannot
+take for one another. An answer here may be read off the trace or extrapolated from a fit to it,
+and both are the largest force of the effort: what separates those two is of the same order as the
+choice between a single sample and a centred average, where a whole standing weight is not.
+"""
+
+[[construct]]
+id = "net_peak_force"
+title = "The largest vertical force produced during the effort, after system weight is taken out"
+label = "The biggest force above standing still"
+unit = "newtons"
+notes = """
+Below the peak taken with standing weight in it by exactly one system weight, which is fixed in
+newtons and moves as a fraction: over the six committed countermovement trials system weight runs
+0.583 to 0.643 of this number, so a single ratio between the two would be right for one athlete and
+wrong by a factor for the next. The gross peak is onset-independent and this one is onset-dependent
+wherever net means the peak less the force at onset, so which of the two a result reports decides
+whether peak force belongs to the onset-sensitive family at all.
 """
 
 [[construct]]

@@ -263,17 +263,6 @@ pub const BINDINGS: &[Binding] = &[
         dispatch: Dispatch::Derived(crate::slots::peak_force::gross::RULE),
     },
     Binding {
-        id: crate::slots::peak_force::net::ID,
-        slot: crate::slots::peak_force::CONSTRUCT,
-        construct: crate::slots::peak_force::CONSTRUCT,
-        title: "The biggest force above standing weight",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::peak_force::net::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::peak_force::net::RULE),
-    },
-    Binding {
         id: crate::slots::peak_force::estimator::ID,
         slot: crate::slots::peak_force::CONSTRUCT,
         construct: crate::slots::peak_force::CONSTRUCT,
@@ -283,6 +272,20 @@ pub const BINDINGS: &[Binding] = &[
         note: "",
         quantities: crate::slots::peak_force::estimator::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::peak_force::estimator::RULE),
+    },
+    // The peak with system weight taken out, which fills a construct of its own. The two rules
+    // above report `peak_force_newtons` and this one reports `net_peak_force_newtons`, so one
+    // construct would carry a caller who names this one away from the number the others give.
+    Binding {
+        id: crate::slots::net_peak_force::net::ID,
+        slot: crate::slots::net_peak_force::CONSTRUCT,
+        construct: crate::slots::net_peak_force::CONSTRUCT,
+        title: "The biggest force above standing weight",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::net_peak_force::net::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::net_peak_force::net::RULE),
     },
     Binding {
         id: crate::slots::time_to_takeoff::onset_to_takeoff::ID,
