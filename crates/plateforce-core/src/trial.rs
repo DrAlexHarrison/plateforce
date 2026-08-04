@@ -246,19 +246,13 @@ pub fn jump_height_from_takeoff_velocity(
 /// a different method of computing the same one, and on real trials the two differ by
 /// more than a training intervention moves the number.
 ///
-/// The projectile equation is the case of the rule below where the centre of mass is at the
-/// same height at landing as at takeoff. Written as that case rather than as its own product,
-/// because two spellings of one quantity are free to drift apart and this pair would drift by
-/// the whole size of the correction.
+/// The one home for the projectile equation. The rule below corrects the number this returns
+/// rather than respelling it, so the pair cannot drift apart.
 pub fn jump_height_from_flight_time(
     flight_time_seconds: f64,
     gravity_meters_per_second_squared: f64,
 ) -> f64 {
-    jump_height_from_flight_time_with_landing_offset(
-        flight_time_seconds,
-        0.0,
-        gravity_meters_per_second_squared,
-    )
+    gravity_meters_per_second_squared * flight_time_seconds.powi(2) / 8.0
 }
 
 /// Jump height from flight time where the centre of mass is not at the same height at landing
@@ -266,13 +260,18 @@ pub fn jump_height_from_flight_time(
 ///
 /// `landing_below_takeoff_meters` is how far the centre of mass sits below its takeoff height
 /// at the instant of touchdown, so a subject who lands flatter than they took off has a
-/// positive value and a shorter jump than the projectile equation reports. Zero returns the
-/// projectile equation exactly, which is why that one calls this.
+/// positive value and a shorter jump than the projectile equation reports.
 ///
 /// Goncalves, Baptista, Tufano, Blazevich and Vieira 2024, PeerJ 12:e17704, equations 9 and 10.
-/// Their derivation splits the flight into an ascent whose duration is shortened by the offset
-/// and takes the height from the ascent alone. Uncorrected, the error reaches 59.6 percent of
-/// the number on a 0.10 m jump by a tall subject landing with the ankle flat.
+/// Their derivation splits the flight into an ascent shortened by the offset and takes the
+/// height from the ascent alone, which is published as `(g T / 2 - h / T)^2 / 2g`. Written here
+/// as that expression's own factorisation, the projectile height scaled by a posture term,
+/// because the two agree to a relative 2e-16 while only this arrangement returns the projectile
+/// equation bit for bit at a zero offset. The other one moves the uncorrected height of every
+/// trial in the last place, for nothing.
+///
+/// Uncorrected, the error reaches 59.6 percent of the number on a 0.10 m jump by a 1.98 m
+/// subject landing with the ankle flat.
 pub fn jump_height_from_flight_time_with_landing_offset(
     flight_time_seconds: f64,
     landing_below_takeoff_meters: f64,
@@ -281,9 +280,12 @@ pub fn jump_height_from_flight_time_with_landing_offset(
     if flight_time_seconds <= 0.0 {
         return 0.0;
     }
-    let takeoff_velocity = gravity_meters_per_second_squared * flight_time_seconds / 2.0
-        - landing_below_takeoff_meters / flight_time_seconds;
-    jump_height_from_takeoff_velocity(takeoff_velocity, gravity_meters_per_second_squared)
+    let uncorrected =
+        jump_height_from_flight_time(flight_time_seconds, gravity_meters_per_second_squared);
+    let posture_term = 1.0
+        - 2.0 * landing_below_takeoff_meters
+            / (gravity_meters_per_second_squared * flight_time_seconds.powi(2));
+    uncorrected * posture_term.powi(2)
 }
 
 /// The heel rise a flight-time height leaves out, in metres.
@@ -334,8 +336,29 @@ pub fn ankle_to_toe_segment(
         foot_length_fraction_of_stature * malleolus_fraction_of_foot_length * stature_meters;
     AnkleToToeSegment {
         length_meters: rise_meters.hypot(reach_meters),
-        standing_angle_degrees: rise_meters.atan2(reach_meters).to_degrees(),
+        standing_angle_degrees: ankle_to_toe_standing_angle_degrees(
+            ankle_height_fraction_of_stature,
+            foot_length_fraction_of_stature,
+            malleolus_fraction_of_foot_length,
+        ),
     }
+}
+
+/// How far the ankle-to-toe segment already leans back from horizontal with the foot flat, in
+/// degrees.
+///
+/// Stature cancels out of the ratio, so the lean is a property of the three fractions alone.
+/// Separate from the length because a reader who measured the segment on the athlete still
+/// needs the lean, and taking it from a stature they did not state would be reading a number
+/// out of a value nobody supplied.
+pub fn ankle_to_toe_standing_angle_degrees(
+    ankle_height_fraction_of_stature: f64,
+    foot_length_fraction_of_stature: f64,
+    malleolus_fraction_of_foot_length: f64,
+) -> f64 {
+    ankle_height_fraction_of_stature
+        .atan2(foot_length_fraction_of_stature * malleolus_fraction_of_foot_length)
+        .to_degrees()
 }
 
 /// The ankle-to-toe segment a flight-time correction rotates, from the toe.
@@ -610,15 +633,19 @@ mod tests {
     /// Both halves matter. Agreement alone would pass against a rule that ignores its offset,
     /// and a moved number alone would pass against a rule that no longer reduces to the
     /// equation nine studies published.
+    ///
+    /// Exact equality rather than a tolerance, because the correction is written as a factor on
+    /// the projectile height for the sake of this: a rearrangement that agrees only to a
+    /// tolerance moves the uncorrected height of every trial in its last place.
     #[test]
     fn a_flight_time_height_with_no_landing_offset_is_the_projectile_equation() {
         for flight_time in [0.35, 0.5, 0.676, 0.8] {
             let plain = jump_height_from_flight_time(flight_time, GRAVITY);
             let offset_free =
                 jump_height_from_flight_time_with_landing_offset(flight_time, 0.0, GRAVITY);
-            assert!(
-                (plain - offset_free).abs() < 1e-12,
-                "at {flight_time} s the two spellings gave {plain} and {offset_free}"
+            assert_eq!(
+                plain, offset_free,
+                "at {flight_time} s the two arrangements gave {plain} and {offset_free}"
             );
         }
 

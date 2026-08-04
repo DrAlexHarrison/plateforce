@@ -427,6 +427,43 @@ pub const BINDINGS: &[Binding] = &[
             crate::slots::jh_undeclared::minimum_of_two::RULE,
         ),
     },
+    // The two corrections and the drop-jump initial condition, declared after the four routes
+    // they correct or extend. Each reads a length, an angle or a height off the request that no
+    // rule can read off the trace, and declines by name where the caller stated none, which is
+    // the entry asking for the evidence it lacks rather than filling one in.
+    Binding {
+        id: crate::slots::jh_takeoff_frame::ankle_angle_corrected::ID,
+        slot: crate::slots::jh_takeoff_frame::CONSTRUCT,
+        construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
+        title: "Rise from takeoff, from the flight with the landing posture taken out",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::jh_takeoff_frame::ankle_angle_corrected::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::ankle_angle_corrected::RULE),
+    },
+    Binding {
+        id: crate::slots::jh_takeoff_frame::drop_from_box_height::ID,
+        slot: crate::slots::jh_takeoff_frame::CONSTRUCT,
+        construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
+        title: "Rise from takeoff, with the arrival taken from the height of the box",
+        composed_from: None,
+        records_under: None,
+        note: "Scoped to a drop jump by its entry. It runs on any recording and answers the question it was asked.",
+        quantities: crate::slots::jh_takeoff_frame::drop_from_box_height::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::drop_from_box_height::RULE),
+    },
+    Binding {
+        id: crate::slots::jh_standing_frame::heel_rise_constant::ID,
+        slot: crate::slots::jh_standing_frame::CONSTRUCT,
+        construct: crate::slots::jh_standing_frame::CONSTRUCT,
+        title: "Rise from standing, as the flight plus a heel rise scaled to the athlete",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::jh_standing_frame::heel_rise_constant::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::jh_standing_frame::heel_rise_constant::RULE),
+    },
     Binding {
         id: crate::slots::reactive_strength_index::jh_tov_over_ttt::ID,
         slot: crate::slots::reactive_strength_index::CONSTRUCT,
