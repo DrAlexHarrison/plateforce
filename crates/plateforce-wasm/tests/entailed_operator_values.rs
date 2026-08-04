@@ -190,21 +190,19 @@ fn every_named_value_asked_for() -> Vec<Asked> {
     asked
 }
 
-/// The parameter of a composed operator that no rule in this build reads, so a caller stating
-/// one of its values is told nothing.
+/// Parameters of a composed operator that no rule in this build reads, so a caller stating one
+/// of their values is told nothing. Empty, and every entry a caller can name is now honoured
+/// or refused.
 ///
-/// `onset.op.backtrack_to_tolerance` files two things together: the lookback window that
-/// triggers a retreat, which `onset.threshold.last_within_band` reads and runs, and the
-/// tolerance the retreat walks back to. Core implements both retreats as `PostCrossingRule`
-/// and `plateforce-conformance` selects the tolerance one, while every analysis rule takes the
-/// fixed offset. So the entry is composed for its lookback and its tolerance is unreachable
-/// through a request.
+/// `tolerance` on `onset.op.backtrack_to_tolerance` was the last one. The retreat it walks back
+/// to reached core as `PostCrossingRule` and only `plateforce-conformance` selected it, so a
+/// caller stating a tolerance through `onset.threshold.last_within_band` had it dropped; the
+/// rule reads it now.
 ///
-/// An equality rather than a permitted exception, so it fails in both directions: a new name
-/// here is a value a caller can ask for and cannot get, and implementing this one makes the
-/// assertion fail until the name comes out.
-const NOT_REACHABLE_THROUGH_A_REQUEST: &[&str] =
-    &["tolerance on onset.op.backtrack_to_tolerance via onset.threshold.last_within_band"];
+/// An equality rather than a permitted exception, so it fails in both directions: a name
+/// appearing here is a value a caller can ask for and cannot get, and implementing one makes
+/// the assertion fail until the name comes out.
+const NOT_REACHABLE_THROUGH_A_REQUEST: &[&str] = &[];
 
 #[test]
 fn a_named_value_a_composed_operator_publishes_is_honoured_or_refused_and_never_dropped() {

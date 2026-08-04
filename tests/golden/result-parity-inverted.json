@@ -146,6 +146,10 @@
             "sample"
           ],
           [
+            "flight_window",
+            "middle_fraction_of_flight"
+          ],
+          [
             "k",
             "5"
           ],
@@ -164,6 +168,7 @@
         "parameter_sources": {
           "bounding_threshold_n": "assumed",
           "dispersion": "assumed",
+          "flight_window": "assumed",
           "k": "assumed",
           "reestimated_threshold_newtons": "measured",
           "trim_fraction": "assumed"

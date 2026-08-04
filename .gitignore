@@ -20,3 +20,7 @@ plateforce_*.tar.gz
 
 # Browser verification artefacts written by an agent looking at the page.
 .playwright-mcp/
+
+# Written by the R surface build, and it holds this machine's absolute vendor path, so a
+# commit of it would point every other machine at a directory it does not have.
+bindings/r/src/.cargo/
