@@ -136,6 +136,15 @@ fn the_page_shows_the_accounts_the_record_holds() {
         "the page never says {HEADING:?}: {page}"
     );
 
+    // The population the comparison below runs over. A record holding no account at all
+    // leaves that loop with nothing to look for, and a section printing a heading over
+    // nothing would pass it.
+    assert!(
+        accounts.len() >= 8,
+        "the record holds {} accounts, so the comparison below would look at almost nothing",
+        accounts.len()
+    );
+
     let mut missing: Vec<String> = Vec::new();
     let mut lines = 0usize;
     for (quantity, account) in accounts {
@@ -178,6 +187,14 @@ fn the_page_without_the_flag_carries_no_section_of_accounts() {
     assert!(
         !page.contains(HEADING),
         "the section is printed whether or not it was asked for: {page}"
+    );
+
+    // The same floor the case above takes, and for the same reason: with no account in the
+    // record there is nothing this could find on the page either.
+    assert!(
+        accounts.len() >= 8,
+        "the record holds {} accounts, so this control would search for nothing",
+        accounts.len()
     );
 
     let reached: Vec<&String> = accounts

@@ -159,6 +159,13 @@ fn the_envelope_carries_the_accounts_the_tables_carry() {
         .as_array()
         .expect("the envelope carries the relation");
 
+    // The population the comparison runs over. Two empty lists match perfectly, and a run
+    // carrying no account would pass a comparison against its own emptiness.
+    assert!(
+        result.descriptions.len() >= 8,
+        "the run carries {} accounts, so this would compare almost nothing",
+        result.descriptions.len()
+    );
     assert_eq!(rows.len(), result.descriptions.len());
     for (row, written) in rows.iter().zip(&result.descriptions) {
         assert_eq!(row["quantity"].as_str(), Some(written.quantity.as_str()));
