@@ -1996,6 +1996,60 @@ mod tests {
         ),
     ];
 
+    /// Both outcomes of the degenerate-band choice carry the policy under the registry's
+    /// declared name. One rule used to answer the question with two vocabularies: a widened
+    /// band recorded only the fraction, a refusal recorded only the policy.
+    #[test]
+    fn the_degenerate_band_policy_is_recorded_whichever_branch_ran() {
+        let trial = synthetic();
+        let recorded_policy = |request: &AnalysisRequest| {
+            let response = run(&trial, request).expect("the synthetic trial analyses");
+            let onset = response
+                .bound_methods
+                .iter()
+                .find(|method| method.method_id == "onset.threshold.noise_relative")
+                .expect("the onset rule is bound")
+                .clone();
+            onset
+        };
+
+        let bare = request(
+            "onset.threshold.noise_relative",
+            "takeoff.threshold.absolute_force",
+        );
+        let refused_band = recorded_policy(&bare);
+        assert_eq!(
+            refused_band
+                .bound_parameters
+                .iter()
+                .find(|(name, _)| name == "degenerate_band")
+                .map(|(_, value)| value.as_str()),
+            Some("refuse"),
+            "a run that would refuse names the policy"
+        );
+
+        let mut widened = bare.clone();
+        widened
+            .onset
+            .parameters
+            .insert("degenerate_fraction".into(), 0.2);
+        let widened_band = recorded_policy(&widened);
+        assert_eq!(
+            widened_band
+                .bound_parameters
+                .iter()
+                .find(|(name, _)| name == "degenerate_band")
+                .map(|(_, value)| value.as_str()),
+            Some("fraction_of_reference"),
+            "a run that widened the band names the policy"
+        );
+        assert_eq!(
+            widened_band.parameter_sources.get("degenerate_fraction"),
+            Some(&plateforce_core::provenance::ParameterSource::Stated),
+            "the stated fraction keeps the caller's signature"
+        );
+    }
+
     struct CharacterisationCase {
         name: String,
         trial: &'static str,

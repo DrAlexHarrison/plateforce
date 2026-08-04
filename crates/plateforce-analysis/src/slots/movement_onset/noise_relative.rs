@@ -11,6 +11,8 @@ use crate::slots::movement_onset::{
 
 pub(crate) const APPLIES_BACKTRACK: bool = true;
 
+const RULE_ID: &str = "onset.threshold.noise_relative";
+
 pub(crate) fn crossing(
     trial: &Trial,
     epoch: &WeighingEpoch,
@@ -27,6 +29,7 @@ pub(crate) fn crossing(
     // assumed was quiet was not, and a silent fallback would hide that.
     let degenerate_band = match resolved.stated("degenerate_fraction") {
         Some(fraction) => {
+            resolved.entailed(RULE_ID, "degenerate_band", "fraction_of_reference")?;
             resolved.record_measured(
                 "degenerate_fraction",
                 fraction,
@@ -36,7 +39,7 @@ pub(crate) fn crossing(
             DegenerateBandPolicy::FractionOfReference(fraction)
         }
         None => {
-            resolved.record("degenerate_band", "refuse".into(), ParameterSource::Assumed);
+            resolved.entailed(RULE_ID, "degenerate_band", "refuse")?;
             DegenerateBandPolicy::Refuse
         }
     };
