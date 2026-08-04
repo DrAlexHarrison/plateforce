@@ -117,8 +117,8 @@ CASES = [
     ),
     (
         "break 5, only one construct has a floor to choose between, the vacuity case",
-        '            .filter(|id| is_operator(id) && id.contains("search_floor"))',
-        '            .filter(|id| id.contains("onset.op.search_floor"))',
+        '        .filter(|id| is_operator(id) && id.contains("search_floor"))',
+        '        .filter(|id| id.contains("onset.op.search_floor"))',
         "asserts nothing about a choice",
         "the population of choices",
     ),
