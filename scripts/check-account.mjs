@@ -80,8 +80,18 @@ socket.addEventListener('message', (event) => {
     pending.get(message.id)(message);
     pending.delete(message.id);
   }
+  // Three sources, because the browser reports an error three ways and the log carries only
+  // one of them: a page calling console.error and a page throwing out of a click handler
+  // both leave `Log.entryAdded` silent, so a check reading that alone cannot go red on
+  // either. Measured here on this page, with a console.error placed in the opener.
   if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
     consoleLines.push(message.params.entry.text);
+  }
+  if (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error') {
+    consoleLines.push(message.params.args.map((argument) => argument.value ?? argument.description).join(' '));
+  }
+  if (message.method === 'Runtime.exceptionThrown') {
+    consoleLines.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
   }
 });
 const send = (method, params = {}) =>
