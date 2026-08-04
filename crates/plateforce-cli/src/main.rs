@@ -11,6 +11,8 @@ mod capability_cmd;
 mod decisions;
 mod exit;
 mod out;
+mod plate_cmd;
+mod plate_source;
 mod preset;
 mod reach;
 mod registry_cmd;
@@ -40,6 +42,9 @@ struct Invocation {
     /// Read the registry in this directory rather than the one compiled in
     #[arg(long, global = true, action = clap::ArgAction::Append, value_name = "DIR")]
     registry: Vec<PathBuf>,
+    /// Keep saved plates in this directory rather than beside this machine's other settings
+    #[arg(long, global = true, action = clap::ArgAction::Append, value_name = "DIR")]
+    plates: Vec<PathBuf>,
     /// Write the result as readable text or as JSON
     #[arg(long, global = true, value_enum, default_value_t = Format::Text)]
     format: Format,
@@ -61,6 +66,9 @@ enum Command {
     Batch(batch::Args),
     /// Report what this build can do, for comparison against every other surface
     Capability(capability_cmd::Args),
+    /// Record a plate's settings once, and read back the ones this machine holds
+    #[command(subcommand)]
+    Plate(plate_cmd::Command),
     /// Report what this registry reaches, per construct, and what stands in the way of the rest
     Reach,
     /// Read the registry
@@ -96,9 +104,25 @@ fn main() -> ExitCode {
         Err(error) => return report_parse_failure(error),
     };
 
-    let registry_directory = match one_registry_directory(
+    let registry_directory = match one_directory(
+        "--registry",
         &invocation.registry,
         times_written(std::env::args_os(), "--registry"),
+        "an entry read under one of them would carry the other's id",
+    ) {
+        Ok(directory) => directory,
+        Err(message) => {
+            return report_parse_failure(
+                Invocation::command().error(ErrorKind::ArgumentConflict, message),
+            )
+        }
+    };
+
+    let plates_directory = match one_directory(
+        "--plates",
+        &invocation.plates,
+        times_written(std::env::args_os(), "--plates"),
+        "a plate saved under one of them would be absent from the other",
     ) {
         Ok(directory) => directory,
         Err(message) => {
@@ -120,9 +144,13 @@ fn main() -> ExitCode {
         Command::Analyse(args) => analyse::run(
             args,
             registry_directory.as_deref(),
+            plates_directory.as_deref(),
             invocation.format,
             &renderer,
         ),
+        Command::Plate(command) => {
+            plate_cmd::run(command, plates_directory.as_deref(), invocation.format)
+        }
         Command::Reach => reach::run(registry_directory.as_deref(), invocation.format, &renderer),
         // The server holds the process rather than handing back a document, and it reads its
         // own options, so the one parser for them stays in the crate that acts on them.
@@ -137,6 +165,7 @@ fn main() -> ExitCode {
                 batch::run(
                     args,
                     registry_directory.as_deref(),
+                    plates_directory.as_deref(),
                     invocation.format,
                     invocation.out.as_deref(),
                     &renderer,
@@ -192,11 +221,14 @@ fn report_parse_failure(error: clap::Error) -> ExitCode {
 ///
 /// Naming none reads the registry this build carries, rather than a relative `registry`
 /// directory that resolves differently depending on where the operator is standing.
-fn one_registry_directory(parsed: &[PathBuf], written: usize) -> Result<Option<PathBuf>, String> {
+fn one_directory(
+    flag: &str,
+    parsed: &[PathBuf],
+    written: usize,
+    consequence: &str,
+) -> Result<Option<PathBuf>, String> {
     if written > 1 {
-        return Err(format!(
-            "--registry names {written} directories, and an entry read under one of them would carry the other's id"
-        ));
+        return Err(format!("{flag} names {written} directories, and {consequence}"));
     }
     match parsed {
         [only] => Ok(Some(only.clone())),
@@ -262,7 +294,32 @@ mod tests {
     fn directory_of(line: &[&str]) -> Result<Option<PathBuf>, String> {
         let invocation = parse(line).map_err(|error| error.to_string())?;
         let written = times_written(line.iter().map(std::ffi::OsString::from), "--registry");
-        one_registry_directory(&invocation.registry, written)
+        one_directory("--registry", &invocation.registry, written, "an entry read under one of them would carry the other's id")
+    }
+
+    fn plates_of(line: &[&str]) -> Result<Option<PathBuf>, String> {
+        let invocation = parse(line).map_err(|error| error.to_string())?;
+        let written = times_written(line.iter().map(std::ffi::OsString::from), "--plates");
+        one_directory(
+            "--plates",
+            &invocation.plates,
+            written,
+            "a plate saved under one of them would be absent from the other",
+        )
+    }
+
+    /// The flag that names where saved plates live is held to what `--registry` is held to,
+    /// because the failure is the same one: two folders on one line is a question, and
+    /// answering it with whichever came last is the silent choice this tool refuses.
+    #[test]
+    fn two_plate_folders_on_one_line_are_refused() {
+        assert_eq!(
+            plates_of(&["--plates", "here", "plate", "list"]).unwrap(),
+            Some(PathBuf::from("here"))
+        );
+        assert!(plates_of(&["--plates", "here", "plate", "list", "--plates", "there"]).is_err());
+        assert!(plates_of(&["plate", "list", "--plates"]).is_err());
+        assert_eq!(plates_of(&["plate", "list"]).unwrap(), None);
     }
 
     /// Where the flag sits is the difference between an entry id and a directory path

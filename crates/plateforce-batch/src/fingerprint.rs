@@ -150,6 +150,10 @@ fn method_choice(choice: &MethodChoice) -> Value {
 pub fn run_fingerprint(run: &RunRow, provenance_ids: &BTreeSet<String>) -> Fingerprint {
     let mut without_itself = run.clone();
     without_itself.run_fingerprint = None;
+    // The saved plate goes with it. A profile is a way of not retyping the members, and the
+    // members are already here; hashing the name a lab files them under would make two labs
+    // whose plates are configured identically fail to match over a nickname.
+    without_itself.plate_profile = None;
     let body = json!({
         "run": serde_json::to_value(&without_itself).unwrap_or(Value::Null),
         "provenance_ids": provenance_ids.iter().collect::<Vec<_>>(),
@@ -230,6 +234,7 @@ mod tests {
             acquisition_complete_count: 6,
             acquisition: a_recorded_plate(),
             acquisition_complete: true,
+            plate_profile: None,
             trials_excluded: 0,
             gates_reporting: 0,
             gates_applied: 0,
@@ -286,6 +291,39 @@ mod tests {
             run_fingerprint(&one_plate, &ids("content-aaa", "content-bbb")).digest,
             run_fingerprint(&another_plate, &ids("content-aaa", "content-bbb")).digest,
             "the acquisition block did not reach the digest"
+        );
+    }
+
+    /// Two labs that recorded the same five answers match, whatever they call their plates.
+    ///
+    /// Paired with a control that moves a member rather than a name, because a digest blind to
+    /// the whole row would pass the first half of this and fail nothing: the two rows below
+    /// differ only in the name, and `two_runs_off_different_plates_are_two_runs` above proves
+    /// the same digest still sees the members.
+    #[test]
+    fn what_a_lab_calls_its_plate_is_not_part_of_the_digest() {
+        let mut here = run_row();
+        here.plate_profile = Some(plateforce_core::PlateProfileAttribution {
+            name: "lab-kistler-1".to_string(),
+            revision: plateforce_core::PlateProfileAttribution::revision_of(&here.acquisition),
+            superseded_members: std::collections::BTreeMap::new(),
+        });
+        let mut elsewhere = run_row();
+        elsewhere.plate_profile = Some(plateforce_core::PlateProfileAttribution {
+            name: "the-blue-one".to_string(),
+            revision: plateforce_core::PlateProfileAttribution::revision_of(&elsewhere.acquisition),
+            superseded_members: std::collections::BTreeMap::new(),
+        });
+
+        assert_eq!(
+            run_fingerprint(&here, &ids("content-aaa", "content-bbb")).digest,
+            run_fingerprint(&elsewhere, &ids("content-aaa", "content-bbb")).digest,
+            "a nickname reached the digest, so two labs with one plate configuration cannot match"
+        );
+        assert_eq!(
+            run_fingerprint(&here, &ids("content-aaa", "content-bbb")).digest,
+            run_fingerprint(&run_row(), &ids("content-aaa", "content-bbb")).digest,
+            "naming a saved plate changed the digest of a run whose members did not move"
         );
     }
 

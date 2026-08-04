@@ -12,7 +12,7 @@ use plateforce_analysis::{
     AnalysisRequest, AnalysisResponse, BoundMethod, DeclinedRule, Metric, ONSET_CONSTRUCT,
     ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
-use plateforce_core::{Acquisition, Refusal, RefusalCode};
+use plateforce_core::{Capture, Refusal, RefusalCode};
 use plateforce_registry::Registry;
 use serde::Serialize;
 
@@ -35,10 +35,11 @@ pub struct BatchRequest {
     /// The validity gates this run bound, and which of them remove a trial rather than
     /// naming it. Empty is the correct state of a run that bound none.
     pub gates: GateRegistry,
-    /// What the caller knows about the capture. A trace of forces carries none of it, so it
-    /// is stated per run rather than read per file, and a run that states nothing reports
-    /// every trial as incomplete rather than as matching.
-    pub acquisition: Option<Acquisition>,
+    /// What the caller knows about the capture, and which saved plate they were told it by.
+    /// A trace of forces carries none of it, so it is stated per run rather than read per
+    /// file, and a run that states nothing reports every trial as incomplete rather than as
+    /// matching.
+    pub capture: Option<Capture>,
 }
 
 impl BatchRequest {
@@ -48,14 +49,14 @@ impl BatchRequest {
             registry_version: None,
             resolved_decisions: BTreeSet::new(),
             gates: GateRegistry::default(),
-            acquisition: None,
+            capture: None,
         }
     }
 
     /// State what the capture was, so results from it can be told apart from results whose
     /// capture nobody recorded.
-    pub fn describing(mut self, acquisition: Acquisition) -> Self {
-        self.acquisition = Some(acquisition);
+    pub fn describing(mut self, capture: impl Into<Capture>) -> Self {
+        self.capture = Some(capture.into());
         self
     }
 
@@ -423,10 +424,12 @@ pub fn analyse(
     });
 
     // The block describes the capture, so it is complete or it is not, once for the run.
-    let acquisition_is_complete = request
-        .acquisition
+    let acquisition = request
+        .capture
         .as_ref()
-        .is_some_and(Acquisition::is_complete);
+        .map(|capture| capture.acquisition.clone())
+        .unwrap_or_default();
+    let acquisition_is_complete = acquisition.is_complete();
 
     let mut run = RunRow {
         plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -450,8 +453,12 @@ pub fn analyse(
         // The block itself, so the row carries what it fingerprinted rather than a count of
         // how many trials it applied to. A run that stated nothing carries the empty block,
         // which is what `Acquisition::missing` names every member of.
-        acquisition: request.acquisition.clone().unwrap_or_default(),
+        acquisition,
         acquisition_complete: acquisition_is_complete,
+        plate_profile: request
+            .capture
+            .as_ref()
+            .and_then(|capture| capture.plate_profile.clone()),
         trials_excluded: coverage.excluded,
         gates_reporting: request.gates.reporting_count(),
         gates_applied: request.gates.applied_count(),

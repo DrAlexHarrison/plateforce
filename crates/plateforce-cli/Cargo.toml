@@ -22,7 +22,11 @@ clap = { version = "4.6", features = ["derive"] }
 anstream = "1"
 anstyle-query = "1.1"
 terminal_size = "0.4"
+serde = { workspace = true }
 serde_json = { workspace = true }
+# A saved plate is written in the format the registry is written in, so the one file a lab
+# edits by hand reads the way every other file in this project reads.
+toml = { workspace = true }
 
 # The build script assembles the registry with the registry crate's own walk, so a set of
 # files the directory loader refuses fails this build rather than reaching a machine that

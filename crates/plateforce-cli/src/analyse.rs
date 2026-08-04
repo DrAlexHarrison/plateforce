@@ -83,6 +83,8 @@ pub struct Args {
         help = crate::acquisition_arg::ACQUISITION_HELP
     )]
     pub acquisition: Vec<String>,
+    #[arg(long, value_name = "NAME", help = crate::plate_source::PLATE_HELP)]
+    pub plate: Option<String>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
@@ -248,9 +250,21 @@ pub(crate) fn prepare(
 pub fn run(
     args: &Args,
     registry_directory: Option<&Path>,
+    plates_directory: Option<&Path>,
     format: Format,
     renderer: &Renderer,
 ) -> Outcome {
+    // Resolved before the trace is read, so a plate this machine has no record of is answered
+    // in the time it takes to say so rather than after a folder of samples has been parsed.
+    let capture = match crate::plate_source::capture_for(
+        args.plate.as_deref(),
+        &args.acquisition,
+        plates_directory,
+    ) {
+        Ok(capture) => capture,
+        Err(declined) => return Outcome::declined(declined),
+    };
+
     let Prepared {
         registry,
         trial,
@@ -277,6 +291,7 @@ pub fn run(
                 &trial,
                 &registry,
                 args,
+                &capture,
                 format,
                 renderer,
             )
@@ -776,6 +791,7 @@ fn render(
     trial: &ReadTrial,
     registry: &Registry,
     args: &Args,
+    capture: &plateforce_core::Capture,
     format: Format,
     renderer: &Renderer,
 ) -> Outcome {
@@ -785,15 +801,6 @@ fn render(
         .filter(|metric| metric.value.is_none())
         .collect();
     let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
-
-    // The block the caller stated, which decides whether this result can be declared to match
-    // another lab's. It used to be a literal `false` under a comment saying no acquisition
-    // block reaches this surface, which was true and was the work not done: three of the five
-    // surfaces could not be given one, and they were the three named in the surface bar.
-    let acquisition = match crate::acquisition_arg::stated_acquisition(&args.acquisition) {
-        Ok(acquisition) => acquisition,
-        Err(declined) => return Outcome::declined(declined),
-    };
 
     // The shape every surface writes a result in, rather than a second one assembled here.
     // A terminal reporting one result under different field names from an R session is the
@@ -808,7 +815,7 @@ fn render(
             samples_matching_the_convention: trial.reported_samples.matched_the_convention,
         },
         &registry_stamp(registry, args),
-        acquisition.is_complete(),
+        capture,
         response,
         BTreeMap::new(),
         spread,

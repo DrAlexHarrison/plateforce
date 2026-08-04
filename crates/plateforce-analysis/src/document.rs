@@ -53,7 +53,18 @@ pub struct ResultDocument {
     /// data claims, never what the caller cited.
     pub registry_declared_version: Option<String>,
     pub registry_digest: Option<String>,
+    /// What the plate and its settings were, as the caller stated them. Carried whole rather
+    /// than as the completeness flag alone: a reader holding the flag knows the result cannot
+    /// be declared to match another lab's and has no way to see which of the members it holds,
+    /// and `Acquisition::missing` names the rest.
+    pub acquisition: plateforce_core::Acquisition,
     pub acquisition_complete: bool,
+    /// The saved plate the block above was filled from, absent when the caller typed the
+    /// members or stated none. Absent rather than null for the reason `spread` is: a run with
+    /// no saved plate behind it has nothing to attribute, where an unpinned registry revision
+    /// is an answer every result owes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plate_profile: Option<plateforce_core::PlateProfileAttribution>,
     /// Samples of the recording that carried no number, from the engine rather than from the
     /// surface, so a terminal, a browser tab, a notebook and an R session answer it alike.
     pub samples_carrying_no_number: usize,
@@ -171,7 +182,7 @@ impl ResultDocument {
         plateforce_version: impl Into<String>,
         trial: TrialSource,
         registry: &plateforce_core::provenance::RegistryStamp,
-        acquisition_complete: bool,
+        capture: &plateforce_core::Capture,
         response: &AnalysisResponse,
         descriptions: BTreeMap<String, String>,
         spread: Option<SpreadResponse>,
@@ -186,13 +197,23 @@ impl ResultDocument {
             digest: registry_digest,
         } = registry.clone();
 
+        // Destructured for the same reason, and the completeness flag is read off the block
+        // rather than taken from the caller: a surface that answered it for itself is how two
+        // of the five came to publish a literal `false` beside a block nobody could give them.
+        let plateforce_core::Capture {
+            acquisition,
+            plate_profile,
+        } = capture.clone();
+
         Self {
             plateforce_version: plateforce_version.into(),
             trial,
             registry_version,
             registry_declared_version,
             registry_digest,
-            acquisition_complete,
+            acquisition_complete: acquisition.is_complete(),
+            acquisition,
+            plate_profile,
             samples_carrying_no_number: response.samples_carrying_no_number,
             weighing_start_index: response.weighing_start_index,
             weighing_end_index: response.weighing_end_index,

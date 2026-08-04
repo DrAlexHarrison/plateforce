@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use plateforce_core::Acquisition;
+use plateforce_core::{Acquisition, PlateProfileAttribution};
 use serde::{Deserialize, Serialize};
 
 /// One row per trial, one column per quantity. The table people use.
@@ -289,6 +289,15 @@ pub struct RunRow {
     /// one a reader comparing two runs asks. A run whose block is incomplete must never be
     /// declared to match another, whatever the two digests read.
     pub acquisition_complete: bool,
+    /// The saved plate the block above was filled from, absent when the caller typed the
+    /// members or stated none.
+    ///
+    /// Outside `run_fingerprint` on purpose, which is why `run_fingerprint` clears it rather
+    /// than reading the whole row: what a lab calls its own plate is not a fact about the
+    /// capture, and two labs whose plates are configured alike have to match whatever names
+    /// they file them under.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plate_profile: Option<PlateProfileAttribution>,
     pub trials_excluded: usize,
     pub gates_reporting: usize,
     pub gates_applied: usize,
@@ -489,6 +498,7 @@ mod tests {
             acquisition_complete_count: 0,
             acquisition: Acquisition::default(),
             acquisition_complete: false,
+            plate_profile: None,
             trials_excluded: 0,
             gates_reporting: 0,
             gates_applied: 0,
