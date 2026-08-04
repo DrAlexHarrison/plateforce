@@ -52,11 +52,14 @@ export function wireGlobalControls() {
     state.chart?.render();
   });
 
+  // Closed through the panel the control sits in rather than by name, so a second drawer is
+  // closed by its own scrim instead of by the first one's.
   for (const node of document.querySelectorAll('[data-close-drawer]')) {
-    node.addEventListener('click', () => { $('method-drawer').hidden = true; });
+    node.addEventListener('click', () => { node.closest('.drawer').hidden = true; });
   }
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') $('method-drawer').hidden = true;
+    if (event.key !== 'Escape') return;
+    for (const drawer of document.querySelectorAll('.drawer')) drawer.hidden = true;
   });
 }
 

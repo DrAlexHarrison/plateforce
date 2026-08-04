@@ -47,6 +47,21 @@ function coverageLine(run) {
   );
 }
 
+/*
+ * The plate this run was told about, and what that plate reads now.
+ *
+ * A run keeps the answers it was given, so a plate edited afterwards leaves the table resting
+ * on a revision the machine no longer holds. Both are printed rather than reconciled: hiding
+ * the difference would make two results taken off two configurations read as one.
+ */
+function plateLine(run, revisionNow) {
+  const attribution = run?.plate_profile;
+  if (!attribution) return null;
+  const now = revisionNow?.(attribution.name);
+  const moved = now && now !== attribution.revision ? ` The plate now reads ${now}.` : '';
+  return `${attribution.name}, revision ${attribution.revision}.${moved}`;
+}
+
 function table(result, rendering) {
   const columns = columnsFor(result, rendering);
   const units = result.units ?? {};
@@ -164,7 +179,7 @@ function refusedRun(refusal) {
  * reliability interval is shown-by-default, that treatment has no component yet, and showing
  * a figure through a surface with no rule for showing it would be a choice nobody made.
  */
-export function renderBatch(container, envelope, rendering = WITH_PROVENANCE) {
+export function renderBatch(container, envelope, rendering = WITH_PROVENANCE, revisionNow = null) {
   container.replaceChildren();
   const parsed = typeof envelope === 'string' ? JSON.parse(envelope) : envelope;
 
@@ -180,6 +195,8 @@ export function renderBatch(container, envelope, rendering = WITH_PROVENANCE) {
   panel.append(head);
   panel.append(element('p', 'panel__sub', coverageLine(result.run)));
   panel.append(element('p', 'panel__sub', 'Each value carries the methods that produced it.'));
+  const plate = plateLine(result.run, revisionNow);
+  if (plate) panel.append(element('p', 'panel__sub', plate));
   panel.append(table(result, rendering));
 
   const reduced = summary(result);

@@ -22,6 +22,11 @@ export const state = {
   /* Where the plate is, when the operator has said. Null means nobody has stated it and the
    * engine supplies standard gravity, which is the one place that constant lives. */
   gravity: null,
+  /* What the reader has said about the plate the trace came off. `members` is the block's own
+   * list, read from the module. `stated` is what this capture answers, `saved` is every plate
+   * on this machine with the revision the engine last reported for it, and `picked` is the one
+   * the chip names. A member in `stated` displaces the picked plate's answer for the run. */
+  plate: { members: [], stated: {}, saved: {}, picked: null },
   file: null,
   /* What the reader called the trace they opened, carried onto every result computed from
    * it. The module is handed text and never a file, so a name it is not given is a name it

@@ -3,10 +3,11 @@
 import { $, state } from './state.js';
 import { element, formatNumber, reply, secondaryDisplay } from './format.js';
 import { rankCandidates, initialParameters, findMethod } from './registry.js';
-import { candidateFor } from './startup.js';
+import { candidateFor, renderBuildInfo } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
 import { renderSpreadControls, scheduleSpread } from './spread.js';
 import { openDrawer } from './drawer.js';
+import { captureJson, recordAttribution, renderChip } from './plate.js';
 
 /*
  * The rule a slot is running under right now.
@@ -181,11 +182,24 @@ export function runAnalysis() {
   }
 
   /* A rule that declines is an answer, not an exception. It arrives as the record it built,
-   * carrying the code, the rule and what could have been asked for instead. A throw here is
-   * the bundle itself being broken, which is a different thing and reads differently. */
-  const answer = reply(
-    state.loadedTrial.analyse(JSON.stringify(buildRequest()), state.fileName),
-  );
+   * carrying the code, the rule and what could have been asked for instead.
+   *
+   * What the tab says about the plate is read by the block's own parser, which refuses a name
+   * the block does not hold and a member given text of the wrong kind rather than dropping
+   * either. That refusal crosses as a throw, so it is caught and shown: an answer read and
+   * silently discarded is the fingerprint claiming a plate nobody stated. */
+  let answer;
+  try {
+    answer = reply(
+      state.loadedTrial.analyse(JSON.stringify(buildRequest()), state.fileName, captureJson()),
+    );
+  } catch (raised) {
+    $('metric-grid').replaceChildren();
+    $('analysis-warnings').replaceChildren(
+      notice('danger', 'The plate could not be read', String(raised?.message ?? raised)),
+    );
+    return;
+  }
   if (answer.refusal) {
     state.analysisRefusal = answer.refusal;
     $('metric-grid').replaceChildren();
@@ -197,6 +211,9 @@ export function runAnalysis() {
   state.analysisRefusal = null;
   state.analysis = answer.ok;
 
+  recordAttribution();
+  renderChip();
+  renderBuildInfo();
   state.chart.setAnalysis(state.analysis);
   state.chart.schedule();
   renderMetrics();
