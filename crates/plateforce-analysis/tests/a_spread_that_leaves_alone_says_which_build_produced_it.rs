@@ -147,6 +147,7 @@ fn the_two_documents_spell_their_identity_the_same_way() {
             sentinel_rows: 0,
         },
         registry_version: None,
+        registry_declared_version: None,
         registry_digest: None,
         acquisition_complete: false,
         weighing_start_index: 0,
