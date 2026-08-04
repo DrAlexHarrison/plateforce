@@ -17,8 +17,8 @@ import { initialiseMissingSelections } from './startup.js';
 import { renderDecisions } from './decisions.js';
 import { runAnalysis, withSources } from './analysis.js';
 
-/* Every construct a rule in this build can fill that the path does not already visit, by
- * the words the registry says the field speaks. */
+/* Every construct a bound rule can fill that the path does not already visit, by the words
+ * the registry says the field speaks. */
 export function offerableConstructs() {
   const visited = new Set(state.slots.map((slot) => slot.construct));
   const offers = [];

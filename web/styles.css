@@ -812,6 +812,7 @@ table.data td.failed { color: var(--danger); white-space: normal; }
   .provenance { min-height: 44px; }
   .chip { min-height: 44px; padding: var(--space-2) var(--space-3); }
   .param select, .param input { min-height: 44px; }
+  .add-quantity input, .add-quantity__option { min-height: 44px; }
   .spread-axes label { min-height: 44px; align-items: center; }
   .spread-axes input { min-width: 20px; min-height: 20px; }
   .skip-link { min-height: 44px; display: inline-flex; align-items: center; }

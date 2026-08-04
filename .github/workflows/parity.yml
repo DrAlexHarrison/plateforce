@@ -30,6 +30,8 @@ on:
       - 'scripts/check-grammar.mjs'
       - 'scripts/check-web-names-no-construct.py'
       - 'scripts/check-web-reads-live-fields.py'
+      - 'scripts/check-framing-copy.sh'
+      - 'scripts/check-web-module-links.py'
       - 'web/**'
       - '.github/workflows/parity.yml'
   pull_request:
@@ -46,6 +48,8 @@ on:
       - 'scripts/check-grammar.mjs'
       - 'scripts/check-web-names-no-construct.py'
       - 'scripts/check-web-reads-live-fields.py'
+      - 'scripts/check-framing-copy.sh'
+      - 'scripts/check-web-module-links.py'
       - 'web/**'
       - '.github/workflows/parity.yml'
   workflow_dispatch:
@@ -138,3 +142,23 @@ jobs:
 
       - name: The rail is a query against the registry, not a list
         run: node scripts/check-grammar.mjs web 8791
+
+      # Reads web/pkg/ off disk, so it goes after the bundle is built rather than beside the
+      # other static checks. A tree with no bundle fails here and names the build command,
+      # because the generated bindings are the one import target nobody writes by hand and
+      # skipping them in silence is the defect this catches.
+      - name: Every name one browser module imports is a name the module it names exports
+        run: python3 scripts/check-web-module-links.py
+
+      # Reads the registry as well as the interface: the rail's slot titles are the registry's
+      # own words for a construct, so this fails when a word a first-year does not use reaches
+      # a label from either side.
+      - name: The words a reader meets are the words the audience uses
+        run: ./scripts/check-framing-copy.sh
+
+      # `node scripts/check-minute.mjs web 8753` belongs here and is held out, not softened.
+      # It reports 28 of 29 and the one failure is a real open question, whether a construct
+      # whose rule forces a decision can be hosted on the rail without walling the first paint.
+      # It is held rather than marked continue-on-error, because a step that cannot fail the
+      # job is the same shape as a check that cannot fail, which is what these three exist to
+      # remove. Place it in the same commit that settles the rail placement.
