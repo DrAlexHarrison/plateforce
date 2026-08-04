@@ -28,9 +28,7 @@ CEILING = ROOT / "scripts" / "refusal-vocabulary-ceiling.txt"
 #
 # Per surface, one group per body of source that can raise, because a surface raises from
 # more than one language. Reading a single file reported the R package at 7 codes outside
-# its vocabulary while its own `.R` sources raised 8 more that no manifest carries. A gate
-# corrected once for reading the wrong pattern had never been asked whether it reads the
-# right files, which is the same fault one level up.
+# its vocabulary while its own `.R` sources raised 8 more that no manifest carries.
 #
 # Every pattern tolerates a line wrap between a call and its first argument: a pattern
 # anchored to one line counted nine of these as four.

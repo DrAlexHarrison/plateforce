@@ -1,10 +1,10 @@
-//! Two states a reader most needs to tell apart used to be the same three characters.
+//! Which kind of nothing a result reports, on the wire.
 //!
 //! `serde_json` writes a non-finite float as `null`, exactly as it writes a quantity no rule
 //! produced. So "the software computed this and got not a number" and "the software declined
-//! to compute this" arrived at every reader as `null`, and nothing in the document said which
-//! had happened. The first is a gap in the recording reaching a number; the second is an
-//! honest refusal that `refusals` accounts for by name.
+//! to compute this" reach a reader as the same three characters, and a field beside the value
+//! is what tells them apart. The first is a gap in the recording reaching a number; the second
+//! is a refusal that `refusals` accounts for by name.
 //!
 //! The recording is the one built for it. `subject01_trial1_interrupted` carries three samples
 //! that are not numbers, at zero-based indices 300, 301 and 302, inside the one-second weighing
@@ -166,11 +166,9 @@ fn an_intact_recording_puts_a_metric_in_neither_state() {
     );
 }
 
-/// The contract the rest of the crate now rests on: a metric's value is a number or it is
-/// absent, never a value that is not finite.
-///
-/// Four call sites used to filter for this themselves, each deciding again what the others had
-/// already decided, and the one place a reader meets the number did not filter at all.
+/// The contract the rest of the crate rests on: a metric's value is a number or it is
+/// absent, never a value that is not finite. Held here so no call site downstream decides it
+/// again.
 #[test]
 fn no_metric_carries_a_value_that_is_not_a_number() {
     for path in [INTERRUPTED, INTACT] {
@@ -209,9 +207,8 @@ fn the_response_counts_the_samples_the_recording_lost() {
     assert_eq!(walked, SAMPLES_CARRYING_NO_NUMBER);
 }
 
-/// The levels an interface draws are numbers or they are absent, and the two that used to be
-/// declared as plain `f64` are the two that lied: `serde_json` wrote them as `null` while
-/// their type promised a number on every result.
+/// The levels an interface draws are numbers or they are absent. A level typed as a plain
+/// `f64` serialises as `null` while its type promises a number on every result.
 ///
 /// The weighing standard deviation is not a reported quantity, so it has no metric of its own
 /// to carry the distinction. It shares its window with system weight, and the assertion holds

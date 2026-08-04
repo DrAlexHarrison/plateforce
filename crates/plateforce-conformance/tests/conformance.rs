@@ -18,9 +18,8 @@ use std::path::{Path, PathBuf};
 
 const CORPUS_VARIABLE: &str = "PLATEFORCE_CONFORMANCE_CORPUS";
 const REFERENCE_VARIABLE: &str = "PLATEFORCE_CONFORMANCE_REFERENCE";
-/// Prefixes every line that states what this run did and did not check. A conformance
-/// run that quietly covered six trials instead of 244 is the failure this project
-/// documents, so the coverage is printed rather than inferred from a green result.
+/// Prefixes every line that states what this run did and did not check. A run covering six
+/// trials instead of 244 reads as green, so the coverage is printed rather than inferred.
 const COVERAGE_MARKER: &str = "CONFORMANCE COVERAGE:";
 
 fn fixtures() -> PathBuf {
@@ -81,8 +80,7 @@ fn assert_clean(report: &plateforce_conformance::ConformanceReport, what: &str) 
     assert!(report.trials_compared > 0, "{what}: nothing was compared");
 }
 
-/// Names what this run covered, on every run. A conformance suite that reported
-/// success while checking six trials of 244 would be the defect it exists to catch.
+/// Names what this run covered, on every run.
 #[test]
 fn the_coverage_of_this_run_is_stated() {
     let full = std::env::var(CORPUS_VARIABLE).is_ok() && std::env::var(REFERENCE_VARIABLE).is_ok();

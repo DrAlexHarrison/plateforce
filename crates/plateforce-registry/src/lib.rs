@@ -1,8 +1,7 @@
 //! The registry is data. Adding a method is a file edit, never a code change.
 //!
 //! Loading is strict: a registry that violates any rule in `validate` does not load at
-//! all. The failure mode this whole project exists to document is a number whose
-//! provenance nobody checked, so an unvalidated registry is worse than no registry.
+//! all. An unvalidated registry is worse than no registry.
 
 pub mod assembly;
 pub mod preset;
@@ -54,9 +53,8 @@ pub(crate) fn format_violations(violations: &[Violation]) -> String {
 /// A loaded registry, indexed by canonical dotted id, carrying the digest of the files
 /// it was assembled from.
 ///
-/// The two populations are held separately and are never summed into one total.
-/// Both of this project's headline counts turned out to be assertions rather than
-/// queries, so every count here is a query with its denominator attached.
+/// The two populations are held separately and are never summed into one total, and
+/// every count is a query with its denominator attached.
 #[derive(Debug, Default)]
 pub struct Registry {
     pub constructs: BTreeMap<String, Construct>,

@@ -1,10 +1,9 @@
 //! The failure rate behind the two takeoff search-floor entries, measured rather than argued.
 //!
-//! `MISSION.md`'s loop is implement, expose, run the corpus, write the measured sensitivity back
-//! into the registry entry, and the fourth step is the one that gets dropped. Both entries carry a
-//! `[method.failure]` block, and this is the run those numbers came out of. The comparison runs the
-//! other way too: what the registry publishes is read back and held against what the corpus
-//! produces, so a figure written into an entry cannot drift away from the recordings it came from.
+//! Both entries carry a `[method.failure]` block, and this is the run those numbers come out of.
+//! The comparison runs the other way too: what the registry publishes is read back and held
+//! against what the corpus produces, so a figure written into an entry cannot drift away from the
+//! recordings it came from.
 //!
 //! The corpus sits behind an environment variable and on one machine, so this says what it covered
 //! and reports covering nothing rather than passing quietly. Directory names in that corpus are
@@ -51,9 +50,7 @@ const RULES_SEARCHING_THE_WHOLE_RECORDING: &[&str] = &[
 /// property of one rule's threshold rather than of the floor cannot hide inside a blended figure.
 ///
 /// The two rules taking the derived floor agree on the same 2 trials, which is what makes the
-/// figure a property of the floor. They read 2 and 114 while the re-estimating rule was measuring
-/// its flight noise over a window running to the last low sample in the recording rather than to
-/// the end of the provisional flight phase.
+/// figure a property of the floor.
 const MEASURED_PER_RULE: &[(&str, u32, u32)] = &[
     ("takeoff.threshold.absolute_force", 2, 246),
     ("takeoff.threshold.flight_noise_k_sd", 2, 246),

@@ -1,11 +1,9 @@
 //! What a folder run says about the registry it read and the plate it was captured on.
 //!
-//! Three facts the record claimed and the surface never delivered. `BatchRequest` declared a
-//! `registry_version` that nothing set, on any of the three bindings that reach the engine, so
-//! the digest identifying a run hashed a null pin on every run ever made. The run row carried
-//! no `registry_declared_version` at all, under a doc comment saying the registry has none.
-//! And `BatchRequest::describing` had two callers, both tests, so `acquisition_complete_count`
-//! was zero on every production run with no flag that could make it anything else.
+//! Three facts a record can claim while the surface never delivers them. A `registry_version`
+//! that no binding sets leaves the digest identifying a run hashing a null pin. A run row
+//! carrying no `registry_declared_version` names no registry at all. And an
+//! `acquisition_complete_count` no flag can move stays zero on every run.
 //!
 //! Every guard here is paired with a control that comes back the other way, because a run that
 //! writes null for a pin nobody gave and a run that writes null for a pin it was given read

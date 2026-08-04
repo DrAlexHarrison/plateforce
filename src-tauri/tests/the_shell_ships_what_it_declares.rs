@@ -18,7 +18,7 @@ fn configuration() -> serde_json::Value {
 
 /// macOS keys preferences, the keychain and notarisation on this string, and Windows keys the
 /// Store package family name on it. Changing it after a public release strands everyone who
-/// already installed, with no upgrade path, so it changes only deliberately.
+/// already installed, with no upgrade path.
 #[test]
 fn the_identifier_is_the_one_installed_copies_were_keyed_on() {
     assert_eq!(configuration()["identifier"], "dev.aphd.plateforce");
@@ -26,15 +26,14 @@ fn the_identifier_is_the_one_installed_copies_were_keyed_on() {
 }
 
 /// Tauri attaches a native drag-drop handler whose closure stops GTK signal emission, which
-/// leaves the page's own drop listener dead. This one key is the whole fix, and with it back
-/// at its default a reader drops a trace onto the window and nothing happens.
+/// leaves the page's own drop listener dead. At its default a reader drops a trace onto the
+/// window and nothing happens.
 #[test]
 fn dropping_a_trace_onto_the_window_reaches_the_page() {
     let window = &configuration()["app"]["windows"][0];
     assert_eq!(window["dragDropEnabled"], false);
     assert_eq!(window["label"], "main");
-    // The mobile gate the shipped stylesheet already handles. A window that cannot reach it
-    // would be the one surface where the layout is untested at that width.
+    // The width the shipped stylesheet's mobile gate handles.
     assert_eq!(window["minWidth"], 390);
 }
 
@@ -67,13 +66,13 @@ fn installing_on_windows_needs_no_administrator() {
 /// Notarisation requires the hardened runtime, which blocks unsigned JIT, and WebKit's
 /// JavaScript engine needs it. The two entitlements that widen the attack surface of a program
 /// reading other people's research data turn up in copied configurations, so their absence is
-/// asserted rather than assumed.
+/// asserted.
 #[test]
 fn the_hardened_runtime_grants_exactly_what_webkit_needs() {
     let entitlements = std::fs::read_to_string(src_tauri().join("entitlements.plist"))
         .expect("no entitlements file");
-    // The granted keys, not the file's text. The comment above them names what is deliberately
-    // absent, and a text search cannot tell a grant from an explanation of one.
+    // The granted keys, not the file's text: a text search cannot tell a grant from an
+    // explanation of one.
     let granted: Vec<&str> = entitlements
         .match_indices("<key>")
         .filter_map(|(at, _)| {
@@ -89,8 +88,7 @@ fn the_hardened_runtime_grants_exactly_what_webkit_needs() {
 }
 
 /// The updater makes an outbound request on launch. The header the reader sees says their file
-/// never leaves the machine, and a clinical or air-gapped install is a population this shell
-/// exists to serve.
+/// never leaves the machine.
 #[test]
 fn nothing_in_the_shell_reaches_the_network_on_its_own() {
     for name in ["tauri.conf.json", "tauri.store.conf.json"] {

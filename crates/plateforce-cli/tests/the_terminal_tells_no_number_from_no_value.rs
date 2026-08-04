@@ -1,9 +1,9 @@
 //! What the terminal prints where a quantity's arithmetic produced no number.
 //!
-//! This column printed `NaN`, by accident of formatting a float, while the same command's
-//! `--format json` wrote `null`, which is also what it writes for a quantity no rule
-//! produced. So one command had two renderings of one result and only the one nobody parses
-//! could tell the two states apart.
+//! A float formatted without care prints `NaN` in this column while the same command's
+//! `--format json` writes `null`, which is also what it writes for a quantity no rule
+//! produced: one command with two renderings of one result, and only the one nobody parses
+//! able to tell the two states apart.
 //!
 //! The words are read out of the page and the states out of the record, from the same run, so
 //! this asserts that the page agrees with the document rather than that the page contains a
@@ -60,8 +60,8 @@ fn analyse(fixture: &str, format: &str) -> String {
         .output()
         .expect("the built binary runs");
     // This request declines a landmark on the interrupted recording, so the terminal exits
-    // non-zero while writing a whole document. Reading the status as failure is how a harness
-    // once reported that no surface had answered at all.
+    // non-zero while writing a whole document. A harness reading the status as failure reports
+    // that no surface answered at all.
     String::from_utf8(output.stdout).expect("the document is UTF-8")
 }
 

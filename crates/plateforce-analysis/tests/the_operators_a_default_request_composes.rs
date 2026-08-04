@@ -1,10 +1,10 @@
 //! Which operators run when a caller states nothing, and what the registry says about each.
 //!
 //! `ONSET_OPERATOR_IDS` lists what this build can compose for one construct, not what it does
-//! compose, and the two were read as one. Composing an operator is a choice made on the user's
-//! behalf, so the set that actually runs on a bare request is pinned here rather than inferred
-//! from the list, and it is read for every construct the registry declares operators for
-//! rather than for the one that list happens to name.
+//! compose. Composing an operator is a choice made on the user's behalf, so the set that runs
+//! on a bare request is pinned here rather than inferred from the list, and it is read for
+//! every construct the registry declares operators for rather than for the one that list
+//! happens to name.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -61,13 +61,11 @@ fn bare_request() -> AnalysisRequest {
 /// What an operator id looks like, in one place, so every count in this file is over one
 /// population and narrowing it narrows all of them together.
 ///
-/// It read `onset.op.` for as long as it existed, so the five takeoff operators the registry
-/// carries were outside every assertion below. A takeoff landmark rests on a search floor, a
-/// crossing selection and a residual comparison exactly as an onset landmark does, and a
-/// predicate that named one construct made the other three invisible rather than absent.
-/// `the_reader_this_file_counts_operators_with_is_blind_to_the_construct` is what stops that
-/// from happening quietly again, and it is a test rather than a comment because a comment did
-/// not stop it the first time.
+/// A takeoff landmark rests on a search floor, a crossing selection and a residual comparison
+/// exactly as an onset landmark does, so a predicate naming one construct would make the other
+/// three invisible rather than absent.
+/// `the_reader_this_file_counts_operators_with_is_blind_to_the_construct` holds it to every
+/// construct the registry declares operators for.
 fn is_operator(method_id: &str) -> bool {
     method_id.contains(".op.")
 }
@@ -92,12 +90,10 @@ fn construct_of(method_id: &str) -> &str {
 /// The reader every count in this file is taken with, asked whether it can see more than one
 /// construct at all.
 ///
-/// This is the assertion the file did not have. Every other test here compares something the
-/// reader produced against something else the reader produced, so a reader narrowed to one
-/// construct leaves them all true and all smaller: a find and replace over
-/// `is_operator`'s body narrowed this file's reader and its population check in one stroke
-/// while it was being written. Only the registry can settle the question, because the registry
-/// is the one side no filter in this file touches.
+/// Every other test here compares something the reader produced against something else the
+/// reader produced, so a reader narrowed to one construct leaves them all true and all
+/// smaller. Only the registry can settle the question, because it is the one side no filter in
+/// this file touches.
 #[test]
 fn the_reader_this_file_counts_operators_with_is_blind_to_the_construct() {
     let registry = registry();
@@ -231,11 +227,9 @@ fn every_operator_composed_unasked_carries_a_verdict_a_surface_can_act_on() {
         "a bare request composes no operator at all, so this test measures nothing"
     );
 
-    // The population, not the assertion. This test read one construct's namespace for as long
-    // as it existed and reported "1 of 5" while the answer was "3 of 8", which is the shape
-    // that is harder to see than an assertion that cannot fail: it was green, deliberate, and
-    // blind. So the constructs the registry declares operators for are counted, and a set that
-    // has stopped reaching one of them fails here rather than reporting a smaller number.
+    // The population, not the assertion. A count taken over one construct's namespace reports
+    // a smaller number and stays green, so the constructs the registry declares operators for
+    // are counted and a set that has stopped reaching one of them fails here.
     let declared: BTreeSet<&str> = registry
         .methods
         .keys()

@@ -50,9 +50,8 @@ fn nothing_found(
         spec,
     );
     let open_ended = runs.iter().filter(|run| run.ends_the_recording).count();
-    // Every figure the sentence used to interpolate is a number a caller branches on, so
-    // each one is a field. The count of runs reaching the end of the recording is the one
-    // that says whether the trace was cut mid-flight rather than the floors being wrong.
+    // The count of runs reaching the end of the recording says whether the trace was cut
+    // mid-flight rather than the floors being wrong.
     RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
         "takeoff.threshold.landing_shape",
         runs.len(),

@@ -1,12 +1,11 @@
 //! A chain names the rules that placed the landmarks, every operator entry those rules bound,
 //! and the entries a number rests on that placed no landmark at all.
 //!
-//! Two families used to be missing from every number the derived phase produced. The five
-//! onset and two takeoff operator entries, because the chain was written from the request's
-//! word rather than from what the rules handed back, and which crossing each operator selected
-//! moves the sample its rule placed. And the four integration entries, because they place no
-//! sample, so the record of what a rule read could not reach them, while two of them give
-//! different velocities from one recording.
+//! Two families are easy for a chain to lose. The five onset and two takeoff operator entries,
+//! which a chain written from the request's word rather than from what the rules handed back
+//! never sees, though which crossing each operator selected moves the sample its rule placed.
+//! And the four integration entries, which place no sample, so the record of what a rule read
+//! cannot reach them, while two of them give different velocities from one recording.
 
 use std::collections::BTreeMap;
 
@@ -97,8 +96,7 @@ fn a_number_the_derived_phase_produced_names_the_operators_and_the_integration_e
     let response = run(&a_countermovement_jump(), &request_naming_the_rule()).expect("it runs");
 
     // A population this guard would otherwise pass by having nothing to read, and both
-    // families rather than a count: a total alone is met by one family twice over, and the
-    // takeoff operators were the family missing from every chain in the build before this.
+    // families rather than a count: a total alone is met by one family twice over.
     let operators = operators_that_ran(&response);
     assert!(
         operators.iter().any(|id| id.starts_with("onset.op.")),
@@ -153,8 +151,8 @@ fn a_number_the_derived_phase_produced_names_the_operators_and_the_integration_e
 /// One entry, one record, whichever way the caller arrived at it.
 ///
 /// The two chains are compared against each other last and never alone: a family vanishing from
-/// both would leave them equal. Each is first checked against the operators the rules actually
-/// bound and against the four the series was integrated under.
+/// both would leave them equal. Each is first checked against the operators the rules bound
+/// and against the four the series was integrated under.
 #[test]
 fn one_entry_leaves_one_chain_whether_or_not_the_caller_named_the_rule() {
     let trial = a_countermovement_jump();
@@ -224,9 +222,8 @@ fn the_entry_a_headline_number_names_is_one_that_ran() {
 ///
 /// Read off the source, because no comparison of results can see it. A second expression of one
 /// of these in the spine calls the same core function as the rule does, so it agrees with the
-/// rule on every recording and the two chains stay identical; it is free to stop agreeing at the
-/// first edit to either. Restoring the spine's own copy of the takeoff velocity left every guard
-/// above green, which is how this one came to be written.
+/// rule on every recording and the two chains stay identical, and every guard above stays green
+/// while it is free to stop agreeing at the first edit to either.
 #[test]
 fn the_spine_holds_no_second_expression_of_a_number_a_rule_now_produces() {
     let source = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/pipeline.rs"))

@@ -119,36 +119,13 @@ fn every_bound_rule_the_registry_carries_says_the_registry_carries_it() {
     );
 }
 
-// `a_rule_the_registry_does_not_file_is_not_reported_as_filed` stood here, and this note is
-// where it went rather than an absence a reader has to reconstruct.
+// A compound name is recorded under the entry it composes, with the operator beside it, so
+// every id in a result resolves. The stronger property, that no id this build records is
+// unfiled, is asserted by `every_id_this_build_records_resolves_in_the_registry` in
+// `plateforce-wasm`.
 //
-// It ran the analysis under `onset.threshold.last_within_band` because that id was bound and
-// filed under no entry of its own, which is what gave the claim its false side. The terminal no
-// longer binds any such rule: a compound name is recorded under the entry it composes, with the
-// operator beside it, so every id in a result resolves. Its own control caught the change and
-// said so, `every rule this run bound is filed, so it cannot tell a reported entry from a real
-// one`, which is a guard reporting that the world moved rather than a guard breaking.
-//
-// Two things carry what it covered, and between them they cover more.
-//
-// That the false side is unreachable from here at all is the assertion of
-// `every_id_this_build_records_resolves_in_the_registry`, in `plateforce-wasm`. It holds the
-// stronger property directly: no id this build records is unfiled, rather than one such id
-// existing and being reported honestly.
-//
-// Where the false side still lives is `registry_backing_follows_the_list_the_engine_is_handed`,
-// in `plateforce-analysis`. It withholds exactly one id from `registry_backed_ids` and runs the
-// same rule both ways, which reaches what a test at this level cannot: an engine that asserts
-// this rather than reading the list it is handed. Withholding one id rather than all of them is
-// the point, and it was measured, not assumed. Against an engine answering `!list.is_empty()`,
-// an all-or-nothing comparison passes clean and the one-id version fails.
-//
-// Restoring the test above by reintroducing an unfiled bound rule would be reintroducing the
-// defect to satisfy the guard that found it. A reduced-registry fixture was measured and ruled
-// out from two directions: dropping one operator entry fails validation with two violations,
-// dropping a whole method file with nine, because the registry is a cross-referenced graph.
-//
-// What remains here is the positive test above, and it is the one that catches the defect
-// actually found: a terminal building its backed set from the ids the caller named reports false
-// for every operator composed on top, and that test fails naming all eight, kept non-vacuous by
-// its own `composed_and_filed > 0`.
+// The false side, an engine that asserts backing rather than reading the list it is handed, is
+// reached by `registry_backing_follows_the_list_the_engine_is_handed` in `plateforce-analysis`.
+// It withholds exactly one id from `registry_backed_ids` rather than all of them: against an
+// engine answering `!list.is_empty()` an all-or-nothing comparison passes clean and the one-id
+// version fails.

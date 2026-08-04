@@ -29,7 +29,6 @@ await module.default({
   module_or_path: await readFile(join(bundle, "plateforce_wasm_bg.wasm")),
 });
 
-// The surface's own bytes, forwarded rather than reshaped. This harness used to put the
-// envelope on here, which made the one gate that exists to compare the surfaces the reason
-// they appeared to agree.
+// The surface's own bytes, forwarded rather than reshaped. A harness that puts the envelope
+// on here makes the one gate that exists to compare the surfaces the reason they agree.
 process.stdout.write(module.capabilityJson());

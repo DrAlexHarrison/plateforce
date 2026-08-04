@@ -6,8 +6,7 @@ hold entries belonging to two of them, so the unit of ownership is the entry rat
 than the file.
 
 Entries are parsed and compared as data. A line window around an id runs into the next
-entry and reports a change that is not there, which is the shape of query this project
-has already been wrong with.
+entry and reports a change that is not there.
 """
 
 import argparse

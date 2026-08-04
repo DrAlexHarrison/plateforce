@@ -15,9 +15,8 @@ include!("src/content_types.rs");
 
 /// Repository documentation that sits beside the interface without being part of it.
 /// Serving it would put a build instruction on a port somebody opened to analyse a trial.
-/// The name travels into the binary so the test that compares the embedded set against the
-/// directory subtracts what was excluded on purpose rather than counting to a number, and a
-/// sixth interface file added later fails that test instead of being dropped the same way.
+/// The name travels into the binary so a caller can subtract a deliberate exclusion from a
+/// directory listing rather than counting to a number.
 const NOT_PART_OF_THE_INTERFACE: &[&str] = &["README.md"];
 
 /// The one subdirectory of `web/` the interface is allowed to have. Anything else is a set
@@ -73,8 +72,7 @@ fn main() {
 
 /// The files the page loads, which is every file directly in `web/` that the exclusion list
 /// does not name. A directory other than the browser bundle is refused rather than skipped,
-/// because a set of assets silently dropped is the failure this crate's test exists to
-/// catch one layer down.
+/// so a set of assets is never dropped without saying so.
 fn interface_files(web: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
     for entry in std::fs::read_dir(web).unwrap() {

@@ -1,9 +1,8 @@
 //! What was done to the signal, on the record, including when the answer is nothing.
 //!
 //! A tool that filters and does not say so publishes a number nobody can reproduce. A tool
-//! that does not filter and does not say so publishes one nobody can tell from the first.
-//! Before this phase existed the software applied `filter.none` and said nothing, on every
-//! metric it emitted.
+//! that does not filter and does not say so publishes one nobody can tell from the first. So
+//! `filter.none` is declared on every metric like any other rule.
 
 use plateforce_analysis::{run, BINDINGS};
 
@@ -12,8 +11,7 @@ use crate::common::{committed_trial, default_request, COMMITTED_TRIALS};
 const CONDITIONING_ID: &str = "filter.none";
 
 /// Every metric names the rule that conditioned the signal it was measured on, on a request
-/// that asked for no conditioning at all. That request is the common case and it is the one
-/// the defect lived in.
+/// that asked for no conditioning at all, which is the common case.
 #[test]
 fn conditioning_is_always_declared() {
     let trial = committed_trial(COMMITTED_TRIALS[0]);

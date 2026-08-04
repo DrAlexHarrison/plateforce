@@ -2,9 +2,7 @@
 //!
 //! A locked-down enterprise Linux box has no `webkit2gtk-4.1`, so no desktop artefact runs
 //! on it, and an air-gapped one cannot open the interface from a file because browsers
-//! refuse to instantiate WebAssembly from a `file://` URL. Both have a browser. This crate
-//! is how the same page reaches them: one static file copied across, run, and read in the
-//! browser that machine already has.
+//! refuse to instantiate WebAssembly from a `file://` URL. Both have a browser.
 
 use std::process::ExitCode;
 
@@ -18,8 +16,6 @@ pub use http::{listen, serve};
 
 // The codes `crates/plateforce-cli/src/exit.rs` declares. They are repeated rather than
 // imported, because that crate depends on this one and the dependency cannot run both ways.
-// A caller cannot tell a mistyped option from a port somebody else is already using, so this
-// is the only place that can report them as different faults.
 const A_REQUEST_THAT_CANNOT_BE_HONOURED: u8 = 64;
 const AN_INVARIANT_THIS_SOFTWARE_BREAKS: u8 = 70;
 
@@ -30,10 +26,9 @@ USAGE:
     plateforce serve [OPTIONS]
 
 OPTIONS:
-    --port <PORT>    the port to listen on, written either as two words or as
-                     --port=<PORT>. Left out, the operating system picks a free
-                     one and the address is printed
-    --open           open the printed address in a browser as well as printing it
+    --port <PORT>    the port to listen on, or --port=<PORT>. Left out, the
+                     operating system picks a free one and prints the address
+    --open           also open the printed address in a browser
 ";
 
 struct Options {
@@ -62,7 +57,7 @@ pub fn run(arguments: &[&str]) -> ExitCode {
     };
 
     // A page whose module is absent loads to a blank window and a console line nobody is
-    // watching. Naming it here is the difference between a refusal and a silent failure.
+    // watching.
     if !carries_the_browser_bundle() {
         eprintln!("plateforce: this program carries no browser interface to serve");
         eprintln!("run scripts/build-web.sh release, then build plateforce again");
@@ -101,10 +96,9 @@ pub fn run(arguments: &[&str]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Both spellings of the flag, and a value that went missing is refused rather than
-/// resolved to the default, matching what `--registry` already does one crate over. Two
-/// ports on one line is a question, and answering it with whichever came last is the
-/// silent choice this tool exists to make visible.
+/// Both spellings of the flag. A value that went missing, and two ports on one line, are
+/// refused rather than resolved to the default or to whichever came last, matching what
+/// `--registry` already does one crate over.
 fn parse_options(arguments: &[&str]) -> Result<Options, String> {
     let mut port: Option<u16> = None;
     let mut open_a_browser = false;
@@ -155,7 +149,7 @@ fn parse_options(arguments: &[&str]) -> Result<Options, String> {
 
 /// Opt-in, because opening a browser is the kind of thing a tool does on somebody's behalf
 /// without recording it, and on a headless or air-gapped box the opener may not exist. A
-/// missing opener is reported and the server keeps running: the URL is already printed.
+/// missing opener is reported and the server keeps running.
 fn open_a_browser_at(url: &str) {
     let (program, leading) = if cfg!(target_os = "macos") {
         ("open", Vec::new())
@@ -215,8 +209,7 @@ mod tests {
     }
 
     /// A mistyped option and a port somebody else is already using are different faults, and
-    /// the codes are the ones the command line declares for the whole binary. Reported as
-    /// one, a script cannot tell a typo from a machine that is busy.
+    /// the codes are the ones the command line declares for the whole binary.
     #[test]
     fn a_usage_error_and_a_runtime_failure_carry_different_codes() {
         assert_eq!(A_REQUEST_THAT_CANNOT_BE_HONOURED, 64);
@@ -227,8 +220,7 @@ mod tests {
         );
     }
 
-    /// What the server takes, not what the command line around it takes. A reader asking a
-    /// running server what it accepts is asking about ports and browsers.
+    /// What the server takes, not what the command line around it takes.
     #[test]
     fn the_usage_names_the_options_this_command_reads() {
         for option in ["--port", "--open"] {

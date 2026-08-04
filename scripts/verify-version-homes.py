@@ -2,10 +2,9 @@
 """Every place this project states its version, read and compared against each other.
 
 A release names one thing. The number is written in four manifests and a tag is typed by
-hand at the moment of release, and nothing until now compared the typed one to the written
-ones. A tag `v0.2.0` cut against manifests reading 0.1.0 produces a release page titled
-v0.2.0 carrying seven files named 0.1.0, and the artefact check passes, because the names
-agree with each other.
+hand at the moment of release. A tag `v0.2.0` cut against manifests reading 0.1.0 produces a
+release page titled v0.2.0 carrying seven files named 0.1.0, and the artefact check passes,
+because the names agree with each other.
 
     scripts/verify-version-homes.py                 the manifests agree
     scripts/verify-version-homes.py --expect 0.2.0  and they are this version

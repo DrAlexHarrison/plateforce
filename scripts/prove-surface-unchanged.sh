@@ -54,9 +54,9 @@ echo "${BASELINE_BYTES} bytes from ${REF}, ${WORKING_BYTES} from the working tre
 echo
 # Truncated by writing the whole difference and reading the first lines back, rather than by
 # piping into `head`. Under `set -o pipefail` a pipe into `head` returns 141 the moment `head`
-# has read its fill and closes the pipe, so this script answered a real difference with SIGPIPE
-# instead of the exit 1 written below it, and a caller reading the status learned nothing about
-# what it had found. The trap it fell into is the one this repository documents against.
+# has read its fill and closes the pipe, so a real difference is answered with SIGPIPE instead
+# of the exit 1 written below it, and a caller reading the status learns nothing about what it
+# found.
 diff "${WORK}/baseline.txt" "${WORK}/working-tree.txt" > "${WORK}/difference.txt" || true
 readonly DIFFERENCE_LINES=$(wc -l < "${WORK}/difference.txt")
 sed -n '1,80p' "${WORK}/difference.txt"

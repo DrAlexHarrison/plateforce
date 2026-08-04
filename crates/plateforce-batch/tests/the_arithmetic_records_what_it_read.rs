@@ -1,12 +1,11 @@
 //! The rule that turned the landmarks into a number records what it read, in a folder run.
 //!
 //! A quantity carries the id of its arithmetic in `computed_by` and never in
-//! `contributing_method_ids`. The chain a folder run wrote was built from the contributing
-//! list alone, so the arithmetic reached `provenance.csv` as a bare id: the gravity behind the
-//! flight-time height and the four integration choices behind every impulse figure were in the
-//! terminal's record and in no folder run's. A number that moves when a value moves, with
-//! nothing in the record naming the value, is the founding observation of this project
-//! reproduced on our own batch surface.
+//! `contributing_method_ids`. A chain built from the contributing list alone puts the
+//! arithmetic into `provenance.csv` as a bare id, leaving the gravity behind the flight-time
+//! height and the four integration choices behind every impulse figure out of a folder run's
+//! record while the terminal's carries them: a number that moves when a value moves, with
+//! nothing in the record naming the value.
 
 mod common;
 
@@ -219,8 +218,8 @@ fn a_number_that_moves_with_a_stated_value_carries_that_value_in_the_record() {
 
 /// A column a derived rule produced survives every way a run leaves the process.
 ///
-/// Four destinations rather than one, because they are four writers over one result and each
-/// has previously been the one that dropped something. The read-back is the strictest of the
+/// Four destinations rather than one, because they are four writers over one result and any
+/// of them can be the one that drops something. The read-back is the strictest of the
 /// four: a quantity absent from `quantities` reaches CSV as a column nobody wrote and comes
 /// back from JSON as a column nobody can read.
 #[test]

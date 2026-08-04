@@ -2,9 +2,9 @@
 # Asks every listed surface what it can do and records every answer in one committed file.
 #
 # The answers are held under their own names rather than compared to a single document. What
-# a surface dispatches and what it can write differ by design, so one document for all of them
-# would be satisfied only by a surface claiming a capability it does not have, in the one file
-# built to make such a claim visible. `capability_manifest.py` states what is asserted instead.
+# a surface dispatches and what it can write are different sets, so one document for all of
+# them would be satisfied only by a surface claiming a capability it does not have, in the one
+# file built to make such a claim visible. `capability_manifest.py` states what is asserted.
 set -o errexit -o nounset -o pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

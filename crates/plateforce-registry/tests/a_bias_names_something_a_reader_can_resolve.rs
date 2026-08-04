@@ -1,8 +1,7 @@
 //! What a bias was measured against is a name, and a reader can resolve every name it takes.
 //!
 //! An entry, a construct, the entry itself, or one of the external criteria the vocabulary
-//! declares. The field was free text, so a mistyped instrument became a fourth instrument and
-//! the registry loaded.
+//! declares. A free-text field takes a mistyped instrument as a fourth instrument and loads.
 
 use plateforce_registry::{assemble, ViolationKind};
 

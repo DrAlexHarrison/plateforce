@@ -1,15 +1,12 @@
 //! A number names the rules it rests on, and no others.
 //!
-//! Every chain used to open with the same prefix: what conditioned the signal, the weighing
-//! rule, every onset id and every takeoff id, whatever the number was. With no record of what
-//! a rule read, naming everything was the only shape that could not omit a rule that had
-//! contributed, and it named several that had not. Flight time is measured from takeoff to the
-//! return to the plate and carried the weighing rule and six onset entries; the height taken
-//! from it carried the same six.
+//! A chain built from a fixed prefix, what conditioned the signal plus the weighing rule plus
+//! every onset and takeoff id, names rules a number never passed through: flight time is
+//! measured from takeoff to the return to the plate and rests on no onset rule at all. So each
+//! chain is built from what its rules read.
 //!
 //! A chain naming rules that did not contribute and a chain omitting rules that did are one
-//! defect, because both make the record say something untrue about how a number was produced,
-//! and this tool's whole claim is that the record can be trusted.
+//! fault, because both make the record say something untrue about how a number was produced.
 
 use std::collections::BTreeMap;
 
@@ -78,9 +75,9 @@ fn landmark_rules(slot: &str) -> Vec<&'static str> {
 ///
 /// Over every onset rule rather than one, because the rules differ in what they read and a
 /// pass on one of them is not a statement about the others. `onset.threshold.last_within_band`
-/// is the one that would have gone unnoticed: it searches back from a bound the takeoff rule
-/// settles, so it is the only onset rule a takeoff-bounded number could plausibly have
-/// reached, and it is the one an assertion written against the default rule never runs.
+/// searches back from a bound the takeoff rule settles, so it is the only onset rule a
+/// takeoff-bounded number could plausibly reach, and an assertion written against the default
+/// rule never runs it.
 #[test]
 fn flight_time_names_no_onset_rule_under_any_onset_rule() {
     let trial = a_jump_that_lands();
@@ -136,7 +133,7 @@ fn flight_time_names_no_onset_rule_under_any_onset_rule() {
 /// its search at the epoch's end and `takeoff.threshold.descending_crossing` floors at the
 /// start of the recording and reads no epoch at all, so one names the weighing rule and one
 /// must not. An assertion in one direction only is satisfied by a chain that names the
-/// weighing rule always, which is the prefix this replaced.
+/// weighing rule always.
 #[test]
 fn the_weighing_rule_is_named_by_the_landmarks_that_read_it_and_not_by_the_ones_that_did_not() {
     let trial = a_jump_that_lands();

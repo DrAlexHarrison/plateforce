@@ -42,8 +42,8 @@ pub enum Confidence {
     Low,
 }
 
-/// Whether a row is one side of a live argument, interoperability bookkeeping, or
-/// simply the only published rule. The three want different treatment in the interface.
+/// Whether a row is one side of a live argument, interoperability bookkeeping, or the
+/// only published rule. The three want different treatment in the interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Debate {
@@ -121,8 +121,8 @@ pub struct Parameter {
     pub name: String,
     #[serde(default)]
     pub unit: Option<String>,
-    /// Every value the literature actually contains, which is how the software can
-    /// report that a tool exposes one of six.
+    /// Every value the literature contains, which is how the software can report that a
+    /// tool exposes one of six.
     #[serde(default)]
     pub published_values: Vec<f64>,
     #[serde(default, rename = "value")]

@@ -86,9 +86,6 @@ def main() -> int:
             "tarball is built from; run it before building the source distribution",
             file=sys.stderr,
         )
-        # The copy is taken from HEAD, so a registry file added and not yet committed is
-        # genuinely absent from the tarball and running the script again will not add it.
-        # Saying so here is the difference between one commit and a confused half hour.
         print(
             "plateforce: that script copies from HEAD, so a registry file added and not yet "
             "committed stays absent until it is committed, or until the copy is taken with "

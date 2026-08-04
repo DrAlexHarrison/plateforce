@@ -2,11 +2,9 @@
 //! never leaving the machine and no browser, no server and no terminal in the way.
 //!
 //! It links no plateforce crate for arithmetic. The WebAssembly module inside the bundle
-//! is the same module the browser instantiates, so the numbers here are the numbers there
-//! by construction rather than by a second implementation agreeing with the first.
+//! is the same module the browser instantiates, so the numbers here are the numbers there.
 
-// A second console window behind the app on Windows would be the only surface where
-// launching plateforce shows the reader something that is not the interface.
+// Launching on Windows otherwise draws a console window behind the interface.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use sha2::{Digest, Sha256};

@@ -39,13 +39,6 @@ use plateforce_core::{statistics::samples_for_duration, Trial};
 /// as an index would put movement onset a twelfth of a second before the recording.
 pub const REFERENCE_NOT_FOUND: f64 = -100.0;
 
-/// Which force level the braking-start search returns to.
-///
-/// The reference emits this column as `f_cross_bw` and computes it against the force at
-/// movement onset, which is system weight less whatever threshold the bound onset rule
-/// used, so its braking boundary moves when the onset rule moves.
-/// `phase.braking_start.zero_net_force` states the level as system weight. Measured on
-/// the six committed subject-01 trials, the two land 1 to 8 samples apart on 6 of 6.
 /// Which `integration.start.*` rule this pipeline integrates the velocity series under.
 ///
 /// Named here rather than taken from `IntegrationStart` directly, because that enum carries
@@ -59,6 +52,13 @@ pub enum IntegrationStartRule {
     DetectedOnset,
 }
 
+/// Which force level the braking-start search returns to.
+///
+/// The reference emits this column as `f_cross_bw` and computes it against the force at
+/// movement onset, which is system weight less whatever threshold the bound onset rule
+/// used, so its braking boundary moves when the onset rule moves.
+/// `phase.braking_start.zero_net_force` states the level as system weight. Measured on
+/// the six committed subject-01 trials, the two land 1 to 8 samples apart on 6 of 6.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BrakingStartReference {
     ForceAtOnset,
@@ -311,9 +311,8 @@ pub fn analyse(
     let takeoff = takeoff_family(force, bindings, peak_index, &weight, &flight_fraction);
 
     // The reference integrates the whole recording from sample zero with velocity zero
-    // there, which is `integration.start.trial_start`. That entry is deprecated and
-    // `integration.start.detected_onset` is recommended, and both force a decision, so the
-    // start is named by the binding set rather than left to whatever a caller inherits.
+    // there, which is `integration.start.trial_start`. The binding set names the start
+    // rather than leaving it to whatever a caller inherits.
     let onset_for_phases = onset[0].filter(|&index| index > 0).unwrap_or(0);
     let weighing = WeighingEpoch {
         start_index: 0,

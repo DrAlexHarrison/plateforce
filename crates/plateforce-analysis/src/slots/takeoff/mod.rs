@@ -74,11 +74,10 @@ pub(crate) fn record_search_floor_at_trial_start(trial: &Trial, resolved: &mut R
 /// Which registry entry carries each name a takeoff rule reads.
 ///
 /// The threshold rule carries its threshold and its persistence span, which its entry
-/// publishes. The rest are operators with entries of their own, and until they were routed
-/// here every one of them rode on a threshold row that does not list it: a reader looking up
-/// the rule found no `comparison` and no `short_run_handling`, which between them decide
-/// whether an unloaded plate reading negative counts as flight and whether a run too short
-/// to be a flight can win the comparison and disqualify the trial.
+/// publishes. The rest are operators with entries of their own: `comparison` and
+/// `short_run_handling` decide whether an unloaded plate reading negative counts as flight
+/// and whether a run too short to be a flight can win the comparison and disqualify the
+/// trial, and a threshold row lists neither.
 fn operator_for(name: &str) -> Option<&'static str> {
     match name {
         "comparison" => Some(TAKEOFF_OP_RESIDUAL_COMPARISON),

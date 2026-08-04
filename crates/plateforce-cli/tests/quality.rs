@@ -9,7 +9,7 @@ use std::process::Command;
 
 /// A recording holding a step off the plate before the jump, where takeoff lands on the
 /// step-off and the impulse route to a height returns 0.87 mm against 45.4 cm from flight
-/// time. `MISSION.md` P5 names this recording as the pillar's own test.
+/// time.
 const TRACE_WHOSE_ROUTES_DISAGREE: &str =
     "../plateforce-conformance/fixtures/synthetic_untrimmed_step_off.force.txt";
 

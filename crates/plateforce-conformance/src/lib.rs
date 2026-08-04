@@ -5,8 +5,8 @@
 //! Its output is frozen as a fixture and never regenerated as part of a test run, so a
 //! change to the Rust that moves a number has to be explained rather than absorbed.
 //!
-//! This is not a second implementation of the math. Nothing in this crate computes a
-//! force-plate quantity; it calls `plateforce-core` and compares.
+//! Nothing in this crate computes a force-plate quantity; it calls `plateforce-core` and
+//! compares.
 
 pub mod bindings;
 pub mod corpus;
@@ -27,7 +27,7 @@ use std::path::PathBuf;
 /// can outlive the tree it was compiled in. Reused from another checkout it then reads that
 /// checkout's fixtures, or a directory that has since been deleted, and the second reading is
 /// the dangerous one: a run against fixtures nobody is looking at can pass. Cargo sets this
-/// variable for the process it launches, so it names the tree actually under test.
+/// variable for the process it launches, so it names the tree under test.
 pub fn fixtures_directory() -> PathBuf {
     let stated = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| {
         panic!(

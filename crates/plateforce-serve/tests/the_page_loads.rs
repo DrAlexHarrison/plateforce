@@ -68,8 +68,7 @@ fn a_module_script_arrives_as_javascript() {
 
 /// Served as anything but `application/wasm`, the generated binding falls back from
 /// `WebAssembly.instantiateStreaming` to the slower path and records it in a console
-/// warning nobody is reading. A silent degradation is the shape of defect this product
-/// exists to make visible, and here it is ours to avoid.
+/// warning nobody is reading.
 #[test]
 fn the_module_arrives_as_webassembly() {
     if plateforce_serve::carries_the_browser_bundle() {

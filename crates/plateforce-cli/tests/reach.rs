@@ -103,7 +103,7 @@ fn a_construct_walled_by_two_things_names_both() {
 
 /// The population the rule above is asked of, guarded apart from the rule itself.
 ///
-/// It was one row for as long as no entry declared a barrier, and a rule asked only of the row
+/// It is one row for as long as no entry declares a barrier, and a rule asked only of the row
 /// its own fixture built cannot fail for the reason it exists. A failure here is a signal to
 /// look rather than a defect in the code, which is why it carries its own name.
 #[test]
@@ -298,10 +298,10 @@ fn the_floor_holds_the_number_that_only_rises() {
 
 /// A reader at a terminal is handed the count that answers what this build computes.
 ///
-/// It was computed and passed to the document surface alone, so the text summary opened on
-/// "58 of 58 constructs reachable" while 5 of 58 carried a rule. Both counts are true and
+/// A count computed and passed to the document surface alone leaves the text summary opening
+/// on "58 of 58 constructs reachable" while 5 of 58 carry a rule. Both counts are true and
 /// they answer different questions, and the one a reader takes for coverage is the one the
-/// terminal was not printing.
+/// terminal would not be printing.
 #[test]
 fn the_terminal_is_told_how_many_constructs_compute() {
     let report = shipped();

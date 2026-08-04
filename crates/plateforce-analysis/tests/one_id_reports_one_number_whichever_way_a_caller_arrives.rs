@@ -1,16 +1,11 @@
 //! A quantity whose declaration names a registry entry reports one number under that entry's
 //! id, whether the caller named the rule or left the software to reach it.
 //!
-//! `jumpheight.takeoff.flight_time` returned two numbers on one trial for as long as the spine
-//! computed the flight-time height itself: the entry publishes four gravities and declares
-//! 9.81, the spine's copy took the constant the request type fills in, and both results were
-//! reported under the entry's name. The ratio between them was 9.81 / 9.80665 exactly. Neither
-//! result recorded which gravity had produced it, so the record could not tell a reader that
-//! the two numbers were the same method run twice.
-//!
-//! The point is not the third of a millimetre. It is that one id meant two things depending on
-//! how the caller had phrased the request, in the tool whose whole claim is that a number can
-//! be looked up and reproduced.
+//! `jumpheight.takeoff.flight_time` is where the two routes can part: the entry publishes four
+//! gravities and declares 9.81, while the request type fills in 9.80665, and a second
+//! computation of the height under the entry's name would report the two in the ratio
+//! 9.81 / 9.80665. One id meaning two things depending on how the caller phrased the request
+//! is a number that cannot be looked up and reproduced.
 
 use std::collections::BTreeMap;
 
@@ -112,12 +107,12 @@ fn spine_quantities_backed_by_a_rule() -> Vec<(&'static str, &'static str, &'sta
     pairs
 }
 
-/// The bug, stated as the property it violated. Naming a rule is a statement about which
-/// arithmetic to run, never about what that arithmetic should produce, so a number that moves
-/// when a caller names the rule that was already producing it is two methods under one id.
+/// Naming a rule is a statement about which arithmetic to run, never about what that
+/// arithmetic should produce, so a number that moves when a caller names the rule that was
+/// already producing it is two methods under one id.
 ///
-/// Every such quantity, not only the one that was wrong. A guard written against the single
-/// known case would pass on the day a second entry started publishing a constant of its own.
+/// Every such quantity, because a guard written against a single case would pass on the day a
+/// second entry started publishing a constant of its own.
 #[test]
 fn naming_the_rule_that_already_produced_a_number_does_not_move_it() {
     let trial = a_jump_that_lands();
@@ -140,17 +135,11 @@ fn naming_the_rule_that_already_produced_a_number_does_not_move_it() {
             "{key} moved when {method_id} was named, so one id carries two methods"
         );
 
-        // And the chain, on every quantity rather than on the one that was known to be
-        // wrong. Naming a rule states which arithmetic to run and says nothing about what
-        // that arithmetic reads, so a chain that moves when the caller names the rule that
-        // was already producing the number is one id carrying two accounts of itself.
-        //
-        // Written against the whole population on purpose. The single-key version of this
-        // below passed for as long as two other entries were computed in the spine and
-        // reported under a name whose rule the spine never ran:
-        // `flight_time.takeoff_to_touchdown` named five entries when the software reached it
-        // and twelve when a caller did, on one trial, and `time_to_takeoff.onset_to_takeoff`
-        // named eleven and twelve.
+        // And the chain, on every quantity. Naming a rule states which arithmetic to run and
+        // says nothing about what that arithmetic reads, so a chain that moves when the
+        // caller names the rule that was already producing the number is one id carrying two
+        // accounts of itself. The single-key version below is satisfied by any quantity the
+        // spine computes under a name whose rule it never runs.
         let chain_before = metric(&unnamed, key).map(|metric| &metric.contributing_method_ids);
         let chain_after = metric(&named, key).map(|metric| &metric.contributing_method_ids);
         assert_eq!(
@@ -170,8 +159,7 @@ fn naming_the_rule_that_already_produced_a_number_does_not_move_it() {
     );
     // The population this was written against. Seven quantities name an entry with a rule
     // behind it, and a guard whose subject shrank below that would pass by having less to
-    // read. It stood at four while three of the seven were reported under a name whose rule
-    // the spine did not run, so the floor is the count and the count is what has to be held.
+    // read.
     assert!(
         checked >= 7,
         "only {checked} spine quantities were reached, so the subject has shrunk"
@@ -218,9 +206,9 @@ fn the_flight_time_height_carries_one_record_whichever_way_it_was_reached() {
     );
 
     // And the chain names what conditioned the signal, on both routes. Comparing the two
-    // chains against each other cannot show this: they are built by one function now, so a
-    // change that dropped the conditioning rules would drop them from both and the comparison
-    // would still hold. The rules that ran are read off the result instead.
+    // chains against each other cannot show this: one function builds both, so a change that
+    // dropped the conditioning rules would drop them from both and the comparison would still
+    // hold. The rules that ran are read off the result instead.
     let conditioning_that_ran: Vec<&str> = unnamed
         .bound_methods
         .iter()
@@ -255,17 +243,17 @@ fn the_flight_time_height_carries_one_record_whichever_way_it_was_reached() {
         }
     }
 
-    // The rule leaves a record either way. Without one the result asserted that a registry
-    // entry had produced the number while carrying nothing at all about the gravity that did,
-    // which is a citation with no method behind it.
+    // The rule leaves a record either way. A result naming a registry entry and carrying
+    // nothing about the gravity that produced the number is a citation with no method behind
+    // it.
     let by_default = bound(&unnamed, FLIGHT_TIME_RULE).expect("the defaulted rule left a record");
     let by_name = bound(&named, FLIGHT_TIME_RULE).expect("the named rule left a record");
     assert_eq!(by_default.bound_parameters, by_name.bound_parameters);
     assert_eq!(by_default.parameter_sources, by_name.parameter_sources);
 }
 
-/// The gravity is on the record with where it came from, which is the whole of what the two
-/// numbers were hiding. A reader can tell the entry's published value from one somebody chose.
+/// The gravity is on the record with where it came from, so a reader can tell the entry's
+/// published value from one somebody chose.
 #[test]
 fn the_gravity_behind_the_height_is_recorded_and_says_whether_anybody_chose_it() {
     let trial = a_jump_that_lands();
@@ -307,11 +295,11 @@ fn the_gravity_behind_the_height_is_recorded_and_says_whether_anybody_chose_it()
 /// A gravity chosen for the whole analysis moves the height, because the height is
 /// `g t^2 / 8` and nothing else about the trace changed.
 ///
-/// This is the property the sweep rests on. `spread.rs` varies gravity as an axis, and a rule
-/// that answered with its entry's published constant regardless would report a spread of zero
-/// over a knob that had moved, which is the fault that file's own refusal exists to prevent.
-/// The request's gravity is honoured only because it can now say somebody chose it: left as the
-/// constant the request type fills in for everybody, the entry's value stands.
+/// The property the sweep rests on. `spread.rs` varies gravity as an axis, and a rule that
+/// answered with its entry's published constant regardless would report a spread of zero over
+/// a knob that had moved. The request's gravity is honoured where the record can say somebody
+/// chose it: left as the constant the request type fills in for everybody, the entry's value
+/// stands.
 #[test]
 fn a_gravity_chosen_for_the_analysis_moves_the_height_and_the_filled_in_one_does_not() {
     let trial = a_jump_that_lands();

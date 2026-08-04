@@ -52,8 +52,7 @@ pub(crate) fn direction(resolved: &mut Resolution) -> Result<OnsetDirection, Rul
 
 /// The registry files both names on the onset row, and in this build the weighing window
 /// settles both: the spread the threshold is scaled by is that window's, taken over quiet
-/// stance. A rule that read them from its own request would report a convention that did
-/// not produce the number.
+/// stance.
 pub(crate) fn record_inherited_spread(resolved: &mut Resolution, inherited_spread: (&str, bool)) {
     let (convention, stated) = inherited_spread;
     resolved.record(

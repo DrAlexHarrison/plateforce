@@ -1,10 +1,10 @@
 //! A folder run that binds a rule for something computed from the landmarks.
 //!
 //! Four of the thirteen constructs computed from the landmarks reach a folder run under the
-//! rule the spine picks, and the other nine reached it under no rule at all. So the run a
-//! squad actually does could not ask for a phase model, a braking start, a propulsion
-//! boundary, peak force or an analysis window, and could not name an alternative to the four
-//! it did get. This is the flag that asks, and the guards that the answers reach the reader.
+//! rule the spine picks. Without the flag below the other nine reach it under no rule at all,
+//! so the run a squad does cannot ask for a phase model, a braking start, a propulsion
+//! boundary, peak force or an analysis window, and cannot name an alternative to the four it
+//! gets. This is the flag that asks, and the guards that the answers reach the reader.
 
 use std::collections::BTreeMap;
 use std::process::Output;
@@ -99,8 +99,8 @@ fn split_row(line: &str) -> Vec<String> {
     fields
 }
 
-/// The whole point of the flag: a rule nothing was choosing before is chosen, runs on every
-/// trial in the folder, and its number and its chain both reach the reader.
+/// A rule nothing would otherwise choose is chosen, runs on every trial in the folder, and
+/// its number and its chain both reach the reader.
 ///
 /// Two rules rather than one, because the second reads what the first placed. A flag that
 /// bound one rule per run would answer peak force with a refusal naming the window.
@@ -154,8 +154,8 @@ fn a_rule_computed_from_the_landmarks_reaches_the_table_and_the_record() {
 /// A value stated against a construct computed from the landmarks reaches the rule under the
 /// same word that bound it, and the record says the operator stated it.
 ///
-/// `--set` used to be read against the three landmark steps alone, so a name qualified by a
-/// derived construct was refused as a step this run does not have.
+/// `--set` read against the three landmark steps alone refuses a name qualified by a derived
+/// construct as a step this run does not have.
 #[test]
 fn a_value_stated_against_a_derived_construct_is_recorded_as_stated() {
     let out = scratch("stated");
@@ -315,10 +315,9 @@ fn an_assignment_carrying_no_equals_is_refused_as_a_line_rather_than_as_a_rule()
 /// A construct written twice is refused, exactly as `--set` and `--choose` refuse on the same
 /// command line.
 ///
-/// This kept the last value and dropped the first, on the reasoning that `clap` keeps the last
-/// for a repeated `--onset`. Measured, `clap` refuses: `the argument '--onset <METHOD>' cannot
-/// be used multiple times`. So the precedent said the opposite of what was built on it, and
-/// `--derive` was silently keeping a value while `--choose` beside it refused.
+/// `clap` refuses a repeated `--onset` with `the argument '--onset <METHOD>' cannot be used
+/// multiple times`, so a `--derive` that kept the last value would accept one shape of line
+/// that the flag beside it refuses.
 ///
 /// The sentence is asserted against the one `--choose` produces on the same run rather than
 /// against a copy of the wording, so the two cannot drift into refusing differently for the

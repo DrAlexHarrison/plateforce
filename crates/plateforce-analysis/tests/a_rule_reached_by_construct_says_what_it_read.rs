@@ -1,9 +1,9 @@
 //! What the construct dispatch has to hold, on a trace built to exercise each of them.
 //!
-//! Fifty-eight of fifty-eight registry entries at depth one were blocked on this, and the
-//! reason was never the arithmetic: there was no way for a request to name a rule for any
-//! construct other than the three the spine reaches by their own field names. The properties
-//! below are the ones that make the difference between a dispatch and a lookup table.
+//! A request reaches a rule by naming its construct, so every registry entry at depth one is
+//! addressable rather than only the three the spine reaches by their own field names. The
+//! properties below are the ones that make the difference between a dispatch and a lookup
+//! table.
 
 use std::collections::BTreeMap;
 
@@ -70,8 +70,8 @@ fn value(response: &AnalysisResponse, key: &str) -> Option<f64> {
         .and_then(|metric| metric.value)
 }
 
-/// A request that names nothing gets exactly what it got before the dispatch existed. The
-/// field is additive or it is a change to every caller.
+/// A request that names no construct gets the spine's own eleven quantities. The field is
+/// additive or it is a change to every caller.
 #[test]
 fn a_request_naming_no_construct_reports_what_the_spine_reports() {
     let response = run(&a_jump_that_lands(), &base()).expect("the spine runs");
@@ -102,8 +102,8 @@ impl SpineOnly for AnalysisResponse {
     }
 }
 
-/// The point of the whole construct. Peak force is not one number, and which window it is
-/// taken over moves it further than any parameter on the peak rule does.
+/// Peak force is not one number, and which window it is taken over moves it further than any
+/// parameter on the peak rule does.
 #[test]
 fn the_window_a_peak_is_taken_over_moves_it_further_than_the_peak_rule_does() {
     let trial = a_jump_that_lands();
@@ -245,9 +245,8 @@ fn the_averaging_estimator_agrees_at_its_published_width_and_reads_lower_above_i
     assert!(averaged < gross);
 }
 
-/// A rule that needs a window and was given no choice of one says which choice is open. A
-/// number computed over a window nobody chose is the silent default this registry exists to
-/// record, so the refusal is the correct output rather than a shortcoming.
+/// A rule that needs a window and was given no choice of one says which choice is open, rather
+/// than computing a number over a window nobody chose.
 #[test]
 fn a_peak_asked_for_with_no_window_chosen_says_which_choice_is_open() {
     let response = run(
@@ -295,7 +294,7 @@ fn a_peak_whose_chosen_window_placed_nothing_points_upstream() {
     assert!(refusal.available.contains(&"analysis_window".to_string()));
 
     // And the window rule itself says the same thing about takeoff, so the chain of remedies
-    // reads all the way back to the rule that actually failed.
+    // reads all the way back to the rule that failed.
     let window = response
         .refusals
         .iter()
@@ -437,10 +436,9 @@ fn a_construct_the_request_did_not_name_is_refused_as_an_axis() {
 
 /// A refusal that cannot cross the wire is a result without its method.
 ///
-/// The response used to skip these entirely, so a rule that declined reached R and the
-/// browser as a sentence in `warnings` and nothing else, and the thirteen condition classes
-/// the R package publishes could not be raised on any landmark rule. Every field a caller
-/// branches on now crosses as a field.
+/// A rule that declines crosses as a record rather than as a sentence in `warnings`, so the
+/// thirteen condition classes the R package publishes can be raised on a landmark rule. Every
+/// field a caller branches on crosses as a field.
 #[test]
 fn a_declining_rule_crosses_the_wire_as_the_record_rather_than_the_sentence() {
     let response = run(

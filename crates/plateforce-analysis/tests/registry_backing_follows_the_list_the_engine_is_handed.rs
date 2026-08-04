@@ -3,16 +3,15 @@
 //! `registry_entry` is documented as false when no registry row carries an id, and the engine
 //! does not read the registry: it is handed a list of ids and reports against that. So the
 //! failure worth guarding is a surface or an engine that *asserts* this rather than *reads*
-//! it, reporting one value whatever it is told. A terminal did exactly that, building its list
-//! from the three ids the caller named so every operator composed on top reported false while
-//! sitting in the registry, and Python reported the truth for the same trial.
+//! it, reporting one value whatever it is told. A surface building its list from the ids the
+//! caller named reports false for every operator composed on top, while those operators sit in
+//! the registry and another surface reports the truth for the same trial.
 //!
-//! That was caught at the terminal, by a test whose false case relied on this build binding a
-//! rule the registry files under no id of its own. It no longer binds one, deliberately, and
-//! `plateforce-wasm`'s `every_id_this_build_records_resolves_in_the_registry` is what keeps it
-//! that way. The false side has to be produced on purpose now, which is what this does, and
-//! doing it here rather than through a surface reaches the case no surface-level test can: the
-//! engine ignoring the list rather than the surface building it wrongly.
+//! Every id this build records resolves in the registry, which
+//! `plateforce-wasm`'s `every_id_this_build_records_resolves_in_the_registry` holds, so the
+//! false side is produced here on purpose. Producing it here rather than through a surface
+//! reaches the case no surface-level test can: the engine ignoring the list rather than the
+//! surface building it wrongly.
 //!
 //! The same id is run both ways and the answer has to change. A test that only withheld an id
 //! would pass against an engine hardcoding false, and one that only supplied it would pass

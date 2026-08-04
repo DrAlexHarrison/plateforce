@@ -7,8 +7,7 @@
 //! registry's verdict on this row is that it is the one jump-height choice a reader must not
 //! be allowed to default through.
 //!
-//! So an unstated frame is refused. A rule that picked one would be answering the question the
-//! entry exists to ask.
+//! So an unstated frame is refused rather than filled in.
 
 use plateforce_core::Refusal;
 

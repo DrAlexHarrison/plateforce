@@ -415,8 +415,8 @@ fn the_frame_declaration_takes_the_two_frames_and_refuses_a_third_word() {
     assert_eq!(refusal.named_value.as_deref(), Some("apex"));
 }
 
-/// A height whose flight the recording never closed is refused by name. Reading the tail of an
-/// untrimmed recording as flight is how two open tools place takeoff 843 ms late.
+/// A height whose flight the recording never closed is refused by name, rather than reading
+/// the tail of an untrimmed recording as flight.
 #[test]
 fn a_flight_time_height_on_a_recording_that_never_lands_is_refused_by_name() {
     let mut force = vec![600.0; 1200];
@@ -511,9 +511,9 @@ fn each_height_rule_reports_its_own_arithmetic_exactly_once() {
 /// No response carries one key twice, for any rule this build runs rather than for the ones
 /// this file is about.
 ///
-/// Two surfaces read a response by key and used to resolve a repeat in opposite directions,
-/// so a repeated key was one trial reported as two different numbers depending on who asked.
-/// The spine now leaves out any key a bound rule will report, and this is what says so.
+/// Two surfaces read a response by key and resolve a repeat in opposite directions, so a
+/// repeated key is one trial reported as two different numbers depending on who asked. The
+/// spine leaves out any key a bound rule will report.
 #[test]
 fn no_rule_this_build_runs_reports_a_key_a_second_time() {
     let trial = a_jump_that_lands();

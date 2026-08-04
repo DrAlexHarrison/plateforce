@@ -34,10 +34,9 @@ pub(crate) fn place(
         centre,
         dispersion,
     )?;
-    // Where the window is anchored and what time that lands on are two facts, and one
-    // recorded value carried both. The caller states a sample index; the seconds it means
-    // depend on the recording's rate, so a stated index reads as a different time on two
-    // recordings and only the anchor is the caller's.
+    // Where the window is anchored and what time that lands on are two facts. The caller
+    // states a sample index; the seconds it means depend on the recording's rate, so only
+    // the anchor is the caller's.
     let (anchor, anchor_source) = match choice.start_index {
         Some(_) => ("stated_index", ParameterSource::Stated),
         None => ("trial_start", ParameterSource::Assumed),

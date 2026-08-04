@@ -5,8 +5,7 @@
 //! landing that follows takeoff falls outside it.
 //!
 //! Which sample takeoff is placed at is the takeoff rule's answer and not this rule's, so
-//! this window moves when that rule changes. That is the point of recording it: two windows
-//! that differ only by their takeoff rule are two windows.
+//! this window moves when that rule changes.
 
 use crate::binding::TAKEOFF_CONSTRUCT;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};

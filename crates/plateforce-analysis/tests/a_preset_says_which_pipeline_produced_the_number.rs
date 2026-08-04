@@ -1,10 +1,9 @@
 //! A number a published pipeline produced carries the pipeline that produced it.
 //!
-//! The whole of what a preset buys over typing the same values is the record, so these are
-//! tests about the record rather than about the numbers. A preset that filled a request and
-//! left the provenance reading as though the caller typed it would produce results
-//! indistinguishable from a caller having done so, which throws away the one fact worth
-//! keeping.
+//! What a preset buys over typing the same values is the record, so these are tests about the
+//! record rather than about the numbers. A preset that filled a request and left the
+//! provenance reading as though the caller typed it would produce results indistinguishable
+//! from a caller having done so.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -389,8 +388,8 @@ fn typing_a_pipelines_values_does_not_produce_the_record_adopting_it_produces() 
     );
 }
 
-/// A rule accepted from the registry's recommendation was not picked by the reader either.
-/// The field was declared, serialised and fingerprinted while nothing read it.
+/// A rule accepted from the registry's recommendation was not picked by the reader either, and
+/// the record says so rather than recording it as the caller's.
 #[test]
 fn a_rule_accepted_from_the_recommendation_is_not_recorded_as_one_the_caller_stated() {
     let mut request = bare_request();

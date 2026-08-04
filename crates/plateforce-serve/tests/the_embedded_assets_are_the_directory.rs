@@ -3,7 +3,7 @@
 //!
 //! Compared against the directory rather than against a count. A test asserting five files
 //! passes when a sixth is added and dropped; a test asserting everything except the names
-//! excluded on purpose fails, which is the behaviour this crate exists to have.
+//! excluded on purpose fails.
 
 use std::path::{Path, PathBuf};
 

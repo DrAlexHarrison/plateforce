@@ -7,7 +7,7 @@
 
 A module declared but not committed compiles for everyone who has the file sitting
 untracked beside them, and fails for anyone who clones. Eight agents sharing one checkout
-all have the file; CI and a new contributor do not. It has happened twice here.
+all have the file; CI and a new contributor do not.
 
 The default check is static and takes under a second, so it can run before a push rather
 than after one. `--compile` extracts the ref and builds it, which catches everything the

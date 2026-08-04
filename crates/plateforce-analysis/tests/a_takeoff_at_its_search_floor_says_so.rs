@@ -5,9 +5,9 @@
 //! to examine already satisfies them, so the takeoff they report is the boundary of their own
 //! search rather than a flight phase found in the recording.
 //!
-//! The property is not that a signal exists. It is that the two rules which returned their
-//! floor say so and the three which searched the whole recording stay quiet, on one recording,
-//! under one weighing window, with only the takeoff rule changing between runs.
+//! The property is that those two say so and the three which searched the whole recording stay
+//! quiet, on one recording, under one weighing window, with only the takeoff rule changing
+//! between runs.
 
 use std::collections::BTreeMap;
 
@@ -325,8 +325,8 @@ fn a_takeoff_at_its_search_floor_is_not_distrusted_and_the_gap_is_why() {
 }
 
 /// The weighing half of the same question. The lowest-variance rule removes candidate windows
-/// before it compares anything, and until it recorded the count a fifth of this recording was
-/// ruled out of the search with nothing anywhere saying so.
+/// before it compares anything, a fifth of this recording, and the count of what it removed is
+/// on the record.
 #[test]
 fn the_lowest_variance_rule_says_how_many_windows_it_ruled_out() {
     let trial = trial();

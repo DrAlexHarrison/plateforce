@@ -1,12 +1,11 @@
-//! Four of eleven numbers moved when the request's gravity moved, and a walk of the whole
-//! result document for any key containing "gravity" returned exactly one hit: the row of the
-//! one rule whose own entry declares a gravity, which is the one number the request's gravity
-//! had not decided.
+//! Four of eleven numbers move when the request's gravity moves, and the only rule row that
+//! carries a gravity of its own belongs to the one entry that declares one, which is the one
+//! number the request's gravity does not decide.
 //!
-//! Twelve rules read the analysis gravity and record nothing about it, and that is correct:
-//! their registry entries declare no such parameter and a rule may not record one its entry
-//! does not carry. So the value belongs to the analysis rather than to any rule, and the
-//! record had nowhere to put it.
+//! Twelve rules read the analysis gravity and record nothing about it: their registry entries
+//! declare no such parameter and a rule may not record one its entry does not carry. So the
+//! value belongs to the analysis rather than to any rule, and the analysis is where the record
+//! carries it.
 //!
 //! Every set below is computed by moving the gravity and reading which numbers followed.
 //! A list of four keys written here would go stale the day a fifth arrived, and would pass
@@ -69,8 +68,8 @@ fn base() -> AnalysisRequest {
 }
 
 /// An analysis at one gravity under one claim. The claim is set directly rather than through
-/// `state_gravity`, because the pair a surface can no longer write apart is exactly what
-/// these guards have to be able to write apart.
+/// `state_gravity`, which writes the value and the claim together, because these guards need
+/// to write the two apart.
 fn at(gravity: f64, source: ParameterSource) -> AnalysisResponse {
     let mut request = base();
     request.gravity_meters_per_second_squared = gravity;
@@ -109,8 +108,8 @@ fn gravity_on_the_record(response: &AnalysisResponse) -> &plateforce_analysis::B
         .expect("every result names the gravity it ran under")
 }
 
-/// The defect, stated as the property it violated: a number moved and nothing said what moved
-/// it.
+/// A number that moves with the analysis gravity runs in an analysis whose record names that
+/// gravity.
 ///
 /// The moving set is measured rather than written down, and the guard first requires it to be
 /// non-empty. Without that control a build where gravity moved nothing at all would report
@@ -143,11 +142,11 @@ fn every_number_the_analysis_gravity_moves_runs_in_an_analysis_whose_record_name
     }
 }
 
-/// The founding distinction, on the one value where it was unreachable.
+/// A value somebody chose against the same value nobody chose.
 ///
 /// Two analyses at the identical gravity, differing only in whether anybody chose it. Ten of
 /// the eleven numbers are the same, and for those ten the claim is visible nowhere but in the
-/// record, which is the whole of why the record has to carry it.
+/// record.
 ///
 /// The eleventh is the flight-time height, and it differs on purpose: a reader who measured
 /// 9.80665 at their own plate gets their measurement, where a reader who stated nothing gets

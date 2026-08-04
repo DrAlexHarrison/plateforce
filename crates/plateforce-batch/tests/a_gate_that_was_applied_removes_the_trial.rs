@@ -6,7 +6,7 @@
 //! who checks the record is misled more precisely than one who ignores it.
 //!
 //! The rule below is `mean_of_best_three_of_at_least_five`, which refuses under five trials.
-//! That is deliberate and it is what makes this guard able to fail. A rule reporting `n = 2`
+//! That is what makes this guard able to fail. A rule reporting `n = 2`
 //! whatever the population is answers the same on a run that honours exclusions and one that
 //! does not, so a probe built on it cannot tell the two apart.
 
@@ -63,8 +63,8 @@ fn run(apply: bool) -> (std::path::PathBuf, TrialSet, BatchResult) {
     (directory, set, result)
 }
 
-/// The rule whose minimum is the whole point: five trials, so a population of three has to
-/// refuse and a population of six cannot.
+/// The rule's minimum is five trials, so a population of three has to refuse and a population
+/// of six cannot.
 fn mean_of_best_three() -> AggregationRequest {
     AggregationRequest {
         rule: AggregationRule::MeanOfBestThreeOfAtLeastFive,

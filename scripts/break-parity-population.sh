@@ -35,7 +35,7 @@ failed=0
 # control says the query works and the miss is the binary classification. The gate's own output
 # is ASCII today, `file` reports "ASCII text" on a full green run, so this is a guard rather
 # than a repair. It matters because a truncation anywhere upstream can slice a multi-byte
-# character in half, which is how a lead's all-gates run read green over a red gate.
+# character in half, and an all-gates run then reads green over a red gate.
 requires_red() {
     local case_name="$1" expected="$2" output status
     set +o errexit

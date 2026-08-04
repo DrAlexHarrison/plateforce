@@ -9,8 +9,7 @@
 //!
 //! So the two produce different sets of metrics rather than different values for one metric,
 //! and each rule here declares its own quantity keys. A reader comparing two results sees the
-//! keys change, which is the honest report of a model change and is what a shared key set
-//! would have hidden.
+//! keys change.
 
 pub mod time_epochs;
 pub mod unloading_yielding_split;

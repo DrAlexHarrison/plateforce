@@ -1,11 +1,8 @@
 //! The Rust landing-shape rule places takeoff where the reference implementation did.
 //!
-//! The rule was ruled and measured in a Python harness and never reached the software, so
-//! the two placed takeoff by different rules. A port that merely looks equivalent leaves two
-//! implementations of one quantity standing, which is the duplication this project exists to
-//! publish about. Equality is asserted sample for sample: both read integer sample indices
-//! off the same trace under the same threshold, so anything less than identical hides a
-//! divergence.
+//! A port that merely looks equivalent leaves two implementations of one quantity standing.
+//! Equality is asserted sample for sample: both read integer sample indices off the same
+//! trace under the same threshold, so anything less than identical hides a divergence.
 //!
 //! Two tiers, because only subject 01 is ever public. The committed fixture carries subject
 //! 01 and runs everywhere. The full corpus runs when a reader has it on disk, named by

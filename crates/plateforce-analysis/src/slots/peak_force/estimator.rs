@@ -2,9 +2,8 @@
 //! stated width.
 //!
 //! The entry publishes `averaging_window_seconds = 0`, which is the raw maximum, so this
-//! rule and `force.peak.gross` agree until somebody states a width. That is the entry's own
-//! claim, and it is the thing the guard beside this rule holds: at zero the two are one
-//! number, and above zero they separate in one direction only.
+//! rule and `force.peak.gross` agree until somebody states a width. Above zero they separate
+//! in one direction only.
 
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;

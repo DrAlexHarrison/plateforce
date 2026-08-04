@@ -1,12 +1,12 @@
 //! A folder comparison varies the step the caller named, and its record says which rule made
 //! which number.
 //!
-//! The compare surface hardcoded the onset slot, so one construct of the thirteen computed from
-//! the landmarks could be compared over a folder, and it was the one the founding measurement
-//! happens to use. Reaching the other twelve exposed a second defect immediately: the sweep
-//! reports `method_ids` from the three landmark fields alone, so three different jump heights
-//! came back under one chain and one `provenance_id`. A record asserting sameness where the
-//! values disagree is worse than no record, so the two are guarded together.
+//! A compare surface with the onset slot hardcoded reaches one construct of the thirteen
+//! computed from the landmarks, the one the founding measurement happens to use. Reaching the
+//! other twelve meets a second fault: a sweep reporting `method_ids` from the three landmark
+//! fields alone returns three different jump heights under one chain and one `provenance_id`.
+//! A record asserting sameness where the values disagree is worse than no record, so the two
+//! are guarded together.
 
 mod common;
 

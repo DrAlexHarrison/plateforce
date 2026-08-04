@@ -6,13 +6,11 @@
 //! keeps the last departure from quiet before it, which its entry says in those words, and on
 //! an untrimmed trace the emptiest the plate ever reads is the athlete standing beside it. The
 //! analysis is right to measure nothing across an interval that runs backwards, and it
-//! suppresses five quantities. Until this signal it said so in one sentence in `warnings`,
-//! carrying no status, no value and no list of the columns it accounted for, so a reader
-//! holding the blank cells could not tell which of them that sentence was about.
+//! suppresses five quantities. The signal carries a status, a value and the list of columns it
+//! accounts for, so a reader holding the blank cells can tell which of them it is about.
 //!
-//! Seven while flight time and the height taken from it read the three landmarks as a bundle.
-//! Both are measured from takeoff to the return to the plate, so both now answer on this
-//! recording, and the count is five.
+//! Five rather than seven, because flight time and the height taken from it are measured from
+//! takeoff to the return to the plate and answer on this recording.
 //!
 //! The property that matters is the second test: the columns the signal names are exactly the
 //! columns that came back without a value. A signal naming fewer would leave a blank cell with
@@ -178,11 +176,11 @@ fn the_columns_the_signal_names_are_exactly_the_columns_that_came_back_empty() {
     );
     assert_eq!(absent.len(), 5, "the recording no longer suppresses five");
 
-    // The two that used to be here and are not, asserted by name rather than left to the
-    // count. Both are measured from takeoff to the return to the plate, so both answer on a
-    // recording whose onset landed after takeoff, and a signal that named them would tell a
-    // reader a number in front of them is absent. A count alone would go on passing if one
-    // of them came back and something else dropped out.
+    // The two the signal must not name, asserted by name rather than left to the count. Both
+    // are measured from takeoff to the return to the plate, so both answer on a recording
+    // whose onset landed after takeoff, and a signal that named them would tell a reader a
+    // number in front of them is absent. A count alone would go on passing if one of them
+    // came back and something else dropped out.
     for key in ["flight_time_seconds", "jump_height_from_flight_time_meters"] {
         assert!(
             response

@@ -7,9 +7,7 @@
 //! comparison is inference on a corpus holding no isometric trial, and it stays inference
 //! until one is recorded.
 //!
-//! It runs on any recording, and on a jump it answers the question it was asked: the two
-//! seconds after onset. Whether that is the window a reader wants is the choice the registry
-//! exists to record.
+//! It runs on any recording, and on a jump it returns the two seconds after onset.
 
 use crate::binding::ONSET_CONSTRUCT;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};

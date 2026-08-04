@@ -1,14 +1,11 @@
 //! What an onset rule that returned its own boundary has to say about it.
 //!
-//! Two open tools place takeoff 843 ms late on 155 of 244 trials and say nothing, which is
-//! the observation this project was founded on. On subject 01's first trial two of the five
-//! published onset rules reproduce that shape here: correct arithmetic, a faithful reading
-//! of the published rule, and an answer that is the floor of the rule's own search rather
-//! than anything found in the recording.
+//! On subject 01's first trial two of the five published onset rules answer with the floor of
+//! their own search rather than with anything found in the recording: correct arithmetic and a
+//! faithful reading of the published rule.
 //!
-//! So the property is not that a signal exists. It is that the two rules which returned
-//! their floor say so and the three which found a departure stay quiet, on one recording,
-//! under one weighing window, with only the onset rule changing between runs.
+//! The property is that those two say so and the three which found a departure stay quiet, on
+//! one recording, under one weighing window, with only the onset rule changing between runs.
 
 use std::collections::BTreeMap;
 
