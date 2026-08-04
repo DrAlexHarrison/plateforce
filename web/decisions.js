@@ -389,6 +389,7 @@ function quantityRow(slot, parameter, selection) {
   if (values.length > 1) {
     const select = document.createElement('select');
     select.id = id;
+    select.dataset.parameter = parameter.name;
     const unresolved = (selection.unresolved || []).includes(parameter.name);
     const chosen = selection.values[parameter.name];
     // Two states rather than one. A row awaiting a forced decision says how many there are

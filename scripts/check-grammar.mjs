@@ -462,9 +462,23 @@ const choices = await evaluate(`(async () => {
         if (namedValues(parameter).length) declared.add(parameter.name);
       }
     }
+    // What every control in this row is showing, against what the request carries for it. A
+    // control showing a value the request does not carry is the number on screen disagreeing
+    // with the number that ran, which is the shape a silent default takes in an interface.
+    const slot = state.slots.find((s) => s.construct === construct);
+    const asking = slot ? asked(slot.key, construct, slot.spine) : null;
+    const row = document.querySelector('#decision-list select[data-construct="' + construct + '"]').closest('.decision');
+    const showing = [...row.querySelectorAll('select[data-option], select[data-parameter]')].map((node) => ({
+      name: node.dataset.option ?? node.dataset.parameter,
+      shown: node.value,
+      carried: node.dataset.option
+        ? (asking?.options?.[node.dataset.option] ?? '')
+        : String(asking?.parameters?.[node.dataset.parameter] ?? ''),
+    }));
     return {
       declared: [...declared],
       offered: controls().filter((control) => control.construct === construct).map((control) => control.name),
+      unasked: showing.filter((entry) => entry.shown !== entry.carried),
     };
   };
 
@@ -558,6 +572,9 @@ const choices = await evaluate(`(async () => {
     unoffered: rules.filter((rule) => rule.missing.length)
       .map((rule) => rule.methodId + ': ' + rule.missing.join(', ')),
     unanalysable: rules.filter((rule) => rule.refusedWhole).map((rule) => rule.methodId),
+    controlsRead: rules.reduce((total, rule) => total + rule.offered.length + rule.unasked.length, 0),
+    unasked: rules.filter((rule) => rule.unasked.length)
+      .map((rule) => rule.methodId + ': ' + rule.unasked.map((e) => e.name + ' shows ' + e.shown + ', request carries ' + (e.carried || 'nothing')).join('; ')),
     opening, stated, refused, unread, dropped,
   };
 })()`);
@@ -568,6 +585,11 @@ check('every enumerated choice a bindable rule declares carries a control',
     `over ${new Set(choices.rules.map((rule) => rule.construct)).size} constructs` +
     (choices.unoffered.length ? ` | no control for: ${choices.unoffered.join('; ')}` : '') +
     (choices.unanalysable.length ? ` | left the trial unanalysable: ${choices.unanalysable.join(', ')}` : ''));
+
+check('no control shows a value the request does not carry',
+  choices.rules.length > 0 && choices.unasked.length === 0,
+  `${choices.rules.length} rules bound, every control on each row read against the request` +
+    (choices.unasked.length ? ` | ${choices.unasked.join(' | ')}` : ''));
 
 // The opening state, which is the half a control can silently get wrong: a value the registry
 // chose, shown as though the reader had. Each has to be the value on screen, the value the
