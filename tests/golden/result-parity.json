@@ -1,13 +1,21 @@
 {
   "compared_fields": [
+    "acquisition_complete",
     "bound_globals",
     "bound_methods",
     "levels",
     "metrics",
+    "onset_index",
+    "refusals",
     "signals",
-    "warnings"
+    "takeoff_index",
+    "touchdown_index",
+    "warnings",
+    "weighing_end_index",
+    "weighing_start_index"
   ],
   "result": {
+    "acquisition_complete": false,
     "bound_globals": [
       {
         "name": "gravity_meters_per_second_squared",
@@ -594,7 +602,13 @@
         "value": 0.5337174348070588
       }
     ],
+    "onset_index": 4091,
+    "refusals": [],
     "signals": [],
-    "warnings": []
+    "takeoff_index": 5014,
+    "touchdown_index": 5733,
+    "warnings": [],
+    "weighing_end_index": 1200,
+    "weighing_start_index": 0
   }
 }

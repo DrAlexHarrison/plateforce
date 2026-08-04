@@ -12,20 +12,32 @@ therefore cannot see that defect at all. The reading side is asserted inside eac
 against a second reader in that same runtime, because five surfaces sharing one wrong parser
 agree with each other: `crates/plateforce-cli/tests/result_parity.rs` for Rust and
 `bindings/r/tests/testthat/test-doubles.R` for R.
+
+How far the comparison reaches is measured from the surfaces rather than listed. Every field
+every surface publishes is compared here, asserted another way in `ASSERTED_ANOTHER_WAY`, or
+carried by some surfaces and not others and recorded in `SURFACES_THAT_DIFFER`. A field in
+none of the three makes this gate refuse, so it cannot print that four surfaces computed the
+result while a field of that result went unread. `scripts/prove-parity-coverage-refuses.py`
+is where each of those refusals is shown to fire.
 """
 
 import json
+import pathlib
 import sys
+from typing import NamedTuple
 
 # A floor rather than the exact count, which would fail every time a metric is added. It is
 # here because a comparison that agreed on an empty document would report success.
 #
-# Measured rather than picked: the compared fields carry 16 numbers on the committed
-# request, 11 metric values and 5 levels. `bound_methods` contributes none, because a bound
-# parameter travels as the text beside its name. The floor sits below that so a metric
-# coming or going is not an alarm, and far enough above zero to catch a projection that
-# collapsed.
+# Measured rather than picked, by the count this module prints: the compared fields carry 22
+# numbers on the committed request, 11 metric values, 5 levels, 5 landmark indices and the
+# gravity on `bound_globals`. `bound_methods` contributes none, because a bound parameter
+# travels as the text beside its name. The floor sits below that so a metric coming or going
+# is not an alarm, and far enough above zero to catch a projection that collapsed.
 NUMBERS_A_RESULT_CARRIES = 10
+
+# Every surface the gate speaks for, read from the manifest the harness reads.
+SURFACE_MANIFEST = pathlib.Path(__file__).with_name("result-parity-surfaces.txt")
 
 
 def canonical(value):
@@ -105,6 +117,259 @@ def compared_fields_in(baseline_path):
     return fields
 
 
+def surfaces_named_in_manifest():
+    """Every surface this gate speaks for, read from the file the harness reads.
+
+    A run over some of the surfaces would report agreement between the ones it asked and read
+    as agreement between the four the manifest names, and would widen the intersection below
+    at the same time. This gate speaks for every listed surface or it does not speak.
+    """
+    named = []
+    for line in SURFACE_MANIFEST.read_text(encoding="utf-8").splitlines():
+        row = line.strip()
+        if row and not row.startswith("#"):
+            named.append(row.split("\t")[0].strip())
+    if not named:
+        raise SystemExit(f"plateforce: {SURFACE_MANIFEST} names no surface")
+    return set(named)
+
+
+def fields_every_surface_publishes(answers):
+    """The whole of what this comparison can reach, measured rather than declared.
+
+    `projected` raises on a field a surface does not carry, so a field one surface publishes
+    and another does not cannot be held to a single committed value at all. This set is
+    therefore not a judgement about which fields are worth comparing. It is the reach of the
+    mechanism, and every field in it owes either a comparison or an assertion of its own.
+    """
+    return set.intersection(*(set(answer) for answer in answers.values()))
+
+
+def surfaces_publishing(answers, field):
+    return frozenset(name for name, answer in answers.items() if field in answer)
+
+
+# A field every surface publishes that this gate does not compare against the committed
+# document, with the assertion that covers it instead. Naming a field here is not permission
+# to stop looking at it: each entry owes a function, `coverage_faults` runs it, and an entry
+# without one cannot be written. Widening `compared_fields` is the ordinary answer and this
+# is the exception, so an entry states why a committed value would be the wrong instrument.
+ASSERTED_ANOTHER_WAY = {
+    "registry_digest": (
+        "the digest moves with every registry edit, so a committed value would redden this "
+        "gate for a reason that is not about parity, while two surfaces reading different "
+        "registries is exactly parity",
+        lambda answers: surfaces_read_one_registry(answers),
+    ),
+}
+
+class Divergence(NamedTuple):
+    """One field some surfaces publish and others do not, as measured rather than as hoped.
+
+    `carriers_agree` is the state the surfaces that DO carry it are in: True when they report
+    the same value, False when they do not, and None when only one carries it, because a
+    population of one agrees with itself and recording that as agreement would be the shape
+    this project keeps catching. It is pinned to measurement, so a divergence being repaired
+    reddens this gate exactly as loudly as one appearing. That is the point: the repair is
+    supposed to end with the entry moving out of this register.
+
+    `discharged_by` names the work that retires the entry, so an entry cannot quietly become
+    permanent by nobody remembering what it was waiting for.
+    """
+
+    carried_by: frozenset
+    carriers_agree: bool
+    discharged_by: str
+    reason: str
+
+
+# A field some surfaces publish and others do not. This gate cannot hold one to a committed
+# value, because there is no value on every surface to hold, so the register exists to make
+# the divergence something a reader of this gate's output can see rather than something its
+# silence hides.
+#
+# Checked against measurement in both directions on every run, on which surfaces carry it and
+# on whether those surfaces agree. A field that reached a fifth surface, stopped reaching one,
+# or started disagreeing with itself has changed what a result carries, and a line here still
+# naming the old state is not a reason to pass over it. An entry is a divergence recorded,
+# never a divergence accepted.
+SURFACES_THAT_DIFFER = {
+    "plateforce_version": Divergence(
+        frozenset({"cli", "browser"}),
+        True,
+        "nothing outstanding; the two surfaces that assemble `ResultDocument` agree",
+        "the build that produced the numbers, carried by the two surfaces that assemble "
+        "`ResultDocument`. Python and R answer for a build a caller already holds, through "
+        "`plateforce.__version__` and `packageVersion`",
+    ),
+    "registry_version": Divergence(
+        frozenset({"cli", "browser", "python"}),
+        False,
+        "wsrp/registry-pin",
+        "the version the registry declares, and the one entry here whose carriers disagree: "
+        "the terminal and the tab both report the registry's declared version and Python "
+        "reports null, from `EMBEDDED_REGISTRY_VERSION` in "
+        "`crates/plateforce-python/src/registry.rs`. R omits the field altogether, its own "
+        "report having no place for it. Three surfaces carrying one field and disagreeing is "
+        "why the state is pinned here rather than left to the presence check",
+    ),
+    "trial": Divergence(
+        frozenset({"cli", "browser"}),
+        True,
+        "nothing outstanding; a caller who opened the trial already holds this",
+        "where the trace came from and what the reader had to be told about reading it. The "
+        "two surfaces handed a path know it; Python and R are handed a trial somebody else "
+        "opened",
+    ),
+    "descriptions": Divergence(
+        frozenset({"r"}),
+        None,
+        "no branch yet, and it wants one",
+        "the account each quantity gives of itself. Generated in `descriptions_of`, which "
+        "lives in R's binding and in no other surface's, so a terminal, a browser tab and a "
+        "notebook receive nothing here",
+    ),
+    "spread": Divergence(
+        frozenset({"cli"}),
+        None,
+        "nothing outstanding; the other surfaces expose the sweep as a call of its own",
+        "how far a number moves across a slot's defensible alternatives. The terminal sweeps "
+        "with the analysis; the tab sweeps on its own schedule through a second entry point, "
+        "and Python and R expose the sweep as a call of its own",
+    ),
+}
+
+
+def surfaces_read_one_registry(answers):
+    """Asserted between the surfaces rather than against a committed value.
+
+    Two surfaces resolving rules out of different registries agree about nothing that matters,
+    however well their numbers happen to line up.
+    """
+    digests = {name: answer.get("registry_digest") for name, answer in answers.items()}
+    if len(set(digests.values())) > 1:
+        return [f"surfaces read different registries: {digests}"]
+    return []
+
+
+def compared_fields_measured_from(answers):
+    """What `compared_fields` should name: everything the surfaces all publish, less the
+    fields asserted another way.
+
+    Derived rather than maintained, which is the whole point. Read out of the baseline it
+    checks, this list could only ever be widened by hand, so a field added to all four
+    surfaces stayed invisible to the gate until somebody noticed.
+    """
+    return sorted(fields_every_surface_publishes(answers) - set(ASSERTED_ANOTHER_WAY))
+
+
+def coverage_faults(answers, fields):
+    """Every field a surface publishes is compared here, asserted another way, or a declared
+    divergence. A field in none of the three is a field nothing looks at.
+
+    This gate prints that four surfaces computed one result. A reader takes that to be about
+    the result, not about the six fields of it somebody listed, so the gate refuses rather
+    than publish a verdict narrower than its own sentence.
+    """
+    faults = []
+    named = surfaces_named_in_manifest()
+    if set(answers) != named:
+        faults.append(
+            f"the manifest names {sorted(named)} and this run holds {sorted(answers)}, so "
+            "nothing below speaks for the surfaces this gate claims"
+        )
+        return faults
+
+    everywhere = fields_every_surface_publishes(answers)
+    somewhere = set.union(*(set(answer) for answer in answers.values()))
+
+    unread = sorted(everywhere - set(fields) - set(ASSERTED_ANOTHER_WAY))
+    if unread:
+        faults.append(
+            f"every surface publishes {unread} and nothing here looks at any of them, so "
+            f"this gate would report agreement about {len(fields)} of "
+            f"{len(everywhere)} fields and say four surfaces computed the result. Regenerate "
+            "with scripts/result-parity.sh --write, which derives the list from the surfaces"
+        )
+
+    for field in sorted(set(fields) - everywhere):
+        faults.append(
+            f"compared_fields names {field} and only {sorted(surfaces_publishing(answers, field))} "
+            f"publish it, so it cannot be held to one committed value"
+        )
+
+    for field in sorted(set(fields) & set(ASSERTED_ANOTHER_WAY)):
+        faults.append(
+            f"{field} is compared against the committed document and also declared asserted "
+            "another way, so one of the two is wrong"
+        )
+
+    for field, (reason, assertion) in sorted(ASSERTED_ANOTHER_WAY.items()):
+        if field not in somewhere:
+            faults.append(
+                f"{field} is declared asserted another way and no surface publishes it, which "
+                f"reads as coverage and covers nothing: {reason}"
+            )
+            continue
+        faults += assertion(answers)
+
+    for field in sorted(somewhere - everywhere):
+        carried = surfaces_publishing(answers, field)
+        declared = SURFACES_THAT_DIFFER.get(field)
+        if declared is None:
+            faults.append(
+                f"{field} reaches {sorted(carried)} and not {sorted(set(answers) - carried)}, "
+                "and nothing here says why. A field one surface publishes and another drops is "
+                "a result carrying its method on some surfaces and not others"
+            )
+            continue
+        if declared.carried_by != carried:
+            faults.append(
+                f"{field} is declared to reach {sorted(declared.carried_by)} and reaches "
+                f"{sorted(carried)}: {declared.reason}"
+            )
+            continue
+        # Whether the surfaces that do carry it agree with each other. A presence check alone
+        # passes a field three surfaces publish and two of them contradict, which is the state
+        # `registry_version` was found in and the reason this is asked at all.
+        agree = carriers_agree_about(answers, field, carried)
+        if agree != declared.carriers_agree:
+            faults.append(
+                f"{field} is recorded as {agreement_reads(declared.carriers_agree)} across "
+                f"{sorted(carried)} and measures {agreement_reads(agree)}: "
+                f"{{{', '.join(f'{name}={answers[name][field]!r}' for name in sorted(carried))}}}. "
+                f"Discharged by {declared.discharged_by}"
+            )
+
+    for field, declared in sorted(SURFACES_THAT_DIFFER.items()):
+        if field in everywhere:
+            faults.append(
+                f"{field} now reaches every surface, so it is comparable and belongs in "
+                f"compared_fields rather than here. Discharged by "
+                f"{declared.discharged_by}: {declared.reason}"
+            )
+        elif field not in somewhere:
+            faults.append(
+                f"{field} is declared uneven across the surfaces and no surface publishes it: "
+                f"{declared.reason}"
+            )
+
+    return faults
+
+
+def carriers_agree_about(answers, field, carried):
+    """True, False, or None when one surface carries it and there is nothing to agree about."""
+    if len(carried) < 2:
+        return None
+    return len({canonical(answers[name][field]) for name in carried}) == 1
+
+
+def agreement_reads(state):
+    if state is None:
+        return "carried by one surface, with nothing to agree about"
+    return "agreeing" if state else "disagreeing"
+
+
 def write(baseline_path, answers):
     """One surface writes the baseline and every surface is then held to it.
 
@@ -112,7 +377,29 @@ def write(baseline_path, answers):
     if that surface had one, so the diff is audited by hand, the discipline
     `crates/plateforce-analysis/tests/resolved-values-baseline.txt` already carries.
     """
-    fields = compared_fields_in(baseline_path)
+    was = compared_fields_in(baseline_path)
+    fields = compared_fields_measured_from(answers)
+
+    # Regeneration widens and never narrows. A surface that stopped publishing a field would
+    # otherwise take the field out of the list on the way past, and the gate would go on
+    # reporting that every surface agreed, about less.
+    dropped = sorted(set(was) - set(fields))
+    if dropped:
+        raise SystemExit(
+            f"plateforce: {dropped} is compared today and some surface no longer publishes it, "
+            "so regenerating would narrow this gate. Fix the surface, or take the name out of "
+            "compared_fields by hand, which is the one direction that wants a decision"
+        )
+
+    faults = coverage_faults(answers, fields)
+    if faults:
+        for fault in faults:
+            print(f"plateforce: {fault}", file=sys.stderr)
+        raise SystemExit(
+            "plateforce: the surfaces do not carry the shape this gate can compare, so a "
+            "baseline written now would record that as the standard"
+        )
+
     first = sorted(answers)[0]
     document = {
         "compared_fields": fields,
@@ -120,7 +407,12 @@ def write(baseline_path, answers):
     }
     with open(baseline_path, "w", encoding="utf-8") as handle:
         handle.write(json.dumps(document, sort_keys=True, indent=2) + "\n")
+    gained = sorted(set(fields) - set(was))
     print(f"{baseline_path} written from {first}; audit the diff before committing it")
+    print(
+        f"compared_fields derived from the surfaces: {len(fields)} fields"
+        + (f", {len(gained)} newly covered: {gained}" if gained else ", none newly covered")
+    )
 
 
 def check(baseline_path, answers):
@@ -128,14 +420,7 @@ def check(baseline_path, answers):
     with open(baseline_path, encoding="utf-8") as handle:
         committed = json.load(handle)["result"]
 
-    faults = []
-
-    # Asserted between the surfaces rather than against a committed value. The digest moves
-    # with every registry edit, so freezing one would redden this check for a reason that is
-    # not about parity, while two surfaces reading different registries is exactly parity.
-    digests = {name: answer.get("registry_digest") for name, answer in answers.items()}
-    if len(set(digests.values())) > 1:
-        faults.append(f"surfaces read different registries: {digests}")
+    faults = coverage_faults(answers, fields)
 
     for name in sorted(answers):
         reported = projected(answers[name], fields, name)
@@ -159,10 +444,36 @@ def check(baseline_path, answers):
             f"plateforce: the committed result holds {values} numbers, so a surface matching "
             f"it has agreed about almost nothing"
         )
+    everywhere = fields_every_surface_publishes(answers)
+    uneven = sorted(set.union(*(set(answer) for answer in answers.values())) - everywhere)
     print(
         f"{len(answers)} of {len(answers)} surfaces computed the committed result, "
         f"{values} numbers each"
     )
+    # The denominator of the sentence above, so it cannot be read as a claim about the whole
+    # document. Every field is accounted for: compared here, asserted another way, or a
+    # divergence the surfaces carry and this comparison cannot reach.
+    print(
+        f"  {len(fields)} of {len(everywhere)} fields every surface publishes were compared, "
+        f"{len(ASSERTED_ANOTHER_WAY)} asserted another way: {sorted(ASSERTED_ANOTHER_WAY)}"
+    )
+    # A field this request leaves empty is compared, and four surfaces holding nothing agree
+    # perfectly. So the count is reported beside the one above: a name in the list is coverage
+    # of the wire and not yet coverage of a value, and the two read identically without this.
+    hollow = sorted(field for field in fields if committed[field] in ([], {}, "", None))
+    if hollow:
+        print(
+            f"  {len(hollow)} of {len(fields)} compared fields are empty on this request, so "
+            f"the surfaces agree about the shape and not yet about a value: {hollow}"
+        )
+    for field in uneven:
+        carried = surfaces_publishing(answers, field)
+        declared = SURFACES_THAT_DIFFER[field]
+        print(
+            f"  {field} reaches {sorted(carried)} of the four, "
+            f"{agreement_reads(declared.carriers_agree)}, discharged by "
+            f"{declared.discharged_by}"
+        )
 
 
 def every_number(value):
