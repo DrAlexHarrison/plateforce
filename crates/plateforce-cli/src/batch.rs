@@ -88,6 +88,14 @@ pub struct Args {
         default_value = "jump_height_from_takeoff_meters"
     )]
     pub quantity: String,
+    /// Gravity where the plate stands, which applies to every trial in the folder. Unstated,
+    /// standard gravity runs and the record says nobody was asked
+    #[arg(long, value_name = "M/S2")]
+    pub gravity: Option<f64>,
+    /// The athlete's mass, which is not the weighed system mass: system weight includes any
+    /// bar and bodyweight does not. One mass covers every trial in the folder
+    #[arg(long = "body-mass-kg", value_name = "KG", allow_negative_numbers = true)]
+    pub body_mass_kg: Option<f64>,
     /// Cite this registry revision in the record. Unstated, the record names no pinned
     /// revision and reports the one the registry declares for itself
     #[arg(long, value_name = "REVISION")]
@@ -192,7 +200,19 @@ pub fn run(
         Ok(conditioning) => conditioning,
         Err(declined) => return Outcome::declined(declined),
     };
-    let mut built = request_for(args, &registry, &derived, &conditioning, &stated, &named);
+    let body_mass_kilograms = match crate::analyse::stated_body_mass(args.body_mass_kg) {
+        Ok(mass) => mass,
+        Err(declined) => return Outcome::declined(declined),
+    };
+    let mut built = request_for(
+        args,
+        &registry,
+        &derived,
+        &conditioning,
+        &stated,
+        &named,
+        body_mass_kilograms,
+    );
     if let Err(declined) = crate::preset::adopt(&mut built, &registry, args.preset.as_ref()) {
         return Outcome::declined(declined);
     }
@@ -234,7 +254,12 @@ fn request_for(
     conditioning: &std::collections::BTreeMap<String, String>,
     stated: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
     named: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
+    body_mass_kilograms: Option<f64>,
 ) -> plateforce_analysis::AnalysisRequest {
+    // The value and the claim about where it came from are written together, by the one
+    // routine every surface writes a gravity through.
+    let (gravity_meters_per_second_squared, gravity_source) =
+        plateforce_analysis::gravity_stated(args.gravity);
     let parameters = |construct: &str| {
         stated
             .get(crate::decisions::slot_of(construct))
@@ -267,8 +292,11 @@ fn request_for(
             ..Default::default()
         },
         touchdown_index: None,
-        gravity_meters_per_second_squared:
-            plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+        gravity_meters_per_second_squared,
+        gravity_source,
+        // Stated once for the folder, as the plate and the acquisition block are: every file
+        // in one folder came off one athlete on one day.
+        body_mass_kilograms,
         registry_backed_ids: crate::analyse::backed_ids(registry),
         // The phase that conditions the signal runs on every trial in the folder, so a value
         // written against it applies to every trial the same way `--set onset.k` does. Read

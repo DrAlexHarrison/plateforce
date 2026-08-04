@@ -7,6 +7,7 @@
 
 use std::collections::BTreeMap;
 
+use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Acquisition, PlateProfileAttribution};
 use serde::{Deserialize, Serialize};
 
@@ -284,6 +285,31 @@ impl SignalRow {
     }
 }
 
+/// One value the request bound for the whole folder, with the claim that says who chose it.
+///
+/// Owned rather than borrowed from `plateforce_analysis::BoundGlobal`, because a record this
+/// crate writes is read back off disk and that type's names are static.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BoundGlobalRow {
+    pub name: String,
+    pub value: f64,
+    pub unit: String,
+    pub unit_symbol: String,
+    pub source: ParameterSource,
+}
+
+impl BoundGlobalRow {
+    pub fn of(bound: &plateforce_analysis::BoundGlobal) -> Self {
+        Self {
+            name: bound.name.to_string(),
+            value: bound.value,
+            unit: bound.unit.to_string(),
+            unit_symbol: bound.unit_symbol.to_string(),
+            source: bound.source,
+        }
+    }
+}
+
 /// One row describing the run. Every count here states the population it was taken over.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunRow {
@@ -300,6 +326,12 @@ pub struct RunRow {
     pub registry_declared_version: Option<String>,
     pub registry_digest: String,
     pub request_digest: String,
+    /// What the analysis was bound to for every trial in the folder, and who chose each
+    /// value. Stated once for the folder, as the plate is, and carried whole rather than
+    /// digested: a reader comparing two runs asks which mass and which gravity they ran
+    /// under, and `request_digest` answers only whether the two were the same.
+    #[serde(default)]
+    pub bound_globals: Vec<BoundGlobalRow>,
     /// Names carrying a declared trial suffix. The denominator the file counts are over.
     pub files_found: usize,
     /// Names the run met carrying none of them. Outside `files_found` rather than inside it,
