@@ -3,11 +3,10 @@ NULL
 
 # Dropping the provenance is something a caller does on purpose, by naming `@value`.
 #
-# Leaving these methods undefined would not prevent it. R's default coercion walks the
-# object underneath and returns a number: `as.numeric(list(1.23))` is `1.23` with no
-# warning at all. An undefined method in R is a silent success rather than a refusal.
-#
-# `as.numeric` and `as.double` are one internal generic, so the method below answers both.
+# Leaving these methods undefined would not prevent it: R's default coercion walks the
+# object underneath and returns a number, so `as.numeric(list(1.23))` is `1.23` with no
+# warning. `as.numeric` and `as.double` are one internal generic, so the method below
+# answers both.
 
 DROPPED_PROVENANCE <- paste(
   "a measured value carries the method that produced it.",

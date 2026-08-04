@@ -40,8 +40,7 @@ REFUSAL_FIELDS <- c(
 #'
 #' One rule declining while the rest of the analysis computes is a partial result, not a
 #' failed one, so those arrive on `@refusals` and are read with the same `[[` as a caught
-#' condition. Before the engine sent them across, a declining rule reached this package as a
-#' sentence in `warnings` and every one of the codes named below was unraisable here.
+#' condition.
 #'
 #' @noRd
 refusal_condition <- function(refusal) {

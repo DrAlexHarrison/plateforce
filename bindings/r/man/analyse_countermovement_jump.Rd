@@ -65,9 +65,8 @@ one placed declines by name when that construct was not named.}
 
 \item{registry_version}{The revision of the registry data to cite in the result. Absent,
 the result names no pinned revision and reports the one the registry declares for
-itself. The two are recorded separately, because a revision the caller cited and one
-the data claimed about itself are different facts and a reader acts on them
-differently.}
+itself. The two are recorded separately: a revision the caller cited and one the data
+claimed about itself are different facts.}
 }
 \value{
 A [countermovement_jump].

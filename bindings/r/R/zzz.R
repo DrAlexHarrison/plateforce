@@ -1,10 +1,9 @@
 #' @include refusal.R
 NULL
 
-# Where the registry comes from, in the order a caller would expect: what they named,
-# what their environment names, then the copy inside this package. The chosen path and
-# its digest travel in every result, so a caller who pointed at their own copy has that
-# fact in the record rather than in their memory.
+# Where the registry comes from, in the order a caller would expect: what they named, what
+# their environment names, then the copy inside this package. The chosen path and its digest
+# travel in every result.
 
 registry_root <- function(path = NULL) {
   if (!is.null(path)) {
@@ -28,10 +27,8 @@ registry_root <- function(path = NULL) {
   shipped
 }
 
-# A registry is read once per path per session. Reading it costs a read and a validation
-# of every file in the tree, and an analysis reads no rule out of it, so reading it on
-# every call would put that cost on every number. Both facts a request carries come from
-# the one read.
+# A registry is read once per path per session: reading it validates every file in the tree,
+# and an analysis reads no rule out of it.
 read_registries <- new.env(parent = emptyenv())
 
 registry_facts <- function(path = NULL) {
@@ -50,19 +47,14 @@ registry_facts <- function(path = NULL) {
 registry_digest <- function(path = NULL) registry_facts(path)$digest
 
 # The revision the registry names about itself, or NULL where it names none. A separate
-# question from the revision a caller pins, and the request carries both: one is what the
-# data claims and the other is what the author cited, and a reader handed one field for
-# both is told the author chose a revision nobody chose.
+# question from the revision a caller pins, and the request carries both.
 registry_declared_version <- function(path = NULL) {
   declared <- registry_facts(path)$declared_version
   if (!length(declared)) NULL else as.character(declared)
 }
 
-# What this registry carries. The engine is told rather than asked, and it judges every rule
-# it binds against this list, so the list is every id rather than the ones a caller named:
-# the binding composes operators onto the rule the caller chose, and each of those is an
-# entry in its own right. A list built from the caller's choices alone reports a published
-# entry as absent from the registry it is filed in.
+# Every id this registry carries, rather than the ones a caller named: a binding composes
+# operators onto the rule the caller chose, and each of those is an entry in its own right.
 registry_backed_ids <- function(path = NULL) {
   ids <- registry_facts(path)$method_ids
   if (!length(ids)) NULL else as.list(as.character(ids))

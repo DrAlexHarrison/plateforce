@@ -307,8 +307,7 @@ impl Trial {
     }
 
     /// The one place a trial is assembled on this surface, so the sentinel convention is
-    /// applied once however the samples arrived. A second assembly beside this one would be
-    /// a second answer to what a declared convention does to a trace.
+    /// applied once however the samples arrived.
     fn of_values(
         python: Python<'_>,
         values: Vec<f64>,
@@ -327,9 +326,9 @@ impl Trial {
         let inner =
             CoreTrial::new(values, sample_rate_hz).map_err(|e| map_trial_error(python, e))?;
 
-        // The two counts rather than the total, because they are two facts. A convention
-        // matching a stretch of the recording is the caller's declaration meeting real data;
-        // a sample carrying no number is the recording itself.
+        // The two counts rather than the total: a convention matching a stretch of the
+        // recording is the caller's declaration meeting real data, and a sample carrying no
+        // number is the recording itself.
         let reason = match (matched, no_number) {
             (0, 0) => None,
             _ => Some(format!(
@@ -462,10 +461,7 @@ impl Trial {
 /// Read a trace from a delimited text export.
 ///
 /// The file is read by the engine, so which bytes are numbers is decided in one place for
-/// every surface rather than in each caller's own loader. Without this a notebook had to
-/// parse the export itself, which put the delimiter, the column and the missing-sample
-/// convention in a script nothing records, and the result then carried a full provenance
-/// chain resting on three choices no reader can recover.
+/// every surface rather than in each caller's own loader.
 ///
 /// Nothing here is inferred. `sample_rate_hz`, `delimiter` and `force_column` are
 /// keyword-only and undefaulted, so omitting one raises: a rate that is guessed scales

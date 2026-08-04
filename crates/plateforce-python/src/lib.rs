@@ -1,8 +1,8 @@
 //! Python surface over `plateforce-core` and `plateforce-registry`.
 //!
-//! The math is not here and must never be. Every number this module returns came out of
-//! the one implementation in the core, and what this layer adds is the record of which
-//! method produced it and what that method was bound to.
+//! The math is not here. Every number this module returns came out of the one
+//! implementation in the core, and this layer adds the record of which method produced it
+//! and what that method was bound to.
 //!
 //! `Acquisition` and `Sentinel` are the only classes a caller passes back in; the rest
 //! travel outward only, and every class states which of the two it is.
@@ -79,8 +79,6 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
     module.add_function(wrap_pyfunction!(trial::read_force_file, module)?)?;
 
-    // The measurement this software exists to publish, beside the analysis rather than
-    // behind a switch, because it is the question the registry exists to answer.
     module.add_function(wrap_pyfunction!(spread::spread_over, module)?)?;
 
     module.add_function(wrap_pyfunction!(capability::capability_json, module)?)?;

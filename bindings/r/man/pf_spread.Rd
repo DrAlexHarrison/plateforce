@@ -62,10 +62,7 @@ A list carrying `variants`, one per combination with its label, its value and
   `succeeded` and `failed` beside the count that was requested.
 }
 \description{
-Sweeps a slot's alternatives on one trial and reports the spread over them. This is the
-question the whole registry exists to answer, so it sits beside
-[analyse_countermovement_jump()] rather than behind a switch, and it takes no option to
-enable it.
+Sweeps a slot's alternatives on one trial and reports the spread over them.
 }
 \examples{
 standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)

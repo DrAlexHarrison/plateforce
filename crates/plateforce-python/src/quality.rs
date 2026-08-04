@@ -3,16 +3,8 @@
 //! Nothing here computes or decides anything. `plateforce_analysis::quality` raises the
 //! signals, for every surface, and this carries them to a notebook as the fields they are.
 //!
-//! This surface writes no sentence at all. It reports the status the signal declares and
-//! leaves the value absent, which is what the signal holds, so a caller branching on either
-//! reads the record rather than prose about it.
-//!
-//! The three rendering surfaces write a sentence because a person is reading it, and each
-//! now names the status in the record's own spelling for the same reason this one does. They
-//! arrived there the hard way: all three once hardcoded a phrase written for the first signal
-//! that shipped, so the terminal and R told a reader "not comparable" and the browser told
-//! them "no second route on this trace" whatever the signal was about, and a second signal
-//! with an absent value would have printed a sentence that was false about their own data.
+//! This surface writes no sentence. It reports the status the signal declares and leaves the
+//! value absent, so a caller branching on either reads the record rather than prose about it.
 
 use plateforce_analysis::quality::{QualitySignal as CoreQualitySignal, QualityStatus};
 use pyo3::prelude::*;
@@ -42,11 +34,8 @@ impl QualitySignal {
     }
 }
 
-/// The word this surface reports for each status, asked of the status itself.
-///
-/// It used to be spelled again here, correctly and exhaustively, and a third surface then
-/// spelled it a third way. The word now has one home beside the enum, so a caller branching
-/// on this and one reading the JSON are reading one decision because there is only one.
+/// The word this surface reports for each status, asked of the status itself, so a caller
+/// branching on this and one reading the JSON are reading one decision.
 fn status_name(status: QualityStatus) -> &'static str {
     status.wire_name()
 }
@@ -62,9 +51,7 @@ impl QualitySignal {
     /// The computed value the threshold was applied to, or None where the comparison
     /// produced no number.
     ///
-    /// None is reported as None rather than as a sentence explaining it. Why a comparison
-    /// produced nothing is what `status` and `remedy` are for, and a reader who wants to
-    /// branch on it should not have to parse prose to do so.
+    /// Why a comparison produced nothing is what `status` and `remedy` are for.
     #[getter]
     fn value(&self) -> Option<f64> {
         self.inner.value
@@ -84,7 +71,6 @@ impl QualitySignal {
 
     /// `disagrees` where two routes to one quantity differ past what the published
     /// difference between them accounts for, `incomparable` where the check could not run.
-    /// The two are not the same fact and silence would read like neither.
     #[getter]
     fn status(&self) -> &'static str {
         status_name(self.inner.status)
@@ -99,10 +85,8 @@ impl QualitySignal {
     /// The construct whose bound rule the reader would change.
     ///
     /// A construct rather than a rule id, because naming one rule would resolve a live
-    /// methodological debate on the reader's behalf at the moment they are most likely to
-    /// accept whatever is suggested. The browser turns this into a control that focuses the
-    /// selector for that construct; a notebook has no selector, so it reaches the published
-    /// alternatives with it: `[entry for entry in registry.methods() if entry.construct ==
+    /// methodological debate on the reader's behalf. Reach the published alternatives with
+    /// it: `[entry for entry in registry.methods() if entry.construct ==
     /// signal.remedy_construct]`.
     #[getter]
     fn remedy_construct(&self) -> &str {
@@ -117,9 +101,7 @@ impl QualitySignal {
     }
 
     fn __repr__(&self) -> String {
-        // Every field as it stands, and no sentence about an absent value. A repr that
-        // explained why a value was missing would be this surface making the same assumption
-        // the other three make, in the one place a reader trusts to be literal.
+        // Every field as it stands, and no sentence about an absent value.
         format!(
             "QualitySignal('{}', status='{}', value={}, threshold={} {}, remedy_construct='{}')",
             self.inner.label,

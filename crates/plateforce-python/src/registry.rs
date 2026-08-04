@@ -22,8 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/embedded_registry.rs"));
 
 /// The registry this wheel carries, assembled through the call the directory loader makes.
 ///
-/// Strict in the same places: a set of files that loader refuses is refused here, because
-/// a wheel that quietly loads a registry the terminal would reject is two products.
+/// Strict in the same places: a set of files that loader refuses is refused here.
 fn registry_this_build_carries() -> Result<CoreRegistry, CoreRegistryError> {
     let assembled =
         assemble(EMBEDDED_REGISTRY_FILES.iter().copied()).map_err(|error| match error {
@@ -676,8 +675,7 @@ impl MethodEntry {
         })
     }
 
-    /// Whether this build can run the entry. The registry describes the literature, which
-    /// is larger than what any one piece of software implements.
+    /// Whether this build can run the entry.
     #[getter]
     fn implemented(&self) -> bool {
         implemented_method_ids().contains(&self.inner.id.as_str())
@@ -917,9 +915,7 @@ impl Registry {
     /// same wheel, so the digest a result reports is a property of the release rather than
     /// of the directory the caller happened to be sitting in.
     ///
-    /// A named directory is read and never quietly replaced by the compiled-in copy: a
-    /// caller who names a directory and silently receives different bytes has been told a
-    /// result came from a registry it did not come from.
+    /// A named directory is read and never quietly replaced by the compiled-in copy.
     ///
     /// `version` pins which revision of the registry data produced a result, and a caller
     /// who pins nothing gets no version rather than a word standing in for one. Either
@@ -952,9 +948,7 @@ impl Registry {
     ///
     /// Distinct from `version` above, which is what a caller pinned. The two answer
     /// different questions and either can be present without the other: a caller can pin a
-    /// revision a registry does not claim, and a registry can claim one nobody pinned. The
-    /// terminal and the browser both report this and no Python reader could reach it, so a
-    /// notebook was the one surface unable to say which revision of the data it ran.
+    /// revision a registry does not claim, and a registry can claim one nobody pinned.
     #[getter]
     fn declared_version(&self) -> Option<&str> {
         self.inner.declared_version.as_deref()
@@ -970,8 +964,7 @@ impl Registry {
     #[getter]
     fn census(&self) -> Census {
         // Destructured without a rest pattern, so a population added upstream is a compile
-        // error here rather than a row that quietly stops being reported. The terminal
-        // reached four populations while this surface reported three, and nothing said so.
+        // error here rather than a row that quietly stops being reported.
         let plateforce_registry::Census {
             constructs,
             computation_entries,
@@ -1113,8 +1106,7 @@ mod tests {
     /// The digest a wheel reports names the bytes the wheel carries.
     ///
     /// This is what makes a fingerprint in somebody's methods section checkable by a
-    /// stranger: they install the version it names and compare, rather than taking our
-    /// word that the registry we published is the registry we computed against.
+    /// stranger: they install the version it names and compare.
     #[test]
     fn the_registry_in_the_wheel_is_the_registry_in_the_repository() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../registry");

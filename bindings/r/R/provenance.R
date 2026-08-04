@@ -52,11 +52,9 @@ binding_frame <- function(names, values, sources) {
   )
 }
 
-# The engine records a source per name as the rule reads it, and that record is taken
-# here rather than worked back out. Deriving it from a second field is a second answer to
-# where a value came from, and the two say different things the moment either moves: a
-# value the caller typed, one the rule fell back to, and one it measured off this trace
-# move the number identically.
+# The engine records a source per name as the rule reads it, and that record is taken here
+# rather than worked back out. A value the caller typed, one the rule fell back to, and one
+# it measured off this trace move the number identically.
 provenance_from_bound_method <- function(bound, stamp, acquisition_complete) {
   recorded <- bound[["parameter_sources"]]
   pairs <- bound[["bound_parameters"]]
@@ -88,9 +86,8 @@ provenance_from_bound_method <- function(bound, stamp, acquisition_complete) {
 }
 
 # What the response says about the registry behind it, as the three character vectors the
-# provenance class holds. Read once per response so no record on it can answer differently,
-# and empty rather than NA where the response says nothing: a revision nobody pinned is a
-# fact about the request, not a value this session failed to read.
+# provenance class holds. Empty rather than NA where the response says nothing: a revision
+# nobody pinned is not a value this session failed to read.
 registry_stamp_of <- function(response) {
   said <- function(name) {
     value <- response[[name]]

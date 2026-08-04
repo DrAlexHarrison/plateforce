@@ -7,8 +7,8 @@ NULL
 #' keyed by the engine's own name for it. Read one with `x@values[["name"]]`, which
 #' matches the whole name, or with [pf_value()].
 #'
-#' The names come from the engine rather than from a list written here, so a quantity that
-#' arrives or is renamed upstream arrives or is renamed here without an edit.
+#' The names come from the engine rather than from a list written here, so a quantity added
+#' or renamed upstream carries through without an edit.
 #'
 #' @noRd
 countermovement_jump <- S7::new_class(
@@ -34,8 +34,7 @@ countermovement_jump <- S7::new_class(
 
 #' @export
 `print.plateforce::countermovement_jump` <- function(x, ...) {
-  # A signal is said once, under the first value it qualifies, because a reader scanning
-  # the values does not reach a block at the end.
+  # A signal is said once, under the first value it qualifies.
   said_under <- vapply(x@signals, function(signal) signal@qualifies[1], character(1))
   for (name in names(x@values)) {
     value <- x@values[[name]]
@@ -105,9 +104,8 @@ pf_value <- function(x, quantity) {
 #' @param registry Directory holding the registry, as in [pf_registry()].
 #' @param registry_version The revision of the registry data to cite in the result. Absent,
 #'   the result names no pinned revision and reports the one the registry declares for
-#'   itself. The two are recorded separately, because a revision the caller cited and one
-#'   the data claimed about itself are different facts and a reader acts on them
-#'   differently.
+#'   itself. The two are recorded separately: a revision the caller cited and one the data
+#'   claimed about itself are different facts.
 #' @return A [countermovement_jump].
 #' @export
 #' @examples
@@ -150,9 +148,7 @@ analyse_countermovement_jump <- function(trial,
     takeoff_index = takeoff_index, touchdown_index = touchdown_index,
     registry = registry, registry_version = registry_version
   )
-  # The pipeline is laid on by the engine rather than here. A second implementation of
-  # which values a pipeline supplied would be a second answer to the question this package
-  # exists to answer, and this package writes requests without ever reading one back.
+  # The pipeline is laid on by the engine rather than here.
   reply <- if (is.null(preset)) {
     rust_analyse_json(trial@handle, request)
   } else {
@@ -161,9 +157,7 @@ analyse_countermovement_jump <- function(trial,
   jump_from_response(unwrap(decode(reply)))
 }
 
-# The one place a request is written. A caller that wrote its own would send a document
-# that differs from the one a user's call sends, and a comparison over that document would
-# be measuring a request nobody makes.
+# The one place a request is written.
 analysis_request_of <- function(weighing, onset, takeoff,
                                 derived = NULL,
                                 gravity_meters_per_second_squared = NULL,
@@ -204,17 +198,14 @@ analysis_request_of <- function(weighing, onset, takeoff,
   )
 }
 
-# A gravity the caller stated travels with the claim that they stated it. Sent without one,
-# the engine supplies the constant and records that nobody was asked, and the two requests
-# are otherwise identical, which is the whole of what the claim is for.
+# A gravity the caller stated travels with the claim that they stated it. Without one the
+# engine supplies the constant and records that nobody was asked.
 gravity_claim <- function(gravity_meters_per_second_squared) {
   if (is.null(gravity_meters_per_second_squared)) NULL else "stated"
 }
 
 # A rule for something computed from the landmarks, keyed by the construct id the registry
-# declares. Written either as `list(peak_force = "force.peak.gross")` or, where the rule
-# takes values, as `list(peak_force = list(method_id = ..., parameters = list(...)))`. The
-# short form is the same request as the long one with nothing stated.
+# declares. The short form is the same request as the long one with nothing stated.
 derived_choices <- function(derived) {
   if (is.null(derived) || !length(derived)) {
     return(NULL)
@@ -240,8 +231,7 @@ derived_choices <- function(derived) {
 
 drop_empty <- function(fields) fields[!vapply(fields, is.null, logical(1))]
 
-# R indexes from one and the engine indexes from zero. The conversion happens here, once,
-# rather than at each call site.
+# R indexes from one and the engine indexes from zero.
 as_index <- function(index) {
   if (is.null(index)) {
     return(NULL)
@@ -257,19 +247,15 @@ jump_from_response <- function(response) {
   bound <- response[["bound_methods"]]
   by_method <- stats::setNames(bound, vapply(bound, function(b) b[["method_id"]], character(1)))
 
-  # One record per rule, built once. Eleven quantities naming the same eight rules would
-  # otherwise build the same record eighty-eight times.
+  # One record per rule, built once rather than once per quantity naming it.
   records <- lapply(by_method, provenance_from_bound_method, stamp, complete)
 
   accounts <- response[["descriptions"]]
 
   values <- list()
   for (metric in response[["metrics"]]) {
-    # A contributing id the response did not bind carries no parameters to report, so it has
-    # no record to link. Selecting by name without asking would put a NULL in the chain,
-    # which reads as a rule whose record is missing rather than as a rule that never ran.
-    # The engine's other readers pass over the same ids: the batch export skips a
-    # contributing id with no bound method, and the terminal walks `bound_methods` itself.
+    # A contributing id the response did not bind has no record to link, and a NULL in the
+    # chain would read as a record that is missing rather than as a rule that never ran.
     contributing <- as.character(unlist(metric[["contributing_method_ids"]]))
     chain <- records[contributing[contributing %in% names(records)]]
     names(chain) <- NULL

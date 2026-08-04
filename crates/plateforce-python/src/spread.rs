@@ -1,10 +1,7 @@
 //! How far the method choice moves one number.
 //!
-//! The sweep is the measurement this software exists to publish: across ten published jump
-//! height methods on 244 real trials the median spread is 3.51 cm, against the 1.98 cm
-//! training effect the source study was built to detect. A notebook could not compute it
-//! before this file, which left the largest population of readers in this field able to run
-//! our analysis and unable to run our argument.
+//! Across ten published jump height methods on 244 real trials the median spread is 3.51 cm,
+//! against the 1.98 cm training effect the source study was built to detect.
 //!
 //! Nothing here sweeps anything. `plateforce_analysis::spread` does, for every surface, and
 //! this shapes its answer into the classes a notebook reads.
@@ -75,8 +72,7 @@ impl SpreadVariant {
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Spread")]
 pub struct Spread {
     /// Which build produced this sweep. A spread nested in an analysis inherits that
-    /// result's identity; one that leaves on its own carried none, so a reader holding a
-    /// spread could not say which software or which registry produced it.
+    /// result's identity; one handed back on its own carries this.
     #[pyo3(get)]
     plateforce_version: String,
     /// The revision the caller pinned, and None where nobody pinned one. The same question
@@ -115,7 +111,7 @@ pub struct Spread {
     #[pyo3(get)]
     spread_absolute: Option<f64>,
     /// The headline figure. On the 244-trial corpus this reads 38.9 percent for time to
-    /// takeoff, which is the whole argument for the registry in one number.
+    /// takeoff.
     #[pyo3(get)]
     spread_percent_of_median: Option<f64>,
     /// What the unswept request produced, so a reader can see where their own choice sits
@@ -152,13 +148,9 @@ impl Spread {
 
 /// Sweep a slot's alternatives and report how far the number moves.
 ///
-/// This is what answers "how much does the method choice move this number", so it takes no
-/// option to enable it and sits beside `analyse_countermovement_jump` rather than behind it.
-///
-/// `slot` is one name or several. Several sweeps every combination of them, which is the
-/// question a reader asks about a number resting on more than one rule: the choice of onset
-/// rule and the choice of takeoff rule both move a jump height, and sweeping them one at a
-/// time reports neither the widest disagreement nor the narrowest.
+/// `slot` is one name or several. Several sweeps every combination of them: the choice of
+/// onset rule and the choice of takeoff rule both move a jump height, and sweeping them one
+/// at a time reports neither the widest disagreement nor the narrowest.
 ///
 /// Naming neither `method_ids` nor `parameter` sweeps every rule this build runs for the
 /// slot, read off the binding table rather than from a list written here. Naming `parameter`
@@ -208,8 +200,7 @@ pub fn spread_over(
     maximum_combinations: Option<usize>,
 ) -> PyResult<Spread> {
     // The base is built by the one request builder this surface has, so the combination that
-    // varies nothing is the request a user's own analysis call sends and the sweep is around
-    // their result rather than around one assembled here.
+    // varies nothing is the request a user's own analysis call sends.
     let (base, registry) = analysis_request_of(
         python,
         weighing_epoch,
@@ -275,14 +266,11 @@ pub fn spread_over(
     })
 }
 
-/// The engine's own cap, restated here because this signature offers it and a caller who
-/// states nothing has to get the same sweep the other surfaces give them.
+/// The engine's own cap, restated here so a caller who states nothing gets the sweep the
+/// other surfaces give.
 const DEFAULT_MAXIMUM_COMBINATIONS: usize = 512;
 
 /// The dimensions to sweep, one per slot named.
-///
-/// Naming neither the rules nor a parameter sweeps every rule the build runs for the slot,
-/// which is the question a reader asks first.
 fn axes_of(
     slot: &Bound<'_, PyAny>,
     method_ids: Option<Vec<String>>,
@@ -302,8 +290,7 @@ fn axes_of(
         .collect()
 }
 
-/// One name or several, because a caller sweeping a single slot should not have to write a
-/// list of one and a caller sweeping three should not have to call three times.
+/// One name or several.
 fn slots_named(slot: &Bound<'_, PyAny>) -> PyResult<Vec<String>> {
     if let Ok(single) = slot.extract::<String>() {
         return Ok(vec![single]);

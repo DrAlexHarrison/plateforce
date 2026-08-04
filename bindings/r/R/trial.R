@@ -49,10 +49,9 @@ trial <- S7::new_class(
 #'   every velocity, displacement, impulse and rate of force development with it, so this
 #'   has no default.
 #' @param sentinel_convention How this export writes a missing sample: `"none"`, `"zero"`
-#'   or `"negative_one"`. A sample matching the convention is counted and left where it is:
-#'   closing the gap would shift every timestamp after it, and holding it at the last real
-#'   reading would write a force the plate never measured into the trace. Samples carrying
-#'   no number are counted separately, whatever convention is declared.
+#'   or `"negative_one"`. A sample matching the convention is counted and left where it is,
+#'   because closing the gap would shift every timestamp after it. Samples carrying no
+#'   number are counted separately, whatever convention is declared.
 #' @param acquisition What the plate and its settings were, from [pf_acquisition()]. A
 #'   block missing any member makes every result from this trial carry
 #'   `acquisition_complete = FALSE`.
