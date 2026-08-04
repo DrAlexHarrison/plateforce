@@ -34,9 +34,7 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
 ///
 /// Twelve rules read the analysis gravity and none of them records it, because none of their
 /// registry entries declares such a parameter and a rule may not record a parameter its entry
-/// does not carry. So the value that moved four of eleven numbers appeared nowhere in a
-/// result, and a caller who measured a gravity at their own plate was indistinguishable from
-/// one who was never asked.
+/// does not carry. The value moves four of eleven numbers.
 #[derive(Debug, Clone, Serialize)]
 pub struct BoundGlobal {
     pub name: &'static str,
@@ -62,10 +60,8 @@ impl BoundGlobal {
 
 /// One quantity this build can report, declared once.
 ///
-/// The eleven keys used to be string literals at eleven construction sites, so a manifest
-/// listing them transcribed them and went stale the first time a twelfth arrived. A rule
-/// that produces a new quantity adds a row and the manifest, the Python getters and the
-/// browser all see it without an edit of their own.
+/// A rule that produces a new quantity adds a row, and the manifest, the Python getters and
+/// the browser all see it without an edit of their own.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct Quantity {
     pub key: &'static str,
@@ -184,20 +180,12 @@ pub struct Metric {
     pub label: String,
     /// The number, and `None` where there is none. Never a value that is not finite: those
     /// arrive as `None` with `carried_no_number` set beside them.
-    ///
-    /// A caller reading this can put it straight into arithmetic. It used to be able to hold
-    /// a NaN, which four call sites in this crate and two on other surfaces each filtered out
-    /// again for themselves, and which reached a notebook as a `Measured` asserting a
-    /// measured value of NaN with a full provenance chain behind it.
     pub value: Option<f64>,
     /// True when the arithmetic ran and produced a value that is not finite.
     ///
-    /// Without this the two states a reader most needs to tell apart are the same three
-    /// characters on the wire. `serde_json` writes a non-finite float as `null`, exactly as
-    /// it writes a quantity no rule produced, so "the software computed this and got not a
-    /// number" and "the software declined to compute this" were indistinguishable. The first
-    /// is a gap in the recording reaching the number; the second is an honest refusal, and
-    /// `refusals` says which rule made it.
+    /// `serde_json` writes a non-finite float as `null`, exactly as it writes a quantity no
+    /// rule produced. This tells the two apart: a gap in the recording reaching the number,
+    /// against a refusal `refusals` names the rule for.
     ///
     /// Measured on `subject01_trial1_interrupted`: 8 of 11 metrics read `null`, and 2 of
     /// those 8 are this state. They are exactly the two computed over the weighing window
@@ -277,10 +265,7 @@ impl Metric {
 impl AnalysisResponse {
     /// The metric carrying a key, or nothing where no rule reported one.
     ///
-    /// One lookup for every surface, because two of them read a response by key and resolved a
-    /// repeated key in opposite directions: the quality signals took the first match and the
-    /// batch writer took the last, so one response could hand two surfaces different numbers
-    /// under one name. Which of two values a reader gets is not a thing to decide twice.
+    /// One lookup for every surface, so a repeated key resolves the same way on all of them.
     pub fn metric(&self, key: &str) -> Option<&Metric> {
         self.metrics.iter().find(|metric| metric.key == key)
     }
@@ -288,12 +273,7 @@ impl AnalysisResponse {
 
 /// What an interface draws on the trace.
 ///
-/// Every member is optional and none of them is ever a value that is not finite. The first
-/// two were `f64`, which promised a reader a number on every result and delivered `null`
-/// whenever the weighing window held a sample carrying no number: `serde_json` writes a
-/// non-finite `f64` as `null` whether or not the field admits absence, so those two sat
-/// beside two `Option<f64>` siblings meaning something else by the same three characters,
-/// and the pair whose type promised most were the pair that lied.
+/// Every member is optional and none of them is ever a value that is not finite.
 ///
 /// Which of the two a `null` here is, a quantity that was not computed or a quantity whose
 /// arithmetic produced no number, is answered by the metric of the same key, where
@@ -326,9 +306,7 @@ pub struct AnalysisResponse {
     ///
     /// On the response rather than on each surface's own reader report, so a notebook and an
     /// R session carry it as well as a terminal and a browser tab, and so the count has one
-    /// home. Every surface publishes this response, and none of them could answer this
-    /// question before: on a recording with three unreadable samples the terminal and the
-    /// tab both said 0 and neither notebook nor R said anything at all.
+    /// home.
     ///
     /// The reader's own count of what its declared convention matched is a different fact and
     /// stays with the reader. A zero convention on a jump trace matches the whole flight
@@ -361,8 +339,7 @@ pub struct AnalysisResponse {
     /// The same failures `warnings` describes, kept as the records they were, each naming the
     /// construct whose rule produced nothing and the id that rule was reached by.
     ///
-    /// It crosses the wire as the typed record rather than as the sentence beside it. A
-    /// surface that received only the sentence had to parse it back apart to branch, which
-    /// is the prose channel this project replaces.
+    /// It crosses the wire as the typed record rather than as the sentence beside it, so a
+    /// surface branches on the record instead of parsing the sentence back apart.
     pub refusals: Vec<DeclinedRule>,
 }
