@@ -1,0 +1,186 @@
+//! Which rule a run binds to a construct computed from the landmarks.
+//!
+//! The landmark rules arrive on named fields and every other rule arrives keyed by construct,
+//! so the second kind has no flag of its own to be validated by. One predicate answers both
+//! halves of the question, the construct and the id filed under it, for the command line
+//! reading assignments and for the engine checking a request some other caller built.
+
+use std::collections::BTreeMap;
+
+use plateforce_core::Refusal;
+
+/// What the shape of an assignment is written as, wherever a surface prints it.
+pub const SHAPE: &str = "<construct>=<method>";
+
+/// A binding a run cannot make, either because the line could not be read or because the
+/// names in it are not ones this build runs.
+#[derive(Debug, Clone, PartialEq)]
+pub enum DeriveRefusal {
+    /// The line carries no `=`, so it reaches no rule and carries no published code.
+    Malformed { flag: String, assignment: String },
+    /// A name this build knows how to answer, with the alternatives the refusal carries.
+    Recorded(Box<Refusal>),
+}
+
+impl std::fmt::Display for DeriveRefusal {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DeriveRefusal::Malformed { flag, assignment } => {
+                write!(
+                    formatter,
+                    "{flag} takes {SHAPE}, and '{assignment}' carries no ="
+                )
+            }
+            DeriveRefusal::Recorded(refusal) => write!(formatter, "{}", refusal.message()),
+        }
+    }
+}
+
+/// One `<construct>=<method>` pair, read and checked.
+///
+/// Both halves are checked, because either alone lets through a request the engine would have
+/// to refuse per trial or, worse, skip. A construct this build runs no rule for is a different
+/// fault from an id filed under another construct, and they list different alternatives.
+pub fn choice(flag: &str, assignment: &str) -> Result<(String, String), DeriveRefusal> {
+    let Some((construct, method_id)) = assignment.split_once('=') else {
+        return Err(DeriveRefusal::Malformed {
+            flag: flag.to_string(),
+            assignment: assignment.to_string(),
+        });
+    };
+    accepts(construct, method_id).map_err(DeriveRefusal::Recorded)?;
+    Ok((construct.to_string(), method_id.to_string()))
+}
+
+/// Every assignment on one line, refused on the first that cannot be made.
+///
+/// A construct named twice is the last one written rather than a refusal, which is the shape
+/// `clap` gives a repeated `--weighing` and what a caller correcting a line expects.
+pub fn assignments(
+    flag: &str,
+    lines: &[String],
+) -> Result<BTreeMap<String, String>, DeriveRefusal> {
+    let mut chosen = BTreeMap::new();
+    for line in lines {
+        let (construct, method_id) = choice(flag, line)?;
+        chosen.insert(construct, method_id);
+    }
+    Ok(chosen)
+}
+
+/// Whether this build runs `method_id` for `construct`, as the record rather than as a bool.
+///
+/// The one home for the question. A surface that answered it from its own copy of the
+/// construct list would report a rule added to the binding table as absent until it was
+/// edited too.
+pub fn accepts(construct: &str, method_id: &str) -> Result<(), Box<Refusal>> {
+    let runs = plateforce_analysis::binding::derived_constructs();
+    if !runs.contains(&construct) {
+        return Err(Box::new(Refusal::construct_not_on_the_path(
+            construct,
+            runs.into_iter().map(str::to_string).collect(),
+        )));
+    }
+    let available: Vec<String> = plateforce_analysis::binding::bindings_for_construct(construct)
+        .map(|binding| binding.id.to_string())
+        .collect();
+    if !available.iter().any(|id| id == method_id) {
+        return Err(Box::new(Refusal::method_not_implemented(
+            method_id, construct, available,
+        )));
+    }
+    Ok(())
+}
+
+/// Every quantity key the rules a request bound will report, with the unit each is in.
+///
+/// Read off the binding rows rather than off what the rules produced. A rule that declines on
+/// every trial in a folder produces no metric anywhere, so a table built from the values alone
+/// loses the column the caller asked for, and a reader meets a run that answered a question
+/// they did not ask instead of a column of blanks with a refusal beside each one.
+pub fn declared_quantities(
+    derived: &BTreeMap<String, plateforce_analysis::MethodChoice>,
+) -> Vec<(&'static str, &'static str)> {
+    let mut declared = Vec::new();
+    for (construct, choice) in derived {
+        for binding in plateforce_analysis::binding::bindings_for_construct(construct) {
+            if binding.id != choice.method_id {
+                continue;
+            }
+            for quantity in binding.quantities {
+                declared.push((quantity.key, quantity.unit));
+            }
+        }
+    }
+    declared
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_construct_this_build_runs_no_rule_for_is_refused_with_the_ones_it_does() {
+        let refusal = choice("--derive", "not_a_construct=x").expect_err("no such construct");
+        let DeriveRefusal::Recorded(recorded) = refusal else {
+            panic!("a name is not a malformed line: {refusal}")
+        };
+        assert!(
+            recorded.available.contains(&"phase_model".to_string()),
+            "{:?}",
+            recorded.available
+        );
+    }
+
+    /// An id that is a rule, filed under a construct other than the one it was named for.
+    /// Checking only that the id exists somewhere would bind an onset rule to peak force.
+    #[test]
+    fn an_id_filed_under_another_construct_is_refused_with_the_ones_filed_under_this_one() {
+        let refusal = choice("--derive", "peak_force=onset.threshold.absolute_force")
+            .expect_err("wrong home");
+        let DeriveRefusal::Recorded(recorded) = refusal else {
+            panic!("a name is not a malformed line: {refusal}")
+        };
+        assert!(
+            recorded
+                .available
+                .iter()
+                .all(|id| id.starts_with("force.peak.")),
+            "{:?}",
+            recorded.available
+        );
+    }
+
+    #[test]
+    fn a_line_carrying_no_equals_is_a_fault_in_the_line_rather_than_a_recorded_refusal() {
+        let refusal = choice("--derive", "peak_force").expect_err("no assignment");
+        assert_eq!(
+            refusal,
+            DeriveRefusal::Malformed {
+                flag: "--derive".to_string(),
+                assignment: "peak_force".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn the_quantities_a_bound_rule_declares_are_read_off_its_binding_row() {
+        let derived: BTreeMap<String, plateforce_analysis::MethodChoice> = [(
+            "peak_force".to_string(),
+            plateforce_analysis::MethodChoice {
+                method_id: "force.peak.net".to_string(),
+                ..Default::default()
+            },
+        )]
+        .into_iter()
+        .collect();
+        let declared = declared_quantities(&derived);
+        assert!(
+            !declared.is_empty(),
+            "a bound rule declares what it reports"
+        );
+        for (key, unit) in &declared {
+            assert!(!key.is_empty() && !unit.is_empty(), "{key} is in {unit}");
+        }
+    }
+}

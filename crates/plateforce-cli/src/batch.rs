@@ -72,8 +72,14 @@ pub struct Args {
     /// A published pipeline to run over every trial in the folder
     #[arg(long, value_name = "NAME")]
     pub preset: Option<String>,
+    /// A rule for something computed from the landmarks, written <CONSTRUCT>=<METHOD_ID>.
+    /// Repeatable, and it applies to every trial in the folder
+    #[arg(long = "derive", value_name = "ASSIGNMENT")]
+    pub derive: Vec<String>,
     #[arg(long = "set", value_name = "ASSIGNMENT", help = crate::analyse::SET_HELP_FOR_A_FOLDER)]
     pub set: Vec<String>,
+    #[arg(long = "choose", value_name = "ASSIGNMENT", help = crate::analyse::CHOOSE_HELP)]
+    pub choose: Vec<String>,
     /// A rule to sweep against the bound one, for compare. Repeatable
     #[arg(long = "against", value_name = "METHOD_ID")]
     pub against: Vec<String>,
@@ -164,11 +170,23 @@ pub fn run(
     // A run over a folder multiplies one unmade choice by the trial count, so it is refused
     // before a single trial is read, and it is refused the way one trial is: by naming the
     // choice and what can be passed, rather than by naming the flag that is missing.
-    let stated = match crate::analyse::stated_parameters(&args.set, &[]) {
+    let derived = match plateforce_batch::derive::assignments("--derive", &args.derive) {
+        Ok(derived) => derived,
+        Err(refusal) => return Outcome::declined(declined_binding(refusal)),
+    };
+    // Values written against a construct this run named for something computed from the
+    // landmarks, so `--set peak_force.window_seconds` reaches the rule under the same word
+    // `--derive` bound it by.
+    let also: Vec<String> = derived.keys().cloned().collect();
+    let stated = match crate::analyse::stated_parameters(&args.set, &also) {
         Ok(stated) => stated,
         Err(declined) => return Outcome::declined(declined),
     };
-    let mut built = request_for(args, &registry, &stated);
+    let named = match crate::analyse::stated_options(&args.choose, &also) {
+        Ok(named) => named,
+        Err(declined) => return Outcome::declined(declined),
+    };
+    let mut built = request_for(args, &registry, &derived, &stated, &named);
     if let Err(declined) = crate::preset::adopt(&mut built, &registry, args.preset.as_ref()) {
         return Outcome::declined(declined);
     }
@@ -196,10 +214,18 @@ pub fn run(
 fn request_for(
     args: &Args,
     registry: &plateforce_registry::Registry,
+    derived: &std::collections::BTreeMap<String, String>,
     stated: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
+    named: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 ) -> plateforce_analysis::AnalysisRequest {
     let parameters = |construct: &str| {
         stated
+            .get(crate::decisions::slot_of(construct))
+            .cloned()
+            .unwrap_or_default()
+    };
+    let options = |construct: &str| {
+        named
             .get(crate::decisions::slot_of(construct))
             .cloned()
             .unwrap_or_default()
@@ -208,23 +234,56 @@ fn request_for(
         weighing: plateforce_analysis::WeighingChoice {
             method_id: args.weighing.clone().unwrap_or_default(),
             parameters: parameters(plateforce_analysis::WEIGHING_CONSTRUCT),
+            options: options(plateforce_analysis::WEIGHING_CONSTRUCT),
             ..Default::default()
         },
         onset: plateforce_analysis::MethodChoice {
             method_id: args.onset.clone().unwrap_or_default(),
             parameters: parameters(plateforce_analysis::ONSET_CONSTRUCT),
+            options: options(plateforce_analysis::ONSET_CONSTRUCT),
             ..Default::default()
         },
         takeoff: plateforce_analysis::MethodChoice {
             method_id: args.takeoff.clone().unwrap_or_default(),
             parameters: parameters(plateforce_analysis::TAKEOFF_CONSTRUCT),
+            options: options(plateforce_analysis::TAKEOFF_CONSTRUCT),
             ..Default::default()
         },
         touchdown_index: None,
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: crate::analyse::backed_ids(registry),
+        // A construct computed from the landmarks has no named field, so the values and the
+        // names written against it are keyed by the construct itself rather than by a slot
+        // word, which is what `--set` and `--choose` were handed alongside the three steps.
+        derived: derived
+            .iter()
+            .map(|(construct, method_id)| {
+                (
+                    construct.clone(),
+                    plateforce_analysis::MethodChoice {
+                        method_id: method_id.clone(),
+                        parameters: stated.get(construct).cloned().unwrap_or_default(),
+                        options: named.get(construct).cloned().unwrap_or_default(),
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect(),
         ..Default::default()
+    }
+}
+
+/// A rule the run cannot bind, in the shape the caller's other refusals arrive in.
+///
+/// The two halves keep the split the record makes: a line the reader will rewrite from the
+/// grammar carries no published code, and a name they will rewrite from a list carries one.
+fn declined_binding(refusal: plateforce_batch::DeriveRefusal) -> Declined {
+    match refusal {
+        plateforce_batch::DeriveRefusal::Malformed { .. } => {
+            Declined::line(Fault::Request, refusal.to_string())
+        }
+        plateforce_batch::DeriveRefusal::Recorded(recorded) => Declined::recorded(*recorded),
     }
 }
 
