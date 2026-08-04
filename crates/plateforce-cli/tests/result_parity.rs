@@ -17,33 +17,40 @@ const FIXTURE: &str = "../plateforce-conformance/fixtures/subject01_trial1.force
 /// Every rule on the path named, so nothing here is a refusal and every metric carries a
 /// value to compare.
 fn result_json() -> String {
+    result_json_pinned(&[])
+}
+
+/// The same request, with whatever else the caller wants to say on the command line.
+fn result_json_pinned(extra: &[&str]) -> String {
+    let mut argv = vec![
+        "--registry",
+        "../../registry",
+        "--format",
+        "json",
+        "analyse",
+        FIXTURE,
+        "--column",
+        "0",
+        "--sample-rate-hz",
+        "1200",
+        "--sentinel",
+        "none",
+        "--weighing",
+        "bwepoch.fixed_window",
+        "--set",
+        "weighing.duration=1.0",
+        "--onset",
+        "onset.threshold.noise_relative",
+        "--set",
+        "onset.k=5",
+        "--takeoff",
+        "takeoff.threshold.absolute_force",
+        "--set",
+        "takeoff.threshold_n=20",
+    ];
+    argv.extend_from_slice(extra);
     let output = Command::new(env!("CARGO_BIN_EXE_plateforce"))
-        .args([
-            "--registry",
-            "../../registry",
-            "--format",
-            "json",
-            "analyse",
-            FIXTURE,
-            "--column",
-            "0",
-            "--sample-rate-hz",
-            "1200",
-            "--sentinel",
-            "none",
-            "--weighing",
-            "bwepoch.fixed_window",
-            "--set",
-            "weighing.duration=1.0",
-            "--onset",
-            "onset.threshold.noise_relative",
-            "--set",
-            "onset.k=5",
-            "--takeoff",
-            "takeoff.threshold.absolute_force",
-            "--set",
-            "takeoff.threshold_n=20",
-        ])
+        .args(&argv)
         .env("NO_COLOR", "1")
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
@@ -191,10 +198,14 @@ fn the_terminal_document_names_the_build_and_the_registry_that_produced_it() {
     let result = &parsed["ok"];
 
     assert_eq!(result["plateforce_version"], env!("CARGO_PKG_VERSION"));
+    // The registry's own claim, which is what names the registry on a run nobody pinned.
+    // This used to demand a string in `registry_version` instead, which is the caller's pin,
+    // so the assertion was satisfied only while the terminal published a revision no caller
+    // had chosen, and the guard held the defect in place.
     assert!(
-        result["registry_version"].is_string(),
-        "the registry this ran against is unnamed: {}",
-        result["registry_version"]
+        result["registry_declared_version"].is_string(),
+        "the registry this ran against declares no revision: {}",
+        result["registry_declared_version"]
     );
     assert!(result["registry_digest"].is_string());
 
@@ -216,4 +227,62 @@ fn the_terminal_document_names_the_build_and_the_registry_that_produced_it() {
     // The file the trace came from, and what the reader had to be told about reading it.
     assert!(result["trial"]["name"].is_string());
     assert!(result["trial"]["rows_read"].as_u64().is_some_and(|n| n > 0));
+}
+
+/// The revision a caller pinned and the revision the registry claims are two facts, and this
+/// surface published the second under the first's name on every run.
+///
+/// The consequence is the inversion this project exists to prevent: a reader who checks the
+/// provenance is told the operator cited a revision, and a reader who ignores it is not
+/// misled at all. Checking made you more wrong.
+///
+/// Both revisions are read on the same run and asserted against each other, because a run
+/// where they happen to be equal passes whichever field the value came out of.
+#[test]
+fn the_pinned_revision_and_the_registry_s_own_claim_are_two_fields() {
+    let unpinned: serde_json::Value = serde_json::from_str(&result_json()).expect("it parses");
+    let unpinned = &unpinned["ok"];
+
+    // The key is written on every result. Omitting it would leave a reader unable to tell a
+    // run nobody pinned from a build that does not carry the field.
+    assert!(
+        unpinned.get("registry_version").is_some(),
+        "the document does not carry registry_version at all"
+    );
+    assert!(
+        unpinned["registry_version"].is_null(),
+        "nobody pinned a revision and the result names one: {}",
+        unpinned["registry_version"]
+    );
+
+    let declared = unpinned["registry_declared_version"]
+        .as_str()
+        .expect("the shipped registry declares a revision")
+        .to_string();
+
+    let pin = "wsrp-not-a-revision-any-registry-declares";
+    assert_ne!(
+        pin, declared,
+        "a pin equal to the declared revision cannot tell the two fields apart"
+    );
+
+    let pinned: serde_json::Value =
+        serde_json::from_str(&result_json_pinned(&["--registry-version", pin]))
+            .expect("it parses");
+    let pinned = &pinned["ok"];
+
+    assert_eq!(
+        pinned["registry_version"].as_str(),
+        Some(pin),
+        "the revision the caller pinned did not reach the result"
+    );
+    assert_eq!(
+        pinned["registry_declared_version"].as_str(),
+        Some(declared.as_str()),
+        "pinning a revision changed what the registry claims about itself"
+    );
+    assert_eq!(
+        pinned["registry_digest"], unpinned["registry_digest"],
+        "pinning a revision changed which files were read"
+    );
 }
