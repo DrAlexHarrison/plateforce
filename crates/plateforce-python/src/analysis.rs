@@ -582,6 +582,37 @@ impl CountermovementJump {
     }
 }
 
+/// The athlete's mass, refused by name where it is a number no mass can be.
+///
+/// Built from the same two core codes the terminal refuses with, so a notebook and a
+/// terminal handed one bad number read one sentence, under the name the record reports the
+/// value by rather than under the argument.
+pub(crate) fn stated_body_mass(
+    kilograms: Option<f64>,
+) -> Result<Option<f64>, plateforce_core::Refusal> {
+    let Some(kilograms) = kilograms else {
+        return Ok(None);
+    };
+    if !kilograms.is_finite() {
+        return Err(plateforce_core::Refusal::parameter_not_finite(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+        ));
+    }
+    // Zero and below divide into an infinity or flip the sign of every quantity scaled by it,
+    // and the record would carry the value as one the caller stated.
+    if kilograms <= 0.0 {
+        return Err(plateforce_core::Refusal::value_not_accepted(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+            vec!["a mass above zero".to_string()],
+        ));
+    }
+    Ok(Some(kilograms))
+}
+
 /// The one place this surface writes an analysis request.
 ///
 /// Every entry point that sends one goes through it: the shaped analysis, the engine
@@ -597,6 +628,7 @@ pub(crate) fn analysis_request_of(
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
     gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -614,6 +646,8 @@ pub(crate) fn analysis_request_of(
     conditioning_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
     conditioning_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<(AnalysisRequest, RegistryIdentity)> {
+    let body_mass_kilograms =
+        stated_body_mass(body_mass_kilograms).map_err(|refusal| raise_refusal(python, &refusal))?;
     // A pipeline fills the constructs its source states, so a caller who named one leaves
     // those arguments out. Whatever is still unnamed once it has been laid on is refused by
     // name below rather than resolved to a neighbouring rule.
@@ -696,6 +730,7 @@ pub(crate) fn analysis_request_of(
         touchdown_index,
         gravity_meters_per_second_squared,
         gravity_source,
+        body_mass_kilograms,
         // What this registry carries. The binding composes operators onto the rule the
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
@@ -775,6 +810,7 @@ struct AnalysisDocument<'a> {
     takeoff = None,
     preset = None,
     gravity_meters_per_second_squared = None,
+    body_mass_kilograms = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -801,6 +837,7 @@ pub fn analyse_json(
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
     gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -825,6 +862,7 @@ pub fn analyse_json(
         takeoff,
         preset,
         gravity_meters_per_second_squared,
+        body_mass_kilograms,
         weighing_parameters,
         onset_parameters,
         takeoff_parameters,
@@ -887,6 +925,7 @@ pub fn analyse_json(
     takeoff = None,
     preset = None,
     gravity_meters_per_second_squared = None,
+    body_mass_kilograms = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -913,6 +952,7 @@ pub fn analyse_countermovement_jump(
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
     gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -937,6 +977,7 @@ pub fn analyse_countermovement_jump(
         takeoff,
         preset,
         gravity_meters_per_second_squared,
+        body_mass_kilograms,
         weighing_parameters,
         onset_parameters,
         takeoff_parameters,

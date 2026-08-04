@@ -337,7 +337,7 @@ fn conditioning_choices(
 /// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
 /// reading a vendor's missing marker as a force.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -366,7 +366,17 @@ pub fn batch(
     conditioning_options: Option<
         std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
     >,
+    gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
 ) -> PyResult<BatchResult> {
+    let body_mass_kilograms = Python::attach(|python| {
+        crate::analysis::stated_body_mass(body_mass_kilograms)
+            .map_err(|refusal| crate::errors::raise_refusal(python, &refusal))
+    })?;
+    // The value and the claim about where it came from are written together, by the one
+    // routine every surface writes a gravity through.
+    let (gravity_meters_per_second_squared, gravity_source) =
+        plateforce_analysis::gravity_stated(gravity_meters_per_second_squared);
     let delimiter = delimiter
         .chars()
         .next()
@@ -431,8 +441,11 @@ pub fn batch(
             ..Default::default()
         },
         touchdown_index: None,
-        gravity_meters_per_second_squared:
-            plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+        gravity_meters_per_second_squared,
+        gravity_source,
+        // Stated once for the folder, as the plate and the acquisition block are: every file
+        // in one folder came off one athlete on one day.
+        body_mass_kilograms,
         // What this registry carries, so a rule the registry files is recorded as backed
         // rather than as the run's own. A list built from the caller's choices alone reports
         // the operators a binding composes as absent from the registry they are filed in.
