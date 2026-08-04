@@ -255,8 +255,31 @@ fn ordered_by_the_binding_table(axes: &[Axis]) -> Vec<Axis> {
     ordered
 }
 
+/// An axis naming a step and nothing to vary along it, refused rather than run.
+///
+/// Both shapes that reach this were measured on this file. An axis carrying neither rules
+/// nor values has a width of zero, and the product below multiplied it away: a four-value
+/// axis that alone ran 4 combinations and reported 0.0158 seconds ran 1 and reported a
+/// spread of zero with an empty axis beside it. An axis naming a parameter and no values
+/// indexed an empty list and brought the library down, which `pf.spread(parameter="k")`
+/// with no `values` reached on the shipped Python surface.
+///
+/// The code is the one for a name that is known with its value missing, because that is the
+/// fault here: the step is one this request carries, and what to compare along it was never
+/// said.
+fn nothing_to_vary(axis: &Axis) -> Box<Refusal> {
+    let named = match axis.parameter.as_deref() {
+        Some(parameter) => format!("{}.{parameter}", axis.slot),
+        None => axis.slot.clone(),
+    };
+    Box::new(Refusal::required_parameter_unstated("", named))
+}
+
 pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box<Refusal>> {
     let axes = ordered_by_the_binding_table(&request.axes);
+    if let Some(empty) = axes.iter().find(|axis| axis.len() == 0) {
+        return Err(nothing_to_vary(empty));
+    }
     let combinations_requested: usize = axes.iter().map(Axis::len).product::<usize>().max(1);
     let cap = request.maximum_combinations.max(1);
     let combinations_run = combinations_requested.min(cap);
@@ -822,6 +845,66 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["weighing", "onset", "takeoff"]
         );
+    }
+
+    /// An axis naming nothing to vary is refused, and the sweep beside it keeps its width.
+    ///
+    /// Measured on this file rather than supposed. The four-value axis alone ran 4
+    /// combinations and reported 0.0158 seconds; with an empty axis beside it the product of
+    /// the widths went through zero to one, and the same request ran 1 combination and
+    /// reported a spread of zero with no error. The control is that same axis alone, which
+    /// has to keep its four, or a refusal that also broke the real sweep would read the same.
+    #[test]
+    fn an_axis_naming_nothing_to_vary_is_refused_rather_than_collapsing_the_sweep_beside_it() {
+        let real = || Axis {
+            slot: "onset".into(),
+            parameter: Some("k".into()),
+            values: vec![2.0, 3.0, 5.0, 10.0],
+            method_ids: Vec::new(),
+        };
+        let empty = || Axis {
+            slot: "takeoff".into(),
+            parameter: None,
+            values: Vec::new(),
+            method_ids: Vec::new(),
+        };
+        let sweep = |axes: Vec<Axis>| {
+            run(
+                &synthetic(),
+                &SpreadRequest {
+                    base: base(),
+                    axes,
+                    quantity_key: "time_to_takeoff_seconds".into(),
+                    maximum_combinations: 512,
+                },
+            )
+        };
+
+        let alone = sweep(vec![real()]).expect("a stated axis sweeps");
+        assert_eq!(alone.combinations_run, 4);
+        assert!(
+            alone.spread_absolute.is_some_and(|spread| spread > 0.0),
+            "the axis this test compares against moved nothing"
+        );
+
+        let beside =
+            sweep(vec![real(), empty()]).expect_err("an axis naming nothing to vary is refused");
+        println!("{beside}");
+        assert_eq!(
+            beside.code,
+            plateforce_core::RefusalCode::RequiredParameterUnstated
+        );
+        assert_eq!(beside.parameter.as_deref(), Some("takeoff"));
+
+        // The parameter form, which indexed an empty list rather than returning at all.
+        let named = sweep(vec![Axis {
+            slot: "onset".into(),
+            parameter: Some("k".into()),
+            values: Vec::new(),
+            method_ids: Vec::new(),
+        }])
+        .expect_err("a parameter named with no values is refused");
+        assert_eq!(named.parameter.as_deref(), Some("onset.k"));
     }
 
     /// The values along a parameter axis are a set of choices too, and a caller who typed
