@@ -23,7 +23,7 @@ pub(crate) fn crossing(
     let rate = trial.sample_rate_hz();
     let search = onset_search(trial, epoch, resolved)?;
     let k = resolved.number("k", 5.0);
-    record_inherited_spread(resolved, inherited_spread);
+    record_inherited_spread(resolved, inherited_spread)?;
     let chosen_direction = direction(resolved);
     // Refuse rather than substitute. A collapsed band means the window the rule
     // assumed was quiet was not, and a silent fallback would hide that.

@@ -9,7 +9,8 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
 use crate::slots::movement_onset::{
-    record_inherited_spread, CROSSING_SELECTION, OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND,
+    record_inherited_spread, BACKTRACK_TO_TOLERANCE, CROSSING_SELECTION, OFFSET_MILLISECONDS,
+    SEARCH_UPPER_BOUND, TOLERANCE,
 };
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
@@ -39,7 +40,7 @@ pub(crate) fn crossing(
     let force = trial.force();
     let rate = trial.sample_rate_hz();
     let k = resolved.number("k", 5.0);
-    record_inherited_spread(resolved, inherited_spread);
+    record_inherited_spread(resolved, inherited_spread)?;
     // The two operators this rule binds by being chosen, recorded because a reader needs
     // their values to reproduce the number. Stating either in disagreement asks for a
     // different rule, and is refused under the operator that publishes the alternatives
@@ -47,7 +48,21 @@ pub(crate) fn crossing(
     resolved.entailed(CROSSING_SELECTION, "selection", "last")?;
     resolved.entailed(SEARCH_UPPER_BOUND, "bound", "minimum_force")?;
     let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
-    let back_offset_samples = resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
+    // Two retreats, filed as two operators, and the name stated picks between them. Sams
+    // retreats to where force came back to the reference; the other family steps back a
+    // published number of milliseconds and reads the crossing as a trigger. Silence composes
+    // the fixed step, which is the operator this rule has always bound.
+    let retreat = match resolved.stated_name(TOLERANCE) {
+        Some(_) => {
+            resolved.entailed(BACKTRACK_TO_TOLERANCE, TOLERANCE, "at_system_weight")?;
+            PostCrossingRule::ToReferenceCrossing
+        }
+        None => PostCrossingRule::FixedOffset(resolved.milliseconds_as_samples(
+            OFFSET_MILLISECONDS,
+            30.0,
+            rate,
+        )),
+    };
 
     let search_end = takeoff_index
         .and_then(|takeoff| countermovement_dip(force, takeoff))
@@ -75,7 +90,7 @@ pub(crate) fn crossing(
         k,
         search_end,
         lookback_samples,
-        PostCrossingRule::FixedOffset(back_offset_samples),
+        retreat,
         rate,
     )
     .map(|outcome| {

@@ -313,6 +313,23 @@ impl<'a> Resolution<'a> {
         name: &str,
         value: &'static str,
     ) -> Result<(), RuleRefusal> {
+        self.entailed_from(operator_id, name, value, ParameterSource::Assumed)
+    }
+
+    /// The same, for a value another rule already settled and this one runs on.
+    ///
+    /// `entailed` records `Assumed` where the caller said nothing, which is the right claim for
+    /// a value this rule's own choice fixes. A spread an onset band is scaled by is not that:
+    /// the weighing rule computed it, and whether a reader picked the divisor is a fact about
+    /// that rule's row. Carrying the claim across keeps the two rows saying one thing about one
+    /// act, rather than the onset row reporting the reader's divisor as the software's.
+    pub(crate) fn entailed_from(
+        &mut self,
+        operator_id: &str,
+        name: &str,
+        value: &str,
+        unstated_source: ParameterSource,
+    ) -> Result<(), RuleRefusal> {
         self.consulted.insert(name.to_string());
         let source = match self.options.get(name) {
             Some(chosen) if chosen != value => {
@@ -326,7 +343,7 @@ impl<'a> Resolution<'a> {
                 )))
             }
             Some(_) => self.stated_source(name),
-            None => ParameterSource::Assumed,
+            None => unstated_source,
         };
         self.record(name, value.to_string(), source);
         Ok(())
