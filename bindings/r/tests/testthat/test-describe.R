@@ -39,6 +39,47 @@ test_that("every account states the unit its own value carries", {
   }
 })
 
+test_that("the account names the choices the record beside it holds", {
+  trace <- repository_trace()
+  skip_if(is.null(trace), "the recorded trace is not beside this package")
+  result <- analyse_countermovement_jump(
+    pf_read_force_file(trace, sample_rate_hz = 1200, delimiter = "\t", force_column = 0),
+    weighing = "bwepoch.fixed_window",
+    onset = "onset.threshold.noise_relative",
+    takeoff = "takeoff.threshold.absolute_force"
+  )
+
+  # A quantity is described by the engine from the chain behind it and the record beside it is
+  # read off the same chain, so a reader who follows the sentence and a reader who queries the
+  # object are looking at one set of decisions. They were two: the account read the rule's own
+  # choices and the object was built with an empty choices frame, so on the recorded trial
+  # every one of the eleven quantities named between four and eleven choices in prose and
+  # carried none of them where a caller could reach them.
+  described <- Filter(function(value) length(value@account) > 0L, result@values)
+  expect_gt(length(described), 5L)
+
+  disagreeing <- character(0)
+  for (name in names(described)) {
+    value <- described[[name]]
+    lines <- strsplit(value@account, "\n", fixed = TRUE)[[1]]
+    said <- trimws(grep(" = ", lines, fixed = TRUE, value = TRUE))
+    held <- unlist(lapply(every_step(value@provenance), function(step) {
+      if (!nrow(step@choices)) {
+        return(character(0))
+      }
+      paste(step@choices[["name"]], "=", step@choices[["value"]])
+    }))
+    if (!setequal(said, held)) disagreeing <- c(disagreeing, name)
+  }
+
+  expect_identical(
+    disagreeing, character(0),
+    info = sprintf("%d of %d accounts name choices the record does not hold: %s",
+                   length(disagreeing), length(described),
+                   paste(disagreeing, collapse = ", "))
+  )
+})
+
 test_that("no file in this package assembles the sentence", {
   root <- testthat::test_path("..", "..", "R")
   skip_if_not(dir.exists(root), "the sources are not beside this test")
