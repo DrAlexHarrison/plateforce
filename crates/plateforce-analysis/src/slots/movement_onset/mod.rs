@@ -234,6 +234,8 @@ pub const SEARCH_FLOOR: &str = "onset.op.search_floor";
 pub const SEARCH_FLOOR_AT_WEIGHING_EPOCH_END: &str = "onset.op.search_floor_at_weighing_epoch_end";
 /// The landmark a backward search stops at, which is what makes a last-crossing rule safe.
 pub const SEARCH_UPPER_BOUND: &str = "onset.op.search_upper_bound";
+/// Which of the qualifying crossings a rule takes.
+pub const CROSSING_SELECTION: &str = "onset.op.crossing_selection";
 /// The retreat from the crossing to where force returned within a tolerance, and the window
 /// it looks back over for the excursion that triggers it.
 pub const BACKTRACK_TO_TOLERANCE: &str = "onset.op.backtrack_to_tolerance";
@@ -254,7 +256,7 @@ pub const INVERSE_LOOKBACK_SECONDS: &str = "inverse_lookback_seconds";
 pub const ONSET_OPERATOR_IDS: &[&str] = &[
     BACKTRACK_TO_TOLERANCE,
     BACKWARD_OFFSET_FIXED,
-    "onset.op.crossing_selection",
+    CROSSING_SELECTION,
     "onset.op.direction",
     "onset.op.persistence",
     SEARCH_FLOOR,
@@ -275,7 +277,7 @@ fn operator_for(name: &str) -> Option<&'static str> {
         FLOOR_SECONDS => Some(SEARCH_FLOOR),
         WEIGHING_EPOCH_END_SECONDS => Some(SEARCH_FLOOR_AT_WEIGHING_EPOCH_END),
         "direction" => Some("onset.op.direction"),
-        "selection" => Some("onset.op.crossing_selection"),
+        "selection" => Some(CROSSING_SELECTION),
         // The window searched for an excursion the other side of the band, which is the
         // trigger the retreat fires on.
         INVERSE_LOOKBACK_SECONDS => Some(BACKTRACK_TO_TOLERANCE),
