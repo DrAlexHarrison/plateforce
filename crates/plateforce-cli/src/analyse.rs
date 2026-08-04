@@ -225,6 +225,24 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
     Ok(chosen)
 }
 
+/// Which step of this run a qualified name is written against, and which of its parameters.
+///
+/// Read against the steps the run actually has rather than off the first dot in the name.
+/// Three of the fifteen constructs this build binds are named with a dot in them, all three
+/// of them jump-height constructs carrying nine rules, and splitting on the first dot reports
+/// every value written against one of them as naming a step that does not exist.
+///
+/// The longest match wins, so a step whose name begins another step's name takes only the
+/// names written against itself.
+fn slot_and_parameter<'a>(qualified: &'a str, slots: &[&str]) -> Option<(&'a str, &'a str)> {
+    slots
+        .iter()
+        .filter(|slot| qualified.starts_with(*slot) && qualified[slot.len()..].starts_with('.'))
+        .max_by_key(|slot| slot.len())
+        .map(|slot| (&qualified[..slot.len()], &qualified[slot.len() + 1..]))
+        .filter(|(_, name)| !name.is_empty())
+}
+
 /// `--set`, keyed by the same word the method flag carries, so a reader who wrote `--onset`
 /// writes `--set onset.k`. Kept per slot, so two rules reading a name spelled the same way
 /// never receive each other's number.
@@ -247,23 +265,26 @@ pub(crate) fn stated_parameters(
                 format!("--set takes {SET_SHAPE}, and '{assignment}' carries no ="),
             ));
         };
-        let Some((slot, name)) = qualified.split_once('.') else {
+        // Two ways to reach no step, and they are answered differently: a name carrying no
+        // step at all is a line the reader will rewrite from the grammar, and a name carrying
+        // one this run does not have is a line they will rewrite from the list.
+        if !qualified.contains('.') {
             return Err(Declined::line(
                 Fault::Request,
                 format!("--set takes {SET_SHAPE}, and '{qualified}' names no slot"),
             ));
-        };
+        }
         // A value written against a step this run does not have would otherwise be read,
         // accepted and never passed to anything.
-        if !slots.contains(&slot) {
+        let Some((slot, name)) = slot_and_parameter(qualified, &slots) else {
             return Err(Declined::line(
                 Fault::Request,
                 format!(
-                    "--set {qualified} names the slot '{slot}', and this run has {}",
+                    "--set {qualified} names no step of this run, which has {}",
                     slots.join(", ")
                 ),
             ));
-        }
+        };
         let value: f64 = written.trim().parse().map_err(|_| {
             Declined::line(
                 Fault::Request,
@@ -569,18 +590,13 @@ fn render(
     }
 }
 
-/// The word the record carries for a status, matched over the whole vocabulary so a status
-/// added to it has to be ruled on here rather than reaching a reader under another status's
-/// name.
+/// The word the record carries for a status, as a line of prose reads it.
 ///
-/// The spellings are the ones the record carries, so a reader who runs this trace here and
-/// opens the same result in a browser or a notebook meets one word for one status.
-fn status_reads(status: QualityStatus) -> &'static str {
-    match status {
-        QualityStatus::Disagrees => "disagrees",
-        QualityStatus::Incomparable => "incomparable",
-        QualityStatus::AtSearchFloor => "at search floor",
-    }
+/// The word comes from the vocabulary rather than from a second match here, so a reader who
+/// runs this trace in a terminal and opens the same result in a browser or a notebook meets
+/// one word for one status. The separator is the only thing this surface decides.
+fn status_reads(status: QualityStatus) -> String {
+    status.wire_name().replace('_', " ")
 }
 
 /// What the software knows about a number, said where the reader is already looking.
@@ -758,31 +774,72 @@ fn displaced(bound: &BoundMethod) -> String {
 mod tests {
     use super::*;
 
-    /// The word this surface prints for a status against the word the record carries for it.
+    /// Every step this run has, against a value written for one of them.
     ///
-    /// A reader who runs a trace here and opens the same result in a browser or a notebook
-    /// meets one word for one status, and the two spellings live in two places, so nothing
-    /// but this holds them together.
+    /// The cases that matter are the three constructs whose own names carry a dot, because
+    /// splitting a qualified name on its first one reads `jump_height` out of
+    /// `jump_height.takeoff_frame` and reports a step this run has as a step it does not.
     #[test]
-    fn the_terminal_spells_each_status_the_way_the_record_spells_it() {
-        let every = [
-            QualityStatus::Disagrees,
-            QualityStatus::Incomparable,
-            QualityStatus::AtSearchFloor,
-        ];
-        for status in every {
-            let carried = serde_json::to_value(status)
-                .expect("a status serialises")
-                .as_str()
-                .expect("a status is carried as a word")
-                .replace('_', " ");
-            println!("{status:?}: the record carries {carried:?}");
-            assert_eq!(status_reads(status), carried);
-        }
+    fn a_value_reaches_the_step_it_names_however_many_dots_that_name_carries() {
+        let dotted = "jump_height.takeoff_frame";
+        let stated = stated_parameters(
+            &[
+                "onset.k=5".to_string(),
+                "jump_height.takeoff_frame.gravity=9.81".to_string(),
+            ],
+            std::slice::from_ref(&dotted.to_string()),
+        )
+        .expect("both values name a step this run has");
         println!(
-            "statuses agreeing with the record: {} of {}",
-            every.len(),
-            every.len()
+            "steps carrying a value: {:?}",
+            stated.keys().collect::<Vec<_>>()
         );
+        assert_eq!(stated["onset"]["k"], 5.0);
+        assert_eq!(stated[dotted]["gravity"], 9.81);
+    }
+
+    /// The control. A step this run does not have is still refused, so the match above is
+    /// reading the run's own list rather than accepting whatever it is given.
+    #[test]
+    fn a_value_naming_a_step_this_run_does_not_have_is_refused() {
+        let refused = stated_parameters(
+            &["jump_height.standing_frame.gravity=9.81".to_string()],
+            &[],
+        )
+        .expect_err("a step this run does not have is refused");
+        println!("{}", refused.terminal());
+        assert!(refused.terminal().contains("jump_height.standing_frame"));
+    }
+
+    /// A name that carries no dot at all names no step, and the longest-prefix match must not
+    /// turn that into a step whose name happens to start the same way.
+    #[test]
+    fn a_name_carrying_no_step_is_refused_rather_than_matched_by_its_opening() {
+        let refused = stated_parameters(&["onset=5".to_string()], &[])
+            .expect_err("a name with no step is refused");
+        println!("{}", refused.terminal());
+        assert!(refused.terminal().contains("onset"));
+    }
+
+    /// Two steps where one's name opens the other's, which is the case the longest match
+    /// exists for. The shorter step reads `takeoff_frame.gravity` as a parameter name and
+    /// takes a value written for its neighbour, and nothing about the shorter name is wrong,
+    /// so the run has no way to notice.
+    #[test]
+    fn a_step_whose_name_opens_another_takes_only_the_values_written_for_itself() {
+        let stated = stated_parameters(
+            &["jump_height.takeoff_frame.gravity=9.81".to_string()],
+            &[
+                "jump_height".to_string(),
+                "jump_height.takeoff_frame".to_string(),
+            ],
+        )
+        .expect("the value names a step this run has");
+        println!(
+            "steps carrying a value: {:?}",
+            stated.keys().collect::<Vec<_>>()
+        );
+        assert_eq!(stated["jump_height.takeoff_frame"]["gravity"], 9.81);
+        assert!(!stated.contains_key("jump_height"), "{stated:?}");
     }
 }
