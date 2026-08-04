@@ -871,8 +871,7 @@ fn two_rules_under_one_construct_reach_the_engine_as_one_with_no_word_of_the_oth
         "two rules under one construct survived, so the map is no longer one rule per key"
     );
     assert_eq!(
-        request.derived["phase_model"].method_id,
-        "phase.propulsion_subdivision.by_time",
+        request.derived["phase_model"].method_id, "phase.propulsion_subdivision.by_time",
         "the survivor is the last one written, and the first is gone without a record"
     );
 }
