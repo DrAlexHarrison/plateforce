@@ -48,10 +48,16 @@ export function renderDecisions() {
     host.append(accept);
   }
 
+  // Which constructs got a row is read off the rows that were drawn rather than off the
+  // slots, because a slot with nothing runnable under it is skipped here and its rules would
+  // then have a row that never appears to hold them.
+  const drawn = new Set();
   for (const slot of state.slots) {
     if (!slot.available.length) continue;
+    drawn.add(slot.construct);
     host.append(renderSlot(slot));
   }
+  for (const row of rulesThatRanUnderNoRow(drawn)) host.append(row);
 }
 
 function renderSlot(slot) {
@@ -133,38 +139,100 @@ function renderSlot(slot) {
       row.append(inspect);
       wrap.append(row);
     }
-    wrap.append(renderRulesThatRanBeside(slot, candidate));
   }
+  const ranBeside = renderRulesThatRanBeside(slot, selection.methodId);
+  if (ranBeside) wrap.append(ranBeside);
 
   return wrap;
 }
 
 /*
- * The rules that ran inside this one and were never asked about. The registry's verdict on
- * each decides whether it appears here at all, so the list follows the data and no id is
- * named in this file.
+ * The rules that ran inside this row's construct and were never asked about.
+ *
+ * Read off what ran rather than off what the reader has settled, because the row is
+ * drawn before anybody has chosen anything and the rules had already run by then. The
+ * exclusion is the rule the row states through its own control: where the reader has
+ * bound nothing the row states nothing, so the rule running under it belongs in the list
+ * with the others rather than being suppressed by a row that never named it.
+ *
+ * The registry's verdict on each entry decides whether it appears at all, so the list
+ * follows the data and no id is named in this file.
  */
-function renderRulesThatRanBeside(slot, candidate) {
+function renderRulesThatRanBeside(slot, statedId) {
   const host = element('div', 'ran-beside');
+  for (const { method, bound } of ranUnasked((entry) => entry.construct === slot.construct)) {
+    if (bound.method_id === statedId) continue;
+    host.append(ranBesideRow(method, bound));
+  }
+  return host.childElementCount ? host : null;
+}
+
+/*
+ * The rules that ran under a construct with no row on the rail.
+ *
+ * Both verdicts oblige the interface to say something about a rule nobody was asked about,
+ * and the obligation is carried by the entry rather than by whether the reader happened to
+ * put its construct on the path. A rule reached that way still ran, still fixed the values
+ * it ran under, and still stands behind a number on screen, so it is owed the same sentence
+ * it would get one row higher.
+ *
+ * A record and not a question: these rows carry no control that would bind a rule, because
+ * a construct nobody asked for raises no decision, and turning what ran into a choice
+ * nobody made would put a fourth and a fifth quantity in front of a reader who asked for
+ * neither. The quantity picker below is where a reader takes one of these over.
+ */
+function rulesThatRanUnderNoRow(drawn) {
+  const byConstruct = new Map();
+  for (const { method, bound } of ranUnasked((entry) => !drawn.has(entry.construct))) {
+    if (!byConstruct.has(method.construct)) byConstruct.set(method.construct, []);
+    byConstruct.get(method.construct).push({ method, bound });
+  }
+
+  const rows = [];
+  for (const [construct, ran] of byConstruct) {
+    const entry = state.registry.constructs.find((c) => c.id === construct);
+    const wrap = element('div', 'decision decision--record');
+    const head = element('div', 'decision__head');
+    // The field's spoken words for the quantity, the same words the row one higher and the
+    // picker below both use for it.
+    head.append(element('span', 'decision__title', entry?.label || entry?.title || construct));
+    wrap.append(head);
+    if (entry?.notes) wrap.append(element('p', 'decision__why', entry.notes));
+
+    const host = element('div', 'ran-beside');
+    for (const { method, bound } of ran) host.append(ranBesideRow(method, bound));
+    wrap.append(host);
+    rows.push(wrap);
+  }
+  return rows;
+}
+
+/* Every rule this analysis ran that the registry says to display unasked or to name, in the
+ * order the pipeline ran them, narrowed by where the caller is putting them. */
+function* ranUnasked(wanted) {
   for (const bound of state.analysis?.bound_methods || []) {
-    if (bound.method_id === candidate.id) continue;
     const method = findMethod(state.registry, bound.method_id);
-    if (!method || method.construct !== slot.construct) continue;
+    if (!method || !wanted(method)) continue;
     const verdict = method.gui?.surfacing;
     if (verdict !== SHOWS_UNASKED && verdict !== NAMES_ITS_ALTERNATIVES) continue;
-
-    const row = element('div', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
-    row.append(element('span', 'ran-beside__title', method.title));
-    const values = valuesWithTheirSource(method, bound);
-    if (values) row.append(element('span', 'ran-beside__value', values));
-
-    const open = element('button', 'chip chip--quiet', verdict === NAMES_ITS_ALTERNATIVES ? 'Rule and its alternatives' : 'Rule and citations');
-    open.type = 'button';
-    open.addEventListener('click', () => openDrawer(method, bound.method_id, bound));
-    row.append(open);
-    host.append(row);
+    yield { method, bound };
   }
-  return host;
+}
+
+/* One rule that ran unasked, wherever it is placed. Both placements render it the same way,
+ * because a reader meeting the same fact in two parts of the rail is meeting one fact. */
+function ranBesideRow(method, bound) {
+  const verdict = method.gui.surfacing;
+  const row = element('div', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
+  row.append(element('span', 'ran-beside__title', method.title));
+  const values = valuesWithTheirSource(method, bound);
+  if (values) row.append(element('span', 'ran-beside__value', values));
+
+  const open = element('button', 'chip chip--quiet', verdict === NAMES_ITS_ALTERNATIVES ? 'Rule and its alternatives' : 'Rule and citations');
+  open.type = 'button';
+  open.addEventListener('click', () => openDrawer(method, bound.method_id, bound));
+  row.append(open);
+  return row;
 }
 
 /*
