@@ -580,6 +580,7 @@ fn status_reads(status: QualityStatus) -> &'static str {
         QualityStatus::Disagrees => "disagrees",
         QualityStatus::Incomparable => "incomparable",
         QualityStatus::AtSearchFloor => "at search floor",
+        QualityStatus::OnsetNotBeforeTakeoff => "onset not before takeoff",
     }
 }
 

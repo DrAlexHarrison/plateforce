@@ -22,6 +22,26 @@ const FLIGHT_TIME_HEIGHT: &str = "jump_height_from_flight_time_meters";
 const ONSET_TIME: &str = "onset_time_seconds";
 const TAKEOFF_TIME: &str = "takeoff_time_seconds";
 const TIME_TO_TAKEOFF: &str = "time_to_takeoff_seconds";
+const FLIGHT_TIME: &str = "flight_time_seconds";
+const TAKEOFF_VELOCITY: &str = "takeoff_velocity_meters_per_second";
+const NET_IMPULSE: &str = "net_impulse_newton_seconds";
+const REACTIVE_STRENGTH_INDEX_MODIFIED: &str = "reactive_strength_index_modified";
+
+/// Every quantity measured across the interval between the two landmarks, which is every
+/// quantity that goes without a value when the interval runs backwards.
+///
+/// Listed rather than derived because the pipeline decides it by declining to build a
+/// `Landmarks`, and a signal that named fewer keys than that would leave a reader holding a
+/// blank cell with nothing pointing at it.
+const MEASURED_ACROSS_THE_INTERVAL: [&str; 7] = [
+    TIME_TO_TAKEOFF,
+    FLIGHT_TIME,
+    TAKEOFF_VELOCITY,
+    NET_IMPULSE,
+    TAKEOFF_FRAME_HEIGHT,
+    FLIGHT_TIME_HEIGHT,
+    REACTIVE_STRENGTH_INDEX_MODIFIED,
+];
 
 /// How far the two routes to a jump height may differ before the difference is no longer
 /// the difference between the routes.
@@ -48,6 +68,14 @@ pub enum QualityStatus {
     /// Not a fault in the rule and not a fault in the recording. The arithmetic is right and
     /// the rule did what it publishes, which is why this reports rather than refuses.
     AtSearchFloor,
+    /// The jump's start was placed at or after its takeoff, so the interval between them runs
+    /// backwards and every quantity measured across it goes without a value.
+    ///
+    /// Reported rather than refused, and the distinction is which numbers exist. Both rules
+    /// ran and both answered; the trial still carries its system weight and both instants,
+    /// and it is their order that no quantity can be measured across. A refusal names one
+    /// rule and one parameter, and neither rule here is at fault on its own.
+    OnsetNotBeforeTakeoff,
 }
 
 impl QualityStatus {
@@ -63,6 +91,7 @@ impl QualityStatus {
             QualityStatus::Disagrees => "disagrees",
             QualityStatus::Incomparable => "incomparable",
             QualityStatus::AtSearchFloor => "at_search_floor",
+            QualityStatus::OnsetNotBeforeTakeoff => "onset_not_before_takeoff",
         }
     }
 }
@@ -96,6 +125,11 @@ pub struct QualitySignal {
 /// it reaches no reader.
 pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
     let mut found = Vec::new();
+    // First, because it accounts for absences rather than qualifying values, and a reader
+    // meeting seven blank cells needs the reason before anything said about a number.
+    if let Some(signal) = onset_placed_at_or_after_takeoff(response) {
+        found.push(signal);
+    }
     if let Some(signal) = jump_height_routes_disagree(response) {
         found.push(signal);
     }
@@ -103,6 +137,50 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
         found.push(signal);
     }
     found
+}
+
+/// Whether the jump's start was placed at or after its takeoff.
+///
+/// Both landmarks are already on the response and both rules answered, so nothing here is
+/// computed twice: the test is the comparison of two sample indices, which is the same
+/// comparison the pipeline makes when it declines to assemble the landmarks at all.
+///
+/// A takeoff found before an onset is not a near miss. Onset rules return the first departure
+/// from quiet stance and takeoff rules return the first fall to near-zero force, both
+/// searching forward from about the same instant, so a takeoff that lands first means the
+/// trace reached an unloaded plate before it left quiet standing. That does not happen within
+/// one jump; it happens when something earlier in the recording unloads the plate.
+///
+/// Measured on the untrimmed step-off fixture under `bwepoch.adaptive_lowest_variance`,
+/// `onset.threshold.adaptive_trailing_window` and `takeoff.threshold.flight_noise_k_sd`:
+/// onset 1.2008 s against takeoff 1.1533 s, with seven quantities left without a value.
+fn onset_placed_at_or_after_takeoff(response: &AnalysisResponse) -> Option<QualitySignal> {
+    let onset_index = response.onset_index?;
+    let takeoff_index = response.takeoff_index?;
+    if onset_index < takeoff_index {
+        return None;
+    }
+    let onset_seconds = metric(response, ONSET_TIME)?;
+    let takeoff_seconds = metric(response, TAKEOFF_TIME)?;
+
+    Some(QualitySignal {
+        label: "The start of the jump, against the instant of takeoff".to_string(),
+        value: Some(onset_seconds),
+        unit: "seconds",
+        threshold: takeoff_seconds,
+        status: QualityStatus::OnsetNotBeforeTakeoff,
+        remedy: format!(
+            "Takeoff is placed at {takeoff_seconds:.4} s and the start of the jump at \
+             {onset_seconds:.4} s, so the interval between them runs backwards and the seven \
+             quantities measured across it have no value on this trial. A stretch where the \
+             plate carries almost no force before the jump begins, a step onto it or a \
+             recording started early, satisfies a takeoff rule before the trace has left \
+             quiet standing. Compare the other published rules for takeoff, or analyse the \
+             span of the recording holding the jump, and watch both instants move."
+        ),
+        remedy_construct: crate::TAKEOFF_CONSTRUCT,
+        qualifies: MEASURED_ACROSS_THE_INTERVAL.to_vec(),
+    })
 }
 
 /// Whether these signals give the software reason to leave a value out of a figure taken
@@ -121,6 +199,12 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
 /// that is what it does. The distance between it and the rules that found a departure is the
 /// disagreement between published methods, measured, and a spread that dropped the rule
 /// would report the methods as closer together than they are.
+///
+/// `OnsetNotBeforeTakeoff` does not, and here the reason is that there is nothing to drop.
+/// Every quantity it qualifies already has no value, so a spread over them never saw one. What
+/// the trial does carry is its system weight and its two instants, which are correct, and
+/// distrusting the response would take those out of figures they belong in on the strength of
+/// a condition that says nothing about them.
 pub fn distrusted(signals: &[QualitySignal]) -> bool {
     signals
         .iter()
