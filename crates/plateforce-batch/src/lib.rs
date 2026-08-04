@@ -42,6 +42,6 @@ pub use relations::{
     WarningRow,
 };
 pub use render::{Rendered, Rendering};
-pub use sweep::{axis_over, SweepRefusal};
+pub use sweep::{axis_over, binds, SweepRefusal};
 pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
 pub use write_json::envelope;

@@ -112,7 +112,11 @@ pub struct AxisRecord {
 }
 
 /// A rule the request bound and the sweep did not vary.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+///
+/// Read back as well as written, because a folder comparison carries this on the record it
+/// leaves beside its tables and a reader of that file loads it as this type rather than as
+/// a second declaration of the same two fields.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HeldRule {
     pub construct: String,
     pub method_id: String,

@@ -180,6 +180,10 @@ impl From<&crate::read::ReadError> for RefusalCode {
 /// over, so the sentence names a denominator rather than a bare list.
 pub(crate) const PRESETS_CARRIED: &str = "presets_this_registry_carries";
 
+/// Marks the case where a name was written where a rule goes and the step it would fill is
+/// not known, so the alternatives are every rule rather than one step's.
+pub(crate) const RULES_THIS_BUILD_RUNS: &str = "rules_this_build_runs";
+
 /// A declined result, carrying what a caller branches on and the sentence a person reads.
 ///
 /// `message` has no public constructor path of its own: every way of building a `Refusal`
@@ -502,6 +506,33 @@ impl Refusal {
             None,
             BTreeMap::new(),
             constructs_this_build_runs,
+        )
+    }
+
+    /// A name written where a rule goes that answers to no rule, with the rules it could have
+    /// named.
+    ///
+    /// Separate from `method_not_implemented` because that one knows the step and names its
+    /// rules. Where a rule's step is read off the rule, an unresolved name has no step, and
+    /// the sentence there attributed every rule in the build to a step it had invented.
+    ///
+    /// The count rides in `detail` for the reason `preset_not_shipped` puts one there: the
+    /// sentence reports its population with a denominator, and a caller tells this case from
+    /// its siblings under the same code by a field rather than by the prose.
+    pub fn name_answers_to_no_rule(
+        written: impl Into<String>,
+        rules_this_build_runs: Vec<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::MethodNotImplemented,
+            written,
+            None,
+            None,
+            BTreeMap::from([(
+                RULES_THIS_BUILD_RUNS.to_string(),
+                rules_this_build_runs.len() as f64,
+            )]),
+            rules_this_build_runs,
         )
     }
 
@@ -856,6 +887,12 @@ fn sentence(
             named(PRESETS_CARRIED),
             if named(PRESETS_CARRIED) == 1.0 { "is" } else { "are" }
         ),
+        RefusalCode::MethodNotImplemented if detail.contains_key(RULES_THIS_BUILD_RUNS) => {
+            format!(
+                "'{method_id}' answers to no rule, and the {} rules this build runs are {available:?}",
+                named(RULES_THIS_BUILD_RUNS)
+            )
+        }
         RefusalCode::MethodNotImplemented => match slot {
             Some(step) => format!(
                 "'{method_id}' was passed as the {step} method, and the rules for that step are {available:?}"

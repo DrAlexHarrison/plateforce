@@ -354,8 +354,7 @@ fn run_compare(
     };
     let compare_request = BatchCompareRequest {
         analysis: request,
-        slot: axis.slot,
-        method_ids: axis.method_ids,
+        axis,
         quantity: args.quantity.clone(),
     };
 
@@ -366,12 +365,16 @@ fn run_compare(
         &compare_request.analysis.analysis,
         compare_request.analysis.registry_version.as_deref(),
     );
-    if let Err(error) = result.write_csv(out_dir, &registry.content_digest, &request_digest) {
+    // Which registry produced these numbers, as the three facts a reader asks for, built where
+    // `analyse` builds them. The pin is the caller's word and the declared revision is the
+    // registry's, and this surface published the second under the first's name once already.
+    let stamp = crate::analyse::registry_stamp(registry, args.registry_version.clone());
+    if let Err(error) = result.write_csv(out_dir, &stamp, &request_digest) {
         return Outcome::declined_line(Fault::Request, error.to_string());
     }
 
     let document = match format {
-        Format::Json => result.to_json(&registry.content_digest, &request_digest),
+        Format::Json => result.to_json(&stamp, &request_digest),
         _ => result.coverage(),
     };
     let mut outcome = Outcome::complete(document);

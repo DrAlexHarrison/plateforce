@@ -169,15 +169,18 @@ pub(crate) struct Prepared {
 /// The pin is the caller's word and the declared revision is the registry's. This surface
 /// used to publish the second under the first's name, so every unpinned run told a reader the
 /// operator had cited a revision no operator had chosen.
+/// The pin arrives as the caller's own value rather than as the arguments it was parsed from,
+/// so a folder run and a single trial reach this through one signature instead of one of them
+/// assembling the three facts again beside it.
 pub(crate) fn registry_stamp(
     registry: &Registry,
-    args: &Args,
+    pinned: Option<String>,
 ) -> plateforce_core::provenance::RegistryStamp {
     plateforce_core::provenance::RegistryStamp::unpinned(
         registry.declared_version.clone(),
         Some(registry.content_digest.clone()),
     )
-    .pinned_to(args.registry_version.clone())
+    .pinned_to(pinned)
 }
 
 /// One home for the path from a command line to a request, so a second command asking a
@@ -813,7 +816,7 @@ fn render(
             rows_read: trial.rows_read,
             samples_matching_the_convention: trial.reported_samples.matched_the_convention,
         },
-        &registry_stamp(registry, args),
+        &registry_stamp(registry, args.registry_version.clone()),
         capture,
         response,
         spread,
