@@ -6,7 +6,7 @@ import { rankCandidates, initialParameters, findMethod } from './registry.js';
 import { candidateFor, renderBuildInfo } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
 import { renderSpreadControls, scheduleSpread } from './spread.js';
-import { openDrawer } from './drawer.js';
+import { openDrawer, openAccount } from './drawer.js';
 import { captureJson, recordAttribution, renderChip } from './plate.js';
 
 /*
@@ -308,7 +308,13 @@ function renderMetrics() {
     // The rule that produced this number leads the rules that fed it. The record names the
     // two separately and the card was drawing only the second, so seven of eleven values
     // listed their inputs and not the rule that computed them.
-    card.append(provenanceRow([metric.computed_by, ...metric.contributing_method_ids].filter(Boolean)));
+    const rules = provenanceRow([metric.computed_by, ...metric.contributing_method_ids].filter(Boolean));
+    // After the parts, the whole: the rules above are the pieces, and the account is the
+    // assembly with every value each was bound to. A quantity the trial produced no number
+    // for has none, because an account is written around a measurement.
+    const account = state.analysis.descriptions?.[metric.key];
+    if (account) rules.append(accountControl(metric.label, account));
+    card.append(rules);
     grid.append(card);
   }
 
@@ -436,6 +442,13 @@ export function boundValueText(bound, separator = ' ') {
   return (bound?.bound_parameters || []).map(
     ([name, value]) => `${name}${separator}${value}${sources[name] ? ` (${sources[name]})` : ''}`,
   );
+}
+
+function accountControl(label, account) {
+  const open = element('button', 'chip', 'How this number was produced');
+  open.type = 'button';
+  open.addEventListener('click', () => openAccount(label, account));
+  return open;
 }
 
 function provenanceRow(methodIds) {

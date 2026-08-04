@@ -231,6 +231,36 @@ await evaluate(`(() => {
 })()`);
 
 /*
+ * The account every number in the table gives of itself, read out of the panel a reader
+ * opens rather than off the envelope behind it. An envelope carrying eighty-eight accounts
+ * that no control reaches is the state this reads the rendered document to rule out.
+ */
+const pageAccounts = await evaluate(`(async () => {
+  const read = [];
+  const trials = document.querySelector('#batch-result table.data');
+  for (const row of [...trials.querySelectorAll('tbody tr')]) {
+    const named = row.children[0].textContent.trim();
+    const control = row.querySelector('.row-record');
+    if (!control) {
+      read.push({ named, titled: null, opened: false, accounts: [] });
+      continue;
+    }
+    control.click();
+    read.push({
+      named,
+      titled: document.getElementById('drawer-title').textContent,
+      opened: !document.getElementById('method-drawer').hidden,
+      accounts: [...document.querySelectorAll('#drawer-body section')].map((block) => [
+        block.querySelector('h3').textContent,
+        block.querySelector('pre').textContent,
+      ]),
+    });
+    document.querySelector('#method-drawer [data-close-drawer]').click();
+  }
+  return read;
+})()`);
+
+/*
  * The same folder through the terminal, under the rules the page bound rather than under a
  * second set written here. A comparison between two different requests measures the
  * requests.
@@ -325,6 +355,44 @@ check('every value on the page equals the value the terminal computed',
   disagreed.length === 0 && comparedCells >= trialNames.length,
   `${comparedCells} cells compared across ${browserRows.size} trials, ${disagreed.length} disagreed` +
     (disagreed.length ? `: ${disagreed.slice(0, 3).join('; ')}` : ''));
+/*
+ * The account each number gives of itself, on the page against the terminal's.
+ *
+ * Keyed by trial and quantity, which is the grain the engine writes them at: a run compared
+ * trial by trial would pass while every quantity inside one carried another's account, and a
+ * comparison of counts alone would pass while both surfaces held the same number of wrong
+ * sentences. Compared character for character, because the account is one string from one
+ * site and two surfaces rendering it differently is the defect, not a rounding.
+ */
+const at = (trial, quantity) => `${trial} ${quantity}`;
+const terminalAccounts = new Map(
+  (terminal.ok?.descriptions ?? []).map((row) => [at(row.trial_id, row.quantity), row.account]),
+);
+const pageAccountsAt = new Map();
+for (const trial of pageAccounts) {
+  for (const [quantity, account] of trial.accounts) pageAccountsAt.set(at(trial.named, quantity), account);
+}
+
+const unopened = pageAccounts.filter((trial) => !trial.opened || trial.titled !== trial.named);
+check('every trial in the table opens the record for its own numbers',
+  pageAccounts.length === trialNames.length && unopened.length === 0,
+  `${pageAccounts.length} of ${trialNames.length} rows, ${pageAccounts.length - unopened.length} opening a panel titled with their own trial`);
+
+const onlyTerminal = [...terminalAccounts.keys()].filter((key) => !pageAccountsAt.has(key));
+const onlyPage = [...pageAccountsAt.keys()].filter((key) => !terminalAccounts.has(key));
+const firstFew = (keys) => keys.slice(0, 3).join('; ');
+check('every number the terminal accounted for is one the browser accounts for, and no other',
+  terminalAccounts.size > 0 && onlyTerminal.length === 0 && onlyPage.length === 0,
+  `${pageAccountsAt.size} on the page against ${terminalAccounts.size} in the terminal's run, ` +
+    `${onlyTerminal.length} the page does not show${onlyTerminal.length ? ` (${firstFew(onlyTerminal)})` : ''}, ` +
+    `${onlyPage.length} the terminal did not write${onlyPage.length ? ` (${firstFew(onlyPage)})` : ''}`);
+
+const differing = [...terminalAccounts].filter(([key, account]) => pageAccountsAt.get(key) !== account);
+check('the account each number gives of itself reads the same in the browser as in the terminal',
+  terminalAccounts.size > 0 && differing.length === 0,
+  `${terminalAccounts.size - differing.length} of ${terminalAccounts.size} accounts identical` +
+    (differing.length ? `, first differing at ${differing[0][0]}` : ''));
+
 // Both numbers, because a line stating only the files a declared suffix kept reads as the
 // whole folder, and the fixture folder holds files that are not traces.
 check('the run states its coverage against the denominator it was taken over',
