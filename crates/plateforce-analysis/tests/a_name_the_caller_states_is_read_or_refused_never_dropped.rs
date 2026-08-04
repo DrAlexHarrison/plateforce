@@ -342,6 +342,68 @@ fn the_retreat_a_caller_names_lands_somewhere_else_than_the_fixed_step() {
     );
 }
 
+/// A bound the entry publishes and the rule runs without.
+///
+/// `retreat_cap_samples` is not a choice between names, so the sweep above cannot see it, and
+/// it is the one name on this operator whose absence changes how far the retreat walks. The
+/// entry's own notes say the published variant has no cap and can walk arbitrarily far back on
+/// a noisy quiet phase, so a caller who states one and has it dropped gets exactly the walk
+/// the cap was written to stop.
+#[test]
+fn a_retreat_cap_this_rule_runs_without_is_declined_by_name() {
+    let trial = a_jump_that_lands();
+    let retreating = || {
+        stating(
+            ONSET_CONSTRUCT,
+            "onset.threshold.last_within_band",
+            Some(("tolerance", "at_system_weight")),
+        )
+    };
+    let mut capped = retreating();
+    capped
+        .onset
+        .parameters
+        .insert("retreat_cap_samples".to_string(), 50.0);
+
+    let response = run(&trial, &capped).expect("the trial analyses");
+    let declined: Vec<plateforce_core::Refusal> =
+        response.refusals.iter().map(refusal_from_rule).collect();
+    println!(
+        "a stated cap: onset {:?}, {:?}",
+        response.onset_index,
+        declined
+            .iter()
+            .map(|refusal| refusal.message())
+            .collect::<Vec<_>>()
+    );
+
+    let named = declined
+        .iter()
+        .find(|refusal| refusal.parameter.as_deref() == Some("retreat_cap_samples"));
+    assert_eq!(
+        named.map(|refusal| refusal.code),
+        Some(RefusalCode::UnknownParameter),
+        "a stated cap reached a rule that walks back uncapped without saying so: onset {:?}, \
+         refusals {declined:?}",
+        response.onset_index
+    );
+    assert_eq!(
+        named.map(|refusal| refusal.method_id.as_str()),
+        Some("onset.op.backtrack_to_tolerance"),
+        "the refusal names a rule other than the operator that publishes the cap"
+    );
+
+    // Silence is the published walk, and stating nothing has to leave it exactly there. A
+    // refusal that fired on every request would satisfy the assertion above and take the rule
+    // out of the build.
+    let uncapped = run(&trial, &retreating()).expect("the retreat runs");
+    assert!(
+        uncapped.onset_index.is_some() && uncapped.refusals.is_empty(),
+        "declining a cap nobody stated would take the rule down on every request: onset {:?}",
+        uncapped.onset_index
+    );
+}
+
 /// The two rules that share `onset.threshold.noise_relative` answer a collapsed band the
 /// same way, because a reader picking between them is picking a search direction rather than
 /// a policy on a window with no spread.

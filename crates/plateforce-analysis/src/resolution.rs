@@ -316,6 +316,35 @@ impl<'a> Resolution<'a> {
         self.entailed_from(operator_id, name, value, ParameterSource::Assumed)
     }
 
+    /// A name an entry publishes that the rule behind it runs without.
+    ///
+    /// `entailed` fits a choice between names and this does not: there is no value to record,
+    /// because the rule does the thing the name would bound and does it unbounded. Consulted
+    /// either way, so silence is silence rather than a name nobody asked about, and refused
+    /// where the caller wrote one, because a bound stated and dropped leaves the rule running
+    /// unbounded while the record shows a reader who asked otherwise.
+    ///
+    /// `reads` is the denominator the sentence quotes, so a caller sees what this operator
+    /// does take rather than only what it declines.
+    pub(crate) fn runs_without(
+        &mut self,
+        operator_id: &str,
+        name: &str,
+        reads: &[&str],
+    ) -> Result<(), RuleRefusal> {
+        self.consulted.insert(name.to_string());
+        if !self.parameters.contains_key(name) && !self.options.contains_key(name) {
+            return Ok(());
+        }
+        Err(RuleRefusal::Refused(Box::new(
+            plateforce_core::Refusal::unknown_parameter(
+                operator_id,
+                name,
+                reads.iter().map(|read| (*read).to_string()).collect(),
+            ),
+        )))
+    }
+
     /// The same, for a value another rule already settled and this one runs on.
     ///
     /// `entailed` records `Assumed` where the caller said nothing, which is the right claim for

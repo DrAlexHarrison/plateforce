@@ -9,8 +9,8 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
 use crate::slots::movement_onset::{
-    record_inherited_spread, BACKTRACK_TO_TOLERANCE, CROSSING_SELECTION, NOISE_RELATIVE_ENTRY,
-    OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND, TOLERANCE,
+    record_inherited_spread, BACKTRACK_TO_TOLERANCE, CROSSING_SELECTION, INVERSE_LOOKBACK_SECONDS,
+    NOISE_RELATIVE_ENTRY, OFFSET_MILLISECONDS, RETREAT_CAP_SAMPLES, SEARCH_UPPER_BOUND, TOLERANCE,
 };
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
@@ -51,7 +51,7 @@ pub(crate) fn crossing(
     // for a rule read backwards, so this rule declines a collapsed band rather than widening
     // it, and says so under the entry it records against.
     resolved.entailed(NOISE_RELATIVE_ENTRY, "degenerate_band", "refuse")?;
-    let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
+    let lookback_samples = resolved.seconds_as_samples(INVERSE_LOOKBACK_SECONDS, 0.5, rate);
     // Two retreats, filed as two operators, and the name stated picks between them. Sams
     // retreats to where force came back to the reference; the other family steps back a
     // published number of milliseconds and reads the crossing as a trigger. Silence composes
@@ -67,6 +67,14 @@ pub(crate) fn crossing(
             rate,
         )),
     };
+    // The retreat walks back to the reference with nothing stopping it, which is the published
+    // variant's own behaviour and the reason its entry publishes a cap. A caller who states
+    // one is told this rule runs uncapped rather than watching the walk ignore it.
+    resolved.runs_without(
+        BACKTRACK_TO_TOLERANCE,
+        RETREAT_CAP_SAMPLES,
+        &[INVERSE_LOOKBACK_SECONDS, TOLERANCE],
+    )?;
 
     let search_end = takeoff_index
         .and_then(|takeoff| countermovement_dip(force, takeoff))

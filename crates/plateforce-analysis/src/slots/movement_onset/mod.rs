@@ -288,6 +288,9 @@ pub const INVERSE_LOOKBACK_SECONDS: &str = "inverse_lookback_seconds";
 /// Which return to the reference ends the retreat, which is what makes the crossing a
 /// trigger rather than the answer.
 pub const TOLERANCE: &str = "tolerance";
+/// The bound the published variant of the retreat has none of, which is the reason its own
+/// entry publishes the name.
+pub const RETREAT_CAP_SAMPLES: &str = "retreat_cap_samples";
 
 /// The entries this build composes onto an onset threshold rule. Each is a registry entry
 /// in its own right, with its own citation, default and published values.
@@ -318,7 +321,7 @@ fn operator_for(name: &str) -> Option<&'static str> {
         "selection" => Some(CROSSING_SELECTION),
         // The window searched for an excursion the other side of the band, which is the
         // trigger the retreat fires on, and where the retreat stops.
-        INVERSE_LOOKBACK_SECONDS | TOLERANCE => Some(BACKTRACK_TO_TOLERANCE),
+        INVERSE_LOOKBACK_SECONDS | TOLERANCE | RETREAT_CAP_SAMPLES => Some(BACKTRACK_TO_TOLERANCE),
         // The landmark the search stops at, and where on this trace it landed.
         "bound" | "search_bound_seconds" => Some(SEARCH_UPPER_BOUND),
         _ => None,
