@@ -74,6 +74,19 @@ impl SpreadVariant {
 /// One quantity swept over a slot's defensible alternatives.
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Spread")]
 pub struct Spread {
+    /// Which build produced this sweep. A spread nested in an analysis inherits that
+    /// result's identity; one that leaves on its own carried none, so a reader holding a
+    /// spread could not say which software or which registry produced it.
+    #[pyo3(get)]
+    plateforce_version: String,
+    /// The revision the caller pinned, and None where nobody pinned one. The same question
+    /// `Registry.version` answers, which is not the one `Registry.declared_version` answers.
+    #[pyo3(get)]
+    registry_version: Option<String>,
+    /// Identifies the registry files this sweep read, whether or not anybody declared a
+    /// revision.
+    #[pyo3(get)]
+    registry_digest: Option<String>,
     #[pyo3(get)]
     quantity_key: String,
     #[pyo3(get)]
@@ -197,7 +210,7 @@ pub fn spread_over(
     // The base is built by the one request builder this surface has, so the combination that
     // varies nothing is the request a user's own analysis call sends and the sweep is around
     // their result rather than around one assembled here.
-    let (base, _) = analysis_request_of(
+    let (base, registry) = analysis_request_of(
         python,
         weighing_epoch,
         onset,
@@ -229,6 +242,11 @@ pub fn spread_over(
         spread::run(&trial.inner, &request).map_err(|refusal| raise_refusal(python, &refusal))?;
 
     Ok(Spread {
+        // Read off the rules this call named, the same identity `analyse_countermovement_jump`
+        // stamps on its own record, rather than a second reading of the registry here.
+        plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
+        registry_version: registry.version.clone(),
+        registry_digest: registry.digest.clone(),
         quantity_key: response.quantity_key,
         unit: response.unit,
         unit_symbol: response.unit_symbol,

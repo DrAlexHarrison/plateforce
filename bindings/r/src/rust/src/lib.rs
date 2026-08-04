@@ -14,7 +14,8 @@ pub mod shim;
 use std::collections::BTreeMap;
 
 use plateforce_analysis::capability::{capability, Operation, OutputFormat};
-use plateforce_analysis::spread::{self, SpreadRequest, SpreadResponse};
+use plateforce_analysis::document::SpreadDocument;
+use plateforce_analysis::spread::{self, SpreadRequest};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, Binding, BINDINGS};
 use plateforce_core::acquisition::Acquisition;
 use plateforce_core::read::read_delimited_column;
@@ -598,14 +599,35 @@ fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
 /// This is what answers "how much does the method choice move this number", so it takes no
 /// option to enable it and sits beside the analysis rather than behind it.
 pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
-    let request: SpreadRequest = match parse_request(request_json) {
+    let request: SweepRequest = match parse_request(request_json) {
         Ok(request) => request,
-        Err(refusal) => return refuse::<SpreadResponse>(*refusal),
+        Err(refusal) => return refuse::<SpreadDocument>(*refusal),
     };
-    match spread::run(&handle.trial, &request) {
-        Ok(response) => ok(response),
-        Err(declined) => refuse::<SpreadResponse>(Refusal::from(*declined)),
+    match spread::run(&handle.trial, &request.sweep) {
+        Ok(response) => ok(SpreadDocument::of(
+            env!("CARGO_PKG_VERSION"),
+            request.registry_version,
+            request.registry_digest,
+            response,
+        )),
+        Err(declined) => refuse::<SpreadDocument>(Refusal::from(*declined)),
     }
+}
+
+/// A sweep, and the registry identity the caller measured from the registry it loaded.
+///
+/// The shape `AnalyseRequest` already uses, and for the same reason: `SpreadRequest` refuses
+/// unknown fields, so the identity cannot ride on the sweep itself, and reading the registry
+/// again here would name one this call never loaded.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SweepRequest {
+    #[serde(flatten)]
+    sweep: SpreadRequest,
+    registry_digest: Option<String>,
+    /// The revision the caller pinned, absent where nobody pinned one. `docs/schema.md`
+    /// gives this field that meaning and no other.
+    registry_version: Option<String>,
 }
 
 /// Known doubles, written as JSON and declared beside their exact bit patterns.

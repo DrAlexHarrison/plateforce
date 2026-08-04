@@ -60,6 +60,48 @@ pub struct ResultDocument {
     pub spread: Option<SpreadResponse>,
 }
 
+/// One swept quantity and everything a surface reports about it, in the shape every surface
+/// writes it.
+///
+/// A spread that leaves inside a `ResultDocument` inherits that document's identity. A spread
+/// that leaves on its own carried none at all, on any of the four surfaces, so the panel that
+/// demonstrates this project's argument left the software with no way to say which build and
+/// which registry produced it.
+///
+/// The three identity fields are spelled as `ResultDocument` spells them and are supplied by
+/// the calling surface for the same reason: the layer that loaded the registry is the layer
+/// that knows which one it loaded. A surface that derived them here would be answering for a
+/// registry it never read.
+///
+/// Flattened, so the fifteen keys a reader already reads stay where they are and the identity
+/// arrives beside them rather than nesting the whole document one level deeper.
+#[derive(Debug, Clone, Serialize)]
+pub struct SpreadDocument {
+    pub plateforce_version: String,
+    pub registry_version: Option<String>,
+    pub registry_digest: Option<String>,
+    #[serde(flatten)]
+    pub spread: SpreadResponse,
+}
+
+impl SpreadDocument {
+    /// The document for one sweep, taking its identity from the surface that loaded the
+    /// registry and everything else from the sweep itself.
+    pub fn of(
+        plateforce_version: impl Into<String>,
+        registry_version: Option<String>,
+        registry_digest: Option<String>,
+        spread: SpreadResponse,
+    ) -> Self {
+        Self {
+            plateforce_version: plateforce_version.into(),
+            registry_version,
+            registry_digest,
+            spread,
+        }
+    }
+}
+
 /// What a rule's refusal is, as the typed record rather than as prose.
 ///
 /// Neither arm decides a code here. `TrialError` already carries its own and generates its
