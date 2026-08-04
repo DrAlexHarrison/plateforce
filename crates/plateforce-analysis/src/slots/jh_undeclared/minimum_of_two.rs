@@ -43,7 +43,7 @@ fn compute(
             context.unavailable(ID, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]),
         );
     };
-    let Some(seconds) = flight_time::seconds(context, &landmarks) else {
+    let Some(seconds) = flight_time::seconds(context, landmarks.takeoff_index) else {
         return DerivedOutcome::declined(
             resolved.finish(),
             RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
@@ -58,7 +58,7 @@ fn compute(
     let gravity = context.gravity_meters_per_second_squared;
     let from_flight = jump_height_from_flight_time(seconds, gravity);
     let velocity =
-        takeoff_velocity_meters_per_second(context.trial, context.epoch, &landmarks, gravity);
+        takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     let from_takeoff = jump_height_from_takeoff_velocity(velocity, gravity);
 
     DerivedOutcome {

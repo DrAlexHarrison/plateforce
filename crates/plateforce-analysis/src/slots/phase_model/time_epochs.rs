@@ -46,7 +46,7 @@ fn place(
     );
     let bound = resolved.finish();
 
-    let Some(onset) = context.onset_index else {
+    let Some(onset) = context.onset_index() else {
         let missing = boundaries::absent(context, &[ONSET_CONSTRUCT]);
         return DerivedOutcome::declined(bound, context.unavailable(ID, &missing));
     };

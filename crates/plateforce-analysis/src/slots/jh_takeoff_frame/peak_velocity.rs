@@ -42,7 +42,7 @@ fn compute(
     let gravity = context.gravity_meters_per_second_squared;
     let series = centre_of_mass::velocity(
         context.trial,
-        context.epoch,
+        context.epoch(),
         landmarks.onset_index,
         gravity,
         &mut resolved,

@@ -10,6 +10,7 @@ pub mod longest_run;
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Trial, WeighingEpoch};
 
+use crate::derived::WEIGHING_EPOCH;
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{BoundMethod, BoundValues, Resolution, RuleRefusal};
 
@@ -110,6 +111,32 @@ pub(crate) struct TakeoffOutcome {
     pub threshold_newtons: f64,
     pub bound: BoundValues,
     pub refusal: Option<RuleRefusal>,
+}
+
+/// Which of the analysis's own landmarks this rule reads, or nothing where this build files
+/// no takeoff rule under the id.
+///
+/// One arm per arm of `crossing` below, and each answer is that arm's argument list. Two of
+/// the five are handed no epoch: `longest_run` ranks every low-force run in the recording and
+/// `descending_crossing` confirms a crossing against the residual threshold alone, so neither
+/// rests on the weighing rule and neither names it. The other three do, two for the search
+/// floor at the epoch's end and `landing_shape` for the system weight its landing peak is
+/// measured in.
+///
+/// No takeoff rule reads the onset. Takeoff settles first, because one onset rule searches
+/// back from a point only takeoff bounds.
+///
+/// `None` for an unknown id rather than an empty list, so a rule added with no arm here is
+/// caught as an unanswered question instead of reading as a rule that rests on nothing.
+pub(crate) fn landmarks_read(method_id: &str) -> Option<&'static [&'static str]> {
+    match method_id {
+        "takeoff.threshold.longest_run" => Some(&[]),
+        "takeoff.threshold.descending_crossing" => Some(&[]),
+        "takeoff.threshold.flight_noise_k_sd" => Some(&[WEIGHING_EPOCH]),
+        "takeoff.threshold.absolute_force" => Some(&[WEIGHING_EPOCH]),
+        "takeoff.threshold.landing_shape" => Some(&[WEIGHING_EPOCH]),
+        _ => None,
+    }
 }
 
 /// The re-estimating rule seeds itself from the bounding rule's threshold, which the
