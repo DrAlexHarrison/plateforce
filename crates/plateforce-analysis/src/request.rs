@@ -40,6 +40,12 @@ pub struct MethodChoice {
     /// Set when the rule itself came from the recommendation rather than being picked.
     #[serde(default)]
     pub method_from_recommendation: bool,
+    /// Set when the rule itself is the one the registry declares for a construct nobody
+    /// named, or the one an interface pre-selected with nobody asked. Distinct from
+    /// `method_from_recommendation`, which is an act somebody performed, exactly as
+    /// `from_registry_default` below is distinct from `recommended`.
+    #[serde(default)]
+    pub method_from_registry_default: bool,
     /// Names the caller filled from the registry's default with nobody asked. Distinct from
     /// `recommended`, which is an act somebody performed.
     #[serde(default)]
@@ -67,6 +73,31 @@ pub struct Claims<'a> {
     /// Whether the rule itself was accepted from the registry's recommendation rather than
     /// picked. A bulk acceptance and a considered pick move the number identically.
     pub method_from_recommendation: bool,
+    /// Whether the rule itself is the registry's own, running because nobody named one.
+    pub method_from_registry_default: bool,
+}
+
+impl Claims<'_> {
+    /// How the rule itself was chosen, in the vocabulary and the precedence its values are
+    /// recorded under.
+    ///
+    /// The same four claims `Resolution::stated_source` weighs for a value, beaten in the
+    /// same order, because a reader asking who chose the rule is asking the question they
+    /// ask of every number under it. A rule nobody named is `Assumed`, which is this
+    /// vocabulary's word for the software's own choice rather than the reader's: the record
+    /// used to spell it `Stated`, which put the reader's signature on 15 of the 18 rules a
+    /// plain request runs.
+    pub fn method_source(&self) -> ParameterSource {
+        if self.preset.is_some() {
+            ParameterSource::Cited
+        } else if self.method_from_recommendation {
+            ParameterSource::Recommended
+        } else if self.method_from_registry_default {
+            ParameterSource::Assumed
+        } else {
+            ParameterSource::Stated
+        }
+    }
 }
 
 /// `Default` so a caller can build one with `..Default::default()`. The next field this
@@ -93,6 +124,10 @@ pub struct WeighingChoice {
     /// Set when the rule itself came from the recommendation rather than being picked.
     #[serde(default)]
     pub method_from_recommendation: bool,
+    /// Set when the rule itself is the one the registry declares for a construct nobody
+    /// named. See `MethodChoice`.
+    #[serde(default)]
+    pub method_from_registry_default: bool,
     /// Names the caller filled from the registry's default with nobody asked. Distinct from
     /// `recommended`, which is an act somebody performed.
     #[serde(default)]
@@ -115,6 +150,7 @@ impl MethodChoice {
             cited: &self.cited,
             preset: self.preset.as_ref(),
             method_from_recommendation: self.method_from_recommendation,
+            method_from_registry_default: self.method_from_registry_default,
         }
     }
 }
@@ -127,6 +163,7 @@ impl WeighingChoice {
             cited: &self.cited,
             preset: self.preset.as_ref(),
             method_from_recommendation: self.method_from_recommendation,
+            method_from_registry_default: self.method_from_registry_default,
         }
     }
 }

@@ -434,6 +434,35 @@ mod tests {
       ]
     }"#;
 
+    /// The shared schema carries no claim about how a rule was chosen, and a reader that
+    /// filled the silence with `Stated` put a signature into a record that never held one.
+    /// Both steps of the shared record are read, so a default applied only at the root would
+    /// fail here.
+    #[test]
+    fn a_record_silent_about_who_chose_the_rule_does_not_credit_the_reader() {
+        assert!(
+            !SHARED_SCHEMA_RECORD.contains("method_source"),
+            "the shared record now states the claim, so this reads nothing about the default"
+        );
+        let parsed: Provenance = serde_json::from_str(SHARED_SCHEMA_RECORD).unwrap();
+        let silent: Vec<ParameterSource> = parsed
+            .flattened()
+            .iter()
+            .map(|step| step.method_source)
+            .collect();
+        assert_eq!(
+            silent,
+            vec![ParameterSource::Assumed, ParameterSource::Assumed],
+            "{} steps of a record that says nothing read as the reader's own choice",
+            silent.len()
+        );
+        assert_eq!(
+            Provenance::of("onset.threshold.noise_relative").method_source,
+            ParameterSource::Assumed,
+            "a step with nothing bound to it claims the reader chose its rule"
+        );
+    }
+
     #[test]
     fn a_record_written_to_the_shared_schema_reads_back_unchanged() {
         let parsed: Provenance = serde_json::from_str(SHARED_SCHEMA_RECORD).unwrap();

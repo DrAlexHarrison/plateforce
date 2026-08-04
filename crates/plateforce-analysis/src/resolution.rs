@@ -24,7 +24,8 @@ pub(crate) struct Resolution<'a> {
     cited: &'a BTreeSet<String>,
     /// The pipeline this rule was adopted from, travelling with the values it bound.
     adopted: Option<&'a PresetAttribution>,
-    method_from_recommendation: bool,
+    /// How the rule itself was chosen, settled from the claims before it read a value.
+    method_source: ParameterSource,
     read: Vec<(String, String)>,
     sources: BTreeMap<String, ParameterSource>,
     consulted: BTreeSet<String>,
@@ -37,7 +38,7 @@ pub(crate) struct Resolution<'a> {
 /// What one rule read, ready to become the record that travels with its answer. Public
 /// because every rule computed from the landmarks hands one back, and that shape is the
 /// contract for writing one.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct BoundValues {
     pub parameters: Vec<(String, String)>,
     pub sources: BTreeMap<String, ParameterSource>,
@@ -46,8 +47,27 @@ pub struct BoundValues {
     /// The published pipeline this rule was adopted from, carried alongside the values so a
     /// record cannot name the values without naming what chose them.
     pub preset: Option<PresetAttribution>,
-    /// Whether the rule itself was accepted from the registry's recommendation.
-    pub method_from_recommendation: bool,
+    /// How the rule itself was chosen: named by the caller, accepted from the registry's
+    /// recommendation, adopted with a published pipeline, or run because nobody named one.
+    pub method_source: ParameterSource,
+}
+
+/// A reading nobody asked for is a rule nobody named, so the empty one starts at `Assumed`.
+///
+/// Written out rather than derived, because `ParameterSource` has no default and must not
+/// gain one: a vocabulary whose strongest claim is what a forgotten field fills in is the
+/// defect this type exists to record.
+impl Default for BoundValues {
+    fn default() -> Self {
+        Self {
+            parameters: Vec::new(),
+            sources: BTreeMap::new(),
+            unread: Vec::new(),
+            numbers: BTreeMap::new(),
+            preset: None,
+            method_source: ParameterSource::Assumed,
+        }
+    }
 }
 
 impl<'a> Resolution<'a> {
@@ -65,8 +85,8 @@ impl<'a> Resolution<'a> {
             recommended: claims.recommended,
             from_registry_default: claims.from_registry_default,
             cited: claims.cited,
+            method_source: claims.method_source(),
             adopted: claims.preset,
-            method_from_recommendation: claims.method_from_recommendation,
             read: Vec::new(),
             sources: BTreeMap::new(),
             consulted: BTreeSet::new(),
@@ -343,7 +363,7 @@ impl<'a> Resolution<'a> {
             unread,
             numbers: self.numbers,
             preset: self.adopted.cloned(),
-            method_from_recommendation: self.method_from_recommendation,
+            method_source: self.method_source,
         }
     }
 }
@@ -477,10 +497,11 @@ pub struct BoundMethod {
     /// though the reader had picked them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preset: Option<PresetAttribution>,
-    /// Whether the rule itself was accepted from the registry's recommendation rather than
-    /// picked. A bulk acceptance and a considered pick are two records, not one.
-    #[serde(default)]
-    pub method_from_recommendation: bool,
+    /// How the rule itself was chosen, in the vocabulary its values are recorded under. A
+    /// bulk acceptance, a considered pick, a pipeline's binding and a rule nobody named are
+    /// four records, not one, and the last of them is the one this software exists to stop
+    /// wearing the reader's signature.
+    pub method_source: ParameterSource,
     /// The names in `bound_parameters` the rule read as quantities, with their values.
     /// Skipped over the wire, where every value is already the text beside its name.
     #[serde(skip)]
@@ -532,14 +553,13 @@ impl BoundMethod {
 
         plateforce_core::Provenance {
             method_id: self.method_id.clone(),
-            // A rule a published pipeline named, and a rule accepted from the registry's
-            // recommendation, were neither of them picked off a list by the reader. Recording
-            // either as stated puts the reader's signature on somebody else's choice.
-            method_source: match (&self.preset, self.method_from_recommendation) {
-                (Some(_), _) => ParameterSource::Cited,
-                (None, true) => ParameterSource::Recommended,
-                (None, false) => ParameterSource::Stated,
-            },
+            // Settled where the rule was bound, from what the caller claimed about it, rather
+            // than inferred here from the fields that happen to be beside it. A rule a
+            // pipeline named, a rule accepted from the recommendation and a rule that ran
+            // because nobody named one were none of them picked off a list by the reader, and
+            // recording any of them as stated puts the reader's signature on somebody else's
+            // choice.
+            method_source: self.method_source,
             parameters: self
                 .quantities()
                 .into_iter()
@@ -604,7 +624,7 @@ pub(crate) fn bound_method(
         registry_backed,
         manual_override,
         preset: values.preset,
-        method_from_recommendation: values.method_from_recommendation,
+        method_source: values.method_source,
         numeric_values: values.numbers,
     }
 }
@@ -629,7 +649,7 @@ pub(crate) fn bound_with_operators(
     // about how the rule was chosen belongs to the row the caller actually named.
     let mut carried = BoundValues {
         unread: values.unread,
-        method_from_recommendation: values.method_from_recommendation,
+        method_source: values.method_source,
         ..Default::default()
     };
 
@@ -660,6 +680,16 @@ pub(crate) fn bound_with_operators(
     )];
     bound.extend(composed.into_iter().map(|(operator, mut read)| {
         read.preset = attribution_for(&read, adopted.as_ref(), false);
+        // Nobody named an operator. The caller named the rule that composes it and the
+        // operator arrived with it, so this row records the rule's own provenance rather
+        // than the claim the caller made about the row they did name: there is one operator
+        // per name in this build, so reaching it was entailed rather than chosen. Where the
+        // pipeline the caller adopted published a value this operator ran, that pipeline is
+        // what put the value on the path and the row says so.
+        read.method_source = match read.preset {
+            Some(_) => ParameterSource::Cited,
+            None => ParameterSource::Assumed,
+        };
         bound_method(operator, read, backed(operator), false)
     }));
     bound

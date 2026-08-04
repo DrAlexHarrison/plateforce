@@ -52,8 +52,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "filter.none",
+        "method_source": "assumed",
         "parameter_sources": {
           "passband_edge": "assumed"
         },
@@ -84,8 +84,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "bwepoch.fixed_window",
+        "method_source": "stated",
         "parameter_sources": {
           "centre": "assumed",
           "dispersion": "assumed",
@@ -116,8 +116,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "onset.threshold.noise_relative",
+        "method_source": "stated",
         "parameter_sources": {
           "degenerate_band": "assumed",
           "k": "stated",
@@ -135,8 +135,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "onset.op.backward_offset_fixed",
+        "method_source": "assumed",
         "parameter_sources": {
           "offset_ms": "assumed"
         },
@@ -151,8 +151,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "onset.op.crossing_selection",
+        "method_source": "assumed",
         "parameter_sources": {
           "selection": "assumed"
         },
@@ -167,8 +167,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "onset.op.direction",
+        "method_source": "assumed",
         "parameter_sources": {
           "direction": "assumed"
         },
@@ -183,8 +183,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "onset.op.persistence",
+        "method_source": "assumed",
         "parameter_sources": {
           "span_ms": "assumed"
         },
@@ -199,8 +199,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "onset.op.search_floor_at_weighing_epoch_end",
+        "method_source": "assumed",
         "parameter_sources": {
           "weighing_epoch_end_seconds": "measured"
         },
@@ -219,8 +219,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "takeoff.threshold.absolute_force",
+        "method_source": "stated",
         "parameter_sources": {
           "persistence_ms": "assumed",
           "threshold_n": "stated"
@@ -236,8 +236,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "takeoff.op.crossing_selection",
+        "method_source": "assumed",
         "parameter_sources": {
           "selection": "assumed"
         },
@@ -252,8 +252,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "takeoff.op.residual_comparison",
+        "method_source": "assumed",
         "parameter_sources": {
           "comparison": "assumed"
         },
@@ -268,8 +268,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "takeoff.op.search_floor_at_weighing_epoch_end",
+        "method_source": "assumed",
         "parameter_sources": {
           "weighing_epoch_end_seconds": "measured"
         },
@@ -279,8 +279,8 @@
       {
         "bound_parameters": [],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "time_to_takeoff.onset_to_takeoff",
+        "method_source": "assumed",
         "parameter_sources": {},
         "registry_backed": true,
         "unread_parameters": []
@@ -288,8 +288,8 @@
       {
         "bound_parameters": [],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "flight_time.takeoff_to_touchdown",
+        "method_source": "assumed",
         "parameter_sources": {},
         "registry_backed": true,
         "unread_parameters": []
@@ -314,8 +314,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "impulse.net_vertical.as_performance_determinant",
+        "method_source": "assumed",
         "parameter_sources": {
           "integration_anchor": "assumed",
           "integration_direction": "assumed",
@@ -333,8 +333,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "jumpheight.takeoff.flight_time",
+        "method_source": "assumed",
         "parameter_sources": {
           "gravity": "assumed"
         },
@@ -361,8 +361,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "jumpheight.takeoff.impulse_momentum",
+        "method_source": "assumed",
         "parameter_sources": {
           "integration_anchor": "assumed",
           "integration_direction": "assumed",
@@ -392,8 +392,8 @@
           ]
         ],
         "manual_override": false,
-        "method_from_recommendation": false,
         "method_id": "rsimod.jh_tov_over_ttt",
+        "method_source": "assumed",
         "parameter_sources": {
           "integration_anchor": "assumed",
           "integration_direction": "assumed",

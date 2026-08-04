@@ -63,6 +63,7 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
         options: weighing_options,
         recommended: weighing_recommended,
         method_from_recommendation: weighing_method_from_recommendation,
+        method_from_registry_default: weighing_method_from_registry_default,
         from_registry_default: weighing_from_registry_default,
         cited: weighing_cited,
         preset: weighing_preset,
@@ -81,6 +82,10 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
             "options": weighing_options,
             "recommended": weighing_recommended,
             "method_from_recommendation": weighing_method_from_recommendation,
+            // Pinned for the reason the line above is: a rule the caller picked and one the
+            // registry declared for a construct nobody named run the same arithmetic and
+            // leave two different records.
+            "method_from_registry_default": weighing_method_from_registry_default,
             "from_registry_default": weighing_from_registry_default,
             "cited": weighing_cited,
             "preset": weighing_preset,
@@ -121,6 +126,7 @@ fn method_choice(choice: &MethodChoice) -> Value {
         manual_index,
         recommended,
         method_from_recommendation,
+        method_from_registry_default,
         from_registry_default,
         cited,
         preset,
@@ -131,6 +137,7 @@ fn method_choice(choice: &MethodChoice) -> Value {
         "options": options,
         "recommended": recommended,
         "method_from_recommendation": method_from_recommendation,
+        "method_from_registry_default": method_from_registry_default,
         "from_registry_default": from_registry_default,
         "cited": cited,
         "preset": preset,

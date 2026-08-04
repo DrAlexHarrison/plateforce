@@ -72,6 +72,10 @@ for (const key of ['weighing', 'onset', 'takeoff']) {
     process.exit(1);
   }
   const selection = selectionFromChosenRule(candidate, slot.forcesDecision);
+  // The act the rail records when a reader opens the list and picks a rule, which is what
+  // the request names for these three. Without it the arm sends a rule the page arrived at,
+  // and asks a different question from the one the other three surfaces are asked.
+  selection.methodStated = true;
   for (const [name, value] of Object.entries(wanted.parameters)) {
     selection.values[name] = value;
     recordStated(selection, name);

@@ -208,6 +208,7 @@ fn weighing_choice(chosen: MethodChoice, start_index: Option<usize>) -> Weighing
         manual_index: _,
         recommended,
         method_from_recommendation,
+        method_from_registry_default,
         from_registry_default,
         cited,
         preset,
@@ -219,6 +220,7 @@ fn weighing_choice(chosen: MethodChoice, start_index: Option<usize>) -> Weighing
         options,
         recommended,
         method_from_recommendation,
+        method_from_registry_default,
         from_registry_default,
         cited,
         preset,
@@ -1090,6 +1092,10 @@ pub fn jump_height_from_flight_time(
                         source: gravity_source,
                     },
                 ],
+                // Reaching this function is naming this rule: there is no other rule it could
+                // run and no request it read one out of, so the caller picked it by calling
+                // it. Stated where every other route through the engine says who chose.
+                method_source: ParameterSource::Stated,
                 registry_version,
                 acquisition_complete,
                 ..CoreProvenance::of(JUMP_HEIGHT_FROM_FLIGHT_TIME_METHOD_ID)

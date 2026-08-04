@@ -93,9 +93,10 @@ pub struct Provenance {
     /// onset rule and the weighing epoch, so a record naming only the last step understates
     /// what produced it.
     pub depends_on: Vec<Provenance>,
-    /// Where the method itself came from: chosen by the caller, or accepted from the
-    /// registry's recommendation. A bulk acceptance and a considered pick are two records,
-    /// not one.
+    /// Where the method itself came from: named by the caller, accepted from the registry's
+    /// recommendation, adopted with a published pipeline, or run because nobody named one. A
+    /// bulk acceptance, a considered pick, a pipeline's binding and a rule the software chose
+    /// are four records, not one.
     #[serde(default = "method_source_default")]
     pub method_source: crate::provenance::ParameterSource,
     /// Names the request carried that this rule does not read, reported rather than dropped.
@@ -126,10 +127,11 @@ pub struct Provenance {
     pub registry_declared_version: Option<String>,
 }
 
-/// A record that says nothing about how its method was chosen says the caller chose it, which
-/// is the claim `Provenance::of` already makes.
+/// A record silent about how its method was chosen has not said the caller chose it. Silence
+/// is the software's own choice, which is what `Assumed` spells, and reading it as `Stated`
+/// would put a reader's signature on a rule the record never claims they saw.
 fn method_source_default() -> crate::provenance::ParameterSource {
-    crate::provenance::ParameterSource::Stated
+    crate::provenance::ParameterSource::Assumed
 }
 
 /// A record silent either way is a registry entry, because the absence of a row is the
@@ -140,10 +142,14 @@ fn registry_entry_default() -> bool {
 
 impl Provenance {
     /// A step with nothing bound to it, for a caller filling the fields it has.
+    ///
+    /// Nothing bound includes the claim about the rule, so the step starts where the serde
+    /// default starts: the software's own choice, which a caller who knows the reader picked
+    /// the rule overwrites by saying so.
     pub fn of(method_id: impl Into<String>) -> Self {
         Self {
             method_id: method_id.into(),
-            method_source: crate::provenance::ParameterSource::Stated,
+            method_source: crate::provenance::ParameterSource::Assumed,
             parameters: Vec::new(),
             choices: Vec::new(),
             depends_on: Vec::new(),

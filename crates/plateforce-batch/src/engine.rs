@@ -717,7 +717,7 @@ fn rows_for_bound_method(quantity: &str, bound: &BoundMethod, depth: usize) -> V
             parameter: parameter.clone(),
             value: value.clone(),
             // The rule recorded where each value came from; deriving it again here could
-            // only ever spell two of the five sources.
+            // only ever spell two of the six sources.
             source: bound
                 .parameter_sources
                 .get(parameter)

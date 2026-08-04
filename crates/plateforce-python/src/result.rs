@@ -84,8 +84,9 @@ impl Provenance {
     }
 
     /// Where the rule itself came from: stated by the caller, accepted from the registry's
-    /// recommendation, or adopted with a published pipeline. The three move the number
-    /// identically and answer different questions a methods section asks.
+    /// recommendation, adopted with a published pipeline, or assumed, which is the rule the
+    /// registry declares for a construct nobody named. The four move the number identically
+    /// and answer different questions a methods section asks.
     #[getter]
     fn method_source(&self) -> &'static str {
         source_name(self.chain.provenance.method_source)
