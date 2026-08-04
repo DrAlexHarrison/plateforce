@@ -269,6 +269,7 @@ mod tests {
             registry_declared_version: None,
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
+            bound_globals: Vec::new(),
             files_found: 6,
             files_without_declared_suffix: 0,
             files_unidentified: 0,
