@@ -4,6 +4,8 @@ A result crossing into Python keeps the method that produced it. These tests are
 that fail if it ever becomes a bare float.
 """
 
+import json
+
 import pytest
 
 import plateforce as pf
@@ -296,6 +298,84 @@ def test_steps_no_registry_entry_describes_are_listed_rather_than_hidden(jump):
     """Every step this analysis performs now resolves to a registry entry, so the list is
     empty. A step added without one appears here rather than travelling unnamed."""
     assert jump.unregistered_methods == []
+
+
+def test_the_document_carries_an_account_of_every_number_it_reports(trial, bound_methods):
+    """A notebook reads one account per value in the process, and the document it hands on
+    carried none, so a number pasted out of a notebook left its account behind.
+
+    Each account is read against the record beside it rather than against a sentence written
+    here: the value it opens with, the unit that value carries, and the rule the record says
+    produced it. A block filled with anything at all passes none of those."""
+    epoch, onset, takeoff = bound_methods
+    document = json.loads(
+        pf._analyse_json(trial, weighing_epoch=epoch, onset=onset, takeoff=takeoff)
+    )["ok"]
+
+    valued = [metric for metric in document["metrics"] if metric["value"] is not None]
+    # The denominator the sentence below is over. A run reporting almost nothing would
+    # satisfy the comparison having looked at almost nothing.
+    assert len(valued) >= 8, f"only {len(valued)} of {len(document['metrics'])} carried a value"
+
+    silent = [
+        metric["key"] for metric in valued if metric["key"] not in document["descriptions"]
+    ]
+    assert silent == [], (
+        f"{len(silent)} of {len(valued)} quantities carrying a value gave no account: {silent}"
+    )
+
+    for metric in valued:
+        account = document["descriptions"][metric["key"]]
+        opening = account.splitlines()[0]
+        assert opening == f"{metric['value']} {metric['unit']}", metric["key"]
+        named = metric["computed_by"] or metric["contributing_method_ids"][0]
+        assert named in account, f"the account of {metric['key']} never names {named}"
+
+
+def test_a_number_and_its_account_report_one_value(trial, bound_methods):
+    """The value a caller reads off the object is the value its account opens with.
+
+    Two renderings of one number that round differently, or that came from two runs, are the
+    defect this whole field exists against, and a document filled from a second analysis
+    would pass every presence check above."""
+    epoch, onset, takeoff = bound_methods
+    document = json.loads(
+        pf._analyse_json(trial, weighing_epoch=epoch, onset=onset, takeoff=takeoff)
+    )["ok"]
+    shaped = pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
+
+    compared = 0
+    for getter, quantity in GETTER_QUANTITIES.items():
+        measured = getattr(shaped, getter)
+        # A getter answers None where no rule produced the quantity at all, which is the
+        # state the case below is over.
+        if measured is None or measured.value is None:
+            continue
+        account = document["descriptions"][quantity]
+        assert account.splitlines()[0] == f"{measured.value} {measured.unit}"
+        compared += 1
+    assert compared >= 8, f"only {compared} of {len(GETTER_QUANTITIES)} getters were compared"
+
+
+def test_a_quantity_with_no_value_gives_no_account_rather_than_an_invented_one(
+    trial, bound_methods
+):
+    """The control on the case above. A block that simply held every key would pass it, and
+    a sentence about a number nobody computed is what this field exists against.
+
+    The shared trace ends in flight, so nothing places a touchdown and the quantities that
+    rest on one have no value to give an account of."""
+    epoch, onset, takeoff = bound_methods
+    document = json.loads(
+        pf._analyse_json(trial, weighing_epoch=epoch, onset=onset, takeoff=takeoff)
+    )["ok"]
+
+    absent = [metric["key"] for metric in document["metrics"] if metric["value"] is None]
+    assert absent != [], "every quantity carried a value on a trial written to leave some without one"
+    invented = [key for key in absent if key in document["descriptions"]]
+    assert invented == [], (
+        f"{len(invented)} of {len(absent)} quantities with no value carry an account: {invented}"
+    )
 
 
 def test_flight_time_height_is_a_separate_construct_and_says_so():

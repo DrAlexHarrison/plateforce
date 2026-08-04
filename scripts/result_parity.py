@@ -535,14 +535,10 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "`ResultDocument`. Python and R take the block on the trial they are handed and report "
         "`acquisition_complete`, which is compared on all four",
     ),
-    "descriptions": Divergence(
-        frozenset({"r"}),
-        None,
-        "no branch yet, and it wants one",
-        "the account each quantity gives of itself. Generated in `descriptions_of`, which "
-        "lives in R's binding and in no other surface's, so a terminal, a browser tab and a "
-        "notebook receive nothing here",
-    ),
+    # `descriptions` was here, carried by r alone, with nothing to agree about. Discharged by
+    # ws/descriptions-everywhere: `descriptions_of` moved beside `chains_of`, the document
+    # fills the block rather than accepting it, and the two surfaces that were passing an
+    # empty map cannot. It reaches all four and is compared rather than recorded.
     "provenance": Divergence(
         frozenset({"r"}),
         None,
