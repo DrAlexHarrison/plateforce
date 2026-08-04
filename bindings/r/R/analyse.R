@@ -188,9 +188,17 @@ analysis_request_of <- function(weighing, onset, takeoff,
     derived = derived_choices(derived),
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
+    gravity_source = gravity_claim(gravity_meters_per_second_squared),
     registry_digest = registry_digest(registry),
     registry_backed_ids = registry_backed_ids(registry)
   )
+}
+
+# A gravity the caller stated travels with the claim that they stated it. Sent without one,
+# the engine supplies the constant and records that nobody was asked, and the two requests
+# are otherwise identical, which is the whole of what the claim is for.
+gravity_claim <- function(gravity_meters_per_second_squared) {
+  if (is.null(gravity_meters_per_second_squared)) NULL else "stated"
 }
 
 # A rule for something computed from the landmarks, keyed by the construct id the registry
