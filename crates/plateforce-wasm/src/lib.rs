@@ -22,7 +22,7 @@ use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, 
 use plateforce_analysis::capability::{capability, AcquisitionIntake, Operation, OutputFormat};
 use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
-use plateforce_core::signal::{reported_samples, ReportedSamples, Sentinel};
+use plateforce_core::signal::{reported_samples, trial_from_column, ReportedSamples, Sentinel};
 use plateforce_core::Trial;
 
 pub fn version() -> &'static str {
@@ -388,22 +388,12 @@ impl LoadedTrial {
             }
         };
 
-        // A sample matching the declared convention is counted and left where it is.
-        //
-        // Holding it at the last real reading writes a force the plate never measured into
-        // the trace, and a zero sentinel is physically indistinguishable from a correct
-        // reading during flight: an unloaded plate reads zero or one quantisation step, and a
-        // vendor writing `0.00` to mean "no measurement" writes the same bytes. Holding also
-        // reached past the declared convention to every unreadable field, so a recording with
-        // three unreadable samples in its quiet stance was repaired here whatever the caller
-        // declared. Measured on `subject01_trial1_interrupted`: this tab reported the intact
-        // trial's system weight, time to takeoff and jump height to the last digit, with no
-        // refusal and no warning, while the terminal, the notebook and R each declined the
-        // landmark and said why. `bindings/r/src/rust/src/lib.rs` reached the same conclusion
-        // in its own reader and states what holding costs in centimetres there.
-        let reported = reported_samples(column, sentinel);
-
-        let trial = Trial::new(column.to_vec(), sample_rate_hz)
+        // Through the one home, so this tab cannot spell the policy a second way. It held
+        // every unreadable sample at the last real reading and reached past the declared
+        // convention to do it, and answered an interrupted recording with the intact trial's
+        // numbers to the last digit. `plateforce_core::signal::trial_from_column` states what
+        // that cost and what the alternative cost.
+        let (trial, reported) = trial_from_column(column.to_vec(), sample_rate_hz, sentinel)
             .map_err(|e| JsError::new(&e.to_string()))?;
         let info = describe(&trial, force_column, sentinel_convention, reported, false);
         Ok(LoadedTrial { trial, info })

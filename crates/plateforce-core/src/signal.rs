@@ -245,6 +245,31 @@ pub fn reported_samples(values: &[f64], sentinel: Option<Sentinel>) -> ReportedS
     reported
 }
 
+/// The one route from a column of file values to a trial.
+///
+/// Every surface that opens a file arrives here, so what a reader does with a sample it cannot
+/// take as a measurement is stated once. It counts the sample and leaves the trace exactly as
+/// the file wrote it.
+///
+/// The two alternatives have each shipped on a surface of this product and each was wrong.
+/// Holding the sample at the last real reading writes a force the plate never measured, and a
+/// zero sentinel is physically indistinguishable from a correct reading during flight, so a
+/// reader that held them reported an interrupted recording as the intact one to the last digit
+/// with no refusal. Removing the sample closes the gap and shifts every timestamp after it,
+/// and on `subject01_trial1` the zero convention matches the whole flight phase, so a reader
+/// that removed them deleted the flight and moved jump height from flight time by 17.13 cm.
+///
+/// The convention is an `Option` because declaring nothing is a declaration. A sample carrying
+/// no number is counted either way, because the recording is the same either way.
+pub fn trial_from_column(
+    values: Vec<f64>,
+    sample_rate_hz: f64,
+    sentinel: Option<Sentinel>,
+) -> Result<(Trial, ReportedSamples), TrialError> {
+    let reported = reported_samples(&values, sentinel);
+    Ok((Trial::new(values, sample_rate_hz)?, reported))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -401,6 +426,40 @@ mod tests {
             ];
             let dropped = partition_sentinels(&values, convention).1.len();
             assert_eq!(reported_samples(&values, Some(convention)).total(), dropped);
+        }
+    }
+
+    /// The policy the home applies, held on the trace rather than on the counts.
+    ///
+    /// Compared by bit pattern rather than by value, because a NaN never equals itself and a
+    /// comparison that skipped the samples it could not compare would pass over the only
+    /// samples in question. Every convention, including none, and a trace holding a match for
+    /// each one so a reader that repaired any of them is caught by the one assertion.
+    #[test]
+    fn the_home_hands_back_the_trace_the_file_wrote() {
+        let values = [
+            584.3,
+            0.0,
+            -1.0,
+            9999.0,
+            f64::NAN,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            612.7,
+        ];
+        for convention in [
+            None,
+            Some(Sentinel::Zero),
+            Some(Sentinel::NegativeOne),
+            Some(Sentinel::Value(9999.0)),
+        ] {
+            let (trial, reported) =
+                trial_from_column(values.to_vec(), 1200.0, convention).expect("a trace of eight");
+            assert_eq!(trial.len(), values.len(), "under {convention:?}");
+            let held: Vec<u64> = trial.force().iter().map(|value| value.to_bits()).collect();
+            let wrote: Vec<u64> = values.iter().map(|value| value.to_bits()).collect();
+            assert_eq!(held, wrote, "the trace was rewritten under {convention:?}");
+            assert_eq!(reported, reported_samples(&values, convention));
         }
     }
 

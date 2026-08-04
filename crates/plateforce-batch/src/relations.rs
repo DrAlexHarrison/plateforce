@@ -313,8 +313,15 @@ pub struct RunRow {
     /// The value the run read as missing, or empty when the caller declared none. Empty is a
     /// declaration here, because the format field it comes from has no default.
     pub sentinel: String,
-    /// Samples the declared sentinel removed, across every trial the run read.
-    pub sentinel_rows_dropped: usize,
+    /// The two reasons a sample was reported, apart, across every trial the run read. Nothing
+    /// is removed: the samples stay where the file wrote them, because closing the gap would
+    /// shift every timestamp after it.
+    ///
+    /// Apart rather than as one total, because on a jump trace under the zero convention most
+    /// of the first count is an athlete in the air and the second is the recording losing
+    /// samples, and a reader handed one number cannot tell which they have.
+    pub samples_matching_the_convention: usize,
+    pub samples_carrying_no_number: usize,
     /// The digest over this row and the distinct chains it held, and null when the
     /// acquisition block was not filled.
     ///
@@ -507,7 +514,8 @@ mod tests {
             force_column_index: 0,
             sample_rate_hz: 1200.0,
             sentinel: String::new(),
-            sentinel_rows_dropped: 0,
+            samples_matching_the_convention: 0,
+            samples_carrying_no_number: 0,
             run_fingerprint: None,
         }
     }
