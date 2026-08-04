@@ -239,10 +239,18 @@ check('the request names every construct on the path, by its field or through de
  * PP-GRAMMAR-03. A quantity the path does not visit is reached from the workspace, by
  * searching the words the field speaks, in two interactions: type, then choose.
  */
+// The expectation is built here from the build's own table rather than read back out of the
+// picker, so the two arrive at the count by different routes and a picker that has narrowed
+// cannot narrow this with it.
+//
+// A quantity, which is what the check's name says and what the picker's opening sentence
+// promises, and every rule declares on its own row everything it reports. Counting bindings
+// instead counted the signal the landmark rules read before any of them runs, which reports
+// nothing and is not asked for by naming it on the path.
 const picker = await evaluate(`(async () => {
   const { state } = await import('./state.js');
   const { offerableConstructs } = await import('./add-quantity.js');
-  const runnable = new Set(state.build.bindings.map((b) => b.construct));
+  const runnable = new Set(state.build.bindings.filter((b) => (b.quantities || []).length).map((b) => b.construct));
   const visited = new Set(state.slots.map((s) => s.construct));
   return {
     offered: [...document.querySelectorAll('#add-quantity-list button')].map((b) => b.textContent),
