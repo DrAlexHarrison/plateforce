@@ -47,6 +47,7 @@ impl BatchResult {
             self.write_relation(directory, "provenance", self.provenance_batch()?, &record)?,
             self.write_relation(directory, "refusals", self.refusals_batch()?, &record)?,
             self.write_relation(directory, "signals", self.signals_batch()?, &record)?,
+            self.write_relation(directory, "exclusions", self.exclusions_batch()?, &record)?,
         ])
     }
 
@@ -199,6 +200,45 @@ impl BatchResult {
                 text(self.signals.iter().map(|row| row.qualifies.clone())),
                 text(self.signals.iter().map(|row| row.remedy_construct.clone())),
                 text(self.signals.iter().map(|row| row.remedy.clone())),
+            ],
+        )
+    }
+
+    /// A gate's measured figure is nullable: a gate can match on a criterion it states in
+    /// words without measuring a number for it.
+    fn exclusions_batch(&self) -> Result<RecordBatch, ParquetError> {
+        batch(
+            "exclusions",
+            vec![
+                Field::new("trial_id", DataType::Utf8, false),
+                Field::new("ordinal", DataType::UInt32, false),
+                Field::new("method_id", DataType::Utf8, false),
+                Field::new("outcome", DataType::Utf8, false),
+                Field::new("parameter", DataType::Utf8, false),
+                Field::new("value", DataType::Float64, true),
+                Field::new("criterion", DataType::Utf8, false),
+            ],
+            vec![
+                text(self.exclusions.iter().map(|row| row.trial_id.clone())),
+                counts(0..self.exclusions.len()),
+                text(self.exclusions.iter().map(|row| row.method_id.clone())),
+                text(
+                    self.exclusions
+                        .iter()
+                        .map(|row| if row.applied { "removed" } else { "reported" }.to_string()),
+                ),
+                text(
+                    self.exclusions
+                        .iter()
+                        .map(|row| row.parameter.clone().unwrap_or_default()),
+                ),
+                Arc::new(Float64Array::from(
+                    self.exclusions
+                        .iter()
+                        .map(|row| row.value)
+                        .collect::<Vec<Option<f64>>>(),
+                )) as ArrayRef,
+                text(self.exclusions.iter().map(|row| row.criterion.clone())),
             ],
         )
     }

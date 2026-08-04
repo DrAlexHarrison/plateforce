@@ -221,12 +221,7 @@ fn groups(
     result: &BatchResult,
     kind: GroupKind,
 ) -> Result<Vec<(String, Vec<String>)>, AggregationRefusal> {
-    let computed: Vec<String> = result
-        .results
-        .iter()
-        .filter(|row| row.refusal_code.is_empty())
-        .map(|row| row.trial_id.clone())
-        .collect();
+    let computed = result.population();
 
     match kind {
         GroupKind::Run => Ok(vec![("run".to_string(), computed)]),

@@ -673,7 +673,8 @@ fn render(
 ///
 /// The word comes from the vocabulary rather than from a second match here, so a reader who
 /// runs this trace in a terminal and opens the same result in a browser or a notebook meets
-/// one word for one status. The separator is the only thing this surface decides.
+/// one word for one status. The separator is the only thing this surface decides, which is
+/// why a status added to the vocabulary reaches this surface with no edit at all.
 fn status_reads(status: QualityStatus) -> String {
     status.wire_name().replace('_', " ")
 }

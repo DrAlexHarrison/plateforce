@@ -27,6 +27,43 @@ pub struct PopulationExclusion {
     pub applied: bool,
 }
 
+impl PopulationExclusion {
+    /// The flat table, so the relation a reader opens and the record a program reads are one
+    /// type rather than two that can come to disagree.
+    pub fn header() -> Vec<String> {
+        [
+            "trial_id",
+            "ordinal",
+            "method_id",
+            "outcome",
+            "parameter",
+            "value",
+            "criterion",
+        ]
+        .iter()
+        .map(|name| name.to_string())
+        .collect()
+    }
+
+    /// A trial removed from the population keeps its row and all its numbers in `results`, so
+    /// this column is the only place a reader can see that no figure over this run was taken
+    /// over it. The word rather than the flag, because a reader meeting `false` in a column
+    /// called `applied` has to work out what was applied to what.
+    pub fn cells(&self, ordinal: usize) -> Vec<String> {
+        vec![
+            self.trial_id.clone(),
+            ordinal.to_string(),
+            self.method_id.clone(),
+            if self.applied { "removed" } else { "reported" }.to_string(),
+            self.parameter.clone().unwrap_or_default(),
+            self.value
+                .map(crate::relations::format_value)
+                .unwrap_or_default(),
+            self.criterion.clone(),
+        ]
+    }
+}
+
 /// A rule that decides whether a trial belongs in a population.
 ///
 /// A registry holding no gate is the correct state of a run that bound none.

@@ -667,6 +667,10 @@ pub fn per_subject_values(
     quantity: &str,
 ) -> Option<Vec<Vec<f64>>> {
     let sessions = Session::group(set)?;
+    // The same population every other figure over this run is taken over. A trial a gate
+    // removed carries its values in the results table, so reading the table without asking
+    // which trials the run kept puts a removed trial into a reliability figure.
+    let population = result.population();
     Some(
         sessions
             .into_iter()
@@ -674,6 +678,7 @@ pub fn per_subject_values(
                 session
                     .trial_ids
                     .iter()
+                    .filter(|id| population.contains(id))
                     .filter_map(|id| {
                         result
                             .results
