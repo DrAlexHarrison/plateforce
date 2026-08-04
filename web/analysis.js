@@ -107,13 +107,23 @@ function placementFor(slotKey) {
 /*
  * One request naming every construct on the path.
  *
- * A construct the request names by its own field goes there; every other goes into
- * `derived` under the id the registry declares for it, which is the same key the terminal
- * takes. Nothing is listed here, so a rail that grows a row sends that row without an edit.
+ * Three maps rather than two, because the engine reaches a construct three ways and refuses
+ * a request that names one through the wrong one. A construct the request names by its own
+ * field goes there. A rule that conditions the signal the landmark rules then read runs
+ * before them and goes in `conditioning`. Everything else goes into `derived` under the id
+ * the registry declares for it, which is the same key the terminal takes.
+ *
+ * Which of the three is read off the build rather than decided here, so a rail that grows a
+ * row sends that row without an edit and no construct is named in this file.
+ *
+ * A construct the reader has not put on the path is in none of them, and the engine runs it
+ * under its declared default and records that it did. Sending it unasked would claim a
+ * choice nobody made.
  */
 export function buildRequest() {
   const request = {
     derived: {},
+    conditioning: {},
     touchdown_index: state.overrides.touchdown,
     // Sent only when the operator has stated it. A literal here would be standard gravity's
     // second home, and the engine already carries the one the registry declares.
@@ -133,6 +143,7 @@ export function buildRequest() {
       ...whereTheValuesCameFrom(slot.key),
     };
     if (slot.spine) request[slot.key] = { ...choice, ...placementFor(slot.key) };
+    else if (slot.conditioning) request.conditioning[slot.construct] = choice;
     else request.derived[slot.construct] = choice;
   }
   return request;

@@ -22,13 +22,13 @@ import { runAnalysis, withSources } from './analysis.js';
 export function offerableConstructs() {
   const visited = new Set(state.slots.map((slot) => slot.construct));
   const offers = [];
-  for (const binding of state.build.bindings) {
-    if (visited.has(binding.construct) || !reportsAQuantity(binding.construct)) continue;
-    visited.add(binding.construct);
-    const entry = state.registry.constructs.find((c) => c.id === binding.construct);
+  for (const construct of askableConstructs()) {
+    if (visited.has(construct)) continue;
+    visited.add(construct);
+    const entry = state.registry.constructs.find((c) => c.id === construct);
     offers.push({
-      construct: binding.construct,
-      label: entry?.label || entry?.title || binding.construct,
+      construct,
+      label: entry?.label || entry?.title || construct,
       notes: entry?.notes || '',
     });
   }
@@ -36,18 +36,15 @@ export function offerableConstructs() {
 }
 
 /*
- * Whether any rule under this construct declares a quantity it can report.
+ * Every construct a request may name, in the order the build declares them.
  *
- * What this picker offers is a quantity, and every rule declares on its own row everything
- * it produces. A construct whose rules report nothing has no quantity to reach, and the
- * engine arrives at it by a route the path does not carry: the signal every other rule then
- * reads is produced before the recording is searched for anything, so asking for it as a
- * quantity names a step the run has no place to put.
+ * The build says which map each construct is asked for through, because a construct id
+ * looks identical whichever route reaches it and a request naming one in the wrong map is
+ * refused whole. The three the request names by its own fields are already on the rail from
+ * the first paint, so they are not here to be offered a second time.
  */
-function reportsAQuantity(construct) {
-  return state.build.bindings.some(
-    (binding) => binding.construct === construct && (binding.quantities || []).length > 0,
-  );
+export function askableConstructs() {
+  return [...state.build.derived_constructs, ...state.build.conditioning_constructs];
 }
 
 /*

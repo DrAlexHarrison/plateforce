@@ -18,7 +18,7 @@ pub mod registry_embed;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use plateforce_analysis::binding::SPINE_CONSTRUCTS;
+use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, SPINE_CONSTRUCTS};
 use plateforce_analysis::capability::{capability, Operation, OutputFormat};
 use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
@@ -46,6 +46,17 @@ struct BuildInfo {
     /// takeoff as well as for every derived row, so an interface reading `bindings` alone
     /// cannot tell which of the two ways a construct is asked for.
     spine_constructs: &'static [&'static str],
+    /// What a request may name in `derived`, and what it may name in `conditioning`. The
+    /// same argument as the field above, carried the rest of the way: a construct id looks
+    /// identical whichever of the three routes reaches it, and an interface that guesses
+    /// wrong asks for a step under the wrong name and has the whole request refused.
+    ///
+    /// Read rather than inferred. Every conditioning rule this build carries happens to
+    /// declare no `quantities`, so a surface can separate the two lists that way and be
+    /// right today; the day a derived rule lands that reports nothing, that surface starts
+    /// naming a step in the wrong map with no test failing.
+    derived_constructs: Vec<&'static str>,
+    conditioning_constructs: Vec<&'static str>,
     threads: bool,
 }
 
@@ -64,6 +75,8 @@ pub fn build_info_json() -> Result<String, JsError> {
         registry_violations: loaded.violation_messages(),
         bindings: BINDINGS,
         spine_constructs: SPINE_CONSTRUCTS,
+        derived_constructs: derived_constructs(),
+        conditioning_constructs: conditioning_constructs(),
         threads: false,
     })
 }
