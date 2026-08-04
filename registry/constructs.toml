@@ -67,7 +67,7 @@ notes = "Group A is a substrate rather than a sibling group. Every other constru
 [[construct]]
 id = "filter_cutoff_frequency"
 title = "The cutoff frequency a conditioning filter is set to"
-label = "How much of the signal the filter keeps"
+label = "How much of the signal survives the clean-up"
 unit = "hertz"
 
 [[construct]]

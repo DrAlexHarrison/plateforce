@@ -259,7 +259,10 @@ function renderMetrics() {
     if (metric.note) card.append(element('p', 'metric__note', metric.note));
     if (restingOn.length) card.append(stillToBeChosen(restingOn));
     for (const signal of signalsQualifying(metric.key)) card.append(renderSignal(signal));
-    card.append(provenanceRow(metric.contributing_method_ids));
+    // The rule that produced this number leads the rules that fed it. The record names the
+    // two separately and the card was drawing only the second, so seven of eleven values
+    // listed their inputs and not the rule that computed them.
+    card.append(provenanceRow([metric.computed_by, ...metric.contributing_method_ids].filter(Boolean)));
     grid.append(card);
   }
 

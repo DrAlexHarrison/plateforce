@@ -239,7 +239,15 @@ const surfaced = await evaluate(`(async () => {
     const [surfacing, title] = verdict.get(bound.method_id) ?? [];
     if (!OWED.has(surfacing)) continue;
     owed.push(bound.method_id);
-    if (!drawn.includes(title)) missing.push(bound.method_id + ' (' + surfacing + ')');
+    if (drawn.includes(title)) continue;
+    // Where the rule does reach, if it reaches anywhere. Reporting a rule that is drawn as a
+    // provenance name as being nowhere on screen sends the reader hunting for an absence
+    // that is really a treatment: this verdict asks for the value beside the name, and a
+    // provenance name carries the value in a tooltip.
+    const elsewhere = [...new Set([...document.querySelectorAll('#stage-workspace *')]
+      .filter((node) => [...node.childNodes].some((child) => child.nodeType === 3 && child.textContent.includes(title)))
+      .map((node) => String(node.className || node.tagName)))];
+    missing.push(bound.method_id + ' (' + surfacing + ', drawn as ' + (elsewhere.join(' and ') || 'nothing at all') + ')');
   }
   return { owed, missing, drawn: drawn.length };
 })()`);
@@ -248,7 +256,7 @@ check('every rule the registry entitles to a place on screen has one',
   surfaced.owed.length === 0
     ? 'no bound rule carries either verdict, so this check compared nothing'
     : `${surfaced.owed.length - surfaced.missing.length} of ${surfaced.owed.length} entitled rules are drawn` +
-      (surfaced.missing.length ? `; nowhere on screen: ${surfaced.missing.join(', ')}` : ''));
+      (surfaced.missing.length ? `; without the treatment the verdict asks for: ${surfaced.missing.join(', ')}` : ''));
 
 // The row existing is half the verdict. The other half is that the alternatives are one
 // interaction away, so the check takes the interaction rather than reading the row and
@@ -396,11 +404,17 @@ const narrow = await evaluate(`(() => {
   };
   const inRunningText = (node) => node.tagName === 'A' &&
     [...(node.parentElement?.childNodes ?? [])].some((c) => c.nodeType === 3 && c.textContent.trim());
+  // The class as well as the tag, because a rule is written against a class. Eleven bare
+  // "button" entries name the same eleven boxes without saying which selector missed the
+  // floor, and reading them costs a second run against the page to find out.
+  const names = (node) => node.tagName.toLowerCase() + (node.id ? '#' + node.id : '') +
+    (typeof node.className === 'string' && node.className.trim()
+      ? '.' + node.className.trim().split(/\\s+/).join('.') : '');
   return {
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     small: boxes
       .filter((node) => !inRunningText(node))
-      .map((node) => [node.tagName.toLowerCase() + (node.id ? '#' + node.id : ''), target(node).getBoundingClientRect()])
+      .map((node) => [names(node), target(node).getBoundingClientRect()])
       .map(([what, box]) => [what, Math.round(Math.min(box.width, box.height))])
       .filter(([, side]) => side < 44),
     tiny: [...document.querySelectorAll('body *')].filter(visible)
@@ -409,7 +423,7 @@ const narrow = await evaluate(`(() => {
       .filter(([, size]) => size < 12),
     unlabelled: boxes
       .filter((node) => !node.textContent.trim() && !node.getAttribute('aria-label') && !node.getAttribute('title') && !node.labels?.length)
-      .map((node) => node.tagName.toLowerCase() + (node.id ? '#' + node.id : '')),
+      .map(names),
     counted: boxes.length,
   };
 })()`);
@@ -526,15 +540,29 @@ check('the engine records as stated exactly the values the reader typed, and no 
   picked !== null && saidStated.join() === [...typedByHand].sort().join(),
   `${heard.join(', ')}; stated ${JSON.stringify(saidStated)} against ${JSON.stringify(typedByHand)} typed by hand`);
 
-// The confident wrong number, selected the way a first-time user would meet it: one click
-// in the onset picker. The signal has to come from the engine, so the check refuses a
-// result it produced itself.
+/*
+ * The confident wrong number, reached the way a reader reaches it: the start marker dragged
+ * past the unweighting, which counts every newton from a start that is already inside the
+ * movement and inflates the impulse route.
+ *
+ * `crates/plateforce-wasm/tests/quality_signals.rs` reaches the same case by the same act at
+ * the same offset, so the browser and the engine are asking one question. Its argument for
+ * preferring the act over a recording is that both of this signal's earlier fixtures were
+ * defects in our own engine and both were fixed out from under it, while a dragged marker is
+ * something a reader does and cannot be repaired away.
+ *
+ * Measured on the demonstration trial, the disagreement runs 23.2, 54.1, 68.2 and 47.4
+ * percent at 200, 300, 400 and 500 samples late against a threshold of 20, so the case is
+ * reached across a wide band rather than balanced on the edge of one. The threshold is the
+ * engine's and nothing here moves it: the signal has to come from the engine, so the check
+ * refuses a result it produced itself.
+ */
+const DRAGGED_PAST_THE_UNWEIGHTING_SAMPLES = 400;
 const remedy = await evaluate(`(async () => {
   const state = (await import('./state.js')).state;
   const analysis = await import('./analysis.js');
-  const select = document.querySelector('#decision-list select[data-construct="movement_onset"]');
-  select.value = 'onset.threshold.last_within_band';
-  select.dispatchEvent(new Event('change'));
+  state.overrides.onset = state.analysis.onset_index + ${DRAGGED_PAST_THE_UNWEIGHTING_SAMPLES};
+  analysis.runAnalysis();
   await new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
   const height = (key) => state.analysis.metrics.find((m) => m.key === key)?.value ?? null;
@@ -594,10 +622,11 @@ check('the spread is the largest figure on the page',
 // the words. Compared as rendered, in both themes, because a token that collapses two of
 // them in dark mode alone would be invisible in a light-mode screenshot.
 //
-// Two of the five cannot share one paint: the rule that disagrees with the flight-time
-// route is not the rule that runs the sub-rule the registry displays unasked. Each is read
-// under the rule that produces it and they are compared afterwards. They are states of one
-// interface either way, and nothing here depends on them co-occurring.
+// The five cannot share one paint, so each is read under an act that produces it and they
+// are compared afterwards. The rule that runs the sub-rule the registry displays unasked is
+// not the rule that leaves a value provisional, and neither of them warns: the warned state
+// needs the two jump-height routes to disagree, which is the dragged start marker above.
+// They are states of one interface either way, and nothing here depends on them co-occurring.
 const STATE_SELECTORS = {
   provisional: '.metric:not(.metric--headline).metric--provisional',
   resolved: '.metric:not(.metric--headline):not(.metric--provisional)',
@@ -605,13 +634,26 @@ const STATE_SELECTORS = {
   displayed: '.ran-beside__row--default-and-show',
   named: '.ran-beside__row--surface-on-demand',
 };
+const PAINTED_BY = [
+  { rule: 'onset.threshold.noise_relative', dragLate: false },
+  { rule: 'onset.threshold.last_within_band', dragLate: false },
+  { rule: 'onset.threshold.noise_relative', dragLate: true },
+];
 const states = {};
-for (const rule of ['onset.threshold.noise_relative', 'onset.threshold.last_within_band']) {
+for (const { rule, dragLate } of PAINTED_BY) {
   const painted = await evaluate(`(async () => {
+    const state = (await import('./state.js')).state;
+    const analysis = await import('./analysis.js');
+    state.overrides.onset = null;
     (await import('./workspace.js')).enterWorkspace();
     const onset = document.querySelector('#decision-list select[data-construct="movement_onset"]');
     onset.value = ${JSON.stringify(rule)};
     onset.dispatchEvent(new Event('change'));
+    if (${dragLate}) {
+      state.overrides.onset = state.analysis.onset_index + ${DRAGGED_PAST_THE_UNWEIGHTING_SAMPLES};
+      analysis.runAnalysis();
+      await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    }
     const selectors = ${JSON.stringify(STATE_SELECTORS)};
     const seen = {};
     for (const theme of ['light', 'dark']) {
