@@ -284,6 +284,7 @@ pub fn run(
                 &trial.trial,
                 &request,
                 crate::spread_cmd::HEADLINE_QUANTITY,
+                crate::spread_cmd::axes_over_every_rule(&request),
             );
             render(
                 &response,

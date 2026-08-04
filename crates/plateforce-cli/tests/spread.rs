@@ -110,6 +110,185 @@ fn a_quantity_this_build_does_not_compute_is_refused() {
     assert!(output.stdout.is_empty(), "no number is published");
 }
 
+/// The constructs a sweep says it varied, which is how a narrowed sweep is told from the
+/// whole one rather than by reading a count.
+fn varied(response: &serde_json::Value) -> Vec<String> {
+    response["axes_varied"]
+        .as_array()
+        .expect("the record says what it varied")
+        .iter()
+        .map(|axis| axis["construct"].as_str().expect("a construct").to_string())
+        .collect()
+}
+
+fn held(response: &serde_json::Value) -> Vec<String> {
+    response["held_fixed"]
+        .as_array()
+        .expect("the record says what it held")
+        .iter()
+        .map(|rule| {
+            rule["construct"]
+                .as_str()
+                .expect("a construct")
+                .to_string()
+        })
+        .collect()
+}
+
+/// One step named, and the sweep is over that step. The terminal swept every bound step with
+/// more than one rule and had no way to say otherwise, while the tab has a tick per step and
+/// Python and R take `slot=`.
+///
+/// The control is the same command without the flag, which has to vary all three, or a
+/// narrowing that narrowed nothing would read the same as one that worked.
+#[test]
+fn a_named_step_is_the_only_one_the_sweep_varies() {
+    let whole = body(&spread(&["--format", "json"], true));
+    assert_eq!(
+        varied(&whole),
+        ["system_weight", "movement_onset", "takeoff"],
+        "the unnarrowed sweep is not over three steps, so narrowing to one proves nothing"
+    );
+
+    let narrowed = body(&spread(&["--format", "json", "--slot", "onset"], true));
+    assert_eq!(varied(&narrowed), ["movement_onset"]);
+    assert_eq!(
+        narrowed["combinations_run"].as_u64(),
+        Some(5),
+        "the five onset rules are what this build runs"
+    );
+    assert!(
+        whole["combinations_run"].as_u64() > narrowed["combinations_run"].as_u64(),
+        "the narrowed sweep ran as many combinations as the whole one"
+    );
+    // The other half of the same question: a step left out is held, and the record says so.
+    let held = held(&narrowed);
+    assert!(
+        held.contains(&"system_weight".to_string()) && held.contains(&"takeoff".to_string()),
+        "the steps this sweep did not vary are not recorded as held: {held:?}"
+    );
+}
+
+/// Several steps, which is the question a reader asks about a number resting on more than
+/// one rule, and the wording Python's `slot=` already takes.
+#[test]
+fn several_steps_can_be_named_and_the_order_they_were_named_in_does_not_reach_the_document() {
+    let asked = body(&spread(
+        &["--format", "json", "--slot", "onset", "--slot", "takeoff"],
+        true,
+    ));
+    assert_eq!(varied(&asked), ["movement_onset", "takeoff"]);
+    assert_eq!(
+        asked["combinations_run"].as_u64(),
+        Some(25),
+        "five onset rules by five takeoff rules"
+    );
+
+    // One sweep is one document whichever order the caller named the steps in. Before the
+    // binding table decided it, the same sweep from the tab and from the terminal differed in
+    // 520 paths of `variants`.
+    let reversed = body(&spread(
+        &["--format", "json", "--slot", "takeoff", "--slot", "onset"],
+        true,
+    ));
+    assert_eq!(
+        serde_json::to_string(&asked).expect("the document serialises"),
+        serde_json::to_string(&reversed).expect("the document serialises"),
+    );
+    assert!(
+        asked["succeeded"].as_u64().is_some_and(|count| count > 0),
+        "no combination produced a value, so the two documents agree about nothing in them"
+    );
+}
+
+/// A step this run did not bind is refused by name, with what could have been asked instead.
+///
+/// The build runs three rules for peak force, so the refusal is about this request rather
+/// than about the build, and the pair below tells the two apart.
+#[test]
+fn a_step_this_run_did_not_bind_is_refused_rather_than_swept_over_a_rule_nobody_chose() {
+    let output = spread(&["--format", "json", "--slot", "peak_force"], true);
+    let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
+    println!("{}", said.lines().next().unwrap_or_default());
+    assert_eq!(output.status.code(), Some(64));
+    assert!(output.stdout.is_empty(), "no number is published");
+    assert!(said.contains("peak_force"), "{said}");
+    assert!(said.contains("onset"), "{said}");
+
+    // Bound, the same construct is a step this run can be asked about, so the refusal above
+    // is about what this request carries and not a name the terminal cannot spell.
+    let bound = spread(
+        &[
+            "--format",
+            "json",
+            "--derive",
+            "peak_force=force.peak.net",
+            "--slot",
+            "peak_force",
+        ],
+        true,
+    );
+    assert_eq!(bound.status.code(), Some(0));
+    assert_eq!(varied(&body(&bound)), ["peak_force"]);
+}
+
+/// A step this build runs one rule for is refused rather than quietly dropped.
+///
+/// Dropped, the command runs, reports a spread over whatever was left, and heads it with the
+/// quantity the caller asked about, which reads as an answer to the question they put. Time
+/// to takeoff is reached one way in this build, so naming it is a question with no answer.
+#[test]
+fn a_step_with_one_rule_is_refused_rather_than_dropped_from_a_sweep_that_still_reports() {
+    let output = spread(
+        &[
+            "--format",
+            "json",
+            "--derive",
+            "time_to_takeoff=time_to_takeoff.onset_to_takeoff",
+            "--slot",
+            "time_to_takeoff",
+        ],
+        true,
+    );
+    let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
+    println!("{}", said.lines().next().unwrap_or_default());
+    assert_eq!(output.status.code(), Some(64));
+    assert!(output.stdout.is_empty(), "no number is published");
+    assert!(said.contains("one rule"), "{said}");
+    assert!(said.contains("time_to_takeoff"), "{said}");
+}
+
+/// The construct the panel prints is a name this flag answers to, because a reader narrowing
+/// a sweep is reading `varied system_weight` off the panel above it.
+#[test]
+fn the_construct_the_record_names_is_a_word_this_flag_takes() {
+    let by_flag_word = body(&spread(&["--format", "json", "--slot", "weighing"], true));
+    let by_construct = body(&spread(
+        &["--format", "json", "--slot", "system_weight"],
+        true,
+    ));
+    assert_eq!(varied(&by_flag_word), ["system_weight"]);
+    assert_eq!(
+        serde_json::to_string(&by_flag_word).expect("the document serialises"),
+        serde_json::to_string(&by_construct).expect("the document serialises"),
+    );
+}
+
+/// One step is one axis, so a name stated twice is refused rather than squaring the
+/// combinations and labelling every one of them with the step twice over.
+#[test]
+fn a_step_named_twice_is_refused() {
+    let output = spread(
+        &["--format", "json", "--slot", "onset", "--slot", "onset"],
+        true,
+    );
+    let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
+    println!("{}", said.lines().next().unwrap_or_default());
+    assert_eq!(output.status.code(), Some(64));
+    assert!(output.stdout.is_empty(), "no number is published");
+    assert!(said.contains("twice"), "{said}");
+}
+
 /// The sweep records the registry revision its caller cited.
 ///
 /// This surface accepts `--registry-version`, prints in its own help that the result will name

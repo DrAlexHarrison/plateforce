@@ -26,10 +26,10 @@
 # analysis reports, but how far the number moves across a slot's defensible alternatives.
 # That is the measurement this software exists to publish, and it was the one thing no gate
 # compared between surfaces. Its request file names the slots, which is how Python and the
-# browser are asked; the terminal has no flag for them and reads them off the rules the
-# request bound, so the answer's `axes_varied` is what holds the two accounts together.
+# browser are asked; the terminal is passed none and reads them off the rules the request
+# bound, so the answer's `axes_varied` is what holds the two accounts together.
 quiet	tests/golden/result-parity-request.json	tests/golden/result-parity.json	browser,cli,python,r
 sentinel	tests/golden/result-parity-request-sentinel.json	=quiet	browser,cli,python,r
 interrupted	tests/golden/result-parity-request-interrupted.json	tests/golden/result-parity-interrupted.json	browser,cli,python,r
 inverted	tests/golden/result-parity-request-inverted.json	tests/golden/result-parity-inverted.json	browser,cli,python,r
-sweep	tests/golden/result-parity-request-sweep.json	tests/golden/result-parity-sweep.json	cli,python
+sweep	tests/golden/result-parity-request-sweep.json	tests/golden/result-parity-sweep.json	browser,cli,python

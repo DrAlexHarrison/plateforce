@@ -24,10 +24,11 @@ argv = ["--format", "json"]
 if sweep is None:
     argv += ["analyse", asked["trial"]]
 else:
-    # The terminal takes no flag naming the slots. It reads them off the rules the request
-    # bound, varying every construct this build runs more than one rule for, so the slots the
-    # request states are what the other surfaces are told and what this arm's `axes_varied`
-    # is held to. The two accounts of one sweep meet in the committed record.
+    # The terminal takes `--slot` and this arm passes none, so it reads the steps off the
+    # rules the request bound, varying every construct this build runs more than one rule
+    # for. Told the slots outright it would be asked what the others were asked; left to read
+    # them, its `axes_varied` is a second account of the same sweep, and the two meet in the
+    # committed record.
     argv += ["spread", asked["trial"], "--quantity", sweep["quantity_key"]]
 argv += [
     "--column", str(asked["force_column"]),
