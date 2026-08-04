@@ -154,5 +154,33 @@ if [ -e "$stray" ]; then
 fi
 
 echo
-echo "all six breaks reddened their guard and every restore landed"
+echo "=== 7. the terminal pins nothing and the browser claims it did ==="
+apply "one surface disagrees about the pin" \
+  crates/plateforce-wasm/src/lib.rs \
+  '                &plateforce_core::provenance::RegistryStamp::unpinned(
+                    loaded.registry.declared_version.clone(),
+                    Some(loaded.digest.clone()),
+                ),' \
+  '                &plateforce_core::provenance::RegistryStamp::unpinned(
+                    loaded.registry.declared_version.clone(),
+                    Some(loaded.digest.clone()),
+                )
+                .pinned_to(Some("wsrp-a-pin-no-caller-made".to_string())),'
+expect_red "one surface disagrees about the pin" bash scripts/result-parity.sh --check
+restore crates/plateforce-wasm/src/lib.rs
+bash scripts/build-web.sh >/dev/null 2>&1
+
+echo
+echo "=== 8. one surface names a registry revision the others do not ==="
+apply "one surface names another revision" \
+  crates/plateforce-cli/src/analyse.rs \
+  '        registry.declared_version.clone(),
+        Some(registry.content_digest.clone()),' \
+  '        Some("wsrp-a-revision-this-registry-does-not-name".to_string()),
+        Some(registry.content_digest.clone()),'
+expect_red "one surface names another revision" bash scripts/result-parity.sh --check
+restore crates/plateforce-cli/src/analyse.rs
+
+echo
+echo "all eight breaks reddened their guard and every restore landed"
 git status --porcelain
