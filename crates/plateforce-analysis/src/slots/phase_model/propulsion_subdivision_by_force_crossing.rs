@@ -52,7 +52,7 @@ fn place(
 
     let index = propulsion_subdivision_by_force_crossing(
         context.trial.force(),
-        context.epoch.system_weight_newtons,
+        context.epoch().system_weight_newtons,
         start,
         end,
     );
