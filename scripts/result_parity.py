@@ -31,10 +31,7 @@ Over two kinds of question, because a field's reach is a fact about the question
 about the field. An analysed document carries `plateforce_version` on the two surfaces that
 assemble it; a swept one carries it on every surface that answers, so one register keyed by
 field alone would have to state one of the two and be wrong about the other. Both registers
-are keyed by kind, and a request carrying a `sweep` block is a sweep. The sweep is the
-measurement this software exists to publish and it was the one thing no gate compared
-between surfaces: the terminal's own record of it went where no baseline would notice it
-moving.
+are keyed by kind, and a request carrying a `sweep` block is a sweep.
 """
 
 import json
@@ -439,12 +436,12 @@ ASSERTED_ANOTHER_WAY = {
 class Divergence(NamedTuple):
     """One field some surfaces publish and others do not, as measured rather than as hoped.
 
-    `carriers_agree` is the state the surfaces that DO carry it are in: True when they report
-    the same value, False when they do not, and None when only one carries it, because a
-    population of one agrees with itself and recording that as agreement would be the shape
-    this project keeps catching. It is pinned to measurement, so a divergence being repaired
-    reddens this gate exactly as loudly as one appearing. That is the point: the repair is
-    supposed to end with the entry moving out of this register.
+    `carriers_agree` is the state the surfaces carrying it are in: True when they report the
+    same value, False when they do not, and None when only one carries it, because a
+    population of one agrees with itself and recording that as agreement would claim a
+    cross-surface agreement nobody tested. It is pinned to measurement, so a divergence being
+    repaired reddens this gate exactly as loudly as one appearing. The repair is meant to end
+    with the entry moving out of this register.
 
     `discharged_by` names the work that retires the entry, so an entry cannot quietly become
     permanent by nobody remembering what it was waiting for.
@@ -557,13 +554,9 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "off the wire because R links the engine and cannot reach the derivation any other "
         "way; the other three hold the tree in memory and publish the numbers alone",
     ),
-    # Re-ruled once the sweep was measured rather than described. The discharge used to read
-    # "the other surfaces expose the sweep as a call of its own", which is a claim about the
-    # shape of an API and not a comparison: nothing asked those calls anything, the eight
-    # Python tests that would have were skipping, and R's fixture held four summary figures
-    # and no registry field. So `SpreadDocument`'s identity landed where no baseline would
-    # notice it moving. The `sweep` request is what asks them now, and `answered_by` refuses
-    # this sentence if that request leaves the population.
+    # A discharge naming the shape of an API is not a comparison: a call nothing asks proves
+    # nothing about the value it returns. The `sweep` request is what asks these surfaces, and
+    # `answered_by` refuses this sentence if that request leaves the population.
     "spread": Divergence(
         frozenset({"cli"}),
         None,
@@ -610,8 +603,7 @@ class EmptyEverywhere(NamedTuple):
 # A compared field empty in every committed record. One entry, and it is the field this gate
 # cannot value from a request alone.
 #
-# `refusals`, `signals` and `warnings` were all here in substance before this population
-# existed, empty on the one request the gate asked. They are valued now: the interrupted
+# `refusals`, `signals` and `warnings` carry values across the population: the interrupted
 # recording refuses and warns, the inverted one signals and warns.
 EMPTY_ON_EVERY_REQUEST = {
     "registry_version": EmptyEverywhere(
