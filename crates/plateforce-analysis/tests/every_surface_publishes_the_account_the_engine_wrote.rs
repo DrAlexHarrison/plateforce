@@ -38,10 +38,34 @@ const A_GENERATOR_OF_ITS_OWN: (&str, &str) = (
     "crates/plateforce-analysis/src/chain.rs",
 );
 
-/// The empty block, as the two surfaces that published one spelled it. Both handed it to
-/// `ResultDocument::of`, which no longer takes one, so this is the spelling a surface would
-/// reach for if it started assembling the field itself.
-const AN_EMPTY_BLOCK: &str = "descriptions: BTreeMap::new()";
+/// Where the document is assembled, and the two facts that make an empty block unwritable by
+/// a caller: the constructor fills the field, and it takes no such argument.
+///
+/// Anchored on the impl block rather than on the first `pub fn of(` in the file, because
+/// `SpreadDocument` declares one above `ResultDocument` and a read that took the first
+/// reported the sweep's three arguments. That list holds no `descriptions` either, so the
+/// assertion passed on the wrong constructor, which is what the control below now catches.
+const THE_DOCUMENT: (&str, &str, &str) = (
+    "crates/plateforce-analysis/src/document.rs",
+    "descriptions: crate::accounts_of(",
+    "impl ResultDocument {",
+);
+
+/// An argument this constructor takes and the one above it in the same file does not.
+///
+/// The control on reading the list, and it is the discriminating one: a parse that found the
+/// wrong function, or stopped at the first line, reports a list without this name in it, and
+/// a list nothing is in holds no `descriptions` either. `spread` stood here first and both
+/// constructors take one, so the control agreed with the wrong answer.
+const AN_ARGUMENT_ONLY_THIS_CONSTRUCTOR_TAKES: &str = "capture";
+
+/// The document built by hand, which is the way past a constructor that fills a field. Proven
+/// alive against a file that really does build one, so a spelling that drifted out of the
+/// language cannot read as no publisher building one.
+const THE_DOCUMENT_BUILT_BY_HAND: (&str, &str) = (
+    "ResultDocument {",
+    "crates/plateforce-analysis/tests/a_spread_that_leaves_alone_says_which_build_produced_it.rs",
+);
 
 const PUBLISHERS: &[Publisher] = &[
     // The terminal and the browser tab assemble `ResultDocument`, which fills the block from
@@ -111,18 +135,23 @@ fn every_publisher_names_the_one_generator() {
     println!("{} publishers checked", PUBLISHERS.len());
 }
 
-/// And none of them writes one.
+/// And none of them writes one, or builds the document that fills it by hand.
+///
+/// Two ways past the constructor, so two patterns. A publisher defining a generator of its own
+/// is a second home for the sentence; a publisher assembling `ResultDocument` field by field
+/// reaches the field itself, which `ResultDocument::of` not taking it does not stop.
 #[test]
 fn no_publisher_writes_a_generator_of_its_own() {
     let (construction, _) = A_GENERATOR_OF_ITS_OWN;
+    let (by_hand, _) = THE_DOCUMENT_BUILT_BY_HAND;
     let mut offences: Vec<String> = Vec::new();
     for publisher in PUBLISHERS {
         let text = source(publisher.path);
         if text.contains(construction) {
             offences.push(format!("{} defines {construction}", publisher.path));
         }
-        if text.contains(AN_EMPTY_BLOCK) {
-            offences.push(format!("{} publishes {AN_EMPTY_BLOCK}", publisher.path));
+        if text.contains(by_hand) {
+            offences.push(format!("{} assembles {by_hand}", publisher.path));
         }
     }
     assert!(
@@ -133,9 +162,10 @@ fn no_publisher_writes_a_generator_of_its_own() {
 
 /// The control on the guard above, which is the one that can pass by looking at nothing.
 ///
-/// Both patterns have to be shown alive somewhere: a spelling that drifted out of the
-/// language matches nothing, and matching nothing in a publisher is what that guard reports
-/// as clean.
+/// Both patterns are shown alive in a file that really carries them: a spelling that drifted
+/// out of the language matches nothing, and matching nothing in a publisher is what that
+/// guard reports as clean. Neither is proven against this file, because a pattern that only
+/// matches its own declaration is a set compared with itself.
 #[test]
 fn the_spellings_a_second_generator_would_match_still_match_a_first_one() {
     let (construction, proven_in) = A_GENERATOR_OF_ITS_OWN;
@@ -144,10 +174,62 @@ fn the_spellings_a_second_generator_would_match_still_match_a_first_one() {
         "{construction} matches nothing in {proven_in}, so it would match nothing in a \
          publisher either and that guard would read as clean"
     );
+    let (by_hand, built_in) = THE_DOCUMENT_BUILT_BY_HAND;
     assert!(
-        source(file!()).contains(AN_EMPTY_BLOCK),
-        "{AN_EMPTY_BLOCK} matches nothing here, so it would match nothing in a publisher \
-         either"
+        source(built_in).contains(by_hand),
+        "{by_hand} matches nothing in {built_in}, which does build one, so it would match \
+         nothing in a publisher either"
+    );
+}
+
+/// The block is filled where the document is assembled, and no caller states one.
+///
+/// This is what the two surfaces passing an empty map ran into, and it is a signature rather
+/// than a convention: an argument re-added here is an argument a publisher has to pass, and
+/// an empty map is what both of them passed. The compiler says nothing about the value.
+#[test]
+fn the_document_fills_the_block_and_no_caller_states_one() {
+    let (path, fills_it, impl_block) = THE_DOCUMENT;
+    let text = source(path);
+    assert!(
+        text.contains(fills_it),
+        "{path} assembles the document and never writes {fills_it}, so the field is coming \
+         from somewhere else"
+    );
+
+    let at = text
+        .find(impl_block)
+        .unwrap_or_else(|| panic!("{path} declares no {impl_block}"));
+    let body = &text[at + impl_block.len()..];
+    let opens = body
+        .find("pub fn of(")
+        .unwrap_or_else(|| panic!("{impl_block} in {path} declares no constructor"));
+    let rest = &body[opens + "pub fn of(".len()..];
+    let end = rest
+        .find(") -> Self {")
+        .unwrap_or_else(|| panic!("the constructor under {impl_block} never closes its arguments"));
+    let arguments: Vec<&str> = rest[..end]
+        .lines()
+        .map(|line| line.trim().split(':').next().unwrap_or_default())
+        .filter(|name| !name.is_empty())
+        .collect();
+
+    // The control, and the one that has to discriminate: a parse that found the other
+    // constructor in this file, or stopped early, reports a list without this name in it, and
+    // no `descriptions` is in that list either, so the assertion below would pass on it.
+    assert!(
+        arguments.contains(&AN_ARGUMENT_ONLY_THIS_CONSTRUCTOR_TAKES),
+        "the arguments read under {impl_block} are {arguments:?}, which does not include \
+         {AN_ARGUMENT_ONLY_THIS_CONSTRUCTOR_TAKES}, so this read is some other constructor's"
+    );
+    assert!(
+        !arguments.contains(&"descriptions"),
+        "the constructor under {impl_block} takes the block from its caller again, and both \
+         callers passed an empty one: {arguments:?}"
+    );
+    println!(
+        "{} arguments stated by the caller: {arguments:?}",
+        arguments.len()
     );
 }
 
