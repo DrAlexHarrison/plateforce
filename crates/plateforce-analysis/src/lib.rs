@@ -41,8 +41,7 @@ pub use binding::{
     WEIGHING_CONSTRUCT,
 };
 pub use chain::{
-    accounts_of, chain_names, chain_of, chains_of, descriptions_of, metrics_resting_on,
-    MetricChain,
+    accounts_of, chain_names, chain_of, chains_of, descriptions_of, metrics_resting_on, MetricChain,
 };
 pub use pipeline::run;
 pub use request::{

@@ -728,7 +728,6 @@ pub fn double_probe_json(count: usize) -> String {
     ok(Probe { values, bits })
 }
 
-
 /// What this surface can be asked to do, reported by naming the entry points it dispatches
 /// rather than by forwarding a document every surface would agree with.
 ///
