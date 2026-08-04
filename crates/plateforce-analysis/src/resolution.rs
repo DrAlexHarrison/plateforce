@@ -522,12 +522,19 @@ impl BoundMethod {
     /// so the distinction has to survive into the record rather than living only here.
     pub fn into_provenance(
         &self,
-        registry_version: Option<String>,
-        registry_digest: Option<String>,
+        registry: &plateforce_core::provenance::RegistryStamp,
         acquisition_complete: bool,
         depends_on: Vec<plateforce_core::Provenance>,
     ) -> plateforce_core::Provenance {
-        use plateforce_core::provenance::{ChoiceRecord, ParameterRecord};
+        use plateforce_core::provenance::{ChoiceRecord, ParameterRecord, RegistryStamp};
+
+        // Destructured without a rest pattern, so a fact added to the stamp is a compile error
+        // here rather than one this record quietly stops carrying.
+        let RegistryStamp {
+            version: registry_version,
+            declared_version: registry_declared_version,
+            digest: registry_digest,
+        } = registry.clone();
 
         // The rule recorded a source per name as it read it. Anything absent was never read
         // by this rule, so it takes the weakest claim rather than being asserted as stated.
@@ -568,6 +575,7 @@ impl BoundMethod {
                 .collect(),
             depends_on,
             registry_version,
+            registry_declared_version,
             registry_digest,
             acquisition_complete,
             not_read: self.unread_parameters.clone(),

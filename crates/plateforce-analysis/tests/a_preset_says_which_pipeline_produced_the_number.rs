@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use plateforce_analysis::binding::{bindings_for_construct, executable_constructs};
 use plateforce_analysis::request::preset_named;
 use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
-use plateforce_core::provenance::ParameterSource;
+use plateforce_core::provenance::{ParameterSource, RegistryStamp};
 use plateforce_core::{RefusalCode, Trial};
 use plateforce_registry::{Citation, CitationRole, Preset, PresetBinding, Registry};
 
@@ -150,7 +150,7 @@ fn a_value_the_pipeline_supplied_is_recorded_as_cited_rather_than_stated() {
         Some("owen2014")
     );
 
-    let chain = onset.into_provenance(None, None, false, Vec::new());
+    let chain = onset.into_provenance(&RegistryStamp::none(), false, Vec::new());
     assert_eq!(
         chain.method_source,
         ParameterSource::Cited,
@@ -211,7 +211,7 @@ fn a_construct_the_source_is_silent_about_is_not_attributed_to_it() {
     );
     assert_eq!(
         takeoff
-            .into_provenance(None, None, false, Vec::new())
+            .into_provenance(&RegistryStamp::none(), false, Vec::new())
             .method_source,
         ParameterSource::Stated
     );
@@ -402,7 +402,7 @@ fn a_rule_accepted_from_the_recommendation_is_not_recorded_as_one_the_caller_sta
     let onset = row(&bound, "onset.threshold.noise_relative");
     assert_eq!(
         onset
-            .into_provenance(None, None, false, Vec::new())
+            .into_provenance(&RegistryStamp::none(), false, Vec::new())
             .method_source,
         ParameterSource::Recommended
     );
@@ -410,7 +410,7 @@ fn a_rule_accepted_from_the_recommendation_is_not_recorded_as_one_the_caller_sta
     let takeoff = row(&bound, "takeoff.threshold.absolute_force");
     assert_eq!(
         takeoff
-            .into_provenance(None, None, false, Vec::new())
+            .into_provenance(&RegistryStamp::none(), false, Vec::new())
             .method_source,
         ParameterSource::Stated,
         "a rule nobody recommended is recorded as accepted from a recommendation"

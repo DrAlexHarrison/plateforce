@@ -30,7 +30,13 @@ pub struct TrialSource {
 pub struct ResultDocument {
     pub plateforce_version: String,
     pub trial: TrialSource,
+    /// The revision the caller pinned, and null when they pinned none. Null rather than
+    /// absent: a missing key cannot be told apart from a surface that never carried the
+    /// field, and a reader has no way to ask the document which happened.
     pub registry_version: Option<String>,
+    /// The revision the registry names about itself, and null where it names none. What the
+    /// data claims, never what the caller cited.
+    pub registry_declared_version: Option<String>,
     pub registry_digest: Option<String>,
     pub acquisition_complete: bool,
     pub weighing_start_index: usize,
@@ -129,8 +135,7 @@ impl ResultDocument {
     pub fn of(
         plateforce_version: impl Into<String>,
         trial: TrialSource,
-        registry_version: Option<String>,
-        registry_digest: Option<String>,
+        registry: &plateforce_core::provenance::RegistryStamp,
         acquisition_complete: bool,
         response: &AnalysisResponse,
         descriptions: BTreeMap<String, String>,
@@ -138,10 +143,19 @@ impl ResultDocument {
     ) -> Self {
         let refusals = response.refusals.iter().map(refusal_from_rule).collect();
 
+        // Destructured without a rest pattern, so a fact added to the stamp is a compile error
+        // here rather than one this document quietly stops carrying.
+        let plateforce_core::provenance::RegistryStamp {
+            version: registry_version,
+            declared_version: registry_declared_version,
+            digest: registry_digest,
+        } = registry.clone();
+
         Self {
             plateforce_version: plateforce_version.into(),
             trial,
             registry_version,
+            registry_declared_version,
             registry_digest,
             acquisition_complete,
             weighing_start_index: response.weighing_start_index,

@@ -98,6 +98,18 @@ impl Provenance {
         self.chain.provenance.registry_version.as_deref()
     }
 
+    /// The revision the registry names about itself, and None where it names none.
+    ///
+    /// Distinct from `registry_version` above, which is what the caller pinned. Either can be
+    /// present without the other: a caller can pin a revision the registry does not claim,
+    /// and a registry can claim one nobody pinned. `Registry.declared_version` answers the
+    /// same question about a registry a notebook is holding; this answers it about the
+    /// registry that produced this number.
+    #[getter]
+    fn registry_declared_version(&self) -> Option<&str> {
+        self.chain.provenance.registry_declared_version.as_deref()
+    }
+
     /// Identifies the registry files this value was computed against, measured from their
     /// bytes.
     #[getter]
@@ -168,10 +180,11 @@ impl Provenance {
 
     fn __repr__(&self) -> String {
         format!(
-            "Provenance(method_id='{}', bound_parameters={}, registry_version={}, registry_digest={}, acquisition_complete={})",
+            "Provenance(method_id='{}', bound_parameters={}, registry_version={}, registry_declared_version={}, registry_digest={}, acquisition_complete={})",
             self.chain.provenance.method_id,
             format_parameters(&self.chain.provenance.bound_parameters()),
             optional(self.chain.provenance.registry_version.as_deref()),
+            optional(self.chain.provenance.registry_declared_version.as_deref()),
             optional(self.chain.provenance.registry_digest.as_deref()),
             if self.chain.provenance.acquisition_complete {
                 "True"

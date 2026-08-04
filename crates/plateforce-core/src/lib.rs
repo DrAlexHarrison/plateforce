@@ -79,7 +79,9 @@ pub struct Provenance {
     pub parameters: Vec<crate::provenance::ParameterRecord>,
     /// Choices between named alternatives, which move the number as far as the numbers do.
     pub choices: Vec<crate::provenance::ChoiceRecord>,
-    /// The revision a caller pinned, and None when they pinned none.
+    /// The revision a caller pinned, and None when they pinned none. Never filled from the
+    /// registry's own claim: a reader takes a value here as the author having chosen it, and
+    /// `registry_declared_version` below is where the registry's claim goes.
     pub registry_version: Option<String>,
     /// Digest of the registry files that were read, measured rather than declared, so it
     /// identifies them without resting on a caller's word. None when no registry was read.
@@ -114,6 +116,14 @@ pub struct Provenance {
     /// result can carry it on some steps and not others.
     #[serde(default)]
     pub preset: Option<crate::provenance::PresetAttribution>,
+    /// The revision the registry names about itself, and None where it names none. A claim
+    /// the data makes, never a caller's, which is why it is not `registry_version`.
+    ///
+    /// Not recoverable from the digest: the walk that measures the digest reads only `toml`
+    /// files and the revision lives in a `VERSION` file beside them, so two registries with
+    /// byte-identical rules and different revisions carry one digest and two claims.
+    #[serde(default)]
+    pub registry_declared_version: Option<String>,
 }
 
 /// A record that says nothing about how its method was chosen says the caller chose it, which
@@ -138,6 +148,7 @@ impl Provenance {
             choices: Vec::new(),
             depends_on: Vec::new(),
             registry_version: None,
+            registry_declared_version: None,
             registry_digest: None,
             acquisition_complete: false,
             not_read: Vec::new(),

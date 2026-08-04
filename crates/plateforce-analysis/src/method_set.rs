@@ -46,10 +46,18 @@ pub struct MethodSet {
     /// Taken over every file under the registry root. It identifies which registry a
     /// number came from whether or not that registry declares a version.
     pub registry_digest: String,
-    /// The revision the registry declares for itself, when it declares one. A registry
-    /// with no declared revision reads as unnamed rather than as an empty name.
+    /// The revision the caller pinned, when they pinned one. Absent on a run whose caller
+    /// pinned nothing, which is a fact about the request rather than about the registry.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub registry_version: Option<String>,
+    /// The revision the registry declares for itself, when it declares one. A registry
+    /// with no declared revision reads as unnamed rather than as an empty name.
+    ///
+    /// Separate from the pin above. This document is what a colleague reads to reproduce a
+    /// run, and one field standing for both would tell them the author cited a revision the
+    /// data named itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registry_declared_version: Option<String>,
     /// Present when a preset produced this document. The bindings are still written out in
     /// full, so the document reads the same whether a preset produced it or a person did.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -74,8 +82,7 @@ impl MethodSet {
     pub fn of(
         request: &AnalysisRequest,
         plateforce_version: impl Into<String>,
-        registry_digest: impl Into<String>,
-        registry_version: Option<String>,
+        registry: &plateforce_core::provenance::RegistryStamp,
     ) -> Self {
         let mut bindings = Vec::new();
         if !request.weighing.method_id.is_empty() {
@@ -103,9 +110,32 @@ impl MethodSet {
         Self {
             schema: METHOD_SET_SCHEMA.to_string(),
             plateforce_version: plateforce_version.into(),
-            registry_digest: registry_digest.into(),
-            registry_version,
-            preset: None,
+            ..Self::stamped(registry, None, bindings)
+        }
+    }
+
+    /// The three registry fields and the bindings, filled once for both constructors so the
+    /// document says the same thing about its registry whichever one wrote it.
+    ///
+    /// An unread registry writes an empty digest, which is what this document has always
+    /// meant by one: the field is a name rather than an option, and there is nothing to name.
+    fn stamped(
+        registry: &plateforce_core::provenance::RegistryStamp,
+        preset: Option<String>,
+        bindings: Vec<MethodSetBinding>,
+    ) -> Self {
+        let plateforce_core::provenance::RegistryStamp {
+            version,
+            declared_version,
+            digest,
+        } = registry.clone();
+        Self {
+            schema: METHOD_SET_SCHEMA.to_string(),
+            plateforce_version: String::new(),
+            registry_digest: digest.unwrap_or_default(),
+            registry_version: version,
+            registry_declared_version: declared_version,
+            preset,
             bindings,
         }
     }
@@ -131,8 +161,7 @@ impl MethodSet {
     pub fn from_preset(
         preset: &Preset,
         plateforce_version: impl Into<String>,
-        registry_digest: impl Into<String>,
-        registry_version: Option<String>,
+        registry: &plateforce_core::provenance::RegistryStamp,
     ) -> Result<Self, Box<Refusal>> {
         let mut bindings = Vec::new();
         for binding in &preset.bindings {
@@ -156,12 +185,8 @@ impl MethodSet {
         }
 
         Ok(Self {
-            schema: METHOD_SET_SCHEMA.to_string(),
             plateforce_version: plateforce_version.into(),
-            registry_digest: registry_digest.into(),
-            registry_version,
-            preset: Some(preset.id.clone()),
-            bindings,
+            ..Self::stamped(registry, Some(preset.id.clone()), bindings)
         })
     }
 

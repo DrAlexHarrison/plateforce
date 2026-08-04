@@ -73,6 +73,52 @@ impl ParameterSource {
     }
 }
 
+/// Which registry produced a number, as the three separate facts a reader asks for.
+///
+/// One record rather than three arguments. All three are `Option<String>`, so a call site
+/// that transposed a pair would compile and publish a digest under a revision's name. Two of
+/// them already were transposed: the terminal and the browser passed the registry's own
+/// claim into the field reserved for the caller's pin, and every result they wrote told a
+/// reader the author had chosen a revision nobody chose.
+///
+/// Every consumer destructures it without a rest pattern, so a fact added here is a compile
+/// error at each site rather than a field that quietly stops being reported.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RegistryStamp {
+    /// The revision a caller pinned, and None when they pinned none.
+    pub version: Option<String>,
+    /// The revision the registry names about itself, and None where it names none.
+    pub declared_version: Option<String>,
+    /// Digest of the files that were read, measured rather than declared. None when no
+    /// registry was read at all.
+    pub digest: Option<String>,
+}
+
+impl RegistryStamp {
+    /// The stamp for a result computed without reading a registry: nothing pinned, nothing
+    /// claimed, nothing measured.
+    pub fn none() -> Self {
+        Self::default()
+    }
+
+    /// The stamp for a registry read without a pin, which is every run whose caller named no
+    /// revision. The commonest case, and the one the defect this type exists to prevent was
+    /// found in.
+    pub fn unpinned(declared_version: Option<String>, digest: Option<String>) -> Self {
+        Self {
+            version: None,
+            declared_version,
+            digest,
+        }
+    }
+
+    /// The same stamp with a caller's pin on it.
+    pub fn pinned_to(mut self, version: Option<String>) -> Self {
+        self.version = version;
+        self
+    }
+}
+
 /// The named published pipeline a step's rule and values were adopted from.
 ///
 /// Carried per step rather than per result, because a pipeline binds the slots its source

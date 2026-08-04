@@ -77,6 +77,10 @@ pub fn fingerprint(
             at("registry_version"),
             step.registry_version.clone().unwrap_or_default(),
         ));
+        // `registry_declared_version` is deliberately not material. Two labs whose rule bytes
+        // are identical computed the same quantity whatever their VERSION files say, and the
+        // digest above already separates labs whose bytes differ. Hashing the claim would make
+        // a VERSION-only edit break every match already recorded against those rules.
     }
 
     material.push((
@@ -147,18 +151,33 @@ pub fn format_parameters(parameters: &[(String, f64)]) -> String {
     format!("{{{body}}}")
 }
 
-/// Names the registry behind a result: the pinned revision, the measured digest, or both.
-/// None when the result was computed without reading a registry.
+/// Names the registry behind a result: what the caller pinned, what the registry claims about
+/// itself, and the measured digest, in that order and only the ones there are. None when the
+/// result was computed without reading a registry.
+///
+/// The two revisions are worded apart rather than printed as one number, because a reader who
+/// cannot tell them apart reads the registry's claim as the author's citation. That is the
+/// sentence this line used to print on every unpinned terminal run.
 fn registry_line(provenance: &Provenance) -> Option<String> {
-    match (
-        provenance.registry_version.as_deref(),
-        provenance.registry_digest.as_deref(),
-    ) {
-        (Some(version), Some(digest)) => Some(format!("registry {version} ({digest})")),
-        (Some(version), None) => Some(format!("registry {version}")),
-        (None, Some(digest)) => Some(format!("registry {digest}")),
-        (None, None) => None,
+    let mut said = String::new();
+    if let Some(pinned) = provenance.registry_version.as_deref() {
+        said.push_str(&format!(" pinned to {pinned}"));
     }
+    if let Some(declared) = provenance.registry_declared_version.as_deref() {
+        said.push_str(&format!(" declaring {declared}"));
+    }
+    if let Some(digest) = provenance.registry_digest.as_deref() {
+        // Bare when it stands alone, parenthesised behind a revision it qualifies.
+        said.push_str(&if said.is_empty() {
+            format!(" {digest}")
+        } else {
+            format!(" ({digest})")
+        });
+    }
+    if said.is_empty() {
+        return None;
+    }
+    Some(format!("registry{said}"))
 }
 
 #[cfg(test)]

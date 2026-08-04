@@ -56,11 +56,15 @@ fn registry_this_build_carries() -> Result<CoreRegistry, CoreRegistryError> {
 /// is measured from the bytes rather than asserted about them.
 #[derive(Clone)]
 pub struct RegistryIdentity {
-    pub digest: Option<String>,
-    pub version: Option<String>,
+    /// What every record this registry produces says about which registry produced it: the
+    /// caller's pin, the registry's own claim, and the measured digest.
+    pub stamp: plateforce_core::provenance::RegistryStamp,
     /// Every id this registry carries. A result reports a method as registry backed only
     /// when the registry both holds it and passed its own validator, and the rules a
     /// binding composes onto the one the caller named have to be judged the same way.
+    ///
+    /// Beside the stamp rather than in it: this is what the registry holds, and the stamp is
+    /// what a result says about where it came from.
     pub method_ids: Arc<Vec<String>>,
 }
 
@@ -887,8 +891,11 @@ impl Registry {
     /// What every entry handed out of this registry stamps on the results it produces.
     fn identity(&self) -> RegistryIdentity {
         RegistryIdentity {
-            digest: Some(self.inner.content_digest.clone()),
-            version: self.version.clone(),
+            stamp: plateforce_core::provenance::RegistryStamp::unpinned(
+                self.inner.declared_version.clone(),
+                Some(self.inner.content_digest.clone()),
+            )
+            .pinned_to(self.version.clone()),
             method_ids: Arc::new(self.inner.methods.keys().cloned().collect()),
         }
     }

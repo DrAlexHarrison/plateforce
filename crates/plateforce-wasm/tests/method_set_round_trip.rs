@@ -38,11 +38,17 @@ fn owen_request() -> AnalysisRequest {
 }
 
 fn document_of(request: &AnalysisRequest) -> MethodSet {
+    // A registry that declares one revision, read by a caller who pinned another. The two
+    // are deliberately different: a document that used one string for both would read as
+    // correct whichever field the writer put it in.
     MethodSet::of(
         request,
         "0.1.0",
-        "fnv1a-deadbeef",
-        Some("2026-07-25".into()),
+        &plateforce_core::provenance::RegistryStamp::unpinned(
+            Some("2026-07-25".into()),
+            Some("fnv1a-deadbeef".into()),
+        )
+        .pinned_to(Some("my-lab-2026-03".into())),
     )
 }
 

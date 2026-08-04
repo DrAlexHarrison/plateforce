@@ -26,6 +26,8 @@ countermovement_jump <- S7::new_class(
     signals = S7::class_list,
     warnings = S7::class_character,
     refusals = S7::class_list,
+    registry_version = S7::class_character,
+    registry_declared_version = S7::class_character,
     registry_digest = S7::class_character
   )
 )
@@ -101,6 +103,11 @@ pf_value <- function(x, quantity) {
 #'   Every value it supplies is recorded as cited, naming the pipeline, so a result reached
 #'   this way is a different record from one reached by typing the same numbers.
 #' @param registry Directory holding the registry, as in [pf_registry()].
+#' @param registry_version The revision of the registry data to cite in the result. Absent,
+#'   the result names no pinned revision and reports the one the registry declares for
+#'   itself. The two are recorded separately, because a revision the caller cited and one
+#'   the data claimed about itself are different facts and a reader acts on them
+#'   differently.
 #' @return A [countermovement_jump].
 #' @export
 #' @examples
@@ -130,7 +137,8 @@ analyse_countermovement_jump <- function(trial,
                                         takeoff_index = NULL,
                                         touchdown_index = NULL,
                                         derived = NULL,
-                                        registry = NULL) {
+                                        registry = NULL,
+                                        registry_version = NULL) {
   request <- analysis_request_of(
     weighing = weighing, onset = onset, takeoff = takeoff, derived = derived,
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
@@ -140,7 +148,7 @@ analyse_countermovement_jump <- function(trial,
     takeoff_options = takeoff_options,
     weighing_start_index = weighing_start_index, onset_index = onset_index,
     takeoff_index = takeoff_index, touchdown_index = touchdown_index,
-    registry = registry
+    registry = registry, registry_version = registry_version
   )
   # The pipeline is laid on by the engine rather than here. A second implementation of
   # which values a pipeline supplied would be a second answer to the question this package
@@ -165,7 +173,7 @@ analysis_request_of <- function(weighing, onset, takeoff,
                                 takeoff_options = NULL,
                                 weighing_start_index = NULL, onset_index = NULL,
                                 takeoff_index = NULL, touchdown_index = NULL,
-                                registry = NULL) {
+                                registry = NULL, registry_version = NULL) {
   request_of(
     weighing = drop_empty(list(
       method_id = weighing,
@@ -190,6 +198,8 @@ analysis_request_of <- function(weighing, onset, takeoff,
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     gravity_source = gravity_claim(gravity_meters_per_second_squared),
     registry_digest = registry_digest(registry),
+    registry_version = registry_version,
+    registry_declared_version = registry_declared_version(registry),
     registry_backed_ids = registry_backed_ids(registry)
   )
 }
@@ -240,8 +250,8 @@ as_index <- function(index) {
 }
 
 jump_from_response <- function(response) {
-  digest <- response[["registry_digest"]]
-  if (is.null(digest)) digest <- character(0)
+  stamp <- registry_stamp_of(response)
+  digest <- stamp$digest
   complete <- isTRUE(response[["acquisition_complete"]])
 
   bound <- response[["bound_methods"]]
@@ -249,7 +259,7 @@ jump_from_response <- function(response) {
 
   # One record per rule, built once. Eleven quantities naming the same eight rules would
   # otherwise build the same record eighty-eight times.
-  records <- lapply(by_method, provenance_from_bound_method, digest, complete)
+  records <- lapply(by_method, provenance_from_bound_method, stamp, complete)
 
   accounts <- response[["descriptions"]]
 
@@ -268,7 +278,8 @@ jump_from_response <- function(response) {
       method_id = if (is.null(computed_by)) character(0) else as.character(computed_by),
       parameters = EMPTY_BINDING(),
       choices = EMPTY_BINDING(),
-      registry_version = character(0),
+      registry_version = stamp$version,
+      registry_declared_version = stamp$declared_version,
       registry_digest = digest,
       acquisition_complete = complete,
       depends_on = chain
@@ -296,6 +307,8 @@ jump_from_response <- function(response) {
     signals = lapply(response[["signals"]], signal_from_list),
     warnings = as.character(unlist(response[["warnings"]])),
     refusals = lapply(response[["refusals"]], refusal_condition),
+    registry_version = stamp$version,
+    registry_declared_version = stamp$declared_version,
     registry_digest = digest
   )
 }
