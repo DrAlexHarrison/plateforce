@@ -24,8 +24,8 @@
 pub mod binding;
 pub mod boundaries;
 pub mod capability;
-pub mod chain;
 pub(crate) mod centre_of_mass;
+pub mod chain;
 pub mod conditioning;
 pub mod derived;
 pub mod document;

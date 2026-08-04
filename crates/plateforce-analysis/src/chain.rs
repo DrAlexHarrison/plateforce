@@ -82,7 +82,10 @@ fn step(
     let provenance = bound.into_provenance(
         registry,
         acquisition_complete,
-        inputs.iter().map(|input| input.provenance.clone()).collect(),
+        inputs
+            .iter()
+            .map(|input| input.provenance.clone())
+            .collect(),
     );
     ProvenanceChain {
         enumerated_choices: bound.enumerated_choices(),
@@ -113,7 +116,10 @@ fn unbound_step(
         registry_declared_version: declared_version,
         registry_digest: digest,
         acquisition_complete,
-        depends_on: inputs.iter().map(|input| input.provenance.clone()).collect(),
+        depends_on: inputs
+            .iter()
+            .map(|input| input.provenance.clone())
+            .collect(),
         ..Provenance::of(method_id)
     };
     ProvenanceChain {
@@ -186,7 +192,14 @@ pub fn chain_of(
 
     let built: Vec<ProvenanceChain> = steps
         .iter()
-        .map(|bound| step(bound, registry, acquisition_complete, inputs_of(bound, &operators)))
+        .map(|bound| {
+            step(
+                bound,
+                registry,
+                acquisition_complete,
+                inputs_of(bound, &operators),
+            )
+        })
         .collect();
 
     // Operators whose landmark rule is not among the contributors, which would otherwise be
