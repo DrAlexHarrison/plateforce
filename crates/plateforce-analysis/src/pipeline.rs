@@ -147,8 +147,14 @@ pub fn run(
 
     if let (Some(onset), Some(takeoff_at)) = (onset_index, takeoff_index) {
         if onset >= takeoff_at {
+            // Named to the numbers it reaches. It used to say every interval below was
+            // meaningless, which was true while every interval was assembled from all three
+            // landmarks at once. Flight time and the height taken from it are measured from
+            // takeoff to the return to the plate and are unaffected by where onset landed, so
+            // a warning covering them would send a reader to discard a number that is sound.
             warnings.push(
-                "onset is at or after takeoff, so every interval below is meaningless".into(),
+                "onset is at or after takeoff, so every number bounded by onset is meaningless"
+                    .into(),
             );
         }
     }
@@ -641,13 +647,25 @@ fn run_spine_default(
             });
         }
     }
-    outcome
-        .values
-        .into_iter()
-        .map(|(key, value)| SpineQuantity {
-            key,
-            value,
-            chain: chain_behind(&context, key, conditioning_ids),
+    // Every quantity the row declares, whether or not the rule produced it. A rule that
+    // declined still consulted something, and the chain is what it consulted: a number's
+    // absence has a cause, the cause is a rule on that chain, and a reader who cannot see the
+    // chain cannot reach it. `spread.rs` reads exactly this to say why a swept variant came
+    // back empty, and it will only name a rule the quantity itself says it rests on.
+    //
+    // Read off the row rather than off what ran, for the reason `keys_the_request_bound` is:
+    // what a rule reports is settled by its declaration, before anything computes one.
+    binding
+        .quantities
+        .iter()
+        .map(|declared| SpineQuantity {
+            key: declared.key,
+            value: outcome
+                .values
+                .iter()
+                .find(|(key, _)| *key == declared.key)
+                .and_then(|(_, value)| *value),
+            chain: chain_behind(&context, declared.key, conditioning_ids),
         })
         .collect()
 }
