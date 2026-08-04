@@ -46,6 +46,28 @@ single jump before it was archived.
 On this trace the shipped takeoff rules place takeoff on the step-off and report 58.3 ms;
 `takeoff.threshold.landing_shape` places it on the jump and reports 2269.2 ms.
 
+## `synthetic_untrimmed_step_off_after_jump.force.txt`
+
+The same pillar from the other end, and the one recording in this directory on which the two
+landmarks come back in the wrong order. Synthetic, and named so. One column of vertical force
+at 1200 Hz: 1.2 s of quiet standing, a countermovement jump with its flight and its landing, a
+settle, then the athlete steps off the plate and the recording keeps running for two more
+seconds. No athlete produced it.
+
+The flight is not a number anybody typed. `audit/build_untrimmed_step_off_after_jump_fixture.py`
+builds the trace up to takeoff, solves its propulsive peak for a takeoff velocity of 2.30 m/s by
+bisection, integrates the net impulse over system weight, and gives the flight exactly the 2v/g
+that impulse buys. So jump height from the impulse and from the flight time both read 26.97 cm
+on it, rather than one being asserted beside the other. Propulsive peak 3.08 system weights,
+landing peak 4.00, countermovement velocity minimum 0.88 m/s downward, time to takeoff 0.67 s.
+
+Because the plate reads emptiest after the athlete steps off rather than during the flight,
+`onset.threshold.adaptive_trailing_window`, whose entry says it keeps the last departure from
+quiet before the force extremum, places the start of the jump at 3.5433 s against a takeoff of
+1.8567 s. Swept at their shipped defaults, 8 of the 50 combinations of 2 weighing rules, 5 onset
+rules and 5 takeoff rules invert the landmarks here; the corpus produces that on 0 of the 12,300
+combinations it offers.
+
 ## `landing_shape_placements_subject01.tsv`
 
 Where the reference implementation of the landing-shape rule placed takeoff on subject 01's

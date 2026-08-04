@@ -3039,13 +3039,13 @@ case two flight phases descending crossing on two_flight_phases
 case two flight phases flight noise on two_flight_phases
   window 0..600
   onset None
-  takeoff Some(600)
-  touchdown None
-  levels 600.0 0.0 Some(600.0) Some(600.0) Some(1420.179435582361)
+  takeoff Some(1200)
+  touchdown Some(1600)
+  levels 600.0 0.0 Some(600.0) Some(600.0) Some(0.0)
   metric system_weight_newtons Some(600.0)
   metric system_mass_kilograms Some(61.1829727786757)
   metric onset_time_seconds None
-  metric takeoff_time_seconds Some(0.5)
+  metric takeoff_time_seconds Some(1.0)
   metric time_to_takeoff_seconds None
   metric flight_time_seconds None
   metric takeoff_velocity_meters_per_second None

@@ -1,7 +1,10 @@
 //! What a reader is told when the two landmarks come back in the wrong order.
 //!
-//! On a recording holding a step off the plate before the jump, one published takeoff rule
-//! takes the step-off as the flight phase and places takeoff before the jump has started. The
+//! On a recording where the athlete steps off the plate after landing, one published onset rule
+//! places the start of the jump on the step-off, two seconds after the takeoff another rule
+//! found in the jump itself. The rule searches back from the recording's force extremum and
+//! keeps the last departure from quiet before it, which its entry says in those words, and on
+//! an untrimmed trace the emptiest the plate ever reads is the athlete standing beside it. The
 //! analysis is right to measure nothing across an interval that runs backwards, and it
 //! suppresses seven quantities. Until this signal it said so in one sentence in `warnings`,
 //! carrying no status, no value and no list of the columns it accounted for, so a reader
@@ -11,6 +14,11 @@
 //! columns that came back without a value. A signal naming fewer would leave a blank cell with
 //! nothing pointing at it, and one naming more would claim a number was absent when it is
 //! sitting in the table.
+//!
+//! The recording is the one built for this, not the sibling whose step-off comes first. Swept
+//! at their shipped defaults, 8 of the 50 combinations of 2 weighing rules, 5 onset rules and 5
+//! takeoff rules invert the landmarks on it, and 0 of the 12,300 the 246-trial corpus offers do,
+//! because every trial in that corpus was trimmed to a single jump before it was archived.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -20,14 +28,15 @@ use plateforce_core::{read_trial_from_path, Trial};
 
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../plateforce-conformance/fixtures/synthetic_untrimmed_step_off.force.txt"
+    "/../plateforce-conformance/fixtures/synthetic_untrimmed_step_off_after_jump.force.txt"
 );
 
 const CORPUS_SAMPLE_RATE_HZ: f64 = 1200.0;
 
-/// The instants these rules place on this recording. Takeoff lands before the jump begins.
-const ONSET_SECONDS: f64 = 1.2008333333333334;
-const TAKEOFF_SECONDS: f64 = 1.1533333333333333;
+/// The instants these rules place on this recording. Onset lands on the step-off, which is
+/// after the landing, and takeoff on the jump's own flight.
+const ONSET_SECONDS: f64 = 3.5433333333333334;
+const TAKEOFF_SECONDS: f64 = 1.8566666666666667;
 
 fn trial() -> Trial {
     let (trial, _) = read_trial_from_path(FIXTURE, '\t', 0, CORPUS_SAMPLE_RATE_HZ)
@@ -35,7 +44,7 @@ fn trial() -> Trial {
     trial
 }
 
-/// The rules that place takeoff on the step-off, and the rules that do not. Only the trio
+/// The rules that place onset on the step-off, and the rules that do not. Only the trio
 /// changes between the two runs, on one recording.
 fn analyse(weighing: &str, window: &str, onset: &str, takeoff: &str) -> AnalysisResponse {
     let request = AnalysisRequest {
@@ -62,7 +71,7 @@ fn analyse(weighing: &str, window: &str, onset: &str, takeoff: &str) -> Analysis
     run(&trial(), &request).unwrap_or_else(|refusal| panic!("{onset} did not run: {refusal}"))
 }
 
-/// The pair whose takeoff rule reads the step-off as flight.
+/// The pair whose onset rule reads the step-off as the start of the jump.
 fn landmarks_out_of_order() -> AnalysisResponse {
     analyse(
         "bwepoch.adaptive_lowest_variance",
@@ -101,7 +110,7 @@ fn absent_keys(response: &AnalysisResponse) -> BTreeSet<&str> {
 }
 
 #[test]
-fn a_takeoff_placed_before_the_jump_began_is_said_rather_than_left_to_the_blank_cells() {
+fn landmarks_that_came_back_out_of_order_are_said_rather_than_left_to_the_blank_cells() {
     let response = landmarks_out_of_order();
     let onset = response.onset_index.expect("the onset rule answered");
     let takeoff = response.takeoff_index.expect("the takeoff rule answered");
