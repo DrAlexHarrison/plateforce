@@ -2,11 +2,10 @@
 """A workflow's path filter covers every crate whose change could move what it verifies.
 
 A gate that does not run is a gate that passed, and a `paths:` list is a hand-written claim
-about a dependency graph that nobody re-reads when the graph moves. This has now cost two
-silent holes in two days, both in the same workflow: `crates/plateforce-analysis/**` was
-missing until 20519b5, and `crates/plateforce-batch/**` until 2026-08-04, one crate over from
-that fix. In both a push to `main` could move every number Python reports while the job that
-tests Python sat out.
+about a dependency graph that nobody re-reads when the graph moves. Two silent holes in one
+workflow: `crates/plateforce-analysis/**` was missing until 20519b5, and
+`crates/plateforce-batch/**` until 2026-08-04, one crate over from that fix. In both a push to
+`main` could move every number Python reports while the job that tests Python sat out.
 
 So the list is checked against the dependency closure read out of the manifests rather than
 against anybody's memory. A workflow declares its root below, the closure is computed, and a

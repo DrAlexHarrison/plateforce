@@ -8,8 +8,8 @@
   applies to MSIX only: a Win32 EXE or MSI submitted instead is not re-signed and needs a
   purchased certificate.
 
-  The package is deliberately left unsigned. Signing it before submission causes validation
-  failures, because the publisher in the manifest has to match what Partner Center expects.
+  The package is left unsigned: signing it before submission causes validation failures,
+  because the publisher in the manifest has to match what Partner Center expects.
 
 .PARAMETER IdentityName
   The package identity Partner Center reserved, for example Publisher.plateforce.

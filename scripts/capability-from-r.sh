@@ -9,23 +9,22 @@
 # the two sources agreed. The same reading passes a stale package off as a match whenever the
 # drift runs the other way.
 #
-# It builds from the working tree, and that is the whole of what this row asks. The sync
-# defaults to the last commit, which is right for a release tarball and wrong here: the other
-# two rows compile the working tree, so a run against an edited checkout compared three
-# surfaces built from two different sources. Measured on the checkout that added a twentieth
+# It builds from the working tree. The sync defaults to the last commit, which is right for a
+# release tarball and wrong here: the other two rows compile the working tree, so a run against
+# an edited checkout compares three surfaces built from two different sources. Measured on the
+# checkout that added a twentieth
 # refusal code: the CLI and the browser reported twenty and R reported nineteen, which is the
 # same manufactured split one paragraph up, arriving through the sync instead of through the
 # library path.
 #
 # Installed into `target/r-surface/library` rather than the user library, so a gate run does not
-# reach outside the checkout. This row used to run a bare `R CMD INSTALL`, which writes to the
-# machine's default library, so any lane running the capability gate transiently removed and
-# rebuilt the package every other lane's R arm reads: one reported `there is no package called
-# 'plateforce'` and found it gone on retry. The comment here used to say "set `R_LIBS` to install
-# somewhere other than the default library", which recorded the hazard instead of closing it.
+# reach outside the checkout. A bare `R CMD INSTALL` writes to the machine's default library,
+# where one capability run removes and rebuilds the package every concurrent run's R arm reads:
+# the run that met it reported `there is no package called 'plateforce'` and found it gone on
+# retry.
 #
 # The sync, the install and the two refusals it carries, that `R` on this path really is R and
-# that a reported success actually landed a package, are scripts/r-surface.sh's whole subject, so
+# that a reported success landed a package, are scripts/r-surface.sh's whole subject, so
 # it is called rather than repeated here.
 #
 # The sync and the install write to the other stream, because the caller reads this one as

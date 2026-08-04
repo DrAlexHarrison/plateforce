@@ -424,8 +424,8 @@ for where, text in labelled:
 # One witness per source family, and each is located by anchoring on an element id or an
 # entry id rather than by the sweep the scanner runs, so a scanner narrowed to fewer kinds
 # or pointed at the wrong file fails here. Located rather than written out: a literal copied
-# into this file goes stale the first time somebody edits the copy, which is how the previous
-# control came to be asserting a sentence the interface had stopped saying.
+# into this file goes stale the first time somebody edits the copy, and the control then
+# asserts a sentence the interface has stopped saying.
 WITNESSES = (
     (markup, r'id="stage-empty".*?<h2[^>]*>([^<]+)</h2>', "the heading on the first screen"),
     (markup, r'<button[^>]*\bid="load-demo"[^>]*>([^<]+)</button>', "the button that opens a demonstration trial"),

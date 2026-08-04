@@ -120,10 +120,10 @@ check_bundle_payload() {
   echo "bundle wasm matches web/pkg: sha256 $in_the_bundle"
 }
 
-# Four manifests state the version and this used to compare two of them, so the R package
-# and the R crate could name a different release from the desktop and the terminal and
-# nothing said so. The comparison lives in one place now, and the tag is compared against
-# the same four at the top of the release route.
+# Four manifests state the version, and a comparison of any two leaves the R package and the
+# R crate free to name a different release from the desktop and the terminal with nothing
+# saying so. The comparison lives in one place, and the tag is compared against the same four
+# at the top of the release route.
 check_versions() {
   python3 scripts/verify-version-homes.py
 }

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Show that the refusals in `result_parity.py` fire, one cause at a time.
 
-A gate whose coverage list was narrower than the document it guarded is what this proves is
-fixed, and a proof of that kind is worth nothing unless the refusal is watched failing. Each
-case below starts from something that passes, changes one thing, and requires the named
-refusal. A case that produced no fault is reported as a case that proved nothing, because a
+A gate whose coverage list is narrower than the document it guards refuses nothing, and a
+proof of that kind is worth nothing unless the refusal is watched failing. Each case below
+starts from something that passes, changes one thing, and requires the named refusal. A case that produced no fault is reported as a case that proved nothing, because a
 gate that cannot refuse and a gate with nothing to refuse read identically from the outside.
 
 Three families, each with its own control that has to pass before any case in it counts.
@@ -216,12 +215,10 @@ def repair_a_recorded_disagreement(answers, fields):
     naming a disagreement nobody has any more and nobody moves the field into
     `compared_fields`.
 
-    This used to be written against `registry_version`, the one entry whose carriers
-    disagreed. `wsrp/registry-pin` repaired it and took the entry out, and this case was left
-    naming a field the register no longer holds, so it stopped refusing and nothing said so:
-    the script is run by hand and by no workflow. Written against the register itself now, so
-    it cannot go quiet again the next time an entry is discharged. Every entry today records
-    agreement or a single carrier, so the disagreement has to be recorded here first.
+    Written against the register itself rather than a named field: a case naming one field
+    goes quiet the moment that entry is discharged, and this script is run by hand and by no
+    workflow. Every entry today records agreement or a single carrier, so the disagreement has
+    to be recorded here first.
     """
     entry = gate.SURFACES_THAT_DIFFER[gate.ANALYSED]["trial"]
     gate.SURFACES_THAT_DIFFER[gate.ANALYSED]["trial"] = entry._replace(carriers_agree=False)

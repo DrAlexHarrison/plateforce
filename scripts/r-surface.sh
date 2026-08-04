@@ -1,8 +1,7 @@
 #!/bin/bash
 # Builds the R binding out of this working tree and runs its suite against it.
 #
-# Two traps live here and both have cost this project real time, so the script exists rather
-# than the four commands.
+# Two traps live here, so the script exists rather than the four commands.
 #
 # The first is that `R CMD INSTALL` writes to the user library by default, so a run here would
 # leave the machine's installed package built from an uncommitted tree, and every later parity
@@ -11,11 +10,11 @@
 #
 # The second is that the R suite is the surface `cargo test --workspace` does not reach, and the
 # installed package is what the parity gate reads. A worktree change is invisible to it, so the
-# gate reports a real-looking divergence that is staleness. Six of those were read as code
-# defects in one day. Run this before believing any R number.
+# gate reports a real-looking divergence that is staleness. Run this before believing any R
+# number.
 #
-# The install is deliberately not byte-compiled: this is a gate, not a shipped artefact, and the
-# compile is most of the wall clock.
+# The install is not byte-compiled: this is a gate, not a shipped artefact, and the compile is
+# most of the wall clock.
 set -uo pipefail
 
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

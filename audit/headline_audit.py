@@ -5,7 +5,7 @@ Run:
 
 Requires rule_matrix.csv alongside this file. That matrix is derived from a
 re-identifiable 2011 corpus whose consent position is unresolved, so it is not
-released with this repository yet.
+released with this repository.
 
 Reads rule_matrix.csv (244 trials by 56 method variants) and recomputes the spreads, the
 failure rates and the sentinel effects the README quotes, plus the ordinary least products

@@ -90,8 +90,8 @@ def build(propulsive_peak_newtons: float) -> tuple[list[float], int, float, floa
     arc(0.10, 4.0 * SYSTEM_WEIGHT_NEWTONS, 700.0)
     arc(0.25, 700.0, SYSTEM_WEIGHT_NEWTONS)
     level(0.8, SYSTEM_WEIGHT_NEWTONS)
-    # The athlete steps off the plate and the recording keeps running, which is the whole
-    # point of the trace: the emptiest the plate ever reads is here and not in the flight.
+    # The athlete steps off the plate and the recording keeps running, so the emptiest the
+    # plate ever reads is here and not in the flight.
     arc(0.15, SYSTEM_WEIGHT_NEWTONS, 0.0)
     level(2.0, 0.0)
     return force_newtons, takeoff_index, takeoff_velocity, flight_seconds

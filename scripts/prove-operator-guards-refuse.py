@@ -8,7 +8,7 @@ Every case asserts its anchor is in the file before editing, asserts the edit la
 `applied <name>`, and aborts rather than running a test whose result could not be read. A break
 that never applied and a break the guard survived both print a green line.
 
-The result line is read for the test COUNT and the `filtered out` number, never for the word
+The result line is read for the test count and the `filtered out` number, never for the word
 ok: a bare name filter applies to every target in the command.
 
     python3 scripts/prove-operator-guards-refuse.py

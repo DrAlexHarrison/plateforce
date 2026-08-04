@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # The browser's answer to the one committed request, from a bundle built out of this checkout.
 #
-# The row used to be `node scripts/result-from-browser.mjs`, which imports `web/pkg/`,
-# whatever built it and whenever. Measured on this checkout: with the browser's own source
-# edited to pin a revision no caller pinned, and `web/pkg/` left as it was, this gate reported
-# four of four surfaces computing the committed result; rebuilding the bundle and asking again
-# named the field and the value. A gate that passes on a stale artifact certifies a binary
-# that may predate the change under review, which is what
+# The bundle is built here rather than read as found: `scripts/result-from-browser.mjs` alone
+# imports `web/pkg/`, whatever built it and whenever. Measured on this checkout: with the
+# browser's own source edited to pin a revision no caller pinned, and `web/pkg/` left as it
+# was, this gate reported four of four surfaces computing the committed result; rebuilding the
+# bundle and asking again named the field and the value. A gate that passes on a stale artifact
+# certifies a binary that may predate the change under review, which is what
 # `scripts/result-parity-surfaces.txt` says at the top no row may do.
 #
 # The Python row builds what it asks in scripts/install-python-wheel.sh and the R row in
-# scripts/result-from-r.sh, each for the same reason and each after the same reading. This was
-# the third.
+# scripts/result-from-r.sh, each for the same reason.
 #
 # The build writes to the other stream, because the caller reads this one as the surface's
 # answer.

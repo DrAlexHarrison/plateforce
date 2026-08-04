@@ -55,15 +55,13 @@ if [ "$installed_version" != "$wasm_bindgen_version" ]; then
   cargo install wasm-bindgen-cli --version "$wasm_bindgen_version" --locked
 fi
 
-# Destroyed before the build rather than after it, and the order is the whole point. This
-# `rm -rf` used to sit below the `cargo build`, so a wasm crate that failed to compile exited
-# here leaving the last successful bundle in place. `web/pkg/` is gitignored, so it survives
-# every run and every checkout. Four browser gates serve `web/` and `web/startup.js` imports
-# `./pkg/plateforce_wasm.js`, so a crate that does not compile gave you `capability` red,
-# `build-web` red, and `check-minute`, `check-grammar`, `check-batch` and `check-spread-scope`
-# all green against a bundle built from a tree nobody was testing.
+# Destroyed before the build rather than after it. `web/pkg/` is gitignored, so a bundle
+# survives every run and every checkout, and four browser gates serve `web/` while
+# `web/startup.js` imports `./pkg/plateforce_wasm.js`: a crate that fails to compile leaves
+# `check-minute`, `check-grammar`, `check-batch` and `check-spread-scope` green against a
+# bundle built from a tree nobody is testing.
 #
-# `r-surface.sh` clears its library first and `install-python-wheel.sh` now drops its installed
+# `r-surface.sh` clears its library first and `install-python-wheel.sh` drops its installed
 # package first, for the same reason: a producer that deletes before it builds leaves nothing
 # when it fails, and its consumers fail loudly instead of answering from the last good run.
 rm -rf "$output_dir"

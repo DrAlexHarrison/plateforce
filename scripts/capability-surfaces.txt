@@ -3,7 +3,7 @@
 # a gate that passes with fewer surfaces than it names is not a gate.
 #
 # A row is added in the same commit as the entry point it calls. A row added before its
-# surface can answer fails, which is the intended behaviour.
+# surface can answer fails.
 #
 # Each command builds what it asks. A prebuilt artifact answers for whatever source it was
 # built from, so a check against one certifies a binary that may predate the change under

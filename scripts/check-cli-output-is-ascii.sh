@@ -31,7 +31,7 @@ fi
 
 # `grep -P` is GNU-only, and a grep that rejects it exits 2 with a usage error, which
 # `grep -q` reports the same way as finding nothing. Without this the whole check certifies
-# a non-ASCII input as clean on any machine carrying BSD grep. Proven by shadowing grep with
+# a non-ASCII input as clean on any machine carrying BSD grep. Measured by shadowing grep with
 # a wrapper that rejects -P: every command read as ASCII while emitting two-byte characters.
 if ! printf 'caf\303\251\n' | LC_ALL=C grep -qP '[^\x00-\x7F]' 2>/dev/null; then
     echo "plateforce: this grep cannot match a non-ASCII byte with -P, so nothing below" \
@@ -82,8 +82,8 @@ for entry in "${runs[@]}"; do
     label="${entry%%|*}"
     args="${entry#*|}"
 
-    # A refusal is an expected exit code rather than a failure to check, so the status is
-    # recorded and only a signal or a missing binary counts as unable to check.
+    # The status is recorded rather than fatal, so only a signal or a missing binary counts
+    # as unable to check.
     set +e
     # shellcheck disable=SC2086
     "$binary" $args >"$work/$label.out" 2>"$work/$label.err"
@@ -93,13 +93,11 @@ for entry in "${runs[@]}"; do
     cat "$work/$label.out" "$work/$label.err" >"$work/$label.all"
     bytes=$(wc -c <"$work/$label.all")
 
-    # A refusal is an expected exit code and is part of what this check reads. Anything else
-    # is the command failing rather than declining, and a panic's ASCII backtrace clears the
-    # byte floor below, so without this a binary that crashes on every command certifies
-    # clean. Proven with a stub emitting ASCII and exiting 101.
-    # A refusal is an answer and its sentence is the line most likely to carry a typographic
-    # quotation mark, so `analyse` declining a forced decision counts as measured. What does
-    # not count is a code no command here can legitimately return.
+    # A refusal is an answer and part of what this check reads. Anything else is the command
+    # failing rather than declining, and a panic's ASCII backtrace clears the byte floor
+    # below, so without this a binary that crashes on every command certifies clean. Measured
+    # with a stub emitting ASCII and exiting 101. A refusal sentence is the line most likely
+    # to carry a typographic quotation mark, so `analyse` declining a forced decision counts.
     case "$label" in
         refuse-*) expected="64 65 66 78" ;;
         analyse)  expected="0 64" ;;

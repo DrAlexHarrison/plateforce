@@ -262,9 +262,8 @@ const sweep = await evaluate(`(() => ({
 }))()`);
 Object.assign(paint, sweep);
 
-// A default is legal under both these verdicts, and each owes the reader something the
-// interface expressed nowhere before: displayed unasked, or named with its alternatives
-// one interaction away.
+// A default is legal under both these verdicts, and each owes the reader something:
+// displayed unasked, or named with its alternatives one interaction away.
 const shown = paint.ranBeside.filter((row) => row.kind.endsWith('default-and-show'));
 const onDemand = paint.ranBeside.filter((row) => row.kind.endsWith('surface-on-demand'));
 check('a rule the registry says to display unasked is on screen with the value it used',
@@ -544,8 +543,8 @@ check('a value picked by hand belongs to no other source, and its neighbours kee
 
 // The four checks above read what the tab remembers. This one reads what the engine was
 // told, which is a different question and the one that decides what a fingerprint asserts.
-// They passed for as long as the tab tracked every source correctly and then dropped all
-// of it at the boundary, so the record said the reader stated values they never saw.
+// A tab that tracks every source correctly and drops all of it at the boundary passes those
+// four while the record says the reader stated values they never saw.
 const recorded = await evaluate(`(async () => {
   const state = (await import('./state.js')).state;
   const sources = {};
@@ -576,7 +575,7 @@ check('the engine records as stated exactly the values the reader typed, and no 
  * `crates/plateforce-wasm/tests/quality_signals.rs` reaches the same case by the same act at
  * the same offset, so the browser and the engine are asking one question. Its argument for
  * preferring the act over a recording is that both of this signal's earlier fixtures were
- * defects in our own engine and both were fixed out from under it, while a dragged marker is
+ * defects in the engine and both were fixed out from under it, while a dragged marker is
  * something a reader does and cannot be repaired away.
  *
  * Measured on the demonstration trial, the disagreement runs 23.2, 54.1, 68.2 and 47.4
@@ -679,12 +678,11 @@ const STATE_SELECTORS = {
 };
 // `answerTheDecisions` is what paints the resolved state, and it is not decoration. A card is
 // provisional while any rule in its chain belongs to a decision nobody has answered, so a
-// resolved card exists only once they are answered. Until the chain was built from what each
-// rule reads, two cards read as resolved without anybody answering anything: `Takeoff` and
-// `Flight time` omitted the weighing rule from their chains, so the interface called two
-// numbers settled while the weighing decision behind them was still open, and this check took
-// its resolved reading from one of them. It now takes it from a card that is resolved because
-// the reader resolved it.
+// resolved card exists only once they are answered. A chain built from anything less than
+// what each rule reads leaves a card resolved without anybody answering: `Takeoff` and
+// `Flight time` omitting the weighing rule calls two numbers settled while the weighing
+// decision behind them is open. The reading here is taken from a card that is resolved
+// because the reader resolved it.
 const PAINTED_BY = [
   { rule: 'onset.threshold.noise_relative', dragLate: false, answerTheDecisions: false },
   { rule: 'onset.threshold.last_within_band', dragLate: false, answerTheDecisions: false },
