@@ -108,14 +108,21 @@ fn the_two_integration_starts_give_two_takeoff_velocities_from_one_recording() {
         takeoff_index: takeoff,
         touchdown_index: trial.len() - 1,
     };
+    let system_weight_newtons = response
+        .levels
+        .system_weight_newtons
+        .expect("a drawn jump has a weight");
     let epoch = plateforce_core::WeighingEpoch {
         start_index: response.weighing_start_index,
         end_index: response.weighing_end_index,
-        system_weight_newtons: response.levels.system_weight_newtons,
-        standard_deviation_newtons: response.levels.weighing_standard_deviation_newtons,
+        system_weight_newtons,
+        standard_deviation_newtons: response
+            .levels
+            .weighing_standard_deviation_newtons
+            .expect("a drawn jump has a dispersion"),
         tied_window_count: response.weighing_epoch_tied_window_count,
-        tied_weight_low_newtons: response.levels.system_weight_newtons,
-        tied_weight_high_newtons: response.levels.system_weight_newtons,
+        tied_weight_low_newtons: system_weight_newtons,
+        tied_weight_high_newtons: system_weight_newtons,
     };
 
     let read_at_takeoff = |spec: IntegrationSpec| {

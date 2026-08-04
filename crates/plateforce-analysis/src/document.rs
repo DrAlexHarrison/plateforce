@@ -18,8 +18,23 @@ use crate::spread::SpreadResponse;
 pub struct TrialSource {
     pub name: String,
     pub rows_read: usize,
-    /// Rows that carried a missing-data sentinel rather than a reading.
-    pub sentinel_rows: usize,
+    /// Rows reading the value the declared convention writes for a measurement that was not
+    /// taken. The reader's own fact, because only the reader was told which convention to
+    /// apply.
+    ///
+    /// This used to carry one total over this and the rows that carried no number at all,
+    /// under a name that reads like one fact. On a jump trace the zero convention a vendor
+    /// writes for a missing measurement is also the correct reading of an unloaded plate, so
+    /// it matches the whole flight phase, and the total read 160 on a recording whose real
+    /// answer is 157 samples of flight and 3 samples of a gap.
+    ///
+    /// The gap is not here. It belongs to the recording rather than to the reader, so it is
+    /// counted once by the engine and published as `samples_carrying_no_number` on every
+    /// surface's result rather than by each reader for itself.
+    ///
+    /// Counted by `plateforce_core::signal::reported_samples`, which is where the policy
+    /// lives for every surface.
+    pub samples_matching_the_convention: usize,
 }
 
 /// One analysed trial and everything a surface reports about it.
@@ -39,6 +54,9 @@ pub struct ResultDocument {
     pub registry_declared_version: Option<String>,
     pub registry_digest: Option<String>,
     pub acquisition_complete: bool,
+    /// Samples of the recording that carried no number, from the engine rather than from the
+    /// surface, so a terminal, a browser tab, a notebook and an R session answer it alike.
+    pub samples_carrying_no_number: usize,
     pub weighing_start_index: usize,
     pub weighing_end_index: usize,
     pub onset_index: Option<usize>,
@@ -175,6 +193,7 @@ impl ResultDocument {
             registry_declared_version,
             registry_digest,
             acquisition_complete,
+            samples_carrying_no_number: response.samples_carrying_no_number,
             weighing_start_index: response.weighing_start_index,
             weighing_end_index: response.weighing_end_index,
             onset_index: response.onset_index,

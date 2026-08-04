@@ -566,3 +566,47 @@ subset states its denominator: `122 of 259 genuine debates`, never `122`.
 cargo run -q -p plateforce-cli -- registry census
 cargo run -q -p plateforce-cli -- registry validate
 ```
+
+## One wire value never means two things
+
+A result carries the method that produced it, so a reader who checks the provenance has to
+end up better informed than one who does not. A document where two states share a spelling
+does the opposite: it misleads exactly the reader who looks. The rule below is the general
+form of a thing this repository had already settled twice in particular cases, written down
+because it had not been.
+
+**Where two states could share a spelling, the document carries a field that says which.**
+The field is always written, never omitted in one of the states, for the same reason
+`registry_version` is written as null rather than left out: a key a document sometimes omits
+cannot be told apart from a surface that never carried it.
+
+Three instances, and all three are `null` meaning two things.
+
+- **A number that is not a number, against a number nobody computed.** `serde_json` writes a
+  non-finite float as `null`, exactly as it writes an absent one, so "the software computed
+  this and got not a number" and "the software declined to compute this" arrived at every
+  reader identically. The first is a gap in the recording reaching a quantity; the second is
+  an honest refusal that `refusals` accounts for by name. Every metric therefore carries
+  `carried_no_number`, and `value` is a finite number or nothing at all. Measured on
+  `subject01_trial1_interrupted`: 8 of 11 metrics read `null` and 2 of those 8 are the first
+  state, being the two quantities computed over the weighing window that holds the
+  recording's three unreadable samples.
+
+- **A level that has no number, against a level nobody drew.** The same `null`, and until it
+  was fixed the two members of `levels` most likely to hold a non-finite number were declared
+  as plain numbers, so the pair whose type promised most were the pair that lied. Every
+  member of `levels` is now optional and none of them is ever a value that is not finite.
+
+- **A sample the reader was told to treat as missing, against a sample the recording lost.**
+  Not `null` but one integer, and worse for it, because the number looked like an answer. The
+  zero convention a vendor writes for a measurement it does not have is also the correct
+  reading of an unloaded plate, so on a jump trace it matches the whole flight phase. One
+  total read **160** on a recording whose real answer is 157 samples of an athlete in the air
+  and 3 samples of a gap. The two are counted apart by
+  `plateforce_core::signal::reported_samples`, which is the one home for that policy on every
+  surface: the reader publishes what its declared convention matched, and the engine publishes
+  `samples_carrying_no_number` over the recording, so a notebook and an R session carry the
+  count as well as a terminal and a browser tab.
+
+**Counts obey the rule above them.** Two reasons a sample is reported are two populations, and
+adding them produces a figure with no denominator anybody can name.

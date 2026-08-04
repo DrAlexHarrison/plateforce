@@ -166,7 +166,10 @@ fn the_last_start_a_window_fits_at_is_read_and_the_next_one_along_is_refused() {
     let response = placed(&trial, last_start_that_fits, TWO_SAMPLE_WINDOW_SECONDS);
     assert_eq!(response.weighing_start_index, last_start_that_fits);
     assert_eq!(response.weighing_end_index, trial.len());
-    let system_weight_newtons = response.levels.system_weight_newtons;
+    let system_weight_newtons = response
+        .levels
+        .system_weight_newtons
+        .expect("a window over real samples has a weight");
     println!("start {last_start_that_fits}: {system_weight_newtons:.5} N");
     assert!(
         (system_weight_newtons - LAST_TWO_SAMPLES_NEWTONS).abs() < 0.001,
@@ -234,7 +237,10 @@ fn a_stated_start_a_window_fits_at_is_read_where_it_was_stated() {
         start_index + (WINDOW_THAT_FITS_SECONDS * CORPUS_SAMPLE_RATE_HZ) as usize
     );
     // Quiet stance, not the landing impact a moved window reads. The two differ by 285 N here.
-    let system_weight_newtons = response.levels.system_weight_newtons;
+    let system_weight_newtons = response
+        .levels
+        .system_weight_newtons
+        .expect("a window over real samples has a weight");
     println!("system weight {system_weight_newtons:.3} N");
     assert!(
         (system_weight_newtons - QUIET_STANCE_NEWTONS).abs() < 0.001,

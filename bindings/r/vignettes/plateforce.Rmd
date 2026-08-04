@@ -31,8 +31,11 @@ trial
 ```
 
 Reading from a file works the same way, through `pf_read_force_file()`, which states back
-the delimiter it used, the column it read as force, the rows it read and the samples the
-sentinel convention treated as missing.
+the delimiter it used, the column it read as force, the rows it read, the samples that
+matched the sentinel convention and the samples that carried no number at all. The last two
+are counted apart because the zero convention a vendor writes for a missing measurement is
+also the correct reading of an unloaded plate, so on a jump trace it matches the whole
+flight phase.
 
 ## Naming the three rules
 

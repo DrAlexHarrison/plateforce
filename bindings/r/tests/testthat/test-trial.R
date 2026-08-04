@@ -38,8 +38,28 @@ test_that("a sentinel is counted rather than folded into the trace", {
   force[c(10, 20, 30)] <- 0
   trial <- pf_trial(force, sample_rate_hz = 100, sentinel_convention = "zero")
 
-  expect_identical(trial@read_report[["samples_treated_as_missing"]], 3L)
+  expect_identical(trial@read_report[["samples_matching_the_convention"]], 3L)
+  expect_identical(trial@read_report[["samples_carrying_no_number"]], 0L)
   expect_identical(trial@sample_count, 100L)
+})
+
+test_that("a gap in the recording is counted apart from the convention's own matches", {
+  force <- rep(700, 100)
+  force[c(10, 20, 30)] <- 0
+  force[c(50, 51)] <- NaN
+  trial <- pf_trial(force, sample_rate_hz = 100, sentinel_convention = "zero")
+
+  # Five samples are reported and one number cannot say which is which. The three zeros are
+  # the caller's declaration meeting real data; the two gaps are the recording itself, and
+  # they would still be there under any convention.
+  expect_identical(trial@read_report[["samples_matching_the_convention"]], 3L)
+  expect_identical(trial@read_report[["samples_carrying_no_number"]], 2L)
+
+  # The control that says the split is real rather than a relabelling: declaring nothing
+  # empties one count and leaves the other exactly where it was.
+  undeclared <- pf_trial(force, sample_rate_hz = 100, sentinel_convention = "none")
+  expect_identical(undeclared@read_report[["samples_matching_the_convention"]], 0L)
+  expect_identical(undeclared@read_report[["samples_carrying_no_number"]], 2L)
 })
 
 test_that("the trace comes back as the doubles that went in", {
