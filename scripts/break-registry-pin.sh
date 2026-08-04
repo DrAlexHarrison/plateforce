@@ -93,10 +93,14 @@ restore crates/plateforce-cli/src/analyse.rs
 
 echo
 echo "=== 4. an unpinned run omits the key rather than writing null ==="
+# Anchored on the line above as well, because SpreadDocument in the same file declares a
+# field spelled identically and the bare line matches both. The uniqueness check caught it.
 apply "registry_version is omitted when absent" \
   crates/plateforce-analysis/src/document.rs \
-  '    pub registry_version: Option<String>,' \
-  '    #[serde(skip_serializing_if = "Option::is_none")]
+  '    /// field, and a reader has no way to ask the document which happened.
+    pub registry_version: Option<String>,' \
+  '    /// field, and a reader has no way to ask the document which happened.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub registry_version: Option<String>,'
 expect_red "registry_version is omitted when absent" \
   cargo test -q -p plateforce-cli --test result_parity
