@@ -4,6 +4,7 @@
 //! Windows ConHost does not enable ANSI unless a registry value says so, and a scientific
 //! tool that prints escape codes into a log file has failed at its job.
 
+mod acquisition_arg;
 mod analyse;
 mod batch;
 mod capability_cmd;

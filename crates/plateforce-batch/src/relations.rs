@@ -7,6 +7,7 @@
 
 use std::collections::BTreeMap;
 
+use plateforce_core::Acquisition;
 use serde::{Deserialize, Serialize};
 
 /// One row per trial, one column per quantity. The table people use.
@@ -245,9 +246,16 @@ impl SignalRow {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunRow {
     pub plateforce_version: String,
-    /// The revision the caller pinned. Empty when they pinned none, which is a fact about
-    /// the request rather than about the registry, which carries no declared version.
-    pub registry_version: String,
+    /// The revision the caller pinned, and null when they pinned none. Null rather than
+    /// empty: a run row that wrote `""` for an absent pin could not be told apart from one
+    /// whose caller pinned the empty string, and `docs/schema.md` settled null for exactly
+    /// that reason. Typed `Option` rather than checked at the call site, because a `String`
+    /// field has no way to write the value the schema requires.
+    pub registry_version: Option<String>,
+    /// The revision the registry names about itself, from the `VERSION` file beside its
+    /// rules, and null where it names none. What the data claims, never what the caller
+    /// cited, and never written into `registry_version`.
+    pub registry_declared_version: Option<String>,
     pub registry_digest: String,
     pub request_digest: String,
     /// Names carrying a declared trial suffix. The denominator the file counts are over.
@@ -267,6 +275,20 @@ pub struct RunRow {
     /// is counted here as computed, and its declines are rows in `refusals`.
     pub refusal_count: usize,
     pub acquisition_complete_count: usize,
+    /// What the plate and its settings were, as the run stated them. Carried whole rather
+    /// than as a count, because `run_fingerprint` is taken over this row and the DECREE is
+    /// that a fingerprint carries an acquisition block: a row holding only the count would
+    /// fingerprint two runs off differently configured plates identically.
+    ///
+    /// Stated once for the folder, since a trace of forces carries none of it. The members
+    /// still missing are `Acquisition::missing`, so a reader is told what to go and find
+    /// rather than only that something is absent.
+    pub acquisition: Acquisition,
+    /// Whether the block above holds every member. `acquisition_complete_count` is the same
+    /// fact multiplied by the trials it applied to; this is the fact itself, and it is the
+    /// one a reader comparing two runs asks. A run whose block is incomplete must never be
+    /// declared to match another, whatever the two digests read.
+    pub acquisition_complete: bool,
     pub trials_excluded: usize,
     pub gates_reporting: usize,
     pub gates_applied: usize,
@@ -285,7 +307,14 @@ pub struct RunRow {
     pub sentinel: String,
     /// Samples the declared sentinel removed, across every trial the run read.
     pub sentinel_rows_dropped: usize,
-    pub run_fingerprint: String,
+    /// The digest over this row and the distinct chains it held, and null when the
+    /// acquisition block was not filled.
+    ///
+    /// Null rather than a marked digest. A run whose plate settings nobody recorded cannot be
+    /// declared to match another, and a value that string-compares equal to the next such run
+    /// is that declaration whatever it is called. `acquisition_complete` above says why it is
+    /// null, and `acquisition.missing` names what would fill it.
+    pub run_fingerprint: Option<String>,
 }
 
 impl RunRow {
@@ -447,7 +476,8 @@ mod tests {
     fn run_fixture() -> RunRow {
         RunRow {
             plateforce_version: "0.1.0".to_string(),
-            registry_version: String::new(),
+            registry_version: None,
+            registry_declared_version: None,
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
             files_found: 6,
@@ -457,6 +487,8 @@ mod tests {
             computed_count: 6,
             refusal_count: 0,
             acquisition_complete_count: 0,
+            acquisition: Acquisition::default(),
+            acquisition_complete: false,
             trials_excluded: 0,
             gates_reporting: 0,
             gates_applied: 0,
@@ -467,7 +499,7 @@ mod tests {
             sample_rate_hz: 1200.0,
             sentinel: String::new(),
             sentinel_rows_dropped: 0,
-            run_fingerprint: String::new(),
+            run_fingerprint: None,
         }
     }
 }

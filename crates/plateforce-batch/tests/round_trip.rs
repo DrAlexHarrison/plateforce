@@ -106,7 +106,7 @@ fn the_parquet_set_carries_the_run_in_its_own_schema_metadata() {
 
     let run = read_run(&written[0]).expect("the record survives the container");
     println!(
-        "parquet: {} files, run over {copied} trials, fingerprint {}",
+        "parquet: {} files, run over {copied} trials, fingerprint {:?}",
         written.len(),
         run.run_fingerprint
     );

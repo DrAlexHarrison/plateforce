@@ -4,7 +4,10 @@
 
 mod common;
 
-use common::{bound_request, committed_format, copy_committed_fixtures, registry, tempdir};
+use common::{
+    bound_request_describing_the_plate, committed_format, copy_committed_fixtures, registry,
+    tempdir,
+};
 use plateforce_batch::write_parquet::{read_run, ParquetError, RUN_METADATA_KEY};
 use plateforce_batch::{analyse, TrialIdentity, TrialSet};
 
@@ -13,7 +16,10 @@ fn the_run_block_survives_a_parquet_round_trip_under_our_own_key() {
     let directory = tempdir("parquet-metadata");
     let copied = copy_committed_fixtures(&directory);
     let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
-    let result = analyse(&set, &bound_request(), &registry()).unwrap();
+    // The plate is described, so the record this file is asserted to carry holds a published
+    // fingerprint. Over an unfilled block the digest is withheld and the assertion below would
+    // be met by a container carrying nothing.
+    let result = analyse(&set, &bound_request_describing_the_plate(), &registry()).unwrap();
     assert_eq!(result.coverage.computed, copied, "every trial computed");
 
     let out = directory.join("out");
@@ -28,11 +34,14 @@ fn the_run_block_survives_a_parquet_round_trip_under_our_own_key() {
             "{} carries the same record as every other file in the set",
             path.display()
         );
-        assert!(!run.run_fingerprint.is_empty());
+        assert!(
+            run.run_fingerprint.is_some(),
+            "the run described its plate, so the record carries a fingerprint"
+        );
         assert_eq!(run.trial_count, copied);
     }
     println!(
-        "run over {} of {copied} trials, digest {}, fingerprint {}",
+        "run over {} of {copied} trials, digest {}, fingerprint {:?}",
         result.run.trial_count, result.run.registry_digest, result.run.run_fingerprint
     );
     std::fs::remove_dir_all(&directory).ok();

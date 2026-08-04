@@ -59,6 +59,15 @@ impl BatchRequest {
         self
     }
 
+    /// Cite a registry revision, which is the caller's word and never the registry's own.
+    ///
+    /// Spelled as `RegistryStamp::pinned_to` spells it, because a caller who has pinned an
+    /// `analyse` run and pins a folder run is doing one thing and should write one word.
+    pub fn pinned_to(mut self, registry_version: Option<String>) -> Self {
+        self.registry_version = registry_version;
+        self
+    }
+
     /// Bind a validity gate. It reports and removes nothing until the request applies it.
     pub fn with_gate(mut self, gate: Box<dyn ValidityGate>) -> Self {
         self.gates.register(gate);
@@ -421,7 +430,10 @@ pub fn analyse(
 
     let mut run = RunRow {
         plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
-        registry_version: request.registry_version.clone().unwrap_or_default(),
+        registry_version: request.registry_version.clone(),
+        // Read off the registry that was loaded rather than taken from the caller, because
+        // this is the registry's claim about itself and no caller can make it.
+        registry_declared_version: registry.declared_version.clone(),
         registry_digest: registry.content_digest.clone(),
         request_digest: request_digest(&request.analysis, request.registry_version.as_deref()),
         files_found: coverage.files_found,
@@ -435,6 +447,11 @@ pub fn analyse(
         } else {
             0
         },
+        // The block itself, so the row carries what it fingerprinted rather than a count of
+        // how many trials it applied to. A run that stated nothing carries the empty block,
+        // which is what `Acquisition::missing` names every member of.
+        acquisition: request.acquisition.clone().unwrap_or_default(),
+        acquisition_complete: acquisition_is_complete,
         trials_excluded: coverage.excluded,
         gates_reporting: request.gates.reporting_count(),
         gates_applied: request.gates.applied_count(),
@@ -449,9 +466,13 @@ pub fn analyse(
             .map(crate::relations::format_value)
             .unwrap_or_default(),
         sentinel_rows_dropped: sentinel_rows_total,
-        run_fingerprint: String::new(),
+        run_fingerprint: None,
     };
-    run.run_fingerprint = run_fingerprint(&run, &provenance_ids);
+    // `published` withholds the digest when the acquisition block was not filled, so a run
+    // that cannot be declared to match another carries nothing that could be compared.
+    run.run_fingerprint = run_fingerprint(&run, &provenance_ids)
+        .published()
+        .map(str::to_string);
 
     Ok(BatchResult {
         run,

@@ -59,6 +59,28 @@ pub fn bound_request() -> BatchRequest {
     ])
 }
 
+/// A capture somebody recorded, for the guards that compare one run's fingerprint against
+/// another's.
+///
+/// A run whose acquisition block is unfilled publishes no fingerprint, because a result whose
+/// plate settings nobody recorded cannot be declared to match another. So a guard asserting
+/// that two runs fingerprint differently has to be given two runs that fingerprint at all;
+/// over unfilled blocks it would be comparing two absences and proving nothing about the
+/// digests it was written to separate.
+pub fn a_recorded_plate() -> plateforce_core::Acquisition {
+    plateforce_core::Acquisition {
+        filter_at_capture: Some("none".to_string()),
+        tare_state: Some("tared_before_trial".to_string()),
+        plate_natural_frequency_hz: Some(400.0),
+        floor_surface: Some("concrete".to_string()),
+        firmware_version: Some("2.4.1".to_string()),
+    }
+}
+
+pub fn bound_request_describing_the_plate() -> BatchRequest {
+    bound_request().describing(a_recorded_plate())
+}
+
 pub fn analysis_request(weighing_duration_seconds: f64) -> AnalysisRequest {
     AnalysisRequest {
         weighing: WeighingChoice {
