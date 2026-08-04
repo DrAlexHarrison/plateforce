@@ -149,6 +149,53 @@ def test_a_slot_this_build_runs_no_rule_for_is_refused(trial, bound):
     assert "not_a_step" in str(raised.value)
 
 
+def test_a_step_the_table_holds_one_rule_for_is_refused_in_the_terminals_words(trial, bound):
+    """The terminal refuses `--slot time_to_takeoff`; this call ran it and reported zero.
+
+    A step with one rule has nothing for that rule to be compared against, so the sweep ran a
+    single variant and reported a spread of 0.0, which reads as the choice of method moving
+    the number by nothing. That is the reading this software exists to prevent, and it was
+    reachable from a notebook on six of the binding table's steps and from no terminal.
+
+    `time_to_takeoff` is named rather than searched for, so this says which step it asks
+    about. A second rule filed under that construct turns this red rather than quiet, which is
+    the right way round: the step stops being an example and the test has to say so.
+
+    The sentence is the terminal's, asserted whole rather than by a fragment of it, because
+    the point is that a reader meets one wording whichever keyboard they are at. The
+    terminal's half of the pair is `a_step_with_one_rule_is_refused_rather_than_dropped...`
+    in `crates/plateforce-cli/tests/spread.rs`, which asserts these same words.
+    """
+    with pytest.raises(pf.MethodError) as raised:
+        sweep(trial, bound, "time_to_takeoff")
+    assert str(raised.value) == (
+        "this analysis runs one rule for time_to_takeoff, so there is nothing to sweep"
+    )
+
+    # The control, and the half that says the floor is a floor rather than a wall: the five
+    # onset rules are still swept, so a refusal that refused everything would not pass here.
+    still_runs = sweep(trial, bound, "onset")
+    assert still_runs.combinations_run == 5
+    assert still_runs.spread_absolute > 0
+
+
+def test_a_step_named_twice_is_one_axis_rather_than_a_sweep_squared(trial, bound):
+    """One step is one axis, in the terminal's words.
+
+    Named twice it was two axes: the same five onset rules ran 25 combinations, every one of
+    them binding onset twice with the second binding winning, so twenty of the twenty-five
+    repeated a rule and the denominator each figure was reported over counted a set nobody
+    asked for. The terminal has refused this since the flag existed.
+    """
+    with pytest.raises(pf.MethodError) as raised:
+        sweep(trial, bound, ["onset", "onset"])
+    assert str(raised.value) == "'onset' is named twice, and one step is one axis"
+
+    # Two different steps are two axes, which is the whole point of taking a list.
+    both = sweep(trial, bound, ["onset", "takeoff"])
+    assert both.combinations_run == 25
+
+
 def test_a_parameter_and_several_slots_are_refused_together(trial, bound):
     """Each describes one slot, so the pair states a sweep nobody can mean."""
     with pytest.raises(pf.MethodError):

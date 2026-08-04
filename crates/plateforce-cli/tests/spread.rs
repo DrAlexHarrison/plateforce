@@ -232,6 +232,12 @@ fn a_step_this_run_did_not_bind_is_refused_rather_than_swept_over_a_rule_nobody_
 /// Dropped, the command runs, reports a spread over whatever was left, and heads it with the
 /// quantity the caller asked about, which reads as an answer to the question they put. Time
 /// to takeoff is reached one way in this build, so naming it is a question with no answer.
+///
+/// The whole sentence is asserted rather than a fragment of it, because Python's `slot=`
+/// refuses the same step in the same words and its half of the pair
+/// (`test_a_step_the_table_holds_one_rule_for_is_refused_in_the_terminals_words` in
+/// `crates/plateforce-python/tests/test_spread.py`) can only be held to a literal. Two
+/// fragments would let the two surfaces drift apart between the words each one checked.
 #[test]
 fn a_step_with_one_rule_is_refused_rather_than_dropped_from_a_sweep_that_still_reports() {
     let output = spread(
@@ -246,11 +252,14 @@ fn a_step_with_one_rule_is_refused_rather_than_dropped_from_a_sweep_that_still_r
         true,
     );
     let said = String::from_utf8(output.stderr).expect("the refusal is UTF-8");
-    println!("{}", said.lines().next().unwrap_or_default());
+    println!("{said}");
     assert_eq!(output.status.code(), Some(64));
     assert!(output.stdout.is_empty(), "no number is published");
-    assert!(said.contains("one rule"), "{said}");
-    assert!(said.contains("time_to_takeoff"), "{said}");
+    let refused: serde_json::Value = serde_json::from_str(&said).expect("the refusal parses");
+    assert_eq!(
+        refused["refusal"]["message"],
+        "this analysis runs one rule for time_to_takeoff, so there is nothing to sweep"
+    );
 }
 
 /// The construct the panel prints is a name this flag answers to, because a reader narrowing
