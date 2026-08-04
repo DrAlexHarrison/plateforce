@@ -6,6 +6,12 @@
 //! rule at a width of two sample intervals, so it is a width here rather than a fourth
 //! function.
 //!
+//! Two further published rules anchor on a force level rather than on a time: the interval
+//! between two stated levels, and the derivative where force first reaches a fraction of its
+//! peak. Both need the instant a level was reached to a finer resolution than the sample
+//! grid, so the crossing below carries an interpolated position and every rule that reads a
+//! level reads it through that one function.
+//!
 //! Nothing here decides a method. A caller passes the width and the interval a bound rule
 //! resolved and gets back the chord, including where it was taken, so the record can say
 //! which part of the trace produced the number.
@@ -126,6 +132,96 @@ pub fn steepest_chord(
     steepest
 }
 
+/// Where the trace first reached a force level, on and between the samples.
+///
+/// `sample_index` is the first sample at or above the level and `position` is where the
+/// straight line between that sample and the one before it passes through it. The two differ
+/// by up to one sample interval, which at 1200 Hz is 0.83 ms, and a rate taken over a 20 ms
+/// window moves by 4 percent when its end moves that far.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LevelCrossing {
+    pub sample_index: usize,
+    pub position: f64,
+}
+
+impl LevelCrossing {
+    pub fn seconds(&self, sample_interval_seconds: f64) -> f64 {
+        self.position * sample_interval_seconds
+    }
+}
+
+/// The first sample from `from_index` onward at which the trace stands at or above a level,
+/// with the interpolated position beside it, or nothing when it never reaches the level.
+///
+/// A trace already at or above the level at `from_index` crossed before the search started,
+/// so the position is that sample rather than an extrapolation backward into a stretch the
+/// caller excluded.
+pub fn first_crossing_at_or_above(
+    values: &[f64],
+    level: f64,
+    from_index: usize,
+    until_index: usize,
+) -> Option<LevelCrossing> {
+    let last = until_index.min(values.len().saturating_sub(1));
+    if from_index > last {
+        return None;
+    }
+    if values[from_index] >= level {
+        return Some(LevelCrossing {
+            sample_index: from_index,
+            position: from_index as f64,
+        });
+    }
+    for index in (from_index + 1)..=last {
+        if values[index] < level {
+            continue;
+        }
+        let previous = values[index - 1];
+        let rise = values[index] - previous;
+        // A rise of zero cannot happen here, because the sample before is strictly below the
+        // level and this one is at or above it. Guarded anyway rather than dividing.
+        let fraction = if rise > 0.0 {
+            (level - previous) / rise
+        } else {
+            0.0
+        };
+        return Some(LevelCrossing {
+            sample_index: index,
+            position: (index - 1) as f64 + fraction,
+        });
+    }
+    None
+}
+
+/// The centred derivative at a position that need not be a sample, as the chord of two
+/// sample intervals either side of it interpolated between its two neighbours.
+///
+/// The chord function is what computes it, so the two-sample centred difference has one home
+/// and this is where it is read off between samples rather than a second spelling of it.
+pub fn centred_derivative_at(
+    values: &[f64],
+    position: f64,
+    sample_interval_seconds: f64,
+) -> Option<f64> {
+    if !position.is_finite() || position < 1.0 {
+        return None;
+    }
+    let lower = position.floor() as usize;
+    let upper = lower + 1;
+    let at = |index: usize| {
+        chord(values, index - 1, index + 1, sample_interval_seconds)
+            .map(|found| found.rate_newtons_per_second())
+    };
+    let below = at(lower)?;
+    match at(upper) {
+        Some(above) => Some(below + (above - below) * (position - lower as f64)),
+        // The last sample a centred difference can be taken at, which a position past it
+        // reads as the derivative there rather than as no answer at all.
+        None if position == lower as f64 => Some(below),
+        None => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,5 +318,77 @@ mod tests {
         let values = ramp(1000.0, 500);
         assert!(steepest_chord(&values, 0, 0, 499, SAMPLE_INTERVAL_SECONDS).is_none());
         assert!(sequential_chords(&values, 0, 0, 499, SAMPLE_INTERVAL_SECONDS).is_empty());
+    }
+
+    /// A ramp of known slope reaches a known level at a known time, so the interpolated
+    /// position is exact rather than compared against itself.
+    #[test]
+    fn a_crossing_lands_between_the_samples_that_straddle_the_level() {
+        let values = ramp(1200.0, 1200);
+        // 1200 N/s at 1200 Hz rises exactly 1 N per sample, so 300.5 N sits half a sample
+        // past index 300 and the sample at or above it is 301.
+        let found = first_crossing_at_or_above(&values, 300.5, 0, 1199).unwrap();
+        assert_eq!(found.sample_index, 301);
+        assert!((found.position - 300.5).abs() < 1e-9, "{found:?}");
+        assert!((found.seconds(SAMPLE_INTERVAL_SECONDS) - 300.5 / 1200.0).abs() < 1e-12);
+    }
+
+    /// The two failures a level search has, told apart: a level the trace never reaches, and
+    /// a level it stands at before the search began.
+    #[test]
+    fn a_level_never_reached_returns_nothing_and_one_already_held_returns_the_first_sample() {
+        let values = ramp(1200.0, 1200);
+        assert!(first_crossing_at_or_above(&values, 5000.0, 0, 1199).is_none());
+        // Bounded short of where the trace reaches it, which is a different fact from the
+        // trace never reaching it and must not be answered from past the bound.
+        assert!(first_crossing_at_or_above(&values, 900.0, 0, 500).is_none());
+
+        let held = first_crossing_at_or_above(&values, 100.0, 400, 1199).unwrap();
+        assert_eq!(held.sample_index, 400);
+        assert_eq!(held.position, 400.0);
+    }
+
+    /// On a ramp the derivative is the slope everywhere, including between samples, so the
+    /// interpolation is held to a value the trace fixes rather than to its own arithmetic.
+    #[test]
+    fn the_centred_derivative_between_samples_is_the_slope_on_a_ramp() {
+        let values = ramp(4500.0, 1200);
+        for position in [1.0, 12.5, 600.25, 1198.0] {
+            let found = centred_derivative_at(&values, position, SAMPLE_INTERVAL_SECONDS)
+                .unwrap_or_else(|| panic!("no derivative at {position}"));
+            assert!((found - 4500.0).abs() < 1e-6, "{position}: {found}");
+        }
+    }
+
+    /// A bend the interpolation has to follow, so a version that read one neighbour and
+    /// ignored the other would differ here and not on a ramp.
+    #[test]
+    fn the_centred_derivative_interpolates_between_its_two_neighbours() {
+        // Flat, then a ramp, so the centred derivatives either side of the corner differ.
+        let mut values = vec![0.0f64; 60];
+        for (offset, value) in values.iter_mut().skip(30).enumerate() {
+            *value = 1200.0 * offset as f64 * SAMPLE_INTERVAL_SECONDS;
+        }
+        let below = centred_derivative_at(&values, 30.0, SAMPLE_INTERVAL_SECONDS).unwrap();
+        let above = centred_derivative_at(&values, 31.0, SAMPLE_INTERVAL_SECONDS).unwrap();
+        let between = centred_derivative_at(&values, 30.25, SAMPLE_INTERVAL_SECONDS).unwrap();
+        assert!(below < above, "the corner does not bend: {below} {above}");
+        assert!(
+            (between - (below + (above - below) * 0.25)).abs() < 1e-9,
+            "{between} is not a quarter of the way from {below} to {above}"
+        );
+    }
+
+    /// A position with no sample either side of it has no centred difference, which is
+    /// nothing rather than a one-sided difference reported under the same name.
+    #[test]
+    fn a_position_at_the_edge_of_the_trace_has_no_centred_derivative() {
+        let values = ramp(1000.0, 100);
+        assert!(centred_derivative_at(&values, 0.0, SAMPLE_INTERVAL_SECONDS).is_none());
+        assert!(centred_derivative_at(&values, 0.5, SAMPLE_INTERVAL_SECONDS).is_none());
+        assert!(centred_derivative_at(&values, 99.0, SAMPLE_INTERVAL_SECONDS).is_none());
+        assert!(centred_derivative_at(&values, f64::NAN, SAMPLE_INTERVAL_SECONDS).is_none());
+        // The last position that has one, so the guard above is a bound rather than a wall.
+        assert!(centred_derivative_at(&values, 98.0, SAMPLE_INTERVAL_SECONDS).is_some());
     }
 }
