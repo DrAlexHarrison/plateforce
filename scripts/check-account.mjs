@@ -246,7 +246,11 @@ const narrow = await evaluate(`(() => {
     reached: Boolean(account),
     side: Math.round(Math.min(box.width, box.height)),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    scrolls: account ? account.scrollWidth > account.clientWidth : null,
+    // Both, because the page cannot be taken sideways by a panel that is positioned against
+    // the viewport whatever the text inside it does: a reading of the document alone passes
+    // on an account that has escaped its frame. The frame's own carriage is what moves.
+    carriage: account ? getComputedStyle(account).overflowX : null,
+    wider: account ? account.scrollWidth > account.clientWidth : null,
     size: account ? parseFloat(getComputedStyle(account).fontSize) : null,
   };
 })()`);
@@ -255,10 +259,11 @@ await send('Emulation.clearDeviceMetricsOverride');
 check('at 390 px the control clears 44 px on its short side',
   narrow.reached && narrow.side >= 44,
   narrow.reached ? `${narrow.side} px` : 'no account to open at 390 px');
-check('at 390 px an open account does not take the page sideways',
-  narrow.reached && narrow.overflow <= 0,
+check('at 390 px a line too long for the panel scrolls inside the account, not across the page',
+  narrow.reached && narrow.overflow <= 0 && ['auto', 'scroll'].includes(narrow.carriage),
   narrow.reached
-    ? `${narrow.overflow} px of horizontal overflow, the account ${narrow.scrolls ? 'scrolling' : 'sitting'} inside its own frame at ${narrow.size} px`
+    ? `${narrow.overflow} px of horizontal overflow, the account carrying overflow-x ${narrow.carriage} and ` +
+      `${narrow.wider ? 'wider than' : 'inside'} its frame at ${narrow.size} px`
     : 'no account to open at 390 px');
 
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
