@@ -255,6 +255,32 @@ impl<'a> Resolution<'a> {
             })
     }
 
+    /// A quantity its entry states required with no default, refused by name when unstated.
+    ///
+    /// The numeric counterpart of `required_enumerated`, and it exists for the same reason
+    /// `stated_name` exists beside `option`: `number` takes a fallback, and a fallback where
+    /// the registry publishes none is a decision the rule made on the caller's behalf. The
+    /// anthropometric and drop-height rules need this, because no representative box height or
+    /// foot length exists to fall back to. One study assumed a single box height for all 24 of
+    /// its subjects, which is inside the bias the registry records against that entry.
+    ///
+    /// Held here rather than as a pair of calls in each rule, so the value a caller supplied
+    /// and the claim they made about it are recorded the same way by every rule that asks.
+    pub(crate) fn required_number(
+        &mut self,
+        method_id: &str,
+        name: &str,
+    ) -> Result<f64, RuleRefusal> {
+        let Some(value) = self.stated(name) else {
+            return Err(RuleRefusal::Refused(Box::new(
+                plateforce_core::Refusal::required_parameter_unstated(method_id, name),
+            )));
+        };
+        let source = self.stated_source(name);
+        self.record_measured(name, value, format_number(value), source);
+        Ok(value)
+    }
+
     /// The same, for a name its entry states required with no default.
     ///
     /// Absent, it is refused rather than filled from the value a neighbouring entry publishes.

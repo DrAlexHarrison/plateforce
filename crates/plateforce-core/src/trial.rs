@@ -245,11 +245,171 @@ pub fn jump_height_from_takeoff_velocity(
 /// Jump height from flight time, in metres. A different construct from the above, not
 /// a different method of computing the same one, and on real trials the two differ by
 /// more than a training intervention moves the number.
+///
+/// The one home for the projectile equation. The rule below corrects the number this returns
+/// rather than respelling it, so the pair cannot drift apart.
 pub fn jump_height_from_flight_time(
     flight_time_seconds: f64,
     gravity_meters_per_second_squared: f64,
 ) -> f64 {
     gravity_meters_per_second_squared * flight_time_seconds.powi(2) / 8.0
+}
+
+/// Jump height from flight time where the centre of mass is not at the same height at landing
+/// as at takeoff, in metres.
+///
+/// `landing_below_takeoff_meters` is how far the centre of mass sits below its takeoff height
+/// at the instant of touchdown, so a subject who lands flatter than they took off has a
+/// positive value and a shorter jump than the projectile equation reports.
+///
+/// Goncalves, Baptista, Tufano, Blazevich and Vieira 2024, PeerJ 12:e17704, equations 9 and 10.
+/// Their derivation splits the flight into an ascent shortened by the offset and takes the
+/// height from the ascent alone, which is published as `(g T / 2 - h / T)^2 / 2g`. Written here
+/// as that expression's own factorisation, the projectile height scaled by a posture term,
+/// because the two agree to a relative 2e-16 while only this arrangement returns the projectile
+/// equation bit for bit at a zero offset. The other one moves the uncorrected height of every
+/// trial in the last place, for nothing.
+///
+/// Uncorrected, the error reaches 59.6 percent of the number on a 0.10 m jump by a 1.98 m
+/// subject landing with the ankle flat.
+pub fn jump_height_from_flight_time_with_landing_offset(
+    flight_time_seconds: f64,
+    landing_below_takeoff_meters: f64,
+    gravity_meters_per_second_squared: f64,
+) -> f64 {
+    if flight_time_seconds <= 0.0 {
+        return 0.0;
+    }
+    let uncorrected =
+        jump_height_from_flight_time(flight_time_seconds, gravity_meters_per_second_squared);
+    let posture_term = 1.0
+        - 2.0 * landing_below_takeoff_meters
+            / (gravity_meters_per_second_squared * flight_time_seconds.powi(2));
+    uncorrected * posture_term.powi(2)
+}
+
+/// The heel rise a flight-time height leaves out, in metres.
+///
+/// The flight-time height measures from the instant of takeoff, at which the ankle is already
+/// plantarflexed, so it omits the rise from quiet standing to that instant. Wade, Lichtwark
+/// and Farris 2020 stand a constant in for it: the ankle's height above the ground at takeoff,
+/// less its height in standing. The sine is 0.88, being sin(61.4 degrees), a single-cohort
+/// mean with a 4.8 degree standard deviation that the rule treats as fixed.
+///
+/// The length the sine multiplies is the **malleolus to toe** distance, not the whole foot.
+/// The source's printed formula names the term "Foot Length" and its own text defines it at
+/// lines 155 to 156 as "the distance from the medial malleolus to the toes during standing",
+/// which are different lengths by the fifth of the foot behind the ankle. Reading the printed
+/// name literally puts the constant near 18 cm on a 26 cm foot, against the 10 to 12 cm the
+/// same paper reports as the expected range.
+///
+/// Sole thickness enters because a shoe lifts heel and toe by different amounts, so a barefoot
+/// jump states zero here rather than omitting the term.
+pub fn heel_rise_constant_meters(
+    malleolus_to_toe_length_meters: f64,
+    sole_thickness_meters: f64,
+    ankle_height_meters: f64,
+    takeoff_foot_angle_sine: f64,
+) -> f64 {
+    takeoff_foot_angle_sine * malleolus_to_toe_length_meters + sole_thickness_meters
+        - ankle_height_meters
+}
+
+/// The ankle joint's height above the toe in quiet standing, as a length and an angle.
+///
+/// Goncalves equation 11 builds the ankle-to-toe segment as the hypotenuse of two
+/// anthropometric fractions of stature: the ankle sits `ankle_height_fraction` of stature above
+/// the ground, and `foot_length_fraction` times `malleolus_fraction` of stature ahead of the
+/// toe. At the published fractions the hypotenuse is 0.126 times stature.
+///
+/// The angle comes back beside the length because the correction needs both and they are the
+/// same triangle. Deriving the angle separately from the same three fractions would be a
+/// second derivation of one geometry, free to disagree with this one.
+pub fn ankle_to_toe_segment(
+    stature_meters: f64,
+    ankle_height_fraction_of_stature: f64,
+    foot_length_fraction_of_stature: f64,
+    malleolus_fraction_of_foot_length: f64,
+) -> AnkleToToeSegment {
+    let rise_meters = ankle_height_fraction_of_stature * stature_meters;
+    let reach_meters =
+        foot_length_fraction_of_stature * malleolus_fraction_of_foot_length * stature_meters;
+    AnkleToToeSegment {
+        length_meters: rise_meters.hypot(reach_meters),
+        standing_angle_degrees: ankle_to_toe_standing_angle_degrees(
+            ankle_height_fraction_of_stature,
+            foot_length_fraction_of_stature,
+            malleolus_fraction_of_foot_length,
+        ),
+    }
+}
+
+/// How far the ankle-to-toe segment already leans back from horizontal with the foot flat, in
+/// degrees.
+///
+/// Stature cancels out of the ratio, so the lean is a property of the three fractions alone.
+/// Separate from the length because a reader who measured the segment on the athlete still
+/// needs the lean, and taking it from a stature they did not state would be reading a number
+/// out of a value nobody supplied.
+pub fn ankle_to_toe_standing_angle_degrees(
+    ankle_height_fraction_of_stature: f64,
+    foot_length_fraction_of_stature: f64,
+    malleolus_fraction_of_foot_length: f64,
+) -> f64 {
+    ankle_height_fraction_of_stature
+        .atan2(foot_length_fraction_of_stature * malleolus_fraction_of_foot_length)
+        .to_degrees()
+}
+
+/// The ankle-to-toe segment a flight-time correction rotates, from the toe.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AnkleToToeSegment {
+    pub length_meters: f64,
+    /// How far the segment already leans back from horizontal with the foot flat, which the
+    /// measured plantarflexion is added to rather than replacing.
+    pub standing_angle_degrees: f64,
+}
+
+/// How far the centre of mass sits below its takeoff height at touchdown, from the ankle
+/// angles at each instant, in metres.
+///
+/// Goncalves equation 12. The whole body rides on the ankle-to-toe segment, so rotating that
+/// segment from its takeoff angle to its landing angle moves the centre of mass by the
+/// difference of the two vertical projections. A subject who takes off plantarflexed and lands
+/// flat gives a positive number, which is the case the correction exists for.
+pub fn landing_below_takeoff_from_ankle_angles_meters(
+    segment: AnkleToToeSegment,
+    ankle_angle_at_takeoff_degrees: f64,
+    ankle_angle_at_landing_degrees: f64,
+) -> f64 {
+    let projection = |plantarflexion_degrees: f64| {
+        segment.length_meters
+            * (plantarflexion_degrees + segment.standing_angle_degrees)
+                .to_radians()
+                .sin()
+    };
+    projection(ankle_angle_at_takeoff_degrees) - projection(ankle_angle_at_landing_degrees)
+}
+
+/// The downward centre-of-mass velocity a free fall through `drop_height_meters` gives, in
+/// metres per second.
+///
+/// Negative, because the plate's positive direction is up and this is the velocity the athlete
+/// arrives with. A drop jump needs it as the lower boundary condition the impulse-momentum
+/// integration cannot supply for itself: the integration starts from rest, and on a drop jump
+/// the athlete is not at rest when the recording of contact begins.
+///
+/// A box height is not a drop height. The centre of mass falls less than the box is tall
+/// because the athlete steps down rather than dropping rigidly, which is the 0.066 m bias the
+/// registry records against the two-plate criterion.
+pub fn drop_touchdown_velocity_meters_per_second(
+    drop_height_meters: f64,
+    gravity_meters_per_second_squared: f64,
+) -> f64 {
+    if drop_height_meters <= 0.0 {
+        return 0.0;
+    }
+    -(2.0 * gravity_meters_per_second_squared * drop_height_meters).sqrt()
 }
 
 pub fn time_to_takeoff_seconds(landmarks: &Landmarks, sample_interval_seconds: f64) -> f64 {
@@ -465,5 +625,143 @@ mod tests {
     fn reactive_strength_index_refuses_a_zero_denominator() {
         assert_eq!(reactive_strength_index_modified(0.4, 0.0), None);
         assert_eq!(reactive_strength_index_modified(0.4, 0.8), Some(0.5));
+    }
+
+    /// The projectile equation is the offset rule at zero offset, and the offset has to move
+    /// the answer or the correction is decorative.
+    ///
+    /// Both halves matter. Agreement alone would pass against a rule that ignores its offset,
+    /// and a moved number alone would pass against a rule that no longer reduces to the
+    /// equation nine studies published.
+    ///
+    /// Exact equality rather than a tolerance, because the correction is written as a factor on
+    /// the projectile height for the sake of this: a rearrangement that agrees only to a
+    /// tolerance moves the uncorrected height of every trial in its last place.
+    #[test]
+    fn a_flight_time_height_with_no_landing_offset_is_the_projectile_equation() {
+        for flight_time in [0.35, 0.5, 0.676, 0.8] {
+            let plain = jump_height_from_flight_time(flight_time, GRAVITY);
+            let offset_free =
+                jump_height_from_flight_time_with_landing_offset(flight_time, 0.0, GRAVITY);
+            assert_eq!(
+                plain, offset_free,
+                "at {flight_time} s the two arrangements gave {plain} and {offset_free}"
+            );
+        }
+
+        // Landing below takeoff lengthens the fall, so the uncorrected number is the larger
+        // one. 0.04 m is the middle of the ankle-position range the source simulates.
+        let uncorrected = jump_height_from_flight_time(0.4, GRAVITY);
+        let corrected = jump_height_from_flight_time_with_landing_offset(0.4, 0.04, GRAVITY);
+        println!(
+            "0.4 s flight: {uncorrected:.4} m uncorrected, {corrected:.4} m at a 0.04 m offset"
+        );
+        assert!(
+            corrected < uncorrected - 0.01,
+            "a 0.04 m landing offset moved a {uncorrected:.4} m jump to {corrected:.4} m"
+        );
+    }
+
+    /// The published length equation returns the published number.
+    ///
+    /// `l_at = sqrt((0.039H)^2 + (0.152 x 0.787 H)^2) = 0.126H` is Goncalves equation 11, and
+    /// the entry publishes two of the three fractions. Checking the constant rather than the
+    /// arithmetic is what catches a fraction going missing: drop the ankle height and the
+    /// answer is 0.120H, which still looks like a length.
+    #[test]
+    fn the_ankle_to_toe_segment_matches_the_published_fraction_of_stature() {
+        let segment = ankle_to_toe_segment(1.71, 0.039, 0.152, 0.787);
+        let fraction = segment.length_meters / 1.71;
+        println!(
+            "at 1.71 m stature the segment is {:.4} m, {fraction:.4} of stature, leaning {:.2} degrees",
+            segment.length_meters, segment.standing_angle_degrees
+        );
+        assert!(
+            (fraction - 0.126).abs() < 0.0005,
+            "the segment came to {fraction:.4} of stature against the published 0.126"
+        );
+        assert!(
+            (segment.standing_angle_degrees - 18.06).abs() < 0.05,
+            "the standing lean came to {:.2} degrees",
+            segment.standing_angle_degrees
+        );
+    }
+
+    /// Taking off plantarflexed and landing flat puts the centre of mass below where it left,
+    /// and taking off and landing alike puts it nowhere.
+    #[test]
+    fn an_unchanged_ankle_moves_the_centre_of_mass_nowhere_and_a_changed_one_moves_it_down() {
+        let segment = ankle_to_toe_segment(1.71, 0.039, 0.152, 0.787);
+        let unchanged = landing_below_takeoff_from_ankle_angles_meters(segment, 40.0, 40.0);
+        assert!(
+            unchanged.abs() < 1e-12,
+            "an unchanged ankle moved the centre of mass {unchanged} m"
+        );
+
+        let flat_landing = landing_below_takeoff_from_ankle_angles_meters(segment, 40.0, 0.0);
+        println!("40 degrees of plantarflexion lost at landing: {flat_landing:.4} m");
+        assert!(
+            flat_landing > 0.0,
+            "landing flatter than takeoff put the centre of mass {flat_landing} m above it"
+        );
+        // The reverse posture reverses the sign rather than taking a magnitude, because a
+        // subject who lands more plantarflexed than they took off has a longer jump than the
+        // projectile equation reports, not a shorter one.
+        let plantarflexed_landing =
+            landing_below_takeoff_from_ankle_angles_meters(segment, 0.0, 40.0);
+        assert!(
+            (plantarflexed_landing + flat_landing).abs() < 1e-12,
+            "the two postures gave {flat_landing} and {plantarflexed_landing}"
+        );
+    }
+
+    /// The heel-rise constant lands in the range the source reports, and sole thickness is a
+    /// term rather than a rounding.
+    ///
+    /// The range is the assertion that earns its keep. The arithmetic is three operations and
+    /// checking it against itself would pass on the length the source's printed formula names
+    /// rather than the one its text defines, which puts the constant near 18 cm against the
+    /// 10 to 12 cm the same paper calls the expected range.
+    #[test]
+    fn the_heel_rise_constant_lands_in_the_range_its_source_reports() {
+        // A 1.71 m subject: 0.26 m foot, so 0.787 of it is 0.205 m of malleolus to toe, a
+        // 0.02 m sole and a 0.067 m ankle height.
+        let malleolus_to_toe = 0.787 * 0.26;
+        let constant = heel_rise_constant_meters(malleolus_to_toe, 0.02, 0.067, 0.88);
+        println!("heel rise from a {malleolus_to_toe:.4} m malleolus-to-toe: {constant:.4} m");
+        assert!(
+            (0.09..=0.14).contains(&constant),
+            "the constant came to {constant:.4} m, outside the 0.10 to 0.12 m the source reports"
+        );
+
+        // Reading the printed name literally is the error this range catches, and it is a
+        // whole heel rise wide.
+        let whole_foot = heel_rise_constant_meters(0.26, 0.02, 0.067, 0.88);
+        assert!(
+            whole_foot > 0.17,
+            "the whole-foot reading came to {whole_foot:.4} m, so the range above proves nothing"
+        );
+
+        // Barefoot is the same jump with the sole term at zero, which the rule states rather
+        // than omits.
+        let barefoot = heel_rise_constant_meters(malleolus_to_toe, 0.0, 0.067, 0.88);
+        assert!((constant - barefoot - 0.02).abs() < 1e-12, "{barefoot}");
+    }
+
+    /// A drop from a stated height arrives moving downward, and a drop from nothing arrives
+    /// at rest.
+    #[test]
+    fn a_drop_height_gives_a_downward_touchdown_velocity() {
+        let from_thirty_centimetres = drop_touchdown_velocity_meters_per_second(0.30, GRAVITY);
+        println!("a 0.30 m drop arrives at {from_thirty_centimetres:.4} m/s");
+        assert!(
+            from_thirty_centimetres < 0.0,
+            "the athlete arrived travelling upward at {from_thirty_centimetres} m/s"
+        );
+        assert!(
+            (from_thirty_centimetres + (2.0f64 * GRAVITY * 0.30).sqrt()).abs() < 1e-12,
+            "{from_thirty_centimetres}"
+        );
+        assert_eq!(drop_touchdown_velocity_meters_per_second(0.0, GRAVITY), 0.0);
     }
 }
