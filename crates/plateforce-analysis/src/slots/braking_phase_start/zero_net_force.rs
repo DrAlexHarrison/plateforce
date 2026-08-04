@@ -60,7 +60,7 @@ fn place(
         return DerivedOutcome::declined(resolved.finish(), context.unavailable(ID, &missing));
     };
 
-    let placed = match signal {
+    match signal {
         SearchSignal::VelocityArgmin => {
             let velocity = crate::centre_of_mass::velocity(
                 context.trial,
@@ -69,34 +69,29 @@ fn place(
                 context.gravity_meters_per_second_squared,
                 &mut resolved,
             );
-            braking_start_by_velocity_minimum(&velocity, onset, takeoff)
+            let index = braking_start_by_velocity_minimum(&velocity, onset, takeoff);
+            boundaries::placed_outcome(context, super::KEY, super::PLACED, index, resolved.finish())
         }
         // Bounded at the propulsive peak. Bounded at takeoff the search anchors on the force
         // collapse rather than on the unweighting minimum and returns takeoff itself.
-        SearchSignal::ForceCrossing => boundaries::propulsive_peak_index(context, onset, takeoff)
-            .and_then(|peak| {
-                braking_start_by_force_return(
-                    context.trial.force(),
-                    onset,
-                    context.epoch.system_weight_newtons,
-                    peak,
-                )
-            }),
-    };
-    let bound = resolved.finish();
-
-    let Some(index) = placed else {
-        return DerivedOutcome {
-            values: vec![(super::KEY, None)],
-            placed: Vec::new(),
-            bound,
-            refusal: None,
-        };
-    };
-    DerivedOutcome {
-        values: vec![(super::KEY, Some(context.trial.time_at(index)))],
-        placed: vec![(super::PLACED, index)],
-        bound,
-        refusal: None,
+        SearchSignal::ForceCrossing => {
+            let crossing =
+                boundaries::propulsive_peak_index(context, onset, takeoff).and_then(|peak| {
+                    braking_start_by_force_return(
+                        context.trial.force(),
+                        onset,
+                        context.epoch.system_weight_newtons,
+                        peak,
+                    )
+                });
+            boundaries::crossing_outcome(
+                context,
+                ID,
+                super::KEY,
+                super::PLACED,
+                crossing,
+                resolved.finish(),
+            )
+        }
     }
 }

@@ -88,13 +88,20 @@ fn place(
                     context.unavailable(ID, &[braking_phase_start::CONSTRUCT]),
                 );
             };
-            let index = propulsion_end_by_force_crossing(
+            let crossing = propulsion_end_by_force_crossing(
                 context.trial.force(),
                 context.epoch.system_weight_newtons,
                 braking_start,
                 takeoff,
             );
-            boundaries::placed_outcome(context, super::KEY, super::PLACED, index, resolved.finish())
+            boundaries::crossing_outcome(
+                context,
+                ID,
+                super::KEY,
+                super::PLACED,
+                crossing,
+                resolved.finish(),
+            )
         }
     }
 }

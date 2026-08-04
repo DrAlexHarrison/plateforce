@@ -63,19 +63,41 @@ pub enum CrossingDirection {
     Falling,
 }
 
+/// Where a bounded search stopped, and whether the recording carried the crossing the rule
+/// names.
+///
+/// A search that meets no crossing still returns an index, which is what the tools these
+/// rules are drawn from do and is a different quantity from the crossing. The two travel
+/// together so that a caller cannot publish one under the other's name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BoundedCrossing {
+    pub index: usize,
+    pub is_true_crossing: bool,
+    /// The sample the scan started from: the force extremum inside the interval for a force
+    /// crossing, the velocity minimum for a velocity one. A search that meets nothing returns
+    /// a sample beside it, so the two together are the interval a reader measures rather than
+    /// takes on trust.
+    pub anchor_index: usize,
+}
+
 /// The sample at which force last sits at or below a reference before rising through it,
 /// or first sits at or below it after falling through it.
 ///
 /// The search anchors on the force extremum inside the interval, the minimum for a rising
 /// crossing and the maximum for a falling one, so a trace that begins on the wrong side of
 /// the reference cannot return its own first sample.
+///
+/// Each scan starts from the end it reports from, so its first candidate is the one sample
+/// whose other side lies outside the interval: the bound for a rise, the anchor for a fall.
+/// Returning that sample is the search running out rather than meeting a crossing, and the
+/// comparison that says so is between two integers.
 pub fn force_reference_crossing(
     vertical_ground_reaction_force_newtons: &[f64],
     reference_newtons: f64,
     search_start_index: usize,
     search_end_index: usize,
     direction: CrossingDirection,
-) -> Option<usize> {
+) -> Option<BoundedCrossing> {
     if search_end_index <= search_start_index
         || search_end_index >= vertical_ground_reaction_force_newtons.len()
     {
@@ -96,7 +118,16 @@ pub fn force_reference_crossing(
             .iter()
             .position(|&force| force <= reference_newtons),
     }?;
-    Some(anchor + offset)
+    let index = anchor + offset;
+    let is_true_crossing = match direction {
+        CrossingDirection::Rising => index < search_end_index,
+        CrossingDirection::Falling => index > anchor,
+    };
+    Some(BoundedCrossing {
+        index,
+        is_true_crossing,
+        anchor_index: anchor,
+    })
 }
 
 /// Braking start as the last return of force to a reference, searched between the force
@@ -111,7 +142,7 @@ pub fn braking_start_by_force_return(
     onset_index: usize,
     reference_newtons: f64,
     peak_index: usize,
-) -> Option<usize> {
+) -> Option<BoundedCrossing> {
     force_reference_crossing(
         vertical_ground_reaction_force_newtons,
         reference_newtons,
@@ -127,7 +158,7 @@ pub fn propulsion_end_by_force_crossing(
     reference_newtons: f64,
     braking_start_index: usize,
     takeoff_index: usize,
-) -> Option<usize> {
+) -> Option<BoundedCrossing> {
     force_reference_crossing(
         vertical_ground_reaction_force_newtons,
         reference_newtons,
@@ -179,17 +210,11 @@ pub fn braking_start_by_force_minimum(
 /// The fallback when no crossing exists returns the sample after the minimum, which is
 /// the behaviour of the tool this reproduces and is not the same quantity. A caller
 /// that cannot tell the two apart is reading a velocity zero that is not one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct VelocityZeroCrossing {
-    pub index: usize,
-    pub is_true_crossing: bool,
-}
-
 pub fn velocity_zero_crossing(
     velocity: &crate::series::VelocitySeries,
     onset_index: usize,
     search_end_index: usize,
-) -> Option<VelocityZeroCrossing> {
+) -> Option<BoundedCrossing> {
     velocity_threshold_crossing(velocity, onset_index, search_end_index, 0.0)
 }
 
@@ -204,7 +229,7 @@ pub fn velocity_threshold_crossing(
     onset_index: usize,
     search_end_index: usize,
     threshold_meters_per_second: f64,
-) -> Option<VelocityZeroCrossing> {
+) -> Option<BoundedCrossing> {
     if onset_index + 1 >= search_end_index || search_end_index > velocity.len() {
         return None;
     }
@@ -214,16 +239,18 @@ pub fn velocity_threshold_crossing(
         if segment[index] <= threshold_meters_per_second
             && segment[index + 1] > threshold_meters_per_second
         {
-            return Some(VelocityZeroCrossing {
+            return Some(BoundedCrossing {
                 index: onset_index + index + 1,
                 is_true_crossing: true,
+                anchor_index: onset_index + minimum,
             });
         }
     }
     if minimum + 1 < segment.len() {
-        return Some(VelocityZeroCrossing {
+        return Some(BoundedCrossing {
             index: onset_index + minimum + 1,
             is_true_crossing: false,
+            anchor_index: onset_index + minimum,
         });
     }
     None
@@ -313,6 +340,27 @@ pub struct PhaseModelBoundaries {
     pub indices: Vec<usize>,
 }
 
+/// What a phase model made of the searches it composes.
+///
+/// `indices` is read by the phase-anchored rates and powers as consecutive pairs, and nothing
+/// downstream of it can tell an instant a search met from one it returned on running out. So a
+/// model that meets no crossing places nothing and names the boundary, rather than putting an
+/// index there for a later rule to read as a boundary the recording carried.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PhaseModelOutcome {
+    Placed(PhaseModelBoundaries),
+    /// A search returned an index without meeting the condition the model names at that
+    /// boundary. `boundary_position` counts from the model's first boundary in trace order,
+    /// and the anchor beside the returned index is the interval the search collapsed to.
+    BoundaryNotCrossed {
+        boundary_position: usize,
+        anchor_index: usize,
+        returned_index: usize,
+    },
+    /// A search this model composes found nothing at all on this recording.
+    NothingToPlace,
+}
+
 /// The single unweighting phase: from the departure below system weight to the return
 /// through it.
 ///
@@ -324,23 +372,35 @@ pub fn phase_model_unweighting_single(
     system_weight_newtons: f64,
     onset_index: usize,
     peak_index: usize,
-) -> Option<PhaseModelBoundaries> {
+) -> PhaseModelOutcome {
     if peak_index <= onset_index || peak_index >= vertical_ground_reaction_force_newtons.len() {
-        return None;
+        return PhaseModelOutcome::NothingToPlace;
     }
-    let start = onset_index
-        + vertical_ground_reaction_force_newtons[onset_index..peak_index]
-            .iter()
-            .position(|&force| force < system_weight_newtons)?;
-    let end = force_reference_crossing(
+    let Some(departure) = vertical_ground_reaction_force_newtons[onset_index..peak_index]
+        .iter()
+        .position(|&force| force < system_weight_newtons)
+    else {
+        return PhaseModelOutcome::NothingToPlace;
+    };
+    let start = onset_index + departure;
+    let Some(end) = force_reference_crossing(
         vertical_ground_reaction_force_newtons,
         system_weight_newtons,
         start,
         peak_index,
         CrossingDirection::Rising,
-    )?;
-    Some(PhaseModelBoundaries {
-        indices: vec![start, end],
+    ) else {
+        return PhaseModelOutcome::NothingToPlace;
+    };
+    if !end.is_true_crossing {
+        return PhaseModelOutcome::BoundaryNotCrossed {
+            boundary_position: 1,
+            anchor_index: end.anchor_index,
+            returned_index: end.index,
+        };
+    }
+    PhaseModelOutcome::Placed(PhaseModelBoundaries {
+        indices: vec![start, end.index],
     })
 }
 
@@ -358,31 +418,56 @@ pub fn phase_model_unloading_yielding_split(
     search_start_index: usize,
     peak_index: usize,
     takeoff_index: usize,
-) -> Option<PhaseModelBoundaries> {
+) -> PhaseModelOutcome {
     if takeoff_index <= search_start_index
         || takeoff_index > vertical_ground_reaction_force_newtons.len()
         || takeoff_index > velocity.len()
     {
-        return None;
+        return PhaseModelOutcome::NothingToPlace;
     }
     let unloading_level_newtons =
         system_weight_newtons * (1.0 - unloading_drop_percent_of_system_weight / 100.0);
-    let unloading_start = search_start_index
-        + vertical_ground_reaction_force_newtons[search_start_index..takeoff_index]
-            .iter()
-            .position(|&force| force < unloading_level_newtons)?;
-    // Bounded at the propulsive peak rather than at takeoff, where force is still
-    // collapsing toward zero and the minimum is the sample before takeoff.
-    let force_minimum = braking_start_by_force_minimum(
-        vertical_ground_reaction_force_newtons,
-        unloading_start,
-        peak_index,
-    )?;
-    let velocity_minimum =
-        braking_start_by_velocity_minimum(velocity, force_minimum, takeoff_index)?;
-    let positive_velocity =
-        velocity_threshold_crossing(velocity, velocity_minimum, takeoff_index, 0.0)?;
-    Some(PhaseModelBoundaries {
+    let placed = vertical_ground_reaction_force_newtons[search_start_index..takeoff_index]
+        .iter()
+        .position(|&force| force < unloading_level_newtons)
+        .map(|departure| search_start_index + departure)
+        // Bounded at the propulsive peak rather than at takeoff, where force is still
+        // collapsing toward zero and the minimum is the sample before takeoff.
+        .and_then(|unloading_start| {
+            braking_start_by_force_minimum(
+                vertical_ground_reaction_force_newtons,
+                unloading_start,
+                peak_index,
+            )
+            .map(|force_minimum| (unloading_start, force_minimum))
+        })
+        .and_then(|(unloading_start, force_minimum)| {
+            braking_start_by_velocity_minimum(velocity, force_minimum, takeoff_index)
+                .map(|velocity_minimum| (unloading_start, force_minimum, velocity_minimum))
+        })
+        .and_then(|(unloading_start, force_minimum, velocity_minimum)| {
+            velocity_threshold_crossing(velocity, velocity_minimum, takeoff_index, 0.0).map(
+                |positive_velocity| {
+                    (
+                        unloading_start,
+                        force_minimum,
+                        velocity_minimum,
+                        positive_velocity,
+                    )
+                },
+            )
+        });
+    let Some((unloading_start, force_minimum, velocity_minimum, positive_velocity)) = placed else {
+        return PhaseModelOutcome::NothingToPlace;
+    };
+    if !positive_velocity.is_true_crossing {
+        return PhaseModelOutcome::BoundaryNotCrossed {
+            boundary_position: 3,
+            anchor_index: positive_velocity.anchor_index,
+            returned_index: positive_velocity.index,
+        };
+    }
+    PhaseModelOutcome::Placed(PhaseModelBoundaries {
         indices: vec![
             unloading_start,
             force_minimum,
@@ -404,7 +489,7 @@ pub fn positive_impulse_window(
     onset_index: usize,
     peak_index: usize,
     takeoff_index: usize,
-) -> Option<(usize, usize)> {
+) -> Option<(BoundedCrossing, BoundedCrossing)> {
     let start = force_reference_crossing(
         vertical_ground_reaction_force_newtons,
         system_weight_newtons,
@@ -415,7 +500,7 @@ pub fn positive_impulse_window(
     let end = force_reference_crossing(
         vertical_ground_reaction_force_newtons,
         system_weight_newtons,
-        start,
+        start.index,
         takeoff_index,
         CrossingDirection::Falling,
     )?;
@@ -442,7 +527,7 @@ pub fn propulsion_subdivision_by_force_crossing(
     system_weight_newtons: f64,
     propulsion_start_index: usize,
     propulsion_end_index: usize,
-) -> Option<usize> {
+) -> Option<BoundedCrossing> {
     force_reference_crossing(
         vertical_ground_reaction_force_newtons,
         system_weight_newtons,
@@ -530,6 +615,15 @@ mod tests {
         )
     }
 
+    /// The boundaries of a model that placed them, so a test asserting about placement fails
+    /// on any other outcome rather than reading through it.
+    fn placed(outcome: PhaseModelOutcome) -> PhaseModelBoundaries {
+        match outcome {
+            PhaseModelOutcome::Placed(boundaries) => boundaries,
+            other => panic!("the model placed nothing: {other:?}"),
+        }
+    }
+
     #[test]
     fn integrating_a_constant_acceleration_gives_a_linear_velocity() {
         let acceleration = vec![2.0; 1001];
@@ -605,20 +699,26 @@ mod tests {
 
         let rising =
             force_reference_crossing(&force, weight, 0, peak, CrossingDirection::Rising).unwrap();
-        let falling =
-            force_reference_crossing(&force, weight, rising, takeoff, CrossingDirection::Falling)
-                .unwrap();
+        let falling = force_reference_crossing(
+            &force,
+            weight,
+            rising.index,
+            takeoff,
+            CrossingDirection::Falling,
+        )
+        .unwrap();
+        assert!(rising.is_true_crossing && falling.is_true_crossing);
         assert!(
-            rising < falling,
-            "rising {rising} against falling {falling}"
+            rising.index < falling.index,
+            "rising {rising:?} against falling {falling:?}"
         );
         assert!(
-            force[rising] <= weight && force[rising + 1] > weight,
-            "{rising}"
+            force[rising.index] <= weight && force[rising.index + 1] > weight,
+            "{rising:?}"
         );
         assert!(
-            force[falling] <= weight && force[falling - 1] > weight,
-            "{falling}"
+            force[falling.index] <= weight && force[falling.index - 1] > weight,
+            "{falling:?}"
         );
     }
 
@@ -825,32 +925,53 @@ mod tests {
         let falls_back = (peak..TAKEOFF_INDEX)
             .find(|index| force[*index] <= SYSTEM_WEIGHT_NEWTONS)
             .expect("force returns under system weight before takeoff");
+        assert!(crossing.is_true_crossing);
         assert!(
-            crossing < peak && peak < falls_back,
-            "crossing {crossing}, peak {peak}, fall {falls_back}"
+            crossing.index < peak && peak < falls_back,
+            "crossing {crossing:?}, peak {peak}, fall {falls_back}"
         );
 
-        for bound in [crossing, crossing + 1, peak, falls_back - 1] {
+        // A bound sitting exactly on the crossing leaves no sample past it to rise into, so
+        // the answer is the bound and the rule reports it as one. Every bound above it sees
+        // the rise and reports a crossing. The index is the same either way, which is what
+        // makes the distinction worth carrying.
+        for bound in [crossing.index, crossing.index + 1, peak, falls_back - 1] {
+            let bounded = braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, bound)
+                .expect("the search answers");
             assert_eq!(
-                braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, bound),
-                Some(crossing),
-                "a bound at {bound} moved the boundary off {crossing}"
+                bounded.index, crossing.index,
+                "a bound at {bound} moved the boundary off {}",
+                crossing.index
+            );
+            assert_eq!(
+                bounded.is_true_crossing,
+                bound > crossing.index,
+                "a bound at {bound}: {bounded:?}"
             );
         }
-        // Truncated below the band: the search returns the bound it was given, which is not a
-        // crossing at all.
-        assert_eq!(
-            braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, crossing - 60),
-            Some(crossing - 60)
+        // Truncated below the band: the search returns the bound it was given, and says so.
+        let truncated =
+            braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, crossing.index - 60)
+                .expect("the search answers");
+        assert_eq!(truncated.index, crossing.index - 60);
+        assert!(
+            !truncated.is_true_crossing,
+            "the bound came back as a crossing: {truncated:?}"
         );
-        // Past the band: the collapse before takeoff is under the reference again.
+        // Past the band: the collapse before takeoff is under the reference again, and that
+        // sample is the bound too, so the search reports it as one rather than as a crossing.
         for bound in [falls_back, TAKEOFF_INDEX] {
             let late = braking_start_by_force_return(&force, 500, SYSTEM_WEIGHT_NEWTONS, bound)
                 .expect("the search still answers");
             assert!(
-                late >= falls_back,
-                "a bound at {bound} returned {late}, before the fall at {falls_back}, so this \
+                late.index >= falls_back,
+                "a bound at {bound} returned {late:?}, before the fall at {falls_back}, so this \
                  trace cannot show what the bound prevents"
+            );
+            assert_eq!(
+                late.is_true_crossing,
+                late.index < bound,
+                "a bound at {bound}: {late:?}"
             );
         }
     }
@@ -860,8 +981,12 @@ mod tests {
     #[test]
     fn the_single_unweighting_model_does_not_declare_the_force_minimum() {
         let force = countermovement_force();
-        let model =
-            phase_model_unweighting_single(&force, SYSTEM_WEIGHT_NEWTONS, 500, PEAK_INDEX).unwrap();
+        let model = placed(phase_model_unweighting_single(
+            &force,
+            SYSTEM_WEIGHT_NEWTONS,
+            500,
+            PEAK_INDEX,
+        ));
         let minimum = braking_start_by_force_minimum(&force, 500, PEAK_INDEX).unwrap();
         assert_eq!(model.indices.len(), 2, "{model:?}");
         assert!(
@@ -877,7 +1002,7 @@ mod tests {
     fn the_split_models_unloading_start_does_not_follow_the_bound_onset_rule() {
         let force = countermovement_force();
         let velocity = countermovement_velocity(&force);
-        let from_early = phase_model_unloading_yielding_split(
+        let from_early = placed(phase_model_unloading_yielding_split(
             &force,
             &stated_series(velocity.clone()),
             SYSTEM_WEIGHT_NEWTONS,
@@ -885,9 +1010,8 @@ mod tests {
             0,
             PEAK_INDEX,
             TAKEOFF_INDEX,
-        )
-        .unwrap();
-        let from_late = phase_model_unloading_yielding_split(
+        ));
+        let from_late = placed(phase_model_unloading_yielding_split(
             &force,
             &stated_series(velocity.clone()),
             SYSTEM_WEIGHT_NEWTONS,
@@ -895,8 +1019,7 @@ mod tests {
             480,
             PEAK_INDEX,
             TAKEOFF_INDEX,
-        )
-        .unwrap();
+        ));
         assert_eq!(from_early.indices, from_late.indices);
         assert_eq!(from_early.indices.len(), 5, "{from_early:?}");
         assert!(
@@ -904,7 +1027,7 @@ mod tests {
             "{from_early:?}"
         );
 
-        let deeper = phase_model_unloading_yielding_split(
+        let deeper = placed(phase_model_unloading_yielding_split(
             &force,
             &stated_series(velocity.clone()),
             SYSTEM_WEIGHT_NEWTONS,
@@ -912,8 +1035,7 @@ mod tests {
             0,
             PEAK_INDEX,
             TAKEOFF_INDEX,
-        )
-        .unwrap();
+        ));
         assert!(
             deeper.indices[0] > from_early.indices[0],
             "a deeper drop started no later: {deeper:?} against {from_early:?}"
@@ -946,11 +1068,23 @@ mod tests {
         );
         assert_eq!(
             end,
-            propulsion_end_by_force_crossing(&force, SYSTEM_WEIGHT_NEWTONS, start, TAKEOFF_INDEX)
-                .unwrap()
+            propulsion_end_by_force_crossing(
+                &force,
+                SYSTEM_WEIGHT_NEWTONS,
+                start.index,
+                TAKEOFF_INDEX
+            )
+            .unwrap()
         );
-        assert!(force[start] <= SYSTEM_WEIGHT_NEWTONS && force[start + 1] > SYSTEM_WEIGHT_NEWTONS);
-        assert!(force[end] <= SYSTEM_WEIGHT_NEWTONS && force[end - 1] > SYSTEM_WEIGHT_NEWTONS);
+        assert!(start.is_true_crossing && end.is_true_crossing);
+        assert!(
+            force[start.index] <= SYSTEM_WEIGHT_NEWTONS
+                && force[start.index + 1] > SYSTEM_WEIGHT_NEWTONS
+        );
+        assert!(
+            force[end.index] <= SYSTEM_WEIGHT_NEWTONS
+                && force[end.index - 1] > SYSTEM_WEIGHT_NEWTONS
+        );
     }
 
     #[test]
@@ -961,8 +1095,9 @@ mod tests {
         let by_force =
             propulsion_subdivision_by_force_crossing(&force, SYSTEM_WEIGHT_NEWTONS, 900, 1300)
                 .unwrap();
-        assert!((900..1300).contains(&by_force), "{by_force}");
-        assert_ne!(by_time, by_force);
+        assert!((900..1300).contains(&by_force.index), "{by_force:?}");
+        assert!(by_force.is_true_crossing);
+        assert_ne!(by_time, by_force.index);
         assert!(propulsion_subdivision_by_time(1300, 900, 50.0).is_none());
     }
 

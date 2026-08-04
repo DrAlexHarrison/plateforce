@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use plateforce_core::phases::VelocityZeroCrossing;
+use plateforce_core::phases::{BoundedCrossing, PhaseModelOutcome};
 
 use crate::derived::{DerivedContext, DerivedOutcome};
 use crate::resolution::{BoundValues, RuleRefusal};
@@ -59,11 +59,14 @@ pub(crate) fn crossing_or_refusal(
     method_id: &str,
     key: &'static str,
     name: &'static str,
-    index: Option<usize>,
+    crossing: Option<BoundedCrossing>,
     bound: BoundValues,
 ) -> DerivedOutcome {
-    match index {
-        Some(index) => placed_outcome(context, key, name, Some(index), bound),
+    match crossing {
+        Some(crossing) if crossing.is_true_crossing => {
+            placed_outcome(context, key, name, Some(crossing.index), bound)
+        }
+        Some(fallback) => declined_at_a_fallback(context, method_id, bound, fallback),
         None => DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
@@ -85,22 +88,100 @@ pub(crate) fn crossing_outcome(
     method_id: &str,
     key: &'static str,
     name: &'static str,
-    crossing: Option<VelocityZeroCrossing>,
+    crossing: Option<BoundedCrossing>,
     bound: BoundValues,
 ) -> DerivedOutcome {
     match crossing {
         Some(crossing) if crossing.is_true_crossing => {
             placed_outcome(context, key, name, Some(crossing.index), bound)
         }
-        Some(fallback) => DerivedOutcome::declined(
+        Some(fallback) => declined_at_a_fallback(context, method_id, bound, fallback),
+        None => placed_outcome(context, key, name, None, bound),
+    }
+}
+
+/// A search that returned an instant without meeting what the rule names, refused with the
+/// two instants a reader needs to measure the interval it collapsed to.
+///
+/// Both are in seconds, because every other number a reader compares them against is, and the
+/// pair is the evidence: an interval of one sample is a boundary the recording did not carry.
+fn declined_at_a_fallback(
+    context: &DerivedContext,
+    method_id: &str,
+    bound: BoundValues,
+    fallback: BoundedCrossing,
+) -> DerivedOutcome {
+    DerivedOutcome::declined(
+        bound,
+        RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
+            method_id,
+            1,
+            BTreeMap::from([
+                (
+                    "search_anchor_seconds".to_string(),
+                    context.trial.time_at(fallback.anchor_index),
+                ),
+                (
+                    "returned_seconds".to_string(),
+                    context.trial.time_at(fallback.index),
+                ),
+            ]),
+        ))),
+    )
+}
+
+/// A phase model's five or two boundaries, or the refusal that says which of them the
+/// recording did not carry.
+///
+/// A model declines whole rather than publishing the boundaries below the one it could not
+/// place, because the intervals between them are what the model asserts and an interval with
+/// an unmet end is not one of them.
+pub(crate) fn model_outcome(
+    context: &DerivedContext,
+    method_id: &str,
+    keys: &[&'static str],
+    outcome: PhaseModelOutcome,
+    bound: BoundValues,
+) -> DerivedOutcome {
+    match outcome {
+        PhaseModelOutcome::Placed(model) => DerivedOutcome {
+            values: keys
+                .iter()
+                .zip(&model.indices)
+                .map(|(key, index)| (*key, Some(context.trial.time_at(*index))))
+                .collect(),
+            placed: Vec::new(),
+            bound,
+            refusal: None,
+        },
+        PhaseModelOutcome::BoundaryNotCrossed {
+            boundary_position,
+            anchor_index,
+            returned_index,
+        } => DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
                 method_id,
                 1,
-                BTreeMap::from([("fallback_index".to_string(), fallback.index as f64)]),
+                BTreeMap::from([
+                    ("boundary_position".to_string(), boundary_position as f64),
+                    (
+                        "search_anchor_seconds".to_string(),
+                        context.trial.time_at(anchor_index),
+                    ),
+                    (
+                        "returned_seconds".to_string(),
+                        context.trial.time_at(returned_index),
+                    ),
+                ]),
             ))),
         ),
-        None => placed_outcome(context, key, name, None, bound),
+        PhaseModelOutcome::NothingToPlace => DerivedOutcome {
+            values: keys.iter().map(|key| (*key, None)).collect(),
+            placed: Vec::new(),
+            bound,
+            refusal: None,
+        },
     }
 }
 

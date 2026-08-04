@@ -10,7 +10,7 @@
 //! rule for. The unloading phase is strictly shorter than the single unweighting phase, so an
 //! eccentric rate of force development compared across the two models is comparing intervals.
 
-use plateforce_core::phases::phase_model_unloading_yielding_split;
+use plateforce_core::phases::{phase_model_unloading_yielding_split, PhaseModelOutcome};
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::boundaries;
@@ -99,35 +99,18 @@ fn place(
     // The search runs from the first sample rather than from the bound onset, because the
     // model defines its own start and reading the bound rule's would move every boundary
     // below it with a choice this model does not make.
-    let model = boundaries::propulsive_peak_index(context, onset, takeoff).and_then(|peak| {
-        phase_model_unloading_yielding_split(
-            context.trial.force(),
-            &velocity,
-            context.epoch.system_weight_newtons,
-            drop_percent_of_system_weight,
-            0,
-            peak,
-            takeoff,
-        )
-    });
-    let bound = resolved.finish();
-
-    let Some(model) = model else {
-        return DerivedOutcome {
-            values: KEYS.iter().map(|key| (*key, None)).collect(),
-            placed: Vec::new(),
-            bound,
-            refusal: None,
-        };
-    };
-    DerivedOutcome {
-        values: KEYS
-            .iter()
-            .zip(&model.indices)
-            .map(|(key, index)| (*key, Some(context.trial.time_at(*index))))
-            .collect(),
-        placed: Vec::new(),
-        bound,
-        refusal: None,
-    }
+    let model = boundaries::propulsive_peak_index(context, onset, takeoff)
+        .map(|peak| {
+            phase_model_unloading_yielding_split(
+                context.trial.force(),
+                &velocity,
+                context.epoch.system_weight_newtons,
+                drop_percent_of_system_weight,
+                0,
+                peak,
+                takeoff,
+            )
+        })
+        .unwrap_or(PhaseModelOutcome::NothingToPlace);
+    boundaries::model_outcome(context, ID, &KEYS, model, resolved.finish())
 }
