@@ -73,6 +73,7 @@ fn rate_rules() -> Vec<Asked> {
         .stating("reference_basis", "absolute"),
         Asked::rate("rfd.phase_endpoint_secant.harry", &[]),
         Asked::rate("rfd.mean_force_over_duration.lapuente", &[]),
+        Asked::rate("rfd.exponential_model.padulles", &[]),
     ]
 }
 
@@ -302,6 +303,128 @@ fn every_rule_in_this_family_reads_what_it_is_given_and_records_a_name_a_reader_
     );
 }
 
+/// A quiet stance then a mono-exponential rise of known amplitude and time constant, which is
+/// the shape the fitted rule was written for and which no recording held here is.
+///
+/// The noise is a fixed sawtooth rather than anything random, so the quiet epoch has a spread
+/// for the onset threshold to scale and two runs read the same bytes.
+fn a_trace_that_is_an_exponential_rise() -> plateforce_core::Trial {
+    const QUIET_NEWTONS: f64 = 600.0;
+    let mut force: Vec<f64> = (0..1440)
+        .map(|index| QUIET_NEWTONS + ((index % 17) as f64 - 8.0) * 0.4)
+        .collect();
+    force.extend((0..3600).map(|index| {
+        let seconds = index as f64 / 1200.0;
+        QUIET_NEWTONS + EXPONENTIAL_AMPLITUDE_NEWTONS * (1.0 - (-seconds / EXPONENTIAL_TAU).exp())
+    }));
+    plateforce_core::Trial::new(force, 1200.0).expect("the trace is a trial")
+}
+
+const EXPONENTIAL_AMPLITUDE_NEWTONS: f64 = 2400.0;
+const EXPONENTIAL_TAU: f64 = 0.15;
+
+/// The fitted rule reports the model's own maximum rate, and says how far the model sits from
+/// the trace it was fitted to.
+///
+/// Both directions, on two recordings whose answers must differ. On a trace that is an
+/// exponential rise the fit recovers the amplitude over the time constant and leaves almost no
+/// residual. On a countermovement jump it leaves a large one and says so, which is what
+/// separates a number read off a model from one read off the trace.
+#[test]
+fn the_fitted_rule_reports_the_models_own_rate_and_how_far_the_model_is_from_the_trace() {
+    let mut isometric = default_request();
+    // A rise with no countermovement never leaves the noise band downward, and the onset
+    // rule's published default fires on a departure below it. The two-sided value is the
+    // one this shape needs, and it is an operator with an entry of its own.
+    isometric
+        .onset
+        .options
+        .insert("direction".to_string(), "two_sided".to_string());
+    isometric.derived.insert(
+        WINDOW_CONSTRUCT.to_string(),
+        MethodChoice {
+            method_id: "window_end.fixed_duration.isometric".to_string(),
+            parameters: BTreeMap::from([("length_seconds".to_string(), 2.5)]),
+            ..Default::default()
+        },
+    );
+    isometric.derived.insert(
+        RATE_CONSTRUCT.to_string(),
+        MethodChoice {
+            method_id: "rfd.exponential_model.padulles".to_string(),
+            ..Default::default()
+        },
+    );
+
+    let trace = a_trace_that_is_an_exponential_rise();
+    let response = run(&trace, &isometric).expect("the analysis ran");
+    let rate = value(&response, RATE_KEY).unwrap_or_else(|| {
+        panic!(
+            "the fit produced no rate; onset {:?}, refusals {:?}, warnings {:?}",
+            response.onset_index, response.refusals, response.warnings
+        )
+    });
+    let sentence = response
+        .warnings
+        .iter()
+        .find(|warning| warning.contains("rfd.exponential_model.padulles"))
+        .expect("the fit reported its residual");
+    println!(
+        "on an exponential rise: {rate:.0} N/s, onset at sample {:?} against a rise starting at 1440\n  {sentence}",
+        response.onset_index
+    );
+
+    // The model's maximum rate is its amplitude over its time constant, and the trace was
+    // built from both. The fit reads above it, and the reason is the whole sensitivity this
+    // entry carries: the onset rule places the start of the fitted stretch 35 samples before
+    // the rise, so the stretch opens with a flat foot, and a mono-exponential pinned at its
+    // start fits that by taking a faster time constant and a larger amplitude.
+    let expected = EXPONENTIAL_AMPLITUDE_NEWTONS / EXPONENTIAL_TAU;
+    println!(
+        "the trace was built with {expected:.0} N/s and the fit reads {:.1} percent above it",
+        (rate - expected) / expected * 100.0
+    );
+    assert!(
+        rate > expected,
+        "the fit reads {rate:.1} N/s, at or below the {expected:.1} N/s the trace was built \
+         with, so the stretch it opened on is not the one this guard was written against"
+    );
+    assert!(
+        (rate - expected) / expected < 0.15,
+        "the fit reads {rate:.1} N/s against the {expected:.1} N/s the trace was built with, \
+         which is a different rise rather than the same one started early"
+    );
+    assert!(
+        !sentence.contains("above the"),
+        "a trace that is an exponential rise was flagged as a poor fit: {sentence}"
+    );
+
+    // The same rule on a countermovement jump, which is not an exponential rise and must not
+    // be reported as though it were.
+    let jump = committed_trial("subject01_trial1");
+    let on_a_jump = run(
+        &jump,
+        &asking(
+            RATE_CONSTRUCT,
+            "rfd.exponential_model.padulles",
+            BTreeMap::new(),
+            BTreeMap::new(),
+        ),
+    )
+    .expect("the analysis ran");
+    let jump_rate = value(&on_a_jump, RATE_KEY).expect("the fit produced a rate");
+    let jump_sentence = on_a_jump
+        .warnings
+        .iter()
+        .find(|warning| warning.contains("rfd.exponential_model.padulles"))
+        .expect("the fit reported its residual");
+    println!("on subject 01 trial 1: {jump_rate:.0} N/s\n  {jump_sentence}");
+    assert!(
+        jump_sentence.contains("above the"),
+        "a countermovement jump was reported as a good exponential fit: {jump_sentence}"
+    );
+}
+
 /// Three rules divide something by an interval, and each one is multiplied back out against
 /// the samples of the recording it says it read.
 ///
@@ -425,6 +548,12 @@ fn every_rate_rule_answers_on_one_trial_and_the_spread_between_them_is_the_metho
                     "{method_id} reported a rate under another rule's name"
                 );
                 println!("{method_id}: {rate:.0} N/s");
+                // A rule with something to tell a reader beside its number says it here, and
+                // the fitted rule always has: its residual is what separates a number read
+                // off a model from one read off the trace.
+                for warning in response.warnings.iter().filter(|w| w.contains(method_id)) {
+                    println!("  {warning}");
+                }
                 reported.push((method_id, rate));
             }
             None => {

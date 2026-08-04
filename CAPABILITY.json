@@ -264,6 +264,12 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.exponential_model.padulles",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.mean_force_over_duration.lapuente",
           "slot": "rate_of_force_development"
         },
@@ -699,6 +705,12 @@
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.exponential_model.padulles",
           "slot": "rate_of_force_development"
         },
         {
@@ -1148,6 +1160,12 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.exponential_model.padulles",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.mean_force_over_duration.lapuente",
           "slot": "rate_of_force_development"
         },
@@ -1585,6 +1603,12 @@
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.exponential_model.padulles",
           "slot": "rate_of_force_development"
         },
         {

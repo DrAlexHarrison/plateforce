@@ -645,6 +645,19 @@ pub const BINDINGS: &[Binding] = &[
         ),
     },
     Binding {
+        id: crate::slots::rate_of_force_development::exponential_model::ID,
+        slot: crate::slots::rate_of_force_development::CONSTRUCT,
+        construct: crate::slots::rate_of_force_development::CONSTRUCT,
+        title: "The steepest rate of a curve fitted to the rise",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::rate_of_force_development::exponential_model::QUANTITIES,
+        dispatch: Dispatch::Derived(
+            crate::slots::rate_of_force_development::exponential_model::RULE,
+        ),
+    },
+    Binding {
         id: crate::slots::rate_of_force_development::mean_force_over_duration::ID,
         slot: crate::slots::rate_of_force_development::CONSTRUCT,
         construct: crate::slots::rate_of_force_development::CONSTRUCT,
