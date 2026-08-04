@@ -833,3 +833,46 @@ fn a_phase_model_and_a_propulsion_split_are_two_answers_one_analysis_can_carry()
         );
     }
 }
+
+/// Two rules named under one construct arrive as one rule, and the engine is handed nothing
+/// that says a second was named.
+///
+/// The reason the test above has to state two construct keys rather than two rules under one.
+/// A request holds a map, and a map keeps one value per key, so the loss happens in the reader
+/// before `run` is called and no refusal inside the engine can reach it. The terminal is the
+/// one surface that still sees two entries, because it parses repeated flags into its own map
+/// and refuses on the repeat; Python, JavaScript and JSON each hand over the survivor.
+///
+/// Asserted against the same shape a caller sends rather than against `serde_json` in the
+/// abstract, so this fails if `derived` ever stops being keyed by construct, which is the
+/// change that would make the guard above unnecessary.
+#[test]
+fn two_rules_under_one_construct_reach_the_engine_as_one_with_no_word_of_the_other() {
+    let request: AnalysisRequest = serde_json::from_str(
+        r#"{
+          "weighing": { "method_id": "bwepoch.fixed_window" },
+          "onset": { "method_id": "onset.threshold.noise_relative" },
+          "takeoff": { "method_id": "takeoff.threshold.absolute_force" },
+          "derived": {
+            "phase_model": {
+              "method_id": "phase.model.unweighting_single.mcmahon2018"
+            },
+            "phase_model": {
+              "method_id": "phase.propulsion_subdivision.by_time"
+            }
+          }
+        }"#,
+    )
+    .expect("a repeated key is read rather than refused");
+
+    assert_eq!(
+        request.derived.len(),
+        1,
+        "two rules under one construct survived, so the map is no longer one rule per key"
+    );
+    assert_eq!(
+        request.derived["phase_model"].method_id,
+        "phase.propulsion_subdivision.by_time",
+        "the survivor is the last one written, and the first is gone without a record"
+    );
+}
