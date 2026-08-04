@@ -5,12 +5,6 @@
 //! quote it do not fail to compile, and the next reader downloads the release the README
 //! names and gets different bytes.
 //!
-//! `crates/plateforce-analysis/tests/a_spread_that_leaves_alone_says_which_build_produced_it.rs`
-//! cited a guard by this description and no guard by that description was in the tree, which
-//! is the failure this project keeps finding in itself: a claim that reads like a query and
-//! is an assertion. Two rebases in one afternoon resolved a README digest by hand because
-//! nothing here would have caught it either way.
-//!
 //! Scoped to the real shape, `content-` and sixteen hex digits, so the stand-ins that tests
 //! use on purpose (`content-abc`, `content-test`, `fnv1a-deadbeef`) are outside it. Those say
 //! nothing about any registry and holding them to one would force a fixture to be edited

@@ -1,7 +1,7 @@
 //! The word `--set` takes, checked against the parser rather than against another string.
 //!
-//! Help text described one grammar and the parser accepted another, and neither of them was
-//! wrong on its own terms: the flags are named after slots, the registry names constructs,
+//! Help text and the parser can describe different grammars without either being wrong on its
+//! own terms: the flags are named after slots, the registry names constructs,
 //! and the two words coincide everywhere except `weighing`/`system_weight` and
 //! `onset`/`movement_onset`. So the check that holds is the one that runs the parser.
 

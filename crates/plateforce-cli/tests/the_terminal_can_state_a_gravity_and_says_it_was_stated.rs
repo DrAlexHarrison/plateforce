@@ -1,6 +1,8 @@
-//! The terminal wrote standard gravity as a literal into every request it built, so a reader
-//! who had measured a gravity at their own plate had no way to say so, and every result this
-//! surface produced carried a value nobody had been asked about with nothing saying that.
+//! The terminal takes a stated gravity and records that it was stated.
+//!
+//! A surface that writes standard gravity as a literal into every request it builds leaves a
+//! reader who measured a gravity at their own plate no way to say so, and every result it
+//! produces carries a value nobody was asked about with nothing saying that.
 //!
 //! Four of the eleven numbers move when that value moves. This asks the built binary, because
 //! a flag whose help describes something the parser does not accept is the same defect the

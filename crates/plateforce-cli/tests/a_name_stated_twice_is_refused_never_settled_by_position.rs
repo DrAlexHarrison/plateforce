@@ -2,15 +2,13 @@
 //!
 //! The terminal carries six assignment-bearing flags. Three of them cannot repeat, and clap
 //! refuses a second `--weighing`, `--onset` or `--takeoff` with "cannot be used multiple
-//! times". The other three repeat by design, because a run states many values, so the parser
-//! cannot tell a second value for one name from a first value for another. All three kept the
-//! last and dropped the first, recording nothing: `--set weighing.duration=1.0 --set
-//! weighing.duration=2.0` moved system weight from 587.1863 N to 586.5328 N with zero
-//! refusals and zero warnings, and produced a document byte-identical to the run of a caller
-//! who had only ever written `2.0`.
-//!
-//! That is this project's founding observation arriving on its own request path: the record
-//! could not tell a reader which of the caller's two instructions the number rested on.
+//! times". The other three may repeat, because a run states many values, so the parser cannot
+//! tell a second value for one name from a first value for another. A parser that keeps the
+//! last and drops the first records nothing: `--set weighing.duration=1.0 --set
+//! weighing.duration=2.0` moves system weight from 587.1863 N to 586.5328 N with zero refusals
+//! and zero warnings, and produces a document byte-identical to the run of a caller who had
+//! only ever written `2.0`. The record cannot then tell a reader which of the caller's two
+//! instructions the number rested on.
 //!
 //! Both halves are asserted here. Dropping the refusal turns the first half red. Refusing a
 //! name written once, or refusing two different names under one slot, turns the second half

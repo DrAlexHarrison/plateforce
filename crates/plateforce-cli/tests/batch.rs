@@ -65,8 +65,6 @@ fn sources(out_dir: &std::path::Path) -> std::collections::BTreeMap<String, usiz
 /// declines by name. A batch holding a trial whose requested headline number could not be
 /// produced is not a clean run, and the exit code is where a reader learns that without
 /// reading the record.
-///
-/// It used to be zero, and the height came back empty with nothing anywhere saying why.
 const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
 
 fn scratch(name: &str) -> std::path::PathBuf {

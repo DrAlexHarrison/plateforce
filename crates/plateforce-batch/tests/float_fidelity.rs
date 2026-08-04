@@ -6,9 +6,8 @@
 //! byte-equality check across surfaces pass while the parsed values differ.
 //!
 //! These assertions run over the shapes the surfaces actually exchange: a typed struct, a
-//! `Vec<f64>`, and the batch envelope itself. An earlier version of this test measured
-//! `serde_json::Value`, which is the one path the first attempted fix repaired and the one
-//! path no surface here reads through.
+//! `Vec<f64>`, and the batch envelope itself. `serde_json::Value` is not one of them, so a
+//! test measuring it measures a path no surface here reads through.
 
 mod common;
 

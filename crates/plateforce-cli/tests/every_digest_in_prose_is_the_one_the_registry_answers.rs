@@ -1,8 +1,7 @@
 //! A digest written into prose says which registry a result was produced under.
 //!
-//! Two copies sat in documentation, nothing compared them against anything, and both named a
-//! registry that had not existed for some time. A product whose subject is that a result
-//! carries its own provenance cannot publish a provenance figure nobody checks.
+//! A digest copied into documentation and compared against nothing goes on naming a registry
+//! that no longer exists.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

@@ -130,8 +130,8 @@ fn result_in(document: &str) -> serde_json::Value {
     parsed["ok"].clone()
 }
 
-/// The whole point, in the shape the decree names it: five answers recorded once, and a later
-/// run that types none of them fingerprints as complete and carries every one of them.
+/// Five answers recorded once, and a later run that types none of them fingerprints as
+/// complete and carries every one of them.
 #[test]
 fn a_run_that_names_a_saved_plate_carries_its_members_and_fingerprints_complete() {
     let plates = Plates::new("carries");

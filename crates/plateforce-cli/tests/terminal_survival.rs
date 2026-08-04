@@ -7,7 +7,7 @@
 //! whatever the operator answered, because that answer was about a terminal.
 //!
 //! The golden bytes here are the interface's own: `--help` and a refusal. Output derived
-//! from the registry is deliberately not frozen, because a golden file over it asserts that
+//! from the registry is not frozen, because a golden file over it asserts that
 //! the registry has not changed, which is a different property from the one this file is
 //! about. A golden file is regenerated deliberately and its diff audited, the discipline
 //! `crates/plateforce-analysis/tests/resolved-values-baseline.txt` already carries.

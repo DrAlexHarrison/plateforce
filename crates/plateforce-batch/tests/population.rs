@@ -10,8 +10,8 @@ use plateforce_analysis::AnalysisResponse;
 use plateforce_batch::exclusions::GateTally;
 use plateforce_batch::{analyse, GateFinding, GateRegistry, TrialIdentity, TrialSet, ValidityGate};
 
-/// A gate that matches every trial, so the channel is exercised without this workstream
-/// implementing a registry rule it does not own.
+/// A gate that matches every trial, so the channel is exercised without a registry rule
+/// being implemented here.
 struct EveryTrial(&'static str);
 
 /// The same channel, bound to an id read from the registry rather than written here.
@@ -198,9 +198,9 @@ fn the_baseline_records_what_each_gate_would_remove_and_fails_when_it_moves() {
 
 #[test]
 fn the_registration_surface_is_the_one_the_validity_rules_plug_into() {
-    // The six gates on the trial_validity construct have two owners and neither is this
-    // workstream. What ships here is the channel, and the count is a query rather than a
-    // claim: five arrive, one is walled on a trial the corpus does not hold.
+    // The six gates on the trial_validity construct are implemented elsewhere. What ships here
+    // is the channel, and the count is a query rather than a claim: five arrive, one is walled
+    // on a trial the corpus does not hold.
     let registry = registry();
     let gates: Vec<String> = registry
         .methods

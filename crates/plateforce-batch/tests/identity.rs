@@ -33,8 +33,8 @@ fn reads_every_committed_fixture() {
         set.len(),
         set.files_found
     );
-    // The count comes from the directory rather than from a literal here. Other workstreams
-    // land fixtures, and a number written into this file goes stale into a green pass.
+    // The count comes from the directory rather than from a literal here: fixtures land over
+    // time, and a number written into this file goes stale into a green pass.
     let traces = std::fs::read_dir(FIXTURES)
         .unwrap()
         .filter_map(|entry| entry.ok())

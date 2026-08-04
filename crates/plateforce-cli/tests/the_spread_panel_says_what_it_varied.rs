@@ -1,15 +1,11 @@
 //! The spread panel varies the rule that computes the quantity, and says which choices its
 //! figure is a spread over.
 //!
-//! `axes_over_every_rule` iterated the three landmark constructs, so the panel never varied the
-//! arithmetic. On the shipped fixture it reported 3.11 cm for jump height while the rules that
-//! report that key span 3.38 cm, and its reported maximum of 0.41585 excluded a published rule
-//! answering 0.44436 for the same quantity. A reader was shown a minimum, a maximum and a
-//! median that excluded a published answer to the exact question the panel is about.
-//!
-//! This project exists because the choice of method moves a jump height further than a training
-//! intervention does, and the founding number is a 3.51 cm median across ten published methods.
-//! The surface built to publish that answered 3.11 cm having never varied the method.
+//! An `axes_over_every_rule` that iterates the three landmark constructs never varies the
+//! arithmetic. On the shipped fixture that reports 3.11 cm for jump height while the rules that
+//! report that key span 3.38 cm, and a maximum of 0.41585 against a published rule answering
+//! 0.44436 for the same quantity: a minimum, a maximum and a median that exclude a published
+//! answer to the question the panel is about.
 
 use std::process::Output;
 
@@ -118,7 +114,7 @@ fn value_under(rule: &str) -> f64 {
         .unwrap_or_else(|| panic!("{rule} reported no {QUANTITY}"))
 }
 
-/// The assertion the lead named, and the one that discriminates.
+/// The assertion that discriminates.
 ///
 /// A test that the spread is non-zero passes on the defect: the landmark axes alone produce
 /// 3.11 cm. This asserts the reported range **contains every value a bound rule for this key

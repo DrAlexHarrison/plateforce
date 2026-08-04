@@ -190,8 +190,8 @@ fn the_same_request_twice_produces_the_same_document() {
 }
 
 /// A result names what produced it: which build, which registry, and where each landmark
-/// was placed. This surface assembled its own document and carried none of them, so a
-/// number pasted out of it could not be traced back to the software that made it.
+/// was placed. A surface assembling its own document and carrying none of them yields a
+/// number that cannot be traced back to the software that made it.
 #[test]
 fn the_terminal_document_names_the_build_and_the_registry_that_produced_it() {
     let parsed: serde_json::Value = serde_json::from_str(&result_json()).expect("it parses");
@@ -199,9 +199,8 @@ fn the_terminal_document_names_the_build_and_the_registry_that_produced_it() {
 
     assert_eq!(result["plateforce_version"], env!("CARGO_PKG_VERSION"));
     // The registry's own claim, which is what names the registry on a run nobody pinned.
-    // This used to demand a string in `registry_version` instead, which is the caller's pin,
-    // so the assertion was satisfied only while the terminal published a revision no caller
-    // had chosen, and the guard held the defect in place.
+    // `registry_version` is the caller's pin, so a string demanded there is satisfied only
+    // while the terminal publishes a revision no caller chose.
     assert!(
         result["registry_declared_version"].is_string(),
         "the registry this ran against declares no revision: {}",
@@ -229,12 +228,9 @@ fn the_terminal_document_names_the_build_and_the_registry_that_produced_it() {
     assert!(result["trial"]["rows_read"].as_u64().is_some_and(|n| n > 0));
 }
 
-/// The revision a caller pinned and the revision the registry claims are two facts, and this
-/// surface published the second under the first's name on every run.
-///
-/// The consequence is the inversion this project exists to prevent: a reader who checks the
-/// provenance is told the operator cited a revision, and a reader who ignores it is not
-/// misled at all. Checking made you more wrong.
+/// The revision a caller pinned and the revision the registry claims are two facts, and one
+/// published under the other's name inverts the record: a reader who checks the provenance is
+/// told the operator cited a revision, and a reader who ignores it is not misled at all.
 ///
 /// Both revisions are read on the same run and asserted against each other, because a run
 /// where they happen to be equal passes whichever field the value came out of.

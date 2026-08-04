@@ -1,14 +1,9 @@
 //! The single-trial run can be told about the plate it came off, and says whether it was.
 //!
-//! This surface passed a literal `false` for the acquisition block's completeness, under a comment
-//! saying no acquisition block reaches it and that a dataset which cannot fill one fingerprints as
-//! incomplete rather than as matching. The sentence was true and it was the work not done: measured
-//! 2026-08-04, three of the five surfaces could not be given a block at all, and those three were
-//! the desktop app, this terminal and the browser, which is the surface bar in Alex's own words.
-//! The two that could were R and Python, the two that require a programming language.
-//!
-//! *The fingerprint carries an acquisition block* is a decree, and so is *the software asks its
-//! users for the evidence it lacks*. A surface that never asks cannot be repaired by a default.
+//! Measured 2026-08-04, three of the five surfaces could not be given an acquisition block at
+//! all: the desktop app, this terminal and the browser. The two that could were R and Python,
+//! the two that require a programming language. A surface that never asks for the block cannot
+//! be repaired by a default, so the completeness a fingerprint carries is asked for here.
 
 use std::process::Command;
 
@@ -31,9 +26,8 @@ fn analyse(acquisition: &[&str]) -> String {
     out
 }
 
-/// Both streams, because a refusal is written to the one a result is not. Reading only stdout for
-/// a refusal reports it absent, which is how the first draft of this file failed: a caller sees
-/// the message and the test could not.
+/// Both streams, because a refusal is written to the one a result is not. Reading only stdout
+/// reports a refusal absent while a caller sees the message.
 fn refusal(acquisition: &[&str]) -> String {
     let (out, err) = run(acquisition);
     format!("{out}{err}")

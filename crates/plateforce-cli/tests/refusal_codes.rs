@@ -258,8 +258,7 @@ fn a_fault_in_the_line_publishes_no_code_and_a_refused_rule_publishes_one() {
 
 /// A path this binary cannot open is a different fault from a file it read and did not
 /// understand, and a workflow manager that retries one and stops on the other cannot tell
-/// them apart while they share a status. The read failure reached this surface as a
-/// sentence with no code at all before it had one.
+/// them apart while they share a status.
 #[test]
 fn a_file_that_cannot_be_read_publishes_its_own_code_and_status() {
     let missing = plateforce(&[

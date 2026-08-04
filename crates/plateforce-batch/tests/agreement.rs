@@ -511,7 +511,7 @@ fn the_dispersion_the_request_states_is_the_one_the_limits_use() {
 
 /// A variant that failed is listed with its reason and stays in the denominator. A sweep that
 /// dropped it would report agreement between the methods that happened to work, over a count
-/// nobody could check, which is the failure this workstream exists to prevent one level down.
+/// nobody could check.
 #[test]
 fn a_variant_that_could_not_run_stays_in_the_denominator_with_its_reason() {
     let directory = tempdir("compare-failed-variant");
