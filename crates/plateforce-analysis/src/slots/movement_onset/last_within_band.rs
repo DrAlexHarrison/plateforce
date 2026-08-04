@@ -9,8 +9,8 @@ use plateforce_core::{Trial, WeighingEpoch};
 
 use crate::resolution::{Resolution, RuleRefusal};
 use crate::slots::movement_onset::{
-    record_inherited_spread, BACKTRACK_TO_TOLERANCE, CROSSING_SELECTION, OFFSET_MILLISECONDS,
-    SEARCH_UPPER_BOUND, TOLERANCE,
+    record_inherited_spread, BACKTRACK_TO_TOLERANCE, CROSSING_SELECTION, NOISE_RELATIVE_ENTRY,
+    OFFSET_MILLISECONDS, SEARCH_UPPER_BOUND, TOLERANCE,
 };
 
 /// This rule resolves its own backtrack, through `PostCrossingRule`.
@@ -47,6 +47,10 @@ pub(crate) fn crossing(
     // rather than dropped.
     resolved.entailed(CROSSING_SELECTION, "selection", "last")?;
     resolved.entailed(SEARCH_UPPER_BOUND, "bound", "minimum_force")?;
+    // A widened band needs an upper edge for the preload look back and no source states one
+    // for a rule read backwards, so this rule declines a collapsed band rather than widening
+    // it, and says so under the entry it records against.
+    resolved.entailed(NOISE_RELATIVE_ENTRY, "degenerate_band", "refuse")?;
     let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
     // Two retreats, filed as two operators, and the name stated picks between them. Sams
     // retreats to where force came back to the reference; the other family steps back a

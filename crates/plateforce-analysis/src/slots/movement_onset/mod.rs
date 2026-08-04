@@ -67,13 +67,17 @@ pub(crate) fn record_inherited_spread(
     } else {
         ParameterSource::Assumed
     };
-    resolved.entailed_from(SPREAD_OWNER, "sd_convention", convention, inherited)?;
-    resolved.entailed(SPREAD_OWNER, "reference_distribution", "quiet_stance_force")
+    resolved.entailed_from(NOISE_RELATIVE_ENTRY, "sd_convention", convention, inherited)?;
+    resolved.entailed(
+        NOISE_RELATIVE_ENTRY,
+        "reference_distribution",
+        "quiet_stance_force",
+    )
 }
 
-/// The entry that publishes both names the weighing window settles, so a refusal names the
-/// row whose alternatives a reader can look up.
-const SPREAD_OWNER: &str = "onset.threshold.noise_relative";
+/// The entry the noise-relative threshold and its last-crossing composition both record
+/// against, and the row a reader looks the declined alternatives up in.
+pub(crate) const NOISE_RELATIVE_ENTRY: &str = "onset.threshold.noise_relative";
 
 pub(crate) fn onset_search(
     trial: &Trial,
