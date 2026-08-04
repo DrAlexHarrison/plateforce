@@ -7,7 +7,7 @@
 //! more visibly than the graduate, not less.
 
 use crate::engine::BatchResult;
-use crate::relations::AggregateRow;
+use crate::relations::{AggregateRow, SignalRow};
 
 /// How much of the record the table view shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +25,9 @@ pub struct Rendered {
     pub rows: Vec<Vec<String>>,
     /// One line per aggregated quantity, with its `n` beside it. Empty when nothing was bound.
     pub summary: Vec<String>,
+    /// One line per signal, naming the trial, the columns it is about and what to do. A table
+    /// of numbers whose caveats live only in a file beside it is read as a table of numbers.
+    pub signals: Vec<String>,
     /// What the run walked, in the shape the conformance suite already uses.
     pub coverage: String,
 }
@@ -57,9 +60,22 @@ impl BatchResult {
             header,
             rows,
             summary: self.aggregates.iter().map(summary_line).collect(),
+            signals: self.signals.iter().map(signal_line).collect(),
             coverage: self.coverage.line(),
         }
     }
+}
+
+/// One signal as a person reads it: which trial, which columns, and the action the analysis
+/// composed. The remedy is carried whole rather than trimmed, because a caveat cut to fit a
+/// terminal is a caveat a reader completes themselves.
+fn signal_line(row: &SignalRow) -> String {
+    format!(
+        "{} {}: {}",
+        row.trial_id,
+        row.qualifies.replace(',', ", "),
+        row.remedy
+    )
 }
 
 /// The mean row as the user reads it, with the count it was taken over beside it.

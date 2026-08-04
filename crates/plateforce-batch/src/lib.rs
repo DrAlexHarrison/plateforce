@@ -34,7 +34,9 @@ pub use exclusions::{GateFinding, GateRegistry, GateTally, PopulationExclusion, 
 pub use identity::{
     Session, SourceFormat, SubjectKey, TrialEntry, TrialIdentity, TrialSet, TrialSource, WalkError,
 };
-pub use relations::{AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, WarningRow};
+pub use relations::{
+    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
+};
 pub use render::{Rendered, Rendering};
 pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
 pub use write_json::envelope;

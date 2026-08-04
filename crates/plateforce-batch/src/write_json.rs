@@ -29,6 +29,7 @@ impl BatchResult {
             "provenance": self.provenance,
             "refusals": self.refusals,
             "warnings": self.warnings,
+            "signals": self.signals,
             "aggregates": self.aggregates,
             "exclusions": self.exclusions,
         })
@@ -63,6 +64,7 @@ impl BatchResult {
                 .map_err(|error| error.to_string())?,
             warnings: serde_json::from_value(read("warnings"))
                 .map_err(|error| error.to_string())?,
+            signals: serde_json::from_value(read("signals")).map_err(|error| error.to_string())?,
             aggregates: serde_json::from_value(read("aggregates"))
                 .map_err(|error| error.to_string())?,
             exclusions: serde_json::from_value(read("exclusions"))
