@@ -13,14 +13,14 @@
 
 use plateforce_core::{
     drop_touchdown_velocity_meters_per_second, jump_height_from_takeoff_velocity,
-    takeoff_velocity_meters_per_second,
+    takeoff_velocity_meters_per_second, Refusal,
 };
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::centre_of_mass;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
-use crate::resolution::Resolution;
+use crate::resolution::{Resolution, RuleRefusal};
 use crate::response::Quantity;
 
 pub const ID: &str = "jumpheight.dj.box_height_as_drop_height";
@@ -66,13 +66,33 @@ fn compute(
     let change_from_rest =
         takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     let arrival = drop_touchdown_velocity_meters_per_second(box_height_meters, gravity);
+    let takeoff_velocity = change_from_rest + arrival;
+
+    // A takeoff velocity at or below zero says the athlete was still descending at the instant
+    // the takeoff rule placed, which no jump does. Squaring it would report the descent as a
+    // height, and the further the box height is from the truth the smaller that height looks,
+    // so the reader would read a number that gets quieter as the input gets worse. The stated
+    // box is the thing that is wrong, and the refusal names it.
+    if takeoff_velocity <= 0.0 {
+        return DerivedOutcome::declined(
+            bound,
+            RuleRefusal::Refused(Box::new(Refusal::value_not_accepted(
+                ID,
+                BOX_HEIGHT_PARAMETER,
+                box_height_meters,
+                vec![format!(
+                    "a drop height below {:.4} m, above which the arrival it implies exceeds the \
+                     {change_from_rest:.4} m/s this contact phase produced",
+                    change_from_rest.powi(2) / (2.0 * gravity)
+                )],
+            ))),
+        );
+    }
+
     DerivedOutcome {
         values: vec![(
             super::KEY,
-            Some(jump_height_from_takeoff_velocity(
-                change_from_rest + arrival,
-                gravity,
-            )),
+            Some(jump_height_from_takeoff_velocity(takeoff_velocity, gravity)),
         )],
         placed: Vec::new(),
         bound,
