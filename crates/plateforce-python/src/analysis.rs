@@ -158,6 +158,40 @@ fn choice_of(
     }
 }
 
+/// What one call says about the phase that conditions the signal, keyed by the construct the
+/// registry declares.
+///
+/// The keys are the union of the three arguments, because a caller may name a rule for the
+/// phase, state values against the rule it runs anyway, or both. A construct none of them
+/// names is left out rather than sent as an empty choice: the phase runs it either way and
+/// leaves the same record, so a key in the map is the caller having spoken.
+///
+/// A construct written against with no rule named carries no id, which is the engine's word
+/// for a caller who stated values and left the rule to the phase.
+fn conditioning_choices(
+    rules: &BTreeMap<String, BoundMethod>,
+    parameters: &BTreeMap<String, BTreeMap<String, f64>>,
+    options: &BTreeMap<String, BTreeMap<String, String>>,
+) -> BTreeMap<String, MethodChoice> {
+    let mut constructs: BTreeSet<&String> = BTreeSet::new();
+    constructs.extend(rules.keys());
+    constructs.extend(parameters.keys());
+    constructs.extend(options.keys());
+    constructs
+        .into_iter()
+        .map(|construct| {
+            (
+                construct.clone(),
+                unbound_or(
+                    rules.get(construct),
+                    parameters.get(construct).cloned(),
+                    options.get(construct).cloned(),
+                ),
+            )
+        })
+        .collect()
+}
+
 /// The weighing slot's choice, taken from the one place every slot's choice is built.
 ///
 /// Destructured without a rest pattern, so a claim `MethodChoice` gains is a compile error here
@@ -574,6 +608,9 @@ pub(crate) fn analysis_request_of(
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
     derived_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    conditioning: Option<BTreeMap<String, Py<BoundMethod>>>,
+    conditioning_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+    conditioning_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<(AnalysisRequest, RegistryIdentity)> {
     // A pipeline fills the constructs its source states, so a caller who named one leaves
     // those arguments out. Whatever is still unnamed once it has been laid on is refused by
@@ -597,6 +634,25 @@ pub(crate) fn analysis_request_of(
     let derived_parameters = derived_parameters.unwrap_or_default();
     let derived_options = derived_options.unwrap_or_default();
     expect_derived_bound(python, &derived)?;
+
+    // The phase that conditions the signal runs on every analysis, so until this landed a
+    // notebook reported the software's answer about it on every run and had no way to state
+    // its own. The three arguments are read into one map here and checked before the trial
+    // is touched.
+    let conditioning_rules: BTreeMap<String, BoundMethod> = conditioning
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(construct, method)| (construct, method.borrow(python).clone()))
+        .collect();
+    let conditioning = conditioning_choices(
+        &conditioning_rules,
+        &conditioning_parameters.unwrap_or_default(),
+        &conditioning_options.unwrap_or_default(),
+    );
+    for (construct, choice) in &conditioning {
+        plateforce_analysis::binding::accepts_conditioning(construct, &choice.method_id)
+            .map_err(|refusal| raise_refusal(python, &refusal))?;
+    }
 
     // Every rule this call holds carries the registry it came from, and a pipeline carries
     // one too, so the identity stamped on the record is the first of them that exists
@@ -642,6 +698,7 @@ pub(crate) fn analysis_request_of(
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
         registry_backed_ids: registry.method_ids.as_ref().clone(),
+        conditioning,
         // A rule computed from the landmarks reads the enumerations its entry declares, the
         // same as one on the path, and the folder call has been able to state them since it
         // gained the argument. One trial could not, so a construct whose rule turns on a
@@ -729,6 +786,9 @@ struct AnalysisDocument<'a> {
     derived = None,
     derived_parameters = None,
     derived_options = None,
+    conditioning = None,
+    conditioning_parameters = None,
+    conditioning_options = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn analyse_json(
@@ -752,6 +812,9 @@ pub fn analyse_json(
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
     derived_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    conditioning: Option<BTreeMap<String, Py<BoundMethod>>>,
+    conditioning_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+    conditioning_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<String> {
     let (request, registry) = analysis_request_of(
         python,
@@ -773,6 +836,9 @@ pub fn analyse_json(
         derived,
         derived_parameters,
         derived_options,
+        conditioning,
+        conditioning_parameters,
+        conditioning_options,
     )?;
 
     let response = plateforce_analysis::run(&trial.inner, &request)
@@ -803,6 +869,12 @@ pub fn analyse_json(
 /// states as enumerations rather than numbers, under the names the registry publishes for
 /// them, which are the names the browser uses too.
 ///
+/// The `conditioning` arguments say what produced the signal every landmark was placed on,
+/// keyed by the construct the registry declares. The phase runs whether or not they are
+/// passed, so what they buy is the record naming the caller rather than the software: a rule
+/// for the phase in `conditioning`, and the values it reads in `conditioning_parameters` and
+/// `conditioning_options`, which state values against the rule the phase runs anyway.
+///
 /// Passing a name no rule reads is not silently dropped: it comes back in
 /// `unread_parameters`, and a value nobody chose comes back in `assumed_parameters`.
 #[pyfunction]
@@ -826,6 +898,9 @@ pub fn analyse_json(
     derived = None,
     derived_parameters = None,
     derived_options = None,
+    conditioning = None,
+    conditioning_parameters = None,
+    conditioning_options = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn analyse_countermovement_jump(
@@ -849,6 +924,9 @@ pub fn analyse_countermovement_jump(
     derived: Option<BTreeMap<String, Py<BoundMethod>>>,
     derived_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
     derived_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    conditioning: Option<BTreeMap<String, Py<BoundMethod>>>,
+    conditioning_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
+    conditioning_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<CountermovementJump> {
     let (request, registry) = analysis_request_of(
         python,
@@ -870,6 +948,9 @@ pub fn analyse_countermovement_jump(
         derived,
         derived_parameters,
         derived_options,
+        conditioning,
+        conditioning_parameters,
+        conditioning_options,
     )?;
     let acquisition_complete = trial.acquisition_complete();
 

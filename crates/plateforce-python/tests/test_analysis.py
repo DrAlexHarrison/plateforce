@@ -326,3 +326,85 @@ def test_a_named_choice_stated_for_a_derived_rule_is_recorded_as_the_callers_own
     assert chosen_by(assumed) == "velocity_argmin"
     assert "search_signal" in assumed.assumed_parameters
     assert source_in_the_engines_own_record(None) == "assumed"
+
+
+CONDITIONING_CONSTRUCT = "conditioned_force_signal"
+CONDITIONING_RULE = "filter.none"
+PASSBAND_EDGE = "passband_edge"
+
+
+def _conditioning_record(trial, bound_methods, **stated):
+    """What the rule that conditioned the signal recorded, out of the engine's own document."""
+    epoch, onset, takeoff = bound_methods
+    document = json.loads(
+        pf._analyse_json(trial, weighing_epoch=epoch, onset=onset, takeoff=takeoff, **stated)
+    )["ok"]
+    bound = [row for row in document["bound_methods"] if row["method_id"] == CONDITIONING_RULE]
+    assert len(bound) == 1, bound
+    return bound[0]
+
+
+def test_a_notebook_states_what_conditioned_the_signal_it_measured(trial, bound_methods):
+    """The phase that produces the signal runs on every analysis, and a notebook could not say
+    a word about it.
+
+    Two runs reaching one number, differing only in whether the record names the reader or the
+    software as having chosen the signal every landmark was placed on.
+    """
+    unstated = _conditioning_record(trial, bound_methods)
+    assert unstated["parameter_sources"][PASSBAND_EDGE] == "assumed"
+
+    stated = _conditioning_record(
+        trial,
+        bound_methods,
+        conditioning_options={CONDITIONING_CONSTRUCT: {PASSBAND_EDGE: "none"}},
+    )
+    assert stated["parameter_sources"][PASSBAND_EDGE] == "stated"
+    assert stated["unread_parameters"] == []
+
+
+def test_an_edge_the_conditioning_rule_does_not_take_is_refused_with_the_one_it_does(
+    trial, bound_methods
+):
+    """`filter.none` reports the recording as it was digitised, so a caller asking it for a
+    20 Hz passband is asking it for a filter. Answering `none` would write a word into their
+    record they did not choose."""
+    epoch, onset, takeoff = bound_methods
+    with pytest.raises(pf.ParameterError) as raised:
+        pf.analyse_countermovement_jump(
+            trial,
+            epoch,
+            onset,
+            takeoff,
+            conditioning_options={CONDITIONING_CONSTRUCT: {PASSBAND_EDGE: "20"}},
+        )
+    assert raised.value.code == "value_not_accepted"
+    assert raised.value.method_id == CONDITIONING_RULE
+    assert raised.value.parameter == PASSBAND_EDGE
+    assert raised.value.available == ["none"]
+
+
+def test_a_construct_this_build_conditions_nothing_with_is_refused_by_name(trial, bound_methods):
+    """A construct named through the conditioning arguments that this phase does not run would
+    otherwise reach the engine and be skipped in silence."""
+    epoch, onset, takeoff = bound_methods
+    with pytest.raises(pf.MethodNotImplementedError) as raised:
+        pf.analyse_countermovement_jump(
+            trial,
+            epoch,
+            onset,
+            takeoff,
+            conditioning_options={"movement_onset": {PASSBAND_EDGE: "none"}},
+        )
+    assert raised.value.available == [CONDITIONING_CONSTRUCT]
+
+
+def test_a_name_the_conditioning_rule_does_not_read_comes_back_unread(trial, bound_methods):
+    """A value written against the phase that no rule reads is reported as unread rather than
+    dropped, so a reader sees that they wrote it and the rule never looked at it."""
+    record = _conditioning_record(
+        trial,
+        bound_methods,
+        conditioning_parameters={CONDITIONING_CONSTRUCT: {"cutoff_hz": 20.0}},
+    )
+    assert record["unread_parameters"] == ["cutoff_hz"]
