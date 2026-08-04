@@ -12,7 +12,9 @@
 use std::collections::BTreeMap;
 
 use plateforce_analysis::quality::{QualitySignal, QualityStatus};
-use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
+use plateforce_analysis::{
+    metrics_resting_on, run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice,
+};
 use plateforce_core::{read_trial_from_path, Trial};
 
 const FIXTURE: &str = concat!(
@@ -244,11 +246,22 @@ fn the_signal_carries_a_value_every_surface_can_render_truthfully() {
     );
 }
 
-/// The keys the signal places itself beside, and the sentence's own claim that a reader can
-/// act on it. Every key named has a value on this trial, so the signal qualifies numbers
-/// rather than accounting for absences, which is a different signal's job.
+/// The keys the signal places itself beside, which are the numbers this rule moved rather than
+/// a list written next to it. Every key named has a value on this trial, so the signal
+/// qualifies numbers rather than accounting for absences, which is a different signal's job.
+///
+/// The sentence claims the larger set already: flight time, the impulse and everything drawn
+/// from them. Written as a list of keys it named 3 of the 11 numbers on this response while 8
+/// of them rest on the rule, leaving the reader of the impulse, both heights and modified
+/// reactive strength no reason for what they were looking at.
+///
+/// Two controls on the same response, because a derivation returning every metric would satisfy
+/// the assertion above as comfortably as the right one: the conditioning rule, which every
+/// number rests on, reaches 11 of 11, and a takeoff rule this run did not choose reaches none.
+/// The second can come back empty for the reason the real query would, being a rule of the same
+/// kind that this build ships and this response's chains could have named.
 #[test]
-fn the_signal_names_the_quantities_the_takeoff_index_defines() {
+fn the_signal_names_every_number_the_takeoff_rule_moved() {
     let trial = trial();
     let response = analyse(&trial, RULES_THAT_RETURN_THEIR_FLOOR[0]);
     let signals = floor_signals(&response);
@@ -257,11 +270,21 @@ fn the_signal_names_the_quantities_the_takeoff_index_defines() {
         .expect("the flooring rule raised its signal");
 
     assert_eq!(
+        response.metrics.len(),
+        11,
+        "the denominator every count here is taken out of"
+    );
+    assert_eq!(
         signal.qualifies,
         vec![
             "takeoff_time_seconds",
             "time_to_takeoff_seconds",
-            "flight_time_seconds"
+            "flight_time_seconds",
+            "takeoff_velocity_meters_per_second",
+            "net_impulse_newton_seconds",
+            "jump_height_from_takeoff_meters",
+            "jump_height_from_flight_time_meters",
+            "reactive_strength_index_modified",
         ],
         "the keys a surface places this signal beside"
     );
@@ -274,6 +297,30 @@ fn the_signal_names_the_quantities_the_takeoff_index_defines() {
             "{key} has no value, so this signal is qualifying an absence"
         );
     }
+
+    let every_number = metrics_resting_on(&response, "filter.none");
+    println!(
+        "conditioning reaches {} of {}",
+        every_number.len(),
+        response.metrics.len()
+    );
+    assert_eq!(
+        every_number.len(),
+        response.metrics.len(),
+        "every number is computed from the conditioned signal, so the control that cannot come \
+         back short did"
+    );
+
+    const NOT_CHOSEN: &str = "takeoff.threshold.landing_shape";
+    assert!(
+        takeoff_rules().contains(&NOT_CHOSEN) && NOT_CHOSEN != RULES_THAT_RETURN_THEIR_FLOOR[0],
+        "the control names something other than a takeoff rule this build ships and this run \
+         left unchosen, so an empty answer would say nothing"
+    );
+    assert!(
+        metrics_resting_on(&response, NOT_CHOSEN).is_empty(),
+        "a rule this run did not choose is named by a chain on it"
+    );
 }
 
 /// A rule that returns its own boundary has still done what it publishes, and the distance

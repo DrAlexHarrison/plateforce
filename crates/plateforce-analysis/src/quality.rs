@@ -23,7 +23,6 @@ const FLIGHT_TIME_HEIGHT: &str = "jump_height_from_flight_time_meters";
 const ONSET_TIME: &str = "onset_time_seconds";
 const TAKEOFF_TIME: &str = "takeoff_time_seconds";
 const TIME_TO_TAKEOFF: &str = "time_to_takeoff_seconds";
-const FLIGHT_TIME: &str = "flight_time_seconds";
 const TAKEOFF_VELOCITY: &str = "takeoff_velocity_meters_per_second";
 const NET_IMPULSE: &str = "net_impulse_newton_seconds";
 const REACTIVE_STRENGTH_INDEX_MODIFIED: &str = "reactive_strength_index_modified";
@@ -117,7 +116,11 @@ pub struct QualitySignal {
     pub remedy_construct: &'static str,
     /// The metric keys this signal qualifies, so a surface places it beside the value it
     /// is about without a second lookup table.
-    pub qualifies: Vec<&'static str>,
+    ///
+    /// A signal about a rule takes them from the result: they are the keys whose chain names
+    /// that rule, which is what its sentence claims and what a hand-written list beside the
+    /// rule could contradict.
+    pub qualifies: Vec<String>,
 }
 
 /// Every signal this response supports, in the order a reader meets them.
@@ -186,7 +189,10 @@ fn onset_placed_at_or_after_takeoff(response: &AnalysisResponse) -> Option<Quali
              span of the recording holding the jump, and watch both instants move."
         ),
         remedy_construct: crate::TAKEOFF_CONSTRUCT,
-        qualifies: MEASURED_ACROSS_THE_INTERVAL.to_vec(),
+        qualifies: MEASURED_ACROSS_THE_INTERVAL
+            .iter()
+            .map(|key| (*key).to_string())
+            .collect(),
     })
 }
 
@@ -228,6 +234,23 @@ pub fn distrusted(signals: &[QualitySignal]) -> bool {
 /// the one that decides.
 fn metric(response: &AnalysisResponse, key: &str) -> Option<f64> {
     response.metric(key).and_then(|entry| entry.value)
+}
+
+/// The rule this response ran for one construct, read off the record of what ran rather than
+/// taken from the request.
+///
+/// The operators a landmark rule composes are registry entries filed under the same construct
+/// and carry no binding row, so the row the binding table declares is the rule itself and never
+/// one of the operators riding with it.
+fn rule_filling<'a>(response: &'a AnalysisResponse, construct: &str) -> Option<&'a str> {
+    response
+        .bound_methods
+        .iter()
+        .map(|bound| bound.method_id.as_str())
+        .find(|method_id| {
+            crate::binding::bindings_for_construct(construct)
+                .any(|binding| binding.id == *method_id)
+        })
 }
 
 /// A value one bound rule read, at the precision it read it rather than the precision it is
@@ -309,6 +332,7 @@ fn onset_search_floor(
 /// 4090, 4091 and 4097.
 fn onset_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<QualitySignal> {
     let onset_index = response.onset_index?;
+    let rule = rule_filling(response, crate::ONSET_CONSTRUCT)?;
     let interval_seconds = sample_interval_seconds(response)?;
     let floor = onset_search_floor(response, interval_seconds)?;
     // A floor at the first sample of the recording forbids nothing, so a crossing there is
@@ -348,7 +372,7 @@ fn onset_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Quali
             floor.seconds
         ),
         remedy_construct: crate::ONSET_CONSTRUCT,
-        qualifies: vec![ONSET_TIME, TIME_TO_TAKEOFF],
+        qualifies: crate::chain::metrics_resting_on(response, rule),
     })
 }
 
@@ -374,6 +398,7 @@ fn onset_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Quali
 /// recording report 5014. Jump height from the impulse reads 1.4 cm against 37.0 cm.
 fn takeoff_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<QualitySignal> {
     let takeoff_index = response.takeoff_index?;
+    let rule = rule_filling(response, crate::TAKEOFF_CONSTRUCT)?;
     let floor_seconds = bound_value(
         response,
         TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
@@ -401,7 +426,7 @@ fn takeoff_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Qua
              weighing window, and watch this time change."
         ),
         remedy_construct: crate::TAKEOFF_CONSTRUCT,
-        qualifies: vec![TAKEOFF_TIME, TIME_TO_TAKEOFF, FLIGHT_TIME],
+        qualifies: crate::chain::metrics_resting_on(response, rule),
     })
 }
 
@@ -420,7 +445,12 @@ fn takeoff_placed_at_its_search_floor(response: &AnalysisResponse) -> Option<Qua
 /// and leaves both heights on screen for the reader to check.
 fn jump_height_routes_disagree(response: &AnalysisResponse) -> Option<QualitySignal> {
     let from_takeoff = metric(response, TAKEOFF_FRAME_HEIGHT)?;
-    let qualifies = vec![TAKEOFF_FRAME_HEIGHT, FLIGHT_TIME_HEIGHT];
+    // The two numbers compared, and this signal is about the pair rather than about a rule:
+    // every quantity either route rests on is not what a disagreement between them qualifies.
+    let qualifies = vec![
+        TAKEOFF_FRAME_HEIGHT.to_string(),
+        FLIGHT_TIME_HEIGHT.to_string(),
+    ];
     let label = "Jump height from the impulse against jump height from the flight time".to_string();
 
     let Some(from_flight) = metric(response, FLIGHT_TIME_HEIGHT) else {

@@ -1,5 +1,7 @@
 """The analysis surface, and the identities the core guarantees reaching Python unchanged."""
 
+import json
+
 import numpy as np
 import pytest
 
@@ -243,3 +245,84 @@ def test_a_construct_this_build_runs_no_rule_for_is_refused_by_name(registry, tr
         )
     assert "movement_onset" in str(refused.value)
     assert "peak_force" in str(refused.value)
+
+
+def test_a_named_choice_stated_for_a_derived_rule_is_recorded_as_the_callers_own(trial):
+    """One trial can state what a folder run has always been able to state.
+
+    `pf.batch` took `derived_options` and this call did not, so a construct computed from the
+    landmarks whose rule turns on a choice between named alternatives ran under whatever the
+    registry binds when nobody chooses, whichever way the caller wanted it. Worse than the
+    number: the record said the choice was assumed while the caller was holding it.
+
+    Both halves on one rule and one run, because a build that answered "stated" for everything
+    passes the first assertion and fails the second, and one that answered "assumed" for
+    everything fails the first. The braking-phase rule reads `search_signal`, and the two
+    values reach two different searches, so this is a choice that moves the number rather than
+    a label.
+
+    The shipped registry rather than the fixture one, because the fixture registry carries
+    five constructs and none of their rules declares an enumeration.
+    """
+    shipped = pf.Registry.load()
+    weighing = shipped.method("bwepoch.fixed_window").bind(duration=1.0)
+    onset = shipped.method("onset.threshold.noise_relative").bind(k=5.0)
+    takeoff = shipped.method("takeoff.threshold.absolute_force").bind(threshold_n=20.0)
+    braking = shipped.method("phase.braking_start.zero_net_force").bind()
+
+    def analysed(options):
+        return pf.analyse_countermovement_jump(
+            trial,
+            weighing,
+            onset,
+            takeoff,
+            derived={"braking_phase_start": braking},
+            derived_options=options,
+        )
+
+    def chosen_by(result):
+        steps = result.value("braking_phase_start_seconds").provenance.flattened()
+        recorded = [
+            dict(step.enumerated_choices)
+            for step in steps
+            if step.method_id == "phase.braking_start.zero_net_force"
+        ]
+        assert len(recorded) == 1, recorded
+        return recorded[0]["search_signal"]
+
+    def source_in_the_engines_own_record(options):
+        """`parameter_sources` as the engine wrote it, keyed by the rule that read the name.
+
+        `assumed_parameters` above is one flat list over every rule on the path, and two rules
+        in this registry declare a `search_signal`. This reads the record of the one rule.
+        """
+        document = json.loads(
+            pf._analyse_json(
+                trial,
+                weighing_epoch=weighing,
+                onset=onset,
+                takeoff=takeoff,
+                derived={"braking_phase_start": braking},
+                derived_options=options,
+            )
+        )
+        bound = [
+            row
+            for row in document["ok"]["bound_methods"]
+            if row["method_id"] == "phase.braking_start.zero_net_force"
+        ]
+        assert len(bound) == 1, bound
+        return bound[0]["parameter_sources"]["search_signal"]
+
+    choice = {"braking_phase_start": {"search_signal": "force_bw_crossing"}}
+    stated = analysed(choice)
+    assert chosen_by(stated) == "force_bw_crossing"
+    assert "search_signal" not in stated.assumed_parameters
+    assert source_in_the_engines_own_record(choice) == "stated"
+
+    # The control. Nobody chooses, so the registry's own value is bound and the record says
+    # it was assumed, which is the distinction the whole product rests on.
+    assumed = analysed(None)
+    assert chosen_by(assumed) == "velocity_argmin"
+    assert "search_signal" in assumed.assumed_parameters
+    assert source_in_the_engines_own_record(None) == "assumed"

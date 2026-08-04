@@ -40,7 +40,10 @@ pub use binding::{
     bindings_for, records_under, Binding, BINDINGS, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT,
     WEIGHING_CONSTRUCT,
 };
-pub use chain::{accounts_of, chain_of, chains_of, descriptions_of, MetricChain};
+pub use chain::{
+    accounts_of, chain_names, chain_of, chains_of, descriptions_of, metrics_resting_on,
+    MetricChain,
+};
 pub use pipeline::run;
 pub use request::{
     gravity_stated, AnalysisRequest, MethodChoice, WeighingChoice, BODY_MASS_GLOBAL,

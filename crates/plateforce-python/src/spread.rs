@@ -312,6 +312,7 @@ fn swept(
         None,
         None,
         None,
+        None,
     )?;
 
     let request = spread::SpreadRequest {
@@ -421,6 +422,18 @@ fn axes_of(
                 .to_string(),
         ));
     }
+    // One step is one axis. Written twice it was two, and the sweep squared its own
+    // combinations: `slot=["onset", "onset"]` ran 25 of them for five rules, each combination
+    // binding onset twice and the second binding winning, so the denominator every figure in
+    // that document is reported over counted a set the caller never asked for. The terminal
+    // refuses the repeat, in these words.
+    for (position, name) in named.iter().enumerate() {
+        if named[..position].contains(name) {
+            return Err(MethodError::new_err(format!(
+                "'{name}' is named twice, and one step is one axis"
+            )));
+        }
+    }
     named
         .iter()
         .map(|slot| axis_of(slot, method_ids.clone(), parameter.clone(), values.clone()))
@@ -444,6 +457,19 @@ fn slots_named(slot: &Bound<'_, PyAny>) -> PyResult<Vec<String>> {
     Ok(several)
 }
 
+/// A step named on its own is swept over the rules the binding table holds for it, and a step
+/// the table holds one rule for has no alternative for that rule to be compared against.
+///
+/// The terminal refuses `--slot` there, in the sentence this raises. This surface let the name
+/// through, and the engine then refused it as a name that is not one of the four axes a sweep
+/// can vary, measured on all six of the steps the binding table holds one rule for. That is a
+/// different fault from the one the caller has: it sends a reader looking for a typo or a
+/// binding they forgot, and never says that the step is reached one way in this build. Two
+/// keyboards, one question, two accounts of what went wrong.
+///
+/// A list of ids the caller wrote is the set they mean, one long or five, and is not held to
+/// that floor: it is the shape a folder run's `--against` takes, where the bound rule named
+/// against itself is one variant and runs. An empty list names nothing at all.
 fn axis_of(
     slot: &str,
     method_ids: Option<Vec<String>>,
@@ -460,16 +486,30 @@ fn axis_of(
     }
 
     let ids = match method_ids {
-        Some(named) => named,
-        None => bindings_for(slot)
-            .map(|binding| binding.id.to_string())
-            .collect(),
+        Some(named) => {
+            if named.is_empty() {
+                return Err(MethodError::new_err(format!(
+                    "no rule was named for {slot}, so there is nothing to sweep"
+                )));
+            }
+            named
+        }
+        None => {
+            let table: Vec<String> = bindings_for(slot)
+                .map(|binding| binding.id.to_string())
+                .collect();
+            if table.len() < 2 {
+                let runs = match table.len() {
+                    0 => "no rule",
+                    _ => "one rule",
+                };
+                return Err(MethodError::new_err(format!(
+                    "this analysis runs {runs} for {slot}, so there is nothing to sweep"
+                )));
+            }
+            table
+        }
     };
-    if ids.is_empty() {
-        return Err(MethodError::new_err(format!(
-            "this analysis runs no rule for {slot}, so there is nothing to sweep"
-        )));
-    }
     Ok(spread::Axis {
         slot: slot.to_string(),
         parameter: None,

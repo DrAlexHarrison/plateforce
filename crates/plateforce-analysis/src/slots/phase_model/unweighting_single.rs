@@ -64,5 +64,5 @@ fn place(
             )
         })
         .unwrap_or(PhaseModelOutcome::NothingToPlace);
-    boundaries::model_outcome(context, ID, &[START_KEY, END_KEY], model, bound)
+    boundaries::model_outcome(context, ID, QUANTITIES, model, bound)
 }

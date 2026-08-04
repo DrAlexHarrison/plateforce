@@ -64,14 +64,6 @@ pub const QUANTITIES: &[Quantity] = &[
     },
 ];
 
-const KEYS: [&str; 5] = [
-    UNLOADING_START_KEY,
-    FORCE_MINIMUM_KEY,
-    PEAK_NEGATIVE_VELOCITY_KEY,
-    POSITIVE_VELOCITY_KEY,
-    CONCENTRIC_END_KEY,
-];
-
 pub const RULE: DerivedRule = place;
 
 fn place(
@@ -112,5 +104,5 @@ fn place(
             )
         })
         .unwrap_or(PhaseModelOutcome::NothingToPlace);
-    boundaries::model_outcome(context, ID, &KEYS, model, resolved.finish())
+    boundaries::model_outcome(context, ID, QUANTITIES, model, resolved.finish())
 }
