@@ -14,6 +14,5 @@ First release.
 * A force file is read by the engine, with the delimiter and the force column stated by
   the caller and reported back along with two counts: the samples that matched the sentinel
   convention, and the samples that carried no number at all.
-* The R surface binds the engine through `extendr`, chosen 2026-08-01. The boundary
-  carries structured data as JSON and the force trace as a raw double vector, so one file
-  names the binding framework.
+* The R surface binds the engine through `extendr`. The boundary carries structured data
+  as JSON and the force trace as a raw double vector.

@@ -299,9 +299,8 @@ The fingerprint is what proves two labs computed the same quantity. Ratified 202
 carries acquisition as well as analysis. Two results match only when both match.
 
 A dataset that cannot fill the acquisition block fingerprints as **incomplete**, never as
-matching. That is the intended behaviour and the reason the ruling was made: the most
-consequential parameter in one open tool is a 50 ms contact debounce living in firmware,
-silently mutable, and no reanalysis can recover from it.
+matching. The most consequential parameter in one open tool is a 50 ms contact debounce
+living in firmware, silently mutable, and no reanalysis can recover from it.
 
 ```toml
 [fingerprint]
@@ -329,7 +328,7 @@ file beside its rules. Three rules govern it:
 - **It is never written into `registry_version`.** A reader takes a value there as the author
   having chosen a revision, so publishing the registry's own claim under that name tells every
   reader who checks the provenance something that is not true, and tells the reader who
-  ignores it nothing wrong at all. The terminal and the browser both did this until 2026-08-03.
+  ignores it nothing wrong at all.
 - **It is not recoverable from the digest**, so it is carried rather than derived. The walk
   that measures the digest reads only the `toml` files, and the revision lives beside them, so
   two registries with byte-identical rules and different revisions share one digest.
@@ -341,18 +340,14 @@ file beside its rules. Three rules govern it:
 Unpinned, `registry_version` is written as null rather than left out, and every surface
 carries the key on every result. A key a document sometimes omits cannot be told apart from a
 field a surface never carried, and nothing in the document says which happened. The same rule
-governs the batch record, whose `registry_version` was typed as a string and wrote `""` for an
-absent pin until 2026-08-04, so a run nobody pinned and a run pinned to the empty string read
-alike.
+governs the batch record.
 
 ### Which surface asks for the block
 
 A trace of forces carries none of the acquisition block, so it is stated by whoever runs the
-analysis and no surface can derive it. Three ask: a folder run through `--acquisition
-<member>=<value>`, repeatable, and the R and Python trials through an acquisition argument.
-The terminal's single-trial command and the browser do not, so every result either writes is
-incomplete and cannot be declared to match. That is a gap in those two surfaces and not a
-property of the data they read.
+analysis and no surface can derive it. The terminal takes it through `--acquisition
+<member>=<value>`, repeatable, on a single trial and on a folder, and the R and Python trials
+take an acquisition argument.
 
 ### What a run publishes when the block is unfilled
 
@@ -571,16 +566,14 @@ cargo run -q -p plateforce-cli -- registry validate
 
 A result carries the method that produced it, so a reader who checks the provenance has to
 end up better informed than one who does not. A document where two states share a spelling
-does the opposite: it misleads exactly the reader who looks. The rule below is the general
-form of a thing this repository had already settled twice in particular cases, written down
-because it had not been.
+does the opposite: it misleads exactly the reader who looks.
 
 **Where two states could share a spelling, the document carries a field that says which.**
 The field is always written, never omitted in one of the states, for the same reason
 `registry_version` is written as null rather than left out: a key a document sometimes omits
 cannot be told apart from a surface that never carried it.
 
-Three instances, and all three are `null` meaning two things.
+Three instances.
 
 - **A number that is not a number, against a number nobody computed.** `serde_json` writes a
   non-finite float as `null`, exactly as it writes an absent one, so "the software computed
@@ -592,10 +585,8 @@ Three instances, and all three are `null` meaning two things.
   state, being the two quantities computed over the weighing window that holds the
   recording's three unreadable samples.
 
-- **A level that has no number, against a level nobody drew.** The same `null`, and until it
-  was fixed the two members of `levels` most likely to hold a non-finite number were declared
-  as plain numbers, so the pair whose type promised most were the pair that lied. Every
-  member of `levels` is now optional and none of them is ever a value that is not finite.
+- **A level that has no number, against a level nobody drew.** The same `null`. Every member
+  of `levels` is optional and none of them is ever a value that is not finite.
 
 - **A sample the reader was told to treat as missing, against a sample the recording lost.**
   Not `null` but one integer, and worse for it, because the number looked like an answer. The

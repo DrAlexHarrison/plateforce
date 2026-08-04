@@ -5,9 +5,8 @@ This product includes software developed by Alex Harrison.
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 macOS reports the signer of the desktop application as Saturday Inc, which holds the
-Apple Developer membership it is signed under. That is a cost saving rather than a
-statement of authorship: Apple charges per membership, and a second one would cost 99
-dollars a year to ship the same free software.
+Apple Developer membership it is signed under. The signer is not a statement of
+authorship.
 
 ================================================================================
 Method registry provenance

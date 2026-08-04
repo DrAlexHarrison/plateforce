@@ -95,8 +95,7 @@ repository's current engine.
 Git carries one copy of the engine, under `crates/`. The copy inside the package is a
 build artifact and is not tracked, so there is no second home to drift.
 
-One consequence for the release: the R package does not wait on the engine crates being
-published to crates.io.
+The R package does not wait on the engine crates being published to crates.io.
 
 ### The package lives at `bindings/r/`
 
@@ -123,8 +122,8 @@ the reading. A floor that has risen since only makes the guard stricter; a machi
 than the reading joining the farm makes it pass falsely, and the printed age is the only
 thing that surfaces that.
 
-The floor is 1.82, and the fourth thing the script asserts is that the tree actually builds
-on it. The dependency tree needs 1.76 once the R crate's lockfile is pinned, and the engine
+The floor is 1.82, and the fourth thing the script asserts is that the tree builds on it.
+The dependency tree needs 1.76 once the R crate's lockfile is pinned, and the engine
 sources reach 1.82 through `Option::is_none_or`, so the floor is the higher of the two.
 Reading declared versions alone reported 1.76 and would have shipped a false
 `SystemRequirements` claim, which is why the guard builds rather than reads.
@@ -138,9 +137,3 @@ the dependency half under CRAN's number, and is why the two crates keep separate
 packages with compiled Rust, so it is the route users install from and nobody waits on a
 CRAN decision. CRAN is still worth having, because a CRAN package is what a methods
 section cites and what a university lab's IT will install.
-
-## Not on this surface
-
-Batch analysis over a directory, Parquet and Arrow output, and the method-spread sweep are
-on other surfaces and are not reachable from R yet. Each waits on a contract from another
-workstream rather than on R.
