@@ -4,11 +4,11 @@
 //! two were read as one. Composing an operator is a choice made on the user's behalf, so the
 //! set that actually runs on a bare request is pinned here rather than inferred from the list.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
-use plateforce_registry::schema::Surfacing;
+use plateforce_registry::schema::{Status, Surfacing};
 use plateforce_registry::Registry;
 
 const SAMPLE_RATE_HZ: f64 = 1200.0;
@@ -56,30 +56,105 @@ fn bare_request() -> AnalysisRequest {
     }
 }
 
+/// Every operator the response records, whichever construct composed it.
+///
+/// This read `onset.op.` for as long as it existed, so the five takeoff operators the registry
+/// carries were outside every assertion below. A takeoff landmark rests on a search floor, a
+/// crossing selection and a residual comparison exactly as an onset landmark does, and the
+/// filter that named one construct made the other three invisible rather than absent.
 fn composed_operators(response: &plateforce_analysis::AnalysisResponse) -> Vec<String> {
     let mut ids: Vec<String> = response
         .bound_methods
         .iter()
-        .filter(|bound| bound.method_id.starts_with("onset.op."))
+        .filter(|bound| bound.method_id.contains(".op."))
         .map(|bound| bound.method_id.clone())
         .collect();
     ids.sort();
     ids
 }
 
+/// Which construct's namespace an id sits in, which is how the registry spells a rule's home.
+fn construct_of(method_id: &str) -> &str {
+    method_id.split('.').next().unwrap_or(method_id)
+}
+
+/// Where each construct's search may begin, asked of every construct rather than of one.
+///
+/// The registry carries two floor rules for onset and two for takeoff, so each landmark is a
+/// silent choice between them until something says which one runs. Read from the registry
+/// rather than named here: a third floor rule for either construct joins this assertion
+/// without an edit, and a construct that gains its first pair is covered the day it does.
 #[test]
-fn a_bare_request_composes_the_weighing_epoch_end_floor_and_not_the_deprecated_one() {
+fn every_construct_anchors_its_search_at_the_same_place_and_composes_no_deprecated_rule() {
+    let registry = registry();
     let response = run(&trial(), &bare_request()).expect("a bare request runs");
     let operators = composed_operators(&response);
     println!("{} operators composed: {operators:?}", operators.len());
 
+    let floors_offered: BTreeMap<&str, Vec<&String>> =
+        registry
+            .methods
+            .keys()
+            .filter(|id| id.contains(".op.search_floor"))
+            .fold(BTreeMap::new(), |mut found, id| {
+                found.entry(construct_of(id)).or_default().push(id);
+                found
+            });
+    let with_a_choice: Vec<&&str> = floors_offered
+        .iter()
+        .filter(|(_, offered)| offered.len() > 1)
+        .map(|(construct, _)| construct)
+        .collect();
+    println!("floor rules the registry offers, by construct: {floors_offered:?}");
+
+    // The population, asked before the assertions rather than after. A registry offering one
+    // floor per construct makes every line below true by having nothing to choose between.
     assert!(
-        operators.contains(&"onset.op.search_floor_at_weighing_epoch_end".to_string()),
-        "the floor a bare request uses is the weighing epoch's end: {operators:?}"
+        with_a_choice.len() > 1,
+        "only {with_a_choice:?} has more than one floor rule to choose between, so this test \
+         asserts nothing about a choice: {floors_offered:?}"
     );
+
+    let mut anchors: BTreeMap<&str, Vec<&String>> = BTreeMap::new();
+    for id in &operators {
+        if id.contains(".op.search_floor") {
+            anchors
+                .entry(id.trim_start_matches(construct_of(id)))
+                .or_default()
+                .push(id);
+        }
+    }
+    assert_eq!(
+        anchors.len(),
+        1,
+        "two landmarks on one trial began searching from different places, so they rest on \
+         different assumptions about where a jump can be: {anchors:?}"
+    );
+
+    let composed_floors: usize = anchors.values().map(Vec::len).sum();
+    assert_eq!(
+        composed_floors,
+        with_a_choice.len(),
+        "{} of the {} constructs with a floor to choose composed one: {anchors:?}",
+        composed_floors,
+        with_a_choice.len()
+    );
+
+    let deprecated: Vec<&String> = operators
+        .iter()
+        .filter(|id| {
+            registry
+                .methods
+                .get(*id)
+                .is_some_and(|method| method.status == Status::Deprecated)
+        })
+        .collect();
     assert!(
-        !operators.contains(&"onset.op.search_floor".to_string()),
-        "the deprecated fixed floor runs only when a caller states one: {operators:?}"
+        deprecated.is_empty(),
+        "{} of {} operators a bare request composes are deprecated, and a rule nobody asked \
+         for is the software's own choice: {deprecated:?}",
+        deprecated.len(),
+        operators.len()
     );
 }
 
@@ -115,6 +190,24 @@ fn every_operator_composed_unasked_carries_a_verdict_a_surface_can_act_on() {
     assert!(
         !operators.is_empty(),
         "a bare request composes no operator at all, so this test measures nothing"
+    );
+
+    // The population, not the assertion. This test read one construct's namespace for as long
+    // as it existed and reported "1 of 5" while the answer was "3 of 8", which is the shape
+    // that is harder to see than an assertion that cannot fail: it was green, deliberate, and
+    // blind. So the constructs the registry declares operators for are counted, and a set that
+    // has stopped reaching one of them fails here rather than reporting a smaller number.
+    let declared: BTreeSet<&str> = registry
+        .methods
+        .keys()
+        .filter(|id| id.contains(".op."))
+        .map(|id| construct_of(id))
+        .collect();
+    let reached: BTreeSet<&str> = operators.iter().map(|id| construct_of(id)).collect();
+    assert_eq!(
+        reached, declared,
+        "the registry declares operators for {declared:?} and this test reaches {reached:?}, so \
+         every number it prints is over the wrong population"
     );
 
     let mut unfiled = Vec::new();
