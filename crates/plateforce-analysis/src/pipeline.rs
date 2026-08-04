@@ -1251,6 +1251,30 @@ mod tests {
         left.difference(right).next().is_some() && right.difference(left).next().is_some()
     }
 
+    /// The recordings the reading below runs over, each named so a verdict says which one it
+    /// came from.
+    ///
+    /// Two, because one recording rules only on what it happens to exercise. The landing-shape
+    /// takeoff rule finds nothing on the synthetic trace and produces on subject 01, so the
+    /// construct it sits in is read on four of its five entries against one and on all five
+    /// against the other.
+    fn recordings() -> Vec<(&'static str, Trial)> {
+        let (subject01_trial1, _) = plateforce_core::read::read_trial_from_path(
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../plateforce-conformance/fixtures/subject01_trial1.force.txt"
+            ),
+            '\t',
+            0,
+            1200.0,
+        )
+        .expect("the committed trial reads");
+        vec![
+            ("the synthetic trace", synthetic()),
+            ("subject 01 trial 1", subject01_trial1),
+        ]
+    }
+
     /// A construct is one slot and a request carries one rule per slot, so two rules filed
     /// under one construct are two answers a caller picks between. What that choice costs is
     /// measured by running both rules and comparing what came back, never by reading the
@@ -1270,7 +1294,6 @@ mod tests {
     /// three models each reporting its own.
     #[test]
     fn a_construct_holds_rules_that_all_answer_its_question_or_all_answer_their_own() {
-        let trial = synthetic();
         let registry = plateforce_registry::Registry::load(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../../registry"
@@ -1309,85 +1332,85 @@ mod tests {
             .filter(|entries| entries.len() >= 2)
             .count();
 
-        let mut ruled_on = 0usize;
-        let mut left_unruled = 0usize;
-        let mut entries_this_recording_gave_nothing_to = 0usize;
+        let mut ruled_on: BTreeSet<&str> = BTreeSet::new();
         let mut faults: Vec<String> = Vec::new();
 
-        for (construct, entries) in &entries_per_construct {
-            if entries.len() < 2 {
-                continue;
-            }
-            let mut measured: Vec<(&str, BTreeSet<String>)> = Vec::new();
-            let mut unmeasured: Vec<&str> = Vec::new();
-            for binding in entries {
-                match quantities_produced_by(&trial, binding) {
-                    Some(produced) => measured.push((binding.id, produced)),
-                    None => unmeasured.push(binding.id),
+        for (recording, trial) in recordings() {
+            for (construct, entries) in &entries_per_construct {
+                if entries.len() < 2 {
+                    continue;
                 }
-            }
-            entries_this_recording_gave_nothing_to += unmeasured.len();
-
-            if measured.len() < 2 {
-                left_unruled += 1;
-                println!(
-                    "{construct}: not ruled on, {} of {} entries produced a quantity on this \
-                     recording, and a pair needs two: {unmeasured:?} produced none",
-                    measured.len(),
-                    entries.len()
-                );
-                continue;
-            }
-
-            let mut answering_alone: Vec<(&str, &str)> = Vec::new();
-            let mut answering_together: Vec<(&str, &str)> = Vec::new();
-            for (index, (left_id, left_keys)) in measured.iter().enumerate() {
-                for (right_id, right_keys) in measured.iter().skip(index + 1) {
-                    if each_reports_a_key_the_other_does_not(left_keys, right_keys) {
-                        answering_alone.push((left_id, right_id));
-                    } else {
-                        answering_together.push((left_id, right_id));
+                let mut measured: Vec<(&str, BTreeSet<String>)> = Vec::new();
+                let mut unmeasured: Vec<&str> = Vec::new();
+                for binding in entries {
+                    match quantities_produced_by(&trial, binding) {
+                        Some(produced) => measured.push((binding.id, produced)),
+                        None => unmeasured.push(binding.id),
                     }
                 }
-            }
-            ruled_on += 1;
-            println!(
-                "{construct}: {} of {} entries measured, pairs each reporting a key of its own: \
-                 {}, pairs reporting every key the other does: {}",
-                measured.len(),
-                entries.len(),
-                answering_alone.len(),
-                answering_together.len()
-            );
-            if !unmeasured.is_empty() {
-                println!("  outside the reading: {unmeasured:?}");
-            }
-            if answering_alone.is_empty() || answering_together.is_empty() {
-                continue;
-            }
-            let produced_by = |wanted: &str| {
-                measured
-                    .iter()
-                    .find(|(id, _)| *id == wanted)
-                    .map(|(_, keys)| keys.clone())
-                    .unwrap_or_default()
-            };
-            for (left_id, right_id) in &answering_alone {
-                let (shared_left, shared_right) = answering_together[0];
-                let left_keys = produced_by(left_id);
-                let right_keys = produced_by(right_id);
-                faults.push(format!(
-                    "{construct} holds rules that do not all answer one question. {left_id} \
-                     reports {:?}, alone in reporting {:?}, and {right_id} reports {:?}, alone in \
-                     reporting {:?}, while {shared_left} and {shared_right} report every key the \
-                     other does. A request carries one rule for {construct}, so a caller reaching \
-                     for either of the first two loses what the other reports, and nothing on the \
-                     result says so.",
-                    left_keys,
-                    left_keys.difference(&right_keys).collect::<Vec<_>>(),
-                    right_keys,
-                    right_keys.difference(&left_keys).collect::<Vec<_>>(),
-                ));
+
+                if measured.len() < 2 {
+                    println!(
+                        "{construct}, on {recording}: not ruled on, {} of {} entries produced a \
+                         quantity and a pair needs two, {unmeasured:?} produced none",
+                        measured.len(),
+                        entries.len()
+                    );
+                    continue;
+                }
+
+                let mut answering_alone: Vec<(&str, &str)> = Vec::new();
+                let mut answering_together: Vec<(&str, &str)> = Vec::new();
+                for (index, (left_id, left_keys)) in measured.iter().enumerate() {
+                    for (right_id, right_keys) in measured.iter().skip(index + 1) {
+                        if each_reports_a_key_the_other_does_not(left_keys, right_keys) {
+                            answering_alone.push((left_id, right_id));
+                        } else {
+                            answering_together.push((left_id, right_id));
+                        }
+                    }
+                }
+                ruled_on.insert(construct);
+                println!(
+                    "{construct}, on {recording}: {} of {} entries measured, pairs each reporting \
+                     a key of its own: {}, pairs reporting every key the other does: {}{}",
+                    measured.len(),
+                    entries.len(),
+                    answering_alone.len(),
+                    answering_together.len(),
+                    if unmeasured.is_empty() {
+                        String::new()
+                    } else {
+                        format!(", outside the reading {unmeasured:?}")
+                    }
+                );
+                if answering_alone.is_empty() || answering_together.is_empty() {
+                    continue;
+                }
+                let produced_by = |wanted: &str| {
+                    measured
+                        .iter()
+                        .find(|(id, _)| *id == wanted)
+                        .map(|(_, keys)| keys.clone())
+                        .unwrap_or_default()
+                };
+                for (left_id, right_id) in &answering_alone {
+                    let (shared_left, shared_right) = answering_together[0];
+                    let left_keys = produced_by(left_id);
+                    let right_keys = produced_by(right_id);
+                    faults.push(format!(
+                        "{construct} holds rules that do not all answer one question, on \
+                         {recording}. {left_id} reports {:?}, alone in reporting {:?}, and \
+                         {right_id} reports {:?}, alone in reporting {:?}, while {shared_left} and \
+                         {shared_right} report every key the other does. A request carries one \
+                         rule for {construct}, so a caller reaching for either of the first two \
+                         loses what the other reports, and nothing on the result says so.",
+                        left_keys,
+                        left_keys.difference(&right_keys).collect::<Vec<_>>(),
+                        right_keys,
+                        right_keys.difference(&left_keys).collect::<Vec<_>>(),
+                    ));
+                }
             }
         }
 
@@ -1400,15 +1423,16 @@ mod tests {
         );
         println!(
             "this build: {} constructs carry a rule, {constructs_holding_two_or_more} of them \
-             carry two or more, {ruled_on} ruled on, {left_unruled} left unruled, \
-             {entries_this_recording_gave_nothing_to} entries produced nothing on this recording",
+             carry two or more, {} of those ruled on by at least one recording",
             entries_per_construct.len(),
+            ruled_on.len(),
         );
         // The population this reading was written against. A guard whose subject shrank below
         // it would pass by having less to read.
         assert!(
-            ruled_on >= 10,
-            "only {ruled_on} constructs were ruled on, so this read almost nothing"
+            ruled_on.len() >= 10,
+            "only {} constructs were ruled on, so this read almost nothing",
+            ruled_on.len()
         );
         assert!(faults.is_empty(), "{}", faults.join("\n\n"));
     }
