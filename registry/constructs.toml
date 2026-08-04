@@ -3,12 +3,21 @@
 # The distinction is load-bearing. Standing-frame and takeoff-frame jump height differ
 # by about 144 mm for the same method, so filing them as two methods of one construct
 # would assert that they are the same quantity.
+#
+# `rules_answer` says what a construct's rules are to each other, and a request carries one
+# rule per construct, so the two values are two different choices. Under "one_question" the
+# rules report the same quantities and picking one moves the values. Under
+# "their_own_questions" each rule reports quantities the others do not, so picking one settles
+# which quantities exist. It is stated wherever the software can run two of a construct's
+# rules and read the answer back off a recording, and the guard that reads it refuses a
+# construct whose rules do not do what it says.
 
 [[construct]]
 id = "movement_onset"
 title = "The instant the movement begins"
 label = "Start of the jump"
 unit = "seconds"
+rules_answer = "one_question"
 notes = "Every downstream interval that starts here inherits this choice."
 
 [[construct]]
@@ -16,6 +25,7 @@ id = "takeoff"
 title = "The instant the last foot leaves the plate"
 label = "Takeoff"
 unit = "seconds"
+rules_answer = "one_question"
 
 [[construct]]
 id = "time_to_takeoff"
@@ -33,6 +43,7 @@ title = "Centre of mass rise measured from the instant of takeoff"
 label = "Jump height, measured from the instant of takeoff"
 unit = "meters"
 frame = "takeoff"
+rules_answer = "one_question"
 notes = "Not comparable with jump height measured from standing without a declared correction."
 
 [[construct]]
@@ -41,6 +52,7 @@ title = "Centre of mass rise measured from quiet standing"
 label = "Jump height, measured from standing"
 unit = "meters"
 frame = "standing"
+rules_answer = "one_question"
 notes = "Differs from the takeoff frame by 26 to 45 percent, which is a different quantity."
 
 [[construct]]
@@ -48,6 +60,7 @@ id = "system_weight"
 title = "Weight of athlete plus any external load during the weighing epoch"
 label = "Standing still, before the jump"
 unit = "newtons"
+rules_answer = "one_question"
 notes = "System weight includes the bar. Bodyweight does not. The registry records real conflations."
 
 [[construct]]
@@ -137,6 +150,7 @@ id = "jump_height.undeclared"
 title = "Centre of mass rise with no declared reference frame"
 label = "Jump height, with no frame stated"
 unit = "meters"
+rules_answer = "one_question"
 notes = """
 A real registry value rather than a gap. An undeclared frame must not compare equal to a declared
 one, and one entry's frame is not merely undeclared but non-constant, changing trial to trial.
@@ -147,6 +161,7 @@ id = "braking_phase_start"
 title = "The instant the braking phase begins"
 label = "Start of braking"
 unit = "seconds"
+rules_answer = "one_question"
 notes = """
 Two published rules name two different instants and one of them, minimum force, occurs while the
 athlete is still accelerating downward. The name and the physics disagree.
@@ -157,6 +172,7 @@ id = "propulsion_phase_start"
 title = "The instant the propulsion phase begins"
 label = "Start of the push"
 unit = "seconds"
+rules_answer = "one_question"
 
 [[construct]]
 id = "propulsion_phase_end"
@@ -206,6 +222,7 @@ id = "phase_model"
 title = "Which landmarks are promoted to phase boundaries and what the intervals are called"
 label = "Which parts of the jump are named, and what they are called"
 unit = "enumeration"
+rules_answer = "their_own_questions"
 notes = """
 Nobody disputes where the landmarks are, modulo onset. What is disputed is which are promoted and
 what the intervals are named, and one word denotes different intervals in a vendor product and in
@@ -217,6 +234,7 @@ id = "analysis_window"
 title = "The interval a per-phase or per-epoch quantity is integrated or searched over"
 label = "The stretch of the recording this number is taken over"
 unit = "seconds"
+rules_answer = "one_question"
 
 [[construct]]
 id = "sticking_region"
@@ -229,6 +247,7 @@ id = "peak_force"
 title = "The largest vertical force produced during the effort"
 label = "The biggest force"
 unit = "newtons"
+rules_answer = "one_question"
 notes = """
 The weight of the athlete and anything they carry is inside this number. The largest force with
 that weight taken out is a construct of its own, and the two travel under names a reader cannot

@@ -1275,23 +1275,122 @@ mod tests {
         ]
     }
 
+    /// What one construct's runnable rules turned out to be to each other, read against the
+    /// `rules_answer` its registry row declares.
+    #[derive(Debug, PartialEq, Eq)]
+    enum Verdict {
+        /// Declared `one_question`, and every pair reports every key the other does.
+        Whole,
+        /// Declared `their_own_questions`, and every pair reports a key of its own.
+        ForkedByDeclaration,
+        Faulted(String),
+    }
+
+    /// The reading, over one construct's measured entries on one recording.
+    ///
+    /// Every pair is classified once and the declaration decides what the classification has
+    /// to be. A pair reporting a key of its own means the two rules answer different
+    /// questions; a pair where neither withholds a key from the other means they answer the
+    /// same one. Both are sound, and which one a construct is entitled to is a fact about the
+    /// construct that no entry's row carries, so it is read off the construct's row.
+    ///
+    /// Reading the pair alone cannot do this. A construct holding exactly two runnable rules
+    /// makes exactly one pair, so whichever way that pair falls, one of the two lists is empty
+    /// and a rule that faults only on a mixture of the two has nothing to fault on. That is
+    /// four of this build's twelve multi-entry constructs, and it is why the declaration
+    /// exists rather than a cleverer comparison.
+    fn read_construct(
+        construct: &str,
+        declared: Option<plateforce_registry::RulesAnswer>,
+        measured: &[(&str, BTreeSet<String>)],
+    ) -> Verdict {
+        let mut answering_alone: Vec<(&str, &str)> = Vec::new();
+        let mut answering_together: Vec<(&str, &str)> = Vec::new();
+        for (index, (left_id, left_keys)) in measured.iter().enumerate() {
+            for (right_id, right_keys) in measured.iter().skip(index + 1) {
+                if each_reports_a_key_the_other_does_not(left_keys, right_keys) {
+                    answering_alone.push((left_id, right_id));
+                } else {
+                    answering_together.push((left_id, right_id));
+                }
+            }
+        }
+        let keys_of = |wanted: &str| {
+            measured
+                .iter()
+                .find(|(id, _)| *id == wanted)
+                .map(|(_, keys)| keys.clone())
+                .unwrap_or_default()
+        };
+        match declared {
+            None => Verdict::Faulted(format!(
+                "{construct} holds {} rules this build can run and its registry row does not \
+                 say what they are to each other. A request carries one rule for {construct}, \
+                 so the caller is picking between them either way. Declare rules_answer on the \
+                 construct: \"one_question\" where the rules report the same quantities and the \
+                 choice moves the values, \"their_own_questions\" where each reports quantities \
+                 the others do not and the choice settles which quantities exist.",
+                measured.len()
+            )),
+            Some(plateforce_registry::RulesAnswer::OneQuestion) => {
+                let Some((left_id, right_id)) = answering_alone.first() else {
+                    return Verdict::Whole;
+                };
+                let (left_keys, right_keys) = (keys_of(left_id), keys_of(right_id));
+                Verdict::Faulted(format!(
+                    "{construct} declares rules_answer = \"one_question\", and {left_id} is alone \
+                     in reporting {:?} while {right_id} is alone in reporting {:?}, over {} \
+                     quantities in common. A request carries one rule for {construct}, so a \
+                     caller reaching for either loses what the other reports, and nothing on the \
+                     result says so. Either the two answer different questions and belong in \
+                     separate constructs, or the construct is declared wrongly.",
+                    left_keys.difference(&right_keys).collect::<Vec<_>>(),
+                    right_keys.difference(&left_keys).collect::<Vec<_>>(),
+                    left_keys.intersection(&right_keys).count(),
+                ))
+            }
+            Some(plateforce_registry::RulesAnswer::TheirOwnQuestions) => {
+                let Some((left_id, right_id)) = answering_together.first() else {
+                    return Verdict::ForkedByDeclaration;
+                };
+                let (left_keys, right_keys) = (keys_of(left_id), keys_of(right_id));
+                Verdict::Faulted(format!(
+                    "{construct} declares rules_answer = \"their_own_questions\", and {left_id} \
+                     withholds {:?} from {right_id} while {right_id} withholds {:?}, over {} \
+                     quantities in common. Neither is alone in what it reports, so they answer one \
+                     question rather than their own, and a caller told the choice settles which \
+                     quantities exist is told the wrong thing about what it costs.",
+                    left_keys.difference(&right_keys).collect::<Vec<_>>(),
+                    right_keys.difference(&left_keys).collect::<Vec<_>>(),
+                    left_keys.intersection(&right_keys).count(),
+                ))
+            }
+        }
+    }
+
     /// A construct is one slot and a request carries one rule per slot, so two rules filed
     /// under one construct are two answers a caller picks between. What that choice costs is
-    /// measured by running both rules and comparing what came back, never by reading the
+    /// measured by running every entry and comparing what came back, never by reading the
     /// edges either one declares.
     ///
-    /// Two shapes are whole. Every rule reports the same keys and the choice moves values,
-    /// which is what the five onset rules do. Or every rule reports keys of its own and the
-    /// choice is between objects, which is what `phase.toml` records the phase models as: the
-    /// one place a user must choose, because the models produce different sets of metrics
-    /// rather than different values for one metric.
+    /// Two shapes are sound and they are different choices. Every rule reports the same keys
+    /// and the choice moves values, which is what the five onset rules do. Or every rule
+    /// reports keys of its own and the choice is between objects, which is what the three
+    /// phase models do: the one place a user must choose, because the models produce different
+    /// sets of metrics rather than different values for one metric.
     ///
-    /// A construct mixing the two is the fault this reads for. Some of its rules share a key,
-    /// so they answer its question together; another reports only keys those never report, so
-    /// it answers a different question from the same slot, and a caller reaching for it loses
-    /// theirs with nothing on the result saying so. That is the shape `propulsion_subdivision`
-    /// was cut out of `phase_model` for, where two subdivisions sharing one key sat beside
-    /// three models each reporting its own.
+    /// Which of the two a construct is entitled to is not readable from any entry's row and
+    /// not derivable from the measurement, because both shapes are legitimate. So the
+    /// construct declares it in `rules_answer` and the measurement is read against the
+    /// declaration. That turns one comparison into three states. Whole, where the rules answer
+    /// one question and the row says so. Forked by declaration, where they answer their own and
+    /// the row says so. Faulted, where the measurement contradicts the row, or where a
+    /// construct this build can run two rules for declares nothing at all.
+    ///
+    /// The fault it was written for is a construct where some rules share a key and another
+    /// reports only keys those never report, so it answers a different question from the same
+    /// slot and a caller reaching for it loses theirs with nothing on the result saying so.
+    /// That is the shape `propulsion_subdivision` was cut out of `phase_model` for.
     #[test]
     fn a_construct_holds_rules_that_all_answer_its_question_or_all_answer_their_own() {
         let registry = plateforce_registry::Registry::load(concat!(
@@ -1333,6 +1432,8 @@ mod tests {
             .count();
 
         let mut ruled_on: BTreeSet<&str> = BTreeSet::new();
+        let mut whole: BTreeSet<&str> = BTreeSet::new();
+        let mut forked: BTreeSet<&str> = BTreeSet::new();
         let mut faults: Vec<String> = Vec::new();
 
         for (recording, trial) in recordings() {
@@ -1359,57 +1460,47 @@ mod tests {
                     continue;
                 }
 
-                let mut answering_alone: Vec<(&str, &str)> = Vec::new();
-                let mut answering_together: Vec<(&str, &str)> = Vec::new();
-                for (index, (left_id, left_keys)) in measured.iter().enumerate() {
-                    for (right_id, right_keys) in measured.iter().skip(index + 1) {
-                        if each_reports_a_key_the_other_does_not(left_keys, right_keys) {
-                            answering_alone.push((left_id, right_id));
-                        } else {
-                            answering_together.push((left_id, right_id));
-                        }
-                    }
-                }
+                // A construct this build runs rules under and the registry does not declare is
+                // read as declaring nothing, which faults. The loader refuses an entry naming
+                // an unknown construct, so this arm is reachable only through a binding.
+                let declared = registry
+                    .constructs
+                    .get(*construct)
+                    .and_then(|row| row.rules_answer);
                 ruled_on.insert(construct);
+                let verdict = read_construct(construct, declared, &measured);
                 println!(
-                    "{construct}, on {recording}: {} of {} entries measured, pairs each reporting \
-                     a key of its own: {}, pairs reporting every key the other does: {}{}",
+                    "{construct}, on {recording}: {} of {} entries measured, declared {}, read as \
+                     {}{}",
                     measured.len(),
                     entries.len(),
-                    answering_alone.len(),
-                    answering_together.len(),
+                    match declared {
+                        None => "nothing",
+                        Some(plateforce_registry::RulesAnswer::OneQuestion) => "one_question",
+                        Some(plateforce_registry::RulesAnswer::TheirOwnQuestions) =>
+                            "their_own_questions",
+                    },
+                    match verdict {
+                        Verdict::Whole => "whole",
+                        Verdict::ForkedByDeclaration => "forked by declaration",
+                        Verdict::Faulted(_) => "faulted",
+                    },
                     if unmeasured.is_empty() {
                         String::new()
                     } else {
                         format!(", outside the reading {unmeasured:?}")
                     }
                 );
-                if answering_alone.is_empty() || answering_together.is_empty() {
-                    continue;
-                }
-                let produced_by = |wanted: &str| {
-                    measured
-                        .iter()
-                        .find(|(id, _)| *id == wanted)
-                        .map(|(_, keys)| keys.clone())
-                        .unwrap_or_default()
-                };
-                for (left_id, right_id) in &answering_alone {
-                    let (shared_left, shared_right) = answering_together[0];
-                    let left_keys = produced_by(left_id);
-                    let right_keys = produced_by(right_id);
-                    faults.push(format!(
-                        "{construct} holds rules that do not all answer one question, on \
-                         {recording}. {left_id} reports {:?}, alone in reporting {:?}, and \
-                         {right_id} reports {:?}, alone in reporting {:?}, while {shared_left} and \
-                         {shared_right} report every key the other does. A request carries one \
-                         rule for {construct}, so a caller reaching for either of the first two \
-                         loses what the other reports, and nothing on the result says so.",
-                        left_keys,
-                        left_keys.difference(&right_keys).collect::<Vec<_>>(),
-                        right_keys,
-                        right_keys.difference(&left_keys).collect::<Vec<_>>(),
-                    ));
+                match verdict {
+                    Verdict::Whole => {
+                        whole.insert(construct);
+                    }
+                    Verdict::ForkedByDeclaration => {
+                        forked.insert(construct);
+                    }
+                    Verdict::Faulted(sentence) => {
+                        faults.push(format!("On {recording}. {sentence}"))
+                    }
                 }
             }
         }
@@ -1423,9 +1514,12 @@ mod tests {
         );
         println!(
             "this build: {} constructs carry a rule, {constructs_holding_two_or_more} of them \
-             carry two or more, {} of those ruled on by at least one recording",
+             carry two or more, {} of those ruled on by at least one recording, {} read as whole \
+             and {} as forked by declaration",
             entries_per_construct.len(),
             ruled_on.len(),
+            whole.len(),
+            forked.len(),
         );
         // The population this reading was written against. A guard whose subject shrank below
         // it would pass by having less to read.
@@ -1434,7 +1528,18 @@ mod tests {
             "only {} constructs were ruled on, so this read almost nothing",
             ruled_on.len()
         );
+        // What was read comes before what was covered. A construct contradicting its row is the
+        // finding; a shape going unread is a fact about the population, and asserting it first
+        // would answer a fault with a sentence about coverage.
         assert!(faults.is_empty(), "{}", faults.join("\n\n"));
+        // Both sound shapes are present in what was read. A run finding only one of them would
+        // leave the other arm of the reading unexercised by the shipped registry.
+        assert!(
+            !whole.is_empty() && !forked.is_empty(),
+            "{} constructs read as whole and {} as forked, so one shape went unread",
+            whole.len(),
+            forked.len()
+        );
     }
 
     /// The reading above is worth nothing unless it answers both ways, so both answers are
@@ -1490,6 +1595,80 @@ mod tests {
             "the subdivision and the time epochs read as answering one question: {:?} against {:?}",
             split_at_half_the_duration,
             fixed_time_epochs
+        );
+    }
+
+    /// The reading reaches all three of its verdicts, and each of the two sound ones flips to
+    /// faulted when the declaration is the other one.
+    ///
+    /// Every pair here is a real measurement of committed entries, so no arm is reachable only
+    /// through a shape the software cannot produce. The two constructs are the ones the shipped
+    /// registry declares oppositely, which is what makes each pair provable against both
+    /// declarations: swapping the declaration is the only thing that changes between the arm
+    /// that passes and the arm that faults.
+    #[test]
+    fn the_reading_reaches_whole_forked_and_faulted() {
+        use plateforce_registry::RulesAnswer::{OneQuestion, TheirOwnQuestions};
+
+        let trial = synthetic();
+        let produced = |id: &'static str| {
+            let binding = BINDINGS
+                .iter()
+                .find(|binding| binding.id == id)
+                .unwrap_or_else(|| panic!("{id} is not a rule this build runs"));
+            (
+                id,
+                quantities_produced_by(&trial, binding)
+                    .unwrap_or_else(|| panic!("{id} produced nothing on this recording")),
+            )
+        };
+
+        // Two onset rules, which place one instant two ways.
+        let one_question = [
+            produced("onset.threshold.noise_relative"),
+            produced("onset.threshold.absolute_force"),
+        ];
+        // A phase model beside a set of fixed time epochs, which publish different landmarks.
+        let their_own = [
+            produced("phase.model.unweighting_single.mcmahon2018"),
+            produced("phase.anchor.time_epochs.schmidtbleicher"),
+        ];
+
+        assert_eq!(
+            read_construct("movement_onset", Some(OneQuestion), &one_question),
+            Verdict::Whole
+        );
+        assert_eq!(
+            read_construct("phase_model", Some(TheirOwnQuestions), &their_own),
+            Verdict::ForkedByDeclaration
+        );
+
+        // The same two pairs against the opposite declaration, which is the fault the marker
+        // exists to catch and the one a two-entry construct could not produce before it.
+        let onset_declared_forked =
+            read_construct("movement_onset", Some(TheirOwnQuestions), &one_question);
+        let models_declared_one = read_construct("phase_model", Some(OneQuestion), &their_own);
+        for (verdict, expected) in [
+            (&onset_declared_forked, "their_own_questions"),
+            (&models_declared_one, "one_question"),
+        ] {
+            let Verdict::Faulted(sentence) = verdict else {
+                panic!("a pair contradicting its declaration read as sound: {verdict:?}")
+            };
+            assert!(
+                sentence.contains(expected),
+                "the failure names neither the construct's marker nor its value: {sentence}"
+            );
+        }
+
+        // A construct the software can run two rules for and the registry says nothing about.
+        let Verdict::Faulted(undeclared) = read_construct("movement_onset", None, &one_question)
+        else {
+            panic!("an undeclared construct read as sound")
+        };
+        assert!(
+            undeclared.contains("rules_answer") && undeclared.contains("movement_onset"),
+            "the failure names neither the construct nor the marker: {undeclared}"
         );
     }
 
