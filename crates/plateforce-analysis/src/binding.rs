@@ -602,6 +602,45 @@ pub fn conditioning_constructs() -> Vec<&'static str> {
     seen
 }
 
+/// Whether this build conditions `construct` with `method_id`, as the record rather than as a
+/// bool.
+///
+/// The one home for the question, so a surface reading a caller's line and the engine reading
+/// the request that line built cannot answer it differently. `derive::accepts` is the same
+/// predicate for the rules computed from the landmarks, and both halves are checked here for
+/// the same reason: a construct with no conditioning rule behind it and an id filed under
+/// another construct are different faults listing different alternatives, and either one
+/// alone matches no binding, which the phase would skip in silence.
+///
+/// An empty id is a construct the caller named no rule for. That is what a request stating
+/// values against the rule this phase runs anyway carries, and it is a state rather than a
+/// name to look up: the phase runs its declared rule and records it either way.
+pub fn accepts_conditioning(
+    construct: &str,
+    method_id: &str,
+) -> Result<(), Box<plateforce_core::Refusal>> {
+    let constructs = conditioning_constructs();
+    if !constructs.contains(&construct) {
+        return Err(Box::new(
+            plateforce_core::Refusal::construct_not_on_the_path(
+                construct,
+                constructs.into_iter().map(str::to_string).collect(),
+            ),
+        ));
+    }
+    if method_id.is_empty() || conditioning_bindings().any(|binding| binding.id == method_id) {
+        return Ok(());
+    }
+    Err(Box::new(plateforce_core::Refusal::method_not_implemented(
+        method_id,
+        construct,
+        conditioning_bindings()
+            .filter(|binding| binding.construct == construct)
+            .map(|binding| binding.id.to_string())
+            .collect(),
+    )))
+}
+
 /// The registry entry a result reached by this id is recorded against.
 ///
 /// Selecting and recording are different acts and this is the one place they diverge. A

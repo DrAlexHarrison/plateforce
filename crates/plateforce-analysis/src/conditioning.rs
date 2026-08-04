@@ -35,6 +35,19 @@ impl ConditioningOutcome {
             refusal: None,
         }
     }
+
+    /// A rule that declined, holding what it had read when it did.
+    ///
+    /// The values it bound travel with the refusal rather than being dropped, because a reader
+    /// meeting one asks what the rule was holding, and a record answering with nothing cannot
+    /// say whether the rule read the caller's value or its own.
+    pub fn refused(bound: BoundValues, refusal: RuleRefusal) -> Self {
+        Self {
+            force_newtons: None,
+            bound,
+            refusal: Some(refusal),
+        }
+    }
 }
 
 /// A rule that conditions the signal the landmark rules then read.

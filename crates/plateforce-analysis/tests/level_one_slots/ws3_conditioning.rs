@@ -4,11 +4,31 @@
 //! that does not filter and does not say so publishes one nobody can tell from the first. So
 //! `filter.none` is declared on every metric like any other rule.
 
-use plateforce_analysis::{run, BINDINGS};
+use std::collections::BTreeMap;
+
+use plateforce_analysis::{run, MethodChoice, BINDINGS};
+use plateforce_core::provenance::ParameterSource;
 
 use crate::common::{committed_trial, default_request, COMMITTED_TRIALS};
 
 const CONDITIONING_ID: &str = "filter.none";
+const CONSTRUCT: &str = "conditioned_force_signal";
+const EDGE: &str = "passband_edge";
+
+/// A request stating one name against the conditioning phase, without naming a rule for it.
+/// Naming none is what a caller who wants the phase's own rule and their own value sends, and
+/// it is the shape every surface builds.
+fn stating(name: &str, value: &str) -> plateforce_analysis::AnalysisRequest {
+    let mut request = default_request();
+    request.conditioning.insert(
+        CONSTRUCT.to_string(),
+        MethodChoice {
+            options: BTreeMap::from([(name.to_string(), value.to_string())]),
+            ..Default::default()
+        },
+    );
+    request
+}
 
 /// Every metric names the rule that conditioned the signal it was measured on, on a request
 /// that asked for no conditioning at all, which is the common case.
@@ -118,6 +138,122 @@ fn a_conditioning_default_says_it_came_from_the_registry_rather_than_the_caller(
         !bound.bound_parameters.is_empty(),
         "the conditioning rule is on the record with nothing recorded against it"
     );
+}
+
+/// The three answers one conditioning rule gives about the edge it reads, which is the whole
+/// of what `filter.none` declares.
+///
+/// Unstated it is the rule's own and says so. Stated as the value the rule takes it keeps the
+/// caller's signature, because a reader who wrote the edge down chose it and a record that
+/// calls their choice an assumption loses the one fact this software exists to carry. Stated
+/// as any other edge the run declines by name: `none` in a record beside a caller who asked
+/// for a filter is the software answering a question it was not asked.
+#[test]
+fn the_edge_a_conditioning_rule_reads_is_recorded_however_the_caller_arrived() {
+    let trial = committed_trial(COMMITTED_TRIALS[0]);
+
+    let source_of = |request| {
+        let response = run(&trial, &request).expect("a request stating the edge this rule takes");
+        let bound = response
+            .bound_methods
+            .iter()
+            .find(|bound| bound.method_id == CONDITIONING_ID)
+            .expect("the conditioning rule is on the record")
+            .clone();
+        assert!(
+            bound.unread_parameters.is_empty(),
+            "the rule read nothing the request stated: {:?}",
+            bound.unread_parameters
+        );
+        *bound
+            .parameter_sources
+            .get(EDGE)
+            .unwrap_or_else(|| panic!("{EDGE} is on the record: {:?}", bound.bound_parameters))
+    };
+
+    assert_eq!(
+        source_of(default_request()),
+        ParameterSource::Assumed,
+        "an edge nobody stated is the rule's own"
+    );
+    assert_eq!(
+        source_of(stating(EDGE, "none")),
+        ParameterSource::Stated,
+        "an edge the caller stated carries the caller's signature"
+    );
+
+    let refusal = run(&trial, &stating(EDGE, "20"))
+        .expect_err("a caller asking this rule for a 20 Hz edge is asking it for a filter");
+    assert_eq!(refusal.code, plateforce_core::RefusalCode::ValueNotAccepted);
+    assert_eq!(refusal.method_id, CONDITIONING_ID);
+    assert_eq!(refusal.parameter.as_deref(), Some(EDGE));
+    assert_eq!(
+        refusal.available,
+        vec!["none".to_string()],
+        "the refusal names what this rule does take"
+    );
+    println!("{}", refusal.message());
+}
+
+/// A conditioning rule that declines takes the whole run with it, rather than being noted
+/// beside numbers that were computed anyway.
+///
+/// Every landmark below reads the signal this phase produces. A run that carried on would
+/// place them on a signal no rule stands behind and publish the heights, with the refusal
+/// filed as a footnote on a result that looks complete.
+#[test]
+fn a_conditioning_rule_that_declines_leaves_no_number_behind_it() {
+    let trial = committed_trial(COMMITTED_TRIALS[0]);
+    assert!(
+        run(&trial, &stating(EDGE, "20")).is_err(),
+        "a declined conditioning rule returned a result"
+    );
+}
+
+/// A name this rule does not read comes back as one it did not read, rather than being
+/// dropped. The record says the caller wrote it and the rule never looked at it.
+#[test]
+fn a_name_the_conditioning_rule_does_not_read_comes_back_unread() {
+    let trial = committed_trial(COMMITTED_TRIALS[0]);
+    let response = run(&trial, &stating("cutoff_hz", "20")).expect("an unread name runs");
+
+    let bound = response
+        .bound_methods
+        .iter()
+        .find(|bound| bound.method_id == CONDITIONING_ID)
+        .expect("the conditioning rule is on the record");
+    assert_eq!(
+        bound.unread_parameters,
+        vec!["cutoff_hz".to_string()],
+        "a name no rule read is reported as unread"
+    );
+}
+
+/// Naming the rule this phase runs anyway, and naming none and stating values against it,
+/// leave the same record. The key in the map buys somewhere to put the values, never a
+/// different account of what ran.
+#[test]
+fn naming_the_conditioning_rule_and_leaving_it_unnamed_record_the_same_run() {
+    let trial = committed_trial(COMMITTED_TRIALS[0]);
+    let mut named = default_request();
+    named.conditioning.insert(
+        CONSTRUCT.to_string(),
+        MethodChoice {
+            method_id: CONDITIONING_ID.to_string(),
+            ..Default::default()
+        },
+    );
+    let mut unnamed = default_request();
+    unnamed
+        .conditioning
+        .insert(CONSTRUCT.to_string(), MethodChoice::default());
+
+    let record = |request| {
+        let response = run(&trial, &request).expect("the request runs");
+        format!("{:?}", response.bound_methods)
+    };
+    assert_eq!(record(named), record(default_request()));
+    assert_eq!(record(unnamed), record(default_request()));
 }
 
 /// The table says which rules condition, and this build binds exactly the one the spec
