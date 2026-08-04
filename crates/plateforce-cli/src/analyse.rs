@@ -312,6 +312,27 @@ fn assignment_of<'a>(
     Ok((slot, name, written))
 }
 
+/// One name given two values on one line, refused rather than settled by position.
+///
+/// The three repeatable flags cannot lean on the parser the way the method flags do: clap
+/// refuses a second `--onset` because a run has one onset, and it cannot refuse a second
+/// `--set` because a run states many. So a second value for a name a caller has already
+/// written was kept and the first was dropped, with nothing recorded anywhere: the result of
+/// a caller who wrote both was byte-identical to the result of a caller who wrote only the
+/// second. That is this project's founding observation arriving on its own request path, and
+/// it reached a knob with a measured 6.6 second failure, `onset.direction`.
+///
+/// Refused rather than warned, because there is no reading of two values under one name that
+/// this software can act on, and P5 of the mission is that it refuses rather than guesses.
+fn stated_twice(flag: &str, name: &str, first: &str, second: &str) -> Declined {
+    Declined::line(
+        Fault::Request,
+        format!(
+            "{flag} {name} was given '{first}' and then '{second}', and a name takes one value"
+        ),
+    )
+}
+
 /// `--choose`, keyed by the same word `--set` takes. A name a rule offers, never a number.
 ///
 /// Which names a rule takes is the rule's own to answer, so an unaccepted one is refused by
@@ -331,10 +352,18 @@ pub(crate) fn stated_options(
                 format!("--choose {slot}.{name} was given no name"),
             ));
         }
-        chosen
+        if let Some(first) = chosen
             .entry(slot.to_string())
             .or_default()
-            .insert(name.to_string(), named.to_string());
+            .insert(name.to_string(), named.to_string())
+        {
+            return Err(stated_twice(
+                "--choose",
+                &format!("{slot}.{name}"),
+                &first,
+                named,
+            ));
+        }
     }
     Ok(chosen)
 }
@@ -348,6 +377,10 @@ pub(crate) fn stated_parameters(
 ) -> Result<BTreeMap<String, BTreeMap<String, f64>>, Declined> {
     let slots = steps_of_this_run(also);
     let mut stated: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
+    // What the caller typed against each qualified name, so a name stated twice reads back as
+    // the two lines they wrote. Reporting the parsed numbers instead would answer `1.0` and
+    // `1.00` with "given '1' and then '1'", which reads as the software confusing itself.
+    let mut as_written: BTreeMap<String, String> = BTreeMap::new();
     for assignment in assignments {
         let (slot, name, written) = assignment_of("--set", SET_SHAPE, assignment, &slots)?;
         let qualified = format!("{slot}.{name}");
@@ -366,10 +399,19 @@ pub(crate) fn stated_parameters(
                 "", qualified, value,
             )));
         }
-        stated
+        if stated
             .entry(slot.to_string())
             .or_default()
-            .insert(name.to_string(), value);
+            .insert(name.to_string(), value)
+            .is_some()
+        {
+            let first = as_written
+                .get(&qualified)
+                .map(String::as_str)
+                .unwrap_or_default();
+            return Err(stated_twice("--set", &qualified, first, written.trim()));
+        }
+        as_written.insert(qualified, written.trim().to_string());
     }
     Ok(stated)
 }
@@ -508,7 +550,9 @@ fn derived_methods(args: &Args) -> Result<BTreeMap<String, String>, Declined> {
                 method_id, construct, available,
             )));
         }
-        chosen.insert(construct.to_string(), method_id.to_string());
+        if let Some(first) = chosen.insert(construct.to_string(), method_id.to_string()) {
+            return Err(stated_twice("--derive", construct, &first, method_id));
+        }
     }
     Ok(chosen)
 }
