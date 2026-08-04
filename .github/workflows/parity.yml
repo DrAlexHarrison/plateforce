@@ -156,9 +156,8 @@ jobs:
       - name: The words a reader meets are the words the audience uses
         run: ./scripts/check-framing-copy.sh
 
-      # `node scripts/check-minute.mjs web 8753` belongs here and is held out, not softened.
-      # It reports 28 of 29 and the one failure is a real open question, whether a construct
-      # whose rule forces a decision can be hosted on the rail without walling the first paint.
-      # It is held rather than marked continue-on-error, because a step that cannot fail the
-      # job is the same shape as a check that cannot fail, which is what these three exist to
-      # remove. Place it in the same commit that settles the rail placement.
+      # Drives the running page from a file drop to a jump height and asserts what a reader
+      # meets on the way, so it is the only step here that fails on an interface a person
+      # cannot get through rather than on a string.
+      - name: A reader reaches a jump height in a minute, and meets every rule that produced it
+        run: node scripts/check-minute.mjs web 8753
