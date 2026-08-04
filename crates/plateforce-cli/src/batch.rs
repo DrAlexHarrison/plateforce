@@ -170,7 +170,7 @@ pub fn run(
     // A run over a folder multiplies one unmade choice by the trial count, so it is refused
     // before a single trial is read, and it is refused the way one trial is: by naming the
     // choice and what can be passed, rather than by naming the flag that is missing.
-    let derived = match derived_methods(&args.derive) {
+    let derived = match crate::analyse::derived_methods(&args.derive) {
         Ok(derived) => derived,
         Err(declined) => return Outcome::declined(declined),
     };
@@ -284,26 +284,6 @@ fn request_for(
     }
 }
 
-/// `--derive <construct>=<method>`, read against what this build runs.
-///
-/// A construct written twice is refused through the same helper `--set` and `--choose` refuse
-/// through, so the three repeatable flags on this command answer one question one way.
-fn derived_methods(
-    lines: &[String],
-) -> Result<std::collections::BTreeMap<String, String>, Declined> {
-    let mut chosen = std::collections::BTreeMap::new();
-    for line in lines {
-        let (construct, method_id) =
-            plateforce_batch::derive::choice("--derive", line).map_err(declined_binding)?;
-        if let Some(first) = chosen.insert(construct.clone(), method_id.clone()) {
-            return Err(crate::analyse::stated_twice(
-                "--derive", &construct, &first, &method_id,
-            ));
-        }
-    }
-    Ok(chosen)
-}
-
 /// A comparison that cannot be set up, in the shape the caller's other refusals arrive in.
 ///
 /// A name no rule answers to carries the published code, because it is the same fault as
@@ -313,19 +293,6 @@ fn declined_axis(refusal: plateforce_batch::SweepRefusal) -> Declined {
     match refusal {
         plateforce_batch::SweepRefusal::UnknownMethod(recorded) => Declined::recorded(*recorded),
         other => Declined::line(Fault::Request, other.to_string()),
-    }
-}
-
-/// A rule the run cannot bind, in the shape the caller's other refusals arrive in.
-///
-/// The two halves keep the split the record makes: a line the reader will rewrite from the
-/// grammar carries no published code, and a name they will rewrite from a list carries one.
-fn declined_binding(refusal: plateforce_batch::DeriveRefusal) -> Declined {
-    match refusal {
-        plateforce_batch::DeriveRefusal::Malformed { .. } => {
-            Declined::line(Fault::Request, refusal.to_string())
-        }
-        plateforce_batch::DeriveRefusal::Recorded(recorded) => Declined::recorded(*recorded),
     }
 }
 

@@ -142,7 +142,9 @@ fn axes_over_every_step(request: &AnalysisRequest) -> Vec<Axis> {
 ///
 /// A named step this build runs one rule for is refused rather than dropped. Dropped, the
 /// command would run, print a spread taken over the steps it kept, and say nothing about the
-/// step the caller asked about, which reads as an answer to the question they put.
+/// step the caller asked about, which reads as an answer to the question they put. Python's
+/// `slot=` says this in the same words, because the two are the same question asked from two
+/// keyboards.
 ///
 /// The word is the one `--set` takes as its prefix, and the construct the panel prints is
 /// accepted too, because a reader narrowing a sweep is reading `varied system_weight` off
@@ -163,7 +165,7 @@ fn axes_over_named_steps(request: &AnalysisRequest, named: &[String]) -> Result<
                 _ => "one rule",
             };
             return Err(format!(
-                "this build runs {runs} for {}, so there is nothing to sweep",
+                "this analysis runs {runs} for {}, so there is nothing to sweep",
                 axis.slot
             ));
         }

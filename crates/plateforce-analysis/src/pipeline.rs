@@ -858,12 +858,8 @@ fn run_conditioning_phase(
             continue;
         };
 
-        // A construct the request did not name is run under the default, and the choice it
-        // is run with says so, so the record distinguishes the software's pick from a
-        // caller's without a second field to hold the distinction.
         let chosen = stated.cloned().unwrap_or_else(|| MethodChoice {
             method_id: method_id.to_string(),
-            from_registry_default: [construct.to_string()].into_iter().collect(),
             ..Default::default()
         });
         let source = settled.trial.as_ref().unwrap_or(trial);
