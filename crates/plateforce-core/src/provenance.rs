@@ -11,7 +11,7 @@ use crate::Provenance;
 macro_rules! parameter_sources {
     (
         $(#[$enum_note:meta])*
-        pub enum $name:ident { $( $(#[$note:meta])* $variant:ident ),+ $(,)? }
+        pub enum $name:ident { $( $(#[$note:meta])* $variant:ident => $wire:literal ),+ $(,)? }
     ) => {
         $(#[$enum_note])*
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,6 +23,18 @@ macro_rules! parameter_sources {
         impl $name {
             /// Every source this build can record.
             pub const ALL: &'static [$name] = &[ $( $name::$variant, )+ ];
+
+            /// The word this source travels under, wherever a surface writes it as text.
+            ///
+            /// Declared beside the variant, so a source added to the vocabulary is named here
+            /// rather than reaching a reader in its debug form. `QualityStatus::wire_name`
+            /// answers the same question the same way, and for the same reason: two surfaces
+            /// had begun answering it for themselves.
+            pub fn wire_name(self) -> &'static str {
+                match self {
+                    $( $name::$variant => $wire, )+
+                }
+            }
         }
     };
 }
@@ -36,19 +48,19 @@ parameter_sources! {
     /// different question a reader of a methods section asks.
     pub enum ParameterSource {
         /// The caller supplied the value and claimed no other source for it.
-        Stated,
+        Stated => "stated",
         /// A registry default was used with nobody asked, by the rule or by the interface.
-        Assumed,
+        Assumed => "assumed",
         /// The rule computed it from this trace.
-        Measured,
+        Measured => "measured",
         /// The user accepted the registry's recommendation as an explicit act.
-        Recommended,
+        Recommended => "recommended",
         /// No act has happened. The value exists to be looked at, and a result resting on one
         /// cannot leave the building.
-        Provisional,
+        Provisional => "provisional",
         /// A named published pipeline the caller adopted supplied the value. The caller chose
         /// the pipeline by its id and its citation, not this value.
-        Cited,
+        Cited => "cited",
     }
 }
 
@@ -256,6 +268,20 @@ impl ProvenanceChain {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Over `ALL`, which the same macro generates, so a source added to the vocabulary is
+    /// covered here without an edit rather than being remembered.
+    #[test]
+    fn every_source_prints_the_word_the_wire_carries() {
+        for source in ParameterSource::ALL {
+            let serialised = serde_json::to_value(source).expect("a source serialises");
+            assert_eq!(
+                serde_json::Value::String(source.wire_name().to_string()),
+                serialised,
+                "{source:?} prints one word and serialises as another"
+            );
+        }
+    }
 
     fn step(method_id: &str) -> Provenance {
         Provenance {

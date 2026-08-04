@@ -67,6 +67,12 @@ pub struct Args {
     pub set: Vec<String>,
     #[arg(long = "choose", value_name = "ASSIGNMENT", help = CHOOSE_HELP)]
     pub choose: Vec<String>,
+    #[arg(long = "place", value_name = "ASSIGNMENT", help = PLACE_HELP)]
+    pub place: Vec<String>,
+    /// Gravity where the plate stands. Unstated, standard gravity runs and the record says
+    /// nobody was asked
+    #[arg(long, value_name = "M/S2")]
+    pub gravity: Option<f64>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
@@ -97,6 +103,29 @@ pub(crate) const CHOOSE_SHAPE: &str = "<slot>.<name>=<value>";
 /// in whichever refusal they happen to raise first.
 pub(crate) const CHOOSE_HELP: &str =
     "A name a rule takes, written <slot>.<name>=<value>. Repeatable, and `registry show <method>` lists the names each rule takes";
+
+/// What `--place` takes. One sample per landmark, in the same assignment grammar `--set` and
+/// `--choose` use, with the slot alone on the left because a landmark is one number and a
+/// second name for it would be a name the reader has to learn.
+pub(crate) const PLACE_SHAPE: &str = "<slot>=<sample>";
+
+pub(crate) const PLACE_HELP: &str =
+    "A landmark placed by hand, written <slot>=<sample>, counting samples from zero. Repeatable, and `weighing` places the start of the standing window";
+
+/// The landmarks a reader can place, in the order the analysis meets them.
+///
+/// Every one of them travels in the record as an override rather than replacing the rule's
+/// answer silently, which is why placing one is offered at all.
+pub(crate) const PLACEABLE: [&str; 4] = [WEIGHING_SLOT, ONSET_SLOT, TAKEOFF_SLOT, TOUCHDOWN_SLOT];
+
+pub(crate) const WEIGHING_SLOT: &str = "weighing";
+pub(crate) const ONSET_SLOT: &str = "onset";
+pub(crate) const TAKEOFF_SLOT: &str = "takeoff";
+
+/// Touchdown is the return above the threshold that defined takeoff, so it runs no rule of
+/// its own and is not a step a value can be written against. A reader can still say where it
+/// is, and the record says they did.
+pub(crate) const TOUCHDOWN_SLOT: &str = "touchdown";
 
 /// The number a file writes where it has no sample, for a reader that takes the value
 /// rather than the word.
@@ -151,10 +180,22 @@ pub(crate) fn prepare(
         Ok(named) => named,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
+    let placed = match placed_samples(&args.place) {
+        Ok(placed) => placed,
+        Err(declined) => return Err(Outcome::declined(declined)),
+    };
 
     // A named pipeline is adopted before the decision rail rather than after it: its source
     // published the choices it binds, so a caller who named one has answered them.
-    let mut request = build_request(&registry, &chosen, &derived, &stated, &named);
+    let mut request = build_request(
+        &registry,
+        &chosen,
+        &derived,
+        &stated,
+        &named,
+        &placed,
+        args.gravity,
+    );
     if let Err(declined) = crate::preset::adopt(&mut request, &registry, args.preset.as_ref()) {
         return Err(Outcome::declined(declined));
     }
@@ -416,6 +457,50 @@ pub(crate) fn stated_parameters(
     Ok(stated)
 }
 
+/// `--place`, one sample per landmark, keyed by the same slot word the method flags carry.
+///
+/// A landmark placed twice is refused rather than resolved to whichever came last. Two
+/// samples for one landmark is a line whose meaning depends on argument order, and the
+/// number that lost would have left no trace in the record.
+pub(crate) fn placed_samples(assignments: &[String]) -> Result<BTreeMap<String, usize>, Declined> {
+    let mut placed: BTreeMap<String, usize> = BTreeMap::new();
+    for assignment in assignments {
+        let Some((slot, written)) = assignment.split_once('=') else {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--place takes {PLACE_SHAPE}, and '{assignment}' carries no ="),
+            ));
+        };
+        let slot = slot.trim();
+        if !PLACEABLE.contains(&slot) {
+            return Err(Declined::line(
+                Fault::Request,
+                format!(
+                    "--place {slot} names no landmark of this run, which has {}",
+                    PLACEABLE.join(", ")
+                ),
+            ));
+        }
+        let sample: usize = written.trim().parse().map_err(|_| {
+            Declined::line(
+                Fault::Request,
+                format!(
+                    "--place {slot} was given '{written}', which is not a sample index counting from zero"
+                ),
+            )
+        })?;
+        if let Some(already) = placed.insert(slot.to_string(), sample) {
+            if already != sample {
+                return Err(Declined::line(
+                    Fault::Request,
+                    format!("--place {slot} was given both {already} and {sample}"),
+                ));
+            }
+        }
+    }
+    Ok(placed)
+}
+
 /// A choice the registry forces, stated once as the record and once as the terminal's layout.
 ///
 /// The record names the constructs still open; the screen names the rules each one can be
@@ -563,6 +648,8 @@ fn build_request(
     derived: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,
     named: &BTreeMap<String, BTreeMap<String, String>>,
+    placed: &BTreeMap<String, usize>,
+    gravity: Option<f64>,
 ) -> AnalysisRequest {
     let parameters = |construct: &str| {
         stated
@@ -580,11 +667,16 @@ fn build_request(
             .unwrap_or_default()
     };
     let id = |construct: &str| chosen.get(construct).cloned().unwrap_or_default();
+    let at = |slot: &str| placed.get(slot).copied();
+    // The value and the claim about where it came from are written together, by the one
+    // routine every surface writes a gravity through.
+    let (gravity_meters_per_second_squared, gravity_source) =
+        plateforce_analysis::gravity_stated(gravity);
 
     AnalysisRequest {
         weighing: WeighingChoice {
             method_id: id(WEIGHING_CONSTRUCT),
-            start_index: None,
+            start_index: at(WEIGHING_SLOT),
             parameters: parameters(WEIGHING_CONSTRUCT),
             options: options(WEIGHING_CONSTRUCT),
             ..Default::default()
@@ -593,19 +685,19 @@ fn build_request(
             method_id: id(ONSET_CONSTRUCT),
             parameters: parameters(ONSET_CONSTRUCT),
             options: options(ONSET_CONSTRUCT),
-            manual_index: None,
+            manual_index: at(ONSET_SLOT),
             ..Default::default()
         },
         takeoff: MethodChoice {
             method_id: id(TAKEOFF_CONSTRUCT),
             parameters: parameters(TAKEOFF_CONSTRUCT),
             options: options(TAKEOFF_CONSTRUCT),
-            manual_index: None,
+            manual_index: at(TAKEOFF_SLOT),
             ..Default::default()
         },
-        touchdown_index: None,
-        gravity_meters_per_second_squared:
-            plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
+        touchdown_index: at(TOUCHDOWN_SLOT),
+        gravity_meters_per_second_squared,
+        gravity_source,
         registry_backed_ids: backed_ids(registry),
         derived: derived
             .iter()
@@ -838,8 +930,38 @@ fn text_body(
             let _ = writeln!(document, "{line}");
         }
     }
+
+    // Never behind `--provenance`. A gravity nobody was asked about moved four of the eleven
+    // numbers above, and a reader who does not know to ask for the record is the reader that
+    // record exists for.
+    let _ = writeln!(document);
+    let _ = writeln!(
+        document,
+        "{}",
+        renderer.paint(Role::Heading, "Global to this analysis")
+    );
+    for bound in &response.bound_globals {
+        for line in renderer.wrap(&describe_global(bound), 2) {
+            let _ = writeln!(document, "{line}");
+        }
+    }
     let _ = document.pop();
     document
+}
+
+/// A value the analysis was bound to, with the word for where it came from.
+///
+/// The claim is printed beside every one of them rather than only where it is interesting,
+/// because which of the two claims is the interesting one is the reader's call, and a record
+/// that prints a source only sometimes reads as a record that has none the rest of the time.
+fn describe_global(bound: &plateforce_analysis::BoundGlobal) -> String {
+    format!(
+        "{} = {} {}, {}",
+        bound.name,
+        bound.value,
+        bound.unit_symbol,
+        bound.source.wire_name()
+    )
 }
 
 /// What a rule was bound to. A value the rule chose for itself under an entry the registry

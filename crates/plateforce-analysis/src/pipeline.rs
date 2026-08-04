@@ -302,7 +302,7 @@ pub fn run(
             "system_mass_kilograms",
             Some(epoch.system_mass_kilograms(gravity)),
             weighing_ids,
-            Some(format!("At g = {gravity} m/s2, which is itself a bound choice.")),
+            Some("System weight over the gravity this analysis was bound to.".into()),
         ),
         Metric::declared(
             "onset_time_seconds",
@@ -403,6 +403,7 @@ pub fn run(
             takeoff_threshold_newtons: Some(takeoff.threshold_newtons),
         },
         bound_methods,
+        bound_globals: request.bound_globals(),
         metrics,
         weighing_epoch_tied_window_count: epoch.tied_window_count,
         warnings,
