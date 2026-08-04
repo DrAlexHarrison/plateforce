@@ -64,3 +64,25 @@ jobs:
       # own tests carry no double. Measured both ways. This asks all three workspaces.
       - name: Every workspace that ships
         run: bash scripts/verify-float-roundtrip.sh
+
+  # A gate that does not run is a gate that passed, and a `paths:` filter is a hand-written
+  # claim about a dependency graph that nobody re-reads when the graph moves. Twice in two
+  # days the same workflow shipped a hole: `crates/plateforce-analysis/**` was missing until
+  # 20519b5 and `crates/plateforce-batch/**` until this job existed, one crate over from that
+  # fix. Both let a push to main move every number Python reports while the job that tests
+  # Python sat out. This job lives here rather than beside them because it must run on a push
+  # that touches only a workflow file, which every filtered workflow by definition does not.
+  a_gate_runs_on_every_change_that_could_move_it:
+    name: each path filter covers its own dependency closure
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # cargo metadata reads the manifests, so the toolchain is the whole requirement.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      # Watched red before it was watched green: with the batch line deleted the run named
+      # the crate, the workflow and the line to add, and exited 1.
+      - name: Ask the manifests what each workflow depends on
+        run: python3 scripts/check-workflow-crate-paths.py

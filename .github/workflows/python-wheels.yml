@@ -8,10 +8,25 @@ on:
     branches: [main]
     # Every input this workflow reads, including the gates themselves. A push that edits
     # only the gate has to meet it.
+    #
+    # The crate list is the dependency closure of plateforce-python read out of cargo
+    # metadata, not a list anybody remembers. It resolves to four: analysis, batch, core and
+    # registry. batch was missing until 2026-08-04, which is the same defect as the analysis
+    # crate missing before 20519b5 and one crate over from the fix for it. Python wraps that
+    # crate in a module of its own, src/batch.rs, publishing RunRow and BatchResult, so a
+    # push to main touching only crates/plateforce-batch could move what Python reports
+    # without building a wheel or running one Python test. Pull requests were always covered,
+    # because the pull_request trigger below carries no paths filter. Pushes were not.
+    #
+    # The same query over the other two gates came back empty, which is what makes it worth
+    # trusting: the R binding vendors analysis, core and registry and not batch, and
+    # r-package.yml lists exactly those three; plateforce-serve depends on no workspace crate
+    # and src-tauri names none, so desktop-linux.yml's list is complete.
     paths:
+      - "crates/plateforce-analysis/**"
+      - "crates/plateforce-batch/**"
       - "crates/plateforce-core/**"
       - "crates/plateforce-registry/**"
-      - "crates/plateforce-analysis/**"
       - "crates/plateforce-python/**"
       - "registry/**"
       - "Cargo.toml"
