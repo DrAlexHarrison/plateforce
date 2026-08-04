@@ -53,6 +53,8 @@ notes = "Owen places the second immediately before the signal rather than at the
 [[method.parameter]]
 name = "centre"
 unit = "enumeration"
+default_key = "mean"
+default_source = "plateforce_derivation"
 notes = "The mean is what every published epoch rule states. The median resists a sample the athlete moved during, at the cost of no longer being the quantity the integration divisor is defined as."
 
 [[method.parameter.value]]
@@ -66,6 +68,8 @@ label = "The middle value of force over the window"
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
+default_key = "sample"
+default_source = "plateforce_derivation"
 notes = "The spread of this window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
 
 [[method.parameter.value]]
@@ -75,6 +79,12 @@ label = "Divide the sum of squares by the sample count"
 [[method.parameter.value]]
 key = "sample"
 label = "Divide the sum of squares by one less than the sample count"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. Every published epoch rule states the mean, and the sample divisor is the one this software binds wherever a spread is taken; no source states either for this rule"
+obtained = true
 
 [[method.citation]]
 key = "owen2014"
@@ -230,6 +240,8 @@ the count above and for the tie count the rule warns on.
 [[method.parameter]]
 name = "accumulation"
 unit = "enumeration"
+default_key = "two_pass"
+default_source = "plateforce_derivation"
 notes = "The search compares the variance of every candidate window, so how the variance is accumulated decides which window wins whenever two are close."
 
 [[method.parameter.value]]
@@ -244,6 +256,8 @@ notes = "One pass over the recording rather than one per window, and it loses pr
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
+default_key = "sample"
+default_source = "plateforce_derivation"
 notes = "The spread of the selected window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
 
 [[method.parameter.value]]
@@ -257,7 +271,7 @@ label = "Divide the sum of squares by one less than the sample count"
 [[method.citation]]
 key = "plateforce_derivation"
 role = "proposes"
-reference = "Derived in this registry as the mass-relative form of a fixed 20 N gate; no publication states a gate for this rule"
+reference = "Derived in this registry: the mass-relative form of a fixed 20 N gate, the two-pass accumulation, and the sample divisor. No publication states any of the three for this rule"
 obtained = true
 
 [[method.citation]]
@@ -557,6 +571,8 @@ label = "A sample index the reader states"
 [[method.parameter]]
 name = "centre"
 unit = "enumeration"
+default_key = "mean"
+default_source = "plateforce_derivation"
 notes = "The mean is what every published epoch rule states. The median resists a sample the athlete moved during, at the cost of no longer being the quantity the integration divisor is defined as."
 
 [[method.parameter.value]]
@@ -570,6 +586,8 @@ label = "The middle value of force over the window"
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
+default_key = "sample"
+default_source = "plateforce_derivation"
 notes = "The spread of this window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
 
 [[method.parameter.value]]
@@ -579,6 +597,12 @@ label = "Divide the sum of squares by the sample count"
 [[method.parameter.value]]
 key = "sample"
 label = "Divide the sum of squares by one less than the sample count"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. Every published epoch rule states the mean, and the sample divisor is the one this software binds wherever a spread is taken; no source states either for this rule"
+obtained = true
 
 [[method.citation]]
 key = "chavda2020"

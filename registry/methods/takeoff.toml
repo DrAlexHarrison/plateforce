@@ -235,6 +235,8 @@ notes = "Published as 300 samples against 1000 Hz, with an instruction to halve 
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
+default_key = "sample"
+default_source = "plateforce_derivation"
 notes = "The window this rule measures over is a fraction of one flight phase, so the divisor is not negligible the way it is over a long epoch."
 
 [[method.parameter.value]]
@@ -244,6 +246,12 @@ label = "Divide the sum of squares by the sample count"
 [[method.parameter.value]]
 key = "sample"
 label = "Divide the sum of squares by one less than the sample count"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. The sample divisor is the one this software binds wherever a spread is taken, and none of the three sources below states which divisor its standard deviation used"
+obtained = true
 
 [[method.citation]]
 key = "mcmahon2018"
@@ -603,6 +611,8 @@ debate = "genuine"
 [[method.parameter]]
 name = "short_run_handling"
 unit = "enumeration"
+default_key = "rank_then_filter"
+default_source = "plateforce_derivation"
 required = true
 notes = """
 Under rank_then_filter a run too short to be a flight can win the comparison and then disqualify the
@@ -617,6 +627,12 @@ label = "Rank every run by length, then test the winner against the minimum flig
 [[method.parameter.value]]
 key = "filter_then_rank"
 label = "Discard the runs below the minimum flight time, then rank what is left"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. rank_then_filter is what this software binds where the reader states none, and it is the order under which a run too short to be a flight can win the comparison and disqualify the trial; no source states an order for this operator"
+obtained = true
 
 [[method.disagrees_with]]
 id = "takeoff.op.crossing_selection"
@@ -646,6 +662,8 @@ debate = "vendor_or_legacy"
 [[method.parameter]]
 name = "comparison"
 unit = "enumeration"
+default_key = "signed"
+default_source = "plateforce_derivation"
 required = true
 notes = """
 An unloaded plate can read negative. Under the signed comparison such a sample is below any positive
@@ -660,6 +678,12 @@ label = "Compare force against the threshold as it reads, sign included"
 [[method.parameter.value]]
 key = "magnitude"
 label = "Compare the distance of force from zero against the threshold"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. The signed comparison is what this software binds where the reader states none, and no source consulted for the threshold rules that compose this operator states which of the two it applied"
+obtained = true
 
 [method.gui]
 surfacing = "default_and_hide"

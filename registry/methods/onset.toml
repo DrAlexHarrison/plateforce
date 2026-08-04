@@ -1158,6 +1158,8 @@ debate = "genuine"
 [[method.parameter]]
 name = "selection"
 unit = "enumeration"
+default_key = "first"
+default_source = "plateforce_derivation"
 notes = """
 The apparent first-against-last fork between two open tools is discretisation rather than a fork:
 within a search bounded above by the minimum force, a countermovement-jump trace crosses once, so
@@ -1176,6 +1178,12 @@ label = "The latest crossing in the search"
 [[method.parameter.value]]
 key = "longest_run"
 label = "The crossing that opens the longest qualifying run"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. Within a search bounded above by the minimum force the earliest and latest readings differ by one sample, so the earliest is bound where the reader states none; no source states a default for this operator"
+obtained = true
 
 [[method.citation]]
 key = "bilalovski"
@@ -1450,6 +1458,8 @@ debate = "single_position"
 [[method.parameter]]
 name = "direction"
 unit = "enumeration"
+default_key = "below_only"
+default_source = "plateforce_derivation"
 notes = """
 An implementation detail for a countermovement jump, which always unweights first, and a genuine
 method fork for a squat jump, an isometric pull or a squat, which only rise. The same code is
@@ -1467,6 +1477,12 @@ label = "Only a departure above the standing band counts"
 [[method.parameter.value]]
 key = "two_sided"
 label = "A departure in either direction counts"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. The measurement this entry records, net impulse ICC 0.790 below-only against 0.479 either-direction, is what binds below_only where the reader states none"
+obtained = true
 
 [[method.citation]]
 key = "bilalovski"
@@ -1533,6 +1549,8 @@ required = true
 [[method.parameter]]
 name = "dispersion"
 unit = "enumeration"
+default_key = "sample"
+default_source = "plateforce_derivation"
 notes = "The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
 
 [[method.parameter.value]]
@@ -1552,7 +1570,7 @@ obtained = true
 [[method.citation]]
 key = "plateforce_derivation"
 role = "proposes"
-reference = "Filed here as a movement_onset entry. The registry already carried the trailing-window mechanism under bwepoch.rolling_trailing_window, which computes a reference rather than placing a landmark"
+reference = "Filed here as a movement_onset entry, and the sample divisor is this registry's rather than a published figure. The registry already carried the trailing-window mechanism under bwepoch.rolling_trailing_window, which computes a reference rather than placing a landmark"
 obtained = true
 
 [[method.disagrees_with]]
