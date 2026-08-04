@@ -38,6 +38,11 @@ fn compute(
             context.unavailable(ID, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]),
         );
     };
+    // The velocity this rests on is read off the integrated series, so the four entries behind
+    // that series are behind this number. They place no sample, so nothing else in the record
+    // of what this rule read can reach them.
+    let spec = centre_of_mass::spec_anchored_at(landmarks.onset_index);
+    context.rests_on(super::KEY, &spec.method_ids());
     centre_of_mass::record_choices(&mut resolved, landmarks.onset_index);
     let bound = resolved.finish();
 

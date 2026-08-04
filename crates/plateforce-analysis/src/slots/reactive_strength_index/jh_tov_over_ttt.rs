@@ -10,8 +10,8 @@
 //! against 2 to 3 percent for the height alone, in two labs independently.
 
 use plateforce_core::{
-    jump_height_from_takeoff_velocity, reactive_strength_index_modified, takeoff_velocity_meters_per_second,
-    time_to_takeoff_seconds,
+    jump_height_from_takeoff_velocity, reactive_strength_index_modified,
+    takeoff_velocity_meters_per_second, time_to_takeoff_seconds,
 };
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};

@@ -1,10 +1,7 @@
 //! One analysis, from a validated request to the numbers and the record of what produced
 //! them.
 
-use plateforce_core::{
-    flight_time_seconds, jump_height_from_takeoff_velocity, takeoff_velocity_integration_spec,
-    takeoff_velocity_meters_per_second, time_to_takeoff_seconds, Landmarks, Trial,
-};
+use plateforce_core::{flight_time_seconds, time_to_takeoff_seconds, Landmarks, Trial};
 
 use std::collections::BTreeMap;
 
@@ -13,11 +10,14 @@ use crate::derived::{DerivedContext, PlacedSample};
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
-use crate::slots::jh_takeoff_frame::{flight_time as flight_time_rule, FLIGHT_TIME_KEY};
+use crate::slots::jh_takeoff_frame::{
+    flight_time as flight_time_rule, impulse_momentum as impulse_momentum_rule, FLIGHT_TIME_KEY,
+};
 use crate::slots::net_impulse::as_performance_determinant as net_impulse_rule;
 use crate::slots::reactive_strength_index::jh_tov_over_ttt as rsimod_rule;
 use crate::slots::{
-    movement_onset, net_impulse, reactive_strength_index, system_weight, takeoff as takeoff_slot,
+    jh_takeoff_frame, movement_onset, net_impulse, reactive_strength_index, system_weight,
+    takeoff as takeoff_slot,
 };
 
 /// Boxed on the error side because a `Refusal` carries every field a caller branches on,
@@ -180,24 +180,6 @@ pub fn run(
     takeoff_ids.extend(takeoff_ids_bound.clone());
     let mut onset_chain = conditioned.ids.clone();
     onset_chain.extend(onset_ids.clone());
-    let mut full = conditioned.ids.clone();
-    full.push(request.weighing.method_id.clone());
-    full.extend(onset_ids.clone());
-    full.extend(takeoff_ids_bound.clone());
-    // Every number read off the integrated velocity series rests on the four integration
-    // entries as well as on the three landmark rules, and the two start rules give different
-    // velocities from one recording. Named here rather than left out, because a chain is what
-    // a reader compares two results by. The impulse below is integrated directly rather than
-    // read off the series, so it keeps the shorter chain.
-    let mut integrated = full.clone();
-    if let Some(marks) = landmarks.as_ref() {
-        integrated.extend(
-            takeoff_velocity_integration_spec(marks)
-                .method_ids()
-                .iter()
-                .map(|id| (*id).to_string()),
-        );
-    }
 
     let interval_seconds = landmarks
         .as_ref()
@@ -205,10 +187,6 @@ pub fn run(
     let flight = landmarks.as_ref().and_then(|marks| {
         touchdown_index.map(|_| flight_time_seconds(marks, trial.sample_interval_seconds()))
     });
-    let velocity = landmarks
-        .as_ref()
-        .map(|marks| takeoff_velocity_meters_per_second(trial, &epoch, marks, gravity));
-    let height_takeoff = velocity.map(|v| jump_height_from_takeoff_velocity(v, gravity));
 
     // A quantity the request bound a rule for is reported by that rule, so the keys it bound
     // are settled before anything computes one. Read off the binding rows rather than off what
@@ -270,6 +248,12 @@ pub fn run(
         &mut refusals,
         &mut warnings,
     );
+    let takeoff_height_produced = spine_default(
+        impulse_momentum_rule::ID,
+        &mut bound_methods,
+        &mut refusals,
+        &mut warnings,
+    );
     let rsimod_produced = spine_default(
         rsimod_rule::ID,
         &mut bound_methods,
@@ -277,14 +261,32 @@ pub fn run(
         &mut warnings,
     );
 
-    let (net_impulse, net_impulse_chain) =
-        number_and_chain(&impulse_produced, net_impulse::KEY, &full);
-    let (takeoff_velocity, takeoff_velocity_chain) =
-        number_and_chain(&impulse_produced, net_impulse::VELOCITY_KEY, &integrated);
+    let (net_impulse, net_impulse_chain) = number_and_chain(
+        &impulse_produced,
+        net_impulse::KEY,
+        &landmark_chain,
+        request,
+    );
+    let (takeoff_velocity, takeoff_velocity_chain) = number_and_chain(
+        &impulse_produced,
+        net_impulse::VELOCITY_KEY,
+        &landmark_chain,
+        request,
+    );
     let (flight_time_height, flight_time_height_chain) =
-        number_and_chain(&flight_produced, FLIGHT_TIME_KEY, &full);
-    let (reactive_strength, reactive_strength_chain) =
-        number_and_chain(&rsimod_produced, reactive_strength_index::KEY, &integrated);
+        number_and_chain(&flight_produced, FLIGHT_TIME_KEY, &landmark_chain, request);
+    let (takeoff_height, takeoff_height_chain) = number_and_chain(
+        &takeoff_height_produced,
+        jh_takeoff_frame::KEY,
+        &landmark_chain,
+        request,
+    );
+    let (reactive_strength, reactive_strength_chain) = number_and_chain(
+        &rsimod_produced,
+        reactive_strength_index::KEY,
+        &landmark_chain,
+        request,
+    );
 
     // Every quantity's key, label, unit and computed-by come from the one declaration in
     // `response.rs`. What varies per analysis is the value, the chain behind it, and the
@@ -338,8 +340,8 @@ pub fn run(
         ),
         Metric::declared(
             "jump_height_from_takeoff_meters",
-            height_takeoff,
-            integrated.clone(),
+            takeoff_height,
+            takeoff_height_chain,
             Some(
                 "Rise from the instant of takeoff. Not comparable with the standing frame without a declared correction."
                     .into(),
@@ -499,13 +501,22 @@ struct SpineQuantity {
 fn number_and_chain(
     produced: &[SpineQuantity],
     key: &str,
-    fallback_chain: &[String],
+    landmark_chain: &LandmarkChain,
+    request: &AnalysisRequest,
 ) -> (Option<f64>, Vec<String>) {
     produced
         .iter()
         .find(|quantity| quantity.key == key)
         .map(|quantity| (quantity.value, quantity.chain.clone()))
-        .unwrap_or_else(|| (None, fallback_chain.to_vec()))
+        .unwrap_or_else(|| {
+            let chain = derived_chain(
+                landmark_chain.conditioning_ids,
+                landmark_chain.onset_ids,
+                landmark_chain.takeoff_ids,
+                request,
+            );
+            (None, chain)
+        })
 }
 
 /// A quantity the spine reports whose arithmetic is a registry entry, produced by running that

@@ -202,6 +202,7 @@ fn the_entry_a_headline_number_names_is_one_that_ran() {
         "net_impulse_newton_seconds",
         "reactive_strength_index_modified",
         "jump_height_from_flight_time_meters",
+        "jump_height_from_takeoff_meters",
     ] {
         let named = response
             .metric(key)
@@ -216,5 +217,47 @@ fn the_entry_a_headline_number_names_is_one_that_ran() {
         checked += 1;
     }
     println!("{checked} headline numbers name an entry that ran");
+    assert_eq!(checked, 5);
+}
+
+/// The arithmetic behind a routed number lives in the rule the number names and nowhere else.
+///
+/// Read off the source, because no comparison of results can see it. A second expression of one
+/// of these in the spine calls the same core function as the rule does, so it agrees with the
+/// rule on every recording and the two chains stay identical; it is free to stop agreeing at the
+/// first edit to either. Restoring the spine's own copy of the takeoff velocity left every guard
+/// above green, which is how this one came to be written.
+#[test]
+fn the_spine_holds_no_second_expression_of_a_number_a_rule_now_produces() {
+    let source = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/pipeline.rs"))
+        .expect("the spine is readable");
+
+    // A control. A scan that read nothing reports every arithmetic below as absent, and reads
+    // exactly like a scan that read the file and found none of them.
+    assert!(
+        source.contains("run_spine_default"),
+        "the scan read no source, so its verdict means nothing"
+    );
+
+    let mut checked = 0usize;
+    for (arithmetic, owned_by) in [
+        ("integrate_offset_newton_seconds", NET_IMPULSE_ID),
+        ("takeoff_velocity_meters_per_second(", NET_IMPULSE_ID),
+        (
+            "jump_height_from_takeoff_velocity(",
+            "jumpheight.takeoff.impulse_momentum",
+        ),
+        (
+            "reactive_strength_index_modified(",
+            "rsimod.jh_tov_over_ttt",
+        ),
+    ] {
+        assert!(
+            !source.contains(arithmetic),
+            "the spine calls {arithmetic}, which is the arithmetic {owned_by} describes and runs"
+        );
+        checked += 1;
+    }
+    println!("{checked} routed quantities have one expression, in the rule that names them");
     assert_eq!(checked, 4);
 }
