@@ -4,7 +4,16 @@ import { $, state } from './state.js';
 import { element } from './format.js';
 import { rankCandidates, findMethod, namedValues, NOT_A_CHOICE } from './registry.js';
 import { candidateFor } from './startup.js';
-import { runAnalysis, acceptRecommended, recordStated, selectionFromChosenRule } from './analysis.js';
+import {
+  runAnalysis,
+  acceptRecommended,
+  recordStated,
+  selectionFromChosenRule,
+  boundMethodId,
+  boundRecordFor,
+  methodTitle,
+  ruleSourceLine,
+} from './analysis.js';
 import { openDrawer } from './drawer.js';
 
 /*
@@ -117,6 +126,9 @@ function renderSlot(slot) {
   });
   wrap.append(select);
 
+  const source = ruleSourceNode(slot, selection);
+  if (source) wrap.append(source);
+
   const candidate = boundEntry;
   if (candidate) {
     const failure = candidate.method?.failure;
@@ -136,7 +148,10 @@ function renderSlot(slot) {
     if (candidate.method) {
       const inspect = element('button', 'chip', 'Rule, citations and bias');
       inspect.type = 'button';
-      inspect.addEventListener('click', () => openDrawer(candidate.method));
+      // Opened with the row the record wrote for this rule, so the panel states who chose it
+      // and what it was bound to rather than the entry alone.
+      inspect.addEventListener('click', () =>
+        openDrawer(candidate.method, candidate.id, boundRecordFor(candidate.id)));
       const row = element('div', 'metric__provenance');
       row.append(inspect);
       wrap.append(row);
@@ -146,6 +161,23 @@ function renderSlot(slot) {
   if (ranBeside) wrap.append(ranBeside);
 
   return wrap;
+}
+
+/*
+ * Who chose the rule this row is running, read off the record rather than off the control.
+ *
+ * The control is the wrong witness. A slot that forces no decision opens with the registry's
+ * first-ranked rule already selected, so the dropdown shows a rule as chosen that nobody
+ * picked, and the entry's `recommended` status renders in the same option text and reads like
+ * an endorsement the reader acted on. The record is the only place the act itself is written.
+ *
+ * A row whose control names no rule names it here instead, because the sentence would
+ * otherwise point at nothing on the one row where the reader has least idea what ran.
+ */
+function ruleSourceNode(slot, selection) {
+  const running = boundMethodId(slot.key);
+  const bound = running ? boundRecordFor(running) : null;
+  return bound ? ruleSourceLine(bound, selection.methodId ? 'this rule' : methodTitle(running)) : null;
 }
 
 /* Which slots the reader has opened, so a choice made inside one does not shut the panel it
@@ -272,6 +304,11 @@ function ranBesideRow(method, bound) {
   const verdict = method.gui.surfacing;
   const row = element('div', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
   row.append(element('span', 'ran-beside__title', method.title));
+  // The claim about the rule leads the claims about its values, in one voice: a reader who can
+  // see where every number came from and not where the rule came from is reading three
+  // quarters of a methods section.
+  const source = ruleSourceLine(bound);
+  if (source) row.append(source);
   const values = valuesWithTheirSource(method, bound);
   if (values) row.append(element('span', 'ran-beside__value', values));
 

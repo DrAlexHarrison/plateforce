@@ -470,6 +470,72 @@ export function methodTitle(id) {
   );
 }
 
+/*
+ * Who chose the rule itself, in the vocabulary its values are already shown in.
+ *
+ * A rule the reader picked and a rule that ran because nobody named one move the number by
+ * exactly the same amount, so a surface rendering them alike hands a reader a methods section
+ * they cannot check. The record names a source per rule and these are its words.
+ *
+ * Keyed by the wire word the record carries, and a word with no sentence here renders as
+ * itself: a source added to the vocabulary reaches a reader as something they can look up
+ * rather than as silence, which is the failure this whole surface exists to stop.
+ */
+const HOW_A_RULE_WAS_CHOSEN = {
+  stated: (rule) => `you chose ${rule}`,
+  recommended: (rule) => `you took ${rule} from the recommendation`,
+  assumed: (rule) => `nobody chose ${rule}`,
+  cited: (rule, preset) => `${preset ? `the ${preset} pipeline` : 'a published pipeline'} bound ${rule}`,
+  measured: (rule) => `${rule} was read off this trace`,
+  provisional: (rule) => `nobody has chosen ${rule}`,
+};
+
+/*
+ * The record's claim about one rule, as a sentence.
+ *
+ * `rule` names what the sentence is about, because a row whose own control names no rule
+ * leaves "this rule" pointing at nothing and the caller is the only one who knows which it is.
+ */
+export function ruleSourceText(bound, rule = 'this rule') {
+  const source = bound?.method_source;
+  if (!source) return null;
+  const sentence = HOW_A_RULE_WAS_CHOSEN[source];
+  return sentence ? sentence(rule, bound.preset?.id) : `${rule}: ${source}`;
+}
+
+/* The claim as a line, carrying the rule it is about, so a reader looking at one of these on
+ * screen and a check reading them all are looking at the same pairing. */
+export function ruleSourceLine(bound, rule) {
+  const text = ruleSourceText(bound, rule);
+  if (!text) return null;
+  const line = element('p', 'rule-source', text);
+  line.dataset.method = bound.method_id;
+  return line;
+}
+
+/* The record's row for one rule, which carries where its values came from and who chose it. */
+export function boundRecordFor(methodId) {
+  return state.analysis?.bound_methods?.find((entry) => entry.method_id === methodId) || null;
+}
+
+/*
+ * The record's claim about a rule that has no row of its own.
+ *
+ * A rule named beside a number can have run as another rule's named value. The impulse rule
+ * binds `integration.rule.trapezoid` as a choice, and the record writes who chose it beside
+ * that name on the rule that bound it, so the claim exists and sits one row away. Reading it
+ * from there is the record's own word about this id; leaving it out hands a reader four
+ * registry entries with no account, on twelve of the sixty-two rules a plain run names beside
+ * its numbers.
+ */
+function claimAboutABoundValue(methodId) {
+  for (const row of state.analysis?.bound_methods || []) {
+    const pair = (row.bound_parameters || []).find(([, value]) => value === methodId);
+    if (pair) return { method_id: methodId, method_source: row.parameter_sources?.[pair[0]] };
+  }
+  return null;
+}
+
 /* A value the request did not carry moved the number as far as one it did, so every value
  * in the fingerprint carries the source the record named for it. */
 export function boundValueText(bound, separator = ' ') {
@@ -494,10 +560,20 @@ function provenanceRow(methodIds) {
     seen.add(id);
     const bound = state.analysis.bound_methods.find((entry) => entry.method_id === id);
     const method = findMethod(state.registry, id);
+    /*
+     * Whether the registry carries this rule, asked of the registry itself where the record
+     * holds no row for it.
+     *
+     * A rule that ran as another rule's named value never gets a row, and reading the missing
+     * row as the registry's silence told a reader that four entries the registry does carry
+     * were unfiled. The question asked here is the one the request already asks when it names
+     * the ids this build treats as backed, so the two cannot answer differently.
+     */
+    const backed = bound ? bound.registry_backed : Boolean(method) && state.build.registry_valid;
 
     const item = element('button', 'provenance');
     item.type = 'button';
-    if (!bound?.registry_backed) item.classList.add('provenance--unbacked');
+    if (!backed) item.classList.add('provenance--unbacked');
 
     item.append(element('span', `status-dot status-dot--${method?.status || 'legacy'}`));
     item.append(element('span', 'provenance__name', methodTitle(id)));
@@ -508,7 +584,7 @@ function provenanceRow(methodIds) {
     }
     if (bound?.manual_override) badges.append(element('span', 'tag tag--decide', 'dragged'));
     const binding = state.build.bindings.find((entry) => entry.id === id);
-    if (!bound?.registry_backed) {
+    if (!backed) {
       badges.append(element('span', 'tag tag--advanced', binding?.composed_from ? 'composed' : 'unfiled'));
     }
     item.append(badges);
@@ -520,10 +596,14 @@ function provenanceRow(methodIds) {
     const absence = binding?.composed_from
       ? `composition of ${binding.composed_from}`
       : 'no registry row carries this id';
-    item.title = [id, parameters, unread, bound?.registry_backed ? '' : absence]
+    // The record's word about this id, off its own row where it has one and off the rule that
+    // bound it where it does not. Beside the id rather than only in the panel this chip opens,
+    // so a reader running a pointer down the list meets it without opening eleven panels.
+    const claimed = bound ?? claimAboutABoundValue(id);
+    item.title = [id, ruleSourceText(claimed), parameters, unread, backed ? '' : absence]
       .filter(Boolean)
       .join(' | ');
-    item.addEventListener('click', () => openDrawer(method, id, bound));
+    item.addEventListener('click', () => openDrawer(method, id, claimed));
     row.append(item);
   }
   return row;
