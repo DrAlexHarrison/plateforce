@@ -216,3 +216,59 @@ fn a_number_that_moves_with_a_stated_value_carries_that_value_in_the_record() {
 
     let _ = std::fs::remove_dir_all(&directory);
 }
+
+/// A column a derived rule produced survives every way a run leaves the process.
+///
+/// Four destinations rather than one, because they are four writers over one result and each
+/// has previously been the one that dropped something. The read-back is the strictest of the
+/// four: a quantity absent from `quantities` reaches CSV as a column nobody wrote and comes
+/// back from JSON as a column nobody can read.
+#[test]
+fn a_derived_column_survives_the_csv_the_envelope_its_read_back_and_the_parquet() {
+    let (_, directory) = one_trial();
+    let set = plateforce_batch::TrialSet::walk(
+        &directory,
+        &common::synthetic_format(),
+        &common::declared_pattern(),
+    )
+    .expect("the corpus walks");
+    let request = plateforce_batch::BatchRequest::new(request_binding_peak_force(0.0))
+        .resolving(&["system_weight", "movement_onset", "takeoff"]);
+    let result =
+        plateforce_batch::analyse(&set, &request, &common::registry()).expect("the run proceeds");
+
+    let key = "peak_force_newtons";
+    let value = result.results[0].values[key].expect("the rule ran");
+    assert!(result.quantities.iter().any(|named| named == key));
+    assert_eq!(result.units[key], "newtons");
+
+    let out = directory.join("out");
+    result.write_csv(&out).expect("the tables are written");
+    let table = std::fs::read_to_string(out.join("results.csv")).expect("results.csv");
+    let header = table.lines().next().expect("a header");
+    assert!(header.split(',').any(|name| name == key), "{header}");
+
+    let read_back = plateforce_batch::BatchResult::from_json(&result.to_json())
+        .expect("the envelope reads back");
+    assert!(read_back.quantities.iter().any(|named| named == key));
+    assert_eq!(read_back.units[key], "newtons");
+    assert_eq!(read_back.results[0].values[key], Some(value));
+
+    #[cfg(feature = "parquet")]
+    {
+        let written = result.write_parquet(&out).expect("the parquet is written");
+        assert!(
+            written.iter().any(|path| path
+                .file_name()
+                .is_some_and(|name| name == "results.parquet")),
+            "{written:?}"
+        );
+        let bytes = std::fs::read(out.join("results.parquet")).expect("results.parquet");
+        // The column names live in the file's own schema, so the key is looked for in the
+        // bytes rather than inferred from the writer having been called.
+        let text = String::from_utf8_lossy(&bytes);
+        assert!(text.contains(key), "{key} is not a column of the parquet");
+    }
+
+    let _ = std::fs::remove_dir_all(&directory);
+}
