@@ -302,6 +302,105 @@ fn every_rule_in_this_family_reads_what_it_is_given_and_records_a_name_a_reader_
     );
 }
 
+/// Three rules divide something by an interval, and each one is multiplied back out against
+/// the samples of the recording it says it read.
+///
+/// Every one of these is an exact identity rather than a tolerance, and each fails the moment
+/// a rule reads a different interval from the one its result names: the secant against the
+/// force at the two propulsion boundaries, the mean-over-duration against the mean of the
+/// same stretch, and the onset-to-peak rule against the largest force in the analysis window.
+/// A magnitude check would pass while a rule read the wrong stretch of the same trace.
+#[test]
+fn the_rules_that_divide_by_an_interval_multiply_back_out_to_the_samples_they_name() {
+    let trial = committed_trial("subject01_trial1");
+    let force = trial.force();
+    let rate_hz = trial.sample_rate_hz();
+    let index_at = |seconds: f64| (seconds * rate_hz).round() as usize;
+
+    let secant = run(
+        &trial,
+        &asking(
+            RATE_CONSTRUCT,
+            "rfd.phase_endpoint_secant.harry",
+            BTreeMap::new(),
+            BTreeMap::new(),
+        ),
+    )
+    .expect("the analysis ran");
+    let start = index_at(value(&secant, "propulsion_phase_start_seconds").expect("a start"));
+    let end = index_at(value(&secant, "propulsion_phase_end_seconds").expect("an end"));
+    let duration_seconds = (end - start) as f64 / rate_hz;
+    let secant_rate = value(&secant, RATE_KEY).expect("a secant");
+    println!(
+        "propulsion runs samples {start} to {end}, {duration_seconds:.4} s, force {:.1} to {:.1} N",
+        force[start], force[end]
+    );
+    assert!(
+        (secant_rate * duration_seconds - (force[end] - force[start])).abs() < 1e-6,
+        "the secant reads {secant_rate:.4} N/s over {duration_seconds:.4} s, which is {:.4} N \
+         against the {:.4} N between the two boundaries it names",
+        secant_rate * duration_seconds,
+        force[end] - force[start]
+    );
+
+    let over_duration = run(
+        &trial,
+        &asking(
+            RATE_CONSTRUCT,
+            "rfd.mean_force_over_duration.lapuente",
+            BTreeMap::new(),
+            BTreeMap::new(),
+        ),
+    )
+    .expect("the analysis ran");
+    let lapuente_rate = value(&over_duration, RATE_KEY).expect("a rate");
+    let mean_newtons =
+        plateforce_core::statistics::mean(&force[start..=end]).expect("the stretch holds samples");
+    println!(
+        "mean force over the push {mean_newtons:.1} N against system weight {:.1} N",
+        over_duration
+            .levels
+            .system_weight_newtons
+            .expect("a weight")
+    );
+    assert!(
+        (lapuente_rate * duration_seconds - mean_newtons).abs() < 1e-6,
+        "the mean-over-duration rule reads {lapuente_rate:.4} N/s over {duration_seconds:.4} s, \
+         which is {:.4} N against the {mean_newtons:.4} N mean of the stretch it names",
+        lapuente_rate * duration_seconds
+    );
+
+    let to_peak = run(
+        &trial,
+        &asking(
+            RATE_CONSTRUCT,
+            "rfd.average_to_peak_force",
+            BTreeMap::new(),
+            BTreeMap::new(),
+        ),
+    )
+    .expect("the analysis ran");
+    let window_start = index_at(value(&to_peak, "analysis_window_start_seconds").expect("a start"));
+    let window_end = index_at(value(&to_peak, "analysis_window_end_seconds").expect("an end"));
+    let peak_index =
+        plateforce_core::peak::index_of_maximum_over(force, window_start, window_end + 1)
+            .expect("the window holds samples");
+    let onset = to_peak.onset_index.expect("an onset");
+    let elapsed_seconds = (peak_index - onset) as f64 / rate_hz;
+    let to_peak_rate = value(&to_peak, RATE_KEY).expect("a rate");
+    println!(
+        "peak {:.1} N at sample {peak_index}, {elapsed_seconds:.4} s after onset at {onset}",
+        force[peak_index]
+    );
+    assert!(
+        (to_peak_rate * elapsed_seconds - force[peak_index]).abs() < 1e-6,
+        "the onset-to-peak rule reads {to_peak_rate:.4} N/s over {elapsed_seconds:.4} s, which is \
+         {:.4} N against the {:.4} N peak of the window it names",
+        to_peak_rate * elapsed_seconds,
+        force[peak_index]
+    );
+}
+
 /// Every rate rule answers on subject 01 trial 1, each under its own id, and the spread
 /// between them is what the choice of rule costs.
 ///
