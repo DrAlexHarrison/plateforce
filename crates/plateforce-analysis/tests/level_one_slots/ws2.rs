@@ -69,9 +69,8 @@ fn net_peak_force_is_the_gross_peak_less_one_system_weight_by_either_route() {
 /// onset well below system weight.
 ///
 /// Under the default onset rule they nearly coincide, because a small departure threshold
-/// puts onset where force is still essentially at system weight. That makes the default
-/// request unable to tell the two conventions apart, so the case is built rather than
-/// assumed.
+/// puts onset where force has barely left system weight. That makes the default request
+/// unable to tell the two conventions apart, so the case is built rather than assumed.
 #[test]
 fn the_two_readings_of_net_diverge_once_onset_sits_below_system_weight() {
     let trial = committed_trial(COMMITTED_TRIALS[0]);

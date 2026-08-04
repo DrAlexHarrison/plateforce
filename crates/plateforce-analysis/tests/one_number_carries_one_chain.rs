@@ -1,12 +1,11 @@
 //! The tree a response describes is derived in one place, and it loses nothing the response
 //! said.
 //!
-//! Four surfaces each rebuilt this tree for themselves and the four disagreed. The one that
-//! mattered most: only the folder run carried the arithmetic rule's own bound values, so the
-//! gravity behind the flight-time height and the four integration choices behind every impulse
-//! figure reached a folder run's record and no notebook's, no R session's and no account a
-//! reader was shown. A number that moves when a value moves, with nothing in the record naming
-//! the value, is this project's founding observation reproduced inside the cure.
+//! Four surfaces read this tree, and a surface that rebuilds it for itself can drop the
+//! arithmetic rule's own bound values: the gravity behind the flight-time height and the four
+//! integration choices behind every impulse figure would reach a folder run's record and no
+//! notebook's, no R session's and no account a reader is shown. A number that moves when a
+//! value moves, with nothing in the record naming the value, is a number nobody can reproduce.
 
 use std::collections::BTreeMap;
 
@@ -91,9 +90,8 @@ fn chain_for(response: &AnalysisResponse, key: &str) -> ProvenanceChain {
 /// The rule named in `computed_by` roots the chain and carries the values it read.
 ///
 /// `jumpheight.takeoff.flight_time` publishes a gravity of its own, 9.81, which is not the
-/// 9.80665 the request carries. Three of the four derivations gave this root no parameters at
-/// all, so the number a reader saw was produced by a value that appeared nowhere in the record
-/// beside it.
+/// 9.80665 the request carries. A root carrying no parameters would report a number produced
+/// by a value that appears nowhere in the record beside it.
 #[test]
 fn the_arithmetic_roots_the_chain_and_carries_the_values_it_read() {
     let response = analysed(5.0);
@@ -199,8 +197,7 @@ fn an_operator_sits_under_the_landmark_rule_it_composes_onto() {
         "the onset operators are not under the onset rule: {under_onset:?}"
     );
 
-    // The same operator must not also sit at the root's own level, which is where three of the
-    // four derivations put it.
+    // The same operator must not also sit at the root's own level.
     let beside_the_root: Vec<&str> = chain
         .depends_on
         .iter()
@@ -211,8 +208,8 @@ fn an_operator_sits_under_the_landmark_rule_it_composes_onto() {
         "an onset operator is reported as contributing to the quantity directly: {beside_the_root:?}"
     );
 
-    // And no takeoff operator was filed under the onset rule, which is the failure a single
-    // list of operators would produce.
+    // And no takeoff operator sits under the onset rule, which is the failure a single list of
+    // operators would produce.
     assert!(
         !under_onset.iter().any(|id| id.starts_with("takeoff.op.")),
         "a takeoff operator is filed under the onset rule: {under_onset:?}"
@@ -224,7 +221,7 @@ fn an_operator_sits_under_the_landmark_rule_it_composes_onto() {
 ///
 /// The four integration ids have no bound record of their own: they are values of the
 /// arithmetic rule's own choices. A chain that made a step for each would report one decision
-/// twice, and one that simply dropped them would lose four choices that move the number.
+/// twice, and one that dropped them would lose four choices that move the number.
 #[test]
 fn every_contributing_rule_is_somewhere_in_the_chain() {
     let response = analysed(5.0);
@@ -265,9 +262,8 @@ fn every_contributing_rule_is_somewhere_in_the_chain() {
 /// The chain is the type the fingerprint takes, so a surface holding a response can identify
 /// what produced each of its numbers.
 ///
-/// Before the derivation had one home, `plateforce_core::reporting::fingerprint` had no caller
-/// outside its own tests: nothing on any surface that consumes a response held the tree it
-/// takes.
+/// `plateforce_core::reporting::fingerprint` takes that tree, and a surface that cannot build
+/// it from a response cannot call the fingerprint at all.
 #[test]
 fn a_number_can_be_fingerprinted_from_the_response_that_reported_it() {
     let taken = |k: f64| {
@@ -312,8 +308,7 @@ fn every_reported_quantity_gets_a_chain_in_the_order_the_response_lists_them() {
 
 /// Every step in every chain carries the registry the analysis was read out of.
 ///
-/// A step that lost the stamp would publish a number whose method nobody can look up, which is
-/// the state the seven competing tools are in.
+/// A step that lost the stamp would publish a number whose method nobody can look up.
 #[test]
 fn every_step_names_the_registry_behind_it() {
     let response = analysed(5.0);

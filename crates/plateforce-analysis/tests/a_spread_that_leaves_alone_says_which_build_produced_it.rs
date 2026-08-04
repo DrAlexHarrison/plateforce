@@ -1,9 +1,6 @@
 //! A spread nested inside an analysed result inherits that result's identity. A spread that
-//! leaves on its own carried none, on all four surfaces: fifteen keys and not one of them
-//! saying which build or which registry produced the sweep.
-//!
-//! That is the panel demonstrating this project's whole argument, one trial swept across
-//! published rules, leaving the software unable to say what produced the figure.
+//! leaves on its own carries a document of its own, and that document is where the four
+//! identity fields sit: which build and which registry produced the sweep.
 //!
 //! Every key set below is read off the serialised document rather than written down, so a
 //! field added to either document is compared rather than remembered.
@@ -25,11 +22,9 @@ const SAMPLE_RATE_HZ: f64 = 1200.0;
 /// which is what the data claims rather than what the caller cited; `plateforce_version` is
 /// the build. Four questions, four fields.
 ///
-/// This list held three until 2026-08-04, and `the_two_documents_spell_their_identity_the
-/// _same_way` asserts the sweep's document adds exactly these and no others. So a guard
-/// written to prove the two documents agree instead held the sweep's document to a subset of
-/// the analysed one and would have reddened had the missing field been supplied. An
-/// assertion that a set equals a list is only as good as the list.
+/// `the_two_documents_spell_their_identity_the_same_way` asserts the sweep's document adds
+/// exactly these and no others, and an assertion that a set equals a list is only as good as
+/// the list.
 const IDENTITY: [&str; 4] = [
     "plateforce_version",
     "registry_version",
@@ -41,7 +36,7 @@ const IDENTITY: [&str; 4] = [
 /// prints in. What these guards read is the key and its spelling, never the value, and a
 /// digest-shaped literal in a committed file is a provenance figure nobody checks:
 /// `every_digest_in_prose_is_the_one_the_registry_answers` holds every one of them to the
-/// registry's own answer, and caught this file writing sixteen zeroes.
+/// registry's own answer.
 const A_DIGEST_THIS_TEST_NEVER_READ: &str = "registry-digest-stand-in";
 
 fn a_jump_that_lands() -> Trial {
@@ -102,8 +97,8 @@ fn keys_of<T: serde::Serialize>(value: &T) -> BTreeSet<String> {
         .collect()
 }
 
-/// The defect, stated as the property it violated, with the control that has to hold first:
-/// the sweep on its own says nothing about what produced it.
+/// The property, with the control that has to hold first: the sweep on its own says nothing
+/// about what produced it.
 #[test]
 fn the_sweep_alone_names_no_build_and_the_document_around_it_does() {
     let response = swept();

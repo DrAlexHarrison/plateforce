@@ -26,14 +26,14 @@ const CORPUS_SAMPLE_RATE_HZ: f64 = 1200.0;
 const TRIAL_SAMPLES: usize = 6000;
 const TRIAL_DURATION_SECONDS: f64 = 5.0;
 
-/// A start one sample past the last, and a start sixteen times the recording's length. Both
-/// used to be moved to sample 5998, and neither said so.
+/// A start one sample past the last, and a start sixteen times the recording's length. The
+/// nearest start a window fits at on this trace is sample 5998.
 const ONE_PAST_THE_END: usize = TRIAL_SAMPLES;
 const FAR_PAST_THE_END: usize = 100_000;
 
-/// The window this recording's quiet stance holds, and the window short enough to have fitted
-/// in the two samples a moved start left behind. The second is what made the move produce a
-/// number rather than a refusal, so it is the case that has to be reachable here.
+/// The window this recording's quiet stance holds, and a window short enough to fit in the two
+/// samples that end the recording. The second is the case where a moved start would produce a
+/// number rather than a refusal, so it has to be reachable here.
 const WINDOW_THAT_FITS_SECONDS: f64 = 1.0;
 const TWO_SAMPLE_WINDOW_SECONDS: f64 = 0.002;
 
@@ -128,8 +128,8 @@ fn a_start_past_the_end_is_refused_rather_than_moved_to_where_a_window_fits() {
     let the_start_a_moved_window_lands_on = trial.time_at(trial.len() - 2);
 
     for start_index in [ONE_PAST_THE_END, FAR_PAST_THE_END] {
-        // The short window is the case that used to come back as a number: two samples fit in
-        // what a moved start left, so nothing downstream refused and nothing said anything.
+        // The short window is the case a move could answer with a number: two samples fit in
+        // what a moved start leaves, so nothing downstream would refuse.
         for window_seconds in [WINDOW_THAT_FITS_SECONDS, TWO_SAMPLE_WINDOW_SECONDS] {
             let refusal = declined(&trial, start_index, window_seconds);
             println!(
@@ -151,13 +151,13 @@ fn a_start_past_the_end_is_refused_rather_than_moved_to_where_a_window_fits() {
     }
 }
 
-/// The boundary from both sides, at the sample every over-far start used to be moved to.
+/// The boundary from both sides, at the last sample a window fits at.
 ///
 /// Sample 5998 is not a forbidden place to weigh. It is where the last two samples of this
-/// recording are, and a caller who states it is answered with what they hold there. What was
-/// wrong was arriving at it without being asked, which is why the assertion is a pair: the
-/// last start a window fits at is read, and the next one along is refused, under the same
-/// window on the same trace.
+/// recording are, and a caller who states it is answered with what they hold there. Arriving
+/// at it unasked is the fault, which is why the assertion is a pair: the last start a window
+/// fits at is read, and the next one along is refused, under the same window on the same
+/// trace.
 #[test]
 fn the_last_start_a_window_fits_at_is_read_and_the_next_one_along_is_refused() {
     let trial = trial();
@@ -182,8 +182,9 @@ fn the_last_start_a_window_fits_at_is_read_and_the_next_one_along_is_refused() {
 }
 
 /// The half that fires far from the end of the recording. A stated start with four fifths of
-/// the trace in front of it, and a window longer than what remains, used to be refused in the
-/// arithmetic's own frame: start 0 s, recording 0.4167 s, neither of them the caller's.
+/// the trace in front of it, and a window longer than what remains, is refused in the frame
+/// the caller holds rather than in the shifted one the arithmetic runs in, where the start
+/// reads 0 s and the recording 0.4167 s.
 #[test]
 fn a_window_that_overruns_the_end_is_refused_in_the_recording_the_caller_has() {
     let trial = trial();
