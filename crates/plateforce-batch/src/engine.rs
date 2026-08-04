@@ -9,10 +9,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use plateforce_analysis::document::refusal_from_rule;
 use plateforce_analysis::quality::{QualitySignal, QualityStatus};
 use plateforce_analysis::{
-    AnalysisRequest, AnalysisResponse, BoundMethod, DeclinedRule, Metric, ONSET_CONSTRUCT,
-    ONSET_OPERATOR_IDS, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
+    chain_of, AnalysisRequest, AnalysisResponse, BoundMethod, DeclinedRule, ONSET_CONSTRUCT,
+    TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
-use plateforce_core::{Acquisition, Refusal, RefusalCode};
+use plateforce_core::provenance::{ParameterSource, RegistryStamp};
+use plateforce_core::{Acquisition, ProvenanceChain, Refusal, RefusalCode};
 use plateforce_registry::Registry;
 use serde::Serialize;
 
@@ -246,6 +247,22 @@ pub fn analyse(
         });
     }
 
+    // What every record this run produces says about the registry behind it, and whether the
+    // plate's settings were recorded. Both are facts about the run rather than about a trial,
+    // so they are read once here rather than per trial inside the loop.
+    let stamp = RegistryStamp {
+        version: request.registry_version.clone(),
+        // The registry's claim about itself, off the registry that was loaded. A caller
+        // cannot make this claim, which is why it is not the pin above.
+        declared_version: registry.declared_version.clone(),
+        digest: Some(registry.content_digest.clone()),
+    };
+    // The block describes the capture, so it is complete or it is not, once for the run.
+    let acquisition_is_complete = request
+        .acquisition
+        .as_ref()
+        .is_some_and(Acquisition::is_complete);
+
     let mut quantities: Vec<String> = Vec::new();
     let mut units: BTreeMap<String, String> = BTreeMap::new();
     let mut results: Vec<ResultRow> = Vec::new();
@@ -344,7 +361,7 @@ pub fn analyse(
         // not it removes the trial, so the denominator is visible either way.
         exclusions.extend(request.gates.examine(trial_id, &response));
 
-        let rows = provenance_rows(&response);
+        let rows = provenance_rows(&response, &stamp, acquisition_is_complete);
         let identifier = provenance_id(&rows);
         provenance.entry(identifier.clone()).or_insert_with(|| {
             rows.into_iter()
@@ -422,18 +439,14 @@ pub fn analyse(
             ))
     });
 
-    // The block describes the capture, so it is complete or it is not, once for the run.
-    let acquisition_is_complete = request
-        .acquisition
-        .as_ref()
-        .is_some_and(Acquisition::is_complete);
-
     let mut run = RunRow {
         plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
-        registry_version: request.registry_version.clone(),
-        // Read off the registry that was loaded rather than taken from the caller, because
-        // this is the registry's claim about itself and no caller can make it.
-        registry_declared_version: registry.declared_version.clone(),
+        // The one stamp every record on this run was written against, so the row and the
+        // chains cannot name two registries.
+        registry_version: stamp.version.clone(),
+        registry_declared_version: stamp.declared_version.clone(),
+        // A run always read a registry, so the row states the digest rather than admitting
+        // absence. The stamp admits it because a record can be written without one.
         registry_digest: registry.content_digest.clone(),
         request_digest: request_digest(&request.analysis, request.registry_version.as_deref()),
         files_found: coverage.files_found,
@@ -586,64 +599,73 @@ fn status_name(status: QualityStatus) -> String {
     status.wire_name().to_string()
 }
 
-/// The chain behind every number the analysis produced.
+/// The chain behind every number the analysis produced, as one row per bound value.
 ///
-/// Depth 0 is the arithmetic that made the quantity where the response names one, the
-/// landmark rules sit one below it, and an operator composed onto a landmark rule sits one
-/// below that.
+/// The tree is `plateforce_analysis::chain_of`'s and not this surface's. It used to be built
+/// here from the two flat lists a response carries, and three other surfaces built it from the
+/// same two lists in three other shapes, so one number arrived at a folder run and at a
+/// notebook resting on different rules.
 ///
-/// The arithmetic's own values are read off the same bound record the landmarks' are. It is
-/// named in `computed_by` and not in `contributing_method_ids`, so a chain written from the
-/// contributing list alone carried its id and none of what it read: the gravity behind the
-/// flight-time height and the four integration choices behind every impulse figure reached
-/// the terminal's record and no folder run's.
-fn provenance_rows(response: &AnalysisResponse) -> Vec<ProvenanceRow> {
+/// `depth` is the step's depth in that tree: the arithmetic that made the quantity roots it
+/// where the response names one, the rules its answer rests on sit below, and an operator sits
+/// under the landmark rule it composes onto.
+///
+/// Each row's text is the rule's own, read off the bound record the step names rather than
+/// formatted again from the number, because this surface and the engine spell a whole number
+/// differently and re-rendering it here would rewrite every value in the relation.
+fn provenance_rows(
+    response: &AnalysisResponse,
+    registry: &RegistryStamp,
+    acquisition_complete: bool,
+) -> Vec<ProvenanceRow> {
     let mut rows = Vec::new();
     for metric in &response.metrics {
         if metric.value.is_none() {
             continue;
         }
-        let base_depth = usize::from(metric.computed_by.is_some());
-        if let Some(arithmetic) = &metric.computed_by {
-            match response
-                .bound_methods
-                .iter()
-                .find(|bound| bound.method_id == *arithmetic)
-            {
-                Some(bound) => rows.extend(rows_for_bound_method(metric, bound, 0)),
-                // A rule the response named and left no bound record for still opens the
-                // chain, because dropping it would put the landmarks under nothing.
-                None => rows.push(ProvenanceRow {
-                    provenance_id: String::new(),
-                    quantity: metric.key.to_string(),
-                    depth: 0,
-                    method_id: arithmetic.to_string(),
-                    parameter: String::new(),
-                    value: String::new(),
-                    source: String::new(),
-                }),
-            }
-        }
-        for method_id in &metric.contributing_method_ids {
-            let depth = base_depth + usize::from(ONSET_OPERATOR_IDS.contains(&method_id.as_str()));
-            let Some(bound) = response
-                .bound_methods
-                .iter()
-                .find(|bound| bound.method_id == *method_id)
-            else {
-                continue;
-            };
-            rows.extend(rows_for_bound_method(metric, bound, depth));
-        }
+        let chain = chain_of(response, metric, registry, acquisition_complete);
+        rows_for_step(&chain, response, &metric.key, 0, &mut rows);
     }
     rows
 }
 
-fn rows_for_bound_method(metric: &Metric, bound: &BoundMethod, depth: usize) -> Vec<ProvenanceRow> {
+/// One step of a chain and everything above it, each carrying the depth it sits at.
+fn rows_for_step(
+    chain: &ProvenanceChain,
+    response: &AnalysisResponse,
+    quantity: &str,
+    depth: usize,
+    rows: &mut Vec<ProvenanceRow>,
+) {
+    let method_id = &chain.provenance.method_id;
+    match response
+        .bound_methods
+        .iter()
+        .find(|bound| bound.method_id == *method_id)
+    {
+        Some(bound) => rows.extend(rows_for_bound_method(quantity, bound, depth)),
+        // A rule the response named and left no bound record for still opens the chain,
+        // because dropping it would put the rules above it under nothing.
+        None => rows.push(ProvenanceRow {
+            provenance_id: String::new(),
+            quantity: quantity.to_string(),
+            depth,
+            method_id: method_id.clone(),
+            parameter: String::new(),
+            value: String::new(),
+            source: String::new(),
+        }),
+    }
+    for input in &chain.depends_on {
+        rows_for_step(input, response, quantity, depth + 1, rows);
+    }
+}
+
+fn rows_for_bound_method(quantity: &str, bound: &BoundMethod, depth: usize) -> Vec<ProvenanceRow> {
     if bound.bound_parameters.is_empty() {
         return vec![ProvenanceRow {
             provenance_id: String::new(),
-            quantity: metric.key.to_string(),
+            quantity: quantity.to_string(),
             depth,
             method_id: bound.method_id.clone(),
             parameter: String::new(),
@@ -656,7 +678,7 @@ fn rows_for_bound_method(metric: &Metric, bound: &BoundMethod, depth: usize) -> 
         .iter()
         .map(|(parameter, value)| ProvenanceRow {
             provenance_id: String::new(),
-            quantity: metric.key.to_string(),
+            quantity: quantity.to_string(),
             depth,
             method_id: bound.method_id.clone(),
             parameter: parameter.clone(),
@@ -666,13 +688,8 @@ fn rows_for_bound_method(metric: &Metric, bound: &BoundMethod, depth: usize) -> 
             source: bound
                 .parameter_sources
                 .get(parameter)
-                .map(|source| {
-                    serde_json::to_value(source)
-                        .ok()
-                        .and_then(|value| value.as_str().map(str::to_string))
-                        .unwrap_or_else(|| "assumed".to_string())
-                })
-                .unwrap_or_else(|| "assumed".to_string()),
+                .map(|source| source.wire_name().to_string())
+                .unwrap_or_else(|| ParameterSource::Assumed.wire_name().to_string()),
         })
         .collect()
 }

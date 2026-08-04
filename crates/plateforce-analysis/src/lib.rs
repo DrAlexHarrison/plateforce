@@ -25,6 +25,7 @@ pub mod binding;
 pub mod boundaries;
 pub mod capability;
 pub(crate) mod centre_of_mass;
+pub mod chain;
 pub mod conditioning;
 pub mod derived;
 pub mod document;
@@ -41,6 +42,7 @@ pub use binding::{
     bindings_for, records_under, Binding, BINDINGS, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT,
     WEIGHING_CONSTRUCT,
 };
+pub use chain::{chain_of, chains_of, MetricChain};
 pub use pipeline::run;
 pub use request::{
     gravity_stated, AnalysisRequest, MethodChoice, WeighingChoice, BODY_MASS_GLOBAL,
