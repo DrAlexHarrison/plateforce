@@ -47,7 +47,7 @@ export function enterWorkspace() {
         // pick from a list: the span they dragged to is in no paper.
         if (placed) {
           state.selection.weighing = {
-            methodId: placed.id, values: {}, unresolved: [],
+            methodId: placed.id, values: {}, options: {}, unresolved: [],
             fromDefault: new Set(), recommended: new Set(), methodFromRecommendation: false,
             methodStated: true,
           };
@@ -102,6 +102,7 @@ function recordTheOpeningSelection() {
     const selection = withSources(state.selection[slot.key]);
     if (!selection.methodId) continue;
     for (const name of Object.keys(selection.values)) selection.fromDefault.add(name);
+    for (const name of Object.keys(selection.options || {})) selection.fromDefault.add(name);
   }
 }
 

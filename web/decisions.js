@@ -2,7 +2,7 @@
 
 import { $, state } from './state.js';
 import { element } from './format.js';
-import { rankCandidates, findMethod } from './registry.js';
+import { rankCandidates, findMethod, namedValues, NOT_A_CHOICE } from './registry.js';
 import { candidateFor } from './startup.js';
 import { runAnalysis, acceptRecommended, recordStated, selectionFromChosenRule } from './analysis.js';
 import { openDrawer } from './drawer.js';
@@ -130,6 +130,8 @@ function renderSlot(slot) {
       wrap.append(note);
     }
     wrap.append(renderParameters(slot, candidate, selection));
+    const beneath = choicesBeneath(slot, selection.methodId);
+    if (beneath) wrap.append(beneath);
 
     if (candidate.method) {
       const inspect = element('button', 'chip', 'Rule, citations and bias');
@@ -143,6 +145,49 @@ function renderSlot(slot) {
   const ranBeside = renderRulesThatRanBeside(slot, selection.methodId);
   if (ranBeside) wrap.append(ranBeside);
 
+  return wrap;
+}
+
+/* Which slots the reader has opened, so a choice made inside one does not shut the panel it
+ * was made in. The rail is rebuilt on every change, and a disclosure whose state lived only
+ * in the DOM closed under the reader on every pick. */
+const opened = new Set();
+
+/*
+ * The choices the rules running beneath the bound one take.
+ *
+ * They read their values off the same slot the rule above reads, so a name stated here
+ * reaches the operator that composes the bound rule and lands in the same record. Behind a
+ * disclosure because the registry's verdict on most of them is to bind a value and not
+ * display it, which governs what is shown unasked rather than what a reader may change. An
+ * entry the registry rules out as a user choice is not here at all.
+ *
+ * Read off the rules that ran rather than off a list, so no id is named in this file and a
+ * rule that stops running stops offering.
+ */
+function choicesBeneath(slot, statedId) {
+  const body = element('div', 'decision__params');
+  const drawn = new Set();
+  for (const bound of state.analysis?.bound_methods || []) {
+    if (bound.method_id === statedId) continue;
+    const method = findMethod(state.registry, bound.method_id);
+    if (!method || method.construct !== slot.construct) continue;
+    if (NOT_A_CHOICE.has(method.gui?.surfacing)) continue;
+    for (const parameter of method.parameter || []) {
+      if (!namedValues(parameter).length || drawn.has(parameter.name)) continue;
+      drawn.add(parameter.name);
+      body.append(namedChoiceRow(slot, parameter, state.selection[slot.key]));
+    }
+  }
+  if (!drawn.size) return null;
+
+  const wrap = element('details', 'beneath');
+  wrap.open = opened.has(slot.key);
+  wrap.addEventListener('toggle', () => {
+    if (wrap.open) opened.add(slot.key);
+    else opened.delete(slot.key);
+  });
+  wrap.append(element('summary', null, 'More choices under this rule'), body);
   return wrap;
 }
 
@@ -261,62 +306,137 @@ function valuesWithTheirSource(method, bound) {
 function renderParameters(slot, candidate, selection) {
   const host = element('div', 'decision__params');
   for (const parameter of candidate.method?.parameter || []) {
-    const values = parameter.published_values || [];
-    // A parameter with neither a published value nor a default has nothing to bind, so
-    // there is no control to draw.
-    if (!values.length && !Number.isFinite(parameter.default)) continue;
-    const row = element('div', 'param');
-    const id = `param-${slot.key}-${parameter.name}`;
-    const label = element('label', null, `${parameter.name}${parameter.unit ? ` (${parameter.unit})` : ''}`);
-    label.htmlFor = id;
-    row.append(label);
-
-    if (values.length > 1) {
-      const select = document.createElement('select');
-      select.id = id;
-      const unresolved = (selection.unresolved || []).includes(parameter.name);
-      if (unresolved) {
-        const placeholder = element('option', null, `choose from ${values.length}`);
-        placeholder.value = '';
-        select.append(placeholder);
-      }
-      for (const value of values) {
-        const option = element('option', null, `${value}${value === parameter.default ? ` (default, ${parameter.default_source || 'unsourced'})` : ''}`);
-        option.value = String(value);
-        option.selected = !unresolved && selection.values[parameter.name] === value;
-        select.append(option);
-      }
-      // A window dragged on the trace lands on a span no paper published, and it is the
-      // span the number was computed over, so it belongs in the list.
-      const chosen = selection.values[parameter.name];
-      if (!unresolved && Number.isFinite(chosen) && !values.includes(chosen)) {
-        const option = element('option', null, `${Number(chosen.toFixed(3))} (placed by hand)`);
-        option.value = String(chosen);
-        option.selected = true;
-        select.append(option);
-      }
-      select.addEventListener('change', () => {
-        selection.values[parameter.name] = Number(select.value);
-        selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
-        recordStated(selection, parameter.name);
-        renderDecisions();
-        runAnalysis();
-      });
-      row.append(select);
-    } else if (values.length === 1 || Number.isFinite(parameter.default)) {
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.id = id;
-      input.step = 'any';
-      input.value = String(selection.values[parameter.name] ?? parameter.default ?? values[0] ?? '');
-      input.addEventListener('change', () => {
-        selection.values[parameter.name] = Number(input.value);
-        recordStated(selection, parameter.name);
-        runAnalysis();
-      });
-      row.append(input);
-    }
-    host.append(row);
+    const row = namedValues(parameter).length
+      ? namedChoiceRow(slot, parameter, selection)
+      : quantityRow(slot, parameter, selection);
+    if (row) host.append(row);
   }
   return host;
+}
+
+/* One control and its label, in the shape both kinds of value share. */
+function parameterRow(slot, parameter, spoken) {
+  const row = element('div', 'param');
+  const id = `param-${slot.key}-${parameter.name}`;
+  const label = element('label', null, spoken);
+  label.htmlFor = id;
+  row.append(label);
+  return { row, id };
+}
+
+/*
+ * A value that varies by name rather than by number, offered as the entry's own alternatives.
+ *
+ * The words are the registry's, because the key is what a result records and a reader
+ * choosing between `population` and `sample` is choosing between two sentences the registry
+ * already writes. Nothing here names a value, so an entry that gains one gains an option.
+ *
+ * Not stated is a state and not a value: unstated, the rule runs the value it carries and
+ * the record says nobody was asked. Selecting the entry's declared default is a different
+ * act from arriving at it, and the two produce different records.
+ */
+function namedChoiceRow(slot, parameter, selection) {
+  const named = namedValues(parameter);
+  const { row, id } = parameterRow(slot, parameter, parameter.name);
+  const select = document.createElement('select');
+  select.id = id;
+  select.dataset.option = parameter.name;
+
+  const unresolved = (selection.unresolved || []).includes(parameter.name);
+  const chosen = selection.options?.[parameter.name];
+  if (unresolved || chosen == null) {
+    const placeholder = element('option', null, unresolved ? `choose from ${named.length}` : 'Not stated');
+    placeholder.value = '';
+    placeholder.selected = true;
+    select.append(placeholder);
+  }
+  for (const value of named) {
+    const isDefault = value.key === parameter.default_key;
+    const option = element(
+      'option',
+      null,
+      `${value.label || value.key}${isDefault ? ` (default, ${parameter.default_source || 'unsourced'})` : ''}`,
+    );
+    option.value = value.key;
+    option.selected = !unresolved && chosen === value.key;
+    select.append(option);
+  }
+  select.addEventListener('change', () => {
+    selection.options ??= {};
+    if (select.value === '') delete selection.options[parameter.name];
+    else selection.options[parameter.name] = select.value;
+    selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
+    recordStated(selection, parameter.name);
+    renderDecisions();
+    runAnalysis();
+  });
+  row.append(select);
+  return row;
+}
+
+/* A value that varies by number, offered as the values the literature published. */
+function quantityRow(slot, parameter, selection) {
+  const values = parameter.published_values || [];
+  // A parameter with neither a published value nor a default has nothing to bind, so
+  // there is no control to draw.
+  if (!values.length && !Number.isFinite(parameter.default)) return null;
+  const { row, id } = parameterRow(
+    slot,
+    parameter,
+    `${parameter.name}${parameter.unit ? ` (${parameter.unit})` : ''}`,
+  );
+
+  if (values.length > 1) {
+    const select = document.createElement('select');
+    select.id = id;
+    select.dataset.parameter = parameter.name;
+    const unresolved = (selection.unresolved || []).includes(parameter.name);
+    const chosen = selection.values[parameter.name];
+    // Two states rather than one. A row awaiting a forced decision says how many there are
+    // to choose from; a row whose entry publishes several values and declares no default has
+    // nothing bound and must say so, because a value shown as selected while the request
+    // carries none is the number on screen disagreeing with the number that ran.
+    if (unresolved || !Number.isFinite(chosen)) {
+      const placeholder = element('option', null, unresolved ? `choose from ${values.length}` : 'Not stated');
+      placeholder.value = '';
+      placeholder.selected = true;
+      select.append(placeholder);
+    }
+    for (const value of values) {
+      const option = element('option', null, `${value}${value === parameter.default ? ` (default, ${parameter.default_source || 'unsourced'})` : ''}`);
+      option.value = String(value);
+      option.selected = !unresolved && chosen === value;
+      select.append(option);
+    }
+    // A window dragged on the trace lands on a span no paper published, and it is the
+    // span the number was computed over, so it belongs in the list.
+    if (!unresolved && Number.isFinite(chosen) && !values.includes(chosen)) {
+      const option = element('option', null, `${Number(chosen.toFixed(3))} (placed by hand)`);
+      option.value = String(chosen);
+      option.selected = true;
+      select.append(option);
+    }
+    select.addEventListener('change', () => {
+      if (select.value === '') delete selection.values[parameter.name];
+      else selection.values[parameter.name] = Number(select.value);
+      selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
+      recordStated(selection, parameter.name);
+      renderDecisions();
+      runAnalysis();
+    });
+    row.append(select);
+  } else {
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = id;
+    input.step = 'any';
+    input.value = String(selection.values[parameter.name] ?? parameter.default ?? values[0] ?? '');
+    input.addEventListener('change', () => {
+      selection.values[parameter.name] = Number(input.value);
+      recordStated(selection, parameter.name);
+      runAnalysis();
+    });
+    row.append(input);
+  }
+  return row;
 }
