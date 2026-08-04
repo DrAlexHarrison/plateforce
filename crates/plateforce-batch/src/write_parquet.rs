@@ -45,6 +45,7 @@ impl BatchResult {
         Ok(vec![
             self.write_relation(directory, "results", self.results_batch()?, &record)?,
             self.write_relation(directory, "provenance", self.provenance_batch()?, &record)?,
+            self.write_relation(directory, "descriptions", self.descriptions_batch()?, &record)?,
             self.write_relation(directory, "refusals", self.refusals_batch()?, &record)?,
             self.write_relation(directory, "signals", self.signals_batch()?, &record)?,
             self.write_relation(directory, "exclusions", self.exclusions_batch()?, &record)?,
@@ -128,6 +129,26 @@ impl BatchResult {
                 text(self.provenance.iter().map(|row| row.parameter.clone())),
                 text(self.provenance.iter().map(|row| row.value.clone())),
                 text(self.provenance.iter().map(|row| row.source.clone())),
+            ],
+        )
+    }
+
+    /// Beside `provenance` rather than folded into it: that relation collapses to one set of
+    /// rows per distinct chain, and an account opens with the trial's own number.
+    fn descriptions_batch(&self) -> Result<RecordBatch, ParquetError> {
+        batch(
+            "descriptions",
+            vec![
+                Field::new("trial_id", DataType::Utf8, false),
+                Field::new("quantity", DataType::Utf8, false),
+                Field::new("provenance_id", DataType::Utf8, false),
+                Field::new("account", DataType::Utf8, false),
+            ],
+            vec![
+                text(self.descriptions.iter().map(|row| row.trial_id.clone())),
+                text(self.descriptions.iter().map(|row| row.quantity.clone())),
+                text(self.descriptions.iter().map(|row| row.provenance_id.clone())),
+                text(self.descriptions.iter().map(|row| row.account.clone())),
             ],
         )
     }

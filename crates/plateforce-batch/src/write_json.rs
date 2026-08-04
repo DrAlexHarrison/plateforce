@@ -27,6 +27,7 @@ impl BatchResult {
             "units": self.units,
             "results": self.results,
             "provenance": self.provenance,
+            "descriptions": self.descriptions,
             "refusals": self.refusals,
             "warnings": self.warnings,
             "signals": self.signals,
@@ -59,6 +60,8 @@ impl BatchResult {
             )
             .map_err(|error| error.to_string())?,
             provenance: serde_json::from_value(read("provenance"))
+                .map_err(|error| error.to_string())?,
+            descriptions: serde_json::from_value(read("descriptions"))
                 .map_err(|error| error.to_string())?,
             refusals: serde_json::from_value(read("refusals"))
                 .map_err(|error| error.to_string())?,
