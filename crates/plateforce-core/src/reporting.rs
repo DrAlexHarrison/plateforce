@@ -58,17 +58,21 @@ pub fn fingerprint(
     for (depth, step) in provenance.flattened().iter().enumerate() {
         let at = |field: &str| format!("analysis/{depth:04}/{field}");
         material.push((at("method_id"), step.method_id.clone()));
-        material.push((at("method_source"), format!("{:?}", step.method_source)));
+        // Sources enter as their wire names, so renaming a variant cannot move a digest.
+        material.push((
+            at("method_source"),
+            step.method_source.wire_name().to_string(),
+        ));
         for parameter in &step.parameters {
             material.push((
                 at(&format!("parameter/{}", parameter.name)),
-                format!("{} {:?}", parameter.value, parameter.source),
+                format!("{} {}", parameter.value, parameter.source.wire_name()),
             ));
         }
         for choice in &step.choices {
             material.push((
                 at(&format!("choice/{}", choice.name)),
-                format!("{} {:?}", choice.value, choice.source),
+                format!("{} {}", choice.value, choice.source.wire_name()),
             ));
         }
         material.push((
@@ -206,6 +210,52 @@ mod fingerprint_tests {
         let mut root = Provenance::of("jumpheight.takeoff.impulse_momentum");
         root.depends_on.push(onset);
         root
+    }
+
+    #[test]
+    fn the_material_spells_sources_by_wire_name_not_by_variant() {
+        let block = filled_block();
+        let printed = fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0);
+
+        // The same material with each source hand-spelled as its wire name. Goes red if
+        // the material reverts to Debug formatting, where "Stated" replaces "stated".
+        let mut material: Vec<(String, String)> = vec![
+            (
+                "analysis/0000/method_id".to_string(),
+                "jumpheight.takeoff.impulse_momentum".to_string(),
+            ),
+            (
+                "analysis/0000/method_source".to_string(),
+                "assumed".to_string(),
+            ),
+            ("analysis/0000/registry_digest".to_string(), String::new()),
+            ("analysis/0000/registry_version".to_string(), String::new()),
+            (
+                "analysis/0001/method_id".to_string(),
+                "onset.threshold.noise_relative".to_string(),
+            ),
+            (
+                "analysis/0001/method_source".to_string(),
+                "assumed".to_string(),
+            ),
+            (
+                "analysis/0001/parameter/k".to_string(),
+                "5 stated".to_string(),
+            ),
+            ("analysis/0001/registry_digest".to_string(), String::new()),
+            ("analysis/0001/registry_version".to_string(), String::new()),
+            ("acquisition/sample_rate_hz".to_string(), "1200".to_string()),
+        ];
+        for (member, value) in block.members_as_text() {
+            material.push((format!("acquisition/{member}"), value));
+        }
+
+        let expected = content_digest(
+            material
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str())),
+        );
+        assert_eq!(printed.digest, expected);
     }
 
     #[test]
