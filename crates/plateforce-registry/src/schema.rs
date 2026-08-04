@@ -166,6 +166,16 @@ pub struct Parameter {
     pub default_key: Option<String>,
     #[serde(default)]
     pub default_source: Option<String>,
+    /// Whether the rule can produce a result without a value for this parameter. A claim
+    /// about the rule, never about the caller: required beside a default is the ordinary
+    /// shape, and means the registry fills it where nobody states it and the record says
+    /// `assumed`. Required with no default is what refuses a request by name.
+    ///
+    /// So the flag changes a binding only where no default exists. What it carries on the
+    /// rest is the fact `open_parameters` reads, that the rule consumes this parameter, which
+    /// is what separates a contested value the caller has to resolve from one the rule runs
+    /// without. Read as "the caller must state it" instead, every parameter carrying a
+    /// default would be optional and that surface would report nothing.
     #[serde(default)]
     pub required: bool,
     #[serde(default)]
