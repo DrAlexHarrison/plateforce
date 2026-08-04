@@ -125,9 +125,12 @@ test_that("the revision a caller pinned and the one the registry claims are two 
   # And on the record each number carries, not on the run alone. A field filled only where
   # it is asserted passes an assertion made in that one place.
   record <- pf_value(pinned, "jump_height_from_takeoff_meters")@provenance
-  expect_identical(record@registry_version, pin)
-  expect_identical(record@registry_declared_version, declared)
-  for (link in record@depends_on) {
+  steps <- every_step(record)
+
+  # Every depth, not the rules one step under the root. The control first: a walk that stopped
+  # reaching the tree would satisfy every line below by looking at nothing.
+  expect_gt(length(steps), 1L)
+  for (link in steps) {
     expect_identical(link@registry_version, pin)
     expect_identical(link@registry_declared_version, declared)
   }

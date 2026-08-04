@@ -13,6 +13,15 @@ link_named <- function(chain, method_id) {
   testthat::fail(paste(method_id, "is not in this chain"))
 }
 
+# One record and every record upstream of it, depth first.
+#
+# A test that walks `@depends_on` alone reads the rules one step under the root and stops. The
+# operators sit under the landmark rule they compose onto, so a loop over one level asserts
+# nothing about a third of the tree and shrinks silently as the tree gains depth.
+every_step <- function(record) {
+  c(list(record), unlist(lapply(record@depends_on, every_step), recursive = FALSE))
+}
+
 # One provenance chain as text, depth first, each step naming every value it read and where
 # that value came from. Quantities and named choices together, in that order: they move the
 # number equally and the record keeps them apart only because a fingerprint does.
