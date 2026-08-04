@@ -20,7 +20,12 @@ pub enum SweepRefusal {
         second_id: String,
     },
     /// The step is one this run never bound, so there is no rule to compare against.
-    NothingBound { construct: String, slot: String },
+    ///
+    /// `binds_it` is the one way to bind this construct rather than both ways: the three
+    /// landmarks have a flag of their own and nothing else does, so a sentence offering both
+    /// offers a flag that does not exist to one caller and an assignment that is refused to
+    /// the other.
+    NothingBound { construct: String, binds_it: String },
 }
 
 impl std::fmt::Display for SweepRefusal {
@@ -36,9 +41,12 @@ impl std::fmt::Display for SweepRefusal {
                 formatter,
                 "a comparison varies one step, and {first_id} is a rule for {first_construct} while {second_id} is a rule for {second_construct}, so this line asks for two"
             ),
-            SweepRefusal::NothingBound { construct, slot } => write!(
+            SweepRefusal::NothingBound {
+                construct,
+                binds_it,
+            } => write!(
                 formatter,
-                "a comparison varies a step this run bound, and nothing is bound for {construct}, so --{slot} or --derive {construct}=<method> names the rule the others are compared against"
+                "a comparison varies a step this run bound, and nothing is bound for {construct}, so {binds_it} names the rule the others are compared against"
             ),
         }
     }
@@ -76,6 +84,52 @@ fn every_method_id() -> Vec<String> {
         .collect()
 }
 
+/// The construct a word names when the word is a step rather than a rule.
+///
+/// Both spellings, because the two commands that sweep take both: `--slot` accepts the short
+/// word and the construct the record prints, so a caller moving between them writes the same
+/// vocabulary at each. A step written where a rule goes is the ordinary slip between them.
+fn step_named(word: &str) -> Option<&'static str> {
+    plateforce_analysis::binding::construct_for_slot(word).or_else(|| {
+        plateforce_analysis::BINDINGS
+            .iter()
+            .find(|binding| binding.construct == word)
+            .map(|binding| binding.construct)
+    })
+}
+
+/// The one flag that binds a construct, named as a caller would write it.
+///
+/// Read off the binding table rather than listed here: a construct reached through the
+/// request's `derived` map is bound by `--derive` and the three reached by their own fields
+/// are bound by those, so a construct that becomes bindable reaches this sentence without an
+/// edit.
+fn binds(construct: &str, slot: &str) -> String {
+    if plateforce_analysis::binding::derived_constructs().contains(&construct) {
+        format!("--derive {construct}={}", "<method>")
+    } else {
+        format!("--{slot}")
+    }
+}
+
+/// A name written in a comparison that answers to no rule.
+///
+/// A step written where a rule goes names its own rules, because that caller is one word away
+/// from the line they meant. A name that is neither gets every rule this build runs, under a
+/// sentence that does not attribute them to a step nobody named.
+fn no_rule_answers_to(written: &str) -> Refusal {
+    match step_named(written) {
+        Some(construct) => Refusal::method_not_implemented(
+            written,
+            construct,
+            plateforce_analysis::binding::bindings_for_construct(construct)
+                .map(|binding| binding.id.to_string())
+                .collect(),
+        ),
+        None => Refusal::name_answers_to_no_rule(written, every_method_id()),
+    }
+}
+
 /// The rule this request bound for a construct, or `None` where it bound none.
 ///
 /// The three landmarks arrive on their own fields and everything else arrives keyed by
@@ -104,9 +158,7 @@ pub fn axis_over(request: &AnalysisRequest, against: &[String]) -> Result<Axis, 
     let mut resolved: Option<(&str, &str, &str)> = None;
     for id in against {
         let Some((slot, construct)) = step_of(id) else {
-            return Err(SweepRefusal::UnknownMethod(Box::new(
-                Refusal::method_not_implemented(id, "this comparison", every_method_id()),
-            )));
+            return Err(SweepRefusal::UnknownMethod(Box::new(no_rule_answers_to(id))));
         };
         match resolved {
             None => resolved = Some((slot, construct, id)),
@@ -128,7 +180,7 @@ pub fn axis_over(request: &AnalysisRequest, against: &[String]) -> Result<Axis, 
     let Some(bound) = bound_for(request, construct) else {
         return Err(SweepRefusal::NothingBound {
             construct: construct.to_string(),
-            slot: slot.to_string(),
+            binds_it: binds(construct, slot),
         });
     };
 
@@ -230,13 +282,61 @@ mod tests {
 
     /// A step nothing was bound for has no rule for the others to be compared against, and the
     /// refusal names the flag that binds it rather than the flag that is missing.
+    ///
+    /// The one way in, not both. `--peak_force` is a flag no surface has, and a sentence
+    /// offering it sends the caller to a second refusal.
     #[test]
     fn a_step_this_run_never_bound_is_refused_naming_how_to_bind_it() {
         let refusal = axis_over(&request(), &["force.peak.gross".to_string()])
             .expect_err("nothing is bound for peak force");
         let said = refusal.to_string();
-        assert!(said.contains("peak_force"), "{said}");
-        assert!(said.contains("--derive"), "{said}");
+        assert!(said.contains("--derive peak_force=<method>"), "{said}");
+        assert!(!said.contains("--peak_force"), "{said}");
+    }
+
+    /// The same sentence for the other kind of construct, and the offer inverts: a landmark is
+    /// bound by its own flag, and `--derive` refuses its construct by name.
+    #[test]
+    fn a_landmark_nothing_was_bound_for_is_refused_naming_its_own_flag() {
+        let mut request = request();
+        request.onset.method_id.clear();
+        let refusal = axis_over(&request, &["onset.threshold.absolute_force".to_string()])
+            .expect_err("nothing is bound for movement onset");
+        let said = refusal.to_string();
+        assert!(said.contains("--onset"), "{said}");
+        assert!(!said.contains("--derive"), "{said}");
+        // What the offered alternative would have met. A sentence may not send a caller to a
+        // flag that refuses the name the sentence handed them.
+        assert!(
+            crate::derive::accepts("movement_onset", "onset.threshold.absolute_force").is_err(),
+            "--derive takes movement_onset, so the offer above was sound after all"
+        );
+    }
+
+    /// A step written where a rule goes is the ordinary slip between the two sweeping
+    /// commands, `--slot takeoff` and `--against <a takeoff rule>`. It gets that step's rules,
+    /// not every rule in the build under a step nobody named.
+    #[test]
+    fn a_step_written_where_a_rule_goes_is_refused_with_that_step_s_rules() {
+        for word in ["takeoff", "movement_onset"] {
+            let refusal =
+                axis_over(&request(), &[word.to_string()]).expect_err("a step is not a rule");
+            let SweepRefusal::UnknownMethod(recorded) = refusal else {
+                panic!("a step word is not a mixed line: {word}")
+            };
+            let said = recorded.message();
+            assert!(!said.contains("this comparison"), "{said}");
+            let prefix = if word == "takeoff" { "takeoff." } else { "onset." };
+            assert!(
+                !recorded.available.is_empty()
+                    && recorded
+                        .available
+                        .iter()
+                        .all(|id| id.starts_with(prefix)),
+                "{word}: {:?}",
+                recorded.available
+            );
+        }
     }
 
     /// A rule written twice is one variant. Two identical variants pair a rule with a copy of
@@ -266,16 +366,26 @@ mod tests {
         );
     }
 
+    /// A name that is neither a rule nor a step gets every rule this build runs, under a
+    /// sentence that does not attribute them to a step.
+    ///
+    /// The count is the binding table's own rather than a number written here, so a rule added
+    /// to the table is offered without an edit and the denominator in the sentence stays true.
     #[test]
     fn a_name_no_rule_answers_to_is_refused_with_the_ones_that_do() {
         let refusal = axis_over(&request(), &["not.a.rule".to_string()]).expect_err("no such rule");
         let SweepRefusal::UnknownMethod(recorded) = refusal else {
             panic!("an unknown name is not a mixed line")
         };
+        assert_eq!(recorded.available.len(), plateforce_analysis::BINDINGS.len());
+        let said = recorded.message();
+        // The sentence this replaced read "was passed as the this comparison method, and the
+        // rules for that step are", naming a step nobody wrote and filing every rule under it.
+        assert!(said.contains("answers to no rule"), "{said}");
+        assert!(!said.contains("that step"), "{said}");
         assert!(
-            recorded.available.len() > 40,
-            "{}",
-            recorded.available.len()
+            said.contains(&format!("{} rules", plateforce_analysis::BINDINGS.len())),
+            "{said}"
         );
     }
 }
