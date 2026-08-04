@@ -8,7 +8,7 @@ import pytest
 
 import plateforce as pf
 
-from conftest import SAMPLE_RATE_HZ
+from conftest import DECLARED_REVISION, SAMPLE_RATE_HZ
 
 
 @pytest.fixture
@@ -69,6 +69,47 @@ def test_the_registry_version_travels_with_the_number(jump):
     assert jump.jump_height_takeoff_frame_meters.provenance.registry_version == "fixture-1"
 
 
+def test_the_pin_and_the_registrys_own_claim_are_two_fields(jump, registry):
+    """A revision the caller cited and one the data claims are different facts.
+
+    The terminal and the browser published the second under the first's name until
+    2026-08-03, so every unpinned run told a reader the operator had chosen a revision no
+    operator had chosen. Both are read off one result here and asserted against each other:
+    a fixture whose claim equalled the pin would pass whichever field the value came from.
+    """
+    provenance = jump.jump_height_takeoff_frame_meters.provenance
+
+    assert provenance.registry_version == "fixture-1"
+    assert provenance.registry_declared_version == DECLARED_REVISION
+    assert provenance.registry_version != provenance.registry_declared_version
+
+    # And the same two questions asked of the registry the notebook is holding.
+    assert registry.version == "fixture-1"
+    assert registry.declared_version == DECLARED_REVISION
+
+    # Every step of the chain, not the reported one alone. A record that carried the claim
+    # only where it was asserted would pass an assertion made in that one place.
+    for step in provenance.flattened():
+        assert step.registry_declared_version == DECLARED_REVISION, step.method_id
+
+
+def test_the_declared_revision_is_not_recoverable_from_the_digest(registry, registry_path):
+    """Which is why a result carries it rather than a reader deriving it.
+
+    The walk that measures the digest reads the toml files alone, so rewriting the VERSION
+    file leaves the digest where it was. A reader holding only a digest cannot say which
+    revision the registry called itself.
+    """
+    (registry_path / "VERSION").write_text("fixture-declares-something-else\n")
+    try:
+        renamed = pf.Registry.load(registry_path)
+        assert renamed.digest == registry.digest, "the digest moved, and it should not have"
+        assert renamed.declared_version == "fixture-declares-something-else"
+        assert renamed.declared_version != registry.declared_version
+    finally:
+        (registry_path / "VERSION").write_text(DECLARED_REVISION + "\n")
+
+
 def test_the_registry_digest_travels_with_the_number(jump, registry):
     provenance = jump.jump_height_takeoff_frame_meters.provenance
     assert provenance.registry_digest == registry.digest
@@ -90,7 +131,13 @@ def test_an_unpinned_registry_leaves_the_version_unset_and_still_names_the_files
 
     assert height.provenance.registry_version is None
     assert height.provenance.registry_digest == unpinned.digest
-    assert f"registry {unpinned.digest}" in height.describe()
+    # Unpinned, and the registry's own claim still travels, under its own name and worded
+    # as the registry's rather than as the caller's.
+    assert height.provenance.registry_declared_version == DECLARED_REVISION
+    assert (
+        f"registry declaring {DECLARED_REVISION} ({unpinned.digest})" in height.describe()
+    )
+    assert "pinned to" not in height.describe()
 
 
 def test_a_height_computed_without_reading_a_registry_names_no_files():
@@ -132,7 +179,13 @@ def test_describe_shows_the_value_and_the_whole_chain(jump, registry):
     assert "jumpheight.takeoff.impulse_momentum" in described
     assert "onset.threshold.noise_relative" in described
     assert "bwepoch.fixed_window" in described
-    assert f"registry fixture-1 ({registry.digest})" in described
+    # Each revision worded as whose it is, and both on the line. A sentence that printed one
+    # of them bare would read the same whether the caller cited it or the registry claimed
+    # it about itself, which is the sentence this line used to print.
+    assert (
+        f"registry pinned to fixture-1 declaring {DECLARED_REVISION} ({registry.digest})"
+        in described
+    )
 
 
 def test_an_incomplete_acquisition_block_is_stated_on_every_result(jump):

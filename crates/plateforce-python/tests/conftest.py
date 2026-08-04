@@ -201,12 +201,22 @@ default_source = "synthetic_fixture"
 """
 
 
+# The revision this fixture registry declares about itself, deliberately unlike the "fixture-1"
+# a caller pins below. A registry whose own claim matched the pin would read the same whichever
+# of the two fields a value came out of, and the two were transposed on two surfaces for weeks.
+DECLARED_REVISION = "fixture-declares-2026-08-03"
+
+
 @pytest.fixture(scope="session")
 def registry_path(tmp_path_factory):
     root = tmp_path_factory.mktemp("registry")
     (root / "constructs.toml").write_text(textwrap.dedent(CONSTRUCTS))
     (root / "methods").mkdir()
     (root / "methods" / "seed.toml").write_text(textwrap.dedent(METHODS))
+    # Beside the rules rather than among them: the walk that assembles entries and measures
+    # the digest reads the toml files alone, which is why a declared revision is a fact a
+    # result has to carry rather than one a reader can recover from the digest.
+    (root / "VERSION").write_text(DECLARED_REVISION + "\n")
     return root
 
 
