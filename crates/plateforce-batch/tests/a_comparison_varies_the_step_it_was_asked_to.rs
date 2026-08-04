@@ -356,7 +356,10 @@ fn a_comparison_carries_the_registry_and_the_plate_it_ran_under() {
     // The caller's word and the registry's own, each under its own name. This pair has been
     // published transposed before, telling every reader the operator cited a revision no
     // operator had chosen.
-    assert_eq!(record.registry_version.as_deref(), Some("pinned-2026.08.01"));
+    assert_eq!(
+        record.registry_version.as_deref(),
+        Some("pinned-2026.08.01")
+    );
     assert_eq!(
         record.registry_declared_version.as_deref(),
         Some("declared-2026-07-25")

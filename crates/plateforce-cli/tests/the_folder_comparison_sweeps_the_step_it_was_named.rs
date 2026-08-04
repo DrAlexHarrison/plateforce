@@ -101,17 +101,17 @@ fn swept(name: &str, extra: &[&str]) -> (serde_json::Value, Vec<String>) {
 #[test]
 fn naming_a_takeoff_or_a_weighing_rule_sweeps_that_step_and_not_onset() {
     let steps = [
-        ("weighing", "system_weight", "bwepoch.adaptive_lowest_variance"),
+        (
+            "weighing",
+            "system_weight",
+            "bwepoch.adaptive_lowest_variance",
+        ),
         (
             "onset",
             "movement_onset",
             "onset.threshold.relative_to_system_weight",
         ),
-        (
-            "takeoff",
-            "takeoff",
-            "takeoff.threshold.flight_noise_k_sd",
-        ),
+        ("takeoff", "takeoff", "takeoff.threshold.flight_noise_k_sd"),
     ];
     let mut answers: Vec<(&str, Vec<String>)> = Vec::new();
     for (slot, construct, rule) in steps {
@@ -259,7 +259,10 @@ fn a_comparison_refuses_a_name_it_cannot_run_by_naming_what_it_takes() {
     // `--against`. It gets that step's rules rather than every rule in the build.
     let step_word = refused(&["--against", "takeoff"]);
     println!("{}", step_word.trim());
-    assert!(step_word.contains("takeoff.threshold.longest_run"), "{step_word}");
+    assert!(
+        step_word.contains("takeoff.threshold.longest_run"),
+        "{step_word}"
+    );
     assert!(!step_word.contains("this comparison"), "{step_word}");
     assert!(
         !step_word.contains("onset.threshold.noise_relative"),
@@ -276,7 +279,10 @@ fn a_comparison_refuses_a_name_it_cannot_run_by_naming_what_it_takes() {
     // the one that works: `--derive` takes this construct and no `--peak_force` flag exists.
     let unbound = refused(&["--against", "force.peak.gross"]);
     println!("{}", unbound.trim());
-    assert!(unbound.contains("--derive peak_force=<method>"), "{unbound}");
+    assert!(
+        unbound.contains("--derive peak_force=<method>"),
+        "{unbound}"
+    );
     assert!(!unbound.contains("--peak_force "), "{unbound}");
 
     // Rules from two steps is two comparisons, and neither is run silently.
@@ -287,5 +293,8 @@ fn a_comparison_refuses_a_name_it_cannot_run_by_naming_what_it_takes() {
         "takeoff.threshold.longest_run",
     ]);
     println!("{}", two.trim());
-    assert!(two.contains("movement_onset") && two.contains("takeoff"), "{two}");
+    assert!(
+        two.contains("movement_onset") && two.contains("takeoff"),
+        "{two}"
+    );
 }

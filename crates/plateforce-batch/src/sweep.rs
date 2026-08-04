@@ -158,7 +158,9 @@ pub fn axis_over(request: &AnalysisRequest, against: &[String]) -> Result<Axis, 
     let mut resolved: Option<(&str, &str, &str)> = None;
     for id in against {
         let Some((slot, construct)) = step_of(id) else {
-            return Err(SweepRefusal::UnknownMethod(Box::new(no_rule_answers_to(id))));
+            return Err(SweepRefusal::UnknownMethod(Box::new(no_rule_answers_to(
+                id,
+            ))));
         };
         match resolved {
             None => resolved = Some((slot, construct, id)),
@@ -326,13 +328,14 @@ mod tests {
             };
             let said = recorded.message();
             assert!(!said.contains("this comparison"), "{said}");
-            let prefix = if word == "takeoff" { "takeoff." } else { "onset." };
+            let prefix = if word == "takeoff" {
+                "takeoff."
+            } else {
+                "onset."
+            };
             assert!(
                 !recorded.available.is_empty()
-                    && recorded
-                        .available
-                        .iter()
-                        .all(|id| id.starts_with(prefix)),
+                    && recorded.available.iter().all(|id| id.starts_with(prefix)),
                 "{word}: {:?}",
                 recorded.available
             );
@@ -377,7 +380,10 @@ mod tests {
         let SweepRefusal::UnknownMethod(recorded) = refusal else {
             panic!("an unknown name is not a mixed line")
         };
-        assert_eq!(recorded.available.len(), plateforce_analysis::BINDINGS.len());
+        assert_eq!(
+            recorded.available.len(),
+            plateforce_analysis::BINDINGS.len()
+        );
         let said = recorded.message();
         // The sentence this replaced read "was passed as the this comparison method, and the
         // rules for that step are", naming a step nobody wrote and filing every rule under it.
