@@ -272,7 +272,7 @@ fn nothing_to_vary(axis: &Axis) -> Box<Refusal> {
         Some(parameter) => format!("{}.{parameter}", axis.slot),
         None => axis.slot.clone(),
     };
-    Box::new(Refusal::required_parameter_unstated("", named))
+    Box::new(Refusal::sweep_axis_states_no_alternative(named))
 }
 
 pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box<Refusal>> {
@@ -890,6 +890,16 @@ mod tests {
         let beside =
             sweep(vec![real(), empty()]).expect_err("an axis naming nothing to vary is refused");
         println!("{beside}");
+        // The sentence names the axis, so a reader is not sent looking for a rule that
+        // published nothing. The generic wording for this code opens on a method id, which
+        // is empty here because no rule was asked anything.
+        assert!(
+            beside
+                .message()
+                .starts_with("'takeoff' was passed as a sweep axis"),
+            "{}",
+            beside.message()
+        );
         assert_eq!(
             beside.code,
             plateforce_core::RefusalCode::RequiredParameterUnstated

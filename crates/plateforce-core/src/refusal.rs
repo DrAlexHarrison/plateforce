@@ -558,6 +558,26 @@ impl Refusal {
         )
     }
 
+    /// A sweep axis naming a step and nothing to compare along it.
+    ///
+    /// The same code as a required parameter nobody stated, because the fault is the same
+    /// one: the name is known and what belongs with it is missing. `UnknownParameter` would
+    /// say the name is not read, which sends a caller looking for a typo in a step this
+    /// request does carry.
+    ///
+    /// `alternatives_named` is the denominator the sentence quotes, and it tells this form
+    /// apart from a rule whose registry row publishes no default.
+    pub fn sweep_axis_states_no_alternative(axis: impl Into<String>) -> Self {
+        Self::build(
+            RefusalCode::RequiredParameterUnstated,
+            "",
+            Some(axis.into()),
+            None,
+            BTreeMap::from([("alternatives_named".to_string(), 0.0)]),
+            Vec::new(),
+        )
+    }
+
     pub fn column_not_found(column: impl Into<String>, available: Vec<String>) -> Self {
         Self::build(
             RefusalCode::ColumnNotFound,
@@ -877,6 +897,14 @@ fn sentence(
             parameter.unwrap_or("this artifact"),
             if available.len() == 1 { "is" } else { "are" }
         ),
+        // No rule published this one, so the sentence names what the sweep was asked to
+        // compare rather than a registry row that would have carried a default.
+        RefusalCode::RequiredParameterUnstated if detail.contains_key("alternatives_named") => {
+            format!(
+                "'{}' was passed as a sweep axis and names no alternative to compare along it",
+                parameter.unwrap_or("that name")
+            )
+        }
         RefusalCode::RequiredParameterUnstated => format!(
             "{method_id} publishes no default for {}, so it has to be stated",
             parameter.unwrap_or("that name")
