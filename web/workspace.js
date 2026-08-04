@@ -22,7 +22,7 @@ export function enterWorkspace() {
   $('trial-summary').textContent =
     `${info.sample_count.toLocaleString()} samples at ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
     (info.synthetic ? '. Drawn rather than recorded.' : '') +
-    (info.sentinel_samples_replaced ? ` ${info.sentinel_samples_replaced} samples were flagged missing and held at the last reading.` : '');
+    (info.samples_treated_as_missing ? ` ${info.samples_treated_as_missing} samples match the missing-data convention you declared and carry no measurement.` : '');
 
   if (!state.chart) {
     const container = $('chart');
