@@ -12,7 +12,7 @@ import {
   boundMethodId,
   boundRecordFor,
   methodTitle,
-  ruleSourceText,
+  ruleSourceLine,
 } from './analysis.js';
 import { openDrawer } from './drawer.js';
 
@@ -177,8 +177,7 @@ function renderSlot(slot) {
 function ruleSourceNode(slot, selection) {
   const running = boundMethodId(slot.key);
   const bound = running ? boundRecordFor(running) : null;
-  const text = ruleSourceText(bound, selection.methodId ? 'this rule' : methodTitle(running));
-  return text ? element('p', 'rule-source', text) : null;
+  return bound ? ruleSourceLine(bound, selection.methodId ? 'this rule' : methodTitle(running)) : null;
 }
 
 /* Which slots the reader has opened, so a choice made inside one does not shut the panel it
@@ -308,8 +307,8 @@ function ranBesideRow(method, bound) {
   // The claim about the rule leads the claims about its values, in one voice: a reader who can
   // see where every number came from and not where the rule came from is reading three
   // quarters of a methods section.
-  const source = ruleSourceText(bound);
-  if (source) row.append(element('span', 'rule-source', source));
+  const source = ruleSourceLine(bound);
+  if (source) row.append(source);
   const values = valuesWithTheirSource(method, bound);
   if (values) row.append(element('span', 'ran-beside__value', values));
 
