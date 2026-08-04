@@ -27,29 +27,30 @@ import result_parity as gate
 ROOT = pathlib.Path(__file__).parent.parent
 BASELINE = ROOT / "tests" / "golden" / "result-parity.json"
 
-# What each surface publishes beyond the compared fields, measured on 2026-08-03 by running
-# the four arms and taking the top-level keys of each answer. Held here as names alone: the
-# cases below turn on which surface carries a field, never on its value.
-BEYOND_THE_COMPARED_FIELDS = {
-    "cli": ["plateforce_version", "registry_digest", "registry_version", "spread", "trial"],
-    "browser": ["plateforce_version", "registry_digest", "registry_version", "trial"],
-    "python": ["registry_digest", "registry_version"],
-    "r": ["registry_digest", "descriptions"],
-}
-
-
 def answers_that_pass():
-    """The four surfaces as they answer today, assembled from the committed result."""
+    """The four surfaces as they answer today, assembled from the committed result.
+
+    The fields beyond the compared ones are placed from the gate's own register rather than
+    from a table here, so this file cannot drift from what the gate expects and then report the
+    drift as a case that proved something. A field recorded as agreeing gets one value across
+    its carriers, one recorded as disagreeing gets a different value on each, and the surfaces
+    are exactly the ones the manifest names.
+    """
     document = json.loads(BASELINE.read_text(encoding="utf-8"))
     result = document["result"]
-    answers = {}
-    for surface, extra in BEYOND_THE_COMPARED_FIELDS.items():
-        answer = dict(result)
-        for field in extra:
-            # A placeholder for every field this comparison does not reach, except the digest,
-            # which the assertion that covers it reads.
-            answer[field] = "content-0" if field == "registry_digest" else f"{surface}-{field}"
-        answers[surface] = answer
+    answers = {surface: dict(result) for surface in gate.surfaces_named_in_manifest()}
+
+    # Published by every surface and covered by an assertion of its own rather than by the
+    # comparison. The digest's assertion reads the value, so the four have to match.
+    for field in gate.ASSERTED_ANOTHER_WAY:
+        for answer in answers.values():
+            answer[field] = "content-0"
+
+    for field, declared in gate.SURFACES_THAT_DIFFER.items():
+        for surface in declared.carried_by:
+            answers[surface][field] = (
+                f"{surface}-{field}" if declared.carriers_agree is False else f"one-{field}"
+            )
     return answers, document["compared_fields"]
 
 
@@ -147,6 +148,23 @@ def stop_publishing_a_field_asserted_another_way(answers, fields):
         answer.pop("registry_digest", None)
 
 
+def make_agreeing_carriers_disagree(answers, fields):
+    """A divergence whose carriers stopped matching each other."""
+    answers["browser"]["trial"] = "browser-went-its-own-way"
+
+
+def repair_a_recorded_disagreement(answers, fields):
+    """The case the follow-up depends on: `registry_version` agreeing across its carriers.
+
+    When `wsrp/registry-pin` lands, Python stops reporting null and the three carriers match.
+    That is the repair, and the gate has to refuse it rather than pass it, or the entry sits in
+    the register describing a disagreement that no longer exists and nobody moves the field
+    into `compared_fields`.
+    """
+    for surface in ("cli", "browser", "python"):
+        answers[surface]["registry_version"] = "2026-07-25"
+
+
 CASES = [
     ("a name taken out of compared_fields", drop_a_compared_field, "every surface publishes"),
     (
@@ -198,6 +216,16 @@ CASES = [
         "the field asserted another way, published by nobody",
         stop_publishing_a_field_asserted_another_way,
         "reads as coverage and covers nothing",
+    ),
+    (
+        "a divergence whose carriers stopped agreeing with each other",
+        make_agreeing_carriers_disagree,
+        "recorded as agreeing",
+    ),
+    (
+        "a recorded disagreement repaired, which the register has to notice",
+        repair_a_recorded_disagreement,
+        "recorded as disagreeing",
     ),
 ]
 

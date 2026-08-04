@@ -24,6 +24,7 @@ is where each of those refusals is shown to fire.
 import json
 import pathlib
 import sys
+from typing import NamedTuple
 
 # A floor rather than the exact count, which would fail every time a metric is added. It is
 # here because a comparison that agreed on an empty document would report success.
@@ -162,42 +163,76 @@ ASSERTED_ANOTHER_WAY = {
     ),
 }
 
-# A field some surfaces publish and others do not, with why they differ. This gate cannot
-# compare one, because there is no value on every surface to compare, so the register exists
-# to make the divergence something a reader of this gate's output can see rather than
-# something its silence hides.
+class Divergence(NamedTuple):
+    """One field some surfaces publish and others do not, as measured rather than as hoped.
+
+    `carriers_agree` is the state the surfaces that DO carry it are in: True when they report
+    the same value, False when they do not, and None when only one carries it, because a
+    population of one agrees with itself and recording that as agreement would be the shape
+    this project keeps catching. It is pinned to measurement, so a divergence being repaired
+    reddens this gate exactly as loudly as one appearing. That is the point: the repair is
+    supposed to end with the entry moving out of this register.
+
+    `discharged_by` names the work that retires the entry, so an entry cannot quietly become
+    permanent by nobody remembering what it was waiting for.
+    """
+
+    carried_by: frozenset
+    carriers_agree: bool
+    discharged_by: str
+    reason: str
+
+
+# A field some surfaces publish and others do not. This gate cannot hold one to a committed
+# value, because there is no value on every surface to hold, so the register exists to make
+# the divergence something a reader of this gate's output can see rather than something its
+# silence hides.
 #
-# Checked against measurement in both directions on every run. A field that reached a fifth
-# surface, or stopped reaching one it is declared to reach, has changed what a result carries
-# on some surface, and a line here still naming the old set is not a reason to pass over it.
-# An entry is a divergence recorded, never a divergence accepted.
+# Checked against measurement in both directions on every run, on which surfaces carry it and
+# on whether those surfaces agree. A field that reached a fifth surface, stopped reaching one,
+# or started disagreeing with itself has changed what a result carries, and a line here still
+# naming the old state is not a reason to pass over it. An entry is a divergence recorded,
+# never a divergence accepted.
 SURFACES_THAT_DIFFER = {
-    "plateforce_version": (
+    "plateforce_version": Divergence(
         frozenset({"cli", "browser"}),
+        True,
+        "nothing outstanding; the two surfaces that assemble `ResultDocument` agree",
         "the build that produced the numbers, carried by the two surfaces that assemble "
         "`ResultDocument`. Python and R answer for a build a caller already holds, through "
         "`plateforce.__version__` and `packageVersion`",
     ),
-    "registry_version": (
+    "registry_version": Divergence(
         frozenset({"cli", "browser", "python"}),
-        "the version the registry declares. R alone omits it, which is an omission rather "
-        "than a decision: `bindings/r/src/rust/src/lib.rs` builds its own report and has no "
-        "field for it",
+        False,
+        "wsrp/registry-pin",
+        "the version the registry declares, and the one entry here whose carriers disagree: "
+        "the terminal and the tab both report the registry's declared version and Python "
+        "reports null, from `EMBEDDED_REGISTRY_VERSION` in "
+        "`crates/plateforce-python/src/registry.rs`. R omits the field altogether, its own "
+        "report having no place for it. Three surfaces carrying one field and disagreeing is "
+        "why the state is pinned here rather than left to the presence check",
     ),
-    "trial": (
+    "trial": Divergence(
         frozenset({"cli", "browser"}),
+        True,
+        "nothing outstanding; a caller who opened the trial already holds this",
         "where the trace came from and what the reader had to be told about reading it. The "
         "two surfaces handed a path know it; Python and R are handed a trial somebody else "
         "opened",
     ),
-    "descriptions": (
+    "descriptions": Divergence(
         frozenset({"r"}),
+        None,
+        "no branch yet, and it wants one",
         "the account each quantity gives of itself. Generated in `descriptions_of`, which "
         "lives in R's binding and in no other surface's, so a terminal, a browser tab and a "
         "notebook receive nothing here",
     ),
-    "spread": (
+    "spread": Divergence(
         frozenset({"cli"}),
+        None,
+        "nothing outstanding; the other surfaces expose the sweep as a call of its own",
         "how far a number moves across a slot's defensible alternatives. The terminal sweeps "
         "with the analysis; the tab sweeps on its own schedule through a second entry point, "
         "and Python and R expose the sweep as a call of its own",
@@ -287,25 +322,52 @@ def coverage_faults(answers, fields):
                 "and nothing here says why. A field one surface publishes and another drops is "
                 "a result carrying its method on some surfaces and not others"
             )
-        elif declared[0] != carried:
+            continue
+        if declared.carried_by != carried:
             faults.append(
-                f"{field} is declared to reach {sorted(declared[0])} and reaches "
-                f"{sorted(carried)}: {declared[1]}"
+                f"{field} is declared to reach {sorted(declared.carried_by)} and reaches "
+                f"{sorted(carried)}: {declared.reason}"
+            )
+            continue
+        # Whether the surfaces that do carry it agree with each other. A presence check alone
+        # passes a field three surfaces publish and two of them contradict, which is the state
+        # `registry_version` was found in and the reason this is asked at all.
+        agree = carriers_agree_about(answers, field, carried)
+        if agree != declared.carriers_agree:
+            faults.append(
+                f"{field} is recorded as {agreement_reads(declared.carriers_agree)} across "
+                f"{sorted(carried)} and measures {agreement_reads(agree)}: "
+                f"{{{', '.join(f'{name}={answers[name][field]!r}' for name in sorted(carried))}}}. "
+                f"Discharged by {declared.discharged_by}"
             )
 
-    for field, (declared, reason) in sorted(SURFACES_THAT_DIFFER.items()):
+    for field, declared in sorted(SURFACES_THAT_DIFFER.items()):
         if field in everywhere:
             faults.append(
                 f"{field} now reaches every surface, so it is comparable and belongs in "
-                f"compared_fields rather than here: {reason}"
+                f"compared_fields rather than here. Discharged by "
+                f"{declared.discharged_by}: {declared.reason}"
             )
         elif field not in somewhere:
             faults.append(
                 f"{field} is declared uneven across the surfaces and no surface publishes it: "
-                f"{reason}"
+                f"{declared.reason}"
             )
 
     return faults
+
+
+def carriers_agree_about(answers, field, carried):
+    """True, False, or None when one surface carries it and there is nothing to agree about."""
+    if len(carried) < 2:
+        return None
+    return len({canonical(answers[name][field]) for name in carried}) == 1
+
+
+def agreement_reads(state):
+    if state is None:
+        return "carried by one surface, with nothing to agree about"
+    return "agreeing" if state else "disagreeing"
 
 
 def write(baseline_path, answers):
@@ -405,7 +467,13 @@ def check(baseline_path, answers):
             f"the surfaces agree about the shape and not yet about a value: {hollow}"
         )
     for field in uneven:
-        print(f"  {field} reaches {sorted(surfaces_publishing(answers, field))} of the four")
+        carried = surfaces_publishing(answers, field)
+        declared = SURFACES_THAT_DIFFER[field]
+        print(
+            f"  {field} reaches {sorted(carried)} of the four, "
+            f"{agreement_reads(declared.carriers_agree)}, discharged by "
+            f"{declared.discharged_by}"
+        )
 
 
 def every_number(value):
