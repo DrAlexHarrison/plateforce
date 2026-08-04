@@ -22,6 +22,7 @@ analyse_countermovement_jump(
   takeoff_index = NULL,
   touchdown_index = NULL,
   derived = NULL,
+  conditioning = NULL,
   registry = NULL,
   registry_version = NULL
 )
@@ -60,6 +61,13 @@ peak_force = "force.peak.gross")`. A rule that takes values is written
 `list(peak_force = list(method_id = "force.peak.estimator",
 parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
 one placed declines by name when that construct was not named.}
+
+\item{conditioning}{Rules and values for the phase that conditions the signal before the
+landmarks are placed, named by the construct id the registry declares:
+`list(conditioned_force_signal = "filter.none")`. Values are written
+`list(conditioned_force_signal = list(options = list(passband_edge = "none")))`, with the
+rule left out where the phase's own is wanted. The phase runs whether or not this is
+passed, so what it buys is the record naming the caller rather than the software.}
 
 \item{registry}{Directory holding the registry, as in [pf_registry()].}
 
