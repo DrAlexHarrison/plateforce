@@ -26,6 +26,7 @@ Run it after any edit to `result_parity.py`, and after any change to what a surf
     python3 scripts/prove-parity-coverage-refuses.py
 """
 
+import copy
 import json
 import pathlib
 import sys
@@ -38,6 +39,55 @@ import result_parity as gate
 ROOT = pathlib.Path(__file__).parent.parent
 BASELINE = ROOT / "tests" / "golden" / "result-parity.json"
 SWEEP_BASELINE = ROOT / "tests" / "golden" / "result-parity-sweep.json"
+
+
+# What every surface publishes for a field asserted another way, when they agree. One entry
+# per field the gate asserts, and a field with no entry stops this script rather than being
+# stood in for.
+#
+# The assertions read the value, so the shape is part of what makes a case evidence. A block
+# keyed by quantity stood in for by a string does not compare as agreement or as disagreement:
+# it raises inside the assertion, and a script that dies on its own control proves nothing at
+# all. Which is what `descriptions` did here the hour it became the third such field.
+AN_AGREEING_VALUE = {
+    "registry_digest": "content-0",
+    "registry_declared_version": "content-0",
+    "plateforce_version": "content-0",
+    "descriptions": {
+        "jump_height_m": "0.3142 m\n  jumpheight.takeoff.velocity\n    takeoff.threshold.absolute_force",
+        "takeoff_velocity_m_per_s": "2.4832 m/s\n  takeoff.threshold.absolute_force",
+    },
+}
+
+
+def an_agreeing_value(field):
+    """The value the surfaces carry for one field asserted another way, in that field's shape."""
+    if field not in AN_AGREEING_VALUE:
+        raise SystemExit(
+            f"plateforce: {field} is asserted another way and no value of its shape is written "
+            "here, so every case below would run against a field the assertion cannot read"
+        )
+    return copy.deepcopy(AN_AGREEING_VALUE[field])
+
+
+def a_recorded_divergence(kind):
+    """One field the register records as reaching some surfaces and agreeing across them.
+
+    Read off the register rather than named, because a case naming one field goes quiet the
+    moment that entry is discharged and this script is run by hand. `descriptions` was named
+    here until it reached all four surfaces, which left the case writing a field the register
+    no longer describes and refusing for a reason that is not this one.
+
+    Agreeing rather than any entry at all: spreading a divergence whose carriers disagree
+    raises the disagreement fault as well, and a case that trips two refusals proves neither.
+    """
+    for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
+        if declared.carriers_agree:
+            return field
+    raise SystemExit(
+        f"plateforce: the {kind} register records no divergence its carriers agree about, so "
+        "there is nothing here to spread to every surface"
+    )
 
 
 def answers_from_baseline(baseline, kind, asked):
@@ -54,10 +104,11 @@ def answers_from_baseline(baseline, kind, asked):
     answers = {surface: dict(result) for surface in asked}
 
     # Published by every surface and covered by an assertion of its own rather than by the
-    # comparison. Each assertion reads the value, so the surfaces have to match.
+    # comparison. Each assertion reads the value, so the surfaces have to match, and each
+    # reads it in that field's own shape.
     for field in gate.ASSERTED_ANOTHER_WAY[kind]:
         for answer in answers.values():
-            answer[field] = "content-0"
+            answer[field] = an_agreeing_value(field)
 
     for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
         for surface in declared.carried_by:
@@ -179,8 +230,10 @@ def move_a_declared_divergence(answers, fields):
 
 
 def spread_a_divergence_to_every_surface(answers, fields):
-    for surface, answer in answers.items():
-        answer["descriptions"] = {}
+    """A field the register records as reaching some surfaces, reaching all of them."""
+    field = a_recorded_divergence(gate.ANALYSED)
+    for answer in answers.values():
+        answer[field] = f"one-{field}"
 
 
 def retire_a_divergence_everywhere(answers, fields):
@@ -200,6 +253,29 @@ def compare_a_field_asserted_another_way(answers, fields):
 
 def make_two_surfaces_read_different_registries(answers, fields):
     answers["r"]["registry_digest"] = "content-somethingelse"
+
+
+def make_two_surfaces_describe_one_number_differently(answers, fields):
+    """One number, two accounts of itself, which is the defect that field is asserted for.
+
+    A committed copy of an account moves with every registry data edit, so the account is held
+    to the other surfaces rather than to a record. This is what holding it there has to catch,
+    and the quantity is named off the block so the case cannot outlive a renamed metric.
+    """
+    block = answers["r"]["descriptions"]
+    quantity = sorted(block)[0]
+    block[quantity] = block[quantity].replace("m", "cubits")
+
+
+def empty_the_account_every_surface_gives(answers, fields):
+    """Four surfaces describing nothing, which reads exactly like four surfaces agreeing.
+
+    The hollow the assertion is floored against: an engine change that stops writing the block
+    leaves every surface's copy of it empty, every pair of them identical, and a comparison
+    that walks no quantity reporting no fault.
+    """
+    for answer in answers.values():
+        answer["descriptions"] = {}
 
 
 def ask_fewer_surfaces_than_the_manifest_names(answers, fields):
@@ -317,6 +393,16 @@ CASES = [
         "two surfaces resolving rules out of different registries",
         make_two_surfaces_read_different_registries,
         "different registries",
+    ),
+    (
+        "two surfaces giving one number two accounts of itself",
+        make_two_surfaces_describe_one_number_differently,
+        "different accounts of itself",
+    ),
+    (
+        "every surface's account of every number emptied at once",
+        empty_the_account_every_surface_gives,
+        "four empty blocks",
     ),
     (
         "a run holding fewer surfaces than the request is asked of",

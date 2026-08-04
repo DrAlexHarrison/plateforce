@@ -85,7 +85,8 @@ pub struct Args {
     pub acquisition: Vec<String>,
     #[arg(long, value_name = "NAME", help = crate::plate_source::PLATE_HELP)]
     pub plate: Option<String>,
-    /// Show every value each rule read, including the ones it chose for itself
+    /// Show every value each rule read, including the ones it chose for itself, and the
+    /// account each number gives of itself
     #[arg(long)]
     pub provenance: bool,
 }
@@ -815,7 +816,6 @@ fn render(
         &registry_stamp(registry, args),
         capture,
         response,
-        BTreeMap::new(),
         spread,
     );
 
@@ -826,8 +826,10 @@ fn render(
                 return Outcome::declined(Declined::line(Fault::Internal, format!("{error}")))
             }
         },
-        // The signals the analysis already computed. Recomputing them here ran the same
-        // function over the same response a second time.
+        // The signals the analysis already computed, and the accounts the document already
+        // carries. Recomputing either here ran the same function over the same response a
+        // second time, and a column that wrote its own would be the second home this
+        // surface's readers were reading.
         Format::Text => text_body(
             response,
             reported.spread.as_ref(),
@@ -837,6 +839,7 @@ fn render(
             &refusals,
             &response.signals,
             trial.rows_read,
+            &reported.descriptions,
         ),
     };
 
@@ -913,6 +916,7 @@ fn text_body(
     refusals: &[Declined],
     signals: &[QualitySignal],
     rows_read: usize,
+    accounts: &BTreeMap<String, String>,
 ) -> String {
     let mut document = String::new();
     let widest = response
@@ -1024,8 +1028,46 @@ fn text_body(
             let _ = writeln!(document, "{line}");
         }
     }
+
+    // The account each number gives of itself, behind the flag that already means the whole
+    // record. The two sections above name the rules and the values once for the run; this
+    // names them once per number, which is the arrangement a reader asking about one figure
+    // reads, and it is what a notebook and an R session already answer through `describe`.
+    // Every fact in it is on screen without the flag, so nothing here is the only account of
+    // anything.
+    if args.provenance {
+        let _ = writeln!(document);
+        let _ = writeln!(
+            document,
+            "{}",
+            renderer.paint(Role::Heading, "How each number was produced")
+        );
+        for metric in &response.metrics {
+            let Some(account) = accounts.get(&metric.key) else {
+                continue;
+            };
+            for line in describe_account(&metric.label, account, renderer) {
+                let _ = writeln!(document, "{line}");
+            }
+        }
+    }
+
     let _ = document.pop();
     document
+}
+
+/// One number's account, under the label the table above showed it under.
+///
+/// Printed line by line rather than as one string, because the account states each step's
+/// depth in leading spaces and wrapping the whole of it would break on every space in it and
+/// hand a reader a paragraph. Each line keeps its own depth and wraps under itself.
+fn describe_account(label: &str, account: &str, renderer: &Renderer) -> Vec<String> {
+    let mut lines = vec![format!("  {label}")];
+    for line in account.lines() {
+        let depth = line.chars().count() - line.trim_start().chars().count();
+        lines.extend(renderer.wrap(line.trim_start(), depth + 4));
+    }
+    lines
 }
 
 /// A value the analysis was bound to, with the word for where it came from.

@@ -38,7 +38,8 @@ pub use identity::{
     Session, SourceFormat, SubjectKey, TrialEntry, TrialIdentity, TrialSet, TrialSource, WalkError,
 };
 pub use relations::{
-    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
+    AggregateRow, DescriptionRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow,
+    WarningRow,
 };
 pub use render::{Rendered, Rendering};
 pub use sweep::{axis_over, SweepRefusal};

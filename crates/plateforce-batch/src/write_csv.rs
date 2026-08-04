@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 use crate::engine::BatchResult;
 use crate::exclusions::PopulationExclusion;
 use crate::relations::{
-    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
+    AggregateRow, DescriptionRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow,
+    WarningRow,
 };
 
 /// One table a caller can ask for.
@@ -18,6 +19,7 @@ use crate::relations::{
 pub enum Relation {
     Results,
     Provenance,
+    Descriptions,
     Refusals,
     Warnings,
     Signals,
@@ -31,6 +33,7 @@ impl Relation {
         match self {
             Relation::Results => "results.csv",
             Relation::Provenance => "provenance.csv",
+            Relation::Descriptions => "descriptions.csv",
             Relation::Refusals => "refusals.csv",
             Relation::Warnings => "warnings.csv",
             Relation::Signals => "signals.csv",
@@ -45,6 +48,7 @@ pub const EVERY_RELATION: &[Relation] = &[
     Relation::Run,
     Relation::Results,
     Relation::Provenance,
+    Relation::Descriptions,
     Relation::Refusals,
     Relation::Warnings,
     Relation::Signals,
@@ -67,8 +71,9 @@ pub enum WriteRefusal {
 }
 
 impl BatchResult {
-    /// Every relation, with the record: results, provenance, refusals and the run block, plus
-    /// warnings, and aggregates when a rule was bound.
+    /// Every relation `EVERY_RELATION` names, with the record beside them. The names are read
+    /// off that list rather than spelled again here, where a second copy of them had gone on
+    /// naming six of the nine.
     pub fn write_csv(&self, directory: &Path) -> Result<Vec<PathBuf>, WriteRefusal> {
         self.write_csv_selection(directory, EVERY_RELATION)
     }
@@ -115,6 +120,10 @@ impl BatchResult {
             Relation::Provenance => render_table(
                 ProvenanceRow::header(),
                 self.provenance.iter().map(ProvenanceRow::cells),
+            ),
+            Relation::Descriptions => render_table(
+                DescriptionRow::header(),
+                self.descriptions.iter().map(DescriptionRow::cells),
             ),
             Relation::Refusals => render_table(
                 RefusalRow::header(),
@@ -254,11 +263,26 @@ pub fn read_csv(directory: &Path) -> Result<ReadBack, WriteRefusal> {
         })
         .collect();
 
+    // Read back for the reason the others are, and it is the one relation whose cells hold
+    // the record separator: an account states its chain over several lines, so a reader that
+    // split this file on newlines would report one number's account as several rows.
+    let descriptions = parse(&read("descriptions.csv")?)
+        .rows
+        .iter()
+        .map(|cells| DescriptionRow {
+            trial_id: cells[0].clone(),
+            quantity: cells[1].clone(),
+            provenance_id: cells[2].clone(),
+            account: cells[3].clone(),
+        })
+        .collect();
+
     Ok(ReadBack {
         run,
         quantities,
         results,
         provenance,
+        descriptions,
         refusals,
     })
 }
@@ -270,6 +294,7 @@ pub struct ReadBack {
     pub quantities: Vec<String>,
     pub results: Vec<ResultRow>,
     pub provenance: Vec<ProvenanceRow>,
+    pub descriptions: Vec<DescriptionRow>,
     pub refusals: Vec<RefusalRow>,
 }
 

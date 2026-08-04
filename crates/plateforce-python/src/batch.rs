@@ -1,6 +1,6 @@
 //! Batch from a notebook.
 //!
-//! The four relations arrive as lists of dictionaries and the converters are opt-in, so the
+//! The relations arrive as lists of dictionaries and the converters are opt-in, so the
 //! object pulls in no third-party package. Asking for one that is not installed says which
 //! package would answer and what is available without it.
 
@@ -155,6 +155,17 @@ impl BatchResult {
         rows(
             python,
             serde_json::to_value(&self.inner.provenance).unwrap_or_default(),
+        )
+    }
+
+    /// One row per number the run produced, carrying the account that number gives of
+    /// itself. Keyed by trial and quantity, because an account opens with its own value and
+    /// two trials that ran identically still give different accounts of themselves.
+    #[getter]
+    fn descriptions<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        rows(
+            python,
+            serde_json::to_value(&self.inner.descriptions).unwrap_or_default(),
         )
     }
 

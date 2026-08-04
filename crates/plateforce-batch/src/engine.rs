@@ -22,7 +22,8 @@ use crate::exclusions::{GateRegistry, PopulationExclusion, ValidityGate};
 use crate::fingerprint::{provenance_id, request_digest, run_fingerprint};
 use crate::identity::{TrialSet, UnidentifiedFile};
 use crate::relations::{
-    AggregateRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow, WarningRow,
+    AggregateRow, DescriptionRow, ProvenanceRow, RefusalRow, ResultRow, RunRow, SignalRow,
+    WarningRow,
 };
 
 /// What one batch run was asked to do.
@@ -168,6 +169,9 @@ pub struct BatchResult {
     pub units: BTreeMap<String, String>,
     pub results: Vec<ResultRow>,
     pub provenance: Vec<ProvenanceRow>,
+    /// The account each number in `results` gives of itself, one row per trial per quantity
+    /// that produced a value.
+    pub descriptions: Vec<DescriptionRow>,
     pub refusals: Vec<RefusalRow>,
     pub warnings: Vec<WarningRow>,
     /// What the analysis already knew about the numbers it reported, per trial.
@@ -269,6 +273,7 @@ pub fn analyse(
     let mut units: BTreeMap<String, String> = BTreeMap::new();
     let mut results: Vec<ResultRow> = Vec::new();
     let mut provenance: BTreeMap<String, Vec<ProvenanceRow>> = BTreeMap::new();
+    let mut descriptions: Vec<DescriptionRow> = Vec::new();
     let mut refusals: Vec<RefusalRow> = Vec::new();
     let mut warnings: Vec<WarningRow> = Vec::new();
     let mut signals: Vec<SignalRow> = Vec::new();
@@ -379,6 +384,20 @@ pub fn analyse(
                 })
                 .collect()
         });
+
+        // The account each of this trial's numbers gives of itself, from the one site that
+        // writes them. A folder run wrote none, so a reader who ran two hundred trials held
+        // the rules as rows and no number's own account of itself.
+        for (quantity, account) in
+            plateforce_analysis::accounts_of(&response, &stamp, acquisition_is_complete)
+        {
+            descriptions.push(DescriptionRow {
+                trial_id: trial_id.clone(),
+                quantity,
+                provenance_id: identifier.clone(),
+                account,
+            });
+        }
 
         let mut values: BTreeMap<String, Option<f64>> = BTreeMap::new();
         for metric in &response.metrics {
@@ -506,6 +525,7 @@ pub fn analyse(
         units,
         results,
         provenance: flattened,
+        descriptions,
         refusals,
         warnings,
         signals,

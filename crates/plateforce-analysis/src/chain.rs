@@ -1,4 +1,5 @@
-//! The chain of rules behind each number an analysis produced.
+//! The chain of rules behind each number an analysis produced, and the account each number
+//! gives of itself, which is written from that chain.
 //!
 //! A response says which rule computed a quantity and which rules its answer rests on, as two
 //! flat lists. The tree those two lists describe is what a reader reads and what
@@ -14,8 +15,11 @@
 //! maths: not two implementations of a quantity, but four implementations of one derivation,
 //! feeding a function none of them could call.
 
+use std::collections::BTreeMap;
+
 use plateforce_core::provenance::RegistryStamp;
-use plateforce_core::{Provenance, ProvenanceChain};
+use plateforce_core::reporting::describe;
+use plateforce_core::{Measured, Provenance, ProvenanceChain};
 
 use crate::binding::Dispatch;
 use crate::resolution::BoundMethod;
@@ -286,4 +290,73 @@ pub fn chains_of(
             chain: chain_of(response, metric, registry, acquisition_complete),
         })
         .collect()
+}
+
+/// The account each quantity gives of itself, keyed by the quantity.
+///
+/// The one site that writes them. The sentence itself is
+/// `plateforce_core::reporting::describe`, and this is where the arguments it takes are
+/// assembled, so a terminal, a browser tab, a notebook and an R session cannot assemble them
+/// differently. It lived in the R boundary and nowhere else, so R was the only surface whose
+/// reader ever received one.
+///
+/// The chain each account is written around is `chains_of`'s, walked beside `metrics` because
+/// that call returns one entry per metric in the response's own order. The R boundary used to
+/// build a tree of its own, which put every contributing rule at one depth under a root
+/// carrying none of the arithmetic's own values, so the gravity behind the flight-time height
+/// was absent from the sentence a reader was shown.
+///
+/// A quantity with no value gets no account, because an account is written around a
+/// `Measured` and there is nothing measured to write one about. This used to be the one place
+/// in the whole product where a number that is not a number could be told from a number
+/// nobody computed: a metric could hold a NaN, so it reached this loop, and the account read
+/// "NaN newtons" with a full provenance chain behind it, asserting a measurement that was
+/// never made. That distinction now lives on the metric itself, on every surface, as
+/// `carried_no_number`, so this loop is free to say nothing about a quantity that has no
+/// value without taking the only account of it away from a reader.
+pub fn descriptions_of(
+    response: &AnalysisResponse,
+    chains: &[MetricChain],
+) -> BTreeMap<String, String> {
+    let mut accounts = BTreeMap::new();
+    for (metric, derived) in response.metrics.iter().zip(chains) {
+        let Some(value) = metric.value else { continue };
+        let Some(unit) = declared_unit(metric) else {
+            continue;
+        };
+        let measured = Measured {
+            value,
+            unit,
+            provenance: derived.chain.provenance.clone(),
+        };
+        accounts.insert(metric.key.to_string(), describe(&measured, &derived.chain));
+    }
+    accounts
+}
+
+/// The account each quantity gives of itself, for a caller holding no chains of its own.
+///
+/// The chains and the accounts come from one derivation either way, so a surface that wants
+/// only the accounts cannot reach them through a second one.
+pub fn accounts_of(
+    response: &AnalysisResponse,
+    registry: &RegistryStamp,
+    acquisition_complete: bool,
+) -> BTreeMap<String, String> {
+    descriptions_of(
+        response,
+        &chains_of(response, registry, acquisition_complete),
+    )
+}
+
+/// The unit a metric reports, taken from the one declaration that spells it, and only when
+/// the metric agrees with that declaration.
+///
+/// A metric owns its unit so a quantity can take one from the registry, and `Measured` holds
+/// a static one. Reading the declaration instead of the metric would print a unit the number
+/// does not carry the moment those two differ, which `unit_of_every_metric_is_the_declared_one`
+/// is what stops.
+fn declared_unit(metric: &Metric) -> Option<&'static str> {
+    let declared = crate::response::quantity(&metric.key)?;
+    (declared.unit == metric.unit).then_some(declared.unit)
 }

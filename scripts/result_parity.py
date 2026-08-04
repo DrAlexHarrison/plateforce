@@ -495,7 +495,18 @@ REGISTRY_ASSERTIONS = {
 }
 
 ASSERTED_ANOTHER_WAY = {
-    ANALYSED: dict(REGISTRY_ASSERTIONS),
+    ANALYSED: {
+        **REGISTRY_ASSERTIONS,
+        "descriptions": (
+            "an account names the registry behind the number it describes, so a committed "
+            "copy of one moves with every registry data edit, which is how a method is added "
+            "here and is not a parity event. It is the same property the digest itself is "
+            "asserted for one entry above, reaching this field through the prose. Two "
+            "surfaces giving one number two accounts is exactly parity, so that is what is "
+            "asked",
+            lambda answers: surfaces_write_one_account_of_each_number(answers),
+        ),
+    },
     SWEPT: {
         **REGISTRY_ASSERTIONS,
         "plateforce_version": (
@@ -610,14 +621,13 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "`ResultDocument`. Python and R take the block on the trial they are handed and report "
         "`acquisition_complete`, which is compared on all four",
     ),
-    "descriptions": Divergence(
-        frozenset({"r"}),
-        None,
-        "no branch yet, and it wants one",
-        "the account each quantity gives of itself. Generated in `descriptions_of`, which "
-        "lives in R's binding and in no other surface's, so a terminal, a browser tab and a "
-        "notebook receive nothing here",
-    ),
+    # `descriptions` was here, carried by r alone, with nothing to agree about. Discharged by
+    # ws/descriptions-everywhere: `descriptions_of` moved beside `chains_of`, the document
+    # fills the block rather than accepting it, and the two surfaces that were passing an
+    # empty map cannot. It reaches all four now and is asserted between them, above, because
+    # an account names the registry behind the number it describes: measured on the `quiet`
+    # request, 11 of 11 accounts quote the digest, so a committed copy would move with every
+    # registry data edit.
     "provenance": Divergence(
         frozenset({"r"}),
         None,
@@ -811,6 +821,39 @@ def surfaces_name_one_revision(answers):
     if len(set(revisions.values())) > 1:
         return [f"surfaces name different registry revisions: {revisions}"]
     return []
+
+
+def surfaces_write_one_account_of_each_number(answers):
+    """Asserted between the surfaces rather than against a committed value.
+
+    The strongest form the field can be held to here: byte for byte, every surface's whole
+    block, so a step at a different depth or a value spelled differently fails as loudly as a
+    quantity described by one surface and not another. The quantities are named rather than
+    the blocks printed, because four accounts of eleven numbers is a page of prose and the
+    question a reader has is which number two surfaces disagree about.
+
+    A block empty on every surface is reported rather than passed. Four surfaces agreeing
+    about no account at all is the hollow comparison this file exists against, and it reads
+    exactly like agreement.
+    """
+    described = {name: answer.get("descriptions") or {} for name, answer in answers.items()}
+    if not any(described.values()):
+        return [
+            "no surface describes any number on this request, so this assertion compares "
+            "four empty blocks. A request whose quantities all decline states that through "
+            "`refusals`; this field would be agreeing about nothing"
+        ]
+
+    quantities = sorted(set().union(*(set(block) for block in described.values())))
+    faults = []
+    for quantity in quantities:
+        written = {name: block.get(quantity) for name, block in described.items()}
+        if len({canonical(account) for account in written.values()}) > 1:
+            carried = sorted(name for name, account in written.items() if account is not None)
+            faults.append(
+                f"surfaces give {quantity} different accounts of itself, carried by {carried}"
+            )
+    return faults
 
 
 def surfaces_name_one_build(answers):

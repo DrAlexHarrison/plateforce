@@ -97,6 +97,48 @@ impl ProvenanceRow {
     }
 }
 
+/// One row per number the run produced, carrying the account that number gives of itself.
+///
+/// Keyed by trial and quantity rather than by `provenance_id`, which is what collapses the
+/// neighbouring `provenance` relation from a corpus-sized run of identical rows to one set per
+/// distinct chain. An account opens with its own value, so two trials that ran identically
+/// still give different accounts of themselves, and a relation keyed by the chain would carry
+/// one trial's number under every trial that shares it.
+///
+/// The account itself rather than a join back to `provenance`. Every fact in it is in that
+/// relation as rows, and a reader holding the rows cannot write the sentence: the sentence is
+/// `plateforce_core::reporting::describe`'s, which is the one home for it, and a table that
+/// pointed at a second home would be asking each reader to reimplement it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DescriptionRow {
+    pub trial_id: String,
+    pub quantity: String,
+    /// The chain this account was written from, so a reader can reach the same decisions as
+    /// rows in `provenance`.
+    pub provenance_id: String,
+    /// Several lines, as the engine wrote them. The writer quotes a cell holding newlines,
+    /// which is the same rule a path holding a comma meets.
+    pub account: String,
+}
+
+impl DescriptionRow {
+    pub fn header() -> Vec<String> {
+        ["trial_id", "quantity", "provenance_id", "account"]
+            .iter()
+            .map(|name| name.to_string())
+            .collect()
+    }
+
+    pub fn cells(&self) -> Vec<String> {
+        vec![
+            self.trial_id.clone(),
+            self.quantity.clone(),
+            self.provenance_id.clone(),
+            self.account.clone(),
+        ]
+    }
+}
+
 /// One row per refusal, keyed by trial and ordinal rather than by trial alone.
 ///
 /// A partial trial declines and computes at once, so `trial_id` is not unique here. The
