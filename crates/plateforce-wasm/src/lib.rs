@@ -425,9 +425,10 @@ impl LoadedTrial {
     /// Every defensible alternative for one quantity, and how far the number moves.
     ///
     /// The sweep leaves this tab on its own, so it carries the identity `analyse` above puts on
-    /// a result rather than none at all. No revision is named: `docs/schema.md` gives
-    /// `registry_version` the caller's pin and nothing else, and this surface offers no way to
-    /// pin one, so the registry's own declared revision is not written into that answer.
+    /// a result rather than none at all. The stamp is unpinned because `SpreadRequest` denies
+    /// unknown fields and this surface has no field a caller could write a revision into, which
+    /// is a different thing from a surface that accepts a pin and drops it. What the registry
+    /// declares about itself is carried beside the absent pin rather than in place of it.
     #[wasm_bindgen(js_name = spread)]
     pub fn spread(&self, request_json: &str) -> Result<String, JsError> {
         let request: spread::SpreadRequest =
@@ -436,8 +437,10 @@ impl LoadedTrial {
         match spread::run(&self.trial, &request) {
             Ok(response) => replied(&document::SpreadDocument::of(
                 version(),
-                None,
-                Some(loaded.digest.clone()),
+                &plateforce_core::provenance::RegistryStamp::unpinned(
+                    loaded.registry.declared_version.clone(),
+                    Some(loaded.digest.clone()),
+                ),
                 response,
             )),
             Err(refusal) => refused(&refusal),

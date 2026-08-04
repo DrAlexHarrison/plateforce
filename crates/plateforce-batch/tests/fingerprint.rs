@@ -3,7 +3,8 @@
 mod common;
 
 use common::{
-    analysis_request, bound_request, committed_format, copy_committed_fixtures, registry, tempdir,
+    analysis_request, bound_request, bound_request_describing_the_plate, committed_format,
+    copy_committed_fixtures, registry, tempdir,
 };
 use plateforce_batch::{analyse, BatchRequest, ProvenanceRow, TrialIdentity, TrialSet};
 use std::collections::BTreeSet;
@@ -77,12 +78,14 @@ fn a_trial_that_ran_differently_gets_its_own_chain() {
 
     // The whole set under one request, then the same set under a different weighing window.
     // Two runs stand in for the per-trial override the relation is designed to keep visible.
-    let first = analyse(&set, &bound_request(), &registry).unwrap();
-    let overridden = BatchRequest::new(analysis_request(0.5)).resolving(&[
-        "system_weight",
-        "movement_onset",
-        "takeoff",
-    ]);
+    //
+    // Both describe the plate, because a run whose acquisition block is unfilled publishes no
+    // fingerprint at all, and two runs withholding theirs would satisfy the inequality below
+    // without either digest being read.
+    let first = analyse(&set, &bound_request_describing_the_plate(), &registry).unwrap();
+    let overridden = BatchRequest::new(analysis_request(0.5))
+        .resolving(&["system_weight", "movement_onset", "takeoff"])
+        .describing(common::a_recorded_plate());
     let second = analyse(&set, &overridden, &registry).unwrap();
 
     assert_eq!(
@@ -110,6 +113,10 @@ fn a_trial_that_ran_differently_gets_its_own_chain() {
     assert_ne!(
         first.run.request_digest, second.run.request_digest,
         "the request that produced it is a different request"
+    );
+    assert!(
+        first.run.run_fingerprint.is_some() && second.run.run_fingerprint.is_some(),
+        "both runs described the plate, so both published a fingerprint to compare"
     );
     assert_ne!(
         first.run.run_fingerprint, second.run.run_fingerprint,

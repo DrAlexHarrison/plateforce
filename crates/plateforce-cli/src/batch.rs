@@ -90,6 +90,12 @@ pub struct Args {
         default_value = "jump_height_from_takeoff_meters"
     )]
     pub quantity: String,
+    /// Cite this registry revision in the record. Unstated, the record names no pinned
+    /// revision and reports the one the registry declares for itself
+    #[arg(long, value_name = "REVISION")]
+    pub registry_version: Option<String>,
+    #[arg(long = "acquisition", value_name = "ASSIGNMENT", help = crate::acquisition_arg::ACQUISITION_HELP)]
+    pub acquisition: Vec<String>,
     /// Hide the fingerprint column in the printed table. The record is written either way
     #[arg(long)]
     pub without_provenance: bool,
@@ -196,8 +202,18 @@ pub fn run(
         return Outcome::declined(crate::analyse::open_decisions_refusal(&open, renderer));
     }
 
+    // Stated once for the folder rather than per file, because a trace of forces carries none
+    // of it and every file in one folder came off one plate on one day.
+    let acquisition = match crate::acquisition_arg::stated_acquisition(&args.acquisition) {
+        Ok(acquisition) => acquisition,
+        Err(declined) => return Outcome::declined(declined),
+    };
+
     let resolved: Vec<&str> = chosen.keys().map(String::as_str).collect();
-    let request = BatchRequest::new(built).resolving(&resolved);
+    let request = BatchRequest::new(built)
+        .resolving(&resolved)
+        .pinned_to(args.registry_version.clone())
+        .describing(acquisition);
 
     match args.mode {
         Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format),
@@ -390,9 +406,13 @@ fn run_compare(
     let result = compare(set, &compare_request);
     // The request that ran, rather than one rebuilt from the arguments. A digest taken over a
     // second construction identifies whatever that construction happens to produce, which is
-    // the fingerprint failing at its one job the moment the two drift apart.
-    let request_digest =
-        plateforce_batch::fingerprint::request_digest(&compare_request.analysis.analysis, None);
+    // the fingerprint failing at its one job the moment the two drift apart. The pin comes off
+    // that same request for the same reason: passed as a literal here, a comparison a caller
+    // pinned and one they did not shared a digest.
+    let request_digest = plateforce_batch::fingerprint::request_digest(
+        &compare_request.analysis.analysis,
+        compare_request.analysis.registry_version.as_deref(),
+    );
     if let Err(error) = result.write_csv(out_dir, &registry.content_digest, &request_digest) {
         return Outcome::declined_line(Fault::Request, error.to_string());
     }

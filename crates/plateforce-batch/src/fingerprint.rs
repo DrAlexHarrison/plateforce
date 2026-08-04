@@ -7,6 +7,7 @@
 use std::collections::BTreeSet;
 
 use plateforce_analysis::{AnalysisRequest, MethodChoice, WeighingChoice};
+use plateforce_core::reporting::Fingerprint;
 use plateforce_registry::content_digest;
 use serde_json::{json, Value};
 
@@ -140,14 +141,23 @@ fn method_choice(choice: &MethodChoice) -> Value {
 /// The run's own identity: everything in the `run` row except this field, plus the distinct
 /// provenance ids, so a run whose trials did not all run the same way fingerprints
 /// differently from one where they did.
-pub fn run_fingerprint(run: &RunRow, provenance_ids: &BTreeSet<String>) -> String {
+///
+/// Returned as `plateforce_core::reporting::Fingerprint` rather than as a digest string, so
+/// the rule that an unfilled acquisition block never matches is the one core already
+/// implements rather than a second copy of it here. The row carries the acquisition block
+/// whole, so the digest covers the plate and its settings and not merely a count of the
+/// trials they applied to.
+pub fn run_fingerprint(run: &RunRow, provenance_ids: &BTreeSet<String>) -> Fingerprint {
     let mut without_itself = run.clone();
-    without_itself.run_fingerprint = String::new();
+    without_itself.run_fingerprint = None;
     let body = json!({
         "run": serde_json::to_value(&without_itself).unwrap_or(Value::Null),
         "provenance_ids": provenance_ids.iter().collect::<Vec<_>>(),
     });
-    digest("run", &body)
+    Fingerprint {
+        complete: run.acquisition_complete,
+        digest: digest("run", &body),
+    }
 }
 
 #[cfg(test)]
@@ -188,10 +198,27 @@ mod tests {
         assert_eq!(id.len(), "content-".len() + 16);
     }
 
+    /// A filled acquisition block, so the comparisons below are over the digest.
+    ///
+    /// Every fixture here used to leave it empty, which made the run incomplete, and an
+    /// incomplete `Fingerprint` matches nothing: `assert_ne!` between two of them passes
+    /// whatever the digests are, so a guard written to prove two runs differ would have
+    /// proved it against two identical ones just as well.
+    fn a_recorded_plate() -> plateforce_core::Acquisition {
+        plateforce_core::Acquisition {
+            filter_at_capture: Some("none".to_string()),
+            tare_state: Some("tared_before_trial".to_string()),
+            plate_natural_frequency_hz: Some(400.0),
+            floor_surface: Some("concrete".to_string()),
+            firmware_version: Some("2.4.1".to_string()),
+        }
+    }
+
     fn run_row() -> RunRow {
         RunRow {
             plateforce_version: "0.1.0".to_string(),
-            registry_version: String::new(),
+            registry_version: None,
+            registry_declared_version: None,
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
             files_found: 6,
@@ -200,7 +227,9 @@ mod tests {
             trial_count: 6,
             computed_count: 6,
             refusal_count: 0,
-            acquisition_complete_count: 0,
+            acquisition_complete_count: 6,
+            acquisition: a_recorded_plate(),
+            acquisition_complete: true,
             trials_excluded: 0,
             gates_reporting: 0,
             gates_applied: 0,
@@ -211,7 +240,7 @@ mod tests {
             sample_rate_hz: 1200.0,
             sentinel: String::new(),
             sentinel_rows_dropped: 0,
-            run_fingerprint: String::new(),
+            run_fingerprint: None,
         }
     }
 
@@ -242,5 +271,55 @@ mod tests {
             run_fingerprint(&row, &ids("content-aaa", "content-bbb")),
             run_fingerprint(&row, &ids("content-bbb", "content-aaa"))
         );
+    }
+
+    /// The block is inside the digest rather than beside it, so two runs off differently
+    /// configured plates are two runs. A row carrying only `acquisition_complete_count` would
+    /// have made these one.
+    #[test]
+    fn two_runs_off_different_plates_are_two_runs() {
+        let one_plate = run_row();
+        let mut another_plate = run_row();
+        another_plate.acquisition.floor_surface = Some("sprung".to_string());
+
+        assert_ne!(
+            run_fingerprint(&one_plate, &ids("content-aaa", "content-bbb")).digest,
+            run_fingerprint(&another_plate, &ids("content-aaa", "content-bbb")).digest,
+            "the acquisition block did not reach the digest"
+        );
+    }
+
+    /// A run nobody recorded the plate for publishes nothing to compare, which is the 2026-07-25
+    /// ruling: it fingerprints as incomplete rather than as matching.
+    ///
+    /// Taken over two runs whose digests differ, so a `published` returning the digest would
+    /// redden here rather than being satisfied by one value equalling itself.
+    #[test]
+    fn a_run_with_no_acquisition_block_publishes_no_digest() {
+        let mut silent = run_row();
+        silent.acquisition = plateforce_core::Acquisition::default();
+        silent.acquisition_complete = false;
+        silent.acquisition_complete_count = 0;
+
+        let mut also_silent = silent.clone();
+        also_silent.trial_count = 7;
+        also_silent.files_found = 7;
+
+        let left = run_fingerprint(&silent, &ids("content-aaa", "content-bbb"));
+        let right = run_fingerprint(&also_silent, &ids("content-aaa", "content-bbb"));
+
+        assert_ne!(left.digest, right.digest, "these two runs read two folders");
+        assert_eq!(left.published(), None);
+        assert_eq!(right.published(), None);
+    }
+
+    /// The other side of the guard above, so it cannot be met by publishing nothing for
+    /// everything.
+    #[test]
+    fn a_run_that_recorded_its_plate_publishes_its_digest() {
+        let row = run_row();
+        let taken = run_fingerprint(&row, &ids("content-aaa", "content-bbb"));
+
+        assert_eq!(taken.published(), Some(taken.digest.as_str()));
     }
 }

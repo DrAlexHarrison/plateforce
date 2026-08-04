@@ -84,7 +84,11 @@ pub struct ResultDocument {
 #[derive(Debug, Clone, Serialize)]
 pub struct SpreadDocument {
     pub plateforce_version: String,
+    /// The revision the caller pinned, and null when they pinned none.
     pub registry_version: Option<String>,
+    /// The revision the registry names about itself, and null where it names none. What the
+    /// data claims, never what the caller cited.
+    pub registry_declared_version: Option<String>,
     pub registry_digest: Option<String>,
     #[serde(flatten)]
     pub spread: SpreadResponse,
@@ -93,15 +97,28 @@ pub struct SpreadDocument {
 impl SpreadDocument {
     /// The document for one sweep, taking its identity from the surface that loaded the
     /// registry and everything else from the sweep itself.
+    ///
+    /// The stamp arrives whole rather than as loose options, for the reason `ResultDocument`
+    /// takes it whole: three same-typed `Option<String>` passed positionally is a signature
+    /// that accepts a transposed pair and compiles, and this exact pair has been transposed
+    /// before, on two surfaces, publishing the registry's own claim under the caller's name.
     pub fn of(
         plateforce_version: impl Into<String>,
-        registry_version: Option<String>,
-        registry_digest: Option<String>,
+        registry: &plateforce_core::provenance::RegistryStamp,
         spread: SpreadResponse,
     ) -> Self {
+        // Destructured without a rest pattern, so a fact added to the stamp is a compile error
+        // here rather than one this document quietly stops carrying.
+        let plateforce_core::provenance::RegistryStamp {
+            version: registry_version,
+            declared_version: registry_declared_version,
+            digest: registry_digest,
+        } = registry.clone();
+
         Self {
             plateforce_version: plateforce_version.into(),
             registry_version,
+            registry_declared_version,
             registry_digest,
             spread,
         }

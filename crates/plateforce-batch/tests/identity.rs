@@ -337,7 +337,7 @@ fn the_same_folder_read_from_memory_and_from_disk_gives_one_answer() {
         "the browser and the terminal answer the same folder the same way"
     );
     println!(
-        "envelopes agree byte for byte, {} bytes, fingerprint {}",
+        "envelopes agree byte for byte, {} bytes, fingerprint {:?}",
         from_disk.to_json().len(),
         from_disk.run.run_fingerprint
     );

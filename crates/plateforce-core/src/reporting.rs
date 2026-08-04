@@ -30,13 +30,25 @@ impl PartialEq for Fingerprint {
     }
 }
 
-impl std::fmt::Display for Fingerprint {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.complete {
-            write!(formatter, "{}", self.digest)
-        } else {
-            write!(formatter, "{}-incomplete", self.digest)
-        }
+impl Fingerprint {
+    /// The digest a surface writes, and nothing at all when the acquisition block was not
+    /// filled.
+    ///
+    /// The only way out of this type, so the wire cannot disagree with `PartialEq` above. It
+    /// used to have a second: a `Display` that rendered an incomplete fingerprint as its
+    /// digest with `-incomplete` after it. Two incomplete runs off two differently configured
+    /// plates rendered the same string and compared equal, which is the matching the ruling
+    /// of 2026-07-25 forbids, reached through the other interface of the one type that exists
+    /// to forbid it.
+    ///
+    /// What this costs is real: a reader can no longer see that two incomplete runs performed
+    /// the same computation. That inference is the one the ruling denies, because the settings
+    /// that would decide whether two labs agree were never recorded, so withholding it is the
+    /// behaviour rather than a shortfall of it. `Acquisition::missing` names what to go and
+    /// find, and a surface reporting a null digest beside it says which runs would fingerprint
+    /// once somebody does.
+    pub fn published(&self) -> Option<&str> {
+        self.complete.then_some(self.digest.as_str())
     }
 }
 
@@ -303,6 +315,44 @@ mod fingerprint_tests {
         let taken = fingerprint(&chain(5.0, ParameterSource::Stated), &partial, 1200.0);
         assert!(!taken.complete);
         assert_ne!(taken, taken);
+    }
+
+    /// What a surface writes has to agree with what `PartialEq` says, because a reader
+    /// comparing two records compares the written values and never calls `eq`.
+    ///
+    /// The guard is over two incomplete fingerprints taken over *different* material. Written
+    /// over one, it would pass against a `published` that returned the digest, since one value
+    /// equals itself either way, and the case it exists to catch would be out of reach.
+    #[test]
+    fn two_incomplete_fingerprints_publish_nothing_to_compare() {
+        let mut one_plate = filled_block();
+        one_plate.firmware_version = None;
+        let mut another_plate = filled_block();
+        another_plate.firmware_version = None;
+        another_plate.floor_surface = Some("sprung".to_string());
+
+        let left = fingerprint(&chain(5.0, ParameterSource::Stated), &one_plate, 1200.0);
+        let right = fingerprint(&chain(5.0, ParameterSource::Stated), &another_plate, 1200.0);
+
+        // The two took different material, so the digests differ and the incompleteness is
+        // not being read off two runs that were the same anyway.
+        assert_ne!(left.digest, right.digest);
+        assert_ne!(left, right, "an incomplete fingerprint matches nothing");
+        assert_eq!(left.published(), None);
+        assert_eq!(right.published(), None);
+    }
+
+    /// The other half, so the guard above cannot be satisfied by a `published` that returns
+    /// nothing for everything.
+    #[test]
+    fn a_filled_block_publishes_the_digest_it_measured() {
+        let taken = fingerprint(
+            &chain(5.0, ParameterSource::Stated),
+            &filled_block(),
+            1200.0,
+        );
+
+        assert_eq!(taken.published(), Some(taken.digest.as_str()));
     }
 }
 

@@ -641,8 +641,7 @@ pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
     match spread::run(&handle.trial, &request.sweep) {
         Ok(response) => ok(SpreadDocument::of(
             env!("CARGO_PKG_VERSION"),
-            request.registry_version,
-            request.registry_digest,
+            &request.stamp(),
             response,
         )),
         Err(declined) => refuse::<SpreadDocument>(Refusal::from(*declined)),
@@ -663,6 +662,22 @@ struct SweepRequest {
     /// The revision the caller pinned, absent where nobody pinned one. `docs/schema.md`
     /// gives this field that meaning and no other.
     registry_version: Option<String>,
+    /// The revision the registry declares about itself, read on the R side from the same
+    /// registry the digest was measured over, exactly as `AnalyseRequest` reads it.
+    #[serde(default)]
+    registry_declared_version: Option<String>,
+}
+
+impl SweepRequest {
+    /// What this sweep says about the registry behind it, built the one way `AnalyseRequest`
+    /// builds it so a sweep and an analysis of the same trial cannot answer differently.
+    fn stamp(&self) -> plateforce_core::provenance::RegistryStamp {
+        plateforce_core::provenance::RegistryStamp {
+            version: self.registry_version.clone(),
+            declared_version: self.registry_declared_version.clone(),
+            digest: self.registry_digest.clone(),
+        }
+    }
 }
 
 /// Known doubles, written as JSON and declared beside their exact bit patterns.

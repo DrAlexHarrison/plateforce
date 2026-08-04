@@ -21,8 +21,21 @@ const SAMPLE_RATE_HZ: f64 = 1200.0;
 ///
 /// `registry_digest` names the files that were read whether or not anybody declared a
 /// revision; `registry_version` is the revision a caller pinned and is absent when nobody
-/// pinned one; `plateforce_version` is the build. Three questions, three fields.
-const IDENTITY: [&str; 3] = ["plateforce_version", "registry_version", "registry_digest"];
+/// pinned one; `registry_declared_version` is the revision the registry names about itself,
+/// which is what the data claims rather than what the caller cited; `plateforce_version` is
+/// the build. Four questions, four fields.
+///
+/// This list held three until 2026-08-04, and `the_two_documents_spell_their_identity_the
+/// _same_way` asserts the sweep's document adds exactly these and no others. So a guard
+/// written to prove the two documents agree instead held the sweep's document to a subset of
+/// the analysed one and would have reddened had the missing field been supplied. An
+/// assertion that a set equals a list is only as good as the list.
+const IDENTITY: [&str; 4] = [
+    "plateforce_version",
+    "registry_version",
+    "registry_declared_version",
+    "registry_digest",
+];
 
 /// A stand-in, deliberately not in the `content-` plus sixteen hex digits shape a real digest
 /// prints in. What these guards read is the key and its spelling, never the value, and a
@@ -104,8 +117,11 @@ fn the_sweep_alone_names_no_build_and_the_document_around_it_does() {
 
     let document = SpreadDocument::of(
         "0.1.0",
-        Some("2026-07-25".to_string()),
-        Some(A_DIGEST_THIS_TEST_NEVER_READ.to_string()),
+        &plateforce_core::provenance::RegistryStamp::unpinned(
+            Some("2026-07-25".to_string()),
+            Some(A_DIGEST_THIS_TEST_NEVER_READ.to_string()),
+        )
+        .pinned_to(Some("2026-07-25".to_string())),
         response,
     );
     let named = keys_of(&document);
@@ -125,8 +141,10 @@ fn the_two_documents_spell_their_identity_the_same_way() {
     let response = swept();
     let added: BTreeSet<String> = keys_of(&SpreadDocument::of(
         "0.1.0",
-        None,
-        Some(A_DIGEST_THIS_TEST_NEVER_READ.to_string()),
+        &plateforce_core::provenance::RegistryStamp::unpinned(
+            None,
+            Some(A_DIGEST_THIS_TEST_NEVER_READ.to_string()),
+        ),
         response.clone(),
     ))
     .difference(&keys_of(&response))
@@ -185,7 +203,11 @@ fn the_two_documents_spell_their_identity_the_same_way() {
 fn wrapping_the_sweep_moved_none_of_its_own_keys() {
     let response = swept();
     let bare = keys_of(&response);
-    let named = keys_of(&SpreadDocument::of("0.1.0", None, None, response));
+    let named = keys_of(&SpreadDocument::of(
+        "0.1.0",
+        &plateforce_core::provenance::RegistryStamp::none(),
+        response,
+    ));
     assert!(
         bare.is_subset(&named),
         "wrapping the sweep lost or renamed one of its own keys: {:?}",

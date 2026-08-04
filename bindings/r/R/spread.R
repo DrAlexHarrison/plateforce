@@ -94,7 +94,10 @@ pf_spread <- function(trial,
     # already does, so the sweep names the registry it read rather than one the compiled side
     # would have to load a second time. No revision is sent because this package offers no
     # way to pin one, and `docs/schema.md` reserves that field for a caller's pin.
-    registry_digest = registry_digest(registry)
+    registry_digest = registry_digest(registry),
+    # What the registry claims about itself, read from the same registry the digest was
+    # measured over. A separate question from the pin above and never written into it.
+    registry_declared_version = registry_declared_version(registry)
   )
 
   unwrap(decode(rust_spread_json(trial@handle, request)))

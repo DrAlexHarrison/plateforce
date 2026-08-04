@@ -73,9 +73,14 @@ impl BatchRun {
     fn request_digest(&self) -> &str {
         &self.row.request_digest
     }
+    /// The digest over this run, and `None` when the acquisition block was not filled.
+    ///
+    /// `None` rather than a marked string, because a run whose plate settings nobody recorded
+    /// cannot be declared to match another and any value here would compare equal to the next
+    /// such run's. `acquisition_complete` says whether one was published.
     #[getter]
-    fn run_fingerprint(&self) -> &str {
-        &self.row.run_fingerprint
+    fn run_fingerprint(&self) -> Option<&str> {
+        self.row.run_fingerprint.as_deref()
     }
     #[getter]
     fn files_found(&self) -> usize {

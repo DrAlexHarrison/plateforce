@@ -6,7 +6,7 @@
 
 mod common;
 
-use common::{bound_request, registry, tempdir};
+use common::{bound_request_describing_the_plate, registry, tempdir};
 use plateforce_batch::{analyse, SourceFormat, TrialIdentity, TrialSet};
 
 const MISSING: f64 = 0.0;
@@ -50,7 +50,10 @@ fn weight_of(
         &TrialIdentity::FileStem,
     )
     .unwrap();
-    let result = analyse(&set, &bound_request(), &registry()).expect("every choice was made");
+    // The plate is described so the two runs below have fingerprints to differ by. Left
+    // unstated, both publish none and the guard compares two absences.
+    let result = analyse(&set, &bound_request_describing_the_plate(), &registry())
+        .expect("every choice was made");
     let weight = result.results[0]
         .values
         .get("system_weight_newtons")
@@ -144,9 +147,13 @@ fn reading_the_same_folder_two_ways_fingerprints_two_ways() {
     let (_, declared, _) = weight_of(&directory, Some(MISSING));
     let (_, undeclared, _) = weight_of(&directory, None);
     println!(
-        "declared {} against undeclared {}",
+        "declared {:?} against undeclared {:?}",
         declared.run_fingerprint, undeclared.run_fingerprint
     );
+    // Both published one, so the inequality below is between two digests rather than between
+    // two runs that withheld theirs.
+    assert!(declared.run_fingerprint.is_some());
+    assert!(undeclared.run_fingerprint.is_some());
     assert_ne!(declared.run_fingerprint, undeclared.run_fingerprint);
     std::fs::remove_dir_all(&directory).ok();
 }

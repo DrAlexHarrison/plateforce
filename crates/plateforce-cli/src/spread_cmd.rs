@@ -71,13 +71,14 @@ pub fn run(
             // stays as it is: it renders the panel `analyse` prints too, and a second copy of
             // the identity there would be the same fact twice on one screen.
             //
-            // No revision is named. `docs/schema.md` gives `registry_version` the caller's pin
-            // and nothing else, and this surface offers no way to pin one. The registry's own
-            // declared revision is a different question and is not laundered into this answer.
+            // The pin is the one the caller wrote, taken from the same `registry_stamp` that
+            // answers this for `analyse`, so the two commands cannot answer it differently.
+            // This surface accepts `--registry-version`, prints in its own help that the
+            // result will name the revision, and used to discard it: a sweep a caller pinned
+            // and one they did not left here identical.
             let reported = plateforce_analysis::document::SpreadDocument::of(
                 env!("CARGO_PKG_VERSION"),
-                None,
-                Some(prepared.registry.content_digest.clone()),
+                &crate::analyse::registry_stamp(&prepared.registry, &args.analysis),
                 response,
             );
             let document = match format {
