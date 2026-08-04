@@ -1159,6 +1159,18 @@ reference = "Goncalves, Baptista, Tufano, Blazevich and Vieira 2024, PeerJ 12:e1
 doi = "10.7717/peerj.17704"
 obtained = true
 
+[[method.citation]]
+key = "winter2009"
+role = "proposes"
+reference = "Winter, Biomechanics and Motor Control of Human Movement, 4th ed. 2009, foot length at 15.2 percent of stature, read through Goncalves 2024 rather than first-hand"
+obtained = false
+
+[[method.citation]]
+key = "tilley2001"
+role = "proposes"
+reference = "Tilley 2001, tiptoe to lateral malleolus at 78.7 percent of foot length, read through Goncalves 2024 rather than first-hand"
+obtained = false
+
 [[method.bias]]
 magnitude = 0.184
 unit = "fraction"

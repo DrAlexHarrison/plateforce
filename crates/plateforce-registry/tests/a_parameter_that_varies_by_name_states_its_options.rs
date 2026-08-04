@@ -44,6 +44,12 @@ unit = "watts_per_centimetre"
 name = "body_mass_coefficient"
 value = 36.0
 unit = "watts_per_kilogram"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon, Suchomel, Lake and Comfort 2018, Strength Cond J 40(4):96-106"
+obtained = true
 "#;
 
 fn violations_of(method: &str) -> Vec<String> {

@@ -536,6 +536,12 @@ role = "proposes"
 reference = "Named in this registry. The confirmed-crossing shape is common in implementations and the confirmation span is stated by none of them"
 obtained = true
 
+[[method.citation]]
+key = "vald_glossary"
+role = "uses"
+reference = "VALD ForceDecks Technical Glossary V2.0, 20 N, the residual threshold this entry defaults to"
+obtained = true
+
 [[method.disagrees_with]]
 id = "takeoff.threshold.absolute_force"
 kind = "genuine"

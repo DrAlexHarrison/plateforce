@@ -59,6 +59,12 @@ role = "uses"
 reference = "Sole et al. 2018, ETSU, stating the identity independently"
 obtained = true
 
+[[method.citation]]
+key = "plateforce_corpus_fit"
+role = "proposes"
+reference = "Fitted on 243 countermovement-jump trials at the braking start: disagreement magnitude tracks raw-force re-crossings at r = +0.640 and velocity flat-band width at r = -0.062, so the velocity minimum carries the cross-trial error variance the force crossing does not. Measured at this boundary and does not transfer to another one"
+obtained = true
+
 [[method.bias]]
 magnitude = 0.002
 unit = "seconds"

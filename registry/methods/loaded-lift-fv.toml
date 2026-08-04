@@ -625,6 +625,13 @@ reference = "Sanchez-Medina et al. 2017, on disk and still unread"
 obtained = false
 
 [[method.citation]]
+key = "jidovtseff2011"
+role = "proposes"
+reference = "Jidovtseff, Harris, Crielaard and Cronin 2011, JSCR 25(1):267-270, held in full via an open repository copy"
+doi = "10.1519/jsc.0b013e3181b62c5f"
+obtained = true
+
+[[method.citation]]
 key = "chronojump_constants"
 role = "uses"
 reference = "Chronojump encoder/graph.R:2523-2624"

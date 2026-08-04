@@ -118,13 +118,19 @@ name = "averaging_window_seconds"
 unit = "seconds"
 published_values = [0.0, 0.1]
 default = 0.0
-default_source = "universal_practice"
+default_source = "plateforce_derivation"
 required = true
 
 [[method.citation]]
 key = "chronojump_r"
 role = "uses"
 reference = "Chronojump computes a 0.1 s centred moving average peak and never displays or exports it"
+obtained = true
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. The raw single-sample maximum is what this software binds where the reader states none, and no source consulted for this rule states an averaging window to default to"
 obtained = true
 
 [[method.bias]]

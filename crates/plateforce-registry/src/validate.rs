@@ -44,6 +44,10 @@ pub enum ViolationKind {
     DefaultWithoutSource {
         parameter: String,
     },
+    DefaultSourceNamesNoCitation {
+        parameter: String,
+        source: String,
+    },
     RecommendedOnUnobtainedSource {
         citation: String,
     },
@@ -174,6 +178,11 @@ impl fmt::Display for Violation {
             DefaultWithoutSource { parameter } => write!(
                 f,
                 "{}: parameter '{parameter}' has a default with no default_source naming who chose it",
+                self.entry
+            ),
+            DefaultSourceNamesNoCitation { parameter, source } => write!(
+                f,
+                "{}: parameter '{parameter}' names '{source}' as having chosen its default, and no citation on this entry carries that key, so the reader holding the value cannot reach the source",
                 self.entry
             ),
             DefaultDeclaredTwice { parameter } => write!(
@@ -406,6 +415,23 @@ pub fn validate(registry: &Registry) -> Vec<Violation> {
                         parameter: parameter.name.clone(),
                     },
                 });
+            }
+            // A source named and nowhere resolvable reads as provenance and carries none: the
+            // route a reader takes from a bound value is the entry it was bound from.
+            if let Some(source) = &parameter.default_source {
+                if !method
+                    .citations
+                    .iter()
+                    .any(|citation| &citation.key == source)
+                {
+                    violations.push(Violation {
+                        entry: entry.clone(),
+                        kind: ViolationKind::DefaultSourceNamesNoCitation {
+                            parameter: parameter.name.clone(),
+                            source: source.clone(),
+                        },
+                    });
+                }
             }
             if parameter.default.is_some() && parameter.default_key.is_some() {
                 violations.push(Violation {
