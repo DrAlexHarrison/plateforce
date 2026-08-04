@@ -1,5 +1,6 @@
 {
   "compared_fields": [
+    "bound_globals",
     "bound_methods",
     "levels",
     "metrics",
@@ -7,6 +8,15 @@
     "warnings"
   ],
   "result": {
+    "bound_globals": [
+      {
+        "name": "gravity_meters_per_second_squared",
+        "source": "assumed",
+        "unit": "meters_per_second_squared",
+        "unit_symbol": "m/s2",
+        "value": 9.80665
+      }
+    ],
     "bound_methods": [
       {
         "bound_parameters": [
@@ -379,7 +389,7 @@
         ],
         "key": "system_mass_kilograms",
         "label": "System mass",
-        "note": "At g = 9.80665 m/s2, which is itself a bound choice.",
+        "note": "System weight over the gravity this analysis was bound to.",
         "unit": "kilograms",
         "unit_symbol": "kg",
         "value": 59.87634120724202
