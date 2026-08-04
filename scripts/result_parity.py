@@ -624,7 +624,10 @@ ANALYSED_SURFACES_THAT_DIFFER = {
     # `descriptions` was here, carried by r alone, with nothing to agree about. Discharged by
     # ws/descriptions-everywhere: `descriptions_of` moved beside `chains_of`, the document
     # fills the block rather than accepting it, and the two surfaces that were passing an
-    # empty map cannot. It reaches all four and is compared rather than recorded.
+    # empty map cannot. It reaches all four now and is asserted between them, above, because
+    # an account names the registry behind the number it describes: measured on the `quiet`
+    # request, 11 of 11 accounts quote the digest, so a committed copy would move with every
+    # registry data edit.
     "provenance": Divergence(
         frozenset({"r"}),
         None,
