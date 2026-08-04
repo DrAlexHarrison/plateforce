@@ -720,8 +720,8 @@ jump height from the impulse from 37.0 cm to 1.4 cm.
 """
 
 [method.failure]
-rate = 0.4634
-numerator = 114
+rate = 0.0081
+numerator = 2
 denominator = 246
 corpus = "harrison2011_cmj"
 definition = """
@@ -729,19 +729,8 @@ Takeoff reported at the first sample the search was permitted to examine, so the
 is the boundary of the search rather than a flight phase found in the recording. Weighing window
 1 s anchored at the start of the recording, every other value the rule's own default.
 
-The two rules taking this floor differ by a factor of 57 and the figure above is the worse of them,
-because a blended rate would average a rule that works with one that does not.
-takeoff.threshold.absolute_force, comparing against a fixed 20 N residual, fails on 2 of 246.
-takeoff.threshold.flight_noise_k_sd, which re-estimates its threshold from the flight phase its
-seed found, fails on 114 of 246, and every one of the 114 trials in the numerator is one of its.
-
-The floor is where that failure lands rather than what causes it. On the 114, the re-estimated
-flight threshold exceeds its own 10 N seed on 112 and exceeds 1000 N on 102, median 2285.9 N
-against a median force at the floor sample of 721.3 N: the athlete is standing on the plate and
-every sample from the floor onward is below a threshold of three bodyweights, so the first one
-qualifies. A recording trimmed to one jump does not produce it; an untrimmed one, where the span
-between the seed's first and last low-force samples covers the landing and the athlete standing
-off the plate, does.
+Both rules taking this floor produce the same 2 trials, which is the figure a reader wants: the
+rate is a property of the floor and not of the threshold each rule compares against.
 """
 detectability = "guarded"
 

@@ -47,12 +47,16 @@ const RULES_SEARCHING_THE_WHOLE_RECORDING: &[&str] = &[
     "takeoff.threshold.landing_shape",
 ];
 
-/// What each rule did on this corpus. Held per rule as well as per policy, because the two rules
-/// taking the derived floor differ by a factor of 57 and one blended figure would average a rule
-/// that works with one that does not.
+/// What each rule did on this corpus. Held per rule as well as per policy, so a rate that is a
+/// property of one rule's threshold rather than of the floor cannot hide inside a blended figure.
+///
+/// The two rules taking the derived floor agree on the same 2 trials, which is what makes the
+/// figure a property of the floor. They read 2 and 114 while the re-estimating rule was measuring
+/// its flight noise over a window running to the last low sample in the recording rather than to
+/// the end of the provisional flight phase.
 const MEASURED_PER_RULE: &[(&str, u32, u32)] = &[
     ("takeoff.threshold.absolute_force", 2, 246),
-    ("takeoff.threshold.flight_noise_k_sd", 114, 246),
+    ("takeoff.threshold.flight_noise_k_sd", 2, 246),
     ("takeoff.threshold.longest_run", 2, 246),
     ("takeoff.threshold.descending_crossing", 0, 244),
     ("takeoff.threshold.landing_shape", 0, 134),
