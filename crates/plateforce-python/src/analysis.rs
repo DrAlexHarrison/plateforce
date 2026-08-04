@@ -123,7 +123,7 @@ fn quantities_of(
     // A name the caller stated is theirs even where the entry publishes a default for it,
     // because `bind` records a default only where nothing was supplied.
     let from_registry_default: BTreeSet<String> = method
-        .from_registry_default()
+        .names_the_registry_filled()
         .iter()
         .filter(|name| !stated.contains_key(*name))
         .cloned()

@@ -323,8 +323,8 @@ impl LoadedTrial {
         let flagged = sentinel.map(|s| partition_sentinels(column, s).1);
         let treated_as_missing = flagged.map_or(0, |dropped| dropped.len());
 
-        let trial =
-            Trial::new(column.to_vec(), sample_rate_hz).map_err(|e| JsError::new(&e.to_string()))?;
+        let trial = Trial::new(column.to_vec(), sample_rate_hz)
+            .map_err(|e| JsError::new(&e.to_string()))?;
         let info = describe(
             &trial,
             force_column,
