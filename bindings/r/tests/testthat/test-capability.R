@@ -113,7 +113,6 @@ test_that("every refusal code the manifest names carries a shell exit status", {
 SURFACE_ONLY_CODES <- c(
   "field_not_named_in_full",
   "force_not_double",
-  "parameter_source_unrecorded",
   "provenance_dropped",
   "quantity_not_reported",
   "registry_not_found",

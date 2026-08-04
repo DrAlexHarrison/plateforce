@@ -242,41 +242,26 @@ as_index <- function(index) {
 jump_from_response <- function(response) {
   stamp <- registry_stamp_of(response)
   digest <- stamp$digest
-  complete <- isTRUE(response[["acquisition_complete"]])
 
   bound <- response[["bound_methods"]]
   by_method <- stats::setNames(bound, vapply(bound, function(b) b[["method_id"]], character(1)))
 
-  # One record per rule, built once rather than once per quantity naming it.
-  records <- lapply(by_method, provenance_from_bound_method, stamp, complete)
-
   accounts <- response[["descriptions"]]
+  # One chain per quantity, in the order and the length of `metrics`, so a response naming one
+  # key twice carries both records rather than a map keeping whichever arrived last.
+  chains <- response[["provenance"]]
 
   values <- list()
-  for (metric in response[["metrics"]]) {
-    # A contributing id the response did not bind has no record to link, and a NULL in the
-    # chain would read as a record that is missing rather than as a rule that never ran.
-    contributing <- as.character(unlist(metric[["contributing_method_ids"]]))
-    chain <- records[contributing[contributing %in% names(records)]]
-    names(chain) <- NULL
-    computed_by <- metric[["computed_by"]]
-    own <- provenance(
-      method_id = if (is.null(computed_by)) character(0) else as.character(computed_by),
-      parameters = EMPTY_BINDING(),
-      choices = EMPTY_BINDING(),
-      registry_version = stamp$version,
-      registry_declared_version = stamp$declared_version,
-      registry_digest = digest,
-      acquisition_complete = complete,
-      depends_on = chain
-    )
+  metrics <- response[["metrics"]]
+  for (index in seq_along(metrics)) {
+    metric <- metrics[[index]]
     account <- accounts[[metric[["key"]]]]
     values[[metric[["key"]]]] <- measured(
       value = if (is.null(metric[["value"]])) NA_real_ else as.double(metric[["value"]]),
       unit = as.character(metric[["unit"]]),
       unit_symbol = as.character(metric[["unit_symbol"]]),
       quantity = as.character(metric[["key"]]),
-      provenance = own,
+      provenance = provenance_from_record(chains[[index]]),
       account = if (is.null(account)) character(0) else as.character(account)
     )
   }

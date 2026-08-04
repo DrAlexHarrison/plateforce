@@ -13,6 +13,10 @@ dir.create(fixtures, recursive = TRUE, showWarnings = FALSE)
 
 library(plateforce)
 
+# The renderer the suite compares against lives beside the suite, so a chain written here and
+# a chain read there cannot be two spellings of one record.
+source(file.path(package_root, "tests", "testthat", "helper-plateforce.R"))
+
 trace <- file.path(repository, "crates", "plateforce-conformance", "fixtures",
                    "subject01_trial1.force.txt")
 if (!file.exists(trace)) {
@@ -123,12 +127,7 @@ write_lines("onset-sweep.txt", c(
         format(max(abs(swept - stats::median(swept, na.rm = TRUE)), na.rm = TRUE), digits = 17))
 ))
 
-chain <- result@values[["jump_height_from_takeoff_meters"]]@provenance@depends_on
-write_lines("chain.txt", vapply(chain, function(step) {
-  bound <- step@parameters
-  paste(
-    step@method_id,
-    paste(paste0(bound[["name"]], "=", bound[["value"]], "(", bound[["source"]], ")"),
-          collapse = " ")
-  )
-}, character(1)))
+write_lines(
+  "chain.txt",
+  chain_lines(result@values[["jump_height_from_takeoff_meters"]]@provenance)
+)

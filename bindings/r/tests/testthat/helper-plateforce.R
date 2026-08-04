@@ -13,6 +13,28 @@ link_named <- function(chain, method_id) {
   testthat::fail(paste(method_id, "is not in this chain"))
 }
 
+# One provenance chain as text, depth first, each step naming every value it read and where
+# that value came from. Quantities and named choices together, in that order: they move the
+# number equally and the record keeps them apart only because a fingerprint does.
+#
+# Written here and read by both the fixture writer and the test that holds a live chain to the
+# fixture, so the two cannot render one record two ways and agree about it.
+chain_lines <- function(record, depth = 0L) {
+  bound <- rbind(record@parameters, record@choices)
+  named <- if (nrow(bound)) {
+    paste0(" ", paste(
+      paste0(bound[["name"]], "=", bound[["value"]], "(", bound[["source"]], ")"),
+      collapse = " "
+    ))
+  } else {
+    ""
+  }
+  c(
+    paste0(strrep("  ", depth), record@method_id, named),
+    unlist(lapply(record@depends_on, chain_lines, depth = depth + 1L))
+  )
+}
+
 fixture_lines <- function(name) {
   path <- testthat::test_path("fixtures", name)
   testthat::skip_if_not(file.exists(path), paste("no fixture at", path))
