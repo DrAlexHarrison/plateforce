@@ -151,15 +151,18 @@ pub fn signals(response: &AnalysisResponse) -> Vec<QualitySignal> {
 /// computed twice: the test is the comparison of two sample indices, which is the same
 /// comparison the pipeline makes when it declines to assemble the landmarks at all.
 ///
-/// A takeoff found before an onset is not a near miss. Onset rules return the first departure
-/// from quiet stance and takeoff rules return the first fall to near-zero force, both
-/// searching forward from about the same instant, so a takeoff that lands first means the
-/// trace reached an unloaded plate before it left quiet standing. That does not happen within
-/// one jump; it happens when something earlier in the recording unloads the plate.
+/// A takeoff found before an onset is not a near miss. Three of the five onset rules search
+/// forward from the weighing window, so under those the order inverts only where the plate is
+/// unloaded before the trace has left quiet standing.
+/// `onset.threshold.adaptive_trailing_window` inverts it from the other end: it keeps the last
+/// departure from quiet before the recording's force extremum, and on a trace still running
+/// after the athlete steps off the plate that extremum is the step-off, not the flight.
 ///
-/// Measured on the untrimmed step-off fixture under `bwepoch.adaptive_lowest_variance`,
-/// `onset.threshold.adaptive_trailing_window` and `takeoff.threshold.flight_noise_k_sd`:
-/// onset 1.2008 s against takeoff 1.1533 s, with seven quantities left without a value.
+/// Measured on `synthetic_untrimmed_step_off_after_jump` under
+/// `bwepoch.adaptive_lowest_variance`, `onset.threshold.adaptive_trailing_window` and
+/// `takeoff.threshold.flight_noise_k_sd`: onset 3.5433 s against takeoff 1.8567 s, with seven
+/// quantities left without a value. The 246-trial corpus raises it on 0 of the 12,300
+/// combinations it offers, every trial in it having been trimmed to one jump before archiving.
 fn onset_placed_at_or_after_takeoff(response: &AnalysisResponse) -> Option<QualitySignal> {
     let onset_index = response.onset_index?;
     let takeoff_index = response.takeoff_index?;
