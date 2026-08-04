@@ -173,7 +173,7 @@ fn crossing(
 ///
 /// `None` for an unknown id rather than an empty list, so a rule added with no arm here is
 /// caught as an unanswered question instead of reading as a rule that rests on nothing.
-/// `every_onset_rule_says_which_landmarks_it_reads` is what catches it.
+/// `every_landmark_rule_says_which_landmarks_it_reads` is what catches it.
 pub(crate) fn landmarks_read(method_id: &str) -> Option<&'static [&'static str]> {
     match method_id {
         "onset.threshold.relative_to_system_weight" => Some(&[WEIGHING_EPOCH]),
