@@ -351,6 +351,17 @@ markup_text = markup.read_text()
 LABEL_SOURCES = (
     (Path("registry/constructs.toml"), r"^label\s*=\s*\"([^\"]*)\"", "a slot title"),
     (Path("web/workspace.js"), r"\['var\(--[a-z-]+\)',\s*'([^']*)'\]", "a legend entry"),
+    # Every `label` in the method files is a parameter value's label and the rail renders
+    # them all, so the whole file set is a reader-facing source. Method titles are not
+    # labels and are deliberately not here; whether a rule's own name answers to this rule
+    # is an unruled registry question.
+    *(
+        (path, r"^label\s*=\s*\"([^\"]*)\"", "a value label the rail renders")
+        for path in sorted(Path("registry/methods").glob("*.toml"))
+        # A file declaring no parameter values legitimately holds no labels; one that
+        # declares values and yields no labels is the blindness the loop below flags.
+        if "[[method.parameter.value]]" in path.read_text()
+    ),
 )
 
 # Every notice heading in the browser, found by what it is rather than by a list of files

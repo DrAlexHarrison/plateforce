@@ -356,7 +356,7 @@ is a property of the converter rather than of the movement.
 
 [[method.parameter.value]]
 key = "refuse"
-label = "Report no onset and say the reference epoch was not quiet"
+label = "Report no start of movement and say the reference stretch was not quiet"
 
 [[method.parameter.value]]
 key = "fraction_of_reference"

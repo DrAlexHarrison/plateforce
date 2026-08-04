@@ -575,11 +575,11 @@ athlete unloads the plate without leaving it.
 
 [[method.parameter.value]]
 key = "first"
-label = "The earliest run of force below the threshold"
+label = "The earliest run of force below the cutoff"
 
 [[method.parameter.value]]
 key = "longest_run"
-label = "The longest run of force below the threshold, wherever it sits"
+label = "The longest run of force below the cutoff, wherever it sits"
 
 [[method.disagrees_with]]
 id = "takeoff.op.short_run_handling"
@@ -672,11 +672,11 @@ has drifted low reports a different flight phase under each.
 
 [[method.parameter.value]]
 key = "signed"
-label = "Compare force against the threshold as it reads, sign included"
+label = "Compare force against the cutoff as it reads, sign included"
 
 [[method.parameter.value]]
 key = "magnitude"
-label = "Compare the distance of force from zero against the threshold"
+label = "Compare the distance of force from zero against the cutoff"
 
 [[method.citation]]
 key = "plateforce_derivation"
