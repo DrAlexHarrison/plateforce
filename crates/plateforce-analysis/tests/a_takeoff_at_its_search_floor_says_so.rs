@@ -69,11 +69,11 @@ fn trial() -> Trial {
     trial
 }
 
-fn analyse(trial: &Trial, takeoff_id: &str) -> AnalysisResponse {
+fn analyse_under(trial: &Trial, takeoff_id: &str, weighing_seconds: f64) -> AnalysisResponse {
     let request = AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
-            parameters: BTreeMap::from([("duration".to_string(), WEIGHING_WINDOW_SECONDS)]),
+            parameters: BTreeMap::from([("duration".to_string(), weighing_seconds)]),
             ..Default::default()
         },
         onset: onset_choice(),
@@ -84,6 +84,10 @@ fn analyse(trial: &Trial, takeoff_id: &str) -> AnalysisResponse {
         ..Default::default()
     };
     run(trial, &request).unwrap_or_else(|refusal| panic!("{takeoff_id} did not run: {refusal}"))
+}
+
+fn analyse(trial: &Trial, takeoff_id: &str) -> AnalysisResponse {
+    analyse_under(trial, takeoff_id, WEIGHING_WINDOW_SECONDS)
 }
 
 fn floor_signals(response: &AnalysisResponse) -> Vec<&QualitySignal> {
@@ -137,6 +141,47 @@ fn the_rules_that_returned_their_floor_say_so_and_the_rules_that_searched_on_do_
         3,
         "3 of the 5 rules search the whole recording and find a takeoff before the floor: {quiet:?}"
     );
+}
+
+/// The same two rules on the same recording under a weighing window of the length everything
+/// else in this workspace uses, where they search from 1.0 s and find the flight phase 3.3 s
+/// later.
+///
+/// This is the case that makes the comparison of the two indices load-bearing. The three rules
+/// held against the two above are excluded by recording no floor at all, so a comparison that
+/// fired on every rule that records one would still leave them quiet, and the test above would
+/// stay green while the signal attached itself to every ordinary result in the workspace.
+#[test]
+fn a_rule_that_records_a_floor_and_searches_past_it_says_nothing() {
+    let trial = trial();
+    const ORDINARY_WEIGHING_SECONDS: f64 = 1.0;
+
+    for takeoff_id in RULES_THAT_RETURN_THEIR_FLOOR {
+        let response = analyse_under(&trial, takeoff_id, ORDINARY_WEIGHING_SECONDS);
+        let floor_seconds = recorded(
+            &response,
+            "takeoff.op.search_floor_at_weighing_epoch_end",
+            "weighing_epoch_end_seconds",
+        )
+        .unwrap_or_else(|| panic!("{takeoff_id} recorded no floor, so it is not under test here"));
+        assert_eq!(
+            floor_seconds, ORDINARY_WEIGHING_SECONDS,
+            "{takeoff_id} recorded a floor other than the window this run placed"
+        );
+        let takeoff_index = response.takeoff_index.expect("the rule placed a takeoff");
+        println!(
+            "{takeoff_id}: floor {}, takeoff {takeoff_index}",
+            response.weighing_end_index
+        );
+        assert!(
+            takeoff_index > response.weighing_end_index,
+            "{takeoff_id} did not search past its floor, so it has nothing to stay quiet about"
+        );
+        assert!(
+            floor_signals(&response).is_empty(),
+            "{takeoff_id} searched past its floor and reported a floor landing anyway"
+        );
+    }
 }
 
 /// The arithmetic, stated in samples rather than in seconds, because two times agreeing to
