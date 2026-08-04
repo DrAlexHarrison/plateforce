@@ -52,5 +52,15 @@ echo
 echo "the browser surface moved between ${REF} and the working tree"
 echo "${BASELINE_BYTES} bytes from ${REF}, ${WORKING_BYTES} from the working tree"
 echo
-diff "${WORK}/baseline.txt" "${WORK}/working-tree.txt" | head -80
+# Truncated by writing the whole difference and reading the first lines back, rather than by
+# piping into `head`. Under `set -o pipefail` a pipe into `head` returns 141 the moment `head`
+# has read its fill and closes the pipe, so this script answered a real difference with SIGPIPE
+# instead of the exit 1 written below it, and a caller reading the status learned nothing about
+# what it had found. The trap it fell into is the one this repository documents against.
+diff "${WORK}/baseline.txt" "${WORK}/working-tree.txt" > "${WORK}/difference.txt" || true
+readonly DIFFERENCE_LINES=$(wc -l < "${WORK}/difference.txt")
+sed -n '1,80p' "${WORK}/difference.txt"
+if [ "${DIFFERENCE_LINES}" -gt 80 ]; then
+    echo "... ${DIFFERENCE_LINES} lines of difference in all, the first 80 shown"
+fi
 exit 1
