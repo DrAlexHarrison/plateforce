@@ -28,55 +28,51 @@ const PROPULSION_START_RULE: &str = "phase.propulsion_start.zero_velocity";
 const PROPULSION_END_CONSTRUCT: &str = "propulsion_phase_end";
 const PROPULSION_END_RULE: &str = "phase.propulsion_end.peak_com_velocity";
 
-/// The six rate rules this build runs, and the values each needs before it will answer.
+/// One rule of this family and everything a caller has to state before it will answer.
+struct Asked {
+    construct: &'static str,
+    method_id: &'static str,
+    parameters: BTreeMap<String, f64>,
+    options: BTreeMap<String, String>,
+}
+
+impl Asked {
+    fn rate(method_id: &'static str, parameters: &[(&str, f64)]) -> Self {
+        Self {
+            construct: RATE_CONSTRUCT,
+            method_id,
+            parameters: parameters
+                .iter()
+                .map(|(name, value)| ((*name).to_string(), *value))
+                .collect(),
+            options: BTreeMap::new(),
+        }
+    }
+
+    fn stating(mut self, name: &str, value: &str) -> Self {
+        self.options.insert(name.to_string(), value.to_string());
+        self
+    }
+}
+
+/// The seven rate rules this build runs, and the values each needs before it will answer.
 ///
 /// The two force levels are stated here and nowhere in the registry, which publishes no pair
 /// and says why: no published pair was located. They are the values this reading was taken
 /// under, not a recommendation.
-fn rate_rules() -> Vec<(
-    &'static str,
-    BTreeMap<String, f64>,
-    BTreeMap<String, String>,
-)> {
+fn rate_rules() -> Vec<Asked> {
     vec![
-        (
-            "rfd.epoch_from_onset.overlapping",
-            BTreeMap::from([("epoch_ms".to_string(), 200.0)]),
-            BTreeMap::new(),
-        ),
-        (
-            "rfd.peak_sliding_window",
-            BTreeMap::from([("window_width_ms".to_string(), 20.0)]),
-            BTreeMap::new(),
-        ),
-        (
-            "rfd.at_fraction_of_peak_force",
-            BTreeMap::from([("fraction_pct".to_string(), 50.0)]),
-            BTreeMap::new(),
-        ),
-        (
-            "rfd.average_to_peak_force",
-            BTreeMap::new(),
-            BTreeMap::new(),
-        ),
-        (
+        Asked::rate("rfd.epoch_from_onset.overlapping", &[("epoch_ms", 200.0)]),
+        Asked::rate("rfd.peak_sliding_window", &[("window_width_ms", 20.0)]),
+        Asked::rate("rfd.at_fraction_of_peak_force", &[("fraction_pct", 50.0)]),
+        Asked::rate("rfd.average_to_peak_force", &[]),
+        Asked::rate(
             "rfd.between_force_levels",
-            BTreeMap::from([
-                ("lower_level".to_string(), 700.0),
-                ("upper_level".to_string(), 900.0),
-            ]),
-            BTreeMap::from([("reference_basis".to_string(), "absolute".to_string())]),
-        ),
-        (
-            "rfd.phase_endpoint_secant.harry",
-            BTreeMap::new(),
-            BTreeMap::new(),
-        ),
-        (
-            "rfd.mean_force_over_duration.lapuente",
-            BTreeMap::new(),
-            BTreeMap::new(),
-        ),
+            &[("lower_level", 700.0), ("upper_level", 900.0)],
+        )
+        .stating("reference_basis", "absolute"),
+        Asked::rate("rfd.phase_endpoint_secant.harry", &[]),
+        Asked::rate("rfd.mean_force_over_duration.lapuente", &[]),
     ]
 }
 
@@ -168,35 +164,32 @@ fn every_rule_in_this_family_reads_what_it_is_given_and_records_a_name_a_reader_
     let registry = crate::common::registry();
     let trial = committed_trial("subject01_trial1");
 
-    let mut asked: Vec<(&str, &str, BTreeMap<String, f64>, BTreeMap<String, String>)> =
-        rate_rules()
-            .into_iter()
-            .map(|(id, parameters, options)| (RATE_CONSTRUCT, id, parameters, options))
-            .collect();
+    let mut asked = rate_rules();
     for method_id in [
         "impulse.epoch_from_onset",
         "impulse.to_fraction_of_peak_force",
     ] {
-        asked.push((
-            IMPULSE_CONSTRUCT,
+        asked.push(Asked {
+            construct: IMPULSE_CONSTRUCT,
             method_id,
-            BTreeMap::from([
+            parameters: BTreeMap::from([
                 ("epoch_ms".to_string(), 200.0),
                 ("fraction_pct".to_string(), 50.0),
             ]),
-            BTreeMap::from([("convention".to_string(), "net".to_string())]),
-        ));
+            options: BTreeMap::from([("convention".to_string(), "net".to_string())]),
+        });
     }
     for method_id in ["rpd.phase_anchored", "rpd.peak_to_peak_anchored.amti"] {
-        asked.push((
-            POWER_RATE_CONSTRUCT,
-            method_id,
-            BTreeMap::new(),
-            BTreeMap::from([
-                ("force_term".to_string(), "total".to_string()),
-                ("sign_convention".to_string(), "upward_positive".to_string()),
-            ]),
-        ));
+        asked.push(
+            Asked {
+                construct: POWER_RATE_CONSTRUCT,
+                method_id,
+                parameters: BTreeMap::new(),
+                options: BTreeMap::new(),
+            }
+            .stating("force_term", "total")
+            .stating("sign_convention", "upward_positive"),
+        );
     }
 
     let mut unread = Vec::new();
@@ -204,7 +197,13 @@ fn every_rule_in_this_family_reads_what_it_is_given_and_records_a_name_a_reader_
     let mut unresolved = Vec::new();
     let mut checked = 0usize;
     let mut names_checked = 0usize;
-    for (construct, method_id, parameters, options) in &asked {
+    for Asked {
+        construct,
+        method_id,
+        parameters,
+        options,
+    } in &asked
+    {
         // The names this rule may read: its own entry's, and those of the entries it reads
         // through. An epoch stated at a rule that reads a fraction is dropped rather than
         // counted against it, which is a fact about this list rather than about the rule.
@@ -315,8 +314,9 @@ fn every_rate_rule_answers_on_one_trial_and_the_spread_between_them_is_the_metho
     let mut reported: Vec<(&str, f64)> = Vec::new();
     let mut declined: Vec<String> = Vec::new();
 
-    for (method_id, parameters, options) in rate_rules() {
-        let request = asking(RATE_CONSTRUCT, method_id, parameters, options);
+    for rule in rate_rules() {
+        let method_id = rule.method_id;
+        let request = asking(rule.construct, method_id, rule.parameters, rule.options);
         let response = run(&trial, &request).unwrap_or_else(|error| panic!("{method_id}: {error}"));
         match value(&response, RATE_KEY) {
             Some(rate) => {
