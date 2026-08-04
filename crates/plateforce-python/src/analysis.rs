@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::{
-    bindings_for, chain_of, AnalysisRequest, AnalysisResponse, Metric, MethodChoice, WeighingChoice,
+    bindings_for, chain_of, AnalysisRequest, AnalysisResponse, MethodChoice, Metric, WeighingChoice,
 };
 use plateforce_core::{
     jump_height_from_flight_time as core_jump_height_from_flight_time, Measured as CoreMeasured,
@@ -269,7 +269,10 @@ impl Derived<'_> {
             &self.registry.stamp,
             self.acquisition_complete,
         );
-        chain.provenance.parameters.extend(self.gravity_behind(metric));
+        chain
+            .provenance
+            .parameters
+            .extend(self.gravity_behind(metric));
         Some(Measured::new(
             CoreMeasured {
                 value,
@@ -333,10 +336,7 @@ impl Derived<'_> {
         self.response
             .metrics
             .iter()
-            .filter_map(|metric| {
-                self.one(&metric.key)
-                    .map(|held| (metric.key.clone(), held))
-            })
+            .filter_map(|metric| self.one(&metric.key).map(|held| (metric.key.clone(), held)))
             .collect()
     }
 }
@@ -1207,7 +1207,11 @@ mod tests {
         )]));
 
         assert_eq!(
-            source_of(&response, WEIGHING_RULE, "reject_at_or_below_fraction_of_weight"),
+            source_of(
+                &response,
+                WEIGHING_RULE,
+                "reject_at_or_below_fraction_of_weight"
+            ),
             ParameterSource::Assumed,
             "a gate nobody stated is recorded as the caller's own decision"
         );

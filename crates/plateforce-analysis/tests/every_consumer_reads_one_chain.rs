@@ -29,7 +29,10 @@ type Construction = (&'static str, &'static str);
 /// The Rust ways: the struct literal, the two named constructors, and the call that turns a
 /// bound rule into a record.
 const RUST_CHAIN_CONSTRUCTORS: &[Construction] = &[
-    ("ProvenanceChain {", "crates/plateforce-analysis/src/chain.rs"),
+    (
+        "ProvenanceChain {",
+        "crates/plateforce-analysis/src/chain.rs",
+    ),
     (
         "ProvenanceChain::leaf",
         "crates/plateforce-core/src/provenance.rs",
