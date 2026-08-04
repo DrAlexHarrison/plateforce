@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use plateforce_analysis::quality::QualitySignal;
+use plateforce_analysis::quality::{QualitySignal, QualityStatus};
 use plateforce_analysis::{
     bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, Metric,
     WeighingChoice, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
@@ -569,18 +569,36 @@ fn render(
     }
 }
 
+/// The word the record carries for a status, matched over the whole vocabulary so a status
+/// added to it has to be ruled on here rather than reaching a reader under another status's
+/// name.
+///
+/// The spellings are the ones the record carries, so a reader who runs this trace here and
+/// opens the same result in a browser or a notebook meets one word for one status.
+fn status_reads(status: QualityStatus) -> &'static str {
+    match status {
+        QualityStatus::Disagrees => "disagrees",
+        QualityStatus::Incomparable => "incomparable",
+        QualityStatus::AtSearchFloor => "at search floor",
+    }
+}
+
 /// What the software knows about a number, said where the reader is already looking.
 ///
 /// A value, the threshold it passed, and an action naming the construct whose rule the
 /// reader would change. Never a verdict, and never a block at the end of the document,
 /// where a reader scanning the values does not go.
+///
+/// A signal holding no value says which status it is under rather than what became of one
+/// comparison. A sentence written for one signal is false of the next one to carry no value,
+/// and a reader has no way to tell which they are holding.
 fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
     let head = match signal.value {
         Some(value) => format!(
             "{}: {:.1} {}, past {:.0} {}.",
             signal.label, value, signal.unit, signal.threshold, signal.unit
         ),
-        None => format!("{}: not comparable.", signal.label),
+        None => format!("{}: {}.", signal.label, status_reads(signal.status)),
     };
     renderer.wrap(&format!("{head} {}", signal.remedy), 6)
 }
@@ -734,4 +752,37 @@ fn displaced(bound: &BoundMethod) -> String {
         )
         .collect();
     format!(", and {} states {}", adopted.id, stated.join(", "))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The word this surface prints for a status against the word the record carries for it.
+    ///
+    /// A reader who runs a trace here and opens the same result in a browser or a notebook
+    /// meets one word for one status, and the two spellings live in two places, so nothing
+    /// but this holds them together.
+    #[test]
+    fn the_terminal_spells_each_status_the_way_the_record_spells_it() {
+        let every = [
+            QualityStatus::Disagrees,
+            QualityStatus::Incomparable,
+            QualityStatus::AtSearchFloor,
+        ];
+        for status in every {
+            let carried = serde_json::to_value(status)
+                .expect("a status serialises")
+                .as_str()
+                .expect("a status is carried as a word")
+                .replace('_', " ");
+            println!("{status:?}: the record carries {carried:?}");
+            assert_eq!(status_reads(status), carried);
+        }
+        println!(
+            "statuses agreeing with the record: {} of {}",
+            every.len(),
+            every.len()
+        );
+    }
 }

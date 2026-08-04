@@ -24,14 +24,19 @@ quality_signal <- S7::new_class(
 
 #' @export
 `print.plateforce::quality_signal` <- function(x, ...) {
-  cat(sprintf(
-    "%s: %s %s, threshold %s %s\n",
-    x@label,
-    if (is.na(x@value)) "not comparable" else format(x@value, digits = 4),
-    x@unit,
-    format(x@threshold, digits = 4),
-    x@unit
-  ))
+  # A signal holding no value says which status it is under, read off the record rather than
+  # spelled again here, so a status this package has never heard of still reaches the reader
+  # under its own name. The unit and the threshold belong to a comparison that produced a
+  # number, and both stay on the object for a caller who wants them.
+  figure <- if (is.na(x@value)) {
+    gsub("_", " ", x@status, fixed = TRUE)
+  } else {
+    sprintf(
+      "%s %s, threshold %s %s",
+      format(x@value, digits = 4), x@unit, format(x@threshold, digits = 4), x@unit
+    )
+  }
+  cat(sprintf("%s: %s\n", x@label, figure))
   cat(sprintf("  %s\n", x@remedy))
   invisible(x)
 }

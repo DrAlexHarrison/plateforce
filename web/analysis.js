@@ -282,7 +282,11 @@ function signalsQualifying(metricKey) {
 
 /* A rate stated with no action leaves the reader holding a diagnosis they cannot act on,
  * which is the half of this pattern that does the work. The threshold is shown because the
- * threshold is itself a choice, and a reader who disagrees with it can see what it was. */
+ * threshold is itself a choice, and a reader who disagrees with it can see what it was.
+ *
+ * A signal holding no value says which status it is under, taken from the record rather than
+ * written here, so a status this page has never heard of still reaches the reader under its
+ * own name. A sentence written for one signal is false of the next one to carry no value. */
 function renderSignal(signal) {
   const wrap = element('p', `metric__signal metric__signal--${signal.status.replace(/_/g, '-')}`);
   wrap.append(element('span', 'metric__signal-label', signal.label));
@@ -292,7 +296,7 @@ function renderSignal(signal) {
       'span',
       'metric__signal-figure',
       signal.value == null
-        ? 'no second route on this trace'
+        ? signal.status.replace(/_/g, ' ')
         : `${signal.value.toFixed(1)} ${signal.unit} against ${signal.threshold.toFixed(1)} ${signal.unit}`,
     ),
   );
