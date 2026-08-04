@@ -9,9 +9,8 @@
 # The whole group is low-stakes relative to onset, and that is measured rather than assumed. Six
 # published takeoff rules on the same 21 participants and the same code span 1.4 cm of jump height
 # and 5 ms of movement time, with jump-height ICC spanning 0.965 to 0.976 and movement-time
-# coefficient of variation identical at 6.4 percent across all six. Onset and
-# takeoff are both thresholds in newtons and a designer would give them the same treatment. They
-# must not have it.
+# coefficient of variation identical at 6.4 percent across all six. Onset and takeoff are both
+# thresholds in newtons, and the span above is what separates them.
 
 [[method]]
 id = "takeoff.threshold.absolute_force"

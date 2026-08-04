@@ -1,12 +1,12 @@
 # Group N. Trial validity, aggregation and quality control.
 #
-# Thin, arbitrary and consequential, and the combination is the finding. Every gate here runs before
+# Every gate here runs before
 # any other registry entry, so it sets the population every downstream number is computed on, and
 # these are the only entries whose failure mode is silence: a rejected candidate produces no number,
 # no message and no row in the export, and a batch analysis inherits it without knowing.
 #
-# Every constant in this group is a round number with no derivation. Better constants are not the
-# useful move here. Making every gate report what it rejected is.
+# Every constant in this group is a round number with no derivation, so what each gate rejected is
+# the thing worth reporting.
 
 [[method]]
 id = "trial.aggregation"
@@ -115,7 +115,7 @@ source = "plateforce_inference"
 [method.gui]
 surfacing = "default_and_hide"
 sensitivity = "low, by construction and by defect"
-rationale = "Report the count of trials it rejected, which will usually be zero and should be visible when it is not. The absence of a competitor is the finding."
+rationale = "Report the count of trials it rejected, which will usually be zero and should be visible when it is not. No competing tool implements this gate."
 
 [[method]]
 id = "trial.gate.pretension_ceiling"
@@ -423,8 +423,7 @@ sensitivity = "categorical and the largest in this group, because misclassificat
 rationale = """
 Show the detected type with the margin by which it was decided, and make the override one click. A
 classification shown without its margin is a guess presented as a fact. No competitor automates this
-at all, and an automatic rule with a disclosed and honestly flagged limitation is better than no rule
-and better than an undisclosed one.
+at all, and this rule's limitation is disclosed beside its answer.
 """
 
 [[method]]

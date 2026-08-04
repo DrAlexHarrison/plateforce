@@ -1,8 +1,7 @@
 # Group J. Normalisation and scaling.
 #
-# The normalisation choice matters enormously for talent identification and not at all for
-# return-to-play on one athlete, so the interface should ask what the user is comparing rather than
-# which exponent they want.
+# The normalisation choice decides a talent-identification comparison and makes no difference to
+# return-to-play on one athlete.
 
 [[method]]
 id = "norm.absolute"

@@ -1,13 +1,10 @@
 # Group P. Loaded-lift and force-velocity profiling.
 #
-# The registry's deepest live dispute and its most commercially consequential one, and they are the
-# same dispute from two directions. Every other genuine debate here changes a number. These change a
-# training prescription that is sold to an athlete.
+# Every other genuine debate in this registry changes a number. These change a training prescription
+# that is sold to an athlete.
 #
-# Three of the four debates in this group are about extrapolation rather than about measurement. That
-# is a single structural property, not four independent problems, and a platform addresses all of
-# them at once by refusing to emit an extrapolated quantity without displaying the measured points,
-# the fitted model and the distance extrapolated.
+# Three of the four debates in this group are about extrapolation rather than about measurement,
+# which is a single structural property rather than four independent problems.
 
 [[method]]
 id = "optimal_load.mdo_bodyweight"
@@ -216,8 +213,8 @@ id = "fv.model.linear"
 kind = "genuine"
 note = """
 Physiologically better motivated at the muscle level, but the emergence argument cuts both ways: if
-task-level linearity is emergent, imposing the muscle-level hyperbola on task-level data is not
-obviously more correct either.
+task-level linearity is emergent, imposing the muscle-level hyperbola on task-level data has no
+stronger claim.
 """
 
 [method.gui]

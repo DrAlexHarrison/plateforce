@@ -1,14 +1,13 @@
 # Group Q. Sprint start and multidirectional.
 #
-# The registry's single best illustration of vendor opacity, and it decides Olympic medals. The
+# Vendor opacity here decides Olympic medals. The
 # governing rule of a global sport defines the offence kinematically, the certified apparatus detects
 # it kinetically through a proprietary threshold, and the leading peer-reviewed critique of the rule
 # had to assume the parameter's value because the vendor refused to disclose it.
 #
 # Change-of-direction biomechanics is overwhelmingly a joint-moment and inverse-dynamics literature
 # rather than a force-plate-metric one, and its central quantities are not computable from a force
-# plate alone. The three change-of-direction papers obtained contribute zero new computation rules,
-# and saying so plainly is the honest read.
+# plate alone. The three change-of-direction papers obtained contribute zero new computation rules.
 
 [[method]]
 id = "falsestart.kinematic_loss_of_contact"
@@ -328,7 +327,7 @@ note = "An unrecognised debate: the code asserts an equivalence that does not ho
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "moderate on the force intercept, larger on the slope and total on anything derived from it"
-rationale = "If both are computed both must be labelled. A column that is sometimes one and sometimes the other is the failure this registry exists to prevent."
+rationale = "If both are computed both must be labelled. A column that is sometimes one and sometimes the other reports two quantities under one name."
 
 [method.reach]
 boundary = "both"

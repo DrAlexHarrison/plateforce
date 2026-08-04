@@ -1,7 +1,7 @@
 # Group H. Peak force, rate of force development and impulse.
 #
-# The epoch gradient is the cleanest single demonstration of the registry's thesis and it lives
-# inside one metric family in one table. Two commercial packages on the same isometric traces differ
+# Method choice moves these numbers further than anything the traces themselves contain, and one
+# metric family in one table carries it. Two commercial packages on the same isometric traces differ
 # by 138 percent at the 0 to 50 ms epoch, 38.3 percent at 0 to 100, 20.7 percent at 0 to 150,
 # 4.00 percent at 0 to 250, and 0.00 percent on peak force. Nothing changes across those rows except
 # how much of the trace is averaged over: the onset error is a fixed time offset, and dividing it by
@@ -756,7 +756,7 @@ required = true
 [[method.citation]]
 key = "maffiuletti2016"
 role = "evaluates"
-reference = "Maffiuletti et al. 2016, arguing that impulse is arguably the most functionally relevant rising-curve measure and is under-used"
+reference = "Maffiuletti et al. 2016, arguing that impulse is the most functionally relevant rising-curve measure and is under-used"
 doi = "10.1007/s00421-016-3346-6"
 obtained = true
 

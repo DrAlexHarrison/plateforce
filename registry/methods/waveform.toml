@@ -1,10 +1,10 @@
 # Group M. Waveform statistics and time treatment.
 #
-# Two independent axes, and the second is the discovery. The inference machinery and the time
-# treatment cross rather than nest. Time normalisation is not a preprocessing parameter of the test,
+# Two independent axes. The inference machinery and the time treatment cross rather than nest.
+# Time normalisation is not a preprocessing parameter of the test,
 # it is a method with published consequences that determines what the test is capable of detecting.
 #
-# The killer evidence is a clean published instance rather than an argument: the same test run twice
+# A published instance rather than an argument: the same test run twice
 # on the same trials, differing only in how time was treated, gave a significant interaction under
 # absolute time and a non-significant one, with post-hoc testing impossible, under linear
 # normalisation. The mechanism generalises: the two schemes trade alignment quality between the two
@@ -399,9 +399,9 @@ obtained = false
 id = "timenorm.linear_length"
 kind = "genuine"
 note = """
-Explicitly and by design. Basis size sets the effective smoothing, so the scheme is a normalisation
-and a filter at once, which is an interaction with the acquisition layer that nobody in this
-literature discusses.
+The disagreement is explicit and by design. Basis size sets the effective smoothing, so the scheme
+is a normalisation and a filter at once, which is an interaction with the acquisition layer that
+nobody in this literature discusses.
 """
 
 [method.gui]
@@ -463,11 +463,10 @@ kind = "genuine"
 surfacing = "surface_on_demand"
 sensitivity = "unmeasured, predicted to be large"
 rationale = """
-Its precondition is a defined and agreed landmark set, which is exactly what this registry is. A
+Its precondition is a defined and agreed landmark set. A
 landmark absent in one athlete's curve cannot be registered, and jump force curves are non-, uni- and
 bimodal across athletes, so the method is undefined for exactly the population heterogeneity that
-motivated it. Nobody has reported what fraction of a normal cohort's curves lack each landmark, which
-is cheap and publishable on the 244-trial corpus.
+motivated it. Nobody has reported what fraction of a normal cohort's curves lack each landmark.
 """
 
 [[method]]
