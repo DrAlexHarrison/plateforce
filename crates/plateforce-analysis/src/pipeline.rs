@@ -349,8 +349,11 @@ pub fn run(
     );
     let (net_impulse, net_impulse_chain) =
         number_and_chain(&impulse_produced, net_impulse::KEY, &conditioned.ids);
-    let (takeoff_velocity, takeoff_velocity_chain) =
-        number_and_chain(&impulse_produced, net_impulse::VELOCITY_KEY, &conditioned.ids);
+    let (takeoff_velocity, takeoff_velocity_chain) = number_and_chain(
+        &impulse_produced,
+        net_impulse::VELOCITY_KEY,
+        &conditioned.ids,
+    );
     let (flight_time_height, flight_time_height_chain) =
         number_and_chain(&flight_produced, FLIGHT_TIME_KEY, &conditioned.ids);
     let (takeoff_height, takeoff_height_chain) = number_and_chain(

@@ -87,8 +87,11 @@ fn flight_time_names_no_onset_rule_under_any_onset_rule() {
     let mut checked = 0usize;
 
     for onset_id in landmark_rules("onset") {
-        let response =
-            run(&trial, &request(onset_id, "takeoff.threshold.absolute_force")).expect("well formed");
+        let response = run(
+            &trial,
+            &request(onset_id, "takeoff.threshold.absolute_force"),
+        )
+        .expect("well formed");
 
         // The onset rule ran and left its mark on the result, or this pair proves nothing:
         // a chain naming no onset rule is trivially satisfied where no onset rule ran.
@@ -193,13 +196,19 @@ fn every_landmark_rule_says_which_landmarks_it_reads() {
     let mut checked = 0usize;
 
     for onset_id in landmark_rules("onset") {
-        run(&trial, &request(onset_id, "takeoff.threshold.absolute_force"))
-            .unwrap_or_else(|error| panic!("{onset_id} could not be reached: {error}"));
+        run(
+            &trial,
+            &request(onset_id, "takeoff.threshold.absolute_force"),
+        )
+        .unwrap_or_else(|error| panic!("{onset_id} could not be reached: {error}"));
         checked += 1;
     }
     for takeoff_id in landmark_rules("takeoff") {
-        run(&trial, &request("onset.threshold.noise_relative", takeoff_id))
-            .unwrap_or_else(|error| panic!("{takeoff_id} could not be reached: {error}"));
+        run(
+            &trial,
+            &request("onset.threshold.noise_relative", takeoff_id),
+        )
+        .unwrap_or_else(|error| panic!("{takeoff_id} could not be reached: {error}"));
         checked += 1;
     }
 

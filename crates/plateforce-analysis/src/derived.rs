@@ -78,10 +78,8 @@ pub fn rules_behind(
         }
     }
 
-    let mut nodes: Vec<&PlacedSample> = reached
-        .iter()
-        .filter_map(|name| placed.get(name))
-        .collect();
+    let mut nodes: Vec<&PlacedSample> =
+        reached.iter().filter_map(|name| placed.get(name)).collect();
     nodes.sort_by_key(|node| node.order);
 
     let mut ids: Vec<String> = Vec::new();
