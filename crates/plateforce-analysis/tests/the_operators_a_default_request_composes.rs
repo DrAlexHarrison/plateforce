@@ -1,8 +1,10 @@
 //! Which operators run when a caller states nothing, and what the registry says about each.
 //!
-//! `ONSET_OPERATOR_IDS` lists what this build can compose, not what it does compose, and the
-//! two were read as one. Composing an operator is a choice made on the user's behalf, so the
-//! set that actually runs on a bare request is pinned here rather than inferred from the list.
+//! `ONSET_OPERATOR_IDS` lists what this build can compose for one construct, not what it does
+//! compose, and the two were read as one. Composing an operator is a choice made on the user's
+//! behalf, so the set that actually runs on a bare request is pinned here rather than inferred
+//! from the list, and it is read for every construct the registry declares operators for
+//! rather than for the one that list happens to name.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -56,17 +58,26 @@ fn bare_request() -> AnalysisRequest {
     }
 }
 
-/// Every operator the response records, whichever construct composed it.
+/// What an operator id looks like, in one place, so every count in this file is over one
+/// population and narrowing it narrows all of them together.
 ///
-/// This read `onset.op.` for as long as it existed, so the five takeoff operators the registry
+/// It read `onset.op.` for as long as it existed, so the five takeoff operators the registry
 /// carries were outside every assertion below. A takeoff landmark rests on a search floor, a
-/// crossing selection and a residual comparison exactly as an onset landmark does, and the
-/// filter that named one construct made the other three invisible rather than absent.
+/// crossing selection and a residual comparison exactly as an onset landmark does, and a
+/// predicate that named one construct made the other three invisible rather than absent.
+/// `the_reader_this_file_counts_operators_with_is_blind_to_the_construct` is what stops that
+/// from happening quietly again, and it is a test rather than a comment because a comment did
+/// not stop it the first time.
+fn is_operator(method_id: &str) -> bool {
+    method_id.contains(".op.")
+}
+
+/// Every operator the response records, whichever construct composed it.
 fn composed_operators(response: &plateforce_analysis::AnalysisResponse) -> Vec<String> {
     let mut ids: Vec<String> = response
         .bound_methods
         .iter()
-        .filter(|bound| bound.method_id.contains(".op."))
+        .filter(|bound| is_operator(&bound.method_id))
         .map(|bound| bound.method_id.clone())
         .collect();
     ids.sort();
@@ -76,6 +87,35 @@ fn composed_operators(response: &plateforce_analysis::AnalysisResponse) -> Vec<S
 /// Which construct's namespace an id sits in, which is how the registry spells a rule's home.
 fn construct_of(method_id: &str) -> &str {
     method_id.split('.').next().unwrap_or(method_id)
+}
+
+/// The reader every count in this file is taken with, asked whether it can see more than one
+/// construct at all.
+///
+/// This is the assertion the file did not have. Every other test here compares something the
+/// reader produced against something else the reader produced, so a reader narrowed to one
+/// construct leaves them all true and all smaller: a find and replace over
+/// `is_operator`'s body narrowed this file's reader and its population check in one stroke
+/// while it was being written. Only the registry can settle the question, because the registry
+/// is the one side no filter in this file touches.
+#[test]
+fn the_reader_this_file_counts_operators_with_is_blind_to_the_construct() {
+    let registry = registry();
+    let constructs: BTreeSet<&str> = registry
+        .methods
+        .keys()
+        .filter(|id| is_operator(id))
+        .map(|id| construct_of(id))
+        .collect();
+    println!(
+        "the reader matches operators in {} of the registry's constructs: {constructs:?}",
+        constructs.len()
+    );
+    assert!(
+        constructs.len() > 1,
+        "the reader matches operators in {constructs:?} alone, so every count in this file is \
+         over one construct while reading as a count over the build"
+    );
 }
 
 /// Where each construct's search may begin, asked of every construct rather than of one.
@@ -95,7 +135,7 @@ fn every_construct_anchors_its_search_at_the_same_place_and_composes_no_deprecat
         registry
             .methods
             .keys()
-            .filter(|id| id.contains(".op.search_floor"))
+            .filter(|id| is_operator(id) && id.contains("search_floor"))
             .fold(BTreeMap::new(), |mut found, id| {
                 found.entry(construct_of(id)).or_default().push(id);
                 found
@@ -117,7 +157,7 @@ fn every_construct_anchors_its_search_at_the_same_place_and_composes_no_deprecat
 
     let mut anchors: BTreeMap<&str, Vec<&String>> = BTreeMap::new();
     for id in &operators {
-        if id.contains(".op.search_floor") {
+        if is_operator(id) && id.contains("search_floor") {
             anchors
                 .entry(id.trim_start_matches(construct_of(id)))
                 .or_default()
@@ -200,7 +240,7 @@ fn every_operator_composed_unasked_carries_a_verdict_a_surface_can_act_on() {
     let declared: BTreeSet<&str> = registry
         .methods
         .keys()
-        .filter(|id| id.contains(".op."))
+        .filter(|id| is_operator(id))
         .map(|id| construct_of(id))
         .collect();
     let reached: BTreeSet<&str> = operators.iter().map(|id| construct_of(id)).collect();
