@@ -393,6 +393,34 @@ check('the account each number gives of itself reads the same in the browser as 
   `${terminalAccounts.size - differing.length} of ${terminalAccounts.size} accounts identical` +
     (differing.length ? `, first differing at ${differing[0][0]}` : ''));
 
+/*
+ * A trial's record on a phone.
+ *
+ * Read on the panel rather than on the document, because the panel is positioned against the
+ * viewport and the document cannot be taken sideways by anything inside it: measured here,
+ * with every account escaping its frame and widening the panel, the document reported no
+ * horizontal overflow at all.
+ */
+await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+await new Promise((wait) => setTimeout(wait, 400));
+const onAPhone = await evaluate(`(() => {
+  document.querySelector('#batch-result .row-record').click();
+  const body = document.getElementById('drawer-body');
+  const blocks = [...document.querySelectorAll('#drawer-body pre.account')];
+  return {
+    blocks: blocks.length,
+    carriages: blocks.filter((block) => ['auto', 'scroll'].includes(getComputedStyle(block).overflowX)).length,
+    widened: body.scrollWidth - body.clientWidth,
+    reach: document.querySelector('#batch-result .row-record').getBoundingClientRect().height,
+  };
+})()`);
+await send('Emulation.clearDeviceMetricsOverride');
+
+check('at 390 px a trial’s record scrolls each account inside its own frame, not the panel',
+  onAPhone.blocks > 0 && onAPhone.carriages === onAPhone.blocks && onAPhone.widened <= 0,
+  `${onAPhone.carriages} of ${onAPhone.blocks} accounts carrying their own carriage, ` +
+    `the panel ${onAPhone.widened} px wider than it shows, the row reaching ${Math.round(onAPhone.reach)} px`);
+
 // Both numbers, because a line stating only the files a declared suffix kept reads as the
 // whole folder, and the fixture folder holds files that are not traces.
 check('the run states its coverage against the denominator it was taken over',
