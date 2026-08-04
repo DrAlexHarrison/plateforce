@@ -57,4 +57,6 @@ it in chat. Do not commit it as prose.
 
 Clippy caches per crate and under-reports straight after a build; force a full run. Checking
 an exit code through a pipe reports the pipe's status. Verify a push with
-`git merge-base --is-ancestor` rather than reading piped output.
+`git merge-base --is-ancestor` rather than reading piped output. Usually err toward
+backgrounding any command expected to run longer than ten seconds; a foregrounded long run
+holds the turn.
