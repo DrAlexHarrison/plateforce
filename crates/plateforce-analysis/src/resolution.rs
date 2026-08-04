@@ -211,9 +211,24 @@ impl<'a> Resolution<'a> {
         fallback_milliseconds: f64,
         sample_rate_hz: f64,
     ) -> usize {
-        (self.number(name, fallback_milliseconds) / 1000.0 * sample_rate_hz)
-            .round()
-            .max(0.0) as usize
+        self.milliseconds_and_samples(name, fallback_milliseconds, sample_rate_hz)
+            .1
+    }
+
+    /// The same, with the span in the unit the caller stated it in beside the sample count.
+    ///
+    /// A rule whose epoch runs off the end of the recording refuses by naming the value a
+    /// reader would restate, and that value is in milliseconds. Reconverting the sample count
+    /// back would be a second spelling of this conversion that rounds differently.
+    pub(crate) fn milliseconds_and_samples(
+        &mut self,
+        name: &str,
+        fallback_milliseconds: f64,
+        sample_rate_hz: f64,
+    ) -> (f64, usize) {
+        let milliseconds = self.number(name, fallback_milliseconds);
+        let samples = (milliseconds / 1000.0 * sample_rate_hz).round().max(0.0) as usize;
+        (milliseconds, samples)
     }
 
     pub(crate) fn option(&mut self, name: &str, fallback: &'static str) -> String {
@@ -314,6 +329,28 @@ impl<'a> Resolution<'a> {
                     method_id, name, chosen, offered,
                 )))
             })
+    }
+
+    /// A quantity its entry states required with no default, refused rather than filled.
+    ///
+    /// The pair of force levels one rate rule runs between is where this is load-bearing: the
+    /// registry located no published pair, so a number invented here would be a silent default
+    /// sitting where the method's whole content is. Consulted either way, so a rule that
+    /// declined is a rule that asked.
+    pub(crate) fn required_number(
+        &mut self,
+        method_id: &str,
+        name: &str,
+    ) -> Result<f64, RuleRefusal> {
+        self.consulted.insert(name.to_string());
+        let Some(stated) = self.parameters.get(name).copied() else {
+            return Err(RuleRefusal::Refused(Box::new(
+                plateforce_core::Refusal::required_parameter_unstated(method_id, name),
+            )));
+        };
+        let source = self.stated_source(name);
+        self.record_measured(name, stated, format_number(stated), source);
+        Ok(stated)
     }
 
     /// A value the choice of rule settles, which a caller may state only in agreement.

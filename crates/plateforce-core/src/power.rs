@@ -311,22 +311,32 @@ pub fn rate_of_power_development_phase_anchored(
 }
 
 /// Rate of power development as the line from the lowest power to the highest power that
-/// follows it, one value for the whole jump.
+/// follows it, one value for the jump.
 ///
 /// This takes no phase, and that is what separates it from the phase-anchored rule rather
-/// than an omission: it reads the trough and the peak of the whole recording, so a version
-/// that quietly accepted a phase would be computing the other rule under this name.
+/// than an omission: it reads the trough and the peak of the interval it is handed, so a
+/// version that quietly accepted a phase would be computing the other rule under this name.
+///
+/// The interval is stated by the caller and is the half-open span an analysis-window rule
+/// placed, never a phase. Handed the whole file instead, a recording that continues past
+/// takeoff puts the trough at the landing, where force is large and centre-of-mass velocity
+/// is negative, and the line is then drawn between two instants of the landing rather than of
+/// the jump. That is the untrimmed-recording defect this project was founded on.
 pub fn rate_of_power_development_peak_to_peak(
     series: &PowerSeries,
+    search_start: usize,
+    search_end: usize,
     sample_interval_seconds: f64,
 ) -> Result<PowerRate, PowerError> {
     let watts = series.watts();
-    if watts.len() < 2 {
+    let end = search_end.min(watts.len());
+    if search_start >= end || end - search_start < 2 {
         return Err(PowerError::PhaseTooShort {
-            sample_count: watts.len(),
+            sample_count: end.saturating_sub(search_start),
         });
     }
-    let (trough_index, trough) = watts
+    let inside = |(offset, value): (usize, &f64)| (search_start + offset, *value);
+    let (trough_index, trough) = watts[search_start..end]
         .iter()
         .enumerate()
         .min_by(|left, right| {
@@ -334,22 +344,21 @@ pub fn rate_of_power_development_peak_to_peak(
                 .partial_cmp(right.1)
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
-        .map(|(index, value)| (index, *value))
+        .map(inside)
         .ok_or(PowerError::PhaseTooShort { sample_count: 0 })?;
     // The peak has to follow the trough, which is what "subsequent" states and what makes
     // the slope a rise rather than whichever of the two happened to come first.
-    let (peak_index, peak) = watts
+    let (peak_index, peak) = watts[trough_index + 1..end]
         .iter()
         .enumerate()
-        .skip(trough_index + 1)
         .max_by(|left, right| {
             left.1
                 .partial_cmp(right.1)
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
-        .map(|(index, value)| (index, *value))
+        .map(|(offset, value)| (trough_index + 1 + offset, *value))
         .ok_or(PowerError::PhaseTooShort {
-            sample_count: watts.len() - trough_index,
+            sample_count: end - trough_index,
         })?;
     let elapsed_seconds = (peak_index - trough_index) as f64 * sample_interval_seconds;
     Ok(PowerRate {
@@ -687,10 +696,12 @@ mod tests {
     }
 
     #[test]
-    fn the_peak_to_peak_rate_reads_the_whole_recording() {
+    fn the_peak_to_peak_rate_reads_every_sample_of_the_interval_it_is_handed() {
         let force = jump_like_force();
         let series = power_from(&force, ForceTerm::GroundReaction);
-        let rate = rate_of_power_development_peak_to_peak(&series, 1.0 / SAMPLE_RATE_HZ).unwrap();
+        let whole = series.len();
+        let rate = rate_of_power_development_peak_to_peak(&series, 0, whole, 1.0 / SAMPLE_RATE_HZ)
+            .unwrap();
         assert!(rate.watts_per_second > 0.0);
 
         // Deepening the trough late in the trace moves the answer. A rule scoped to any one
@@ -702,8 +713,30 @@ mod tests {
         }
         let deepened = power_from(&deeper, ForceTerm::GroundReaction);
         let moved =
-            rate_of_power_development_peak_to_peak(&deepened, 1.0 / SAMPLE_RATE_HZ).unwrap();
+            rate_of_power_development_peak_to_peak(&deepened, 0, whole, 1.0 / SAMPLE_RATE_HZ)
+                .unwrap();
         assert_ne!(moved.watts_per_second, rate.watts_per_second);
+    }
+
+    /// The interval is the whole of what keeps a landing out of the answer, so a trough
+    /// outside it must not reach the line.
+    #[test]
+    fn the_interval_bounds_the_peak_to_peak_search() {
+        let series = PowerSeries {
+            watts: vec![100.0, -50.0, 300.0, -9000.0, 4000.0],
+            force_term: ForceTerm::GroundReaction,
+            sign_convention: PowerSignConvention::UpwardPositive,
+        };
+        let inside = rate_of_power_development_peak_to_peak(&series, 0, 3, 0.001).unwrap();
+        assert_eq!(inside.first_index, 1);
+        assert_eq!(inside.last_index, 2);
+
+        // The same series read to its end takes the far deeper trough and the far higher
+        // peak after it, which is a different number entirely.
+        let across = rate_of_power_development_peak_to_peak(&series, 0, 5, 0.001).unwrap();
+        assert_eq!(across.first_index, 3);
+        assert_eq!(across.last_index, 4);
+        assert!(across.watts_per_second > inside.watts_per_second);
     }
 
     #[test]
@@ -715,7 +748,7 @@ mod tests {
             force_term: ForceTerm::GroundReaction,
             sign_convention: PowerSignConvention::UpwardPositive,
         };
-        let rate = rate_of_power_development_peak_to_peak(&series, 0.001).unwrap();
+        let rate = rate_of_power_development_peak_to_peak(&series, 0, 5, 0.001).unwrap();
         assert_eq!(rate.first_index, 2);
         assert_eq!(rate.last_index, 4);
         assert!(rate.watts_per_second > 0.0);
@@ -729,7 +762,7 @@ mod tests {
             sign_convention: PowerSignConvention::UpwardPositive,
         };
         assert!(matches!(
-            rate_of_power_development_peak_to_peak(&series, 0.001).unwrap_err(),
+            rate_of_power_development_peak_to_peak(&series, 0, 3, 0.001).unwrap_err(),
             PowerError::PhaseTooShort { .. }
         ));
     }

@@ -5,6 +5,7 @@
 pub mod analysis_window;
 pub mod braking_phase_start;
 pub mod conditioned_force_signal;
+pub mod epoch_impulse;
 pub mod flight_time;
 pub mod jh_standing_frame;
 pub mod jh_takeoff_frame;
@@ -17,6 +18,8 @@ pub mod phase_model;
 pub mod propulsion_phase_end;
 pub mod propulsion_phase_start;
 pub mod propulsion_subdivision;
+pub mod rate_of_force_development;
+pub mod rate_of_power_development;
 pub mod reactive_strength_index;
 pub mod system_weight;
 pub mod takeoff;

@@ -16,6 +16,7 @@ pub mod bspline;
 pub mod butterworth;
 pub mod calibration;
 pub mod cutoff;
+pub mod exponential_rise;
 pub mod gravity;
 pub mod method_ids;
 pub mod normalisation;
