@@ -23,7 +23,7 @@ export function offerableConstructs() {
   const visited = new Set(state.slots.map((slot) => slot.construct));
   const offers = [];
   for (const binding of state.build.bindings) {
-    if (visited.has(binding.construct)) continue;
+    if (visited.has(binding.construct) || !reportsAQuantity(binding.construct)) continue;
     visited.add(binding.construct);
     const entry = state.registry.constructs.find((c) => c.id === binding.construct);
     offers.push({
@@ -33,6 +33,21 @@ export function offerableConstructs() {
     });
   }
   return offers.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/*
+ * Whether any rule under this construct declares a quantity it can report.
+ *
+ * What this picker offers is a quantity, and every rule declares on its own row everything
+ * it produces. A construct whose rules report nothing has no quantity to reach, and the
+ * engine arrives at it by a route the path does not carry: the signal every other rule then
+ * reads is produced before the recording is searched for anything, so asking for it as a
+ * quantity names a step the run has no place to put.
+ */
+function reportsAQuantity(construct) {
+  return state.build.bindings.some(
+    (binding) => binding.construct === construct && (binding.quantities || []).length > 0,
+  );
 }
 
 /*

@@ -725,6 +725,39 @@ check('the five states of a value are told apart without reading the words',
     : missing.length ? `never rendered, so never compared: ${missing.join(', ')}`
     : `${read.length} readings across two themes, all distinct: ${[...new Set(read)].join(', ')}`);
 
+// Last, because it takes every offer in turn and leaves the rail holding all of them, which
+// is a page no check above was written against.
+//
+// The picker names a quantity and clicking it puts that construct on the path. Whether the
+// engine will take it is a second fact, and the browser reads the rules this build runs
+// without being told how each one is reached, so the two lists can differ and nothing says
+// so until a reader clicks. An offer the engine refuses does not degrade: the request comes
+// back refused, and every number on the page goes with it.
+//
+// Taken one at a time and asserted after each, so a failure names the offer that did it
+// rather than the state twelve offers later.
+const offered = await evaluate(`(async () => (await import('./add-quantity.js')).offerableConstructs().map((o) => o.construct))()`);
+const refused = [];
+for (const construct of offered) {
+  const outcome = await evaluate(`(async () => {
+    const { state } = await import('./state.js');
+    (await import('./add-quantity.js')).addToPath(${JSON.stringify(construct)});
+    return {
+      refusal: state.analysisRefusal ? state.analysisRefusal.message : null,
+      metrics: document.querySelectorAll('#metric-grid .metric').length,
+    };
+  })()`);
+  if (outcome.refusal) refused.push(`${construct}: ${outcome.refusal}`);
+  else if (outcome.metrics === 0) refused.push(`${construct}: the grid emptied with no refusal to read`);
+}
+check('every quantity the picker offers is one the engine will take',
+  offered.length > 0 && refused.length === 0,
+  offered.length === 0
+    ? 'the picker offered nothing, so this check compared nothing'
+    : refused.length
+      ? `${offered.length} offered, ${refused.length} refused: ${refused.join(' | ')}`
+      : `${offered.length} offered, every one analysed`);
+
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
 const failed = results.filter((result) => !result.passed);

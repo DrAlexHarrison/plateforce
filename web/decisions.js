@@ -180,6 +180,9 @@ function renderRulesThatRanBeside(slot, statedId) {
  * a construct nobody asked for raises no decision, and turning what ran into a choice
  * nobody made would put a fourth and a fifth quantity in front of a reader who asked for
  * neither. The quantity picker below is where a reader takes one of these over.
+ *
+ * They carry no sentence under the title either. What a decision row prints there is what
+ * choosing costs, and a row holding no choice has no cost to name.
  */
 function rulesThatRanUnderNoRow(drawn) {
   const byConstruct = new Map();
@@ -197,7 +200,6 @@ function rulesThatRanUnderNoRow(drawn) {
     // picker below both use for it.
     head.append(element('span', 'decision__title', entry?.label || entry?.title || construct));
     wrap.append(head);
-    if (entry?.notes) wrap.append(element('p', 'decision__why', entry.notes));
 
     const host = element('div', 'ran-beside');
     for (const { method, bound } of ran) host.append(ranBesideRow(method, bound));
