@@ -42,6 +42,20 @@ fi
 # Removed rather than left to accumulate: a directory holding two wheels has no single answer
 # to which one was just built, and the install below would pick by sort order.
 rm -rf "$wheels"
+
+# Destroy before producing, which is what the other three surface scripts already do:
+# `r-surface.sh` clears its library and `build-web.sh` clears its output directory, so a
+# failure in either leaves nothing and the consumer fails loudly. This script did not, and the
+# environment is created only when missing and never cleared, so a failed `maturin build` exited
+# here leaving the PREVIOUS run's compiled wheel installed. Anything that then imported
+# `plateforce` from this environment answered for a tree that is not the one under test, and
+# reported green. That is the stale-installed-package trap, which this project has now met nine
+# times in four days, in the one lane that had no guard against it.
+#
+# Scoped to the package under test rather than to the whole environment, so `pytest` and its
+# dependencies survive and a run costs no more than it did.
+"$python" -m pip uninstall --quiet --yes plateforce >&2 || true
+
 "$maturin" build \
     --manifest-path "$root/crates/plateforce-python/Cargo.toml" \
     --interpreter "$python" \
