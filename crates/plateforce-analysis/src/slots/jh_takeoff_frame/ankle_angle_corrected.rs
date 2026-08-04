@@ -151,3 +151,15 @@ fn compute(
         refusal: None,
     }
 }
+
+/// The measurements this rule declines without, each with a plausible adult value.
+///
+/// The two angles are the rule's whole content and the registry publishes no default for
+/// either, so it refuses rather than inventing a posture. Stature answers the refusal the
+/// segment length otherwise raises. Held here so a surface offering the rule knows what to
+/// ask for, and a check reaching it gets past the refusal to the control it is probing.
+pub const REQUIRED_NUMBERS: &[(&str, f64)] = &[
+    (TAKEOFF_ANGLE_PARAMETER, 25.0),
+    (LANDING_ANGLE_PARAMETER, 10.0),
+    (STATURE_PARAMETER, 1.70),
+];

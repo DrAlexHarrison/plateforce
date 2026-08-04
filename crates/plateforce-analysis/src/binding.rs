@@ -771,6 +771,29 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         crate::slots::propulsion_phase_end::peak_com_velocity::ID => {
             crate::slots::propulsion_phase_end::peak_com_velocity::REQUIRED_OPTIONS
         }
+        crate::slots::epoch_impulse::epoch_from_onset::ID
+        | crate::slots::epoch_impulse::to_fraction_of_peak::ID => {
+            crate::slots::epoch_impulse::REQUIRED_OPTIONS
+        }
+        _ => &[],
+    }
+}
+
+/// The same, for the numbers a rule declines without, where the registry publishes no default
+/// and the value is a property of the athlete rather than of the method.
+///
+/// The anthropometric jump-height rules need two or three of these at once, so a caller
+/// stating one still meets a refusal naming the next. A check probing one parameter of such a
+/// rule reads every one of its controls as moving nothing, which is the check failing to reach
+/// the question rather than the control failing to matter.
+pub fn required_numbers(method_id: &str) -> &'static [(&'static str, f64)] {
+    match method_id {
+        crate::slots::jh_takeoff_frame::ankle_angle_corrected::ID => {
+            crate::slots::jh_takeoff_frame::ankle_angle_corrected::REQUIRED_NUMBERS
+        }
+        crate::slots::jh_standing_frame::heel_rise_constant::ID => {
+            crate::slots::jh_standing_frame::heel_rise_constant::REQUIRED_NUMBERS
+        }
         _ => &[],
     }
 }

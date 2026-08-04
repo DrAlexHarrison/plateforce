@@ -116,3 +116,15 @@ fn compute(
         refusal: None,
     }
 }
+
+/// The athlete's measurements this rule declines without, each with a plausible adult value.
+///
+/// Not defaults: the rule refuses rather than filling them, because no representative foot
+/// length or ankle height exists to fall back to. Held here so a surface offering the rule
+/// knows what to ask for, and a check reaching it can get past the refusal to the control it
+/// is actually probing.
+pub const REQUIRED_NUMBERS: &[(&str, f64)] = &[
+    (FOOT_LENGTH_PARAMETER, 0.26),
+    (SOLE_THICKNESS_PARAMETER, 0.02),
+    (ANKLE_HEIGHT_PARAMETER, 0.07),
+];

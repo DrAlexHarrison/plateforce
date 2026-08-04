@@ -89,9 +89,21 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.box_height_as_drop_height",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
@@ -109,6 +121,12 @@
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "slot": "jump_height.standing_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.standing_frame",
+          "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
           "slot": "jump_height.standing_frame"
         },
         {
@@ -535,9 +553,21 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.box_height_as_drop_height",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
@@ -555,6 +585,12 @@
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "slot": "jump_height.standing_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.standing_frame",
+          "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
           "slot": "jump_height.standing_frame"
         },
         {
@@ -985,9 +1021,21 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.box_height_as_drop_height",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
@@ -1005,6 +1053,12 @@
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "slot": "jump_height.standing_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.standing_frame",
+          "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
           "slot": "jump_height.standing_frame"
         },
         {
@@ -1433,9 +1487,21 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.box_height_as_drop_height",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
@@ -1453,6 +1519,12 @@
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "slot": "jump_height.standing_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_height.standing_frame",
+          "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
           "slot": "jump_height.standing_frame"
         },
         {

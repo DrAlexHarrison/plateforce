@@ -275,6 +275,7 @@ id = "rate_of_force_development"
 title = "How fast force rises"
 label = "How fast force rises"
 unit = "newtons_per_second"
+rules_answer = "one_question"
 notes = """
 At least three incompatible quantities are called this, and one vendor ships four. A bare label is
 never sufficient: the variant and its window must travel with the number.

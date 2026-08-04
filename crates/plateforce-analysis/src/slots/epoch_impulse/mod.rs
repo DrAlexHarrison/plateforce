@@ -77,3 +77,12 @@ pub(crate) fn record_entry_behind(
 ) {
     context.rests_on(quantity_key, &[CONVENTION_ENTRY]);
 }
+
+/// The names both rules in this construct decline without, and a value that satisfies each.
+///
+/// The same shape `propulsion_phase_end::peak_com_velocity` uses, and for the same reason: a
+/// surface offering these rules has to ask for the convention, and a check reaching them has
+/// to supply it, so neither knows the answer by heart. The convention is published on its own
+/// entry rather than on the rules, which is why reading the rules' own parameters does not
+/// find it.
+pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(CONVENTION_PARAMETER, NET)];

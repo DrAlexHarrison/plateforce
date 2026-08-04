@@ -378,11 +378,24 @@ fn base_request() -> AnalysisRequest {
 }
 
 fn request_with(offered: &OfferedParameter, value: f64) -> AnalysisRequest {
-    request_stating(
-        offered.slot,
-        &offered.method_id,
-        BTreeMap::from([(offered.parameter.clone(), value)]),
-    )
+    let mut stated = siblings_the_rule_cannot_run_without(&offered.method_id);
+    stated.insert(offered.parameter.clone(), value);
+    request_stating(offered.slot, &offered.method_id, stated)
+}
+
+/// Every other number the rule under test states required and publishes no default for.
+///
+/// A rule needing two stated values declines at every probe of either one, so the sweep sees
+/// one answer and reports a control that moves nothing. That is the sweep failing to reach the
+/// question rather than the control failing to matter, and it reads identically. The first
+/// rules requiring more than one such value arrived on 2026-08-04 and five parameters across
+/// five of them read as inert at once, which is what this answers. The probed name is written
+/// over whatever lands here, so the value under test is always the caller's.
+fn siblings_the_rule_cannot_run_without(method_id: &str) -> BTreeMap<String, f64> {
+    plateforce_analysis::binding::required_numbers(method_id)
+        .iter()
+        .map(|(name, value)| ((*name).to_string(), *value))
+        .collect()
 }
 
 /// One rule named in its slot, carrying whatever the caller stated on it. An operator's
@@ -397,6 +410,13 @@ fn request_stating(
     let choice = MethodChoice {
         method_id: method_id.to_string(),
         parameters,
+        // An enumeration the rule states required with no default declines at every probe the
+        // same way a number does, so it is answered here rather than left for the sweep to
+        // read as a control that moves nothing.
+        options: plateforce_analysis::binding::required_options(method_id)
+            .iter()
+            .map(|(name, value)| (name.to_string(), value.to_string()))
+            .collect(),
         ..Default::default()
     };
     match slot {
