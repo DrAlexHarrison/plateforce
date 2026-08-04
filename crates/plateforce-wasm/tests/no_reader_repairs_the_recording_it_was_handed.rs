@@ -193,10 +193,27 @@ fn the_tab_answers_the_damaged_recording_differently_from_the_clean_one() {
 }
 
 /// The tab hands the engine the trace the file wrote, under every convention it accepts.
+///
+/// Read through the envelope at one bucket per sample, which is the tab's own window onto the
+/// trace it holds. The counts alone cannot see this: a reader that held every unreadable
+/// sample at the last real reading published exactly the counts below while analysing a trace
+/// with no gaps in it, and this assertion was written against the counts and passed while that
+/// reader was in place.
 #[test]
 fn the_tab_hands_back_the_trace_the_file_wrote() {
     let wrote = as_the_file_wrote_it(INTERRUPTED);
     assert_eq!(wrote.len(), ROWS_IN_THE_RECORDING);
+    let gaps: Vec<usize> = wrote
+        .iter()
+        .enumerate()
+        .filter(|(_, value)| !value.is_finite())
+        .map(|(index, _)| index)
+        .collect();
+    assert_eq!(
+        gaps.len(),
+        CARRYING_NO_NUMBER,
+        "the recording this is about has to carry gaps, or nothing below is being asked"
+    );
 
     let text = std::fs::read_to_string(INTERRUPTED).expect("the committed recording is readable");
     let file = ForceFile::parse_text(&text).expect("one value per line parses");
@@ -216,6 +233,35 @@ fn the_tab_hands_back_the_trace_the_file_wrote() {
         );
         assert_eq!(info["samples_matching_the_convention"], matched);
         assert_eq!(info["samples_carrying_no_number"], CARRYING_NO_NUMBER);
+
+        let envelope: serde_json::Value = serde_json::from_str(
+            &loaded
+                .envelope_json(ROWS_IN_THE_RECORDING)
+                .expect("the tab draws what it holds"),
+        )
+        .expect("the envelope parses");
+        let lower = envelope["lower"].as_array().expect("one bucket per sample");
+        assert_eq!(lower.len(), ROWS_IN_THE_RECORDING);
+        // A sample the file wrote no number at reaches the drawing as no number. A reader
+        // that held it at the last real reading draws a force there, and one that removed it
+        // shifts every sample after it into the wrong bucket.
+        let reported_as_a_number: Vec<usize> = gaps
+            .iter()
+            .copied()
+            .filter(|index| lower[*index].as_f64().is_some_and(f64::is_finite))
+            .collect();
+        assert!(
+            reported_as_a_number.is_empty(),
+            "under {convention} the tab holds a force at {reported_as_a_number:?}, where the \
+             file wrote no number"
+        );
+        for index in [0, gaps[0] - 1, gaps[gaps.len() - 1] + 1, wrote.len() - 1] {
+            assert_eq!(
+                lower[index].as_f64(),
+                Some(wrote[index]),
+                "under {convention} sample {index} is not the one the file wrote"
+            );
+        }
     }
 }
 
