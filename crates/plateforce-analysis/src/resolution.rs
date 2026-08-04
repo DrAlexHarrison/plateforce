@@ -277,7 +277,13 @@ impl<'a> Resolution<'a> {
     /// the registry publishes none is a decision the rule made on the caller's behalf. The
     /// anthropometric and drop-height rules need this, because no representative box height or
     /// foot length exists to fall back to. One study assumed a single box height for all 24 of
-    /// its subjects, which is inside the bias the registry records against that entry.
+    /// its subjects, which is inside the bias the registry records against that entry. The pair
+    /// of force levels one rate rule runs between is the other place it is load-bearing: the
+    /// registry located no published pair, so a number invented here would sit where the
+    /// method's whole content is.
+    ///
+    /// `stated` marks the name consulted before it reads it, so a rule that declined is a rule
+    /// that asked and the name never reaches `unread_parameters`.
     ///
     /// Held here rather than as a pair of calls in each rule, so the value a caller supplied
     /// and the claim they made about it are recorded the same way by every rule that asks.
@@ -329,28 +335,6 @@ impl<'a> Resolution<'a> {
                     method_id, name, chosen, offered,
                 )))
             })
-    }
-
-    /// A quantity its entry states required with no default, refused rather than filled.
-    ///
-    /// The pair of force levels one rate rule runs between is where this is load-bearing: the
-    /// registry located no published pair, so a number invented here would be a silent default
-    /// sitting where the method's whole content is. Consulted either way, so a rule that
-    /// declined is a rule that asked.
-    pub(crate) fn required_number(
-        &mut self,
-        method_id: &str,
-        name: &str,
-    ) -> Result<f64, RuleRefusal> {
-        self.consulted.insert(name.to_string());
-        let Some(stated) = self.parameters.get(name).copied() else {
-            return Err(RuleRefusal::Refused(Box::new(
-                plateforce_core::Refusal::required_parameter_unstated(method_id, name),
-            )));
-        };
-        let source = self.stated_source(name);
-        self.record_measured(name, stated, format_number(stated), source);
-        Ok(stated)
     }
 
     /// A value the choice of rule settles, which a caller may state only in agreement.
