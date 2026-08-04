@@ -56,6 +56,41 @@ fn batch(out_dir: &std::path::Path, extra: &[&str]) -> Output {
         .expect("the built binary runs")
 }
 
+/// The same binding asked of one trial, so the two commands can be held to one answer.
+fn analyse(extra: &[&str]) -> Output {
+    let mut arguments: Vec<&str> = vec![
+        "--registry",
+        "../../registry",
+        "analyse",
+        "../plateforce-conformance/fixtures/subject01_trial1.force.txt",
+        "--column",
+        "0",
+        "--sample-rate-hz",
+        "1200",
+        "--sentinel",
+        "none",
+        "--weighing",
+        "bwepoch.fixed_window",
+        "--onset",
+        "onset.threshold.noise_relative",
+        "--takeoff",
+        "takeoff.threshold.absolute_force",
+        "--set",
+        "weighing.duration=1.0",
+        "--set",
+        "onset.k=5",
+        "--set",
+        "takeoff.threshold_n=20",
+    ];
+    arguments.extend(extra.iter().copied());
+    std::process::Command::new(env!("CARGO_BIN_EXE_plateforce"))
+        .args(&arguments)
+        .env("NO_COLOR", "1")
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .expect("the built binary runs")
+}
+
 fn scratch(name: &str) -> std::path::PathBuf {
     let path =
         std::env::temp_dir().join(format!("plateforce-derive-{name}-{}", std::process::id()));
@@ -371,4 +406,47 @@ fn a_construct_written_twice_is_refused_the_way_the_other_repeatable_flags_refus
         said.contains("--derive analysis_window") && other.contains("--choose onset.selection"),
         "each names its own flag and its own name"
     );
+}
+
+/// The folder run and the single trial answer `--derive` with one sentence and one status.
+///
+/// The predicate behind both is `plateforce_batch::derive`, which is the one home for whether
+/// this build runs a rule for a construct. Each command kept its own reading of that question
+/// until now, and a construct added to one would have been answered by the other as absent
+/// until it was edited too. Nothing in the types holds the two together, so the property is a
+/// single-site fact rather than a compile-time one, and this is what says so out loud.
+///
+/// Both halves of the split are checked, because they arrive differently: a line the reader
+/// rewrites from the grammar carries no published code, and a name they rewrite from a list
+/// carries one. A guard over either alone would pass on a surface that had re-grown its own
+/// copy of the other.
+#[test]
+fn the_folder_and_the_single_trial_refuse_a_derived_binding_with_one_sentence() {
+    for (name, line) in [
+        ("malformed", "peak_force"),
+        ("unknown", "not_a_construct=anything"),
+    ] {
+        let out = scratch(&format!("one-answer-{name}"));
+        let folder = batch(&out, &["--derive", line]);
+        let alone = analyse(&["--derive", line]);
+
+        let said = |output: &Output| {
+            String::from_utf8(output.stderr.clone())
+                .expect("the refusal is UTF-8")
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .to_string()
+        };
+        let (folder_said, alone_said) = (said(&folder), said(&alone));
+        println!("--derive {line}\n  folder: {folder_said}\n  trial:  {alone_said}");
+
+        assert_eq!(folder.status.code(), Some(THE_REQUEST_COULD_NOT_BE_READ));
+        assert_eq!(alone.status.code(), folder.status.code());
+        assert!(!folder_said.is_empty(), "the folder run said something");
+        assert_eq!(
+            alone_said, folder_said,
+            "one question answered two ways for '--derive {line}'"
+        );
+    }
 }

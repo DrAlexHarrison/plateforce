@@ -196,7 +196,7 @@ pub(crate) fn prepare(
     };
 
     let chosen = chosen_methods(args)?;
-    let derived = match derived_methods(args) {
+    let derived = match derived_methods(&args.derive) {
         Ok(derived) => derived,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
@@ -652,39 +652,35 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
     })
 }
 
-/// `--derive <construct>=<method>`, refused when the construct runs no rule or the id is not
-/// one of the rules filed under it. Both halves, because either alone lets a request through
-/// that the engine would have to refuse later or, worse, skip.
-fn derived_methods(args: &Args) -> Result<BTreeMap<String, String>, Declined> {
+/// `--derive <construct>=<method>`, read through the one predicate that answers whether this
+/// build runs a rule, so the single trial and the folder cannot answer it differently.
+///
+/// A construct written twice is refused through the same helper `--set` and `--choose` refuse
+/// through, which is the half `derive::choice` does not see: it reads one line and this reads
+/// the set of them.
+pub(crate) fn derived_methods(lines: &[String]) -> Result<BTreeMap<String, String>, Declined> {
     let mut chosen = BTreeMap::new();
-    for assignment in &args.derive {
-        let Some((construct, method_id)) = assignment.split_once('=') else {
-            return Err(Declined::line(
-                Fault::Request,
-                format!("--derive takes <construct>=<method>, and '{assignment}' carries no ="),
-            ));
-        };
-        let runs = plateforce_analysis::binding::derived_constructs();
-        if !runs.contains(&construct) {
-            return Err(Declined::recorded(Refusal::construct_not_on_the_path(
-                construct,
-                runs.into_iter().map(str::to_string).collect(),
-            )));
-        }
-        let available: Vec<String> =
-            plateforce_analysis::binding::bindings_for_construct(construct)
-                .map(|binding| binding.id.to_string())
-                .collect();
-        if !available.iter().any(|id| id == method_id) {
-            return Err(Declined::recorded(Refusal::method_not_implemented(
-                method_id, construct, available,
-            )));
-        }
-        if let Some(first) = chosen.insert(construct.to_string(), method_id.to_string()) {
-            return Err(stated_twice("--derive", construct, &first, method_id));
+    for line in lines {
+        let (construct, method_id) =
+            plateforce_batch::derive::choice("--derive", line).map_err(declined_binding)?;
+        if let Some(first) = chosen.insert(construct.clone(), method_id.clone()) {
+            return Err(stated_twice("--derive", &construct, &first, &method_id));
         }
     }
     Ok(chosen)
+}
+
+/// A rule the run cannot bind, in the shape the caller's other refusals arrive in.
+///
+/// The two halves keep the split the record makes: a line the reader will rewrite from the
+/// grammar carries no published code, and a name they will rewrite from a list carries one.
+pub(crate) fn declined_binding(refusal: plateforce_batch::DeriveRefusal) -> Declined {
+    match refusal {
+        plateforce_batch::DeriveRefusal::Malformed { .. } => {
+            Declined::line(Fault::Request, refusal.to_string())
+        }
+        plateforce_batch::DeriveRefusal::Recorded(recorded) => Declined::recorded(*recorded),
+    }
 }
 
 fn build_request(
