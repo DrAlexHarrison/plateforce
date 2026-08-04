@@ -154,8 +154,7 @@ fn chain_of(
     depends_on: Vec<ProvenanceChain>,
 ) -> ProvenanceChain {
     let provenance = resolved.into_provenance(
-        registry.version.clone(),
-        registry.digest.clone(),
+        &registry.stamp,
         acquisition_complete,
         depends_on
             .iter()
@@ -219,10 +218,18 @@ fn software_step(
     registry: &RegistryIdentity,
     acquisition_complete: bool,
 ) -> CoreProvenance {
+    // Destructured without a rest pattern, so a fact added to the stamp is a compile error
+    // here rather than one this step quietly stops carrying.
+    let plateforce_core::provenance::RegistryStamp {
+        version,
+        declared_version,
+        digest,
+    } = registry.stamp.clone();
     CoreProvenance {
         parameters: bound_parameters,
-        registry_version: registry.version.clone(),
-        registry_digest: registry.digest.clone(),
+        registry_version: version,
+        registry_declared_version: declared_version,
+        registry_digest: digest,
         acquisition_complete,
         ..CoreProvenance::of(method_id)
     }
@@ -701,7 +708,10 @@ struct AnalysisDocument<'a> {
     #[serde(flatten)]
     response: &'a AnalysisResponse,
     registry_digest: Option<String>,
+    /// The revision the caller pinned on the registry they loaded, and null when they pinned
+    /// none. Never the registry's own claim, which travels beside it.
     registry_version: Option<String>,
+    registry_declared_version: Option<String>,
     acquisition_complete: bool,
 }
 
@@ -786,8 +796,9 @@ pub fn analyse_json(
 
     let document = AnalysisDocument {
         response: &response,
-        registry_digest: registry.digest.clone(),
-        registry_version: registry.version.clone(),
+        registry_digest: registry.stamp.digest.clone(),
+        registry_version: registry.stamp.version.clone(),
+        registry_declared_version: registry.stamp.declared_version.clone(),
         acquisition_complete: trial.acquisition_complete(),
     };
     serde_json::to_string(&serde_json::json!({ "ok": document }))

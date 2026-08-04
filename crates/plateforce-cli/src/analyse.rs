@@ -73,6 +73,10 @@ pub struct Args {
     /// nobody was asked
     #[arg(long, value_name = "M/S2")]
     pub gravity: Option<f64>,
+    /// Cite this registry revision in the result. Unstated, the result names no pinned
+    /// revision and reports the one the registry declares for itself
+    #[arg(long, value_name = "REVISION")]
+    pub registry_version: Option<String>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
@@ -148,6 +152,23 @@ pub(crate) struct Prepared {
     pub registry: Registry,
     pub trial: ReadTrial,
     pub request: AnalysisRequest,
+}
+
+/// Which registry produced these numbers, as the three facts a reader asks for, built in one
+/// place so no document written by this surface can assemble its own answer.
+///
+/// The pin is the caller's word and the declared revision is the registry's. This surface
+/// used to publish the second under the first's name, so every unpinned run told a reader the
+/// operator had cited a revision no operator had chosen.
+pub(crate) fn registry_stamp(
+    registry: &Registry,
+    args: &Args,
+) -> plateforce_core::provenance::RegistryStamp {
+    plateforce_core::provenance::RegistryStamp::unpinned(
+        registry.declared_version.clone(),
+        Some(registry.content_digest.clone()),
+    )
+    .pinned_to(args.registry_version.clone())
 }
 
 /// One home for the path from a command line to a request, so a second command asking a
@@ -768,8 +789,7 @@ fn render(
             rows_read: trial.rows_read,
             sentinel_rows: trial.sentinel_rows,
         },
-        registry.declared_version.clone(),
-        Some(registry.content_digest.clone()),
+        &registry_stamp(registry, args),
         // No acquisition block reaches this surface, and a dataset that cannot fill one
         // fingerprints as incomplete rather than as matching.
         false,

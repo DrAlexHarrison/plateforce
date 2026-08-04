@@ -23,8 +23,12 @@ fn shipped(id: &str) -> Preset {
 #[test]
 fn owen2014_resolves_to_every_value_its_source_states_and_no_others() {
     let preset = shipped("owen2014");
-    let document = MethodSet::from_preset(&preset, "0.1.0", "content-test", None)
-        .expect("every rule owen2014 binds has a rule behind it");
+    let document = MethodSet::from_preset(
+        &preset,
+        "0.1.0",
+        &plateforce_core::provenance::RegistryStamp::unpinned(None, Some("content-test".into())),
+    )
+    .expect("every rule owen2014 binds has a rule behind it");
     println!(
         "{}",
         serde_json::to_string_pretty(&document).expect("serialises")
@@ -93,8 +97,12 @@ fn a_preset_binding_a_rule_this_build_does_not_run_refuses_by_name() {
         note: None,
     });
 
-    let refusal = MethodSet::from_preset(&preset, "0.1.0", "content-test", None)
-        .expect_err("a rule with no implementation behind it refuses");
+    let refusal = MethodSet::from_preset(
+        &preset,
+        "0.1.0",
+        &plateforce_core::provenance::RegistryStamp::unpinned(None, Some("content-test".into())),
+    )
+    .expect_err("a rule with no implementation behind it refuses");
     println!("{}", refusal.message());
     assert!(refusal
         .message()

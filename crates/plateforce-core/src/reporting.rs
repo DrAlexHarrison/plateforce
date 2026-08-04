@@ -77,6 +77,10 @@ pub fn fingerprint(
             at("registry_version"),
             step.registry_version.clone().unwrap_or_default(),
         ));
+        // `registry_declared_version` is deliberately not material. Two labs whose rule bytes
+        // are identical computed the same quantity whatever their VERSION files say, and the
+        // digest above already separates labs whose bytes differ. Hashing the claim would make
+        // a VERSION-only edit break every match already recorded against those rules.
     }
 
     material.push((
@@ -147,18 +151,33 @@ pub fn format_parameters(parameters: &[(String, f64)]) -> String {
     format!("{{{body}}}")
 }
 
-/// Names the registry behind a result: the pinned revision, the measured digest, or both.
-/// None when the result was computed without reading a registry.
+/// Names the registry behind a result: what the caller pinned, what the registry claims about
+/// itself, and the measured digest, in that order and only the ones there are. None when the
+/// result was computed without reading a registry.
+///
+/// The two revisions are worded apart rather than printed as one number, because a reader who
+/// cannot tell them apart reads the registry's claim as the author's citation. That is the
+/// sentence this line used to print on every unpinned terminal run.
 fn registry_line(provenance: &Provenance) -> Option<String> {
-    match (
-        provenance.registry_version.as_deref(),
-        provenance.registry_digest.as_deref(),
-    ) {
-        (Some(version), Some(digest)) => Some(format!("registry {version} ({digest})")),
-        (Some(version), None) => Some(format!("registry {version}")),
-        (None, Some(digest)) => Some(format!("registry {digest}")),
-        (None, None) => None,
+    let mut said = String::new();
+    if let Some(pinned) = provenance.registry_version.as_deref() {
+        said.push_str(&format!(" pinned to {pinned}"));
     }
+    if let Some(declared) = provenance.registry_declared_version.as_deref() {
+        said.push_str(&format!(" declaring {declared}"));
+    }
+    if let Some(digest) = provenance.registry_digest.as_deref() {
+        // Bare when it stands alone, parenthesised behind a revision it qualifies.
+        said.push_str(&if said.is_empty() {
+            format!(" {digest}")
+        } else {
+            format!(" ({digest})")
+        });
+    }
+    if said.is_empty() {
+        return None;
+    }
+    Some(format!("registry{said}"))
 }
 
 #[cfg(test)]
@@ -303,6 +322,10 @@ mod tests {
                 })
                 .collect(),
             registry_version: Some("fixture-1".to_string()),
+            // Deliberately unlike the pin above. A fixture whose registry claimed the same
+            // revision the caller pinned would read the same whichever field a value came
+            // out of, which is how two surfaces published one under the other's name.
+            registry_declared_version: Some("fixture-declares-2".to_string()),
             registry_digest: Some("content-abc".to_string()),
             acquisition_complete: true,
             ..Provenance::of(method_id)
@@ -339,11 +362,38 @@ mod tests {
             describe(&measured, &chain),
             "0.34 meters\n  \
              jumpheight.takeoff.impulse_momentum {}\n  \
-             registry fixture-1 (content-abc)\n    \
+             registry pinned to fixture-1 declaring fixture-declares-2 (content-abc)\n    \
              onset.threshold.noise_relative {'k': 5}\n      \
              dispersion = sample\n      \
              bwepoch.fixed_window {'duration': 1}"
         );
+    }
+
+    /// Each revision is worded as whose it is, and a reader is never handed one of them
+    /// bare. A line that printed the revision alone reads identically whether the caller
+    /// cited it or the registry claimed it about itself, which is the sentence the terminal
+    /// printed on every unpinned run until 2026-08-03.
+    #[test]
+    fn the_registry_line_says_whose_each_revision_is() {
+        let (measured, chain) = jump_height_chain();
+
+        let mut nobody_pinned = chain.clone();
+        nobody_pinned.provenance.registry_version = None;
+        let said = describe(&measured, &nobody_pinned);
+        assert!(
+            said.contains("registry declaring fixture-declares-2 (content-abc)"),
+            "{said}"
+        );
+        assert!(!said.contains("pinned to"), "{said}");
+
+        let mut claims_nothing = chain.clone();
+        claims_nothing.provenance.registry_declared_version = None;
+        let said = describe(&measured, &claims_nothing);
+        assert!(
+            said.contains("registry pinned to fixture-1 (content-abc)"),
+            "{said}"
+        );
+        assert!(!said.contains("declaring"), "{said}");
     }
 
     #[test]
@@ -359,6 +409,9 @@ mod tests {
     fn a_result_computed_without_a_registry_names_none() {
         let mut step = provenance("bwepoch.fixed_window", Vec::new());
         step.registry_version = None;
+        // A registry that was never read claims nothing about itself either. Leaving this
+        // set is a registry the result half-names, and the line below would print it.
+        step.registry_declared_version = None;
         step.registry_digest = None;
         let measured = Measured {
             value: 812.0,

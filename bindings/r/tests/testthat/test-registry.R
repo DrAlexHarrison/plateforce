@@ -106,3 +106,23 @@ test_that("every rule this build runs names an id and a construct", {
   expect_false(any(is.na(bindings[["id"]])))
   expect_false(any(is.na(bindings[["construct"]])))
 })
+
+# The revision a registry names about itself is not recoverable from its digest, which is why
+# a result has to carry it. The walk that assembles entries and measures the digest reads the
+# toml files alone, and the revision sits beside them in a VERSION file.
+test_that("the declared revision is a separate fact from the digest", {
+  shipped <- pf_registry()
+  expect_true(length(shipped@declared_version) == 1L && nzchar(shipped@declared_version))
+  expect_false(identical(shipped@declared_version, shipped@digest))
+
+  # A copy of the shipped rules under a different declared revision. Same bytes among the
+  # rules, so the digest must not move; different VERSION, so the claim must.
+  root <- file.path(tempfile("plateforce-registry-"), "registry")
+  dir.create(root, recursive = TRUE)
+  file.copy(list.files(shipped@root, full.names = TRUE), root, recursive = TRUE)
+  writeLines("wsrp-a-revision-nobody-shipped", file.path(root, "VERSION"))
+
+  renamed <- pf_registry(root)
+  expect_identical(renamed@digest, shipped@digest)
+  expect_identical(renamed@declared_version, "wsrp-a-revision-nobody-shipped")
+})

@@ -245,8 +245,8 @@ pub fn spread_over(
         // Read off the rules this call named, the same identity `analyse_countermovement_jump`
         // stamps on its own record, rather than a second reading of the registry here.
         plateforce_version: env!("CARGO_PKG_VERSION").to_string(),
-        registry_version: registry.version.clone(),
-        registry_digest: registry.digest.clone(),
+        registry_version: registry.stamp.version.clone(),
+        registry_digest: registry.stamp.digest.clone(),
         quantity_key: response.quantity_key,
         unit: response.unit,
         unit_symbol: response.unit_symbol,

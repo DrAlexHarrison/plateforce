@@ -161,6 +161,13 @@ ASSERTED_ANOTHER_WAY = {
         "registries is exactly parity",
         lambda answers: surfaces_read_one_registry(answers),
     ),
+    "registry_declared_version": (
+        "the revision the registry names about itself moves whenever registry/VERSION is "
+        "edited, which is a registry event and not a parity one, and a committed copy of it "
+        "is one more provenance figure nobody checks. Two surfaces disagreeing about what "
+        "the registry called itself is exactly parity, so that is what is asserted",
+        lambda answers: surfaces_name_one_revision(answers),
+    ),
 }
 
 class Divergence(NamedTuple):
@@ -202,17 +209,12 @@ SURFACES_THAT_DIFFER = {
         "`ResultDocument`. Python and R answer for a build a caller already holds, through "
         "`plateforce.__version__` and `packageVersion`",
     ),
-    "registry_version": Divergence(
-        frozenset({"cli", "browser", "python"}),
-        False,
-        "wsrp/registry-pin",
-        "the version the registry declares, and the one entry here whose carriers disagree: "
-        "the terminal and the tab both report the registry's declared version and Python "
-        "reports null, from `EMBEDDED_REGISTRY_VERSION` in "
-        "`crates/plateforce-python/src/registry.rs`. R omits the field altogether, its own "
-        "report having no place for it. Three surfaces carrying one field and disagreeing is "
-        "why the state is pinned here rather than left to the presence check",
-    ),
+    # `registry_version` was here, carried by cli, browser and python, and the one entry whose
+    # carriers disagreed. Discharged by wsrp/registry-pin: it now means the caller's pin on
+    # every surface and nothing else, R carries it for the first time, and an unpinned run
+    # writes null everywhere, so it is compared rather than recorded. The registry's own claim
+    # went to `registry_declared_version`, which is asserted between the surfaces below for
+    # the reason the digest is.
     "trial": Divergence(
         frozenset({"cli", "browser"}),
         True,
@@ -249,6 +251,21 @@ def surfaces_read_one_registry(answers):
     digests = {name: answer.get("registry_digest") for name, answer in answers.items()}
     if len(set(digests.values())) > 1:
         return [f"surfaces read different registries: {digests}"]
+    return []
+
+
+def surfaces_name_one_revision(answers):
+    """Asserted between the surfaces rather than against a committed value.
+
+    Read alongside `surfaces_read_one_registry`, which asks the harder question. Two surfaces
+    can name one revision over different bytes, because the revision lives in a `VERSION` file
+    the digest's walk does not read, so this is the weaker claim and never a substitute for it.
+    """
+    revisions = {
+        name: answer.get("registry_declared_version") for name, answer in answers.items()
+    }
+    if len(set(revisions.values())) > 1:
+        return [f"surfaces name different registry revisions: {revisions}"]
     return []
 
 

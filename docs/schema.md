@@ -322,6 +322,26 @@ files that were read, so it names them whether or not anybody declared a revisio
 registries differing by one edited rule differ in it. `registry_version` is the revision a
 caller pinned, and it is absent when nobody pinned one.
 
+A result carries a third registry field, `registry_declared_version`, and it is not a
+fingerprint member. It is the revision the registry names about itself, from the `VERSION`
+file beside its rules. Three rules govern it:
+
+- **It is never written into `registry_version`.** A reader takes a value there as the author
+  having chosen a revision, so publishing the registry's own claim under that name tells every
+  reader who checks the provenance something that is not true, and tells the reader who
+  ignores it nothing wrong at all. The terminal and the browser both did this until 2026-08-03.
+- **It is not recoverable from the digest**, so it is carried rather than derived. The walk
+  that measures the digest reads only the `toml` files, and the revision lives beside them, so
+  two registries with byte-identical rules and different revisions share one digest.
+- **It is outside the fingerprint on purpose.** Two labs whose rule bytes are identical
+  computed the same quantity whatever their `VERSION` files say, and the digest above already
+  separates labs whose bytes differ. Hashing the claim would break every match already
+  recorded against those rules the first time somebody edited a `VERSION` file alone.
+
+Unpinned, `registry_version` is written as null rather than left out, and every surface
+carries the key on every result. A key a document sometimes omits cannot be told apart from a
+field a surface never carried, and nothing in the document says which happened.
+
 ## A protocol entry
 
 Separate namespace, separate denominator, and no `rule` field. These are among the largest

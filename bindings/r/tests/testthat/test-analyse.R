@@ -92,6 +92,46 @@ test_that("the registry the numbers were bound to is named in the record", {
   expect_identical(result@registry_digest, pf_registry()@digest)
 })
 
+test_that("the revision a caller pinned and the one the registry claims are two fields", {
+  # This surface carried neither until 2026-08-03: its document omitted registry_version
+  # entirely, so no R session could say which revision of the data produced a number, and
+  # the terminal meanwhile published the registry's own claim under the pin's name.
+  declared <- pf_registry()@declared_version
+  expect_true(length(declared) == 1L && nzchar(declared))
+
+  pin <- "wsrp-not-a-revision-any-registry-declares"
+  expect_false(identical(pin, declared))
+
+  run <- function(version) {
+    analyse_countermovement_jump(
+      quiet_trial(),
+      weighing = "bwepoch.fixed_window",
+      onset = "onset.threshold.noise_relative",
+      takeoff = "takeoff.threshold.absolute_force",
+      registry_version = version
+    )
+  }
+
+  unpinned <- run(NULL)
+  expect_identical(unpinned@registry_version, character(0))
+  expect_identical(unpinned@registry_declared_version, declared)
+
+  pinned <- run(pin)
+  expect_identical(pinned@registry_version, pin)
+  expect_identical(pinned@registry_declared_version, declared)
+  expect_identical(pinned@registry_digest, unpinned@registry_digest)
+
+  # And on the record each number carries, not on the run alone. A field filled only where
+  # it is asserted passes an assertion made in that one place.
+  record <- pf_value(pinned, "jump_height_from_takeoff_meters")@provenance
+  expect_identical(record@registry_version, pin)
+  expect_identical(record@registry_declared_version, declared)
+  for (link in record@depends_on) {
+    expect_identical(link@registry_version, pin)
+    expect_identical(link@registry_declared_version, declared)
+  }
+})
+
 test_that("a rule the registry carries is recorded as coming from it, named or composed", {
   named <- c("bwepoch.fixed_window", "onset.threshold.noise_relative",
              "takeoff.threshold.absolute_force")

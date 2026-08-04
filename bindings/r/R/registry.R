@@ -10,6 +10,7 @@ registry <- S7::new_class(
   properties = list(
     root = S7::class_character,
     digest = S7::class_character,
+    declared_version = S7::class_character,
     census = S7::class_data.frame,
     method_ids = S7::class_character,
     construct_ids = S7::class_character,
@@ -25,6 +26,11 @@ registry <- S7::new_class(
 #' @return A `registry`. `@census` is one row per population, with each derived count
 #'   beside the denominator it was taken over. The two populations are separate counts and
 #'   are never added together, so there is no total row and no total column.
+#'   `@digest` identifies the files that were read, measured from their bytes.
+#'   `@declared_version` is the revision the registry names about itself, empty where it
+#'   names none. The two answer different questions: a revision is a name to cite and a
+#'   digest says which bytes were behind it, and the revision lives beside the rules rather
+#'   than among them, so a digest cannot recover it.
 #' @export
 #' @examples
 #' reg <- pf_registry()
@@ -42,9 +48,13 @@ pf_registry <- function(path = NULL) {
     ),
     stringsAsFactors = FALSE
   )
+  declared <- report[["declared_version"]]
   registry(
     root = report[["root"]],
     digest = report[["digest"]],
+    # Empty rather than NA, so a registry naming no revision reads as naming none rather
+    # than as a revision this session failed to read.
+    declared_version = if (is.null(declared)) character(0) else as.character(declared),
     census = census,
     method_ids = as.character(unlist(report[["method_ids"]])),
     construct_ids = as.character(unlist(report[["construct_ids"]])),

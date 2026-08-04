@@ -44,7 +44,11 @@ function renderBuildInfo() {
   const census = state.registry.census;
   const rows = [
     ['Version', state.build.version],
-    ['Registry', state.build.registry_digest],
+    // The revision is the name a reader cites and the digest is the bytes behind it. The
+    // revision lives beside the rules rather than among them, so the digest cannot stand in
+    // for it, and this panel showed only the digest.
+    ['Registry revision', state.build.registry_declared_version ?? 'none declared'],
+    ['Registry digest', state.build.registry_digest],
     ['Registry status', state.build.registry_valid ? 'valid' : `${state.build.registry_violations.length} violations`],
     ['Constructs', String(census.constructs)],
     ['Computation entries', String(census.computation_entries)],

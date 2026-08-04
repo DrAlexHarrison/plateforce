@@ -32,9 +32,10 @@ pub fn version() -> &'static str {
 #[derive(Serialize)]
 struct BuildInfo {
     version: &'static str,
-    /// The revision the registry names itself, so a document written here cites the same
-    /// name the terminal and the wheel do rather than a null.
-    registry_version: Option<String>,
+    /// The revision the registry names about itself, and None where it names none. Named
+    /// `declared` rather than `version` because this build pinned nothing: it compiled a
+    /// registry in, and the registry's claim about itself is not a citation anybody made.
+    registry_declared_version: Option<String>,
     registry_digest: String,
     registry_file_count: usize,
     registry_valid: bool,
@@ -68,7 +69,7 @@ pub fn build_info_json() -> Result<String, JsError> {
     let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
     to_json(&BuildInfo {
         version: version(),
-        registry_version: loaded.registry.declared_version.clone(),
+        registry_declared_version: loaded.registry.declared_version.clone(),
         registry_digest: loaded.digest.clone(),
         registry_file_count: loaded.file_count,
         registry_valid: loaded.is_valid(),
@@ -397,8 +398,13 @@ impl LoadedTrial {
                     rows_read: self.info.sample_count,
                     sentinel_rows: self.info.sentinel_samples_replaced,
                 },
-                loaded.registry.declared_version.clone(),
-                Some(loaded.digest.clone()),
+                // Nothing pinned: this surface runs the registry compiled into the bundle,
+                // and a tab asserting a revision about bytes it did not choose would be
+                // signing the reader's name to the build's own claim.
+                &plateforce_core::provenance::RegistryStamp::unpinned(
+                    loaded.registry.declared_version.clone(),
+                    Some(loaded.digest.clone()),
+                ),
                 // No acquisition block reaches this surface, and a dataset that cannot fill
                 // one fingerprints as incomplete rather than as matching.
                 false,

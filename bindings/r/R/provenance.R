@@ -3,6 +3,11 @@
 #' The rule that ran, what it was bound to, where each bound value came from, which
 #' registry it was read out of, and the chain of values this one rests on.
 #'
+#' `registry_version` is the revision the caller pinned and is empty when they pinned none.
+#' `registry_declared_version` is the revision the registry names about itself. They are
+#' separate because a reader handed one field for both is told the author cited a revision
+#' the data named for itself.
+#'
 #' `parameters` and `choices` are data frames with columns `name`, `value` and `source`.
 #' A record per parameter is what carries `source`, and `source` is one of `stated`,
 #' `assumed`, `measured` or `provisional`.
@@ -19,6 +24,7 @@ provenance <- S7::new_class(
     parameters = S7::class_data.frame,
     choices = S7::class_data.frame,
     registry_version = S7::class_character,
+    registry_declared_version = S7::class_character,
     registry_digest = S7::class_character,
     acquisition_complete = S7::class_logical,
     depends_on = S7::class_list
@@ -51,7 +57,7 @@ binding_frame <- function(names, values, sources) {
 # where a value came from, and the two say different things the moment either moves: a
 # value the caller typed, one the rule fell back to, and one it measured off this trace
 # move the number identically.
-provenance_from_bound_method <- function(bound, registry_digest, acquisition_complete) {
+provenance_from_bound_method <- function(bound, stamp, acquisition_complete) {
   recorded <- bound[["parameter_sources"]]
   pairs <- bound[["bound_parameters"]]
   names <- vapply(pairs, function(pair) as.character(pair[[1]]), character(1))
@@ -73,9 +79,26 @@ provenance_from_bound_method <- function(bound, registry_digest, acquisition_com
     method_id = bound[["method_id"]],
     parameters = binding_frame(names, values, sources),
     choices = EMPTY_BINDING(),
-    registry_version = character(0),
-    registry_digest = if (is.null(registry_digest)) character(0) else registry_digest,
+    registry_version = stamp$version,
+    registry_declared_version = stamp$declared_version,
+    registry_digest = stamp$digest,
     acquisition_complete = acquisition_complete,
     depends_on = list()
+  )
+}
+
+# What the response says about the registry behind it, as the three character vectors the
+# provenance class holds. Read once per response so no record on it can answer differently,
+# and empty rather than NA where the response says nothing: a revision nobody pinned is a
+# fact about the request, not a value this session failed to read.
+registry_stamp_of <- function(response) {
+  said <- function(name) {
+    value <- response[[name]]
+    if (is.null(value)) character(0) else as.character(value)
+  }
+  list(
+    version = said("registry_version"),
+    declared_version = said("registry_declared_version"),
+    digest = said("registry_digest")
   )
 }

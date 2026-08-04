@@ -40,6 +40,7 @@ registry_facts <- function(path = NULL) {
     registry <- pf_registry(root)
     read_registries[[root]] <- list(
       digest = registry@digest,
+      declared_version = registry@declared_version,
       method_ids = registry@method_ids
     )
   }
@@ -47,6 +48,15 @@ registry_facts <- function(path = NULL) {
 }
 
 registry_digest <- function(path = NULL) registry_facts(path)$digest
+
+# The revision the registry names about itself, or NULL where it names none. A separate
+# question from the revision a caller pins, and the request carries both: one is what the
+# data claims and the other is what the author cited, and a reader handed one field for
+# both is told the author chose a revision nobody chose.
+registry_declared_version <- function(path = NULL) {
+  declared <- registry_facts(path)$declared_version
+  if (!length(declared)) NULL else as.character(declared)
+}
 
 # What this registry carries. The engine is told rather than asked, and it judges every rule
 # it binds against this list, so the list is every id rather than the ones a caller named:

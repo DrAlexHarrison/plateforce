@@ -14,6 +14,11 @@ this package is used, unless `PLATEFORCE_REGISTRY` names another one.}
 A `registry`. `@census` is one row per population, with each derived count
   beside the denominator it was taken over. The two populations are separate counts and
   are never added together, so there is no total row and no total column.
+  `@digest` identifies the files that were read, measured from their bytes.
+  `@declared_version` is the revision the registry names about itself, empty where it
+  names none. The two answer different questions: a revision is a name to cite and a
+  digest says which bytes were behind it, and the revision lives beside the rules rather
+  than among them, so a digest cannot recover it.
 }
 \description{
 Load the method registry
