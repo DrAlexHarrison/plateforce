@@ -999,7 +999,7 @@ walk arbitrarily far back. A parameter to bound rather than a reason to reject t
 """
 
 [[method.parameter]]
-name = "inverse_lookback"
+name = "inverse_lookback_seconds"
 unit = "seconds"
 published_values = [0.1]
 default = 0.5
@@ -1011,8 +1011,7 @@ band, which is what makes the retreat fire on a trace that preloads before it un
 the only source that states one and states it as 100 ms. The 0.5 s default this implementation
 runs is five times that and matches no published value; nobody has measured which is right on this
 corpus, and the recording that would settle it is a countermovement jump preceded by a deliberate
-preload. Stated in seconds while the offset and persistence spans beside it are stated in
-milliseconds, because that is the unit the request key is read in.
+preload.
 """
 
 [[method.citation]]

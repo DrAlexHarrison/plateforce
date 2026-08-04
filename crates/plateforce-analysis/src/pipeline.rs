@@ -1499,7 +1499,7 @@ mod tests {
         (
             "last_within_band inverse lookback",
             "onset.threshold.last_within_band",
-            &[("inverse_lookback", 0.25)],
+            &[("inverse_lookback_seconds", 0.25)],
             &[],
         ),
         (
@@ -1511,7 +1511,11 @@ mod tests {
         (
             "last_within_band every value stated",
             "onset.threshold.last_within_band",
-            &[("k", 2.0), ("inverse_lookback", 0.75), ("offset_ms", 10.0)],
+            &[
+                ("k", 2.0),
+                ("inverse_lookback_seconds", 0.75),
+                ("offset_ms", 10.0),
+            ],
             &[("selection", "last")],
         ),
         (

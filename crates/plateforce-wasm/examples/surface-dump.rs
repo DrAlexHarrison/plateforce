@@ -175,7 +175,7 @@ const ONSET_CASES: &[Case] = &[
     (
         "inverse lookback",
         "onset.threshold.last_within_band",
-        &[("inverse_lookback", 0.25)],
+        &[("inverse_lookback_seconds", 0.25)],
         &[],
     ),
     (

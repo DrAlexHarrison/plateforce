@@ -244,6 +244,10 @@ pub const BACKTRACK_TO_TOLERANCE: &str = "onset.op.backtrack_to_tolerance";
 pub const OFFSET_MILLISECONDS: &str = "offset_ms";
 pub const FLOOR_SECONDS: &str = "floor_seconds";
 pub const WEIGHING_EPOCH_END_SECONDS: &str = "weighing_epoch_end_seconds";
+/// Read in seconds, and it says so, because every other span an onset rule takes is stated
+/// in milliseconds. A caller writing 500 for this one meaning milliseconds would get a
+/// lookback longer than most recordings and no rule would have anything to object to.
+pub const INVERSE_LOOKBACK_SECONDS: &str = "inverse_lookback_seconds";
 
 /// The entries this build composes onto an onset threshold rule. Each is a registry entry
 /// in its own right, with its own citation, default and published values.
@@ -274,7 +278,7 @@ fn operator_for(name: &str) -> Option<&'static str> {
         "selection" => Some("onset.op.crossing_selection"),
         // The window searched for an excursion the other side of the band, which is the
         // trigger the retreat fires on.
-        "inverse_lookback" => Some(BACKTRACK_TO_TOLERANCE),
+        INVERSE_LOOKBACK_SECONDS => Some(BACKTRACK_TO_TOLERANCE),
         // The landmark the search stops at, and where on this trace it landed.
         "bound" | "search_bound_seconds" => Some(SEARCH_UPPER_BOUND),
         _ => None,

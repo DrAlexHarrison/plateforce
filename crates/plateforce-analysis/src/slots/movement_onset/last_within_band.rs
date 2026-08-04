@@ -46,7 +46,7 @@ pub(crate) fn crossing(
     // function ran.
     resolved.record("selection", "last".into(), ParameterSource::Stated);
     resolved.record("bound", "minimum_force".into(), ParameterSource::Stated);
-    let lookback_samples = resolved.seconds_as_samples("inverse_lookback", 0.5, rate);
+    let lookback_samples = resolved.seconds_as_samples(super::INVERSE_LOOKBACK_SECONDS, 0.5, rate);
     let back_offset_samples = resolved.milliseconds_as_samples(OFFSET_MILLISECONDS, 30.0, rate);
 
     let search_end = takeoff_index
