@@ -16,6 +16,7 @@
 
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
+import { rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { validate } from './validate_palette.js';
@@ -35,20 +36,29 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(port, resolve));
 
+// The browser writes its profile here. In memory rather than on the root disk, because this
+// script is meant to be run many times over while a guard is broken and put back, and each
+// run leaves about 160 MB behind: 95 of them, 2.9 GB, were found on a root disk at 80 percent,
+// and 14.5 GB had already been aged out before anybody looked.
+const profile = `/dev/shm/plateforce-check-minute-${port}`;
+
 // Its own process group, so the browser and every renderer it spawns go together. A
 // browser is a tree, and terminating the process that was launched leaves the rest of it
 // running; this script is meant to be run many times over while a guard is broken and put
 // back, and one leaked tree per run reaches the hundreds.
 const chrome = spawn('google-chrome', [
   '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=/tmp/plateforce-check-minute-${port}`, 'about:blank',
+  '--disable-gpu', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: 'ignore', detached: true });
 
 // On every exit rather than on the one at the bottom: a check that times out waiting for
 // the page leaves through a thrown error, which is exactly the run whose browser nobody
-// closes.
+// closes. The profile goes with it, for the same reason and on the same exits: a handler
+// that ends the process tree and leaves its directory behind cleans up the half that is
+// visible in `ps` and none of the half that fills a disk.
 process.on('exit', () => {
   try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
+  try { rmSync(profile, { recursive: true, force: true }); } catch { /* already gone */ }
 });
 
 const targets = await (async () => {
