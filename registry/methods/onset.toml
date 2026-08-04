@@ -346,6 +346,23 @@ label = "The spread of force while the athlete stands still on the plate"
 key = "empty_plate"
 label = "The spread of force with nobody on the plate"
 
+[[method.parameter]]
+name = "degenerate_band"
+unit = "enumeration"
+notes = """
+What happens when k standard deviations of the reference epoch collapses to nothing. A band of zero
+width is crossed by the first sample that differs from system weight at all, so the onset it reports
+is a property of the converter rather than of the movement.
+"""
+
+[[method.parameter.value]]
+key = "refuse"
+label = "Report no onset and say the reference epoch was not quiet"
+
+[[method.parameter.value]]
+key = "fraction_of_reference"
+label = "Widen the band to a stated fraction of the reference force"
+
 [[method.citation]]
 key = "owen2014"
 role = "proposes"
@@ -954,11 +971,24 @@ debate = "genuine"
 name = "tolerance"
 unit = "enumeration"
 notes = """
-Published tolerances: exactly at system weight; within 0 to 2 N of it; within one standard
-deviation of it. The last two are the same idea in incomparable units, one scaling with the noise
-and one not, so on a quiet plate they can differ by an order of magnitude in either direction. The
-tolerance unit must be shown in the interface, not just the number.
+The last two are the same idea in incomparable units, one scaling with the noise and one not, so on
+a quiet plate they can differ by an order of magnitude in either direction. The tolerance unit must
+be shown in the interface, not just the number.
 """
+
+[[method.parameter.value]]
+key = "at_system_weight"
+label = "Retreat until force reaches system weight exactly"
+
+[[method.parameter.value]]
+key = "within_newtons"
+label = "Retreat until force is within a stated number of newtons of system weight"
+notes = "Published between 0 and 2 newtons."
+
+[[method.parameter.value]]
+key = "within_standard_deviations"
+label = "Retreat until force is within a stated number of standard deviations of system weight"
+notes = "Scales with the plate's noise, which the newton form does not, so the two rank differently on a quiet plate and on a noisy one."
 
 [[method.parameter]]
 name = "retreat_cap_samples"
@@ -1366,7 +1396,27 @@ debate = "single_position"
 [[method.parameter]]
 name = "bound"
 unit = "enumeration"
-notes = "minimum_force, peak_force, takeoff, time_of_minimum_force."
+notes = "Which downstream landmark closes the search, so a last-crossing rule cannot pick up a crossing the movement itself produced."
+
+[[method.parameter.value]]
+key = "minimum_force"
+label = "The force minimum that follows the unweighting"
+source = "acu_sprint"
+
+[[method.parameter.value]]
+key = "time_of_minimum_force"
+label = "The instant the force minimum falls at"
+source = "sams_shiny"
+
+[[method.parameter.value]]
+key = "peak_force"
+label = "The largest force in the recording"
+source = "acu_sprint"
+notes = "The bound ACU SPRINT uses for the isometric pull, where the trace only rises."
+
+[[method.parameter.value]]
+key = "takeoff"
+label = "The instant takeoff was placed at"
 
 [[method.citation]]
 key = "acu_sprint"

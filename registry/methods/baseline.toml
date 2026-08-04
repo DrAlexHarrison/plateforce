@@ -50,6 +50,32 @@ label = "The span ending where the jump signal begins"
 source = "owen2014"
 notes = "Owen places the second immediately before the signal rather than at the start of the file, so the two anchors weigh different samples of the same recording."
 
+[[method.parameter]]
+name = "centre"
+unit = "enumeration"
+notes = "The mean is what every published epoch rule states. The median resists a sample the athlete moved during, at the cost of no longer being the quantity the integration divisor is defined as."
+
+[[method.parameter.value]]
+key = "mean"
+label = "The arithmetic mean of force over the window"
+
+[[method.parameter.value]]
+key = "median"
+label = "The middle value of force over the window"
+
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+notes = "The spread of this window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
+
 [[method.citation]]
 key = "owen2014"
 role = "proposes"
@@ -177,6 +203,33 @@ the flight phase and system weight collapses. Stated against weight rather than 
 a fixed 20 N gate is 2.5 percent of an 80 kg athlete and 1.7 percent of a 120 kg one, so the same
 nominal rule tests the two differently.
 """
+
+[[method.parameter]]
+name = "accumulation"
+unit = "enumeration"
+notes = "The search compares the variance of every candidate window, so how the variance is accumulated decides which window wins whenever two are close."
+
+[[method.parameter.value]]
+key = "two_pass"
+label = "Take the mean first, then sum the squared departures from it"
+
+[[method.parameter.value]]
+key = "cumulative_sum_of_squares"
+label = "Carry running sums and take each window's variance by subtraction"
+notes = "One pass over the recording rather than one per window, and it loses precision where the squared sum is large against the variance."
+
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+notes = "The spread of the selected window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.citation]]
 key = "plateforce_derivation"
@@ -464,6 +517,45 @@ debate = "genuine"
 name = "span_seconds"
 unit = "seconds"
 published_values = [1.0, 2.0]
+
+[[method.parameter]]
+name = "window_anchor"
+unit = "enumeration"
+notes = "A window placed by hand is anchored where the reader put it, and a recording read whole is anchored at its first sample."
+
+[[method.parameter.value]]
+key = "trial_start"
+label = "The first sample of the recording"
+
+[[method.parameter.value]]
+key = "stated_index"
+label = "A sample index the reader states"
+
+[[method.parameter]]
+name = "centre"
+unit = "enumeration"
+notes = "The mean is what every published epoch rule states. The median resists a sample the athlete moved during, at the cost of no longer being the quantity the integration divisor is defined as."
+
+[[method.parameter.value]]
+key = "mean"
+label = "The arithmetic mean of force over the window"
+
+[[method.parameter.value]]
+key = "median"
+label = "The middle value of force over the window"
+
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+notes = "The spread of this window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
 
 [[method.citation]]
 key = "chavda2020"
