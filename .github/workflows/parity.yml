@@ -111,6 +111,9 @@ jobs:
       - name: Every listed surface reports, and every answer meets the obligation
         run: ./scripts/capability.sh --check
 
+      - name: The capability gate's refusal branches can fire
+        run: python3 scripts/prove-capability-refuses.py
+
       # The browser arm loads the compiled bundle rather than the page, so the gate needs it
       # on disk. Built here rather than by the arm, so a surface that cannot answer fails the
       # job instead of quietly building itself into a pass.
