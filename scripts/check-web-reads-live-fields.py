@@ -18,9 +18,15 @@ import sys
 # and then writes the request accordingly. A field renamed there does not render an empty
 # string, it sends a construct under the wrong name and the engine refuses the whole request,
 # which is the loudest failure any of these three can produce and was the least guarded.
+#
+# `state.analysis` holds a `ResultDocument` and not the `AnalysisResponse` inside it. The two
+# share thirteen field names, so every read the browser had made until now resolved against
+# either and this scan was checking the wrong declaration: it would have reported a field only
+# the document carries as gone, and passed a field only the response carries, which never
+# crosses the boundary at all.
 RECORDS = {
     'BoundMethod': 'crates/plateforce-analysis/src/resolution.rs',
-    'AnalysisResponse': 'crates/plateforce-analysis/src/response.rs',
+    'ResultDocument': 'crates/plateforce-analysis/src/document.rs',
     'BuildInfo': 'crates/plateforce-wasm/src/lib.rs',
 }
 
@@ -33,7 +39,7 @@ RECORDS = {
 # so `buildDecisionModel` and `buildRequest` are not read as reads.
 READERS = {
     'BoundMethod': r'\bbound(?:\?)?\.(\w+)',
-    'AnalysisResponse': r'\bstate\.analysis(?:\?)?\.(\w+)',
+    'ResultDocument': r'\bstate\.analysis(?:\?)?\.(\w+)',
     'BuildInfo': r'\bbuild(?:\?)?\.(\w+)',
 }
 

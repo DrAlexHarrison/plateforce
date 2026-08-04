@@ -25,6 +25,14 @@
   </div>
 
   <div class="app-header__status">
+    <button type="button" class="chip plate-chip" id="plate-chip" aria-haspopup="dialog">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" class="plate-chip__icon">
+        <rect x="1.5" y="4.5" width="13" height="4.5" rx="1" fill="none" stroke-width="1.4"/>
+        <path d="M4.5 9v2.5M11.5 9v2.5" fill="none" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span class="plate-chip__name" id="plate-chip-name">Plate</span>
+      <span class="plate-chip__count" id="plate-chip-count"></span>
+    </button>
     <p class="privacy-badge" id="privacy-badge">
       <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" class="privacy-badge__icon">
         <path d="M8 1.5 2.5 3.6v4.1c0 3.2 2.3 6 5.5 6.8 3.2-.8 5.5-3.6 5.5-6.8V3.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/>
@@ -258,6 +266,42 @@
     <div id="batch-result"></div>
   </section>
 </main>
+
+<!-- The plate -->
+<div class="drawer" id="plate-drawer" hidden>
+  <div class="drawer__scrim" data-close-drawer></div>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="plate-drawer-title">
+    <div class="drawer__head">
+      <h2 id="plate-drawer-title">Plate</h2>
+      <button type="button" class="button button--ghost button--icon" data-close-drawer aria-label="Close">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="drawer__body">
+      <section>
+        <h3>Plates on this machine</h3>
+        <div class="plate-options" id="plate-options" role="radiogroup" aria-label="Plates on this machine"></div>
+        <button type="button" class="button button--ghost button--small" id="plate-forget" hidden></button>
+      </section>
+
+      <section>
+        <h3>Answers for this trial</h3>
+        <div class="field-row" id="plate-members"></div>
+      </section>
+
+      <section>
+        <h3>Record a plate</h3>
+        <div class="field">
+          <label for="plate-name">What to call this plate</label>
+          <input type="text" id="plate-name" autocomplete="off">
+        </div>
+        <div class="panel__foot">
+          <button type="button" class="button button--primary button--small" id="plate-save">Save</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
 
 <!-- Method detail -->
 <div class="drawer" id="method-drawer" hidden>

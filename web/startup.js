@@ -7,6 +7,7 @@ import { buildDecisionModel, preferredCandidate, initialParameters } from './reg
 import { wireGlobalControls } from './import-file.js';
 import { wireBatchControls } from './batch-run.js';
 import { wirePicker } from './add-quantity.js';
+import { startPlate, plateRows } from './plate.js';
 
 export async function start() {
   try {
@@ -21,6 +22,7 @@ export async function start() {
 
   state.slots = buildDecisionModel(state.registry, state.build, state.path);
   renderRegistryBanner();
+  startPlate();
   renderBuildInfo();
   resetSelections();
   wireGlobalControls();
@@ -40,7 +42,10 @@ function renderRegistryBanner() {
   list.replaceChildren(...state.build.registry_violations.map((line) => element('li', null, line)));
 }
 
-function renderBuildInfo() {
+/* What produced the numbers on screen: the build, the registry it was compiled against, and
+ * what the result says the plate was. Redrawn after every analysis, because the plate is the
+ * one part of it a reader changes while the tab is open. */
+export function renderBuildInfo() {
   const census = state.registry.census;
   const rows = [
     ['Version', state.build.version],
@@ -53,6 +58,7 @@ function renderBuildInfo() {
     ['Constructs', String(census.constructs)],
     ['Computation entries', String(census.computation_entries)],
     ['Protocol entries', String(census.protocol_entries)],
+    ...plateRows(),
   ];
   const list = $('build-info');
   list.replaceChildren();

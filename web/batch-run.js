@@ -12,6 +12,7 @@ import { $, state } from './state.js';
 import { element, showStage } from './format.js';
 import { renderBatch, renderProgress, WITH_PROVENANCE, WITHOUT_PROVENANCE } from './batch.js';
 import { buildRequest } from './analysis.js';
+import { statedCapture, revisionNow } from './plate.js';
 
 /*
  * What a file name ends with, from its first full stop.
@@ -97,6 +98,9 @@ export async function runFolder() {
     renderProgress(host, state.run.files.length, named.length, files.length);
   }
 
+  // Stated once for the run rather than per file, because a folder is one plate's recordings
+  // and a trace of forces carries nothing about the plate that wrote it.
+  const capture = statedCapture();
   const request = {
     files,
     format: {
@@ -109,6 +113,7 @@ export async function runFolder() {
     identity: { kind: 'file_stem' },
     analysis: buildRequest(),
     resolved: resolvedConstructs(),
+    ...(capture && { capture }),
   };
 
   try {
@@ -126,10 +131,13 @@ export async function runFolder() {
 
 /* The run already computed, drawn again under whichever rendering is selected. Re-rendering
  * reads the envelope the run returned rather than running it a second time, so the two
- * renderings cannot be two answers. */
+ * renderings cannot be two answers.
+ *
+ * `revisionNow` travels rather than a revision, because the table is redrawn long after the
+ * run and the plate behind it may have moved since. */
 export function drawRun() {
   if (!state.run?.envelope) return;
-  renderBatch($('batch-result'), state.run.envelope, currentRendering());
+  renderBatch($('batch-result'), state.run.envelope, currentRendering(), revisionNow);
 }
 
 export function wireBatchControls() {

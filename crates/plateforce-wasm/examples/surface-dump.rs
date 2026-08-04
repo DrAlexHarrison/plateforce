@@ -565,6 +565,21 @@ fn sweeps() -> Vec<(String, String)> {
     ]
 }
 
+/// What a page says about the plate, in the shape it crosses the boundary in.
+///
+/// A saved plate holding every member, with one member restated on the line, so the record
+/// covers the block, the completeness that follows from it, the attribution to a saved plate
+/// and what the stated answer displaced. Passing `None` here left every analysed result in
+/// this dump carrying an empty block, so the fields that say which plate produced a number
+/// were absent from the whole record of what a browser can observe.
+const STATED_CAPTURE: &str = concat!(
+    r#"{"acquisition": {"firmware_version": "2.4.2"}, "#,
+    r#""plate": {"name": "lab plate", "members": {"#,
+    r#""filter_at_capture": "none", "tare_state": "tared_before_trial", "#,
+    r#""plate_natural_frequency_hz": "400", "floor_surface": "concrete", "#,
+    r#""firmware_version": "2.4.1"}}}"#,
+);
+
 fn report(label: &str, outcome: Result<String, impl std::fmt::Debug>) {
     match outcome {
         Ok(text) => println!("{label}\n  {text}"),
@@ -602,7 +617,11 @@ fn main() {
         for (name, payload) in requests() {
             report(
                 &format!("analyse {trace} {name}"),
-                trial.analyse(&payload, Some((*trace).to_string()), None),
+                trial.analyse(
+                    &payload,
+                    Some((*trace).to_string()),
+                    Some(STATED_CAPTURE.to_string()),
+                ),
             );
         }
         for (name, payload) in sweeps() {
