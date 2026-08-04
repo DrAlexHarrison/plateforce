@@ -260,6 +260,24 @@
         "unread_parameters": []
       },
       {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "time_to_takeoff.onset_to_takeoff",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_from_recommendation": false,
+        "method_id": "flight_time.takeoff_to_touchdown",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
         "bound_parameters": [
           [
             "integration_anchor",
@@ -407,6 +425,7 @@
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
           "onset.op.crossing_selection",
@@ -425,6 +444,7 @@
         "computed_by": null,
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
@@ -441,6 +461,7 @@
         "computed_by": "time_to_takeoff.onset_to_takeoff",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "onset.threshold.noise_relative",
           "onset.op.backward_offset_fixed",
           "onset.op.crossing_selection",
@@ -463,6 +484,7 @@
         "computed_by": "flight_time.takeoff_to_touchdown",
         "contributing_method_ids": [
           "filter.none",
+          "bwepoch.fixed_window",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
@@ -557,12 +579,6 @@
         "contributing_method_ids": [
           "filter.none",
           "bwepoch.fixed_window",
-          "onset.threshold.noise_relative",
-          "onset.op.backward_offset_fixed",
-          "onset.op.crossing_selection",
-          "onset.op.direction",
-          "onset.op.persistence",
-          "onset.op.search_floor_at_weighing_epoch_end",
           "takeoff.threshold.absolute_force",
           "takeoff.op.crossing_selection",
           "takeoff.op.residual_comparison",
