@@ -302,8 +302,8 @@ fn every_paired_value_reaches_the_rules_that_produced_it() {
         "the run produced pairs"
     );
 
-    // A paired value with no chain is a number whose method nobody recorded, which is the
-    // thing this product exists to prevent, one level up from a single trial.
+    // A paired value with no chain is a number whose method nobody recorded, one level up from
+    // a single trial.
     assert!(
         result
             .paired

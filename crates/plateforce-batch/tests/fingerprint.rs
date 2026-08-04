@@ -184,7 +184,7 @@ fn every_number_reaches_the_rules_that_produced_it() {
     );
     assert!(
         quantities_with_values.is_subset(&quantities_in_chain),
-        "a number with no chain is the thing this product exists to prevent"
+        "a number with no chain names nothing that produced it"
     );
 
     // The jump height names both the arithmetic and the landmarks under it.

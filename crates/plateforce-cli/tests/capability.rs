@@ -170,10 +170,9 @@ fn the_manifest_names_every_member_of_the_acquisition_block() {
 
 /// The block this binary says it takes is the block it reads.
 ///
-/// A flag clap draws and nothing reads is the shape this project argues hardest about: the
-/// value is dropped on the floor and the record still reports what the user typed. The
-/// manifest is derived from clap's tree alone, so the call that consumes the flag is the one
-/// witness outside that derivation.
+/// A flag clap draws and nothing reads drops the value on the floor while the record still
+/// reports what the user typed. The manifest is derived from clap's tree alone, so the call
+/// that consumes the flag is the one witness outside that derivation.
 #[test]
 fn the_block_this_binary_declares_is_the_block_it_reads() {
     let source_directory = concat!(env!("CARGO_MANIFEST_DIR"), "/src");

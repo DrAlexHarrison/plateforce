@@ -351,7 +351,7 @@ fn what_a_recording_supports_and_what_this_build_runs_are_counted_apart() {
 /// An undetermined barrier is a fourth state and not a placeholder. No shipped entry leaves
 /// a whole construct undetermined today, so the arm is exercised against a registry built
 /// for it: a report that collapsed it into out-of-reach would assert a barrier nobody
-/// measured, which is the defect this software exists to prevent.
+/// measured.
 #[test]
 fn a_construct_nobody_has_placed_carries_the_query_that_would_settle_it() {
     let (scratch, _) = walled_registry(

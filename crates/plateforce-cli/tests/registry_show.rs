@@ -2,8 +2,8 @@
 //!
 //! A parameter the rule will answer for itself and one the reader must answer read the same
 //! as a bare name, and the second is the larger half of this registry. A forced decision
-//! rendered as an optional one is the silent default this software exists to make
-//! impossible, one step out from the number.
+//! rendered as an optional one is passed over, and the number then rests on a default nobody
+//! stated.
 
 use std::process::Output;
 
