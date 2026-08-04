@@ -38,6 +38,7 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
         | "Bias"
         | "BatchResult"
         | "BatchRun"
+        | "BoundGlobal"
         | "BoundMethod"
         | "Census"
         | "Citation"

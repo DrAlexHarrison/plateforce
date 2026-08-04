@@ -11,6 +11,7 @@ analyse_countermovement_jump(
   takeoff = NULL,
   preset = NULL,
   gravity_meters_per_second_squared = NULL,
+  body_mass_kilograms = NULL,
   weighing_parameters = NULL,
   onset_parameters = NULL,
   takeoff_parameters = NULL,
@@ -44,6 +45,10 @@ this way is a different record from one reached by typing the same numbers.}
 \item{gravity_meters_per_second_squared}{Gravitational acceleration. A bound parameter
 rather than a constant, because published tools disagree on it, and it appears in the
 record beside the number it moved.}
+
+\item{body_mass_kilograms}{The athlete's mass, which is not the weighed system mass:
+system weight includes any bar and bodyweight does not. Absent, no mass is on the
+record, and a mass that is not a finite number above zero is refused by name.}
 
 \item{weighing_parameters, onset_parameters, takeoff_parameters}{Named numeric lists, as
 the registry names each rule's parameters.}

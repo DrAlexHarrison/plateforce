@@ -75,6 +75,17 @@ pub struct Args {
     /// nobody was asked
     #[arg(long, value_name = "M/S2")]
     pub gravity: Option<f64>,
+    /// The athlete's mass, which is not the weighed system mass: system weight includes any
+    /// bar and bodyweight does not
+    ///
+    /// Negative values reach the parser rather than being read as another flag, so a mass
+    /// below zero is refused by the name the record reports it under.
+    #[arg(
+        long = "body-mass-kg",
+        value_name = "KG",
+        allow_negative_numbers = true
+    )]
+    pub body_mass_kg: Option<f64>,
     /// Cite this registry revision in the result. Unstated, the result names no pinned
     /// revision and reports the one the registry declares for itself
     #[arg(long, value_name = "REVISION")]
@@ -232,6 +243,10 @@ pub(crate) fn prepare(
         Ok(placed) => placed,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
+    let body_mass_kilograms = match stated_body_mass(args.body_mass_kg) {
+        Ok(mass) => mass,
+        Err(declined) => return Err(Outcome::declined(declined)),
+    };
 
     // A named pipeline is adopted before the decision rail rather than after it: its source
     // published the choices it binds, so a caller who named one has answered them.
@@ -244,6 +259,7 @@ pub(crate) fn prepare(
         &named,
         &placed,
         args.gravity,
+        body_mass_kilograms,
     );
     if let Err(declined) = crate::preset::adopt(&mut request, &registry, args.preset.as_ref()) {
         return Err(Outcome::declined(declined));
@@ -572,6 +588,35 @@ pub(crate) fn placed_samples(assignments: &[String]) -> Result<BTreeMap<String, 
     Ok(placed)
 }
 
+/// The athlete's mass, refused by name where it is a number no mass can be.
+///
+/// One routine for both commands, so a folder run and a single trial refuse the same line
+/// with the same sentence. The name it refuses under is the one the record reports the value
+/// by, not the flag, because a reader comparing a refusal against a result reads one word.
+pub(crate) fn stated_body_mass(kilograms: Option<f64>) -> Result<Option<f64>, Declined> {
+    let Some(kilograms) = kilograms else {
+        return Ok(None);
+    };
+    if !kilograms.is_finite() {
+        return Err(Declined::recorded(Refusal::parameter_not_finite(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+        )));
+    }
+    // Zero and below divide into an infinity or flip the sign of every quantity scaled by it,
+    // and the record would carry the value as one the reader stated.
+    if kilograms <= 0.0 {
+        return Err(Declined::recorded(Refusal::value_not_accepted(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+            vec!["a mass above zero".to_string()],
+        )));
+    }
+    Ok(Some(kilograms))
+}
+
 /// A choice the registry forces, stated once as the record and once as the terminal's layout.
 ///
 /// The record names the constructs still open; the screen names the rules each one can be
@@ -763,6 +808,7 @@ fn build_request(
     named: &BTreeMap<String, BTreeMap<String, String>>,
     placed: &BTreeMap<String, usize>,
     gravity: Option<f64>,
+    body_mass_kilograms: Option<f64>,
 ) -> AnalysisRequest {
     let parameters = |construct: &str| {
         stated
@@ -811,6 +857,7 @@ fn build_request(
         touchdown_index: at(TOUCHDOWN_SLOT),
         gravity_meters_per_second_squared,
         gravity_source,
+        body_mass_kilograms,
         registry_backed_ids: backed_ids(registry),
         conditioning: conditioning_choices(conditioning, stated, named),
         derived: derived
@@ -827,7 +874,6 @@ fn build_request(
                 )
             })
             .collect(),
-        ..Default::default()
     }
 }
 

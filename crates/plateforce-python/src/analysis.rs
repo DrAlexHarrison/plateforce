@@ -377,6 +377,75 @@ impl Derived<'_> {
     }
 }
 
+/// One value the request bound for the whole analysis, with the claim that says who chose it.
+///
+/// Distinct from a rule's parameter: a gravity and an athlete's mass belong to the analysis
+/// and to no registry entry, so no rule's row can carry either. `assumed_parameters` names
+/// the ones nobody chose and cannot report a value the caller stated, which is the half a
+/// notebook reading its own record needs.
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "BoundGlobal"
+)]
+#[derive(Clone)]
+pub struct BoundGlobal {
+    name: String,
+    value: f64,
+    unit: String,
+    unit_symbol: String,
+    source: &'static str,
+}
+
+impl BoundGlobal {
+    fn of(bound: &plateforce_analysis::BoundGlobal) -> Self {
+        Self {
+            name: bound.name.to_string(),
+            value: bound.value,
+            unit: bound.unit.to_string(),
+            unit_symbol: bound.unit_symbol.to_string(),
+            source: bound.source.wire_name(),
+        }
+    }
+}
+
+#[pymethods]
+impl BoundGlobal {
+    #[getter]
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[getter]
+    fn value(&self) -> f64 {
+        self.value
+    }
+
+    #[getter]
+    fn unit(&self) -> &str {
+        &self.unit
+    }
+
+    #[getter]
+    fn unit_symbol(&self) -> &str {
+        &self.unit_symbol
+    }
+
+    /// `stated` where the caller chose it, `assumed` where the request type filled it in.
+    #[getter]
+    fn source(&self) -> &'static str {
+        self.source
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "BoundGlobal(name={:?}, value={}, unit={:?}, source={:?})",
+            self.name, self.value, self.unit, self.source
+        )
+    }
+}
+
 /// The results of one countermovement jump, each carrying the chain of choices behind it.
 #[pyclass(
     frozen,
@@ -405,6 +474,8 @@ pub struct CountermovementJump {
     unread_parameters: Vec<String>,
     assumed_parameters: Vec<String>,
     warnings: Vec<String>,
+    /// What the whole analysis was bound to, which no rule's row can carry.
+    bound_globals: Vec<BoundGlobal>,
     /// What the software noticed about the values above, as the records the engine raised.
     signals: Vec<QualitySignal>,
     /// Every quantity the engine reported, by its own name for it, reached through
@@ -543,6 +614,15 @@ impl CountermovementJump {
         self.assumed_parameters.clone()
     }
 
+    /// Every value the request bound for the whole analysis, and who chose each.
+    ///
+    /// A run that stated no mass carries no row for one, so a reader asking what mass a
+    /// number ran under is answered by the record rather than by the absence of an error.
+    #[getter]
+    fn bound_globals(&self) -> Vec<BoundGlobal> {
+        self.bound_globals.clone()
+    }
+
     /// What the rules reported about this trace while placing the landmarks.
     #[getter]
     fn warnings(&self) -> Vec<String> {
@@ -582,6 +662,37 @@ impl CountermovementJump {
     }
 }
 
+/// The athlete's mass, refused by name where it is a number no mass can be.
+///
+/// Built from the same two core codes the terminal refuses with, so a notebook and a
+/// terminal handed one bad number read one sentence, under the name the record reports the
+/// value by rather than under the argument.
+pub(crate) fn stated_body_mass(
+    kilograms: Option<f64>,
+) -> Result<Option<f64>, Box<plateforce_core::Refusal>> {
+    let Some(kilograms) = kilograms else {
+        return Ok(None);
+    };
+    if !kilograms.is_finite() {
+        return Err(Box::new(plateforce_core::Refusal::parameter_not_finite(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+        )));
+    }
+    // Zero and below divide into an infinity or flip the sign of every quantity scaled by it,
+    // and the record would carry the value as one the caller stated.
+    if kilograms <= 0.0 {
+        return Err(Box::new(plateforce_core::Refusal::value_not_accepted(
+            "",
+            plateforce_analysis::BODY_MASS_GLOBAL,
+            kilograms,
+            vec!["a mass above zero".to_string()],
+        )));
+    }
+    Ok(Some(kilograms))
+}
+
 /// The one place this surface writes an analysis request.
 ///
 /// Every entry point that sends one goes through it: the shaped analysis, the engine
@@ -597,6 +708,7 @@ pub(crate) fn analysis_request_of(
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
     gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -614,6 +726,8 @@ pub(crate) fn analysis_request_of(
     conditioning_parameters: Option<BTreeMap<String, BTreeMap<String, f64>>>,
     conditioning_options: Option<BTreeMap<String, BTreeMap<String, String>>>,
 ) -> PyResult<(AnalysisRequest, RegistryIdentity)> {
+    let body_mass_kilograms =
+        stated_body_mass(body_mass_kilograms).map_err(|refusal| raise_refusal(python, &refusal))?;
     // A pipeline fills the constructs its source states, so a caller who named one leaves
     // those arguments out. Whatever is still unnamed once it has been laid on is refused by
     // name below rather than resolved to a neighbouring rule.
@@ -696,6 +810,7 @@ pub(crate) fn analysis_request_of(
         touchdown_index,
         gravity_meters_per_second_squared,
         gravity_source,
+        body_mass_kilograms,
         // What this registry carries. The binding composes operators onto the rule the
         // caller named, and those are entries in their own right that have to be judged
         // against the same list rather than assumed.
@@ -719,7 +834,6 @@ pub(crate) fn analysis_request_of(
                 )
             })
             .collect(),
-        ..Default::default()
     };
 
     // Laid on after the caller's own values, so a value they stated keeps its place and the
@@ -775,6 +889,7 @@ struct AnalysisDocument<'a> {
     takeoff = None,
     preset = None,
     gravity_meters_per_second_squared = None,
+    body_mass_kilograms = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -801,6 +916,7 @@ pub fn analyse_json(
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
     gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -825,6 +941,7 @@ pub fn analyse_json(
         takeoff,
         preset,
         gravity_meters_per_second_squared,
+        body_mass_kilograms,
         weighing_parameters,
         onset_parameters,
         takeoff_parameters,
@@ -887,6 +1004,7 @@ pub fn analyse_json(
     takeoff = None,
     preset = None,
     gravity_meters_per_second_squared = None,
+    body_mass_kilograms = None,
     weighing_parameters = None,
     onset_parameters = None,
     takeoff_parameters = None,
@@ -913,6 +1031,7 @@ pub fn analyse_countermovement_jump(
     takeoff: Option<&BoundMethod>,
     preset: Option<&Preset>,
     gravity_meters_per_second_squared: Option<f64>,
+    body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
     onset_parameters: Option<BTreeMap<String, f64>>,
     takeoff_parameters: Option<BTreeMap<String, f64>>,
@@ -937,6 +1056,7 @@ pub fn analyse_countermovement_jump(
         takeoff,
         preset,
         gravity_meters_per_second_squared,
+        body_mass_kilograms,
         weighing_parameters,
         onset_parameters,
         takeoff_parameters,
@@ -1031,6 +1151,7 @@ pub fn analyse_countermovement_jump(
                     .map(|bound| bound.name.to_string()),
             )
             .collect(),
+        bound_globals: response.bound_globals.iter().map(BoundGlobal::of).collect(),
         warnings: response.warnings.clone(),
         // The signals the analysis already raised. Raising them again here would run the
         // same function over the same response a second time, and a signal that disagreed

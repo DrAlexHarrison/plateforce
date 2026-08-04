@@ -42,6 +42,7 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<registry::Construct>()?;
     module.add_class::<registry::Census>()?;
 
+    module.add_class::<analysis::BoundGlobal>()?;
     module.add_class::<result::Measured>()?;
     module.add_class::<result::Provenance>()?;
     module.add_class::<result::Exclusions>()?;

@@ -476,6 +476,14 @@ pub fn analyse(
         // absence. The stamp admits it because a record can be written without one.
         registry_digest: registry.content_digest.clone(),
         request_digest: request_digest(&request.analysis, request.registry_version.as_deref()),
+        // Read off the request the folder ran under, so the row names the same values every
+        // trial's analysis was handed rather than a second account of them.
+        bound_globals: request
+            .analysis
+            .bound_globals()
+            .iter()
+            .map(crate::relations::BoundGlobalRow::of)
+            .collect(),
         files_found: coverage.files_found,
         files_without_declared_suffix: coverage.files_without_declared_suffix,
         files_unidentified: coverage.files_unidentified,
