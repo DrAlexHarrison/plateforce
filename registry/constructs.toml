@@ -284,6 +284,7 @@ never sufficient: the variant and its window must travel with the number.
 [[construct]]
 id = "epoch_impulse"
 title = "Force integrated over a declared epoch from onset"
+rules_answer = "one_question"
 label = "Force added up over a set stretch of time"
 unit = "newton_seconds"
 
