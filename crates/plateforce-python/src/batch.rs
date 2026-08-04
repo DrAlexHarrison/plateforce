@@ -468,7 +468,6 @@ pub fn batch(
                 )
             })
             .collect(),
-        ..Default::default()
     };
 
     let declared = resolved.unwrap_or_default();

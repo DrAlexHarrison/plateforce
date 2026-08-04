@@ -669,26 +669,26 @@ impl CountermovementJump {
 /// value by rather than under the argument.
 pub(crate) fn stated_body_mass(
     kilograms: Option<f64>,
-) -> Result<Option<f64>, plateforce_core::Refusal> {
+) -> Result<Option<f64>, Box<plateforce_core::Refusal>> {
     let Some(kilograms) = kilograms else {
         return Ok(None);
     };
     if !kilograms.is_finite() {
-        return Err(plateforce_core::Refusal::parameter_not_finite(
+        return Err(Box::new(plateforce_core::Refusal::parameter_not_finite(
             "",
             plateforce_analysis::BODY_MASS_GLOBAL,
             kilograms,
-        ));
+        )));
     }
     // Zero and below divide into an infinity or flip the sign of every quantity scaled by it,
     // and the record would carry the value as one the caller stated.
     if kilograms <= 0.0 {
-        return Err(plateforce_core::Refusal::value_not_accepted(
+        return Err(Box::new(plateforce_core::Refusal::value_not_accepted(
             "",
             plateforce_analysis::BODY_MASS_GLOBAL,
             kilograms,
             vec!["a mass above zero".to_string()],
-        ));
+        )));
     }
     Ok(Some(kilograms))
 }
@@ -834,7 +834,6 @@ pub(crate) fn analysis_request_of(
                 )
             })
             .collect(),
-        ..Default::default()
     };
 
     // Laid on after the caller's own values, so a value they stated keeps its place and the

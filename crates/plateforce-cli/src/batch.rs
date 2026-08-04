@@ -320,7 +320,6 @@ fn request_for(
                 )
             })
             .collect(),
-        ..Default::default()
     }
 }
 

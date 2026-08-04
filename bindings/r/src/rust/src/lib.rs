@@ -624,27 +624,29 @@ pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
 /// R writes requests and never reads them, so a value the caller typed is met here. Built
 /// from the same two core codes the terminal and the notebook refuse with, so one bad number
 /// reads as one sentence whichever surface was handed it.
-fn checked_body_mass(analysis: &plateforce_analysis::AnalysisRequest) -> Result<(), Refusal> {
+fn checked_body_mass(analysis: &plateforce_analysis::AnalysisRequest) -> Result<(), Box<Refusal>> {
     let Some(kilograms) = analysis.body_mass_kilograms else {
         return Ok(());
     };
     if !kilograms.is_finite() {
-        return Err(Refusal::from(
+        return Err(Box::new(Refusal::from(
             plateforce_core::Refusal::parameter_not_finite(
                 "",
                 plateforce_analysis::BODY_MASS_GLOBAL,
                 kilograms,
             ),
-        ));
+        )));
     }
     // Zero and below divide into an infinity or flip the sign of every quantity scaled by it,
     // and the record would carry the value as one the caller stated.
     if kilograms <= 0.0 {
-        return Err(Refusal::from(plateforce_core::Refusal::value_not_accepted(
-            "",
-            plateforce_analysis::BODY_MASS_GLOBAL,
-            kilograms,
-            vec!["a mass above zero".to_string()],
+        return Err(Box::new(Refusal::from(
+            plateforce_core::Refusal::value_not_accepted(
+                "",
+                plateforce_analysis::BODY_MASS_GLOBAL,
+                kilograms,
+                vec!["a mass above zero".to_string()],
+            ),
         )));
     }
     Ok(())
@@ -654,7 +656,7 @@ fn checked_body_mass(analysis: &plateforce_analysis::AnalysisRequest) -> Result<
 /// run under rules the caller named produce the same document.
 fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
     if let Err(refusal) = checked_body_mass(&request.analysis) {
-        return refuse::<AnalysisReport>(refusal);
+        return refuse::<AnalysisReport>(*refusal);
     }
     let complete = handle.acquisition.is_complete();
     let stamp = request.stamp();
@@ -689,7 +691,7 @@ pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
         Err(refusal) => return refuse::<SpreadDocument>(*refusal),
     };
     if let Err(refusal) = checked_body_mass(&request.sweep.base) {
-        return refuse::<SpreadDocument>(refusal);
+        return refuse::<SpreadDocument>(*refusal);
     }
     match spread::run(&handle.trial, &request.sweep) {
         Ok(response) => ok(SpreadDocument::of(

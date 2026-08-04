@@ -870,7 +870,6 @@ fn build_request(
                 )
             })
             .collect(),
-        ..Default::default()
     }
 }
 
