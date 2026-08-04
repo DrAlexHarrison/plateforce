@@ -1,16 +1,12 @@
 //! Which registry a run reads, and where those bytes came from.
 //!
-//! Naming no directory reads the registry this build carries. That is not a convenience:
-//! the default used to be the relative path `registry`, so the same command on the same
-//! trace read a different set of methods depending on the directory the operator was
-//! standing in, produced a different content digest, and said nothing about which had
-//! happened. An unrecorded choice determining which methods produced a number is the
-//! failure this project exists to publish about.
+//! Naming no directory reads the registry this build carries, rather than a relative
+//! `registry` path, which would read a different set of methods depending on the directory
+//! the operator was standing in.
 //!
-//! Naming a directory reads that directory, and a directory that does not load is a
-//! refusal rather than a fall back to the compiled copy. A caller who names a directory
-//! and silently receives other bytes has been told a result came from a registry it did
-//! not come from, which is the same failure wearing the opposite costume.
+//! Naming a directory reads that directory, and a directory that does not load is a refusal
+//! rather than a fall back to the compiled copy: a caller who silently receives other bytes
+//! has been told a result came from a registry it did not come from.
 
 use std::path::Path;
 
@@ -82,9 +78,8 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../registry")
     }
 
-    /// The digest this binary reports names the bytes this binary carries. A fingerprint
-    /// quoted in a methods section is checkable by downloading the release it names, which
-    /// is what turns the provenance claim into something a stranger can verify.
+    /// The digest this binary reports names the bytes this binary carries, so a fingerprint
+    /// quoted in a methods section is checkable by downloading the release it names.
     #[test]
     fn the_registry_in_the_binary_is_the_registry_in_the_repository() {
         let on_disk = read_sources(repository_registry()).unwrap();

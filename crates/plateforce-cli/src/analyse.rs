@@ -73,8 +73,8 @@ pub struct Args {
     /// nobody was asked
     #[arg(long, value_name = "M/S2")]
     pub gravity: Option<f64>,
-    /// Cite this registry revision in the result. Unstated, the result names no pinned
-    /// revision and reports the one the registry declares for itself
+    /// Cite this registry revision in the result. Unstated, the result reports the revision
+    /// the registry declares for itself
     #[arg(long, value_name = "REVISION")]
     pub registry_version: Option<String>,
     #[arg(
@@ -89,10 +89,8 @@ pub struct Args {
 }
 
 /// What `--set` takes, in the word the method flags already use: a reader who wrote `--onset`
-/// writes `--set onset.k=5`.
-///
-/// One string for the help and the refusals, because a flag whose help describes something
-/// the parser does not accept is a silent default wearing a different costume.
+/// writes `--set onset.k=5`. One string for the help and the refusals, so the two cannot
+/// describe different grammars.
 pub(crate) const SET_SHAPE: &str = "<slot>.<name>=<value>";
 
 /// The help both commands show for `--set`. `batch` adds what a folder run does with it.
@@ -104,15 +102,13 @@ pub(crate) const SET_HELP_FOR_A_FOLDER: &str =
 /// `--set onset.k=5` writes `--choose onset.selection=first`.
 ///
 /// A separate flag rather than a value type inside `--set`, so a value's kind is known from
-/// the line rather than from the rule it reaches. `--set weighing.duration=fast` refuses by
-/// naming what a number is; a flag taking both could only refuse once the name had reached a
-/// rule, and every mistyped number would arrive there as a name.
+/// the line rather than from the rule it reaches: `--set weighing.duration=fast` refuses by
+/// naming what a number is, where a flag taking both could only refuse once the name had
+/// reached a rule.
 pub(crate) const CHOOSE_SHAPE: &str = "<slot>.<name>=<value>";
 
-/// Where the names a rule takes are listed, so a reader meets them in one place rather than
-/// in whichever refusal they happen to raise first.
 pub(crate) const CHOOSE_HELP: &str =
-    "A name a rule takes, written <slot>.<name>=<value>. Repeatable, and `registry show <method>` lists the names each rule takes";
+    "A name a rule takes, written <slot>.<name>=<value>. Repeatable, and `registry show <method>` lists them";
 
 /// What `--place` takes. One sample per landmark, in the same assignment grammar `--set` and
 /// `--choose` use, with the slot alone on the left because a landmark is one number and a
@@ -122,10 +118,8 @@ pub(crate) const PLACE_SHAPE: &str = "<slot>=<sample>";
 pub(crate) const PLACE_HELP: &str =
     "A landmark placed by hand, written <slot>=<sample>, counting samples from zero. Repeatable, and `weighing` places the start of the standing window";
 
-/// The landmarks a reader can place, in the order the analysis meets them.
-///
-/// Every one of them travels in the record as an override rather than replacing the rule's
-/// answer silently, which is why placing one is offered at all.
+/// The landmarks a reader can place, in the order the analysis meets them. Each travels in
+/// the record as an override rather than replacing the rule's answer silently.
 pub(crate) const PLACEABLE: [&str; 4] = [WEIGHING_SLOT, ONSET_SLOT, TAKEOFF_SLOT, TOUCHDOWN_SLOT];
 
 pub(crate) const WEIGHING_SLOT: &str = "weighing";
@@ -163,9 +157,7 @@ pub(crate) struct Prepared {
 /// Which registry produced these numbers, as the three facts a reader asks for, built in one
 /// place so no document written by this surface can assemble its own answer.
 ///
-/// The pin is the caller's word and the declared revision is the registry's. This surface
-/// used to publish the second under the first's name, so every unpinned run told a reader the
-/// operator had cited a revision no operator had chosen.
+/// The pin is the caller's word and the declared revision is the registry's.
 pub(crate) fn registry_stamp(
     registry: &Registry,
     args: &Args,
@@ -261,9 +253,7 @@ pub fn run(
     };
 
     match plateforce_analysis::run(&trial.trial, &request) {
-        // The record carries the code and the class follows from it. This surface used to
-        // ask the binding table a second time for the fault class, because the record that
-        // knew the answer was flattened to its sentence one frame earlier.
+        // The record carries the code and the class follows from it.
         Err(refusal) => Outcome::declined(Declined::recorded(*refusal)),
         Ok(response) => {
             let spread = crate::spread_cmd::measure(
@@ -316,13 +306,10 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
 
 /// Which step of this run a qualified name is written against, and which of its parameters.
 ///
-/// Read against the steps the run actually has rather than off the first dot in the name.
-/// Three of the fifteen constructs this build binds are named with a dot in them, all three
-/// of them jump-height constructs carrying nine rules, and splitting on the first dot reports
-/// every value written against one of them as naming a step that does not exist.
-///
-/// The longest match wins, so a step whose name begins another step's name takes only the
-/// names written against itself.
+/// Read against the steps the run has rather than off the first dot in the name: three of the
+/// fifteen constructs this build binds carry a dot, all three jump-height constructs carrying
+/// nine rules. The longest match wins, so a step whose name begins another step's name takes
+/// only the names written against itself.
 fn slot_and_parameter<'a>(qualified: &'a str, slots: &[&str]) -> Option<(&'a str, &'a str)> {
     slots
         .iter()
@@ -384,14 +371,8 @@ fn assignment_of<'a>(
 ///
 /// The three repeatable flags cannot lean on the parser the way the method flags do: clap
 /// refuses a second `--onset` because a run has one onset, and it cannot refuse a second
-/// `--set` because a run states many. So a second value for a name a caller has already
-/// written was kept and the first was dropped, with nothing recorded anywhere: the result of
-/// a caller who wrote both was byte-identical to the result of a caller who wrote only the
-/// second. That is this project's founding observation arriving on its own request path, and
-/// it reached a knob with a measured 6.6 second failure, `onset.direction`.
-///
-/// Refused rather than warned, because there is no reading of two values under one name that
-/// this software can act on, and P5 of the mission is that it refuses rather than guesses.
+/// `--set` because a run states many. Keeping either value would make the run of a caller who
+/// wrote both byte-identical to the run of a caller who wrote one, with nothing recorded.
 pub(crate) fn stated_twice(flag: &str, name: &str, first: &str, second: &str) -> Declined {
     Declined::line(
         Fault::Request,
@@ -603,8 +584,7 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         ));
     };
     // Both failures publish the record rather than a sentence, so a shell can branch on the
-    // code and tell a path it cannot open from a file it read and did not understand. The
-    // read failure used to reach here as prose with no code at all.
+    // code and tell a path it cannot open from a file it read and did not understand.
     let text = std::fs::read_to_string(&args.trial).map_err(|error| {
         Outcome::declined(Declined::recorded(Refusal::file_not_read(
             args.trial.display().to_string(),
@@ -623,10 +603,8 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         SentinelConvention::None => None,
     };
     // The two reasons a sample is reported, counted apart by the one function that counts
-    // them. This surface used to count the convention's matches and the recording's gaps as
-    // one total, which reads 0 on a recording with three unreadable samples when no
-    // convention is declared and 160 on the same recording under the zero convention, where
-    // 157 of the 160 are an athlete in the air.
+    // them: a marker matching the convention and a gap in the recording are different facts,
+    // and on one trial 157 of 160 zeroes were an athlete in the air.
     let reported = reported_samples(&values, sentinel);
 
     let trial = Trial::new(values, sample_rate_hz)
@@ -759,13 +737,8 @@ pub(crate) fn backed_ids(registry: &Registry) -> Vec<String> {
     registry.methods.keys().cloned().collect()
 }
 
-/// A rule that produced nothing, as the record the engine hands back.
-///
-/// One arm, because every decline now carries a code the rule itself chose. This surface
-/// used to publish a sentence with no code for the refusals that arrived as prose, on the
-/// reasoning that a code chosen here would name a failure no other surface can raise. That
-/// reasoning was right and the remedy sat one layer down: the rule says which code it is
-/// declining under, and every surface reads the same one.
+/// A rule that produced nothing, as the record the engine hands back. The rule says which code
+/// it is declining under and every surface reads that one, so there is nothing to choose here.
 fn declined_landmark(declined: &plateforce_analysis::DeclinedRule) -> Declined {
     Declined::recorded(plateforce_analysis::document::refusal_from_rule(declined))
 }
@@ -787,19 +760,15 @@ fn render(
     let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
 
     // The block the caller stated, which decides whether this result can be declared to match
-    // another lab's. It used to be a literal `false` under a comment saying no acquisition
-    // block reaches this surface, which was true and was the work not done: three of the five
-    // surfaces could not be given one, and they were the three named in the surface bar.
+    // another lab's.
     let acquisition = match crate::acquisition_arg::stated_acquisition(&args.acquisition) {
         Ok(acquisition) => acquisition,
         Err(declined) => return Outcome::declined(declined),
     };
 
-    // The shape every surface writes a result in, rather than a second one assembled here.
-    // A terminal reporting one result under different field names from an R session is the
-    // same defect as two implementations of one method, one layer out from the maths, and
-    // this surface's own document carried neither the version that produced the numbers nor
-    // the landmarks they rest on.
+    // The shape every surface writes a result in, rather than a second one assembled here. A
+    // terminal reporting one result under different field names from an R session is the same
+    // defect as two implementations of one method, one layer out from the maths.
     let reported = plateforce_analysis::document::ResultDocument::of(
         env!("CARGO_PKG_VERSION"),
         plateforce_analysis::document::TrialSource {
@@ -821,8 +790,6 @@ fn render(
                 return Outcome::declined(Declined::line(Fault::Internal, format!("{error}")))
             }
         },
-        // The signals the analysis already computed. Recomputing them here ran the same
-        // function over the same response a second time.
         Format::Text => text_body(
             response,
             reported.spread.as_ref(),
@@ -843,40 +810,30 @@ fn render(
     }
 }
 
-/// The word the record carries for a status, as a line of prose reads it.
-///
-/// The word comes from the vocabulary rather than from a second match here, so a reader who
-/// runs this trace in a terminal and opens the same result in a browser or a notebook meets
-/// one word for one status. The separator is the only thing this surface decides, which is
-/// why a status added to the vocabulary reaches this surface with no edit at all.
+/// The word the record carries for a status, as a line of prose reads it. It comes from the
+/// vocabulary rather than a second match here, so a terminal, a browser and a notebook meet
+/// one word for one status, and the separator is all this surface decides.
 fn status_reads(status: QualityStatus) -> String {
     status.wire_name().replace('_', " ")
 }
 
 /// How many decimals it takes to print two figures as the different numbers they are.
 ///
-/// A fixed precision suits the magnitudes its author had in front of them. One decimal for a
-/// value and none for a threshold reads a 0.0475 s gap between two instants as "1.2 seconds,
-/// past 1 seconds", which is a gap four times the size against a threshold that looks like a
-/// round number somebody chose.
-///
-/// Both figures print at the same precision, because two numbers a reader is asked to compare
-/// at different precisions is the same defect one step smaller.
+/// At one decimal a 0.0475 s gap between two instants reads as "1.2 seconds, past 1 seconds",
+/// four times the size. Both figures print at the same precision, since two numbers a reader
+/// compares at different precisions carry the same defect one step smaller.
 fn decimals_telling_apart(value: f64, threshold: f64) -> usize {
     (1..=4)
         .find(|places| format!("{value:.0$}", places) != format!("{threshold:.0$}", places))
         .unwrap_or(4)
 }
 
-/// What the software knows about a number, said where the reader is already looking.
-///
-/// A value, the threshold it passed, and an action naming the construct whose rule the
-/// reader would change. Never a verdict, and never a block at the end of the document,
-/// where a reader scanning the values does not go.
+/// What the software knows about a number, said where the reader is already looking: a value,
+/// the threshold it passed, and an action naming the construct whose rule the reader would
+/// change. Never a verdict.
 ///
 /// A signal holding no value says which status it is under rather than what became of one
-/// comparison. A sentence written for one signal is false of the next one to carry no value,
-/// and a reader has no way to tell which they are holding.
+/// comparison, since a sentence written for one such signal is false of the next.
 fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
     let head = match signal.value {
         Some(value) => format!(
@@ -893,11 +850,6 @@ fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
 }
 
 /// The whole text document, assembled from every part of the run a reader meets.
-///
-/// The argument list is long because the parts are genuinely separate: the numbers, the sweep,
-/// the registry that produced them, what the caller asked for, how wide the terminal is, what
-/// declined, what was flagged, and how much of the recording was read. Bundling them would
-/// name a thing that does not exist just to satisfy a count.
 #[allow(clippy::too_many_arguments)]
 fn text_body(
     response: &AnalysisResponse,
@@ -917,9 +869,7 @@ fn text_body(
         .max()
         .unwrap_or(0);
 
-    // A gap in the recording, said before the numbers it reached. This column said nothing
-    // about it at all, so a reader of the terminal met eight quantities without a value and
-    // no account of why any of them had none.
+    // A gap in the recording, said before the numbers it reached.
     if response.samples_carrying_no_number > 0 {
         for line in renderer.wrap(
             &format!(
@@ -945,9 +895,7 @@ fn text_body(
             }
             // The arithmetic ran and produced a value that is not a number, which is a
             // different state from a rule that found nothing, and it is what a gap in the
-            // recording reaching a quantity looks like. This column used to print `NaN`
-            // here, by accident of formatting a float, while the same command's JSON wrote
-            // the same three characters it writes for a quantity nobody computed.
+            // recording reaching a quantity looks like.
             (None, true) => {
                 let _ = writeln!(
                     document,
@@ -1005,9 +953,8 @@ fn text_body(
         }
     }
 
-    // Never behind `--provenance`. A gravity nobody was asked about moved four of the eleven
-    // numbers above, and a reader who does not know to ask for the record is the reader that
-    // record exists for.
+    // Never behind `--provenance`: a gravity nobody was asked about moved four of the eleven
+    // numbers above.
     let _ = writeln!(document);
     let _ = writeln!(
         document,
@@ -1023,11 +970,8 @@ fn text_body(
     document
 }
 
-/// A value the analysis was bound to, with the word for where it came from.
-///
-/// The claim is printed beside every one of them rather than only where it is interesting,
-/// because which of the two claims is the interesting one is the reader's call, and a record
-/// that prints a source only sometimes reads as a record that has none the rest of the time.
+/// A value the analysis was bound to, with the word for where it came from. The source is
+/// printed beside every one, because which of them is interesting is the reader's call.
 fn describe_global(bound: &plateforce_analysis::BoundGlobal) -> String {
     format!(
         "{} = {} {}, {}",

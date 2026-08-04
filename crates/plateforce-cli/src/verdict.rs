@@ -1,8 +1,7 @@
 //! How hard a choice is, what it is worth, and why the registry rules it that way.
 //!
-//! The registry has carried a surfacing verdict on every computation entry since the first
-//! commit and the terminal has never printed one. An entry that carries no sensitivity or no
-//! rationale prints no line for it, and says nothing about the absence.
+//! An entry that carries no sensitivity or no rationale prints no line for it, and says
+//! nothing about the absence.
 
 use plateforce_registry::{Method, Surfacing};
 

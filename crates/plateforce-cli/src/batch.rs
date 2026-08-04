@@ -31,10 +31,7 @@ pub enum Mode {
 pub struct Args {
     /// The folder of force traces to read
     pub trials: PathBuf,
-    /// The folder the tables and the record are written to. Named apart from the global
-    /// `--out`, which names one file: a run writes a set of files, and one word that means a
-    /// file in one command and a folder in another is a word whose meaning depends on where
-    /// it appears.
+    /// The folder the tables and the record are written to
     #[arg(long = "out-dir", value_name = "DIR")]
     pub out_dir: PathBuf,
     /// Which question this run is asking
@@ -52,9 +49,8 @@ pub struct Args {
     /// The character between columns
     #[arg(long, value_name = "CHAR")]
     pub delimiter: Option<char>,
-    /// How these files write a sample they do not have. The same answer covers every trial
-    /// in the folder, and there is no default: a marker read as force moves system weight
-    /// and everything downstream of it
+    /// How these files write a sample they do not have. One answer covers every trial in the
+    /// folder, and a marker read as force moves system weight and everything after it
     #[arg(long, value_enum)]
     pub sentinel: crate::analyse::SentinelConvention,
     /// A template such as AT{subject}_{trial}, which gives the run a subject as well
@@ -108,19 +104,14 @@ pub fn run(
     document_destination: Option<&std::path::Path>,
     renderer: &crate::render::Renderer,
 ) -> Outcome {
-    // The global flag names one file, and a run has no single document to put in one, so a
-    // line carrying both is asking for two destinations and gets neither by guess.
+    // The global flag names one file, and a run has no single document to put in one.
     if document_destination.is_some() {
         return Outcome::declined_line(
             Fault::Request,
-            "a run writes a table, its chain, its refusals and the record beside them, so it is --out-dir that names the folder they go in".to_string(),
+            "a run writes a table, its chain, its refusals and the record beside them, so --out-dir names the folder they go in".to_string(),
         );
     }
     let out_dir = args.out_dir.as_path();
-    // A table of numbers has no channel for what produced them, so the record goes beside it
-    // and the destination is a folder that can hold both. Writing one file would mean writing
-    // the table alone, which is the artefact this software exists to argue against.
-    //
     // What makes a path a file is asked of the filesystem rather than inferred from a dot in
     // the name: `run-2026-08-02.v2` is a folder, and a check that read it as a file would
     // refuse a run for the shape of its name.
@@ -130,7 +121,7 @@ pub fn run(
             return Outcome::declined_line(
                 Fault::Request,
                 format!(
-                    "{} is a file, and a run writes a table, its chain, its refusals and the record beside them, so --out names a folder",
+                    "{} is a file, and a run writes a table, its chain, its refusals and the record beside them, so --out-dir names a folder",
                     out_dir.display()
                 ),
             )
@@ -223,10 +214,6 @@ pub fn run(
 
 /// One request for every trial in the folder, carrying the values the operator stated and
 /// the ids the registry backs.
-///
-/// Both were empty before, so a folder run recorded every value as the rule's own however
-/// the operator had answered, and recorded no rule as registry-backed however the registry
-/// spelled it.
 fn request_for(
     args: &Args,
     registry: &plateforce_registry::Registry,
@@ -293,10 +280,7 @@ fn request_for(
 /// `--derive <construct>=<method>`, read against what this build runs.
 ///
 /// A construct written twice is refused through the same helper `--set` and `--choose` refuse
-/// through, so the three repeatable flags on this command answer one question one way. Keeping
-/// the last was the shape this arrived in, on the reasoning that `clap` keeps the last for a
-/// repeated `--onset`. It does not: it refuses, and a second value under one name has no
-/// reading this software can act on either way.
+/// through, so the three repeatable flags on this command answer one question one way.
 fn derived_methods(
     lines: &[String],
 ) -> Result<std::collections::BTreeMap<String, String>, Declined> {
@@ -384,14 +368,12 @@ fn run_compare(
     if args.against.is_empty() {
         return Outcome::declined_line(
             Fault::Request,
-            "a comparison runs two or more rules over one recording, and this one named a single rule, so --against takes the rule to compare the bound one against".to_string(),
+            "a comparison runs two or more rules over one recording, and this one named one, so --against takes the rule to compare the bound one against".to_string(),
         );
     }
 
     // The step being compared is read off the rules named to compare, because every id in this
-    // build is filed under exactly one construct. A folder comparison used to vary movement
-    // onset whatever was written, so twelve of the thirteen constructs computed from the
-    // landmarks could not be compared over a folder at all.
+    // build is filed under exactly one construct.
     let axis = match plateforce_batch::axis_over(&request.analysis, &args.against) {
         Ok(axis) => axis,
         Err(refusal) => return Outcome::declined(declined_axis(refusal)),
@@ -404,11 +386,8 @@ fn run_compare(
     };
 
     let result = compare(set, &compare_request);
-    // The request that ran, rather than one rebuilt from the arguments. A digest taken over a
-    // second construction identifies whatever that construction happens to produce, which is
-    // the fingerprint failing at its one job the moment the two drift apart. The pin comes off
-    // that same request for the same reason: passed as a literal here, a comparison a caller
-    // pinned and one they did not shared a digest.
+    // The request that ran, pin included, rather than one rebuilt from the arguments: a digest
+    // over a second construction identifies that construction rather than the run.
     let request_digest = plateforce_batch::fingerprint::request_digest(
         &compare_request.analysis.analysis,
         compare_request.analysis.registry_version.as_deref(),
