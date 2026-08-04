@@ -50,6 +50,23 @@ pub enum QualityStatus {
     AtSearchFloor,
 }
 
+impl QualityStatus {
+    /// The word this status travels under, wherever a surface writes it as text.
+    ///
+    /// Matched exhaustively, so a status added to the vocabulary is ruled on here rather
+    /// than reaching a reader unnamed. Two surfaces had begun answering this question for
+    /// themselves, one by matching and one by round-tripping through the serialiser with the
+    /// variant's debug form as a fallback, which would have put `AtSearchFloor` into a
+    /// spreadsheet cell the day the serialiser stopped answering.
+    pub fn wire_name(self) -> &'static str {
+        match self {
+            QualityStatus::Disagrees => "disagrees",
+            QualityStatus::Incomparable => "incomparable",
+            QualityStatus::AtSearchFloor => "at_search_floor",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct QualitySignal {
     /// What was compared, in the reader's words.
@@ -313,4 +330,30 @@ fn jump_height_routes_disagree(response: &AnalysisResponse) -> Option<QualitySig
         },
         qualifies,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The word a surface prints and the word the JSON carries are one word, proved against
+    /// the serialiser rather than against a second list written here.
+    ///
+    /// Every variant is named, so the match below stops compiling when the vocabulary grows
+    /// and nobody can add a status whose spelling nothing checks.
+    #[test]
+    fn every_status_prints_the_word_the_wire_carries() {
+        for status in [
+            QualityStatus::Disagrees,
+            QualityStatus::Incomparable,
+            QualityStatus::AtSearchFloor,
+        ] {
+            let serialised = serde_json::to_value(status).expect("a status serialises");
+            assert_eq!(
+                serde_json::Value::String(status.wire_name().to_string()),
+                serialised,
+                "{status:?} prints one word and serialises as another"
+            );
+        }
+    }
 }

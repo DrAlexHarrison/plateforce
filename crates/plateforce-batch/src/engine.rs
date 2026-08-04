@@ -509,18 +509,14 @@ fn signal_row(trial_id: &str, ordinal: usize, signal: &QualitySignal) -> SignalR
     }
 }
 
-/// The word a status travels under, read off the record rather than spelled again here.
+/// The word a status travels under, asked of the status itself rather than spelled again here.
 ///
-/// `QualityStatus` is serialised on every surface that returns a response, so taking the name
-/// from that serialisation is the one way this table and the JSON envelope cannot disagree
-/// about what a status is called, and a status added to the vocabulary reaches this column
-/// named rather than blank. The fallback is the variant itself, because a status that reached
-/// a reader as an empty cell would read as a signal with nothing wrong with it.
+/// `QualityStatus::wire_name` is matched exhaustively beside the enum, so this table, the JSON
+/// envelope and every other surface cannot disagree about what a status is called, and a status
+/// added to the vocabulary is ruled on where it is declared rather than reaching this column
+/// blank or under its Rust variant name.
 fn status_name(status: QualityStatus) -> String {
-    match serde_json::to_value(status) {
-        Ok(serde_json::Value::String(name)) => name,
-        _ => format!("{status:?}"),
-    }
+    status.wire_name().to_string()
 }
 
 /// The chain behind every number the analysis produced.

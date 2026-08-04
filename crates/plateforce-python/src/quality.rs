@@ -42,16 +42,13 @@ impl QualitySignal {
     }
 }
 
-/// The word this surface reports for each status, matched exhaustively so a status added to
-/// the vocabulary has to be ruled on here rather than reaching Python unnamed. The spellings
-/// are the ones the wire carries, so a caller branching on this and one reading the JSON are
-/// reading one decision.
+/// The word this surface reports for each status, asked of the status itself.
+///
+/// It used to be spelled again here, correctly and exhaustively, and a third surface then
+/// spelled it a third way. The word now has one home beside the enum, so a caller branching
+/// on this and one reading the JSON are reading one decision because there is only one.
 fn status_name(status: QualityStatus) -> &'static str {
-    match status {
-        QualityStatus::Disagrees => "disagrees",
-        QualityStatus::Incomparable => "incomparable",
-        QualityStatus::AtSearchFloor => "at_search_floor",
-    }
+    status.wire_name()
 }
 
 #[pymethods]
