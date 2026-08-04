@@ -100,9 +100,11 @@ fn place_the_window(
 ) -> Result<WeighingOutcome, Box<Refusal>> {
     let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let duration_seconds = resolved.number(window_length_parameter(&choice.method_id), 1.0);
-    let standard_deviation_convention_stated = choice.options.contains_key("dispersion");
     let dispersion = resolved.dispersion().map_err(Refusal::from)?;
     let standard_deviation_convention = dispersion_label(dispersion);
+    // Read off the record, not off presence in the map: an interface that fills the
+    // default sends the name marked, and the onset rule inherits this word.
+    let standard_deviation_convention_stated = resolved.recorded_as_stated("dispersion");
 
     // A window placed by hand is a placed window whichever rule named it, so the searching
     // rule runs its search only when nobody has said where the window goes.

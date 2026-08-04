@@ -111,6 +111,13 @@ impl<'a> Resolution<'a> {
         }
     }
 
+    /// Whether a recorded name carries the reader's own signature. Presence in the request
+    /// is not the answer: an interface that fills a default sends the name too, marked, and
+    /// reading presence as statedness put the reader's word on choices nobody made.
+    pub(crate) fn recorded_as_stated(&self, name: &str) -> bool {
+        matches!(self.sources.get(name), Some(ParameterSource::Stated))
+    }
+
     pub(crate) fn record(&mut self, name: &str, value: String, source: ParameterSource) {
         self.read.push((name.to_string(), value));
         self.sources.insert(name.to_string(), source);

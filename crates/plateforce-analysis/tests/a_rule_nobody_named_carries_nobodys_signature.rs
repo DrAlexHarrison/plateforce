@@ -93,6 +93,46 @@ fn recorded_source(bound: &[BoundMethod], method_id: &str) -> ParameterSource {
         .method_source
 }
 
+/// A value an interface filled and marked travels as the rule's own, and so does the word a
+/// downstream rule inherits from it. The weighing's dispersion used to read presence in the
+/// options map as the reader's statement, so a marked default put the reader's signature on
+/// the onset rule's inherited `sd_convention`.
+#[test]
+fn a_marked_default_option_does_not_sign_the_inherited_convention() {
+    let mut marked = named_landmarks();
+    marked
+        .weighing
+        .options
+        .insert("dispersion".into(), "sample".into());
+    marked.weighing.from_registry_default = BTreeSet::from(["dispersion".to_string()]);
+    let rows = bound(&marked);
+    let onset = rows
+        .iter()
+        .find(|row| row.method_id == "onset.threshold.noise_relative")
+        .expect("the onset rule is bound");
+    assert_eq!(
+        onset.parameter_sources.get("sd_convention"),
+        Some(&ParameterSource::Assumed),
+        "a dispersion the interface filled signed the inherited convention"
+    );
+
+    let mut stated = named_landmarks();
+    stated
+        .weighing
+        .options
+        .insert("dispersion".into(), "sample".into());
+    let rows = bound(&stated);
+    let onset = rows
+        .iter()
+        .find(|row| row.method_id == "onset.threshold.noise_relative")
+        .expect("the onset rule is bound");
+    assert_eq!(
+        onset.parameter_sources.get("sd_convention"),
+        Some(&ParameterSource::Stated),
+        "a dispersion the reader typed lost their signature"
+    );
+}
+
 /// Row one. The caller named this rule, so the record carries their signature and should.
 #[test]
 fn a_rule_the_caller_named_is_recorded_as_stated() {
