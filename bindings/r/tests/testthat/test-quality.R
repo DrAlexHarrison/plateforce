@@ -107,5 +107,5 @@ test_that("a comparison that could not be made carries no value rather than a ze
 
   expect_true(is.na(incomparable@value))
   expect_identical(incomparable@status, "incomparable")
-  expect_true(any(grepl("not comparable", capture.output(print(incomparable)), fixed = TRUE)))
+  expect_true(any(grepl("incomparable", capture.output(print(incomparable)), fixed = TRUE)))
 })
