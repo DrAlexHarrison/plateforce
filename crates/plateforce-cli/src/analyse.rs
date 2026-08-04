@@ -459,9 +459,10 @@ pub(crate) fn stated_parameters(
 
 /// `--place`, one sample per landmark, keyed by the same slot word the method flags carry.
 ///
-/// A landmark placed twice is refused rather than resolved to whichever came last. Two
-/// samples for one landmark is a line whose meaning depends on argument order, and the
-/// number that lost would have left no trace in the record.
+/// A landmark placed twice is refused through `stated_twice`, the sentence `--set`, `--choose`
+/// and `--derive` already refuse a repeated name with, so one line means one thing whichever
+/// flag wrote it. Two samples for one landmark is a line whose meaning depends on argument
+/// order, and the sample that lost would have left no trace in the record.
 pub(crate) fn placed_samples(assignments: &[String]) -> Result<BTreeMap<String, usize>, Declined> {
     let mut placed: BTreeMap<String, usize> = BTreeMap::new();
     for assignment in assignments {
@@ -490,12 +491,12 @@ pub(crate) fn placed_samples(assignments: &[String]) -> Result<BTreeMap<String, 
             )
         })?;
         if let Some(already) = placed.insert(slot.to_string(), sample) {
-            if already != sample {
-                return Err(Declined::line(
-                    Fault::Request,
-                    format!("--place {slot} was given both {already} and {sample}"),
-                ));
-            }
+            return Err(stated_twice(
+                "--place",
+                slot,
+                &already.to_string(),
+                &sample.to_string(),
+            ));
         }
     }
     Ok(placed)

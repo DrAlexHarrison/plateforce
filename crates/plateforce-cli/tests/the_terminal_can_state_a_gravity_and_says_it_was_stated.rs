@@ -176,15 +176,16 @@ fn a_landmark_placed_by_hand_moves_the_analysis_and_leaves_a_record() {
     assert_eq!(anchored["weighing_start_index"].as_u64(), Some(50));
 }
 
-/// A landmark stated twice is refused rather than resolved to whichever came last, and a
-/// sample written against something this run has no landmark for is refused by name with the
-/// list. Both would otherwise be read, accepted and passed to nothing.
+/// A landmark stated twice is refused in the sentence every other assignment flag already
+/// refuses a repeated name with, and a sample written against something this run has no
+/// landmark for is refused by name with the list. Both would otherwise be read, accepted and
+/// passed to nothing.
 #[test]
 fn a_line_that_places_a_landmark_twice_or_places_nothing_is_refused_by_name() {
     for (extra, expected) in [
         (
             vec!["--place", "onset=100", "--place", "onset=200"],
-            "--place onset was given both 100 and 200",
+            "--place onset was given '100' and then '200', and a name takes one value",
         ),
         (
             vec!["--place", "elbow=100"],
