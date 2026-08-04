@@ -67,6 +67,18 @@ pub struct Variant {
 #[derive(Debug, Clone, Serialize)]
 pub struct SpreadResponse {
     pub quantity_key: String,
+    /// What this sweep actually varied, one entry per axis.
+    ///
+    /// A spread is a number over a set of choices, and a reader cannot judge it without
+    /// knowing which choices were in the set. This surface reported `combinations_run` and no
+    /// account of what was combined, so a spread taken over the three landmark rules while the
+    /// rule that computes the quantity stood still read exactly like a spread over everything.
+    pub axes_varied: Vec<AxisRecord>,
+    /// Rules this request bound that no axis varied, with the rule each was pinned to.
+    ///
+    /// The other half of the same question. A reader holding a figure can see both what moved
+    /// and what did not, so the figure cannot be read as wider than the set it came from.
+    pub held_fixed: Vec<HeldRule>,
     pub unit: String,
     pub unit_symbol: String,
     pub combinations_requested: usize,
@@ -83,6 +95,86 @@ pub struct SpreadResponse {
     pub spread_percent_of_median: Option<f64>,
     pub baseline_value: Option<f64>,
     pub variants: Vec<Variant>,
+}
+
+/// One axis of a sweep, as the record of what was varied rather than as the request for it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct AxisRecord {
+    pub slot: String,
+    /// The registry construct the slot names, so a reader looks up what varied rather than a
+    /// word that appears in no registry file.
+    pub construct: String,
+    /// Rules compared along this axis, or 0 where the axis varied a value instead.
+    pub rules_varied: usize,
+    /// Values compared along this axis, with the parameter they were written against.
+    pub values_varied: usize,
+    pub parameter: Option<String>,
+}
+
+/// A rule the request bound and the sweep did not vary.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct HeldRule {
+    pub construct: String,
+    pub method_id: String,
+}
+
+/// The construct a slot word names, so the record carries a name the registry answers to.
+fn construct_named(slot: &str) -> String {
+    crate::binding::construct_for_slot(slot)
+        .unwrap_or(slot)
+        .to_string()
+}
+
+/// Every rule the request bound, with the constructs the axes varied removed.
+///
+/// Read off the request rather than from a list beside it, so a construct that becomes
+/// bindable reaches this record without an edit here.
+fn held_fixed(base: &AnalysisRequest, axes: &[Axis], computed_by: Option<&str>) -> Vec<HeldRule> {
+    let varied: std::collections::BTreeSet<String> = axes
+        .iter()
+        .filter(|axis| !axis.method_ids.is_empty())
+        .map(|axis| construct_named(&axis.slot))
+        .collect();
+    let mut held = Vec::new();
+    for (construct, method_id) in [
+        (crate::WEIGHING_CONSTRUCT, &base.weighing.method_id),
+        (crate::ONSET_CONSTRUCT, &base.onset.method_id),
+        (crate::TAKEOFF_CONSTRUCT, &base.takeoff.method_id),
+    ] {
+        if !method_id.is_empty() && !varied.contains(construct) {
+            held.push(HeldRule {
+                construct: construct.to_string(),
+                method_id: method_id.clone(),
+            });
+        }
+    }
+    for (construct, choice) in &base.derived {
+        if !choice.method_id.is_empty() && !varied.contains(construct.as_str()) {
+            held.push(HeldRule {
+                construct: construct.clone(),
+                method_id: choice.method_id.clone(),
+            });
+        }
+    }
+    // The arithmetic the spine ran for itself, which the request names nowhere. Without this a
+    // sweep whose quantity came from an unchosen default reports every axis it varied and says
+    // nothing about the rule that made the number.
+    if let Some(id) = computed_by {
+        if let Some(construct) = crate::binding::BINDINGS
+            .iter()
+            .find(|binding| binding.id == id)
+            .map(|binding| binding.construct)
+        {
+            let already = held.iter().any(|rule| rule.construct == construct);
+            if !already && !varied.contains(construct) {
+                held.push(HeldRule {
+                    construct: construct.to_string(),
+                    method_id: id.to_string(),
+                });
+            }
+        }
+    }
+    held
 }
 
 pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box<Refusal>> {
@@ -106,6 +198,17 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                 .map(|m| (m.unit.to_string(), m.unit_symbol.to_string()))
         })
         .unwrap_or_default();
+
+    // The rule that computed the quantity, when the spine ran it under its own default and the
+    // request therefore names it nowhere. It is still a choice that stood still while the
+    // figure was taken, and a reader who cannot see it reads the spread as wider than its set.
+    let computed_by = crate::run(trial, &request.base).ok().and_then(|response| {
+        response
+            .metrics
+            .iter()
+            .find(|metric| metric.key == request.quantity_key)
+            .and_then(|metric| metric.computed_by.clone())
+    });
 
     let mut variants = Vec::with_capacity(combinations_run);
     for index in 0..combinations_run {
@@ -165,6 +268,18 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
 
     Ok(SpreadResponse {
         quantity_key: request.quantity_key.clone(),
+        axes_varied: request
+            .axes
+            .iter()
+            .map(|axis| AxisRecord {
+                slot: axis.slot.clone(),
+                construct: construct_named(&axis.slot),
+                rules_varied: axis.method_ids.len(),
+                values_varied: axis.values.len(),
+                parameter: axis.parameter.clone(),
+            })
+            .collect(),
+        held_fixed: held_fixed(&request.base, &request.axes, computed_by.as_deref()),
         unit,
         unit_symbol,
         combinations_requested,

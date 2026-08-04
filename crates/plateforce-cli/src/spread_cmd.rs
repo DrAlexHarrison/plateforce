@@ -24,7 +24,7 @@ use crate::render::{Renderer, Role};
 /// audience came for and what the founding measurement is over.
 pub const HEADLINE_QUANTITY: &str = "jump_height_from_takeoff_meters";
 
-/// One axis per construct on the path, holding every rule this build can run for it. The
+/// One axis per construct the run bound, holding every rule this build can run for it. The
 /// sweep varies the choice a user would otherwise make once and never revisit.
 #[derive(Debug, clap::Args)]
 #[group(skip)]
@@ -80,18 +80,30 @@ pub fn run(
     }
 }
 
-pub fn axes_over_every_rule() -> Vec<Axis> {
-    PATH.iter()
-        .map(|construct| {
-            let slot = slot_of(construct);
-            Axis {
-                slot: slot.to_string(),
-                parameter: None,
-                values: Vec::new(),
-                method_ids: bindings_for(slot)
-                    .map(|binding| binding.id.to_string())
-                    .collect(),
-            }
+/// Every step this run bound that carries more than one rule, as an axis over those rules.
+///
+/// The three landmarks and, since a request can bind them, the constructs computed from the
+/// landmarks. Restricting this to the landmarks meant the panel never varied the rule that
+/// computes the quantity it was sweeping: on subject 01 trial 1 it reported 3.11 cm for
+/// jump height while the three rules reporting that key span 3.38 cm, and the reported
+/// maximum of 0.41585 excluded a published rule answering 0.44436 for the same quantity.
+///
+/// A construct the request did not bind is not an axis. Sweeping it would run a rule nobody
+/// chose, which is the reason `spread::unsweepable` refuses one.
+pub fn axes_over_every_rule(request: &AnalysisRequest) -> Vec<Axis> {
+    let landmarks = PATH.iter().map(|construct| slot_of(construct).to_string());
+    // Keyed by construct on the request, and the sweep reaches a derived rule by that same
+    // word, so the construct is the slot for every one of them.
+    let derived = request.derived.keys().cloned();
+    landmarks
+        .chain(derived)
+        .map(|slot| Axis {
+            method_ids: bindings_for(&slot)
+                .map(|binding| binding.id.to_string())
+                .collect(),
+            slot,
+            parameter: None,
+            values: Vec::new(),
         })
         .filter(|axis| axis.method_ids.len() > 1)
         .collect()
@@ -106,7 +118,7 @@ pub fn measure(
         trial,
         &SpreadRequest {
             base: request.clone(),
-            axes: axes_over_every_rule(),
+            axes: axes_over_every_rule(request),
             quantity_key: quantity_key.to_string(),
             maximum_combinations: 512,
         },
@@ -185,6 +197,26 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
         for line in renderer.wrap(&rules, 6) {
             let _ = writeln!(block, "{line}");
         }
+    }
+
+    // A spread is a number over a set of choices, and the set is printed beside it. Without
+    // this a figure taken while the rule that computes the quantity stood still read exactly
+    // like a figure taken over everything.
+    let varied: Vec<String> = response
+        .axes_varied
+        .iter()
+        .filter(|axis| axis.rules_varied > 1)
+        .map(|axis| format!("{} ({} rules)", axis.construct, axis.rules_varied))
+        .collect();
+    if !varied.is_empty() {
+        let _ = writeln!(block, "  varied {}", varied.join(", "));
+    }
+    for held in &response.held_fixed {
+        let _ = writeln!(
+            block,
+            "  held {} at {}, so this spread is not over it",
+            held.construct, held.method_id
+        );
     }
 
     let _ = write!(

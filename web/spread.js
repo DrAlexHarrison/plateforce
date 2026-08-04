@@ -196,8 +196,37 @@ export function runSpread() {
     ),
   );
   host.append(headline);
+  host.append(whatMoved(result));
   host.append(spreadAxisPlot(result));
   host.append(spreadTable(result, label));
+}
+
+/* Which choices this figure is a spread over, and which stood still.
+ *
+ * A spread is a number over a set, and a reader cannot judge it without the set. The panel
+ * reported a count of combinations and no account of what was combined, so a figure taken
+ * while the rule that computes the quantity stood still read exactly like a figure taken over
+ * everything. Both halves are shown, because a run that did vary it has to say so too. */
+function whatMoved(result) {
+  const varied = (result.axes_varied ?? []).filter((axis) => axis.rules_varied > 1);
+  const held = result.held_fixed ?? [];
+  if (varied.length === 0 && held.length === 0) return element('div');
+
+  const wrap = element('div', 'spread-scope');
+  if (varied.length > 0) {
+    const names = varied.map((axis) => `${axis.construct} (${axis.rules_varied} rules)`).join(', ');
+    wrap.append(element('p', 'panel__sub', `Varied ${names}.`));
+  }
+  for (const rule of held) {
+    wrap.append(
+      element(
+        'p',
+        'panel__sub',
+        `Held ${rule.construct} at ${rule.method_id}, so this spread is not over it.`,
+      ),
+    );
+  }
+  return wrap;
 }
 
 function spreadAxisPlot(result) {
