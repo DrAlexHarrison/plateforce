@@ -27,6 +27,10 @@ if [[ ! -x "$environment/bin/python" ]]; then
 fi
 python="$environment/bin/python"
 
+# The interpreter this prints is the one the suite runs on, so it carries what the suite
+# imports. Idempotent and quiet when already present.
+"$python" -m pip install --quiet pytest numpy >&2
+
 # maturin from the path where the machine already has it, and into this environment when it
 # does not. Named explicitly rather than left to a build frontend, because the frontend would
 # fetch its own copy into a temporary directory on every run.
