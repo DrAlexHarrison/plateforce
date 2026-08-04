@@ -178,7 +178,13 @@ fn every_rule_named_produces_every_number_and_exits_zero() {
     let stderr = stderr_of(&output);
     assert_eq!(output.status.code(), Some(0), "{stderr}");
     assert!(stderr.is_empty(), "{stderr}");
-    let rows = stdout.lines().take_while(|line| !line.is_empty()).count();
+    // The rows carrying a number, which each carry the rule behind it on the line beneath.
+    // Counting every line of the block instead reads the rule a row names as a second row.
+    let rows = stdout
+        .lines()
+        .take_while(|line| !line.is_empty())
+        .filter(|line| line.starts_with("  ") && !line.starts_with("   "))
+        .count();
     println!("metric rows: {rows} of 11");
     assert_eq!(rows, 11, "{stdout}");
 }

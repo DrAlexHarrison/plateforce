@@ -909,6 +909,8 @@ fn render(
         .collect();
     let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
 
+    let stamp = registry_stamp(registry, args.registry_version.clone());
+
     // The shape every surface writes a result in, rather than a second one assembled here.
     // A terminal reporting one result under different field names from an R session is the
     // same defect as two implementations of one method, one layer out from the maths, and
@@ -921,7 +923,7 @@ fn render(
             rows_read: trial.rows_read,
             samples_matching_the_convention: trial.reported_samples.matched_the_convention,
         },
-        &registry_stamp(registry, args.registry_version.clone()),
+        &stamp,
         capture,
         response,
         spread,
@@ -938,17 +940,25 @@ fn render(
         // carries. Recomputing either here ran the same function over the same response a
         // second time, and a column that wrote its own would be the second home this
         // surface's readers were reading.
-        Format::Text => text_body(
-            response,
-            reported.spread.as_ref(),
-            registry,
-            args,
-            renderer,
-            &refusals,
-            &response.signals,
-            trial.rows_read,
-            &reported.descriptions,
-        ),
+        Format::Text => {
+            // The tree behind each number, through the one function that derives it, so the
+            // rule a value's own line names is the rule the account under `--provenance`
+            // roots at.
+            let chains =
+                plateforce_analysis::chains_of(response, &stamp, capture.acquisition.is_complete());
+            text_body(
+                response,
+                reported.spread.as_ref(),
+                registry,
+                args,
+                renderer,
+                &refusals,
+                &response.signals,
+                trial.rows_read,
+                &reported.descriptions,
+                &chains,
+            )
+        }
     };
 
     Outcome {
@@ -1025,6 +1035,7 @@ fn text_body(
     signals: &[QualitySignal],
     rows_read: usize,
     accounts: &BTreeMap<String, String>,
+    chains: &[plateforce_analysis::MetricChain],
 ) -> String {
     let mut document = String::new();
     let widest = response
@@ -1051,7 +1062,7 @@ fn text_body(
     }
 
     let mut said: Vec<usize> = Vec::new();
-    for metric in &response.metrics {
+    for (position, metric) in response.metrics.iter().enumerate() {
         match (metric.value, metric.carried_no_number) {
             (Some(value), _) => {
                 let _ = writeln!(
@@ -1081,6 +1092,11 @@ fn text_body(
                     metric.label, "no value", metric.unit_symbol
                 );
             }
+        }
+        // The rule behind the number, under the number, and never behind a flag. A reader
+        // holding a figure had the flat list of bound rules below to match it against by eye.
+        for line in renderer.wrap(&rule_behind(chains.get(position)), 6) {
+            let _ = writeln!(document, "{line}");
         }
         // A signal qualifying several metrics is said once, under the first of them to
         // appear, rather than repeated under each.
@@ -1162,6 +1178,29 @@ fn text_body(
 
     let _ = document.pop();
     document
+}
+
+/// What a number rests on when the record roots its chain at no rule at all: neither an
+/// arithmetic entry nor a rule that left a bound record.
+const NO_RULE: &str = "no rule recorded";
+
+/// The rule a number is the answer of, as the chain behind it roots.
+///
+/// Read off the chain rather than off `computed_by` alone. A quantity the landmarks produce
+/// directly names no arithmetic and is still some rule's answer: four of the eleven on
+/// subject 01's first trial name none, and they root at the weighing rule and the two
+/// landmark rules that placed them.
+///
+/// The id alone, in the spelling the section below and the accounts already print, because
+/// this line is drawn once per number and every word on it is paid for eleven times.
+fn rule_behind(chain: Option<&plateforce_analysis::MetricChain>) -> String {
+    let root = chain
+        .map(|derived| derived.chain.provenance.method_id.trim())
+        .unwrap_or_default();
+    if root.is_empty() {
+        return NO_RULE.to_string();
+    }
+    root.to_string()
 }
 
 /// One number's account, under the label the table above showed it under.
