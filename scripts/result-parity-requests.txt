@@ -1,4 +1,5 @@
-# One request per line: a name, the file that asks it, and the record it is held to.
+# One request per line: a name, the file that asks it, the record it is held to, and the
+# surfaces it is asked of.
 #
 # The gate used to ask one question, a clean five-second trial, and three of the fields it
 # compared were empty in the answer. Four surfaces agreed about the shape of `refusals`,
@@ -10,9 +11,25 @@
 # file in tests/golden that no row names: two such files sat in this repository wired to
 # nothing, which is why this manifest exists.
 #
+# The fourth column names the surfaces asked, and every row states it rather than leaving it
+# to be assumed. A request answered by fewer than two surfaces is a refusal: one surface
+# agrees with itself. A surface named in `result-parity-surfaces.txt` that no row asks is a
+# refusal too, so a row cannot narrow the population by dropping a surface quietly. Where a
+# surface is left off a row, `SURFACES_NOT_ASKED` in `scripts/result_parity.py` states why
+# and names the work that would put it on, and a surface that answers anyway reddens the gate
+# exactly as loudly as one that stops answering.
+#
 # A request is added in the same commit as the baseline that holds it, or as the row it is
 # declared equal to.
-quiet	tests/golden/result-parity-request.json	tests/golden/result-parity.json
-sentinel	tests/golden/result-parity-request-sentinel.json	=quiet
-interrupted	tests/golden/result-parity-request-interrupted.json	tests/golden/result-parity-interrupted.json
-inverted	tests/golden/result-parity-request-inverted.json	tests/golden/result-parity-inverted.json
+#
+# The `sweep` row asks a different kind of question from the four above it: not what one
+# analysis reports, but how far the number moves across a slot's defensible alternatives.
+# That is the measurement this software exists to publish, and it was the one thing no gate
+# compared between surfaces. Its request file names the slots, which is how Python and the
+# browser are asked; the terminal has no flag for them and reads them off the rules the
+# request bound, so the answer's `axes_varied` is what holds the two accounts together.
+quiet	tests/golden/result-parity-request.json	tests/golden/result-parity.json	browser,cli,python,r
+sentinel	tests/golden/result-parity-request-sentinel.json	=quiet	browser,cli,python,r
+interrupted	tests/golden/result-parity-request-interrupted.json	tests/golden/result-parity-interrupted.json	browser,cli,python,r
+inverted	tests/golden/result-parity-request-inverted.json	tests/golden/result-parity-inverted.json	browser,cli,python,r
+sweep	tests/golden/result-parity-request-sweep.json	tests/golden/result-parity-sweep.json	cli,python

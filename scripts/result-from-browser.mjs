@@ -1,4 +1,4 @@
-// The browser's answer to the one committed request.
+// The browser's answer to one committed request, analysed or swept.
 //
 // Every value comes from the request file rather than from a line written here, so this arm
 // and the others cannot drift into asking different questions.
@@ -43,7 +43,7 @@ await wasm.default({ module_or_path: readFileSync('web/pkg/plateforce_wasm_bg.wa
 
 const { state } = await import(pathToFileURL('web/state.js').href);
 const { reply } = await import(pathToFileURL('web/format.js').href);
-const { buildDecisionModel } = await import(pathToFileURL('web/registry.js').href);
+const { buildDecisionModel, availableAxes } = await import(pathToFileURL('web/registry.js').href);
 const { resetSelections, candidateFor } = await import(pathToFileURL('web/startup.js').href);
 const { buildRequest, selectionFromChosenRule, recordStated } = await import(
   pathToFileURL('web/analysis.js').href
@@ -95,7 +95,38 @@ const trial = wasm.LoadedTrial.fromForceFile(
   asked.sentinel_convention,
 );
 
-const json = trial.analyse(JSON.stringify(buildRequest()), asked.trial);
+// A request carrying a `sweep` block asks how far the number moves, and one without it asks
+// what the analysis reports. The terminal's arm and Python's make the same test in the same
+// words.
+//
+// The axes come from `availableAxes`, which is what the panel's own tick list is drawn from,
+// so this arm sweeps the rules the page offers a reader rather than a set assembled here.
+// The panel's axis list also carries a dimension per published parameter and one for
+// gravity; the request names the slots whose rule is varied, and those are what the terminal
+// varies too.
+const json = asked.sweep
+  ? trial.spread(
+      JSON.stringify({
+        base: buildRequest(),
+        axes: asked.sweep.slots.map((named) => {
+          const slot = state.slots.find((entry) => entry.key === named);
+          if (!slot) {
+            console.error(`the page offers no slot named ${named}, so it cannot sweep it`);
+            process.exit(1);
+          }
+          const candidate = candidateFor(named, state.selection[named]?.methodId);
+          const axis = availableAxes(slot, candidate).find((entry) => entry.methodIds?.length);
+          if (!axis) {
+            console.error(`the page offers one rule for ${named}, so it varies nothing there`);
+            process.exit(1);
+          }
+          return { slot: axis.slot, parameter: null, values: [], method_ids: axis.methodIds };
+        }),
+        quantity_key: asked.sweep.quantity_key,
+        maximum_combinations: asked.sweep.maximum_combinations,
+      }),
+    )
+  : trial.analyse(JSON.stringify(buildRequest()), asked.trial);
 // Read through the page's own reader. A surface that parsed past this envelope would find
 // every field undefined and report that as an answer.
 const answer = reply(json);
