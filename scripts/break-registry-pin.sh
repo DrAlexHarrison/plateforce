@@ -103,5 +103,31 @@ expect_red "registry_version is omitted when absent" \
 restore crates/plateforce-analysis/src/document.rs
 
 echo
-echo "all four breaks reddened the guard and every restore landed"
+echo "=== 5. a worked example quotes a digest this registry does not answer ==="
+apply "the README quotes a stale digest" \
+  crates/plateforce-python/README.md \
+  'registry declaring 2026-07-25 (content-2350a46a2c1a29e9)' \
+  'registry declaring 2026-07-25 (content-0000000000000000)'
+expect_red "the README quotes a stale digest" \
+  cargo test -q -p plateforce-cli --test digests_in_prose
+restore crates/plateforce-python/README.md
+
+echo
+echo "=== 6. a file outside the list starts quoting a digest ==="
+printf 'content-2350a46a2c1a29e9\n' > docs/wsrp-a-file-that-quotes-a-digest.md
+git add -N docs/wsrp-a-file-that-quotes-a-digest.md
+echo "applied a file outside the list quotes a digest"
+expect_red "a file outside the list quotes a digest" \
+  cargo test -q -p plateforce-cli --test digests_in_prose
+# An untracked file is not restored by git checkout, which is the third of the four traps
+# named at the top of this script. It is removed by name.
+git rm -q --cached docs/wsrp-a-file-that-quotes-a-digest.md
+rm -f docs/wsrp-a-file-that-quotes-a-digest.md
+if [ -e docs/wsrp-a-file-that-quotes-a-digest.md ]; then
+  echo "the stray file is still here" >&2
+  exit 1
+fi
+
+echo
+echo "all six breaks reddened their guard and every restore landed"
 git status --porcelain
