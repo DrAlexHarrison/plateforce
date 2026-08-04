@@ -484,7 +484,6 @@ impl LoadedTrial {
                 ),
                 &capture,
                 &response,
-                std::collections::BTreeMap::new(),
                 // The tab sweeps on its own schedule through `spread`, so an analysis that
                 // computed one here would answer a question nobody asked and pay for it.
                 None,

@@ -84,11 +84,14 @@ pub struct ResultDocument {
     /// Every rule that declined, carrying the fields a caller branches on rather than a
     /// sentence one surface formats and another cannot represent at all.
     pub refusals: Vec<Refusal>,
-    /// The account each quantity gives of itself, keyed by the quantity. Supplied by the
-    /// caller, which is the layer that holds the chain each account is written from. Absent
-    /// rather than empty where the caller holds none, because an empty block reads as a
-    /// surface that found nothing to say about any number.
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    /// The account each quantity gives of itself, keyed by the quantity. Written by
+    /// `plateforce_analysis::descriptions_of` from the response, never handed in, because a
+    /// surface that supplied this block could supply an empty one and two of them did.
+    ///
+    /// Always written, empty included. An empty block is a run whose quantities all carried
+    /// no value, which is a fact about the trial; a key a document sometimes omits cannot be
+    /// told apart from a surface that never carried the field, which is the reason
+    /// `registry_version` is written as null rather than left out.
     pub descriptions: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spread: Option<SpreadResponse>,
@@ -175,6 +178,10 @@ pub fn refusal_from_rule(declined: &DeclinedRule) -> Refusal {
 impl ResultDocument {
     /// The document for one analysed trial. Everything derivable from the response is taken
     /// from it, and the rest is what only the calling surface knows.
+    ///
+    /// The accounts are derived here rather than accepted here. Both callers passed an empty
+    /// map, so a terminal and a browser tab published a result with no account of any number
+    /// in it, and neither was doing anything a signature could catch.
     #[allow(clippy::too_many_arguments)]
     pub fn of(
         plateforce_version: impl Into<String>,
@@ -182,7 +189,6 @@ impl ResultDocument {
         registry: &plateforce_core::provenance::RegistryStamp,
         capture: &plateforce_core::Capture,
         response: &AnalysisResponse,
-        descriptions: BTreeMap<String, String>,
         spread: Option<SpreadResponse>,
     ) -> Self {
         let refusals = response.refusals.iter().map(refusal_from_rule).collect();
@@ -209,6 +215,7 @@ impl ResultDocument {
             registry_version,
             registry_declared_version,
             registry_digest,
+            descriptions: crate::accounts_of(response, registry, acquisition.is_complete()),
             acquisition_complete: acquisition.is_complete(),
             acquisition,
             plate_profile,
@@ -225,7 +232,6 @@ impl ResultDocument {
             signals: response.signals.clone(),
             warnings: response.warnings.clone(),
             refusals,
-            descriptions,
             spread,
         }
     }
