@@ -71,8 +71,9 @@ pub enum WriteRefusal {
 }
 
 impl BatchResult {
-    /// Every relation, with the record: results, provenance, refusals and the run block, plus
-    /// warnings, and aggregates when a rule was bound.
+    /// Every relation `EVERY_RELATION` names, with the record beside them. The names are read
+    /// off that list rather than spelled again here, where a second copy of them had gone on
+    /// naming six of the nine.
     pub fn write_csv(&self, directory: &Path) -> Result<Vec<PathBuf>, WriteRefusal> {
         self.write_csv_selection(directory, EVERY_RELATION)
     }

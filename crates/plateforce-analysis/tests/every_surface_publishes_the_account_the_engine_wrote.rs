@@ -208,9 +208,19 @@ fn the_document_fills_the_block_and_no_caller_states_one() {
     let end = rest
         .find(") -> Self {")
         .unwrap_or_else(|| panic!("the constructor under {impl_block} never closes its arguments"));
+    // The last word before the colon, rather than everything before it: an argument carrying
+    // an attribute or a `mut` on its own line reads as one name with the whole prefix on it,
+    // which is a name no comparison here matches and a way past this guard.
     let arguments: Vec<&str> = rest[..end]
         .lines()
-        .map(|line| line.trim().split(':').next().unwrap_or_default())
+        .map(|line| {
+            line.split(':')
+                .next()
+                .unwrap_or_default()
+                .split_whitespace()
+                .next_back()
+                .unwrap_or_default()
+        })
         .filter(|name| !name.is_empty())
         .collect();
 
