@@ -306,7 +306,10 @@ labelled = []
 # worse than the narrowing it was written to catch.
 MARKUP_LABELS = (
     (r"<h[1-4]\b", r"<h[1-4]\b[^>]*>([^<]+)", "a heading"),
-    (r"<label\b", r"<label\b[^>]*>([^<]+)", "a label element"),
+    # The whole element, because a label's text can sit past its input child: one of the
+    # seven labels put its sentence after the checkbox and the leading-text pattern read it
+    # as empty. Child tags are stripped in the loop before any word is judged.
+    (r"<label\b", r"(?s)<label\b[^>]*>(.*?)</label>", "a label element"),
     (r"<legend\b", r"<legend\b[^>]*>([^<]+)", "a legend"),
     (r"<button\b", r"<button\b[^>]*>([^<]+)", "a button"),
     (r"<summary\b", r"<summary\b[^>]*>([^<]+)", "a summary"),
@@ -369,10 +372,13 @@ for present, pattern, what in MARKUP_LABELS:
     elif re.search(present, markup_text):
         blind_patterns.append(f"{markup} for {what}, which the file contains")
     for match in found:
-        if not match.group(1).strip():
+        # A no-op for every kind whose capture holds no markup; for the block-captured
+        # kinds it is what keeps a child's attributes from being judged as label words.
+        spoken = re.sub(r"<[^>]*>", " ", match.group(1)).strip()
+        if not spoken:
             continue
         number = markup_text.count("\n", 0, match.start()) + 1
-        labelled.append((f"{markup}:{number}", match.group(1).strip()))
+        labelled.append((f"{markup}:{number}", spoken))
 
 # A kind the reader meets, present in the file, that no scanner pattern claims. Dropping a
 # pattern is what this catches, and it cannot be hidden by dropping the pattern's own

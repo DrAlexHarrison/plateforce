@@ -27,6 +27,7 @@ on:
       - 'registry/**'
       - 'scripts/build-web.sh'
       - 'scripts/check-batch.mjs'
+      - 'scripts/check-account.mjs'
       - 'scripts/check-grammar.mjs'
       - 'scripts/check-web-names-no-construct.py'
       - 'scripts/check-web-reads-live-fields.py'
@@ -45,6 +46,7 @@ on:
       - 'registry/**'
       - 'scripts/build-web.sh'
       - 'scripts/check-batch.mjs'
+      - 'scripts/check-account.mjs'
       - 'scripts/check-grammar.mjs'
       - 'scripts/check-web-names-no-construct.py'
       - 'scripts/check-web-reads-live-fields.py'
@@ -137,6 +139,9 @@ jobs:
       # has no path to is an answer it cannot give.
       - name: A folder through the browser equals the same folder through the terminal
         run: node scripts/check-batch.mjs web 8751
+
+      - name: Every account the terminal writes is one the tab shows, and reads the same
+        run: node scripts/check-account.mjs web 8755
 
       # Adding a method is a data edit, so a construct written into the interface is a row
       # the registry can no longer add or remove on its own.
