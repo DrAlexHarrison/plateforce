@@ -42,7 +42,7 @@ fn compute(
     // The search ends where the athlete came back down. Run past that and the curve is an
     // integral of a landing, and run to the end of an untrimmed recording and it is an integral
     // of whatever the athlete did next.
-    let Some(touchdown_index) = context.touchdown_index() else {
+    let Some(touchdown_index) = context.touchdown_index else {
         return DerivedOutcome::declined(
             resolved.finish(),
             RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
@@ -54,7 +54,7 @@ fn compute(
 
     let displacement = centre_of_mass::displacement(
         context.trial,
-        context.epoch(),
+        context.epoch,
         landmarks.onset_index,
         context.gravity_meters_per_second_squared,
         &mut resolved,

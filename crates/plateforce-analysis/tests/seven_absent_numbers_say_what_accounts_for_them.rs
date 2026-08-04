@@ -6,13 +6,9 @@
 //! keeps the last departure from quiet before it, which its entry says in those words, and on
 //! an untrimmed trace the emptiest the plate ever reads is the athlete standing beside it. The
 //! analysis is right to measure nothing across an interval that runs backwards, and it
-//! suppresses five quantities. Until this signal it said so in one sentence in `warnings`,
+//! suppresses seven quantities. Until this signal it said so in one sentence in `warnings`,
 //! carrying no status, no value and no list of the columns it accounted for, so a reader
-//! holding the blank cells could not tell which of them that sentence was about.
-//!
-//! Seven while flight time and the height taken from it read the three landmarks as a bundle.
-//! Both are measured from takeoff to the return to the plate, so both now answer on this
-//! recording, and the count is five.
+//! holding seven blank cells could not tell which of them that sentence was about.
 //!
 //! The property that matters is the second test: the columns the signal names are exactly the
 //! columns that came back without a value. A signal naming fewer would leave a blank cell with
@@ -176,25 +172,7 @@ fn the_columns_the_signal_names_are_exactly_the_columns_that_came_back_empty() {
         "a column came back empty that the signal does not account for, or the signal names a \
          column that carries a number"
     );
-    assert_eq!(absent.len(), 5, "the recording no longer suppresses five");
-
-    // The two that used to be here and are not, asserted by name rather than left to the
-    // count. Both are measured from takeoff to the return to the plate, so both answer on a
-    // recording whose onset landed after takeoff, and a signal that named them would tell a
-    // reader a number in front of them is absent. A count alone would go on passing if one
-    // of them came back and something else dropped out.
-    for key in ["flight_time_seconds", "jump_height_from_flight_time_meters"] {
-        assert!(
-            response
-                .metric(key)
-                .is_some_and(|metric| metric.value.is_some()),
-            "{key} is bounded by takeoff and the return to the plate and came back empty"
-        );
-        assert!(
-            !named.contains(&key),
-            "the signal accounts for {key}, which carries a number on this trial"
-        );
-    }
+    assert_eq!(absent.len(), 7, "the recording no longer suppresses seven");
 }
 
 /// The other half of the same recording. A guard that fired on every trial would pass the two

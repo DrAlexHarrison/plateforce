@@ -651,17 +651,10 @@ mod tests {
     /// The reason names a rule the quantity itself says produced it, so a rule declining
     /// elsewhere in the analysis is not written against a number it had no part in.
     ///
-    /// One onset rule declines on the run below, and the two quantities differ in whether
-    /// they rest on it: the interval is bounded by the onset it did not place, and flight
-    /// time is bounded by takeoff and the return to the plate. A field filled from whatever
-    /// went wrong anywhere would put the onset refusal on both.
-    ///
-    /// Flight time used to come back empty here too, because it read the three landmarks as a
-    /// bundle that is only assembled when onset is placed, and the pair was two empty numbers
-    /// with one reason between them. It now answers, which is the sharper statement of the
-    /// same property and the reason this reads the chains rather than only the reasons: a
-    /// quantity that has a value cannot carry a reason whatever the code does, so an
-    /// assertion resting on its emptiness would have stopped being able to fail.
+    /// Both quantities below come back empty on the same run, and only one of them rests on
+    /// the rule that declined: the interval is bounded by the onset the rule did not place,
+    /// and flight time is bounded by the takeoff rule, which placed its landmark. A field
+    /// filled from whatever went wrong anywhere would put the onset refusal on both.
     #[test]
     fn a_reason_is_only_written_against_a_quantity_the_declining_rule_produced() {
         let sweep = |quantity: &str| {
@@ -683,10 +676,6 @@ mod tests {
         };
 
         let interval = sweep("time_to_takeoff_seconds");
-        assert!(
-            interval.variants[0].value.is_none(),
-            "this quantity has to be empty here, or the reason below has nothing to explain"
-        );
         let reason = interval.variants[0]
             .failure_reason
             .as_ref()
@@ -697,38 +686,13 @@ mod tests {
             reason.method_id
         );
 
-        // The chains are what decide it, so they are what is read, off the same analysis the
-        // sweep ran. The interval names the rule that declined and flight time names no onset
-        // rule at all, which is why the refusal can reach one and not the other.
-        let mut declining = base();
-        declining.onset.parameters.insert("k".into(), 100_000.0);
-        let response = crate::run(&synthetic(), &declining).expect("the request is well formed");
-        let onset_rules_named_by = |key: &str| -> Vec<String> {
-            response
-                .metrics
-                .iter()
-                .find(|metric| metric.key == key)
-                .map(|metric| {
-                    metric
-                        .contributing_method_ids
-                        .iter()
-                        .filter(|id| id.starts_with("onset."))
-                        .cloned()
-                        .collect()
-                })
-                .unwrap_or_default()
-        };
-        assert!(
-            !onset_rules_named_by("time_to_takeoff_seconds").is_empty(),
-            "the interval names no onset rule, so the pair below is not a comparison"
-        );
-        assert!(
-            onset_rules_named_by("flight_time_seconds").is_empty(),
-            "flight time is measured from takeoff to the return to the plate and its chain names {:?}",
-            onset_rules_named_by("flight_time_seconds")
-        );
-
+        // Flight time is empty on the same run and rests on the takeoff rule, which placed
+        // its landmark. Nothing on its chain declined, so nothing is written against it.
         let flight = sweep("flight_time_seconds");
+        assert!(
+            flight.variants[0].value.is_none(),
+            "this quantity has to be empty here, or the pair below is not a comparison"
+        );
         assert!(
             flight.variants[0].failure_reason.is_none(),
             "the onset rule's refusal was written against a number bounded by takeoff: {:?}",

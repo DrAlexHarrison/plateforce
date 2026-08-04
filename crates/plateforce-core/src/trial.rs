@@ -256,17 +256,8 @@ pub fn time_to_takeoff_seconds(landmarks: &Landmarks, sample_interval_seconds: f
     (landmarks.takeoff_index as f64 - landmarks.onset_index as f64) * sample_interval_seconds
 }
 
-/// The interval the athlete was off the plate, from the two samples that bound it.
-///
-/// Takes the two samples rather than the three-landmark bundle, because the onset is not one
-/// of them and a rule that had to assemble the bundle to reach this could not run on a
-/// recording whose onset rule found nothing. The arithmetic has one home here either way.
-pub fn flight_time_seconds(
-    takeoff_index: usize,
-    touchdown_index: usize,
-    sample_interval_seconds: f64,
-) -> f64 {
-    (touchdown_index as f64 - takeoff_index as f64) * sample_interval_seconds
+pub fn flight_time_seconds(landmarks: &Landmarks, sample_interval_seconds: f64) -> f64 {
+    (landmarks.touchdown_index as f64 - landmarks.takeoff_index as f64) * sample_interval_seconds
 }
 
 /// Reactive strength index, modified: jump height over the time taken to produce it.

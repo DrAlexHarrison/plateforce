@@ -47,7 +47,7 @@ fn compute(
     let gravity = context.gravity_meters_per_second_squared;
     let velocity = centre_of_mass::velocity(
         context.trial,
-        context.epoch(),
+        context.epoch,
         landmarks.onset_index,
         gravity,
         &mut resolved,
@@ -60,7 +60,7 @@ fn compute(
     let power = match instantaneous_power_watts(
         context.trial.force(),
         &velocity,
-        context.epoch().system_weight_newtons,
+        context.epoch.system_weight_newtons,
         ForceTerm::NetOfSystemWeight,
         PowerSignConvention::UpwardPositive,
     ) {
@@ -84,7 +84,7 @@ fn compute(
     };
     match work_joules(&power, &phase, context.trial.sample_interval_seconds()) {
         Ok(joules) => {
-            let mass = context.epoch().system_mass_kilograms(gravity);
+            let mass = context.epoch.system_mass_kilograms(gravity);
             DerivedOutcome {
                 values: vec![(super::KEY, Some(joules / (mass * gravity)))],
                 placed: Vec::new(),

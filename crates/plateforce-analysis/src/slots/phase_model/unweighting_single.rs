@@ -49,7 +49,7 @@ fn place(
     let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let bound = resolved.finish();
 
-    let (Some(onset), Some(takeoff)) = (context.onset_index(), context.takeoff_index()) else {
+    let (Some(onset), Some(takeoff)) = (context.onset_index, context.takeoff_index) else {
         let missing = boundaries::absent(context, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]);
         return DerivedOutcome::declined(bound, context.unavailable(ID, &missing));
     };
@@ -58,7 +58,7 @@ fn place(
         .map(|peak| {
             phase_model_unweighting_single(
                 context.trial.force(),
-                context.epoch().system_weight_newtons,
+                context.epoch.system_weight_newtons,
                 onset,
                 peak,
             )

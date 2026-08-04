@@ -85,13 +85,13 @@ fn place(
         PUBLISHED_DROP_PERCENT_OF_SYSTEM_WEIGHT,
     );
 
-    let (Some(onset), Some(takeoff)) = (context.onset_index(), context.takeoff_index()) else {
+    let (Some(onset), Some(takeoff)) = (context.onset_index, context.takeoff_index) else {
         let missing = boundaries::absent(context, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]);
         return DerivedOutcome::declined(resolved.finish(), context.unavailable(ID, &missing));
     };
     let velocity = crate::centre_of_mass::velocity(
         context.trial,
-        context.epoch(),
+        context.epoch,
         onset,
         context.gravity_meters_per_second_squared,
         &mut resolved,
@@ -104,7 +104,7 @@ fn place(
             phase_model_unloading_yielding_split(
                 context.trial.force(),
                 &velocity,
-                context.epoch().system_weight_newtons,
+                context.epoch.system_weight_newtons,
                 drop_percent_of_system_weight,
                 0,
                 peak,

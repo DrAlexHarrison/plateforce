@@ -197,9 +197,9 @@ pub(crate) fn absent<'a>(context: &DerivedContext, needs: &[&'a str]) -> Vec<&'a
         .iter()
         .copied()
         .filter(|construct| match *construct {
-            crate::binding::ONSET_CONSTRUCT => context.onset_index().is_none(),
-            crate::binding::TAKEOFF_CONSTRUCT => context.takeoff_index().is_none(),
-            LANDING_CONSTRUCT => context.touchdown_index().is_none(),
+            crate::binding::ONSET_CONSTRUCT => context.onset_index.is_none(),
+            crate::binding::TAKEOFF_CONSTRUCT => context.takeoff_index.is_none(),
+            LANDING_CONSTRUCT => context.touchdown_index.is_none(),
             _ => false,
         })
         .collect()

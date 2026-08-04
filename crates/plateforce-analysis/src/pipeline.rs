@@ -1,7 +1,7 @@
 //! One analysis, from a validated request to the numbers and the record of what produced
 //! them.
 
-use plateforce_core::{Landmarks, Trial};
+use plateforce_core::{flight_time_seconds, time_to_takeoff_seconds, Landmarks, Trial};
 
 use std::collections::BTreeMap;
 
@@ -10,13 +10,11 @@ use crate::derived::{DerivedContext, PlacedSample};
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{bound_method, DeclinedRule};
 use crate::response::{AnalysisResponse, Levels, Metric};
-use crate::slots::flight_time::takeoff_to_touchdown as flight_time_seconds_rule;
 use crate::slots::jh_takeoff_frame::{
     flight_time as flight_time_rule, impulse_momentum as impulse_momentum_rule, FLIGHT_TIME_KEY,
 };
 use crate::slots::net_impulse::as_performance_determinant as net_impulse_rule;
 use crate::slots::reactive_strength_index::jh_tov_over_ttt as rsimod_rule;
-use crate::slots::time_to_takeoff::onset_to_takeoff as time_to_takeoff_rule;
 use crate::slots::{
     jh_takeoff_frame, movement_onset, net_impulse, reactive_strength_index, system_weight,
     takeoff as takeoff_slot,
@@ -135,7 +133,6 @@ pub fn run(
 
     // Touchdown is the return above the threshold that defined takeoff, so it is not an
     // independent choice and it is not offered as one.
-    let touchdown_was_stated = request.touchdown_index.is_some();
     let touchdown_index = request.touchdown_index.or_else(|| {
         takeoff_index.and_then(|from| {
             trial.force()[from..]
@@ -147,14 +144,8 @@ pub fn run(
 
     if let (Some(onset), Some(takeoff_at)) = (onset_index, takeoff_index) {
         if onset >= takeoff_at {
-            // Named to the numbers it reaches. It used to say every interval below was
-            // meaningless, which was true while every interval was assembled from all three
-            // landmarks at once. Flight time and the height taken from it are measured from
-            // takeoff to the return to the plate and are unaffected by where onset landed, so
-            // a warning covering them would send a reader to discard a number that is sound.
             warnings.push(
-                "onset is at or after takeoff, so every number bounded by onset is meaningless"
-                    .into(),
+                "onset is at or after takeoff, so every interval below is meaningless".into(),
             );
         }
     }
@@ -172,89 +163,30 @@ pub fn run(
         _ => None,
     };
 
-    // The spine's landmarks join the map derived rules already reach samples through, so a
-    // rule reading one is recorded reading it and the chain behind its number is the closure
-    // of what it asked for.
-    //
-    // Each node carries the entries that placed it and the names those entries read. Both
-    // landmark rules hand their ids back as the threshold entry followed by every operator
-    // entry it bound, and a node naming the threshold rule alone hides them: which crossing
-    // each operator selected moves the sample its rule placed.
-    //
-    // What each rule read is the rule's own answer, from `landmarks_read` beside its dispatch,
-    // rather than this function's guess. Nine of the ten landmark rules read the weighing
-    // epoch and one does not, one of the five onset rules reads the takeoff and four do not,
-    // so a single edge per construct stated here would have named rules that did not
-    // contribute, which is the fault this shape exists to end rather than to relocate.
-    //
-    // A landmark a caller dragged rests on nothing, because no value any rule read produced
-    // it. The rule's own record still names the marker, so the chain says a hand placed it.
-    let mut placed: BTreeMap<&'static str, PlacedSample> = BTreeMap::new();
-    placed.insert(
-        crate::derived::WEIGHING_EPOCH,
-        PlacedSample {
-            index: Some(epoch.end_index),
-            placed_by: vec![request.weighing.method_id.clone()],
-            rests_on: Vec::new(),
-            order: 0,
-        },
-    );
-    placed.insert(
-        crate::derived::MOVEMENT_ONSET,
-        PlacedSample {
-            index: onset_index,
-            placed_by: onset_ids.clone(),
-            rests_on: match request.onset.manual_index {
-                Some(_) => Vec::new(),
-                None => expect_landmarks_read(
-                    movement_onset::landmarks_read(&request.onset.method_id),
-                    &request.onset.method_id,
-                ),
-            },
-            order: 1,
-        },
-    );
-    placed.insert(
-        crate::derived::TAKEOFF,
-        PlacedSample {
-            index: takeoff_index,
-            placed_by: takeoff_ids_bound.clone(),
-            rests_on: match request.takeoff.manual_index {
-                Some(_) => Vec::new(),
-                None => expect_landmarks_read(
-                    takeoff_slot::landmarks_read(&request.takeoff.method_id),
-                    &request.takeoff.method_id,
-                ),
-            },
-            order: 2,
-        },
-    );
-    placed.insert(
-        crate::derived::TOUCHDOWN,
-        PlacedSample {
-            index: touchdown_index,
-            // No entry of its own, because it is not a choice: it is the return above the
-            // threshold the takeoff rule resolved, found by searching forward from the sample
-            // that rule placed. A caller who states it has placed it by hand, and it then
-            // rests on nothing either.
-            placed_by: Vec::new(),
-            rests_on: match touchdown_was_stated {
-                true => Vec::new(),
-                false => vec![crate::derived::TAKEOFF],
-            },
-            order: 3,
-        },
-    );
-
     // Every chain opens with what conditioned the signal, because every number below was
     // measured on the series those rules produced and none of them can be reproduced without
-    // knowing which series that was. It is the one thing every rule reads, so it is stated
-    // rather than asked for.
-    let chain_over = |names: &[&'static str]| {
-        let mut chain = conditioned.ids.clone();
-        chain.extend(crate::derived::rules_behind(&placed, names));
-        chain
-    };
+    // knowing which series that was.
+    //
+    // Both landmark rules hand their ids back as the threshold entry followed by every
+    // operator entry it bound, and a chain naming the threshold rule alone hides them. Which
+    // crossing each operator selected moves the sample its rule placed, and every interval,
+    // impulse and height below rests on those two samples.
+    let mut interval = conditioned.ids.clone();
+    interval.extend(onset_ids.clone());
+    interval.extend(takeoff_ids_bound.clone());
+    let mut weighing_ids = conditioned.ids.clone();
+    weighing_ids.push(request.weighing.method_id.clone());
+    let mut takeoff_ids = conditioned.ids.clone();
+    takeoff_ids.extend(takeoff_ids_bound.clone());
+    let mut onset_chain = conditioned.ids.clone();
+    onset_chain.extend(onset_ids.clone());
+
+    let interval_seconds = landmarks
+        .as_ref()
+        .map(|marks| time_to_takeoff_seconds(marks, trial.sample_interval_seconds()));
+    let flight = landmarks.as_ref().and_then(|marks| {
+        touchdown_index.map(|_| flight_time_seconds(marks, trial.sample_interval_seconds()))
+    });
 
     // A quantity the request bound a rule for is reported by that rule, so the keys it bound
     // are settled before anything computes one. Read off the binding rows rather than off what
@@ -272,6 +204,11 @@ pub fn run(
     // says so through the record it leaves: the values it read are marked assumed unless the
     // request chose them. A default that reaches the record is a choice; one that does not is
     // an absence, which is the reason the conditioning phase runs its own default the same way.
+    let landmark_chain = LandmarkChain {
+        conditioning_ids: &conditioned.ids,
+        onset_ids: &onset_ids,
+        takeoff_ids: &takeoff_ids_bound,
+    };
     let spine_default = |method_id: &'static str,
                          bound_methods: &mut Vec<crate::resolution::BoundMethod>,
                          refusals: &mut Vec<DeclinedRule>,
@@ -293,25 +230,12 @@ pub fn run(
             takeoff_index,
             touchdown_index,
             landmarks.is_some(),
-            &conditioned.ids,
-            &placed,
+            landmark_chain,
             bound_methods,
             refusals,
             warnings,
         )
     };
-    let interval_produced = spine_default(
-        time_to_takeoff_rule::ID,
-        &mut bound_methods,
-        &mut refusals,
-        &mut warnings,
-    );
-    let flight_seconds_produced = spine_default(
-        flight_time_seconds_rule::ID,
-        &mut bound_methods,
-        &mut refusals,
-        &mut warnings,
-    );
     let impulse_produced = spine_default(
         net_impulse_rule::ID,
         &mut bound_methods,
@@ -337,34 +261,31 @@ pub fn run(
         &mut warnings,
     );
 
-    let (interval_seconds, interval_chain) = number_and_chain(
-        &interval_produced,
-        crate::slots::time_to_takeoff::KEY,
-        &conditioned.ids,
+    let (net_impulse, net_impulse_chain) = number_and_chain(
+        &impulse_produced,
+        net_impulse::KEY,
+        &landmark_chain,
+        request,
     );
-    let (flight, flight_chain) = number_and_chain(
-        &flight_seconds_produced,
-        crate::slots::flight_time::KEY,
-        &conditioned.ids,
-    );
-    let (net_impulse, net_impulse_chain) =
-        number_and_chain(&impulse_produced, net_impulse::KEY, &conditioned.ids);
     let (takeoff_velocity, takeoff_velocity_chain) = number_and_chain(
         &impulse_produced,
         net_impulse::VELOCITY_KEY,
-        &conditioned.ids,
+        &landmark_chain,
+        request,
     );
     let (flight_time_height, flight_time_height_chain) =
-        number_and_chain(&flight_produced, FLIGHT_TIME_KEY, &conditioned.ids);
+        number_and_chain(&flight_produced, FLIGHT_TIME_KEY, &landmark_chain, request);
     let (takeoff_height, takeoff_height_chain) = number_and_chain(
         &takeoff_height_produced,
         jh_takeoff_frame::KEY,
-        &conditioned.ids,
+        &landmark_chain,
+        request,
     );
     let (reactive_strength, reactive_strength_chain) = number_and_chain(
         &rsimod_produced,
         reactive_strength_index::KEY,
-        &conditioned.ids,
+        &landmark_chain,
+        request,
     );
 
     // Every quantity's key, label, unit and computed-by come from the one declaration in
@@ -374,37 +295,37 @@ pub fn run(
         Metric::declared(
             "system_weight_newtons",
             Some(epoch.system_weight_newtons),
-            chain_over(&[crate::derived::WEIGHING_EPOCH]),
+            weighing_ids.clone(),
             Some("Includes any external load. System weight is not bodyweight.".into()),
         ),
         Metric::declared(
             "system_mass_kilograms",
             Some(epoch.system_mass_kilograms(gravity)),
-            chain_over(&[crate::derived::WEIGHING_EPOCH]),
+            weighing_ids,
             Some("System weight over the gravity this analysis was bound to.".into()),
         ),
         Metric::declared(
             "onset_time_seconds",
             onset_index.map(|index| trial.time_at(index)),
-            chain_over(&[crate::derived::MOVEMENT_ONSET]),
+            onset_chain,
             None,
         ),
         Metric::declared(
             "takeoff_time_seconds",
             takeoff_index.map(|index| trial.time_at(index)),
-            chain_over(&[crate::derived::TAKEOFF]),
+            takeoff_ids.clone(),
             None,
         ),
         Metric::declared(
             "time_to_takeoff_seconds",
             interval_seconds,
-            interval_chain,
+            interval.clone(),
             Some(
                 "Bounded by two threshold crossings, which is why it is the least reproducible number here."
                     .into(),
             ),
         ),
-        Metric::declared("flight_time_seconds", flight, flight_chain, None),
+        Metric::declared("flight_time_seconds", flight, takeoff_ids.clone(), None),
         Metric::declared(
             "takeoff_velocity_meters_per_second",
             takeoff_velocity,
@@ -458,8 +379,7 @@ pub fn run(
         trial,
         request,
         &epoch,
-        &conditioned.ids,
-        placed,
+        landmark_chain,
         onset_index,
         takeoff_index,
         touchdown_index,
@@ -509,43 +429,62 @@ fn expect_row(method_id: &'static str) -> &'static crate::binding::Binding {
         .unwrap_or_else(|| panic!("{method_id} has no row in this build's binding table"))
 }
 
-/// What a landmark rule says it reads, or the end of the analysis where this build files no
-/// rule under the id.
+/// The rules every number computed after the spine rests on, before the rule's own reading.
 ///
-/// Panics rather than falling back to nothing, for the reason `expect_row` panics: an id whose
-/// rule ran and whose reading is unanswered is this file and the slot disagreeing about what
-/// the build contains. Falling back to an empty list would publish a chain claiming the number
-/// rests on no landmark at all, which is the shape that reads as a finished answer and is not
-/// one. `run` reaches here only for an id `expect_bound` has already accepted.
-fn expect_landmarks_read(
-    declared: Option<&'static [&'static str]>,
-    method_id: &str,
-) -> Vec<&'static str> {
-    declared
-        .unwrap_or_else(|| panic!("{method_id} ran without saying which landmarks it reads"))
-        .to_vec()
+/// One home for the shape, because the spine runs one of these rules itself and a second copy
+/// of the shape would be free to answer the same question differently, which is the fault that
+/// put two records under one id in the first place.
+///
+/// It opens with what conditioned the signal, because the number was measured on the series
+/// those rules produced and cannot be reproduced without knowing which series that was.
+///
+/// The landmark ids arrive as the rules handed them back, which is the threshold entry
+/// followed by every operator entry it bound. Written from the request's word instead, the
+/// chain named the threshold rules alone, and which crossing each operator selected moves the
+/// sample its rule placed.
+fn derived_chain(
+    conditioning_ids: &[String],
+    onset_ids: &[String],
+    takeoff_ids: &[String],
+    request: &AnalysisRequest,
+) -> Vec<String> {
+    let mut chain = conditioning_ids.to_vec();
+    chain.push(request.weighing.method_id.clone());
+    chain.extend(onset_ids.iter().cloned());
+    chain.extend(takeoff_ids.iter().cloned());
+    chain
 }
 
-/// The chain behind one number a rule computed: what conditioned the signal, the entries
-/// behind every sample the rule asked for and behind everything those rest on, and the
-/// entries it declared this number rests on.
+/// The chain behind one number a rule computed: what conditioned the signal, the landmark
+/// rules, the rules whose samples this one read, and the entries it declared this number
+/// rests on.
 ///
 /// One home for the whole shape, because the spine runs some of these rules itself and a
 /// second copy would be free to answer the same question differently.
-///
-/// It opens with what conditioned the signal, because the number was measured on the series
-/// those rules produced and cannot be reproduced without knowing which series that was. That
-/// is the one thing stated rather than asked for, because it is the one thing every rule
-/// reads.
 fn chain_behind(
     context: &DerivedContext,
     quantity_key: &str,
-    conditioning_ids: &[String],
+    landmarks: &LandmarkChain,
+    request: &AnalysisRequest,
 ) -> Vec<String> {
-    let mut chain = conditioning_ids.to_vec();
-    chain.extend(context.rules_read());
+    let mut chain = derived_chain(
+        landmarks.conditioning_ids,
+        landmarks.onset_ids,
+        landmarks.takeoff_ids,
+        request,
+    );
+    chain.extend(context.rules_read().into_iter().map(str::to_string));
     chain.extend(context.entries_behind(quantity_key));
     chain
+}
+
+/// The ids the rules that conditioned the signal and placed the landmarks handed back, which
+/// every chain built after them opens with.
+#[derive(Clone, Copy)]
+struct LandmarkChain<'a> {
+    conditioning_ids: &'a [String],
+    onset_ids: &'a [String],
+    takeoff_ids: &'a [String],
 }
 
 /// One number a rule the spine ran for itself produced, carrying the chain that rule's own
@@ -559,18 +498,26 @@ struct SpineQuantity {
 /// One quantity among what a spine-run rule produced, and the chain behind it.
 ///
 /// The fallback covers the case where the request named the rule itself: the spine does not
-/// run it then, and the metric this fills is dropped before anything reads it. It carries the
-/// conditioning ids and nothing else, because no rule ran here to ask for anything.
+/// run it then, and the metric this fills is dropped before anything reads it.
 fn number_and_chain(
     produced: &[SpineQuantity],
     key: &str,
-    conditioning_ids: &[String],
+    landmark_chain: &LandmarkChain,
+    request: &AnalysisRequest,
 ) -> (Option<f64>, Vec<String>) {
     produced
         .iter()
         .find(|quantity| quantity.key == key)
         .map(|quantity| (quantity.value, quantity.chain.clone()))
-        .unwrap_or_else(|| (None, conditioning_ids.to_vec()))
+        .unwrap_or_else(|| {
+            let chain = derived_chain(
+                landmark_chain.conditioning_ids,
+                landmark_chain.onset_ids,
+                landmark_chain.takeoff_ids,
+                request,
+            );
+            (None, chain)
+        })
 }
 
 /// A quantity the spine reports whose arithmetic is a registry entry, produced by running that
@@ -594,8 +541,7 @@ fn run_spine_default(
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
     landmarks_were_placed: bool,
-    conditioning_ids: &[String],
-    placed: &BTreeMap<&'static str, PlacedSample>,
+    landmark_chain: LandmarkChain,
     bound_methods: &mut Vec<crate::resolution::BoundMethod>,
     refusals: &mut Vec<DeclinedRule>,
     warnings: &mut Vec<String>,
@@ -603,11 +549,10 @@ fn run_spine_default(
     let Dispatch::Derived(rule) = binding.dispatch else {
         return Vec::new();
     };
-    // The spine's landmarks and nothing else. No rule filed under a construct has run at this
-    // point, so a rule the spine runs for itself reads the landmarks and its own parameters,
-    // and reaches them through the same map by the same names a rule reached by construct
-    // does. That is what makes one id leave one chain whichever way a caller arrived: both
-    // routes ask, and both are answered from here.
+    // Nothing has been placed at this point in the analysis. A rule the spine runs for itself
+    // reads the landmarks and its own parameters, so it asks for no placed sample and its
+    // chain names none.
+    let placed = BTreeMap::new();
     let context = DerivedContext::new(
         trial,
         epoch,
@@ -617,7 +562,7 @@ fn run_spine_default(
         request.gravity_meters_per_second_squared,
         request.gravity_source,
         request.body_mass_kilograms,
-        placed,
+        &placed,
         &request.derived,
     );
     let choice = MethodChoice {
@@ -650,25 +595,13 @@ fn run_spine_default(
             });
         }
     }
-    // Every quantity the row declares, whether or not the rule produced it. A rule that
-    // declined still consulted something, and the chain is what it consulted: a number's
-    // absence has a cause, the cause is a rule on that chain, and a reader who cannot see the
-    // chain cannot reach it. `spread.rs` reads exactly this to say why a swept variant came
-    // back empty, and it will only name a rule the quantity itself says it rests on.
-    //
-    // Read off the row rather than off what ran, for the reason `keys_the_request_bound` is:
-    // what a rule reports is settled by its declaration, before anything computes one.
-    binding
-        .quantities
-        .iter()
-        .map(|declared| SpineQuantity {
-            key: declared.key,
-            value: outcome
-                .values
-                .iter()
-                .find(|(key, _)| *key == declared.key)
-                .and_then(|(_, value)| *value),
-            chain: chain_behind(&context, declared.key, conditioning_ids),
+    outcome
+        .values
+        .into_iter()
+        .map(|(key, value)| SpineQuantity {
+            key,
+            value,
+            chain: chain_behind(&context, key, &landmark_chain, request),
         })
         .collect()
 }
@@ -706,8 +639,7 @@ fn run_derived_phase(
     trial: &Trial,
     request: &AnalysisRequest,
     epoch: &plateforce_core::WeighingEpoch,
-    conditioning_ids: &[String],
-    mut placed: BTreeMap<&'static str, PlacedSample>,
+    landmark_chain: LandmarkChain,
     onset_index: Option<usize>,
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
@@ -723,10 +655,7 @@ fn run_derived_phase(
         expect_derived_choice(construct, &choice.method_id)?;
     }
 
-    // The map arrives holding the spine's four landmarks, so a rule reaching one of them and a
-    // rule reaching a sample an earlier construct placed are answered from one place and the
-    // chain closes over both alike.
-    let mut next_order = placed.len();
+    let mut placed: BTreeMap<&'static str, PlacedSample> = BTreeMap::new();
     for binding in crate::binding::derived_bindings() {
         let Some(choice) = request.derived.get(binding.construct) else {
             continue;
@@ -769,25 +698,18 @@ fn run_derived_phase(
             metrics.push(Metric::from_declaration(
                 declared,
                 *value,
-                chain_behind(&context, key, conditioning_ids),
+                chain_behind(&context, key, &landmark_chain, request),
                 None,
             ));
         }
-        // What this rule read travels with what it placed, so a later rule reading the sample
-        // reaches the rules behind it without naming any of them itself. A sample carrying
-        // only the rule that placed it would stop the chain one construct short.
-        let read_by_the_placing_rule = context.names_read();
         for (name, index) in outcome.placed {
             placed.insert(
                 name,
                 PlacedSample {
-                    index: Some(index),
-                    placed_by: vec![binding.id.to_string()],
-                    rests_on: read_by_the_placing_rule.clone(),
-                    order: next_order,
+                    index,
+                    placed_by: binding.id,
                 },
             );
-            next_order += 1;
         }
         bound_methods.push(bound_method(
             binding.id,

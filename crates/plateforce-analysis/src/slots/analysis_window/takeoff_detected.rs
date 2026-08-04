@@ -43,7 +43,7 @@ fn place(
     let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let bound = resolved.finish();
 
-    let Some(takeoff) = context.takeoff_index() else {
+    let Some(takeoff) = context.takeoff_index else {
         return DerivedOutcome::declined(bound, context.unavailable(ID, &[TAKEOFF_CONSTRUCT]));
     };
 

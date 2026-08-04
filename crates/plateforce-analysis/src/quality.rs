@@ -36,16 +36,13 @@ const REACTIVE_STRENGTH_INDEX_MODIFIED: &str = "reactive_strength_index_modified
 /// Listed rather than derived because the pipeline decides it by declining to build a
 /// `Landmarks`, and a signal that named fewer keys than that would leave a reader holding a
 /// blank cell with nothing pointing at it.
-///
-/// It held seven while flight time and the height taken from it read the three landmarks as a
-/// bundle. They are measured from takeoff to the return to the plate, they answer whatever
-/// onset did, and a signal claiming to account for them would tell a reader that a number in
-/// front of them is absent.
-const MEASURED_ACROSS_THE_INTERVAL: [&str; 5] = [
+const MEASURED_ACROSS_THE_INTERVAL: [&str; 7] = [
     TIME_TO_TAKEOFF,
+    FLIGHT_TIME,
     TAKEOFF_VELOCITY,
     NET_IMPULSE,
     TAKEOFF_FRAME_HEIGHT,
+    FLIGHT_TIME_HEIGHT,
     REACTIVE_STRENGTH_INDEX_MODIFIED,
 ];
 
@@ -183,7 +180,7 @@ fn onset_placed_at_or_after_takeoff(response: &AnalysisResponse) -> Option<Quali
         status: QualityStatus::OnsetNotBeforeTakeoff,
         remedy: format!(
             "Takeoff is placed at {takeoff_seconds:.4} s and the start of the jump at \
-             {onset_seconds:.4} s, so the interval between them runs backwards and the five \
+             {onset_seconds:.4} s, so the interval between them runs backwards and the seven \
              quantities measured across it have no value on this trial. A stretch where the \
              plate carries almost no force before the jump begins, a step onto it or a \
              recording started early, satisfies a takeoff rule before the trace has left \

@@ -41,7 +41,7 @@ fn compute(
         Ok(peak) => DerivedOutcome {
             values: vec![(
                 super::NET_KEY,
-                Some(peak - context.epoch().system_weight_newtons),
+                Some(peak - context.epoch.system_weight_newtons),
             )],
             placed: Vec::new(),
             bound,

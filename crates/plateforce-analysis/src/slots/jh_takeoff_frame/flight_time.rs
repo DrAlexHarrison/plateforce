@@ -10,7 +10,7 @@
 
 use plateforce_core::{jump_height_from_flight_time, Refusal};
 
-use crate::binding::TAKEOFF_CONSTRUCT;
+use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
 use crate::resolution::{Resolution, RuleRefusal};
@@ -55,18 +55,13 @@ fn compute(
         GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED,
     );
 
-    // Takeoff and the return to the plate. The projectile equation reads the time off the
-    // plate and the gravity, and neither of those rests on where the jump began, so this
-    // reads the two samples it uses rather than the three-landmark bundle. Through the bundle
-    // it declined on a recording whose onset rule found nothing, and its chain named that
-    // rule and every operator it bound.
-    let Some(takeoff_index) = context.takeoff_index() else {
+    let Some(landmarks) = context.landmarks() else {
         return DerivedOutcome::declined(
             resolved.finish(),
-            context.unavailable(ID, &[TAKEOFF_CONSTRUCT]),
+            context.unavailable(ID, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]),
         );
     };
-    let Some(seconds) = flight_time::seconds(context, takeoff_index) else {
+    let Some(seconds) = flight_time::seconds(context, &landmarks) else {
         return DerivedOutcome::declined(
             resolved.finish(),
             RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(

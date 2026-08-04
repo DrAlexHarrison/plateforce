@@ -38,13 +38,13 @@ fn place(
     let threshold_meters_per_second =
         resolved.number("threshold_mps", PUBLISHED_THRESHOLD_METERS_PER_SECOND);
 
-    let (Some(onset), Some(takeoff)) = (context.onset_index(), context.takeoff_index()) else {
+    let (Some(onset), Some(takeoff)) = (context.onset_index, context.takeoff_index) else {
         let missing = boundaries::absent(context, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]);
         return DerivedOutcome::declined(resolved.finish(), context.unavailable(ID, &missing));
     };
     let velocity = crate::centre_of_mass::velocity(
         context.trial,
-        context.epoch(),
+        context.epoch,
         onset,
         context.gravity_meters_per_second_squared,
         &mut resolved,

@@ -12,7 +12,6 @@ use plateforce_core::provenance::ParameterSource;
 use plateforce_core::onset::{backtrack, CrossingSearch, CrossingSelection};
 use plateforce_core::{Trial, WeighingEpoch};
 
-use crate::derived::{TAKEOFF, WEIGHING_EPOCH};
 use crate::request::{AnalysisRequest, MethodChoice};
 use crate::resolution::{format_number, BoundMethod, BoundValues, Resolution, RuleRefusal};
 
@@ -157,33 +156,6 @@ fn crossing(
         other => Err(RuleRefusal::Refused(Box::new(
             crate::binding::unbound_method_refusal(other, "onset"),
         ))),
-    }
-}
-
-/// Which of the analysis's own landmarks this rule reads, or nothing where this build files
-/// no onset rule under the id.
-///
-/// One arm per arm of `crossing` above, and each answer is that arm's argument list: a rule
-/// handed the epoch reads the epoch, and only `onset.threshold.last_within_band` is handed
-/// the takeoff. Declared rather than inferred from the operators a run bound, because the
-/// operator ids say where a search started and say nothing about the level a threshold was
-/// scaled by: `last_within_band` floors at the countermovement dip and still takes its band
-/// from the weighing window, so a chain built from its operators alone would omit the
-/// weighing rule that set the band.
-///
-/// `None` for an unknown id rather than an empty list, so a rule added with no arm here is
-/// caught as an unanswered question instead of reading as a rule that rests on nothing.
-/// `every_landmark_rule_says_which_landmarks_it_reads` is what catches it.
-pub(crate) fn landmarks_read(method_id: &str) -> Option<&'static [&'static str]> {
-    match method_id {
-        "onset.threshold.relative_to_system_weight" => Some(&[WEIGHING_EPOCH]),
-        "onset.threshold.absolute_force" => Some(&[WEIGHING_EPOCH]),
-        "onset.threshold.last_within_band" => Some(&[WEIGHING_EPOCH, TAKEOFF]),
-        // Its threshold is recomputed from a window trailing the sample under test, so it
-        // reads no landmark at all. Its own file says so in its first sentence.
-        "onset.threshold.adaptive_trailing_window" => Some(&[]),
-        "onset.threshold.noise_relative" => Some(&[WEIGHING_EPOCH]),
-        _ => None,
     }
 }
 

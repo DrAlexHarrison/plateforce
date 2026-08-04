@@ -22,94 +22,24 @@ use plateforce_core::{Landmarks, Trial, WeighingEpoch};
 use crate::request::MethodChoice;
 use crate::resolution::{BoundValues, RuleRefusal};
 
-/// The names the spine's own landmarks are read by.
-///
-/// A rule reaches one of these exactly as it reaches a sample another rule placed, so asking
-/// is recorded either way and the chain behind a number is built from what its rule asked
-/// for. Before this the spine's landmarks were fields a rule read in silence, which is why
-/// every chain had to open with the same prefix of conditioning, weighing, onset and takeoff:
-/// with no record of what was read, naming everything was the only shape that could not omit
-/// a rule that contributed. It named several that had not.
-pub const WEIGHING_EPOCH: &str = "weighing_epoch";
-pub const MOVEMENT_ONSET: &str = "movement_onset";
-pub const TAKEOFF: &str = "takeoff";
-pub const TOUCHDOWN: &str = "touchdown";
-
-/// A sample the analysis placed, the entries that placed it, and what those entries read.
-///
-/// `placed_by` is a list because a landmark rule hands back a threshold entry followed by
-/// every operator entry it bound, and a node naming the threshold alone hides which crossing
-/// each operator selected. `rests_on` is what makes the chain a graph rather than a prefix: a
-/// number that read this sample rests on everything under it and on nothing beside it.
-#[derive(Debug, Clone)]
+/// A sample one rule placed, and the rule that placed it. The second half is what lets a
+/// number computed from it name the rule it rests on rather than every rule that ran first.
+#[derive(Debug, Clone, Copy)]
 pub struct PlacedSample {
-    /// `None` where the rules for this sample ran and placed nothing. The node stays, because
-    /// a number that asked for it still rests on the rules that tried.
-    pub index: Option<usize>,
-    pub placed_by: Vec<String>,
-    pub rests_on: Vec<&'static str>,
-    /// Where this node's entries sit in the order the result records its rules, which is the
-    /// order `bound_methods` lists them in. Held on the node because a closure returns a set
-    /// and a reader needs one order, and reusing the record's own order means a chain and the
-    /// record it came from read alike.
-    pub order: usize,
-}
-
-/// The entries behind every named sample, and behind the samples those rest on.
-///
-/// One home for the walk, because `DerivedContext` closes over what a rule asked for and the
-/// spine closes over what it reports directly, and two copies of a transitive closure are
-/// free to answer the same question differently.
-///
-/// Presented in node order rather than in the order the walk reached them, so the chain
-/// behind a number lists its entries in the order the result records them.
-pub fn rules_behind(
-    placed: &BTreeMap<&'static str, PlacedSample>,
-    names: &[&'static str],
-) -> Vec<String> {
-    let mut reached: BTreeSet<&'static str> = BTreeSet::new();
-    let mut pending: Vec<&'static str> = names.to_vec();
-    while let Some(name) = pending.pop() {
-        if !reached.insert(name) {
-            continue;
-        }
-        if let Some(node) = placed.get(name) {
-            pending.extend(node.rests_on.iter().copied());
-        }
-    }
-
-    let mut nodes: Vec<&PlacedSample> =
-        reached.iter().filter_map(|name| placed.get(name)).collect();
-    nodes.sort_by_key(|node| node.order);
-
-    let mut ids: Vec<String> = Vec::new();
-    for node in nodes {
-        for id in &node.placed_by {
-            if !ids.iter().any(|held| held == id) {
-                ids.push(id.clone());
-            }
-        }
-    }
-    ids
+    pub index: usize,
+    pub placed_by: &'static str,
 }
 
 /// What every rule computed from the landmarks is handed.
 pub struct DerivedContext<'a> {
-    /// The signal every rule reads, which is what the conditioning phase produced. Public and
-    /// unrecorded because every rule reads it, so naming the conditioning entries at the head
-    /// of every chain states a fact rather than assuming one.
     pub trial: &'a Trial,
-    epoch: &'a WeighingEpoch,
+    pub epoch: &'a WeighingEpoch,
     /// What each landmark rule placed, each `None` when that rule produced nothing. Held
     /// one by one rather than as a bundle, because a rule that needs only takeoff can run on
     /// a recording whose onset rule declined, and a bundle would deny it the answer it has.
-    ///
-    /// Private, and reached through the accessors below, because reading one is what puts the
-    /// rules behind it into the chain. A field a rule could read in silence is a rule whose
-    /// number cannot say what produced it.
-    onset_index: Option<usize>,
-    takeoff_index: Option<usize>,
-    touchdown_index: Option<usize>,
+    pub onset_index: Option<usize>,
+    pub takeoff_index: Option<usize>,
+    pub touchdown_index: Option<usize>,
     pub gravity_meters_per_second_squared: f64,
     /// What the request claims about the number above. Carried because a rule whose entry
     /// publishes its own gravity has to tell a value somebody chose for this analysis, which
@@ -203,57 +133,23 @@ impl<'a> DerivedContext<'a> {
             .unwrap_or_default()
     }
 
-    /// The entries behind every sample this rule read, and behind the samples those rest on.
-    ///
-    /// Closed transitively, because a rule that read a sample rests on whatever placed it and
-    /// on whatever that rule read in turn. The onset rule that searches back from the
-    /// countermovement dip is why: a number resting on its onset rests on the takeoff rule
-    /// that bounded the search, and a chain naming the onset rule alone would stop one step
-    /// short of the choice that moved the sample.
-    pub fn rules_read(&self) -> Vec<String> {
-        rules_behind(self.placed, &self.names_read())
-    }
-
-    /// The names this rule asked for, whether or not anything was placed under them.
-    ///
-    /// The pipeline records these against a sample this rule places, so a later rule reading
-    /// that sample reaches what this one read without either of them naming it twice.
-    pub fn names_read(&self) -> Vec<&'static str> {
-        self.read.borrow().iter().copied().collect()
-    }
-
-    /// The weighing epoch, and the ask that puts the weighing rule into this number's chain.
-    pub fn epoch(&self) -> &'a WeighingEpoch {
-        self.read.borrow_mut().insert(WEIGHING_EPOCH);
-        self.epoch
-    }
-
-    /// Where the jump started, and the ask that puts the onset rule into this number's chain.
-    pub fn onset_index(&self) -> Option<usize> {
-        self.read.borrow_mut().insert(MOVEMENT_ONSET);
-        self.onset_index
-    }
-
-    pub fn takeoff_index(&self) -> Option<usize> {
-        self.read.borrow_mut().insert(TAKEOFF);
-        self.takeoff_index
-    }
-
-    pub fn touchdown_index(&self) -> Option<usize> {
-        self.read.borrow_mut().insert(TOUCHDOWN);
-        self.touchdown_index
+    /// The rules whose samples this one read, in the order the names sort, without repeats.
+    pub fn rules_read(&self) -> Vec<&'static str> {
+        let mut ids: Vec<&'static str> = self
+            .read
+            .borrow()
+            .iter()
+            .filter_map(|name| self.placed.get(name).map(|sample| sample.placed_by))
+            .collect();
+        ids.dedup();
+        ids
     }
 
     /// The three landmarks as one set, on the same condition the pipeline applies: both
     /// bounds placed and takeoff after onset. Derived here rather than passed in, so the
     /// condition has one home.
-    ///
-    /// Asks for onset and takeoff, which are the two this reads. It does not ask for
-    /// touchdown: the field below fills an unstated one with the last sample of the
-    /// recording, which no rule placed, so a caller of this has not read a touchdown. A rule
-    /// that wants the placed one asks for it, and `flight_time` does.
     pub fn landmarks(&self) -> Option<Landmarks> {
-        match (self.onset_index(), self.takeoff_index()) {
+        match (self.onset_index, self.takeoff_index) {
             (Some(onset), Some(takeoff)) if takeoff > onset => Some(Landmarks {
                 onset_index: onset,
                 takeoff_index: takeoff,
@@ -287,7 +183,7 @@ impl<'a> DerivedContext<'a> {
     /// not about what it happened to find.
     pub fn sample(&self, name: &'static str) -> Option<usize> {
         self.read.borrow_mut().insert(name);
-        self.placed.get(name).and_then(|sample| sample.index)
+        self.placed.get(name).map(|sample| sample.index)
     }
 
     /// Whether the request chose a rule for this construct.
@@ -384,28 +280,22 @@ mod tests {
             (
                 "analysis_window.start",
                 PlacedSample {
-                    index: Some(0),
-                    placed_by: vec!["window_end.takeoff.detected".to_string()],
-                    rests_on: Vec::new(),
-                    order: 4,
+                    index: 0,
+                    placed_by: "window_end.takeoff.detected",
                 },
             ),
             (
                 "analysis_window.end",
                 PlacedSample {
-                    index: Some(900),
-                    placed_by: vec!["window_end.takeoff.detected".to_string()],
-                    rests_on: Vec::new(),
-                    order: 4,
+                    index: 900,
+                    placed_by: "window_end.takeoff.detected",
                 },
             ),
             (
                 "braking_phase_start",
                 PlacedSample {
-                    index: Some(400),
-                    placed_by: vec!["phase.braking_start.zero_net_force".to_string()],
-                    rests_on: Vec::new(),
-                    order: 5,
+                    index: 400,
+                    placed_by: "phase.braking_start.zero_net_force",
                 },
             ),
         ]);
@@ -429,99 +319,13 @@ mod tests {
         assert_eq!(context.sample("analysis_window.end"), Some(900));
         assert_eq!(
             context.rules_read(),
-            vec!["window_end.takeoff.detected".to_string()],
+            vec!["window_end.takeoff.detected"],
             "a rule that read one construct's samples named another's"
         );
 
         // Asking for a name nothing placed is still an ask, and it adds no rule to the
         // chain, because there is no rule behind it to name.
         assert_eq!(context.sample("propulsion_phase_end"), None);
-        assert_eq!(
-            context.rules_read(),
-            vec!["window_end.takeoff.detected".to_string()]
-        );
-    }
-
-    /// A number resting on one sample rests on everything under that sample.
-    ///
-    /// The onset rule that searches back from the countermovement dip is the case: a rule
-    /// that read its onset rests on the takeoff rule that bounded the search, and a walk one
-    /// step deep would name the onset rule and stop, one choice short of the one that moved
-    /// the sample. Asserted against a graph three deep, because a two-deep graph is answered
-    /// correctly by a walk that does not recurse at all.
-    #[test]
-    fn a_number_resting_on_a_sample_rests_on_everything_under_it() {
-        let placed = BTreeMap::from([
-            (
-                WEIGHING_EPOCH,
-                PlacedSample {
-                    index: Some(600),
-                    placed_by: vec!["bwepoch.fixed_window".to_string()],
-                    rests_on: Vec::new(),
-                    order: 0,
-                },
-            ),
-            (
-                MOVEMENT_ONSET,
-                PlacedSample {
-                    index: Some(100),
-                    placed_by: vec!["onset.threshold.last_within_band".to_string()],
-                    rests_on: vec![WEIGHING_EPOCH, TAKEOFF],
-                    order: 1,
-                },
-            ),
-            (
-                TAKEOFF,
-                PlacedSample {
-                    index: Some(900),
-                    placed_by: vec!["takeoff.threshold.absolute_force".to_string()],
-                    rests_on: vec![WEIGHING_EPOCH],
-                    order: 2,
-                },
-            ),
-            (
-                TOUCHDOWN,
-                PlacedSample {
-                    index: Some(1100),
-                    placed_by: Vec::new(),
-                    rests_on: vec![TAKEOFF],
-                    order: 3,
-                },
-            ),
-        ]);
-
-        // Three deep from one ask, and in the order the result records the rules rather than
-        // the order the walk reached them.
-        assert_eq!(
-            rules_behind(&placed, &[MOVEMENT_ONSET]),
-            vec![
-                "bwepoch.fixed_window".to_string(),
-                "onset.threshold.last_within_band".to_string(),
-                "takeoff.threshold.absolute_force".to_string(),
-            ]
-        );
-
-        // And a number that read only the takeoff and the touchdown names neither the onset
-        // rule nor anything reached only through it. This is the assertion the fixed prefix
-        // could not satisfy: flight time is measured from takeoff to touchdown and rests on
-        // no onset rule at all.
-        assert_eq!(
-            rules_behind(&placed, &[TAKEOFF, TOUCHDOWN]),
-            vec![
-                "bwepoch.fixed_window".to_string(),
-                "takeoff.threshold.absolute_force".to_string(),
-            ]
-        );
-
-        // A node that placed a sample and no entry of its own contributes nothing to name.
-        // Touchdown is that node: it is the return above the threshold the takeoff rule
-        // resolved, so it is not a choice and it is not offered as one.
-        assert_eq!(
-            rules_behind(&placed, &[TOUCHDOWN]),
-            vec![
-                "bwepoch.fixed_window".to_string(),
-                "takeoff.threshold.absolute_force".to_string(),
-            ]
-        );
+        assert_eq!(context.rules_read(), vec!["window_end.takeoff.detected"]);
     }
 }

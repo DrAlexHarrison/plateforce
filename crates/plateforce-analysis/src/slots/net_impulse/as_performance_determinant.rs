@@ -63,11 +63,11 @@ fn compute(
     let impulse_newton_seconds = context.trial.integrate_offset_newton_seconds(
         landmarks.onset_index,
         landmarks.takeoff_index,
-        context.epoch().system_weight_newtons,
+        context.epoch.system_weight_newtons,
     );
     let velocity = takeoff_velocity_meters_per_second(
         context.trial,
-        context.epoch(),
+        context.epoch,
         &landmarks,
         context.gravity_meters_per_second_squared,
     );
