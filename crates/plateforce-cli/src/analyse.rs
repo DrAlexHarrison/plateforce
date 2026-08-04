@@ -77,6 +77,12 @@ pub struct Args {
     /// revision and reports the one the registry declares for itself
     #[arg(long, value_name = "REVISION")]
     pub registry_version: Option<String>,
+    #[arg(
+        long = "acquisition",
+        value_name = "ASSIGNMENT",
+        help = crate::acquisition_arg::ACQUISITION_HELP
+    )]
+    pub acquisition: Vec<String>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
@@ -780,6 +786,15 @@ fn render(
         .collect();
     let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
 
+    // The block the caller stated, which decides whether this result can be declared to match
+    // another lab's. It used to be a literal `false` under a comment saying no acquisition
+    // block reaches this surface, which was true and was the work not done: three of the five
+    // surfaces could not be given one, and they were the three named in the surface bar.
+    let acquisition = match crate::acquisition_arg::stated_acquisition(&args.acquisition) {
+        Ok(acquisition) => acquisition,
+        Err(declined) => return Outcome::declined(declined),
+    };
+
     // The shape every surface writes a result in, rather than a second one assembled here.
     // A terminal reporting one result under different field names from an R session is the
     // same defect as two implementations of one method, one layer out from the maths, and
@@ -793,9 +808,7 @@ fn render(
             samples_matching_the_convention: trial.reported_samples.matched_the_convention,
         },
         &registry_stamp(registry, args),
-        // No acquisition block reaches this surface, and a dataset that cannot fill one
-        // fingerprints as incomplete rather than as matching.
-        false,
+        acquisition.is_complete(),
         response,
         BTreeMap::new(),
         spread,
