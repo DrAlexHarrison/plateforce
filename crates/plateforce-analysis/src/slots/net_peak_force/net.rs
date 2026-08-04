@@ -14,7 +14,7 @@ use crate::slots::analysis_window;
 pub const ID: &str = "force.peak.net";
 
 pub const QUANTITIES: &[Quantity] = &[Quantity {
-    key: super::NET_KEY,
+    key: super::KEY,
     label: "Peak force, net",
     unit: "newtons",
     computed_by: Some(ID),
@@ -40,7 +40,7 @@ fn compute(
     match plateforce_core::peak::maximum_over(context.trial.force(), start, end) {
         Ok(peak) => DerivedOutcome {
             values: vec![(
-                super::NET_KEY,
+                super::KEY,
                 Some(peak - context.epoch().system_weight_newtons),
             )],
             placed: Vec::new(),

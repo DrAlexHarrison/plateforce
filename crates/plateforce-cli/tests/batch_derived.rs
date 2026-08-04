@@ -148,7 +148,7 @@ fn a_rule_computed_from_the_landmarks_reaches_the_table_and_the_record() {
             "--derive",
             "analysis_window=window_end.takeoff.detected",
             "--derive",
-            "peak_force=force.peak.net",
+            "net_peak_force=force.peak.net",
         ],
     );
     assert_eq!(
@@ -245,7 +245,7 @@ fn a_rule_that_declined_on_every_trial_leaves_a_blank_column_and_a_refusal_besid
     let out = scratch("declined");
     // Peak force without the window it reads, which is the decline this build produces on
     // every trial for a reason outside the rule itself.
-    let output = batch(&out, &["--derive", "peak_force=force.peak.net"]);
+    let output = batch(&out, &["--derive", "net_peak_force=force.peak.net"]);
     assert_eq!(
         output.status.code(),
         Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),

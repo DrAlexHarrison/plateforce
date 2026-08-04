@@ -11,6 +11,7 @@ pub mod jh_takeoff_frame;
 pub mod jh_undeclared;
 pub mod movement_onset;
 pub mod net_impulse;
+pub mod net_peak_force;
 pub mod peak_force;
 pub mod phase_model;
 pub mod propulsion_phase_end;

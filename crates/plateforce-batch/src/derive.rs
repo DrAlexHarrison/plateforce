@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn the_quantities_a_bound_rule_declares_are_read_off_its_binding_row() {
         let derived: BTreeMap<String, plateforce_analysis::MethodChoice> = [(
-            "peak_force".to_string(),
+            "net_peak_force".to_string(),
             plateforce_analysis::MethodChoice {
                 method_id: "force.peak.net".to_string(),
                 ..Default::default()

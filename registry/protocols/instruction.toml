@@ -13,7 +13,7 @@ description = """
 Declare the instruction given: fast, hard and fast, another form, or undeclared. Moves peak rate of
 force development by 20 to 46 percent, which dwarfs every analysis parameter in this registry.
 """
-affects = ["rate_of_force_development", "peak_force"]
+affects = ["rate_of_force_development", "peak_force", "net_peak_force"]
 provenance = "published"
 
 [[protocol.citations]]

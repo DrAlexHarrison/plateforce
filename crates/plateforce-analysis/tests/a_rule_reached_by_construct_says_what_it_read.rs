@@ -139,21 +139,22 @@ fn the_window_a_peak_is_taken_over_moves_it_further_than_the_peak_rule_does() {
 }
 
 /// Each rule's number carries the rule that produced it, not the first rule declared for the
-/// construct. Three rules report peak force and a shared declaration would name one of them
-/// on all three results.
+/// construct. Two rules report `peak_force_newtons` and a shared declaration would name one of
+/// them on both results. The third is reached under its own construct, and is asked here beside
+/// them so the property is read across every rule the pair of constructs holds.
 #[test]
 fn each_peak_rule_reports_its_own_arithmetic() {
     let trial = a_jump_that_lands();
-    for (id, key) in [
-        ("force.peak.gross", "peak_force_newtons"),
-        ("force.peak.net", "net_peak_force_newtons"),
-        ("force.peak.estimator", "peak_force_newtons"),
+    for (construct, id, key) in [
+        ("peak_force", "force.peak.gross", "peak_force_newtons"),
+        ("net_peak_force", "force.peak.net", "net_peak_force_newtons"),
+        ("peak_force", "force.peak.estimator", "peak_force_newtons"),
     ] {
         let response = run(
             &trial,
             &naming(&[
                 ("analysis_window", "window_end.takeoff.detected"),
-                ("peak_force", id),
+                (construct, id),
             ]),
         )
         .expect("the request is well formed");
@@ -178,22 +179,28 @@ fn each_peak_rule_reports_its_own_arithmetic() {
     }
 }
 
-/// Gross and net differ by exactly one system weight, which is the registry's own claim
-/// about the pair and the reason they are two entries rather than one.
+/// Gross and net differ by exactly one system weight, which is the registry's own claim about
+/// the pair, and the two numbers arrive on one result rather than on two.
+///
+/// Asked as one analysis because that is what the constructs being separate buys a caller. Under
+/// one construct a request carries one of them, so the difference the registry states could only
+/// be read by running the trial twice and trusting that nothing else moved between the runs.
 #[test]
-fn net_is_gross_less_one_system_weight() {
+fn net_is_gross_less_one_system_weight_on_one_result() {
     let trial = a_jump_that_lands();
-    let window = ("analysis_window", "window_end.takeoff.detected");
-    let gross = run(
+    let both = run(
         &trial,
-        &naming(&[window, ("peak_force", "force.peak.gross")]),
+        &naming(&[
+            ("analysis_window", "window_end.takeoff.detected"),
+            ("peak_force", "force.peak.gross"),
+            ("net_peak_force", "force.peak.net"),
+        ]),
     )
-    .unwrap();
-    let net = run(&trial, &naming(&[window, ("peak_force", "force.peak.net")])).unwrap();
+    .expect("one analysis carries both");
 
-    let gross_peak = value(&gross, "peak_force_newtons").unwrap();
-    let net_peak = value(&net, "net_peak_force_newtons").unwrap();
-    let system_weight = value(&gross, "system_weight_newtons").unwrap();
+    let gross_peak = value(&both, "peak_force_newtons").unwrap();
+    let net_peak = value(&both, "net_peak_force_newtons").unwrap();
+    let system_weight = value(&both, "system_weight_newtons").unwrap();
     println!("gross {gross_peak:.4} N, net {net_peak:.4} N, system weight {system_weight:.4} N");
     assert!((gross_peak - net_peak - system_weight).abs() < 1e-9);
 }

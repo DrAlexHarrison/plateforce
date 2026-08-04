@@ -198,7 +198,7 @@ fn several_steps_can_be_named_and_the_order_they_were_named_in_does_not_reach_th
 
 /// A step this run did not bind is refused by name, with what could have been asked instead.
 ///
-/// The build runs three rules for peak force, so the refusal is about this request rather
+/// The build runs two rules for peak force, so the refusal is about this request rather
 /// than about the build, and the pair below tells the two apart.
 #[test]
 fn a_step_this_run_did_not_bind_is_refused_rather_than_swept_over_a_rule_nobody_chose() {
@@ -217,7 +217,7 @@ fn a_step_this_run_did_not_bind_is_refused_rather_than_swept_over_a_rule_nobody_
             "--format",
             "json",
             "--derive",
-            "peak_force=force.peak.net",
+            "peak_force=force.peak.gross",
             "--slot",
             "peak_force",
         ],
