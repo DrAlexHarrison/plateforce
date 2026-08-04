@@ -37,6 +37,52 @@ test_that("every operation this package names resolves to one of its exports", {
                                   length(named) - length(unresolved), length(named)))
 })
 
+# Every member the acquisition block holds, written out rather than read from
+# formals(pf_acquisition). Both sides of a comparison against the same source agree while
+# five members become four, and a manifest naming four sends a reader to find four.
+MEMBERS_A_READER_IS_TOLD_TO_FIND <- c(
+  "filter_at_capture",
+  "tare_state",
+  "plate_natural_frequency_hz",
+  "floor_surface",
+  "firmware_version"
+)
+
+test_that("the manifest names every member of the acquisition block", {
+  published <- as.character(unlist(manifest()[["acquisition"]][["members"]]))
+
+  unpublished <- setdiff(MEMBERS_A_READER_IS_TOLD_TO_FIND, published)
+  expect_identical(
+    unpublished, character(0),
+    info = sprintf("%d of %d members are named nowhere in the manifest: %s",
+                   length(unpublished), length(MEMBERS_A_READER_IS_TOLD_TO_FIND),
+                   paste(unpublished, collapse = ", "))
+  )
+
+  # The other direction, against the function this package hands a caller rather than
+  # against the list above, so a member the block gains and the manifest drops is a failure
+  # rather than a name nobody looked for.
+  held <- names(formals(pf_acquisition))
+  expect_true(length(held) > 0)
+  expect_identical(setdiff(held, published), character(0))
+  expect_identical(setdiff(published, held), character(0))
+})
+
+test_that("the block this package declares is the block pf_trial() takes", {
+  # Two directions. A package that takes a block and says it does not sends a reader to
+  # another surface for the recording; one that says it does and cannot is the claim the
+  # cross-surface comparison exists to make visible.
+  taken <- "acquisition" %in% names(formals(pf_trial))
+  declared <- isTRUE(manifest()[["acquisition"]][["stated_by_caller"]])
+
+  expect_identical(
+    declared, taken,
+    info = sprintf("the manifest says the block is %s, and pf_trial() %s one",
+                   if (declared) "stated here" else "absent here",
+                   if (taken) "takes" else "does not take")
+  )
+})
+
 test_that("a container format is claimed only where a writer exists", {
   formats <- manifest()[["output_formats"]]
   writers <- grep("^pf_write_", getNamespaceExports("plateforce"), value = TRUE)

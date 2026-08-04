@@ -5,9 +5,21 @@ entry point that goes away shortens the array. A manifest generated inside the s
 would agree with itself whatever this wheel could actually do.
 """
 
+import inspect
 import json
 
 import plateforce as pf
+
+# Every member the acquisition block holds, written out rather than read from
+# `pf.Acquisition`. Both sides of a comparison against the same source agree while five
+# members become four, and a manifest naming four sends a reader to find four.
+MEMBERS_A_READER_IS_TOLD_TO_FIND = [
+    "filter_at_capture",
+    "tare_state",
+    "plate_natural_frequency_hz",
+    "floor_surface",
+    "firmware_version",
+]
 
 # The floor CAPABILITY.json declares, restated here so a change to it fails in this file too
 # rather than only in the cross-surface gate, which needs three other surfaces built to run.
@@ -68,3 +80,35 @@ def test_the_containers_reported_are_the_ones_this_build_writes():
 
 def test_the_manifest_is_one_document_however_often_it_is_asked():
     assert pf.capability_json() == pf.capability_json()
+
+
+def test_the_manifest_names_every_member_of_the_acquisition_block():
+    """A listing naming four of five members sends a reader to find four, and a block filled
+    to four fingerprints as incomplete while reading like a complete one."""
+    published = manifest()["acquisition"]["members"]
+
+    unpublished = [m for m in MEMBERS_A_READER_IS_TOLD_TO_FIND if m not in published]
+    assert unpublished == [], (
+        f"{len(unpublished)} of {len(MEMBERS_A_READER_IS_TOLD_TO_FIND)} members are named "
+        f"nowhere in the manifest: {unpublished}"
+    )
+
+    # The other direction, against the class this wheel hands a caller rather than against
+    # the list above, so a member the block gains and the manifest drops is a failure rather
+    # than a name nobody looked for.
+    held = list(inspect.signature(pf.Acquisition).parameters)
+    assert held, "the signature read nothing, so its verdict is about inspect and not the block"
+    assert [m for m in held if m not in published] == []
+    assert [m for m in published if m not in held] == []
+
+
+def test_the_block_this_wheel_declares_is_the_block_its_constructor_takes():
+    """Two directions. A wheel that takes a block and says it does not sends a reader to
+    another surface for the recording; one that says it does and cannot is the claim the
+    cross-surface comparison exists to make visible."""
+    taken = "acquisition" in inspect.signature(pf.Trial).parameters
+    declared = manifest()["acquisition"]["stated_by_caller"]
+    assert declared == taken, (
+        f"the manifest says the block is {'stated here' if declared else 'absent here'}, "
+        f"and Trial {'takes' if taken else 'does not take'} one"
+    )

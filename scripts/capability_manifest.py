@@ -6,10 +6,13 @@ are facts about that surface. A comparison demanding one identical document from
 is satisfied only by a surface claiming something it cannot do, so each answer is recorded
 under its own name and the obligations are asserted over the set instead.
 
-Four assertions, and each fails for a different reason a reader can act on. A surface's own
+Five assertions, and each fails for a different reason a reader can act on. A surface's own
 answer must match what is committed for it, in both directions, so a lost entry point and an
 undeclared one are both a diff. The engine's own tables must read the same everywhere, which
-is what a stale build breaks. Every surface must reach every operation named in
+is what a stale build breaks. A fact about the engine riding inside a per-surface answer must
+read the same everywhere for the same reason, which is the acquisition block's members: a
+surface free to shorten that list would send a reader to find four of five and fingerprint an
+incomplete block as matching. Every surface must reach every operation named in
 `required_operations`. And that array must itself name operations some surface reaches, so a
 misspelling is reported as a malformed obligation rather than as every surface failing.
 """
@@ -21,6 +24,15 @@ import sys
 SHARED_KEYS = ("methods", "plateforce_version", "refusal_codes", "schema")
 
 PER_SURFACE_KEYS = ("operations", "output_formats")
+
+# A per-surface answer holding a fact about the engine inside it, named as the outer field
+# and the member of it that cannot differ between surfaces. Whether a caller can state the
+# acquisition block is a fact about the surface; which members the block holds is not.
+SHARED_WITHIN = {"acquisition": "members"}
+
+# The per-surface half of each of those, reported in the summary so a green run says how many
+# surfaces take the block rather than only that they agree about it.
+STATED_WITHIN = {"acquisition": "stated_by_caller"}
 
 # Two, because that is the smallest number of surfaces a disagreement can exist between.
 WITNESSES_A_COMPARISON_NEEDS = 2
@@ -120,6 +132,32 @@ def check(manifest_path, answers):
             grouped = sorted({value: name for name, value in spellings.items()}.values())
             faults.append(f"surfaces disagree on {key}, which every one of them links: {grouped}")
 
+    for outer, inner in SHARED_WITHIN.items():
+        # Presence at both depths before agreement, for the reason above: two absences
+        # compare equal, and a check that compared them would pass having read nothing.
+        absent = sorted(name for name, answer in answers.items() if outer not in answer)
+        if absent:
+            faults.append(f"{absent} report no {outer} at all, which every surface links")
+            continue
+        unnamed = sorted(
+            name
+            for name, answer in answers.items()
+            if not isinstance(answer[outer], dict) or inner not in answer[outer]
+        )
+        if unnamed:
+            faults.append(
+                f"{unnamed} report {outer} without naming its {inner}, so a reader is told "
+                f"the block exists and not what to go and find"
+            )
+            continue
+        spellings = {name: canonical(answer[outer][inner]) for name, answer in answers.items()}
+        if len(set(spellings.values())) > 1:
+            grouped = sorted({value: name for name, value in spellings.items()}.values())
+            faults.append(
+                f"surfaces disagree on the {inner} of {outer}, which comes from the engine "
+                f"every one of them links: {grouped}"
+            )
+
     for name in sorted(answers):
         missing = [operation for operation in required or [] if operation not in answers[name]["operations"]]
         if missing:
@@ -135,6 +173,17 @@ def check(manifest_path, answers):
         f"{manifest_path}, each owing {len(required)} operations, "
         f"agreeing across {len(answers)} surfaces on {len(SHARED_KEYS)} shared facts"
     )
+    for outer, inner in SHARED_WITHIN.items():
+        taking = sorted(
+            name for name, answer in answers.items() if answer[outer].get(STATED_WITHIN[outer])
+        )
+        # Read off any surface, because the assertion above is what makes them one answer.
+        named = next(iter(answers.values()))[outer][inner]
+        print(
+            f"{len(taking)} of {len(answers)} surfaces take the {outer} block, "
+            f"and all {len(answers)} name the same {len(named)} {inner}: "
+            f"{taking or 'none of them'}"
+        )
 
 
 def differences(committed, reported):

@@ -10,6 +10,16 @@
   ],
   "surfaces": {
     "browser": {
+      "acquisition": {
+        "members": [
+          "filter_at_capture",
+          "tare_state",
+          "plate_natural_frequency_hz",
+          "floor_surface",
+          "firmware_version"
+        ],
+        "stated_by_caller": false
+      },
       "methods": [
         {
           "composed_from": null,
@@ -374,6 +384,16 @@
       "schema": "plateforce.capability/1"
     },
     "cli": {
+      "acquisition": {
+        "members": [
+          "filter_at_capture",
+          "tare_state",
+          "plate_natural_frequency_hz",
+          "floor_surface",
+          "firmware_version"
+        ],
+        "stated_by_caller": true
+      },
       "methods": [
         {
           "composed_from": null,
@@ -742,6 +762,16 @@
       "schema": "plateforce.capability/1"
     },
     "python": {
+      "acquisition": {
+        "members": [
+          "filter_at_capture",
+          "tare_state",
+          "plate_natural_frequency_hz",
+          "floor_surface",
+          "firmware_version"
+        ],
+        "stated_by_caller": true
+      },
       "methods": [
         {
           "composed_from": null,
@@ -1108,6 +1138,16 @@
       "schema": "plateforce.capability/1"
     },
     "r": {
+      "acquisition": {
+        "members": [
+          "filter_at_capture",
+          "tare_state",
+          "plate_natural_frequency_hz",
+          "floor_surface",
+          "firmware_version"
+        ],
+        "stated_by_caller": true
+      },
       "methods": [
         {
           "composed_from": null,

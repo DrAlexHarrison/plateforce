@@ -7,7 +7,9 @@
 //! do, and would have caught nothing.
 
 use clap::ValueEnum;
-use plateforce_analysis::capability::{capability, Capability, Operation, OutputFormat};
+use plateforce_analysis::capability::{
+    capability, AcquisitionIntake, Capability, Operation, OutputFormat,
+};
 
 use crate::exit::{Fault, Outcome};
 use crate::out::Format;
@@ -86,8 +88,34 @@ pub fn every_output_format() -> Vec<OutputFormat> {
     written
 }
 
+/// The flag a command carries to be told what the plate and its settings were.
+const ACQUISITION_FLAG: &str = "acquisition";
+
+/// Whether a caller of this binary can state the acquisition block, read off clap's own
+/// command tree.
+///
+/// A declaration kept beside the flag would go on saying yes after the flag went away, and
+/// the surface that lost the flag is exactly the one whose manifest has to say so. Nested,
+/// because the flag rides on the commands that analyse rather than on the binary.
+pub fn commands_taking_the_acquisition_block() -> Vec<String> {
+    crate::command_tree()
+        .get_subcommands()
+        .filter(|command| {
+            command
+                .get_arguments()
+                .any(|argument| argument.get_id() == ACQUISITION_FLAG)
+        })
+        .map(|command| command.get_name().to_string())
+        .collect()
+}
+
 pub fn manifest() -> Capability {
-    capability(&every_operation(), &every_output_format())
+    let intake = if commands_taking_the_acquisition_block().is_empty() {
+        AcquisitionIntake::AbsentFromThisSurface
+    } else {
+        AcquisitionIntake::StatedByCaller
+    };
+    capability(&every_operation(), &every_output_format(), intake)
 }
 
 pub fn run(_args: &Args, _format: Format) -> Outcome {
@@ -119,5 +147,23 @@ mod tests {
             offered.len()
         );
         assert!(unmapped.is_empty(), "unmapped: {unmapped:?}");
+    }
+
+    /// The manifest's answer is derived from the tree, and a walk that found no flag at all
+    /// would report the same `false` a binary without the flag reports.
+    #[test]
+    fn the_commands_that_take_the_acquisition_block_are_named_rather_than_counted() {
+        let taking = commands_taking_the_acquisition_block();
+        println!(
+            "commands taking the acquisition block: {} of {} offered: {taking:?}",
+            taking.len(),
+            commands_offered().len()
+        );
+        assert!(
+            taking.contains(&"analyse".to_string()),
+            "the walk found {taking:?}, so its verdict is about the walk rather than the tree"
+        );
+        assert!(taking.contains(&"batch".to_string()), "{taking:?}");
+        assert!(manifest().acquisition.stated_by_caller);
     }
 }

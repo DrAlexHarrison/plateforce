@@ -97,6 +97,7 @@ fn a_surface_answers_for_the_arrays_and_no_others() {
     assert_eq!(
         keys,
         [
+            "acquisition",
             "methods",
             "operations",
             "output_formats",
@@ -104,6 +105,108 @@ fn a_surface_answers_for_the_arrays_and_no_others() {
             "refusal_codes",
             "schema"
         ]
+    );
+}
+
+/// Every member the acquisition block holds, written out rather than read from
+/// `Acquisition::MEMBERS`.
+///
+/// Both sides of a comparison against the same const agree while five members become four,
+/// and a manifest naming four sends a reader to find four. A member the block gains passes
+/// this list and is caught by the second direction in the test below.
+const MEMBERS_A_READER_IS_TOLD_TO_FIND: [&str; 5] = [
+    "filter_at_capture",
+    "tare_state",
+    "plate_natural_frequency_hz",
+    "floor_surface",
+    "firmware_version",
+];
+
+/// What the plate and its settings were, which no reanalysis recovers, named in full by the
+/// surface a reader is standing at.
+#[test]
+fn the_manifest_names_every_member_of_the_acquisition_block() {
+    let record = committed();
+    let published: Vec<&str> = record["acquisition"]["members"]
+        .as_array()
+        .expect("the acquisition block names its members")
+        .iter()
+        .map(|member| member.as_str().expect("a member is a name"))
+        .collect();
+
+    let unpublished: Vec<&&str> = MEMBERS_A_READER_IS_TOLD_TO_FIND
+        .iter()
+        .filter(|member| !published.contains(member))
+        .collect();
+    assert!(
+        unpublished.is_empty(),
+        "{} of {} members are named nowhere in the manifest: {unpublished:?}",
+        unpublished.len(),
+        MEMBERS_A_READER_IS_TOLD_TO_FIND.len()
+    );
+
+    let undeclared: Vec<&&str> = plateforce_core::Acquisition::MEMBERS
+        .iter()
+        .filter(|member| !published.contains(member))
+        .collect();
+    let invented: Vec<&&str> = published
+        .iter()
+        .filter(|member| !plateforce_core::Acquisition::MEMBERS.contains(member))
+        .collect();
+    println!(
+        "acquisition members published: {} of {} the block declares",
+        published.len(),
+        plateforce_core::Acquisition::MEMBERS.len()
+    );
+    assert!(
+        undeclared.is_empty(),
+        "the block holds {undeclared:?} and the manifest does not name them"
+    );
+    assert!(
+        invented.is_empty(),
+        "the manifest names {invented:?} and the block holds no such member"
+    );
+}
+
+/// The block this binary says it takes is the block it reads.
+///
+/// A flag clap draws and nothing reads is the shape this project argues hardest about: the
+/// value is dropped on the floor and the record still reports what the user typed. The
+/// manifest is derived from clap's tree alone, so the call that consumes the flag is the one
+/// witness outside that derivation.
+#[test]
+fn the_block_this_binary_declares_is_the_block_it_reads() {
+    let source_directory = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+    let mut source = String::new();
+    for entry in std::fs::read_dir(source_directory).expect("the crate has sources") {
+        let path = entry.expect("a readable entry").path();
+        if path.extension().is_some_and(|kind| kind == "rs") {
+            source.push_str(&std::fs::read_to_string(&path).expect("a readable source"));
+        }
+    }
+
+    // A control first: a scan that read nothing reports the flag as never read, which looks
+    // exactly like a binary that draws it and drops it.
+    assert!(
+        source.contains("long = \"acquisition\""),
+        "the scan read no source, so its verdict means nothing"
+    );
+
+    let read_by_a_command = source.contains("acquisition_arg::stated_acquisition(");
+    let declared = committed()["acquisition"]["stated_by_caller"]
+        .as_bool()
+        .expect("a surface says whether its caller can state the block");
+    println!("acquisition block declared: {declared}; read by a command: {read_by_a_command}");
+    assert_eq!(
+        declared,
+        read_by_a_command,
+        "the manifest says the block is {}, and {} command reads one",
+        if declared {
+            "stated here"
+        } else {
+            "absent here"
+        },
+        if read_by_a_command { "a" } else { "no" }
     );
 }
 

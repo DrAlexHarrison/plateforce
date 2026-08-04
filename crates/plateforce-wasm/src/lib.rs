@@ -19,7 +19,7 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use plateforce_analysis::binding::{conditioning_constructs, derived_constructs, SPINE_CONSTRUCTS};
-use plateforce_analysis::capability::{capability, Operation, OutputFormat};
+use plateforce_analysis::capability::{capability, AcquisitionIntake, Operation, OutputFormat};
 use plateforce_analysis::{document, spread, AnalysisRequest, Binding, BINDINGS};
 use plateforce_core::read;
 use plateforce_core::signal::{reported_samples, ReportedSamples, Sentinel};
@@ -220,6 +220,13 @@ const EXPORTS: &[&str] = &[
 /// shape. Nothing here reports a build digest: the same commit produces three different
 /// wasm digests on three runners, so a digest would make this a comparison that can only
 /// fail. Every field is semantic, ids and slots and constructs and refusal codes.
+/// Whether a caller of this surface can state the acquisition block.
+///
+/// The tab analyses a trace it was handed and nothing carries the plate's own settings in
+/// with it, so every result it produces fingerprints as incomplete. An export that takes a
+/// block moves this to `StatedByCaller`, and the test below refuses the two answers apart.
+const ACQUISITION_INTAKE: AcquisitionIntake = AcquisitionIntake::AbsentFromThisSurface;
+
 #[wasm_bindgen(js_name = capabilityJson)]
 pub fn capability_json() -> Result<String, JsError> {
     let operations: Vec<Operation> = EXPORTS
@@ -228,7 +235,11 @@ pub fn capability_json() -> Result<String, JsError> {
         .flatten()
         .copied()
         .collect();
-    replied(&capability(&operations, &[OutputFormat::Json]))
+    replied(&capability(
+        &operations,
+        &[OutputFormat::Json],
+        ACQUISITION_INTAKE,
+    ))
 }
 
 /// A parsed force file, before any column has been declared to be the force channel.
@@ -557,6 +568,75 @@ mod tests {
         assert!(!manifest.contains("\"compare\""), "{manifest}");
         assert!(!manifest.contains("\"reach\""), "{manifest}");
         assert!(manifest.contains("\"batch\""), "{manifest}");
+    }
+
+    /// What this surface says about the acquisition block is what this surface does with one.
+    ///
+    /// Two directions. A boundary that builds a block from what a tab handed it while the
+    /// manifest says none reaches here publishes the tab as unable to state what it can state,
+    /// and a reader comparing surfaces picks another one for the recording. A manifest claiming
+    /// the block with nothing building one is the failure the comparison exists to make visible.
+    ///
+    /// Held against the construction rather than against the export names, because a block
+    /// arrives on a field of a request an existing export already takes, and a scan of the
+    /// names would report a tab that accepts one as a tab that does not.
+    #[test]
+    fn the_block_the_manifest_claims_is_the_block_this_crate_builds() {
+        // What the boundary does with a stated block, which is the only thing separating a
+        // surface that takes one from a surface that reads the same trace without one.
+        // Spelled in two halves because this test lives in the file it reads, and written
+        // whole it is what its own scan finds.
+        let builds_a_block = ["Acquisition::", "default()"].concat();
+        let source_directory = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+        let mut source = String::new();
+        for entry in std::fs::read_dir(source_directory).expect("the crate has sources") {
+            let path = entry.expect("a readable entry").path();
+            if path.extension().is_some_and(|kind| kind == "rs") {
+                source.push_str(&std::fs::read_to_string(&path).expect("a readable source"));
+            }
+        }
+
+        // A control first: a scan that read nothing reports every boundary as building no
+        // block, which reads exactly like a tab that cannot be told what the plate was.
+        assert!(
+            source.contains("capabilityJson"),
+            "the scan read no source, so its verdict means nothing"
+        );
+
+        let builds_one = source.contains(&builds_a_block);
+        let claimed = ACQUISITION_INTAKE == AcquisitionIntake::StatedByCaller;
+        println!("acquisition block claimed: {claimed}; built from a caller's own: {builds_one}");
+        assert_eq!(
+            claimed,
+            builds_one,
+            "the manifest says the block is {}, and this crate {} one from what a caller stated",
+            if claimed {
+                "stated here"
+            } else {
+                "absent here"
+            },
+            if builds_one { "builds" } else { "builds no" }
+        );
+    }
+
+    /// Every member the block holds reaches the tab's own answer, named rather than counted:
+    /// a listing naming four teaches a reader to go and find four.
+    #[test]
+    fn the_tab_names_every_member_of_the_acquisition_block() {
+        let manifest = capability_json().expect("the manifest serialises");
+        let unnamed: Vec<&&str> = plateforce_core::Acquisition::MEMBERS
+            .iter()
+            .filter(|member| !manifest.contains(&format!("\"{member}\"")))
+            .collect();
+        assert!(
+            unnamed.is_empty(),
+            "{} of {} members are absent from the tab's manifest: {unnamed:?}",
+            unnamed.len(),
+            plateforce_core::Acquisition::MEMBERS.len()
+        );
+        // The value is asserted against the construction above rather than pinned here, so a
+        // tab that gains an intake flips one declaration and not two.
+        assert!(manifest.contains("\"stated_by_caller\":"), "{manifest}");
     }
 
     /// JSON strings are the whole boundary of this crate, so a container format arriving

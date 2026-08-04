@@ -6,7 +6,7 @@
 //! manifest generated once inside the shared crate would agree with itself whatever any
 //! surface could actually do, and would have caught nothing.
 
-use plateforce_analysis::capability::{capability, Operation, OutputFormat};
+use plateforce_analysis::capability::{capability, AcquisitionIntake, Operation, OutputFormat};
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 
@@ -142,6 +142,13 @@ fn every_output_format() -> Vec<OutputFormat> {
     written
 }
 
+/// Whether a caller of this wheel can state the acquisition block.
+///
+/// `Trial` takes one, so a trial built here carries what the plate and its settings were into
+/// every fingerprint it produces. `tests/test_capability.py` holds this against the
+/// constructor's own signature, in both directions.
+const ACQUISITION_INTAKE: AcquisitionIntake = AcquisitionIntake::StatedByCaller;
+
 /// What this surface can be asked to do, in the envelope every surface answers in.
 ///
 /// The bytes are the shape a comparison reads: sorted keys and no spacing, so a difference
@@ -150,7 +157,7 @@ fn every_output_format() -> Vec<OutputFormat> {
 #[pyfunction]
 pub fn capability_json(python: Python<'_>) -> PyResult<String> {
     let (operations, _) = operations_and_unmapped(python)?;
-    let manifest = capability(&operations, &every_output_format());
+    let manifest = capability(&operations, &every_output_format(), ACQUISITION_INTAKE);
     let value = serde_json::to_value(manifest)
         .map_err(|error| crate::errors::TrialError::new_err(error.to_string()))?;
     serde_json::to_string(&sorted(&serde_json::json!({ "ok": value })))
