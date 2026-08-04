@@ -18,7 +18,7 @@ use crate::slots::{propulsion_phase_end, propulsion_phase_start};
 pub const ID: &str = "phase.propulsion_subdivision.by_force_crossing";
 
 pub const QUANTITIES: &[Quantity] = &[Quantity {
-    key: super::propulsion_subdivision_by_time::KEY,
+    key: super::by_time::KEY,
     label: "Propulsion split",
     unit: "seconds",
     computed_by: Some(ID),
@@ -59,8 +59,8 @@ fn place(
     boundaries::crossing_or_refusal(
         context,
         ID,
-        super::propulsion_subdivision_by_time::KEY,
-        super::propulsion_subdivision_by_time::PLACED,
+        super::by_time::KEY,
+        super::by_time::PLACED,
         index,
         bound,
     )

@@ -683,7 +683,7 @@ velocity zero crossing. Not quantified anywhere, which is a measurable gap.
 
 [[method]]
 id = "phase.propulsion_subdivision.by_time"
-construct = "phase_model"
+construct = "propulsion_subdivision"
 group = "G"
 title = "Split the propulsion phase at half its duration"
 rule = "The propulsion phase is split at 50 percent of its duration into two named sub-phases."
@@ -723,7 +723,7 @@ sensitivity = "total for any sub-phase metric"
 
 [[method]]
 id = "phase.propulsion_subdivision.by_force_crossing"
-construct = "phase_model"
+construct = "propulsion_subdivision"
 group = "G"
 title = "Split the propulsion phase where force descends through system weight"
 rule = """
@@ -752,7 +752,7 @@ sensitivity = "total for any sub-phase metric"
 
 [[method]]
 id = "phase.landing_subdivision.impact_stabilising"
-construct = "phase_model"
+construct = "landing_subdivision"
 group = "G"
 title = "Split landing into impact and stabilising"
 rule = "Landing is split into impact, from touchdown to peak force, and stabilising, from peak force to peak negative displacement."

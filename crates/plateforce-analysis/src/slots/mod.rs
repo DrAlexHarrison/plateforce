@@ -16,6 +16,7 @@ pub mod peak_force;
 pub mod phase_model;
 pub mod propulsion_phase_end;
 pub mod propulsion_phase_start;
+pub mod propulsion_subdivision;
 pub mod reactive_strength_index;
 pub mod system_weight;
 pub mod takeoff;

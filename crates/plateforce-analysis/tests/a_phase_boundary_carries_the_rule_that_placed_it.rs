@@ -635,7 +635,7 @@ fn the_two_propulsion_subdivisions_split_one_interval_at_two_instants() {
                     "propulsion_phase_end",
                     "phase.propulsion_end.peak_com_velocity",
                 ),
-                ("phase_model", model),
+                ("propulsion_subdivision", model),
             ],
             "propulsion_phase_end",
             "search_signal",
@@ -701,7 +701,10 @@ fn a_propulsion_subdivision_names_both_boundaries_it_splits_between() {
                     "propulsion_phase_end",
                     "phase.propulsion_end.peak_com_velocity",
                 ),
-                ("phase_model", "phase.propulsion_subdivision.by_time"),
+                (
+                    "propulsion_subdivision",
+                    "phase.propulsion_subdivision.by_time",
+                ),
             ],
             "propulsion_phase_end",
             "search_signal",
@@ -749,4 +752,126 @@ fn a_longer_time_epoch_ends_later_and_lands_the_stated_distance_from_onset() {
             "a {milliseconds} ms epoch ended {measured:.4} s after onset"
         );
     }
+}
+
+/// Which landmarks the countermovement promotes and where the propulsion phase divides are
+/// two questions, and a caller may answer both on one analysis.
+///
+/// Written as the JSON a caller sends rather than as a request built field by field, because
+/// the failure this guards against happens in the map before the engine is asked. A request
+/// carries one rule per construct id, so two rules filed under one construct arrive as one
+/// rule. A Python dict, a JavaScript object and a JSON document each keep one value per key,
+/// so on those three surfaces the second rule is gone before anything can refuse it and the
+/// engine is handed no evidence it was named. Measured on subject 01 trial 1: the model alone
+/// adds two keys, the split alone adds one, and the three keys are disjoint, so a caller who
+/// loses one loses a quantity rather than a spelling.
+#[test]
+fn a_phase_model_and_a_propulsion_split_are_two_answers_one_analysis_can_carry() {
+    let trial = a_jump_that_lands();
+    let request: AnalysisRequest = serde_json::from_str(
+        r#"{
+          "weighing": {
+            "method_id": "bwepoch.fixed_window",
+            "parameters": { "duration": 0.8 }
+          },
+          "onset": { "method_id": "onset.threshold.noise_relative" },
+          "takeoff": { "method_id": "takeoff.threshold.absolute_force" },
+          "derived": {
+            "phase_model": {
+              "method_id": "phase.model.unweighting_single.mcmahon2018"
+            },
+            "propulsion_phase_start": {
+              "method_id": "phase.propulsion_start.zero_velocity"
+            },
+            "propulsion_phase_end": {
+              "method_id": "phase.propulsion_end.peak_com_velocity",
+              "options": { "search_signal": "velocity_argmax" }
+            },
+            "propulsion_subdivision": {
+              "method_id": "phase.propulsion_subdivision.by_time"
+            }
+          }
+        }"#,
+    )
+    .expect("the request a caller sends parses");
+
+    // The map is the surface under test, so it is asserted before anything runs: two rules
+    // named under two keys are two entries, and under one key they would be one.
+    assert_eq!(
+        request.derived.len(),
+        4,
+        "the request lost a rule before the engine saw it: {:?}",
+        request.derived.keys().collect::<Vec<_>>()
+    );
+
+    let response = run(&trial, &request).expect("both rules run on one analysis");
+    let ran: Vec<&str> = response
+        .bound_methods
+        .iter()
+        .map(|bound| bound.method_id.as_str())
+        .collect();
+    println!("{ran:?}");
+
+    for (id, key) in [
+        (
+            "phase.model.unweighting_single.mcmahon2018",
+            "unweighting_phase_start_seconds",
+        ),
+        (
+            "phase.model.unweighting_single.mcmahon2018",
+            "unweighting_phase_end_seconds",
+        ),
+        (
+            "phase.propulsion_subdivision.by_time",
+            "propulsion_subdivision_seconds",
+        ),
+    ] {
+        assert!(ran.contains(&id), "{id} is on no row: {ran:?}");
+        assert!(
+            value(&response, key).is_some(),
+            "{id} ran and {key} carries no number"
+        );
+    }
+}
+
+/// Two rules named under one construct arrive as one rule, and the engine is handed nothing
+/// that says a second was named.
+///
+/// The reason the test above has to state two construct keys rather than two rules under one.
+/// A request holds a map, and a map keeps one value per key, so the loss happens in the reader
+/// before `run` is called and no refusal inside the engine can reach it. The terminal is the
+/// one surface that still sees two entries, because it parses repeated flags into its own map
+/// and refuses on the repeat; Python, JavaScript and JSON each hand over the survivor.
+///
+/// Asserted against the same shape a caller sends rather than against `serde_json` in the
+/// abstract, so this fails if `derived` ever stops being keyed by construct, which is the
+/// change that would make the guard above unnecessary.
+#[test]
+fn two_rules_under_one_construct_reach_the_engine_as_one_with_no_word_of_the_other() {
+    let request: AnalysisRequest = serde_json::from_str(
+        r#"{
+          "weighing": { "method_id": "bwepoch.fixed_window" },
+          "onset": { "method_id": "onset.threshold.noise_relative" },
+          "takeoff": { "method_id": "takeoff.threshold.absolute_force" },
+          "derived": {
+            "phase_model": {
+              "method_id": "phase.model.unweighting_single.mcmahon2018"
+            },
+            "phase_model": {
+              "method_id": "phase.propulsion_subdivision.by_time"
+            }
+          }
+        }"#,
+    )
+    .expect("a repeated key is read rather than refused");
+
+    assert_eq!(
+        request.derived.len(),
+        1,
+        "two rules under one construct survived, so the map is no longer one rule per key"
+    );
+    assert_eq!(
+        request.derived["phase_model"].method_id, "phase.propulsion_subdivision.by_time",
+        "the survivor is the last one written, and the first is gone without a record"
+    );
 }

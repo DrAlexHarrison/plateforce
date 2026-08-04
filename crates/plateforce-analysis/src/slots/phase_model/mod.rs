@@ -12,8 +12,6 @@
 //! keys change, which is the honest report of a model change and is what a shared key set
 //! would have hidden.
 
-pub mod propulsion_subdivision_by_force_crossing;
-pub mod propulsion_subdivision_by_time;
 pub mod time_epochs;
 pub mod unloading_yielding_split;
 pub mod unweighting_single;
