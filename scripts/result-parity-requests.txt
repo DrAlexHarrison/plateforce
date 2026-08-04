@@ -21,6 +21,12 @@
 # A request is added in the same commit as the baseline that holds it, or as the row it is
 # declared equal to.
 #
+# The `plate` row asks the four rules the `quiet` row asks, of the trial it asks them of, and
+# states a saved plate as well: the plate's members, one member written over the top, and no
+# path or name this machine happens to hold. So the only thing between the two records is what
+# each says about the capture, and the numbers hold across the pair. It is the request that
+# puts `plate_profile` on a wire and the only one that reports a complete acquisition block.
+#
 # The `sweep` row asks a different kind of question from the four above it: not what one
 # analysis reports, but how far the number moves across a slot's defensible alternatives. Its
 # request file names the slots, which is how Python and the browser are asked; the terminal is
@@ -30,4 +36,5 @@ quiet	tests/golden/result-parity-request.json	tests/golden/result-parity.json	br
 sentinel	tests/golden/result-parity-request-sentinel.json	=quiet	browser,cli,python,r
 interrupted	tests/golden/result-parity-request-interrupted.json	tests/golden/result-parity-interrupted.json	browser,cli,python,r
 inverted	tests/golden/result-parity-request-inverted.json	tests/golden/result-parity-inverted.json	browser,cli,python,r
+plate	tests/golden/result-parity-request-plate.json	tests/golden/result-parity-plate.json	browser,cli,python,r
 sweep	tests/golden/result-parity-request-sweep.json	tests/golden/result-parity-sweep.json	browser,cli,python

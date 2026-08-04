@@ -48,6 +48,7 @@ const { resetSelections, candidateFor } = await import(pathToFileURL('web/startu
 const { buildRequest, selectionFromChosenRule, recordStated } = await import(
   pathToFileURL('web/analysis.js').href
 );
+const { savePlate, captureJson } = await import(pathToFileURL('web/plate.js').href);
 
 // What `start()` puts in the tab before a reader touches anything, minus the drawing. A
 // literal decision model here would be a second copy of the one the page ranks against.
@@ -76,6 +77,19 @@ for (const key of ['weighing', 'onset', 'takeoff']) {
     recordStated(selection, name);
   }
   state.selection[key] = selection;
+}
+
+// What the reader answered about the plate, through the two acts the page keeps apart: a
+// saved plate picked in the drawer, and members typed over it on this capture. The capture
+// the engine is handed is then the page's own `captureJson`, for the reason the request is
+// the page's own `buildRequest`: a capture assembled here would be a second construction,
+// right by the care of whoever wrote this file rather than by the page being asked.
+if (asked.capture) {
+  if (asked.capture.plate) {
+    savePlate(asked.capture.plate.name, asked.capture.plate.members);
+    state.plate.picked = asked.capture.plate.name;
+  }
+  Object.assign(state.plate.stated, asked.capture.acquisition ?? {});
 }
 
 const file = wasm.ForceFile.parse(readFileSync(asked.trial, 'utf8'));
@@ -126,7 +140,7 @@ const json = asked.sweep
         maximum_combinations: asked.sweep.maximum_combinations,
       }),
     )
-  : trial.analyse(JSON.stringify(buildRequest()), asked.trial);
+  : trial.analyse(JSON.stringify(buildRequest()), asked.trial, captureJson());
 // Read through the page's own reader. A surface that parsed past this envelope would find
 // every field undefined and report that as an answer.
 const answer = reply(json);

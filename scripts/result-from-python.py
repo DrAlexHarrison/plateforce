@@ -27,6 +27,30 @@ SENTINELS = {
 with open(os.environ["PLATEFORCE_PARITY_REQUEST"], encoding="utf-8") as handle:
     asked = json.load(handle)
 
+
+def acquisition_of(capture):
+    """What the plate was, as far as this surface can state it.
+
+    A notebook holds no store of saved plates, so it types the answers a request states and
+    lays the ones stated on the capture over the ones the plate holds, which is what the two
+    surfaces reading a saved plate do with them. What it cannot say is which saved plate they
+    came off: the record this surface produces carries the members and no attribution, and
+    `plate_profile` in `scripts/result_parity.py` is where that gap is recorded with the work
+    that closes it.
+
+    Members reach the block through the block's own constructor, so a name the block does not
+    hold raises here rather than being dropped on the way past.
+    """
+    if capture is None:
+        return None
+    members = dict((capture.get("plate") or {}).get("members") or {})
+    members.update(capture.get("acquisition") or {})
+    frequency = members.pop("plate_natural_frequency_hz", None)
+    return pf.Acquisition(
+        plate_natural_frequency_hz=None if frequency is None else float(frequency),
+        **members,
+    )
+
 convention = asked["sentinel_convention"]
 if convention not in SENTINELS:
     raise SystemExit(f"plateforce: {convention} is not a convention this arm can state")
@@ -38,6 +62,7 @@ trial = pf.read_force_file(
     delimiter=asked["delimiter"],
     force_column=asked["force_column"],
     sentinel=None if declared is None else declared(),
+    acquisition=acquisition_of(asked.get("capture")),
 )
 
 registry = pf.Registry.load()

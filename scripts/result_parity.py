@@ -27,12 +27,27 @@ none of the three makes this gate refuse, so it cannot print that four surfaces 
 result while a field of that result went unread. `scripts/prove-parity-coverage-refuses.py`
 is where each of those refusals is shown to fire.
 
+A field two surfaces carry cannot go in `result`, which every surface is held to whole, so
+the record carries a second block: `carried_by_some`, holding the value of each declared
+divergence whose carriers can be held to one, and every carrier is held to it. Being carried
+by two surfaces is not a reason to compare a field with nothing, which is what leaving them
+out of the record did to the acquisition block, the trial's source and the plate a run came
+off. An entry opts out by naming what would move a record for a reason that is not parity,
+the way a field asserted another way does.
+
 Measured from the surfaces and then checked against the document, because the two are not the
 same universe. Those three registers are keyed by what the answers hold, and `serde` drops a
 field the whole population leaves empty, so such a field is compared by nobody, asserted by
 nobody and missing from nobody: every count stays true and every one of them is narrower than
 the result. The fields are therefore read off the struct that declares them, and one reaching
-no wire at all is named in `NEVER_ON_THE_WIRE` with the request that would fill it.
+no wire anywhere in the population is named in `NEVER_ON_THE_WIRE` with the request that would
+fill it.
+
+Over the requests as well as over the kinds, because a field can be on the wire because the
+request asked for it. `plate_profile` is the shape: a run told about no saved plate has
+nothing to attribute, so the field is on two surfaces of the request that states a plate and
+on nobody's answer to the other four. Its entry names those requests in `filled_by`, and a
+request that stopped filling it reddens this gate exactly as loudly as one that started.
 
 Over two kinds of question, because a field's reach is a fact about the question and not
 about the field. An analysed document carries `plateforce_version` on the two surfaces that
@@ -50,14 +65,14 @@ from typing import NamedTuple
 # A floor rather than the exact count, which would fail every time a metric is added. It is
 # here because a comparison that agreed on an empty document would report success.
 #
-# Measured rather than picked, by the count this module prints: the four committed requests
-# carry 22, 22, 9 and 17 numbers, 70 between them. The floor sits well below that so a metric
-# coming or going is not an alarm, and far enough above zero to catch a population that
-# collapsed. It is a population figure because a request whose subject is a partial result
-# carries fewer numbers honestly: the interrupted recording carries 9, and holding it to a
-# per-request floor of 10 would redden the gate for answering the question it was written to
-# ask. The per-request floor is instead one number, below, which a document agreeing about
-# nothing cannot meet.
+# Measured rather than picked, by the count this module prints: the six rows of the request
+# manifest carry 23, 23, 12, 20, 23 and 91 numbers, 192 between them. The floor sits well below
+# that so a metric coming or going is not an alarm, and far enough above zero to catch a
+# population that collapsed. It is a population figure because a request whose subject is a
+# partial result carries fewer numbers honestly: the interrupted recording carries 12, and
+# holding it to a per-request floor of 20 would redden the gate for answering the question it
+# was written to ask. The per-request floor is instead one number, below, which a document
+# agreeing about nothing cannot meet.
 NUMBERS_THE_POPULATION_CARRIES = 10
 
 # Every surface the gate speaks for, and every request it speaks about, read from the
@@ -228,6 +243,16 @@ def request_manifest_faults(rows, writing=False):
                 faults.append(
                     f"{field} rests on a {declared.answered_by} request and this population "
                     f"holds none, so its account of itself is a sentence nothing measures. "
+                    f"Discharged by {declared.discharged_by}"
+                )
+            # The requests an entry says put it on a wire. A name here that no row carries is
+            # a register describing a population this one is not, and the field would then be
+            # absent from every answer with the entry's own sentence excusing it everywhere.
+            missing = sorted(declared.filled_by - {row.name for row in rows if row.kind == kind})
+            if missing:
+                faults.append(
+                    f"{field} is recorded as reaching a wire on {missing} and this population "
+                    f"holds no {kind} request named that, so nothing ever puts it on one. "
                     f"Discharged by {declared.discharged_by}"
                 )
 
@@ -419,8 +444,8 @@ def keys_a_document_declares(struct, seen=None):
     The reach measured from the answers is the intersection of what the surfaces published, and
     a field absent from all four is outside it: `serde` drops a field the whole population
     leaves empty, so it appears in no answer, matches no register, and the gate goes on
-    reporting that every field was accounted for. `plate_profile` is exactly that shape, a
-    provenance field on the document and on nobody's answer.
+    reporting that every field was accounted for. `plate_profile` was exactly that shape, a
+    provenance field on the document and on nobody's answer, until a request stated a plate.
 
     So the universe is the declaration rather than the answers. A field carrying
     `#[serde(flatten)]` contributes the keys of the type it names instead of its own, which is
@@ -536,6 +561,24 @@ class Divergence(NamedTuple):
     account of itself to hold. A discharge saying the other surfaces compute this elsewhere
     is prose until something asks them, and the sentence would outlive the request that made
     it true. Empty where the entry claims no such thing.
+
+    `filled_by` names the requests that put the field on any wire at all, and is empty where
+    every request of the kind does. A field is on the wire because the request asked for it:
+    a run told about no saved plate has no attribution to write, and `serde` leaves the key
+    out, so `plate_profile` is on two surfaces of one request and on nobody's answer to the
+    other four. Keyed by kind alone this entry could only state one of those and be wrong
+    about the rest, which is the reason the registers are keyed by kind in the first place,
+    one level finer. Checked in both directions on every run: a request named here that
+    leaves the field off every wire reddens this gate, and so does a request not named here
+    whose answers carry it.
+
+    `a_committed_value_would_move` names what would move a record of this field for a reason
+    that is not parity, and is empty where nothing would. Empty is the ordinary state and it
+    means the carriers are held to a committed value in `carried_by_some`, because carriers
+    agreeing with each other is the weaker claim: several surfaces wrong the same way agree
+    perfectly, which is the sentence at the top of this file and the reason every other field
+    here is held to a record. An entry that names something states it the way
+    `ASSERTED_ANOTHER_WAY` states it, as why a record would be the wrong instrument.
     """
 
     carried_by: frozenset
@@ -543,6 +586,8 @@ class Divergence(NamedTuple):
     discharged_by: str
     reason: str
     answered_by: str = ""
+    filled_by: frozenset = frozenset()
+    a_committed_value_would_move: str = ""
 
 
 class NotAsked(NamedTuple):
@@ -598,6 +643,10 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "the build that produced the numbers, carried by the two surfaces that assemble "
         "`ResultDocument`. Python and R answer for a build a caller already holds, through "
         "`plateforce.__version__` and `packageVersion`",
+        a_committed_value_would_move=(
+            "every release, which is not a parity event. Two surfaces built out of step is "
+            "exactly parity, so that is what is asked of the carriers"
+        ),
     ),
     # `registry_version` was here, carried by cli, browser and python, and the one entry whose
     # carriers disagreed. Discharged by wsrp/registry-pin: it now means the caller's pin on
@@ -612,6 +661,14 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "where the trace came from and what the reader had to be told about reading it. The "
         "two surfaces handed a path know it; Python and R are handed a trial somebody else "
         "opened",
+        a_committed_value_would_move=(
+            "the request, and two requests share this record. The sentinel request answers "
+            "the quiet request's record and reads the same trace under a convention matching "
+            "157 of its samples where the quiet request matches none, so "
+            "`samples_matching_the_convention` is two numbers under one record and the "
+            "difference is the sentinel request's whole subject. The carriers are held to "
+            "each other instead"
+        ),
     ),
     "acquisition": Divergence(
         frozenset({"cli", "browser"}),
@@ -620,6 +677,19 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "what the plate and its settings were, carried whole by the two surfaces that assemble "
         "`ResultDocument`. Python and R take the block on the trial they are handed and report "
         "`acquisition_complete`, which is compared on all four",
+    ),
+    "plate_profile": Divergence(
+        frozenset({"cli", "browser"}),
+        True,
+        "a notebook and an R session that can be handed a saved plate rather than its "
+        "members. Both are handed a block somebody else filled, so they carry the answers "
+        "and cannot say which saved plate the answers were typed into",
+        "the saved plate the acquisition block was filled from, carried by the two surfaces "
+        "that read one. Absent rather than null where no plate was stated, because a run "
+        "with none behind it has nothing to attribute, so the field is on the wire only on "
+        "the request that states a plate. Python and R type the same members and produce the "
+        "same numbers with `acquisition_complete` true, and name no plate",
+        filled_by=frozenset({"plate"}),
     ),
     # `descriptions` was here, carried by r alone, with nothing to agree about. Discharged by
     # ws/descriptions-everywhere: `descriptions_of` moved beside `chains_of`, the document
@@ -638,6 +708,13 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "the chain of rules behind each number, one record per metric. R's package reads it "
         "off the wire because R links the engine and cannot reach the derivation any other "
         "way; the other three hold the tree in memory and publish the numbers alone",
+        a_committed_value_would_move=(
+            "every registry data edit, which is how a method is added here: each record in "
+            "the chain quotes the digest and the revision the registry names about itself, "
+            "measured on this request at 11 records and every one of them carrying both. It "
+            "is the property `descriptions` and the digest itself are asserted for, reaching "
+            "this field through the chain"
+        ),
     ),
     # A discharge naming the shape of an API is not a comparison: a call nothing asks proves
     # nothing about the value it returns. The `sweep` request is what asks these surfaces, and
@@ -654,6 +731,13 @@ ANALYSED_SURFACES_THAT_DIFFER = {
         "with the analysis; the tab sweeps on its own schedule through a second entry point, "
         "and Python and R expose the sweep as a call of its own",
         SWEPT,
+        a_committed_value_would_move=(
+            "a rule added to any swept construct, which is a registry data edit and is how a "
+            "method is added here. The headline sweep varies 3, 5 and 5 rules over the three "
+            "landmark constructs and runs their 75 combinations, and every one of those "
+            "figures is a count of the registry rather than of this trial. The swept request "
+            "is where the numbers of a sweep are held to a record"
+        ),
     ),
 }
 
@@ -724,25 +808,20 @@ class NeverOnTheWire(NamedTuple):
     reason: str
 
 
-# A field the document declares and no committed request puts on any wire. One entry.
+# A field the document declares and no committed request puts on any wire. Both registers are
+# empty, and both are kept rather than left out, because a field that stops reaching every wire
+# has to land somewhere a reader of this file looks.
 #
-# Keyed by the kind of question, because the two documents declare different fields. A swept
-# document names an empty register: every field `SpreadDocument` declares reaches every surface
-# asked, and the register is kept rather than left out so a field that stops reaching them
-# lands somewhere a reader of this file looks.
+# `plate_profile` was the analysed register's one entry, and its discharge was a request whose
+# acquisition block is filled from a saved plate. The `plate` request is that request: it saves
+# a plate from the members it states, analyses under it with one member written over the top,
+# and the field is on the terminal's and the tab's answers with a name, a revision and the
+# member it displaced. The field is now a declared divergence, whose `filled_by` says it is on
+# the wire on that request and on no other.
+#
+# Keyed by the kind of question, because the two documents declare different fields.
 NEVER_ON_THE_WIRE = {
-    ANALYSED: {
-        "plate_profile": NeverOnTheWire(
-            "a request whose acquisition block is filled from a saved plate, which needs the "
-            "plate stated in the request file and a spelling of it on the surfaces that "
-            "assemble the document",
-            "the saved plate the acquisition block was filled from. It is absent rather than "
-            "null on purpose, because a run with no saved plate behind it has nothing to "
-            "attribute, and every committed request states none. So the four surfaces agree "
-            "about a field none of them writes, and what a result says about the plate it came "
-            "off is the one part of its provenance this gate has never compared",
-        ),
-    },
+    ANALYSED: {},
     SWEPT: {},
 }
 
@@ -880,13 +959,17 @@ def compared_fields_measured_from(answers, kind):
     return sorted(fields_every_surface_publishes(answers) - set(ASSERTED_ANOTHER_WAY[kind]))
 
 
-def coverage_faults(answers, fields, kind, asked):
+def coverage_faults(answers, fields, kind, asked, request):
     """Every field a surface publishes is compared here, asserted another way, or a declared
     divergence. A field in none of the three is a field nothing looks at.
 
     This gate prints that four surfaces computed one result. A reader takes that to be about
     the result, not about the six fields of it somebody listed, so the gate refuses rather
     than publish a verdict narrower than its own sentence.
+
+    `request` is which request these answers are to, because a divergence can be one the
+    request itself decides: a field absent from every wire here and present on another
+    request's is neither a gap nor a divergence until you know which request you are holding.
     """
     faults = []
     asserted = ASSERTED_ANOTHER_WAY[kind]
@@ -947,6 +1030,17 @@ def coverage_faults(answers, fields, kind, asked):
                 f"{sorted(carried)}: {declared.reason}"
             )
             continue
+        # Which requests put it on a wire, where the entry names any. A field the request
+        # decides is one this gate has to hold to the requests it is recorded against, or the
+        # entry describes a state some other request is in and passes over the one in hand.
+        if declared.filled_by and request not in declared.filled_by:
+            faults.append(
+                f"{field} reaches {sorted(carried)} on the {request} request and is recorded "
+                f"as on the wire on {sorted(declared.filled_by)} alone, so the entry is out "
+                f"of date and the field is a divergence this request carries too. Discharged "
+                f"by {declared.discharged_by}"
+            )
+            continue
         # Whether the surfaces that do carry it agree with each other. A presence check alone
         # passes a field three surfaces publish and two of them contradict, which is the state
         # `registry_version` was found in and the reason this is asked at all.
@@ -966,10 +1060,15 @@ def coverage_faults(answers, fields, kind, asked):
                 f"compared_fields rather than here. Discharged by "
                 f"{declared.discharged_by}: {declared.reason}"
             )
-        elif field not in somewhere:
+        elif field not in somewhere and (
+            not declared.filled_by or request in declared.filled_by
+        ):
+            # Named where the entry names the requests that fill it, because the reader's
+            # next question is which request went quiet rather than whether any did.
+            here = f" on the {request} request, which it is recorded as reaching" if declared.filled_by else ""
             faults.append(
-                f"{field} is declared uneven across the surfaces and no surface publishes it: "
-                f"{declared.reason}"
+                f"{field} is declared uneven across the surfaces and no surface publishes "
+                f"it{here}: {declared.reason}"
             )
 
     faults += undeclared_reach_faults(everywhere, somewhere, differ, kind)
@@ -1030,6 +1129,77 @@ def carriers_agree_about(answers, field, carried):
     return len({canonical(answers[name][field]) for name in carried}) == 1
 
 
+def divergences_held_to_a_record(kind):
+    """Every declared divergence whose carriers are held to a committed value.
+
+    Every entry, less the ones naming something that would move a record for a reason that is
+    not parity. Holding the carriers to each other is the weaker claim and the one this whole
+    file is written against: surfaces wrong the same way agree perfectly, and a record is what
+    puts the value in front of a reviewer as a diff.
+    """
+    return {
+        field: declared
+        for field, declared in SURFACES_THAT_DIFFER[kind].items()
+        if not declared.a_committed_value_would_move
+    }
+
+
+def divergent_values_measured_from(answers, kind):
+    """What `carried_by_some` holds: the value of each recorded divergence this request puts
+    on a wire, taken from a carrier.
+
+    Taken from one carrier rather than from all of them because they agree, which
+    `coverage_faults` has already asked and refused where they do not. A field this request
+    leaves off every wire contributes nothing: it has no value here to record, and the
+    register's `filled_by` is what says so.
+    """
+    held = {}
+    for field in sorted(divergences_held_to_a_record(kind)):
+        carried = sorted(surfaces_publishing(answers, field))
+        if carried:
+            held[field] = answers[carried[0]][field]
+    return held
+
+
+def divergent_record_faults(committed, answers, kind):
+    """Every recorded divergence on a wire here matches the record, in both directions.
+
+    The record cannot be one surface's word: every carrier is held to it, so a field two
+    surfaces carry is compared twice and a third surface picking it up is compared as well.
+    And a value in the record for a field the register does not record is a standard nothing
+    is measured against, which is the same defect as a baseline no row is held to.
+    """
+    faults = []
+    recorded = divergences_held_to_a_record(kind)
+    for field, declared in sorted(recorded.items()):
+        carried = sorted(surfaces_publishing(answers, field))
+        if not carried:
+            continue
+        if field not in committed:
+            faults.append(
+                f"{field} reaches {carried} and the record holds no value for it, so what "
+                f"those surfaces say about it is compared with nothing. Write it with "
+                f"scripts/result-parity.sh --write and audit the diff: {declared.reason}"
+            )
+            continue
+        for name in carried:
+            moved = differing_paths(committed[field], answers[name][field], field)
+            if moved:
+                where = "place" if len(moved) == 1 else "places"
+                faults.append(
+                    f"{name} does not match the record of {field} in {len(moved)} {where}:\n"
+                    "    " + "\n    ".join(moved[:12])
+                    + ("\n    ..." if len(moved) > 12 else "")
+                )
+
+    for field in sorted(set(committed) - set(recorded)):
+        faults.append(
+            f"the record holds a value for {field} and the register does not record that "
+            "field, so it is a standard nothing is measured against"
+        )
+    return faults
+
+
 def article(word):
     """The right article for a kind's name, so a kind added later reads as English."""
     return "an" if word[:1].lower() in "aeiou" else "a"
@@ -1069,7 +1239,7 @@ def write_one(baseline_path, answers, row, source=None):
             "compared_fields by hand, which is the one direction that wants a decision"
         )
 
-    faults = coverage_faults(answers, fields, row.kind, row.surfaces)
+    faults = coverage_faults(answers, fields, row.kind, row.surfaces, row.name)
     if faults:
         for fault in faults:
             print(f"plateforce: {fault}", file=sys.stderr)
@@ -1101,7 +1271,14 @@ def write_one(baseline_path, answers, row, source=None):
         )
 
     first = source or sorted(answers)[0]
+    # The values of the fields no single projection can hold, beside the projection rather
+    # than inside it. A field two surfaces carry and two do not cannot go in `result`, which
+    # every surface is held to whole, and leaving it out of the record altogether was how the
+    # acquisition block, the trial's source and the plate a run came off were compared by
+    # nobody while the gate reported that four surfaces computed the result.
+    held = divergent_values_measured_from(answers, row.kind)
     document = {
+        "carried_by_some": held,
         "compared_fields": fields,
         "result": projections[first],
     }
@@ -1111,6 +1288,9 @@ def write_one(baseline_path, answers, row, source=None):
         f"{baseline_path} written from {first}{chosen}; audit the diff before committing it\n"
         f"compared_fields derived from the surfaces: {len(fields)} fields"
         + (f", {len(gained)} newly covered: {gained}" if gained else ", none newly covered")
+        + f"\ncarried_by_some derived from the register: {len(held)} of "
+        f"{len(SURFACES_THAT_DIFFER[row.kind])} declared divergences held to a record here: "
+        f"{sorted(held)}"
     )
     return document, note
 
@@ -1125,11 +1305,18 @@ def check_one(row, baseline_path, answers):
     request_name = row.name
     fields = compared_fields_in(baseline_path)
     with open(baseline_path, encoding="utf-8") as handle:
-        committed = json.load(handle)["result"]
+        record = json.load(handle)
+    committed = record["result"]
 
     faults = [
         f"{request_name}: {fault}"
-        for fault in coverage_faults(answers, fields, row.kind, row.surfaces)
+        for fault in coverage_faults(answers, fields, row.kind, row.surfaces, row.name)
+    ]
+    faults += [
+        f"{request_name}: {fault}"
+        for fault in divergent_record_faults(
+            record.get("carried_by_some", {}), answers, row.kind
+        )
     ]
 
     for name in sorted(answers):
@@ -1157,10 +1344,20 @@ def report_one(row, baseline_path, answers, fields, committed, values):
     everywhere = fields_every_surface_publishes(answers)
     held = f"{row.equals}'s record" if row.equals else pathlib.Path(baseline_path).name
     listed = len(surfaces_named_in_manifest())
+    # What the record holds beyond the projection, with its own denominator: a field two
+    # surfaces carry cannot go in `result`, and the count of compared fields would otherwise
+    # read as the whole of what this request was held to.
+    recorded = sorted(
+        field
+        for field in divergences_held_to_a_record(row.kind)
+        if surfaces_publishing(answers, field)
+    )
     print(
         f"  {row.name}: {len(answers)} of {listed} listed surfaces computed {held}, "
         f"{values} numbers each, {len(fields)} of {len(everywhere)} fields every surface "
-        "asked publishes compared"
+        f"asked publishes compared, {len(recorded)} of "
+        f"{len(SURFACES_THAT_DIFFER[row.kind])} declared divergences held to a record too: "
+        f"{recorded}"
     )
     # The surfaces this question cannot be put to, named beside the count above so the count
     # cannot be read as every surface having answered. A surface here answers a narrower
@@ -1283,8 +1480,9 @@ def check(directory):
         never = NEVER_ON_THE_WIRE[kind]
         print(
             f"  on {article(kind)} {kind} request, {document} declares {len(declared)} fields "
-            f"and {len(declared) - len(never)} of them reach a wire; the {len(never)} that "
-            f"reach none are named in NEVER_ON_THE_WIRE: {sorted(never)}"
+            f"and {len(declared) - len(never)} of them reach a wire on some request in this "
+            f"population; the {len(never)} that reach none anywhere are named in "
+            f"NEVER_ON_THE_WIRE: {sorted(never)}"
         )
         for field, absent in sorted(never.items()):
             print(f"    {field} is on no surface's answer: {absent.reason}")
@@ -1303,23 +1501,40 @@ def check(directory):
         f"EMPTY_ON_EVERY_REQUEST: {sorted(EMPTY_ON_EVERY_REQUEST)}"
     )
 
-    # One request per kind, because the register is per kind and a run that read the first
-    # request's answers would print the analysed register's reach against every kind asked.
+    # Every entry of the reach register, measured over every request of its kind rather than
+    # read off one of them. A field the request itself decides is on one request's wires and
+    # on nobody's answer to the rest, so a report taken from a single request would print the
+    # register's reach and leave that field out of the output altogether.
     for kind in sorted({row.kind for row in rows}):
-        answers = next(answers for row, _, answers, *_ in reports if row.kind == kind)
-        asked = len(answers)
-        everywhere = fields_every_surface_publishes(answers)
-        uneven = sorted(set.union(*(set(answer) for answer in answers.values())) - everywhere)
-        if not uneven:
+        of_kind = [(row, answers) for row, _, answers, *_ in reports if row.kind == kind]
+        register = SURFACES_THAT_DIFFER[kind]
+        if not register:
             print(f"  on {article(kind)} {kind} request, every field reaches every surface asked")
             continue
-        for field in uneven:
-            declared = SURFACES_THAT_DIFFER[kind][field]
+        for field, declared in sorted(register.items()):
+            filling = [
+                (row, answers)
+                for row, answers in of_kind
+                if surfaces_publishing(answers, field)
+            ]
+            reaching = sorted(
+                set().union(*(surfaces_publishing(answers, field) for _, answers in filling))
+            )
+            asked = sorted({len(row.surfaces) for row, _ in filling})
+            # Whether the carriers are held to a record or only to each other, said here
+            # because the two read identically in the line above and only one of them can
+            # catch two surfaces wrong the same way.
+            standard = (
+                f"held to the record; discharged by {declared.discharged_by}"
+                if not declared.a_committed_value_would_move
+                else f"held to each other, because a record would move with "
+                f"{declared.a_committed_value_would_move}"
+            )
             print(
-                f"  on {article(kind)} {kind} request, {field} reaches "
-                f"{sorted(surfaces_publishing(answers, field))} of the {asked} asked, "
-                f"{agreement_reads(declared.carriers_agree)}, discharged by "
-                f"{declared.discharged_by}"
+                f"  over the {len(of_kind)} {kind} requests, {field} reaches {reaching} of the "
+                f"{asked[0] if len(asked) == 1 else asked} asked, on "
+                f"{[row.name for row, _ in filling]} of them, "
+                f"{agreement_reads(declared.carriers_agree)}, {standard}"
             )
 
 

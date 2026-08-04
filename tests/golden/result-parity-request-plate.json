@@ -1,0 +1,40 @@
+{
+  "capture": {
+    "acquisition": {
+      "firmware_version": "2.2"
+    },
+    "plate": {
+      "members": {
+        "filter_at_capture": "none",
+        "firmware_version": "2.1",
+        "floor_surface": "concrete",
+        "plate_natural_frequency_hz": "400",
+        "tare_state": "tared_before_trial"
+      },
+      "name": "parity-lab-plate"
+    }
+  },
+  "delimiter": "\t",
+  "force_column": 0,
+  "onset": {
+    "method_id": "onset.threshold.noise_relative",
+    "parameters": {
+      "k": 5.0
+    }
+  },
+  "sample_rate_hz": 1200,
+  "sentinel_convention": "none",
+  "takeoff": {
+    "method_id": "takeoff.threshold.absolute_force",
+    "parameters": {
+      "threshold_n": 20.0
+    }
+  },
+  "trial": "crates/plateforce-conformance/fixtures/subject01_trial1.force.txt",
+  "weighing": {
+    "method_id": "bwepoch.fixed_window",
+    "parameters": {
+      "duration": 1.0
+    }
+  }
+}
