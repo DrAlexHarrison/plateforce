@@ -719,6 +719,21 @@ report takeoff at 4.4000 s and the three searching the whole recording report 4.
 jump height from the impulse from 37.0 cm to 1.4 cm.
 """
 
+[method.failure]
+rate = 0.0081
+numerator = 2
+denominator = 246
+corpus = "harrison2011_cmj"
+definition = """
+Takeoff reported at the first sample the search was permitted to examine, so the instant published
+is the boundary of the search rather than a flight phase found in the recording. Weighing window
+1 s anchored at the start of the recording, every other value the rule's own default.
+
+Both rules taking this floor produce the same 2 trials, which is the figure a reader wants: the
+rate is a property of the floor and not of the threshold each rule compares against.
+"""
+detectability = "guarded"
+
 [method.gui]
 surfacing = "default_and_show"
 sensitivity = "very large where the weighing window ends inside a low-force stretch, none where it does not"
@@ -768,6 +783,27 @@ Searching the whole recording admits the stretch before the athlete stepped onto
 stretch after they stepped off, which is what places takeoff 843 ms late on 155 of 244 trials under
 the longest-run selection.
 """
+
+[method.failure]
+rate = 0.0081
+numerator = 2
+denominator = 246
+corpus = "harrison2011_cmj"
+definition = """
+Takeoff placed at or before the end of the window the athlete was weighed in, so the run reported
+as the flight phase is one the trace held while the athlete was standing still. A rule flooring at
+the weighing window cannot reach it and a rule searching the whole recording can, which is what
+makes it this policy's failure rather than a threshold rule's.
+
+Weighing window 1 s anchored at the start of the recording, every other value the rule's own
+default. takeoff.threshold.longest_run commits it on 2 of 246; takeoff.threshold.descending_crossing
+answers on 244 and commits it on none, and takeoff.threshold.landing_shape answers on 134 and
+commits it on none, declining on the other 112 rather than publishing an instant.
+
+Rarer than its sibling and worse per instance: the sibling publishes a late takeoff and this one
+publishes a flight phase during quiet stance, which leaves the jump's start after its end.
+"""
+detectability = "silent"
 
 [method.gui]
 surfacing = "default_and_show"
