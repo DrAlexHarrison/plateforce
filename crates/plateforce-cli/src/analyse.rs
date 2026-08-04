@@ -65,6 +65,8 @@ pub struct Args {
     pub derive: Vec<String>,
     #[arg(long = "set", value_name = "ASSIGNMENT", help = SET_HELP)]
     pub set: Vec<String>,
+    #[arg(long = "choose", value_name = "ASSIGNMENT", help = CHOOSE_HELP)]
+    pub choose: Vec<String>,
     /// Show every value each rule read, including the ones it chose for itself
     #[arg(long)]
     pub provenance: bool,
@@ -81,6 +83,20 @@ pub(crate) const SET_SHAPE: &str = "<slot>.<name>=<value>";
 pub(crate) const SET_HELP: &str = "A value for a rule, written <slot>.<name>=<value>. Repeatable";
 pub(crate) const SET_HELP_FOR_A_FOLDER: &str =
     "A value for a rule, written <slot>.<name>=<value>. Repeatable, and it applies to every trial in the folder";
+
+/// What `--choose` takes. The same grammar `--set` takes, because a reader who wrote
+/// `--set onset.k=5` writes `--choose onset.selection=first`.
+///
+/// A separate flag rather than a value type inside `--set`, so a value's kind is known from
+/// the line rather than from the rule it reaches. `--set weighing.duration=fast` refuses by
+/// naming what a number is; a flag taking both could only refuse once the name had reached a
+/// rule, and every mistyped number would arrive there as a name.
+pub(crate) const CHOOSE_SHAPE: &str = "<slot>.<name>=<value>";
+
+/// Where the names a rule takes are listed, so a reader meets them in one place rather than
+/// in whichever refusal they happen to raise first.
+pub(crate) const CHOOSE_HELP: &str =
+    "A name a rule takes, written <slot>.<name>=<value>. Repeatable, and `registry show <method>` lists the names each rule takes";
 
 /// The number a file writes where it has no sample, for a reader that takes the value
 /// rather than the word.
@@ -126,14 +142,19 @@ pub(crate) fn prepare(
         Ok(derived) => derived,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
-    let stated = match stated_parameters(&args.set, &derived.keys().cloned().collect::<Vec<_>>()) {
+    let also: Vec<String> = derived.keys().cloned().collect();
+    let stated = match stated_parameters(&args.set, &also) {
         Ok(stated) => stated,
+        Err(declined) => return Err(Outcome::declined(declined)),
+    };
+    let named = match stated_options(&args.choose, &also) {
+        Ok(named) => named,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
 
     // A named pipeline is adopted before the decision rail rather than after it: its source
     // published the choices it binds, so a caller who named one has answered them.
-    let mut request = build_request(&registry, &chosen, &derived, &stated);
+    let mut request = build_request(&registry, &chosen, &derived, &stated, &named);
     if let Err(declined) = crate::preset::adopt(&mut request, &registry, args.preset.as_ref()) {
         return Err(Outcome::declined(declined));
     }
@@ -243,6 +264,81 @@ fn slot_and_parameter<'a>(qualified: &'a str, slots: &[&str]) -> Option<(&'a str
         .filter(|(_, name)| !name.is_empty())
 }
 
+/// Every step a value can be written against on this run: the three on the path, and any
+/// construct this run named for something computed from the landmarks.
+fn steps_of_this_run(also: &[String]) -> Vec<&str> {
+    let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
+    slots.extend(also.iter().map(String::as_str));
+    slots
+}
+
+/// One assignment read against the steps this run has, for both flags that take one.
+///
+/// The shape of an assignment is a fault in the line and reaches no rule, so it carries no
+/// published code. Two flags rather than one shared grammar function would let the two drift
+/// into refusing differently for the same malformed line.
+fn assignment_of<'a>(
+    flag: &str,
+    shape: &str,
+    assignment: &'a str,
+    slots: &[&str],
+) -> Result<(&'a str, &'a str, &'a str), Declined> {
+    let Some((qualified, written)) = assignment.split_once('=') else {
+        return Err(Declined::line(
+            Fault::Request,
+            format!("{flag} takes {shape}, and '{assignment}' carries no ="),
+        ));
+    };
+    // Two ways to reach no step, and they are answered differently: a name carrying no step at
+    // all is a line the reader will rewrite from the grammar, and a name carrying one this run
+    // does not have is a line they will rewrite from the list.
+    if !qualified.contains('.') {
+        return Err(Declined::line(
+            Fault::Request,
+            format!("{flag} takes {shape}, and '{qualified}' names no slot"),
+        ));
+    }
+    // A value written against a step this run does not have would otherwise be read, accepted
+    // and never passed to anything.
+    let Some((slot, name)) = slot_and_parameter(qualified, slots) else {
+        return Err(Declined::line(
+            Fault::Request,
+            format!(
+                "{flag} {qualified} names no step of this run, which has {}",
+                slots.join(", ")
+            ),
+        ));
+    };
+    Ok((slot, name, written))
+}
+
+/// `--choose`, keyed by the same word `--set` takes. A name a rule offers, never a number.
+///
+/// Which names a rule takes is the rule's own to answer, so an unaccepted one is refused by
+/// the rule with the list it offers rather than checked twice, once here against a copy.
+pub(crate) fn stated_options(
+    assignments: &[String],
+    also: &[String],
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, Declined> {
+    let slots = steps_of_this_run(also);
+    let mut chosen: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    for assignment in assignments {
+        let (slot, name, written) = assignment_of("--choose", CHOOSE_SHAPE, assignment, &slots)?;
+        let named = written.trim();
+        if named.is_empty() {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--choose {slot}.{name} was given no name"),
+            ));
+        }
+        chosen
+            .entry(slot.to_string())
+            .or_default()
+            .insert(name.to_string(), named.to_string());
+    }
+    Ok(chosen)
+}
+
 /// `--set`, keyed by the same word the method flag carries, so a reader who wrote `--onset`
 /// writes `--set onset.k`. Kept per slot, so two rules reading a name spelled the same way
 /// never receive each other's number.
@@ -250,41 +346,13 @@ pub(crate) fn stated_parameters(
     assignments: &[String],
     also: &[String],
 ) -> Result<BTreeMap<String, BTreeMap<String, f64>>, Declined> {
-    let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
-    // A construct this run named for something computed from the landmarks is a step this
-    // run has, so a value written against it reaches a rule.
-    slots.extend(also.iter().map(String::as_str));
+    let slots = steps_of_this_run(also);
     let mut stated: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
-    // The shape of the assignment is a fault in the line and reaches no rule, so it carries
-    // no published code. A number a rule cannot run on is a fault the engine has a code for,
-    // and it reaches the same code here as it would from inside a rule.
     for assignment in assignments {
-        let Some((qualified, written)) = assignment.split_once('=') else {
-            return Err(Declined::line(
-                Fault::Request,
-                format!("--set takes {SET_SHAPE}, and '{assignment}' carries no ="),
-            ));
-        };
-        // Two ways to reach no step, and they are answered differently: a name carrying no
-        // step at all is a line the reader will rewrite from the grammar, and a name carrying
-        // one this run does not have is a line they will rewrite from the list.
-        if !qualified.contains('.') {
-            return Err(Declined::line(
-                Fault::Request,
-                format!("--set takes {SET_SHAPE}, and '{qualified}' names no slot"),
-            ));
-        }
-        // A value written against a step this run does not have would otherwise be read,
-        // accepted and never passed to anything.
-        let Some((slot, name)) = slot_and_parameter(qualified, &slots) else {
-            return Err(Declined::line(
-                Fault::Request,
-                format!(
-                    "--set {qualified} names no step of this run, which has {}",
-                    slots.join(", ")
-                ),
-            ));
-        };
+        let (slot, name, written) = assignment_of("--set", SET_SHAPE, assignment, &slots)?;
+        let qualified = format!("{slot}.{name}");
+        // A number a rule cannot run on is a fault the engine has a code for, and it reaches
+        // the same code here as it would from inside a rule.
         let value: f64 = written.trim().parse().map_err(|_| {
             Declined::line(
                 Fault::Request,
@@ -450,9 +518,19 @@ fn build_request(
     chosen: &BTreeMap<String, String>,
     derived: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,
+    named: &BTreeMap<String, BTreeMap<String, String>>,
 ) -> AnalysisRequest {
     let parameters = |construct: &str| {
         stated
+            .get(decisions::slot_of(construct))
+            .cloned()
+            .unwrap_or_default()
+    };
+    // A name a reader stated reaches the rule under the same step word its numbers do. The
+    // two travel as separate maps because the record keeps them separate, and a fingerprint
+    // carries the split.
+    let options = |construct: &str| {
+        named
             .get(decisions::slot_of(construct))
             .cloned()
             .unwrap_or_default()
@@ -464,20 +542,20 @@ fn build_request(
             method_id: id(WEIGHING_CONSTRUCT),
             start_index: None,
             parameters: parameters(WEIGHING_CONSTRUCT),
-            options: BTreeMap::new(),
+            options: options(WEIGHING_CONSTRUCT),
             ..Default::default()
         },
         onset: MethodChoice {
             method_id: id(ONSET_CONSTRUCT),
             parameters: parameters(ONSET_CONSTRUCT),
-            options: BTreeMap::new(),
+            options: options(ONSET_CONSTRUCT),
             manual_index: None,
             ..Default::default()
         },
         takeoff: MethodChoice {
             method_id: id(TAKEOFF_CONSTRUCT),
             parameters: parameters(TAKEOFF_CONSTRUCT),
-            options: BTreeMap::new(),
+            options: options(TAKEOFF_CONSTRUCT),
             manual_index: None,
             ..Default::default()
         },
@@ -493,6 +571,7 @@ fn build_request(
                     MethodChoice {
                         method_id: method_id.clone(),
                         parameters: parameters(construct),
+                        options: options(construct),
                         ..Default::default()
                     },
                 )
