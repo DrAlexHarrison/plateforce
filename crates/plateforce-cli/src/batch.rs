@@ -72,6 +72,8 @@ pub struct Args {
     /// Repeatable, and it applies to every trial in the folder
     #[arg(long = "derive", value_name = "ASSIGNMENT")]
     pub derive: Vec<String>,
+    #[arg(long = "condition", value_name = "ASSIGNMENT", help = crate::analyse::CONDITION_HELP)]
+    pub condition: Vec<String>,
     #[arg(long = "set", value_name = "ASSIGNMENT", help = crate::analyse::SET_HELP_FOR_A_FOLDER)]
     pub set: Vec<String>,
     #[arg(long = "choose", value_name = "ASSIGNMENT", help = crate::analyse::CHOOSE_HELP)]
@@ -186,7 +188,11 @@ pub fn run(
         Ok(named) => named,
         Err(declined) => return Outcome::declined(declined),
     };
-    let mut built = request_for(args, &registry, &derived, &stated, &named);
+    let conditioning = match crate::analyse::conditioning_methods(&args.condition) {
+        Ok(conditioning) => conditioning,
+        Err(declined) => return Outcome::declined(declined),
+    };
+    let mut built = request_for(args, &registry, &derived, &conditioning, &stated, &named);
     if let Err(declined) = crate::preset::adopt(&mut built, &registry, args.preset.as_ref()) {
         return Outcome::declined(declined);
     }
@@ -225,6 +231,7 @@ fn request_for(
     args: &Args,
     registry: &plateforce_registry::Registry,
     derived: &std::collections::BTreeMap<String, String>,
+    conditioning: &std::collections::BTreeMap<String, String>,
     stated: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
     named: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 ) -> plateforce_analysis::AnalysisRequest {
@@ -263,6 +270,11 @@ fn request_for(
         gravity_meters_per_second_squared:
             plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: crate::analyse::backed_ids(registry),
+        // The phase that conditions the signal runs on every trial in the folder, so a value
+        // written against it applies to every trial the same way `--set onset.k` does. Read
+        // through the same routine the single trial reads it through, because a folder that
+        // conditioned differently from one file would be a second answer to one question.
+        conditioning: crate::analyse::conditioning_choices(conditioning, stated, named),
         // A construct computed from the landmarks has no named field, so the values and the
         // names written against it are keyed by the construct itself rather than by a slot
         // word, which is what `--set` and `--choose` were handed alongside the three steps.

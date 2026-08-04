@@ -97,6 +97,12 @@ pf_value <- function(x, quantity) {
 #'   `list(peak_force = list(method_id = "force.peak.estimator",
 #'   parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
 #'   one placed declines by name when that construct was not named.
+#' @param conditioning Rules and values for the phase that conditions the signal before the
+#'   landmarks are placed, named by the construct id the registry declares:
+#'   `list(conditioned_force_signal = "filter.none")`. Values are written
+#'   `list(conditioned_force_signal = list(options = list(passband_edge = "none")))`, with the
+#'   rule left out where the phase's own is wanted. The phase runs whether or not this is
+#'   passed, so what it buys is the record naming the caller rather than the software.
 #' @param preset Name of a published pipeline, which binds the rules and the values its
 #'   source states and leaves every construct that source is silent about to the caller.
 #'   Every value it supplies is recorded as cited, naming the pipeline, so a result reached
@@ -135,10 +141,12 @@ analyse_countermovement_jump <- function(trial,
                                         takeoff_index = NULL,
                                         touchdown_index = NULL,
                                         derived = NULL,
+                                        conditioning = NULL,
                                         registry = NULL,
                                         registry_version = NULL) {
   request <- analysis_request_of(
     weighing = weighing, onset = onset, takeoff = takeoff, derived = derived,
+    conditioning = conditioning,
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     weighing_parameters = weighing_parameters, onset_parameters = onset_parameters,
     takeoff_parameters = takeoff_parameters,
@@ -160,6 +168,7 @@ analyse_countermovement_jump <- function(trial,
 # The one place a request is written.
 analysis_request_of <- function(weighing, onset, takeoff,
                                 derived = NULL,
+                                conditioning = NULL,
                                 gravity_meters_per_second_squared = NULL,
                                 weighing_parameters = NULL, onset_parameters = NULL,
                                 takeoff_parameters = NULL,
@@ -188,6 +197,7 @@ analysis_request_of <- function(weighing, onset, takeoff,
       manual_index = as_index(takeoff_index)
     )),
     derived = derived_choices(derived),
+    conditioning = conditioning_choices(conditioning),
     touchdown_index = as_index(touchdown_index),
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     gravity_source = gravity_claim(gravity_meters_per_second_squared),
@@ -218,6 +228,36 @@ derived_choices <- function(derived) {
     )
   }
   lapply(derived, function(choice) {
+    if (is.character(choice)) {
+      return(list(method_id = choice))
+    }
+    drop_empty(list(
+      method_id = choice[["method_id"]],
+      parameters = choice[["parameters"]],
+      options = choice[["options"]]
+    ))
+  })
+}
+
+# A rule and the values it reads for the phase that conditions the signal, keyed by the
+# construct id the registry declares. The short form names a rule and states nothing.
+#
+# A choice may carry values and no rule, which is the caller stating what the phase's own rule
+# reads without naming it. The id is left out of the request then, and the engine reads that as
+# a construct nobody named a rule for: it runs the rule it declares and records it, which is
+# what an absent construct already does.
+conditioning_choices <- function(conditioning) {
+  if (is.null(conditioning) || !length(conditioning)) {
+    return(NULL)
+  }
+  if (is.null(names(conditioning)) || any(!nzchar(names(conditioning)))) {
+    refuse_here(
+      "required_parameter_unstated",
+      "each rule that conditions the signal is named by its construct, as list(conditioned_force_signal = \"filter.none\")",
+      parameter = "conditioning"
+    )
+  }
+  lapply(conditioning, function(choice) {
     if (is.character(choice)) {
       return(list(method_id = choice))
     }

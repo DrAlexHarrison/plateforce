@@ -843,7 +843,7 @@ fn run_conditioning_phase(
     warnings: &mut Vec<String>,
 ) -> Result<Conditioned, Box<plateforce_core::Refusal>> {
     for (construct, choice) in &request.conditioning {
-        expect_conditioning_choice(construct, &choice.method_id)?;
+        crate::binding::accepts_conditioning(construct, &choice.method_id)?;
     }
 
     let mut settled = Conditioned {
@@ -853,9 +853,14 @@ fn run_conditioning_phase(
     };
     for construct in crate::binding::conditioning_constructs() {
         let stated = request.conditioning.get(construct);
-        let method_id = stated
+        // A choice carrying no id is a caller who stated values against this phase without
+        // naming a rule for it, which is every surface that offers the values on their own.
+        // It reaches the same rule an omitted construct reaches, and leaves the same record:
+        // what the key buys is somewhere to put the values.
+        let named = stated
             .map(|choice| choice.method_id.as_str())
-            .unwrap_or(crate::slots::conditioned_force_signal::DECLARED_DEFAULT);
+            .filter(|id| !id.is_empty());
+        let method_id = named.unwrap_or(crate::slots::conditioned_force_signal::DECLARED_DEFAULT);
         let Some(binding) = crate::binding::conditioning_bindings().find(|b| b.id == method_id)
         else {
             continue;
@@ -864,12 +869,26 @@ fn run_conditioning_phase(
             continue;
         };
 
-        let chosen = stated.cloned().unwrap_or_else(|| MethodChoice {
-            method_id: method_id.to_string(),
-            ..Default::default()
-        });
+        let chosen = match stated {
+            Some(choice) => MethodChoice {
+                method_id: method_id.to_string(),
+                ..choice.clone()
+            },
+            None => MethodChoice {
+                method_id: method_id.to_string(),
+                ..Default::default()
+            },
+        };
         let source = settled.trial.as_ref().unwrap_or(trial);
         let outcome = rule(source, &chosen, warnings);
+        // A conditioning rule that declines stops the run rather than being noted beside a
+        // result. Everything below reads the signal this phase produces, so carrying on would
+        // place every landmark on a signal no rule stands behind and report the numbers as
+        // though one did. The refusal names the rule and what it takes, so the caller who
+        // stated a value it does not take reads which value would have been taken.
+        if let Some(refused) = outcome.refusal {
+            return Err(Box::new(plateforce_core::Refusal::from(refused)));
+        }
         if let Some(force) = outcome.force_newtons {
             settled.trial = Some(
                 Trial::new(force, trial.sample_rate_hz())
@@ -885,35 +904,6 @@ fn run_conditioning_phase(
         ));
     }
     Ok(settled)
-}
-
-/// A construct and an id the request named together, checked against what this build
-/// conditions with. Both halves, for the same reason the derived phase checks both: either
-/// alone lets a request through that the loop would then skip in silence, and a skipped
-/// conditioning choice is a filter the caller asked for and did not get.
-fn expect_conditioning_choice(
-    construct: &str,
-    method_id: &str,
-) -> Result<(), Box<plateforce_core::Refusal>> {
-    let constructs = crate::binding::conditioning_constructs();
-    if !constructs.contains(&construct) {
-        return Err(Box::new(
-            plateforce_core::Refusal::construct_not_on_the_path(
-                construct,
-                constructs.into_iter().map(str::to_string).collect(),
-            ),
-        ));
-    }
-    if crate::binding::conditioning_bindings().any(|binding| binding.id == method_id) {
-        return Ok(());
-    }
-    Err(Box::new(plateforce_core::Refusal::method_not_implemented(
-        method_id,
-        construct,
-        crate::binding::conditioning_bindings()
-            .map(|binding| binding.id.to_string())
-            .collect(),
-    )))
 }
 
 /// A construct and an id the request named together, checked against what this build runs.

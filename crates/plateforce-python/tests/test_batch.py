@@ -175,3 +175,56 @@ confidence = "high"
     second_run = run(trial_folder, second)
     assert first_run.run.request_digest != second_run.run.request_digest
     assert first_run.run.registry_digest != second_run.run.registry_digest
+
+
+def _edge_sources(result):
+    """Where the edge the conditioning rule read came from, on every trial in the folder."""
+    return {
+        row["source"]
+        for row in result.provenance
+        if row["method_id"] == "filter.none" and row["parameter"] == "passband_edge"
+    }
+
+
+def test_a_folder_run_states_what_conditioned_the_signal(trial_folder, registry_path):
+    """The phase that produces the signal runs on every trial and a notebook folder run had no
+    argument for it, so the record named the software on every row.
+
+    The pair is what makes this a measurement: a run that ignored the argument reports the same
+    source both times.
+    """
+    unstated = run(trial_folder, registry_path)
+    assert _edge_sources(unstated) == {"assumed"}
+
+    stated = run(
+        trial_folder,
+        registry_path,
+        conditioning_options={"conditioned_force_signal": {"passband_edge": "none"}},
+    )
+    assert _edge_sources(stated) == {"stated"}
+
+
+def test_a_folder_run_is_refused_an_edge_the_conditioning_rule_does_not_take(
+    trial_folder, registry_path
+):
+    """Every trial declines, in the one sentence the other three surfaces decline in, and no
+    trial reports a number measured on a signal the caller asked a rule not to produce."""
+    result = run(
+        trial_folder,
+        registry_path,
+        conditioning_options={"conditioned_force_signal": {"passband_edge": "20"}},
+    )
+
+    declined = [row for row in result.refusals if row["method_id"] == "filter.none"]
+    assert len(declined) == result.run.trial_count == 4
+    for row in declined:
+        assert row["code"] == "value_not_accepted"
+        assert row["parameter"] == "passband_edge"
+        assert row["available"] == "none"
+
+    answered = [
+        row
+        for row in result.results
+        if row["values"].get("jump_height_from_takeoff_meters") is not None
+    ]
+    assert answered == []

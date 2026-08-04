@@ -258,3 +258,86 @@ test_that("a peak asked for with no window chosen names the open choice", {
   expect_true("analysis_window" %in% unlist(result@refusals[[1]][["available"]]))
   expect_false("peak_force_newtons" %in% names(result@values))
 })
+
+
+# What the rule that conditioned the signal recorded, and where each value it read came from.
+#
+# The phase runs on every analysis and this package had no argument for it, so every R session
+# reported the software's answer about the signal its numbers were measured on.
+conditioned <- function(...) {
+  result <- analyse_countermovement_jump(
+    quiet_trial(),
+    weighing = "bwepoch.fixed_window",
+    onset = "onset.threshold.noise_relative",
+    takeoff = "takeoff.threshold.absolute_force",
+    ...
+  )
+  result@bound_methods[["filter.none"]]
+}
+
+edge_source_of <- function(bound) {
+  as.character(bound[["parameter_sources"]][["passband_edge"]])
+}
+
+test_that("an R session states what conditioned the signal and the record names the caller", {
+  stated <- conditioned(
+    conditioning = list(
+      conditioned_force_signal = list(options = list(passband_edge = "none"))
+    )
+  )
+  unstated <- conditioned()
+
+  expect_identical(edge_source_of(stated), "stated")
+  expect_identical(edge_source_of(unstated), "assumed")
+  expect_length(stated[["unread_parameters"]], 0)
+})
+
+test_that("naming the rule the phase runs anyway records what leaving it unnamed records", {
+  named <- conditioned(
+    conditioning = list(conditioned_force_signal = "filter.none")
+  )
+  expect_identical(named, conditioned())
+})
+
+test_that("an edge this rule does not take is refused with the one it does", {
+  # `filter.none` reports the recording as it was digitised, so a session asking it for a
+  # 20 Hz passband is asking it for a filter, and answering `none` would write a word into
+  # their record they did not choose.
+  declined <- tryCatch(
+    analyse_countermovement_jump(
+      quiet_trial(),
+      weighing = "bwepoch.fixed_window",
+      onset = "onset.threshold.noise_relative",
+      takeoff = "takeoff.threshold.absolute_force",
+      conditioning = list(
+        conditioned_force_signal = list(options = list(passband_edge = "20"))
+      )
+    ),
+    plateforce_refusal = identity
+  )
+
+  expect_true(inherits(declined, "plateforce_refusal"))
+  expect_identical(declined[["code"]], "value_not_accepted")
+  expect_identical(declined[["method_id"]], "filter.none")
+  expect_identical(declined[["parameter"]], "passband_edge")
+  expect_identical(as.character(unlist(declined[["available"]])), "none")
+})
+
+test_that("a construct this build conditions nothing with is refused by name", {
+  declined <- tryCatch(
+    analyse_countermovement_jump(
+      quiet_trial(),
+      weighing = "bwepoch.fixed_window",
+      onset = "onset.threshold.noise_relative",
+      takeoff = "takeoff.threshold.absolute_force",
+      conditioning = list(movement_onset = "filter.none")
+    ),
+    plateforce_refusal = identity
+  )
+
+  expect_true(inherits(declined, "plateforce_refusal"))
+  expect_identical(
+    as.character(unlist(declined[["available"]])),
+    "conditioned_force_signal"
+  )
+})

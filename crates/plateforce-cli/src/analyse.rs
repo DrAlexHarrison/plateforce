@@ -63,6 +63,8 @@ pub struct Args {
     /// Repeatable
     #[arg(long = "derive", value_name = "ASSIGNMENT")]
     pub derive: Vec<String>,
+    #[arg(long = "condition", value_name = "ASSIGNMENT", help = CONDITION_HELP)]
+    pub condition: Vec<String>,
     #[arg(long = "set", value_name = "ASSIGNMENT", help = SET_HELP)]
     pub set: Vec<String>,
     #[arg(long = "choose", value_name = "ASSIGNMENT", help = CHOOSE_HELP)]
@@ -116,6 +118,15 @@ pub(crate) const CHOOSE_SHAPE: &str = "<slot>.<name>=<value>";
 /// in whichever refusal they happen to raise first.
 pub(crate) const CHOOSE_HELP: &str =
     "A name a rule takes, written <slot>.<name>=<value>. Repeatable, and `registry show <method>` lists the names each rule takes";
+
+/// What `--condition` takes, in the grammar `--derive` already takes, because both name a rule
+/// for a construct the run reaches by construct rather than by a flag of its own.
+///
+/// A separate flag from `--derive` because the two run either side of the landmarks and the
+/// engine refuses a construct named through the wrong one. A rule that conditions produces the
+/// signal the landmark rules read; a rule that derives reads what they placed.
+pub(crate) const CONDITION_HELP: &str =
+    "A rule that conditions the signal before the landmarks are placed, written <construct>=<method>. Repeatable, and the phase runs its own rule and records it where nobody names one";
 
 /// What `--place` takes. One sample per landmark, in the same assignment grammar `--set` and
 /// `--choose` use, with the slot alone on the left because a landmark is one number and a
@@ -204,6 +215,10 @@ pub(crate) fn prepare(
         Ok(derived) => derived,
         Err(declined) => return Err(Outcome::declined(declined)),
     };
+    let conditioning = match conditioning_methods(&args.condition) {
+        Ok(conditioning) => conditioning,
+        Err(declined) => return Err(Outcome::declined(declined)),
+    };
     let also: Vec<String> = derived.keys().cloned().collect();
     let stated = match stated_parameters(&args.set, &also) {
         Ok(stated) => stated,
@@ -224,6 +239,7 @@ pub(crate) fn prepare(
         &registry,
         &chosen,
         &derived,
+        &conditioning,
         &stated,
         &named,
         &placed,
@@ -352,10 +368,17 @@ fn slot_and_parameter<'a>(qualified: &'a str, slots: &[&str]) -> Option<(&'a str
         .filter(|(_, name)| !name.is_empty())
 }
 
-/// Every step a value can be written against on this run: the three on the path, and any
-/// construct this run named for something computed from the landmarks.
+/// Every step a value can be written against on this run: the three on the path, every
+/// construct that conditions the signal, and any construct this run named for something
+/// computed from the landmarks.
+///
+/// The conditioning constructs are here whether or not the line named a rule for one, because
+/// the phase runs on every run. A step that always runs and takes no value is a rule reading
+/// its own answer with the reader holding theirs, which is the founding observation arriving
+/// on this surface's own request path.
 fn steps_of_this_run(also: &[String]) -> Vec<&str> {
     let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
+    slots.extend(plateforce_analysis::binding::conditioning_constructs());
     slots.extend(also.iter().map(String::as_str));
     slots
 }
@@ -674,6 +697,47 @@ pub(crate) fn derived_methods(lines: &[String]) -> Result<BTreeMap<String, Strin
     Ok(chosen)
 }
 
+/// `--condition <construct>=<method>`, read through the one predicate the engine checks a
+/// request with, so a line this surface accepts is a line the engine runs.
+///
+/// A construct written twice is refused through the same helper `--set`, `--choose` and
+/// `--derive` refuse a repeated name with. Two rules for one construct is a line whose meaning
+/// depends on argument order, and the rule that lost would leave no trace in the record.
+pub(crate) fn conditioning_methods(lines: &[String]) -> Result<BTreeMap<String, String>, Declined> {
+    let mut chosen = BTreeMap::new();
+    for line in lines {
+        let Some((construct, method_id)) = line.split_once('=') else {
+            return Err(Declined::line(
+                Fault::Request,
+                format!(
+                    "--condition takes {}, and '{line}' carries no =",
+                    plateforce_batch::derive::SHAPE
+                ),
+            ));
+        };
+        let (construct, method_id) = (construct.trim(), method_id.trim());
+        // An empty id is the engine's word for a construct nobody named a rule for, which is
+        // what this surface sends when a reader states values and no rule. Written on the line
+        // it is a reader who meant to name one, so it is a fault in the line rather than a
+        // silent fallback to whatever the phase runs.
+        if method_id.is_empty() {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--condition {construct} was given no rule"),
+            ));
+        }
+        if let Err(refusal) =
+            plateforce_analysis::binding::accepts_conditioning(construct, method_id)
+        {
+            return Err(Declined::recorded(*refusal));
+        }
+        if let Some(first) = chosen.insert(construct.to_string(), method_id.to_string()) {
+            return Err(stated_twice("--condition", construct, &first, method_id));
+        }
+    }
+    Ok(chosen)
+}
+
 /// A rule the run cannot bind, in the shape the caller's other refusals arrive in.
 ///
 /// The two halves keep the split the record makes: a line the reader will rewrite from the
@@ -687,10 +751,14 @@ pub(crate) fn declined_binding(refusal: plateforce_batch::DeriveRefusal) -> Decl
     }
 }
 
+// Every argument is a choice the line made and none of them is derivable from another, so the
+// alternative to the count is a struct whose only reader is this call.
+#[allow(clippy::too_many_arguments)]
 fn build_request(
     registry: &Registry,
     chosen: &BTreeMap<String, String>,
     derived: &BTreeMap<String, String>,
+    conditioning: &BTreeMap<String, String>,
     stated: &BTreeMap<String, BTreeMap<String, f64>>,
     named: &BTreeMap<String, BTreeMap<String, String>>,
     placed: &BTreeMap<String, usize>,
@@ -744,6 +812,7 @@ fn build_request(
         gravity_meters_per_second_squared,
         gravity_source,
         registry_backed_ids: backed_ids(registry),
+        conditioning: conditioning_choices(conditioning, stated, named),
         derived: derived
             .iter()
             .map(|(construct, method_id)| {
@@ -760,6 +829,42 @@ fn build_request(
             .collect(),
         ..Default::default()
     }
+}
+
+/// What this run says about the phase that conditions the signal, keyed by the construct the
+/// registry declares.
+///
+/// A construct the line said nothing about is left out rather than sent with an empty choice.
+/// The phase runs it either way and leaves the same record, so a key in the map is the reader
+/// having spoken rather than the software claiming they did.
+///
+/// A construct written against with no rule named carries no id, which is the engine's word
+/// for a reader who stated values and left the rule to the phase. Naming the rule the phase
+/// runs anyway and leaving it unnamed produce the same record.
+pub(crate) fn conditioning_choices(
+    rules: &BTreeMap<String, String>,
+    stated: &BTreeMap<String, BTreeMap<String, f64>>,
+    named: &BTreeMap<String, BTreeMap<String, String>>,
+) -> BTreeMap<String, MethodChoice> {
+    let mut conditioning = BTreeMap::new();
+    for construct in plateforce_analysis::binding::conditioning_constructs() {
+        let parameters = stated.get(construct).cloned().unwrap_or_default();
+        let options = named.get(construct).cloned().unwrap_or_default();
+        let method_id = rules.get(construct).cloned().unwrap_or_default();
+        if method_id.is_empty() && parameters.is_empty() && options.is_empty() {
+            continue;
+        }
+        conditioning.insert(
+            construct.to_string(),
+            MethodChoice {
+                method_id,
+                parameters,
+                options,
+                ..Default::default()
+            },
+        );
+    }
+    conditioning
 }
 
 /// What this registry carries, which is the question `registry_entry` answers on every

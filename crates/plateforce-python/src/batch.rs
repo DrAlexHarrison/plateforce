@@ -299,13 +299,45 @@ pub fn batch_result_from_json(text: &str) -> PyResult<BatchResult> {
         .map_err(PyValueError::new_err)
 }
 
+/// What one folder run says about the phase that conditions the signal, keyed by the construct
+/// the registry declares.
+///
+/// The keys are the union of the three arguments, because a caller may name a rule for the
+/// phase, state values against the rule it runs anyway, or both. A construct none of them
+/// names is left out: the phase runs it either way and leaves the same record, so a key in the
+/// map is the caller having spoken.
+fn conditioning_choices(
+    rules: &std::collections::BTreeMap<String, String>,
+    parameters: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
+    options: &std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
+) -> std::collections::BTreeMap<String, plateforce_analysis::MethodChoice> {
+    let mut constructs: std::collections::BTreeSet<&String> = std::collections::BTreeSet::new();
+    constructs.extend(rules.keys());
+    constructs.extend(parameters.keys());
+    constructs.extend(options.keys());
+    constructs
+        .into_iter()
+        .map(|construct| {
+            (
+                construct.clone(),
+                plateforce_analysis::MethodChoice {
+                    method_id: rules.get(construct).cloned().unwrap_or_default(),
+                    parameters: parameters.get(construct).cloned().unwrap_or_default(),
+                    options: options.get(construct).cloned().unwrap_or_default(),
+                    ..Default::default()
+                },
+            )
+        })
+        .collect()
+}
+
 /// Run one analysis over every trial under a directory.
 ///
 /// `sentinel` is the value this export writes where a sample is missing, or `None` to state
 /// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
 /// reading a vendor's missing marker as a force.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, derived = None, derived_parameters = None, derived_options = None))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -325,6 +357,13 @@ pub fn batch(
         std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
     >,
     derived_options: Option<
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
+    >,
+    conditioning: Option<std::collections::BTreeMap<String, String>>,
+    conditioning_parameters: Option<
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
+    >,
+    conditioning_options: Option<
         std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
     >,
 ) -> PyResult<BatchResult> {
@@ -364,6 +403,20 @@ pub fn batch(
     let derived = derived.unwrap_or_default();
     let derived_parameters = derived_parameters.unwrap_or_default();
     let derived_options = derived_options.unwrap_or_default();
+
+    // The phase that conditions the signal runs on every trial in the folder, so a value
+    // written against it applies to every trial the way a landmark rule's does. Keyed the same
+    // way, and checked through the predicate the engine checks a request with, so a folder run
+    // and a single trial cannot report one recording as conditioned two ways.
+    let conditioning = conditioning_choices(
+        &conditioning.unwrap_or_default(),
+        &conditioning_parameters.unwrap_or_default(),
+        &conditioning_options.unwrap_or_default(),
+    );
+    for (construct, choice) in &conditioning {
+        plateforce_analysis::binding::accepts_conditioning(construct, &choice.method_id)
+            .map_err(|refusal| PyValueError::new_err(refusal.message().to_string()))?;
+    }
     let analysis = plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: weighing.to_string(),
@@ -384,6 +437,7 @@ pub fn batch(
         // rather than as the run's own. A list built from the caller's choices alone reports
         // the operators a binding composes as absent from the registry they are filed in.
         registry_backed_ids: loaded.methods.keys().cloned().collect(),
+        conditioning,
         derived: derived
             .iter()
             .map(|(construct, method_id)| {
