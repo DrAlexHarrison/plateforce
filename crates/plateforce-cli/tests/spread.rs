@@ -126,12 +126,7 @@ fn held(response: &serde_json::Value) -> Vec<String> {
         .as_array()
         .expect("the record says what it held")
         .iter()
-        .map(|rule| {
-            rule["construct"]
-                .as_str()
-                .expect("a construct")
-                .to_string()
-        })
+        .map(|rule| rule["construct"].as_str().expect("a construct").to_string())
         .collect()
 }
 

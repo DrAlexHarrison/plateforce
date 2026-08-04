@@ -203,7 +203,10 @@ fn axis_order(axis: &Axis) -> (usize, String, String, Vec<usize>) {
         table_rank_of_construct(&construct),
         construct,
         axis.parameter.clone().unwrap_or_default(),
-        axis.method_ids.iter().map(|id| table_rank_of_rule(id)).collect(),
+        axis.method_ids
+            .iter()
+            .map(|id| table_rank_of_rule(id))
+            .collect(),
     )
 }
 
