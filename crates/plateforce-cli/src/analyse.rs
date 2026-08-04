@@ -80,7 +80,11 @@ pub struct Args {
     ///
     /// Negative values reach the parser rather than being read as another flag, so a mass
     /// below zero is refused by the name the record reports it under.
-    #[arg(long = "body-mass-kg", value_name = "KG", allow_negative_numbers = true)]
+    #[arg(
+        long = "body-mass-kg",
+        value_name = "KG",
+        allow_negative_numbers = true
+    )]
     pub body_mass_kg: Option<f64>,
     /// Cite this registry revision in the result. Unstated, the result names no pinned
     /// revision and reports the one the registry declares for itself

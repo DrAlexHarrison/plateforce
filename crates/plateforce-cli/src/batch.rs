@@ -94,7 +94,11 @@ pub struct Args {
     pub gravity: Option<f64>,
     /// The athlete's mass, which is not the weighed system mass: system weight includes any
     /// bar and bodyweight does not. One mass covers every trial in the folder
-    #[arg(long = "body-mass-kg", value_name = "KG", allow_negative_numbers = true)]
+    #[arg(
+        long = "body-mass-kg",
+        value_name = "KG",
+        allow_negative_numbers = true
+    )]
     pub body_mass_kg: Option<f64>,
     /// Cite this registry revision in the record. Unstated, the record names no pinned
     /// revision and reports the one the registry declares for itself

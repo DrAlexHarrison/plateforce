@@ -12,9 +12,7 @@ mod common;
 
 use plateforce_batch::{analyse, TrialIdentity, TrialSet};
 
-use common::{
-    analysis_request, bound_request, committed_format, registry, tempdir, FIXTURES,
-};
+use common::{analysis_request, bound_request, committed_format, registry, tempdir, FIXTURES};
 
 const TRIAL_FILE: &str = "subject01_trial1.force.txt";
 const STATED_MASS_KILOGRAMS: f64 = 61.5;
@@ -66,7 +64,10 @@ fn named(
 /// chose it.
 #[test]
 fn the_run_record_names_every_value_the_folder_was_bound_to_and_who_chose_it() {
-    let spoken = named(&run_bound(Some(STATED_MASS_KILOGRAMS), Some(STATED_GRAVITY)));
+    let spoken = named(&run_bound(
+        Some(STATED_MASS_KILOGRAMS),
+        Some(STATED_GRAVITY),
+    ));
     println!("{spoken:?}");
     assert_eq!(
         spoken["body_mass_kilograms"],
