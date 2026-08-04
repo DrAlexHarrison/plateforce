@@ -85,12 +85,17 @@ def swept_answers_that_pass():
 def faults_when(name, change, expected, kind=None, build=None):
     """Apply one change to a passing run and require a fault that names `expected`.
 
-    The register is restored afterwards because one case edits it: a recorded disagreement is
-    only repairable by a case that first records one, and leaving that behind would change
-    what every case after it is measured against.
+    Every register a case can reach is restored afterwards, because several cases edit one: a
+    recorded disagreement is only repairable by a case that first records one, and a register
+    emptied or widened here would change what every case after it is measured against. Which
+    struct a kind is answered in is restored for the same reason, and it is the loudest of the
+    three: left pointing elsewhere it would redden every remaining case for a reason that is
+    not the case.
     """
     kind = kind or gate.ANALYSED
-    was = dict(gate.SURFACES_THAT_DIFFER[kind])
+    differ_was = dict(gate.SURFACES_THAT_DIFFER[kind])
+    never_was = dict(gate.NEVER_ON_THE_WIRE[kind])
+    document_was = gate.DOCUMENT_OF_KIND[kind]
     if build is None:
         answers, fields = answers_that_pass()
         asked = gate.surfaces_named_in_manifest()
@@ -103,7 +108,10 @@ def faults_when(name, change, expected, kind=None, build=None):
         faults = gate.coverage_faults(answers, fields, kind, asked)
     finally:
         gate.SURFACES_THAT_DIFFER[kind].clear()
-        gate.SURFACES_THAT_DIFFER[kind].update(was)
+        gate.SURFACES_THAT_DIFFER[kind].update(differ_was)
+        gate.NEVER_ON_THE_WIRE[kind].clear()
+        gate.NEVER_ON_THE_WIRE[kind].update(never_was)
+        gate.DOCUMENT_OF_KIND[kind] = document_was
     hit = [fault for fault in faults if expected in fault]
     if not hit:
         print(f"  NOT REFUSED: no fault mentions {expected!r}", file=sys.stderr)
@@ -234,6 +242,40 @@ def make_two_surfaces_name_different_builds(answers, fields):
     answers["python"]["plateforce_version"] = "0.0.0-somewhere-else"
 
 
+def stop_naming_a_field_that_reaches_no_wire(answers, fields):
+    """The defect the register was added for, put back.
+
+    Written against the register rather than against a named field, for the reason the repaired
+    disagreement above is: a case naming `plate_profile` goes quiet the moment a request fills
+    it, and this script is run by hand. Emptying the register is the state the gate was in
+    before it read the document at all.
+    """
+    gate.NEVER_ON_THE_WIRE[gate.ANALYSED].clear()
+
+
+def name_a_field_the_document_does_not_declare(answers, fields):
+    """A register entry for a field no document has, which reads as coverage and covers nothing."""
+    gate.NEVER_ON_THE_WIRE[gate.ANALYSED]["calibration_certificate"] = gate.NeverOnTheWire(
+        "nothing, because there is no such field", "a field this document never declared"
+    )
+
+
+def put_a_field_named_as_reaching_no_wire_on_one(answers, fields):
+    """The entry outliving the gap it records, which an allow-list would pass in silence."""
+    for field in gate.NEVER_ON_THE_WIRE[gate.ANALYSED]:
+        answers["cli"][field] = {"id": "plate-01"}
+
+
+def make_the_document_a_stranger_to_the_surfaces(answers, fields):
+    """The control on the parse itself: a universe the surfaces are not in.
+
+    A read that found the wrong struct, or stopped early, reports a set of fields with nothing
+    in it wrong on its face, and every field the surfaces publish then looks undeclared. That
+    is what says the parse ran and reached the document rather than something shaped like it.
+    """
+    gate.DOCUMENT_OF_KIND[gate.ANALYSED] = "TrialSource"
+
+
 CASES = [
     ("a name taken out of compared_fields", drop_a_compared_field, "every surface publishes"),
     (
@@ -295,6 +337,26 @@ CASES = [
         "a recorded disagreement repaired, which the register has to notice",
         repair_a_recorded_disagreement,
         "recorded as disagreeing",
+    ),
+    (
+        "a field the document declares that reaches no wire and is named nowhere",
+        stop_naming_a_field_that_reaches_no_wire,
+        "and no answer to this request carries it",
+    ),
+    (
+        "a field named as reaching no wire that the document does not declare",
+        name_a_field_the_document_does_not_declare,
+        "declares no such field",
+    ),
+    (
+        "a field named as reaching no wire, on a wire",
+        put_a_field_named_as_reaching_no_wire_on_one,
+        "it is on the wire",
+    ),
+    (
+        "the document's fields read off something that is not the document",
+        make_the_document_a_stranger_to_the_surfaces,
+        "declares no such field, so the",
     ),
 ]
 

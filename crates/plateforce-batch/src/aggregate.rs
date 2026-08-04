@@ -386,10 +386,7 @@ fn row_for(
 }
 
 fn dispersion_label(dispersion: DispersionEstimator) -> &'static str {
-    match dispersion {
-        DispersionEstimator::Population => "population",
-        DispersionEstimator::Sample => "sample",
-    }
+    dispersion.as_published_str()
 }
 
 /// The reductions joined onto a result, so `results` gains nothing and loses nothing.

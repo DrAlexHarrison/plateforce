@@ -7,6 +7,8 @@
 
 use std::collections::BTreeMap;
 
+use plateforce_analysis::binding::{derived_bindings, Binding};
+use plateforce_analysis::slots::phase_model::CONSTRUCT as PHASE_MODEL;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
@@ -466,6 +468,78 @@ fn keys_reported_by(response: &AnalysisResponse, rule: &str) -> Vec<String> {
         .filter(|metric| metric.computed_by.as_deref() == Some(rule))
         .map(|metric| metric.key.clone())
         .collect()
+}
+
+/// Every quantity a phase model publishes carries a number on a recording the model places on,
+/// and every key it reports is one its row publishes.
+///
+/// The population is read off the binding table rather than written here, so a third phase
+/// model arrives inside this guard rather than beside it.
+///
+/// Asserted on the values rather than on the keys, and the difference is the whole guard. The
+/// keys now come off the same quantities the row publishes, so a key set compared against that
+/// row is a set compared with itself and cannot fail. The boundaries are the independent
+/// population: they come back from `plateforce_core::phases`, one index per boundary the model
+/// found, and a model whose row publishes six while its search returns five leaves a column the
+/// registry promises, the interface draws, and no recording ever fills. On this trace all three
+/// models place, so a quantity with no number here is that mismatch and nothing else.
+///
+/// The other direction, a number reported under a key the row does not publish, is asserted for
+/// every derived rule where the metrics are built, in `pipeline.rs`, and repeating it here
+/// would be an assertion that cannot fail.
+#[test]
+fn every_phase_model_fills_every_quantity_its_row_publishes() {
+    let trial = a_jump_that_lands();
+    let models: Vec<&Binding> = derived_bindings()
+        .filter(|binding| binding.construct == PHASE_MODEL)
+        .collect();
+    // The control. Every assertion below holds over an empty population, and a construct
+    // renamed out from under this filter would leave one.
+    assert!(
+        !models.is_empty(),
+        "no row of the binding table is filed under {PHASE_MODEL}, so this guard walked nothing"
+    );
+
+    let mut faults = Vec::new();
+    let mut valued = 0;
+    let mut published = 0;
+    for model in &models {
+        let response = run(&trial, &naming(&[(model.construct, model.id)]))
+            .unwrap_or_else(|error| panic!("{} could not run: {error}", model.id));
+        published += model.quantities.len();
+
+        let empty: Vec<&str> = model
+            .quantities
+            .iter()
+            .map(|quantity| quantity.key)
+            .filter(|key| value(&response, key).is_none())
+            .collect();
+        valued += model.quantities.len() - empty.len();
+        if !empty.is_empty() {
+            faults.push(format!(
+                "{} publishes {} quantities and places {} boundaries on this recording, so \
+                 {empty:?} reach a reader as columns nothing fills",
+                model.id,
+                model.quantities.len(),
+                model.quantities.len() - empty.len()
+            ));
+        }
+    }
+
+    // What this guard covers, as a query rather than a figure written down. The population and
+    // what it filled, counted apart, because a guard reporting one of them says nothing about
+    // a model that ran and placed nothing.
+    println!(
+        "{} phase models publish {published} quantities, {valued} of them filled on this recording",
+        models.len()
+    );
+    assert!(
+        faults.is_empty(),
+        "{} of {} phase models place something other than what they publish:\n  {}",
+        faults.len(),
+        models.len(),
+        faults.join("\n  ")
+    );
 }
 
 /// The registry's own claim about this pair, and the reason a phase model is a decision a user
