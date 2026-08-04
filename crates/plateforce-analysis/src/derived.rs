@@ -6,9 +6,9 @@
 //! under the registry's other constructs runs after them, over what they placed, and is
 //! reached by construct id through a map on the request.
 //!
-//! The fifty-eight level-one entries are not one problem: four constructs and fifteen
-//! entries condition the signal before the spine, one entry is a declaration on the spine
-//! itself, and twenty constructs and forty-two entries are computed after it.
+//! The level-one entries are not one problem: some condition the signal before the spine
+//! runs, one is a declaration on the spine itself, and the rest are computed after it over
+//! what it placed. `registry census` counts each population.
 //!
 //! Adding a rule is a file here and a row in `BINDINGS`. Nothing in `pipeline.rs` changes.
 
@@ -402,8 +402,8 @@ mod tests {
     /// Guarded here rather than through the pipeline, because through the pipeline the two
     /// are the same set: one construct places samples, so everything placed is everything
     /// read and an assertion about the difference could not fail. It becomes observable the
-    /// moment a second construct places anything, which is what the fifty-eight entries this
-    /// dispatch unblocks will do.
+    /// moment a second construct places anything, which is what the entries this dispatch
+    /// unblocks will do.
     #[test]
     fn the_chain_names_the_rules_a_rule_read_and_not_the_rules_that_merely_ran() {
         let trial = a_trial();

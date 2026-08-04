@@ -26,8 +26,7 @@ let loaded = null;
  *
  * `path` is the constructs beyond the three the request names by its own fields. A
  * construct nobody asked for is not on the path, so it is never instantiated and raises no
- * decision, which is why the registry's fifty-eight constructs do not become fifty-eight
- * rows.
+ * decision, which is why the registry's constructs do not each become a row.
  */
 export function buildDecisionModel(registry, build, path = []) {
   loaded = registry;
