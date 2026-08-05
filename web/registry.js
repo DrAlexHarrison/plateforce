@@ -218,19 +218,23 @@ export function windowLengthParameter(candidate) {
   return (candidate?.method?.parameter || []).find((parameter) => parameter.unit === 'seconds')?.name || null;
 }
 
-/* Every value the registry publishes for gravity, read from the entry that declares the
- * parameter. A list written here instead offered three of the four the registry carries,
- * and a sweep that omits a published value is reporting a narrower disagreement than the
- * literature holds. */
-function publishedGravityValues() {
+/* Every value the registry publishes for gravity, over every entry that publishes one.
+ *
+ * A list written here instead offered three of the four the registry carries, and a sweep
+ * that omits a published value is reporting a narrower disagreement than the literature
+ * holds. Reading the first entry that publishes any was the same hazard one loader ordering
+ * away: two entries publish a gravity, one of them a single value, and the sweep would have
+ * run over one combination without saying so.
+ */
+export function publishedGravityValues() {
+  const values = new Set();
   for (const method of loaded?.methods || []) {
     for (const parameter of method.parameter || []) {
-      if (parameter.name === 'gravity' && parameter.published_values?.length) {
-        return parameter.published_values;
-      }
+      if (parameter.name !== 'gravity') continue;
+      for (const value of parameter.published_values || []) values.add(value);
     }
   }
-  return [];
+  return [...values].sort((low, high) => low - high);
 }
 
 export const GRAVITY_AXIS = {

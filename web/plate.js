@@ -14,6 +14,7 @@ import { $, state } from './state.js';
 import { element, reply } from './format.js';
 import { runAnalysis } from './analysis.js';
 import { drawRun } from './batch-run.js';
+import { GRAVITY_AXIS, publishedGravityValues } from './registry.js';
 
 /* Saved plates live on this machine and are never sent anywhere, for the reason the trace is
  * never sent anywhere. The key carries its own version so a shape written by an older build
@@ -162,8 +163,8 @@ export function renderChip() {
 
 /* A plate written to this machine under a name. Saving over a name replaces it, which is the
  * act that leaves a result recorded earlier resting on answers this plate no longer holds. */
-export function savePlate(name, members) {
-  state.plate.saved[name] = { members, revision: null };
+export function savePlate(name, members, gravity = null) {
+  state.plate.saved[name] = { members, revision: null, gravity };
   writeStorage();
 }
 
@@ -174,6 +175,11 @@ function pick(name) {
   state.plate.picked = name;
   $('plate-name').value = name || '';
   $('plate-save').disabled = !name;
+  // A plate that carries a gravity carries it because somebody measured it where that plate
+  // stands. Picking the plate is asking for its site, so the number comes with it. A plate
+  // holding none leaves whatever the reader has stated alone rather than clearing it.
+  const site = state.plate.saved[name]?.gravity;
+  if (site != null) state.gravity = site;
   writeStorage();
   renderPlatePanel();
   renderChip();
@@ -184,7 +190,7 @@ function pick(name) {
 function save() {
   const name = $('plate-name').value.trim();
   if (!name) return;
-  savePlate(name, effectiveMembers());
+  savePlate(name, effectiveMembers(), state.gravity);
   state.plate.stated = {};
   pick(name);
 }
@@ -259,9 +265,65 @@ function renderMemberFields() {
   }
 }
 
+/*
+ * The gravity every number on screen is computed against, and the field a reader states one in.
+ *
+ * Gravity varies by half a percent across the Earth's surface, which is fifteen times the
+ * difference between the two constants the published tools argue over, and it moves five of the
+ * eleven quantities the tab reports. So a reader who measured it at their own plate has to be
+ * able to say so, and until one does the field stands empty: a number written in here would be
+ * standard gravity's second home, and it would arrive at the engine wearing the reader's
+ * signature.
+ *
+ * The offered values are the registry's published ones, offered rather than imposed, because a
+ * measured local gravity is the answer this field exists for.
+ */
+function renderGravityField() {
+  const input = $('gravity');
+  input.value = state.gravity ?? '';
+  $('gravity-unit').textContent = GRAVITY_AXIS.unit;
+  $('gravity-published').replaceChildren(
+    ...publishedGravityValues().map((value) => {
+      const option = document.createElement('option');
+      option.value = value;
+      return option;
+    }),
+  );
+  renderGravityHint();
+}
+
+/* What the numbers on screen ran against, read off the record and said whenever the field is
+ * not already saying it: nobody has stated one, or what is typed was not accepted. A box
+ * holding a number the results were not computed against is a confident wrong number. */
+function renderGravityHint() {
+  const bound = state.analysis?.bound_globals?.find((global) => global.name === GRAVITY_AXIS.parameter);
+  const typed = $('gravity').value.trim();
+  const fieldSaysIt = bound != null && typed !== '' && Number(typed) === bound.value;
+  $('gravity-hint').textContent =
+    bound && !fieldSaysIt ? `Results use ${bound.value} ${bound.unit_symbol}.` : '';
+}
+
+/* An empty field is the reader declining to state one. A value outside the range the input
+ * declares is left in the box unaccepted, marked and answered by the hint, rather than a typo
+ * silently becoming the gravity every result is bound to. */
+function stateGravity() {
+  const input = $('gravity');
+  const typed = input.value.trim();
+  if (typed !== '' && !input.checkValidity()) {
+    input.reportValidity();
+    renderGravityHint();
+    return;
+  }
+  state.gravity = typed === '' ? null : Number(typed);
+  runAnalysis();
+  drawRun();
+  renderGravityField();
+}
+
 export function renderPlatePanel() {
   renderSavedList();
   renderMemberFields();
+  renderGravityField();
   const forgetAction = $('plate-forget');
   forgetAction.hidden = !state.plate.picked;
   if (state.plate.picked) forgetAction.textContent = `Forget ${state.plate.picked}`;
@@ -270,6 +332,9 @@ export function renderPlatePanel() {
 export function startPlate() {
   readMembers();
   readStorage();
+  // The plate this machine was left on brings its site with it, the same way picking one does.
+  const site = state.plate.saved[state.plate.picked]?.gravity;
+  if (site != null) state.gravity = site;
   $('plate-name').value = state.plate.picked || '';
   $('plate-save').disabled = !state.plate.picked;
   $('plate-chip').addEventListener('click', () => {
@@ -281,6 +346,7 @@ export function startPlate() {
   $('plate-name').addEventListener('input', () => {
     $('plate-save').disabled = !$('plate-name').value.trim();
   });
+  $('gravity').addEventListener('change', stateGravity);
   renderPlatePanel();
   renderChip();
 }

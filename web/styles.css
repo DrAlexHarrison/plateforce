@@ -393,6 +393,11 @@ input[type="number"], input[type="text"], select {
 }
 select { cursor: pointer; }
 
+/* A number the field has not accepted is not the number the results ran against, and the hint
+   below it says which one did. The border is the second signal, because colour alone carries
+   no meaning to a reader who cannot see it. */
+input:invalid { border-color: var(--danger); }
+
 /* ---------------------------------------------------------------- chart */
 
 .chart { position: relative; width: 100%; height: 380px; touch-action: none; overflow: hidden; }

@@ -42,9 +42,33 @@ function renderRegistryBanner() {
   list.replaceChildren(...state.build.registry_violations.map((line) => element('li', null, line)));
 }
 
+/*
+ * Every value the record says this analysis was bound to rather than any one rule, with the
+ * claim that says whether anybody chose it.
+ *
+ * The engine names them and the record carries the unit beside each, so nothing here decides
+ * which exist or what they are called. The value prints as the record spells it: rounding
+ * gravity to three places would put 9.80665 and 9.81 on screen as the same number, and the
+ * whole reason the field is offered is that they are not.
+ */
+function globalRows() {
+  return (state.analysis?.bound_globals || []).map((global) => [
+    // The record spells a name with its unit on the end, and the row already carries the unit
+    // beside the value.
+    readableName(global.name, global.unit),
+    `${global.value} ${global.unit_symbol}, ${global.source}`,
+  ]);
+}
+
+function readableName(name, unit) {
+  const stem = name.endsWith(`_${unit}`) ? name.slice(0, -(unit.length + 1)) : name;
+  const words = stem.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 /* What produced the numbers on screen: the build, the registry it was compiled against, and
- * what the result says the plate was. Redrawn after every analysis, because the plate is the
- * one part of it a reader changes while the tab is open. */
+ * what the result says the plate and the analysis were bound to. Redrawn after every
+ * analysis, because those are the parts a reader changes while the tab is open. */
 export function renderBuildInfo() {
   const census = state.registry.census;
   const rows = [
@@ -59,6 +83,7 @@ export function renderBuildInfo() {
     ['Computation entries', String(census.computation_entries)],
     ['Protocol entries', String(census.protocol_entries)],
     ...plateRows(),
+    ...globalRows(),
   ];
   const list = $('build-info');
   list.replaceChildren();
