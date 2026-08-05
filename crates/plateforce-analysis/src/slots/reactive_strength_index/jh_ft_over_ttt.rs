@@ -44,7 +44,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
 
     // Onset and takeoff bound the denominator; takeoff and the return to the plate bound the
     // numerator. So the landmark bundle is what this needs, and the touchdown is asked for

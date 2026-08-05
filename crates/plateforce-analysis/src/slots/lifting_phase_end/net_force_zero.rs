@@ -43,7 +43,12 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let deadband_newtons = resolved.number(DEADBAND_PARAMETER, DEADBAND_DEFAULT_NEWTONS);
 
     let (Some(_onset), Some(takeoff)) = (context.onset_index(), context.takeoff_index()) else {

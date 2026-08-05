@@ -66,7 +66,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
 
     // The three fractions are read whether or not the segment is measured directly, because
     // the standing lean of the segment comes from the same triangle and the correction needs

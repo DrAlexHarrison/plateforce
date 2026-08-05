@@ -28,7 +28,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     DerivedOutcome {
         values: vec![(KEY, Some(1.0))],
         placed: Vec::new(),

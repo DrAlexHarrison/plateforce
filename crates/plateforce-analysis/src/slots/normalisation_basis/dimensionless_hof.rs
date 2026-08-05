@@ -49,7 +49,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let leg_length_meters = resolved.required_number(ID, LEG_LENGTH_PARAMETER);
     let mass = super::body_mass_kilograms(context, &mut resolved, ID);
     let peak = super::measured(context, ID, power_peak::CONSTRUCT, power_peak::KEY);

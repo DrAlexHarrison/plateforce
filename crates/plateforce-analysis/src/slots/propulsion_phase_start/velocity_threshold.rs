@@ -34,7 +34,12 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let threshold_meters_per_second =
         resolved.number("threshold_mps", PUBLISHED_THRESHOLD_METERS_PER_SECOND);
 

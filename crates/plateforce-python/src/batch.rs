@@ -481,6 +481,10 @@ pub fn batch(
             })
             .collect(),
     };
+    let mut analysis = analysis;
+    // The published defaults every trial in the folder runs on, read from the registry this
+    // call loaded rather than held in the rules.
+    analysis.reading(&loaded);
 
     let declared = resolved.unwrap_or_default();
     let borrowed: Vec<&str> = declared.iter().map(String::as_str).collect();

@@ -81,7 +81,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let criterion = resolved.required_enumerated(ID, CRITERION_PARAMETER, CRITERIA);
     let ceiling_newtons = resolved.number(CEILING_PARAMETER, CEILING_DEFAULT_NEWTONS);
     let band_percent = resolved.number(BAND_PARAMETER, BAND_DEFAULT_PERCENT);

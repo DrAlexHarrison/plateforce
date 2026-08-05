@@ -76,6 +76,9 @@ pub fn request_digest(
         from_registry_default: weighing_from_registry_default,
         cited: weighing_cited,
         preset: weighing_preset,
+        // The registry's own declarations, which identify the registry rather than the
+        // request. `registry_digest` is where a reader meets them.
+        declared: _,
     } = weighing;
     let mut backed = registry_backed_ids.clone();
     backed.sort();
@@ -142,6 +145,7 @@ fn method_choice(choice: &MethodChoice) -> Value {
         from_registry_default,
         cited,
         preset,
+        declared: _,
     } = choice;
     json!({
         "method_id": method_id,
