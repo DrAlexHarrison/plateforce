@@ -81,6 +81,19 @@ pub fn pf_spread_json(handle: Robj, request_json: &str) -> String {
 }
 
 #[extendr]
+pub fn pf_spread_under_preset_json(
+    handle: Robj,
+    root: &str,
+    preset_id: &str,
+    request_json: &str,
+) -> String {
+    match held(&handle) {
+        Some(trial) => crate::spread_under_preset_json(trial, root, preset_id, request_json),
+        None => crate::handle_lost_json(),
+    }
+}
+
+#[extendr]
 pub fn pf_analyse_json(handle: Robj, request_json: &str) -> String {
     match held(&handle) {
         Some(trial) => crate::analyse_json(trial, request_json),
@@ -168,6 +181,7 @@ extendr_module! {
     fn pf_analyse_json;
     fn pf_analyse_under_preset_json;
     fn pf_spread_json;
+    fn pf_spread_under_preset_json;
     fn pf_double_probe_json;
     fn pf_capability_json;
 }

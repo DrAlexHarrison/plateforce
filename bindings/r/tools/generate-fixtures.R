@@ -119,12 +119,24 @@ sweep <- pf_spread(
 swept <- vapply(sweep[["variants"]], function(one) {
   if (is.null(one[["value"]])) NA_real_ else as.double(one[["value"]])
 }, numeric(1))
+# Which rule produced which number, rather than the four summary figures alone. A fixture
+# holding only the summary certifies the arithmetic and says nothing about the record, which
+# is the half of this product that the arithmetic is in service of.
+rules <- vapply(sweep[["variants"]], function(one) one[["settings"]][[1]][[2]], character(1))
 write_lines("onset-sweep.txt", c(
   paste("variants", length(swept)),
   paste("failed", sweep[["failed"]]),
   paste("spread_absolute_meters", format(sweep[["spread_absolute"]], digits = 17)),
   paste("furthest_from_median_meters",
-        format(max(abs(swept - stats::median(swept, na.rm = TRUE)), na.rm = TRUE), digits = 17))
+        format(max(abs(swept - stats::median(swept, na.rm = TRUE)), na.rm = TRUE), digits = 17)),
+  paste("method_ids", paste(rules, collapse = ",")),
+  # `format` pads a vector to one width, so each is written on its own to keep the joined
+  # line free of the spaces that padding would put either side of every comma.
+  paste("values_meters",
+        paste(vapply(swept, format, character(1), digits = 17), collapse = ",")),
+  paste("registry_declared_version",
+        if (is.null(sweep[["registry_declared_version"]])) "none" else
+          sweep[["registry_declared_version"]])
 ))
 
 write_lines(

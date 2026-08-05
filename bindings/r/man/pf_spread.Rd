@@ -7,20 +7,30 @@
 pf_spread(
   trial,
   quantity,
-  slot,
-  weighing,
-  onset,
-  takeoff,
+  slot = NULL,
+  weighing = NULL,
+  onset = NULL,
+  takeoff = NULL,
+  preset = NULL,
   method_ids = NULL,
-  parameter = NULL,
-  values = NULL,
+  vary = NULL,
   gravity_meters_per_second_squared = NULL,
   body_mass_kilograms = NULL,
   weighing_parameters = NULL,
   onset_parameters = NULL,
   takeoff_parameters = NULL,
+  weighing_options = NULL,
+  onset_options = NULL,
+  takeoff_options = NULL,
+  weighing_start_index = NULL,
+  onset_index = NULL,
+  takeoff_index = NULL,
+  touchdown_index = NULL,
+  derived = NULL,
+  conditioning = NULL,
   maximum_combinations = NULL,
-  registry = NULL
+  registry = NULL,
+  registry_version = NULL
 )
 }
 \arguments{
@@ -29,10 +39,10 @@ pf_spread(
 \item{quantity}{The engine's name for the quantity to sweep, for example
 `"jump_height_from_takeoff_meters"`.}
 
-\item{slot}{One step whose alternatives are swept, or several. Several sweeps every
-combination of them, which is the question a number resting on more than one rule asks:
-the onset rule and the takeoff rule both move a jump height, and sweeping them one at a
-time reports neither the widest disagreement nor the narrowest.}
+\item{slot}{One step whose rule is swept, or several. Several sweeps every combination of
+them, which is the question a number resting on more than one rule asks: the onset rule
+and the takeoff rule both move a jump height, and sweeping them one at a time reports
+neither the widest disagreement nor the narrowest.}
 
 \item{weighing}{Registry id of the rule that establishes system weight.}
 
@@ -40,12 +50,20 @@ time reports neither the widest disagreement nor the narrowest.}
 
 \item{takeoff}{Registry id of the rule that places the instant of takeoff.}
 
-\item{method_ids}{Registry identifiers to sweep. When absent, every rule this build
-runs for that slot, read off the binding table rather than listed here.}
+\item{preset}{Name of a published pipeline, which binds the rules and the values its
+source states and leaves every construct that source is silent about to the caller.
+Every value it supplies is recorded as cited, naming the pipeline, so a result reached
+this way is a different record from one reached by typing the same numbers.}
 
-\item{parameter}{A parameter name to sweep instead of the method.}
+\item{method_ids}{Registry identifiers to sweep. A character vector is the set for the one
+step named; a list keyed by step names the ids for each. Absent, every rule this build
+runs for that step is compared, read off the binding table rather than listed here.}
 
-\item{values}{Values for that parameter.}
+\item{vary}{Settings to sweep, keyed by the step and the setting, as
+`list("onset.k" = c(2, 5, 10))`. Numbers or names per key: `"epoch_impulse.convention" =
+c("net", "gross")` compares two names, and `"global.gravity_meters_per_second_squared"`
+sweeps the value the run carries rather than one a rule reads. Written beside `slot`, the
+rules and the settings vary together.}
 
 \item{gravity_meters_per_second_squared}{Gravitational acceleration. A bound parameter
 rather than a constant, because published tools disagree on it, and it appears in the
@@ -58,18 +76,45 @@ record, and a mass that is not a finite number above zero is refused by name.}
 \item{weighing_parameters, onset_parameters, takeoff_parameters}{Named numeric lists, as
 the registry names each rule's parameters.}
 
+\item{weighing_options, onset_options, takeoff_options}{Named character lists, for the
+settings that are a choice between named alternatives rather than a number.}
+
+\item{weighing_start_index, onset_index, takeoff_index, touchdown_index}{Indices placed by
+hand. An override is a fact about what produced the number, so it travels in the
+record rather than replacing it.}
+
+\item{derived}{Rules for constructs computed from the landmarks, named by the construct
+id the registry declares: `list(analysis_window = "window_end.takeoff.detected",
+peak_force = "force.peak.gross")`. A rule that takes values is written
+`list(peak_force = list(method_id = "force.peak.estimator",
+parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
+one placed declines by name when that construct was not named.}
+
+\item{conditioning}{Rules and values for the phase that conditions the signal before the
+landmarks are placed, named by the construct id the registry declares:
+`list(conditioned_force_signal = "filter.none")`. Values are written
+`list(conditioned_force_signal = list(options = list(passband_edge = "none")))`, with the
+rule left out where the phase's own is wanted. The phase runs whether or not this is
+passed, so what it buys is the record naming the caller rather than the software.}
+
 \item{maximum_combinations}{Cap on how many combinations run.}
 
 \item{registry}{Directory holding the registry, as in [pf_registry()].}
+
+\item{registry_version}{The revision of the registry data to cite in the result. Absent,
+the result names no pinned revision and reports the one the registry declares for
+itself. The two are recorded separately: a revision the caller cited and one the data
+claimed about itself are different facts.}
 }
 \value{
 A list carrying `variants`, one per combination with its label, its value and
   the reason it declined when it did, and the summary the sweep computed over them:
   `minimum`, `maximum`, `median`, `spread_absolute`, `spread_percent_of_median`, and
-  `succeeded` and `failed` beside the count that was requested.
+  `succeeded` and `failed` beside the count that was requested. A sweep over one
+  combination carries no `spread_absolute`, because one number holds no disagreement.
 }
 \description{
-Sweeps a slot's alternatives on one trial and reports the spread over them.
+Sweeps a step's alternatives on one trial and reports the spread over them.
 }
 \examples{
 standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
@@ -94,4 +139,16 @@ over_the_landmarks <- pf_spread(
   takeoff = "takeoff.threshold.absolute_force"
 )
 over_the_landmarks[["combinations_run"]]
+
+# The rules and a value inside them, on one call.
+rules_and_a_value <- pf_spread(
+  standing,
+  quantity = "system_weight_newtons",
+  slot = "weighing",
+  vary = list("weighing.duration" = c(0.5, 1.0)),
+  weighing = "bwepoch.fixed_window",
+  onset = "onset.threshold.noise_relative",
+  takeoff = "takeoff.threshold.absolute_force"
+)
+rules_and_a_value[["combinations_run"]]
 }

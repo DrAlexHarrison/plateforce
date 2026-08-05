@@ -184,7 +184,54 @@ analysis_request_of <- function(weighing, onset, takeoff,
                                 weighing_start_index = NULL, onset_index = NULL,
                                 takeoff_index = NULL, touchdown_index = NULL,
                                 registry = NULL, registry_version = NULL) {
-  request_of(
+  do.call(request_of, c(
+    analysis_fields_of(
+      weighing = weighing, onset = onset, takeoff = takeoff, derived = derived,
+      conditioning = conditioning,
+      gravity_meters_per_second_squared = gravity_meters_per_second_squared,
+      body_mass_kilograms = body_mass_kilograms,
+      weighing_parameters = weighing_parameters, onset_parameters = onset_parameters,
+      takeoff_parameters = takeoff_parameters,
+      weighing_options = weighing_options, onset_options = onset_options,
+      takeoff_options = takeoff_options,
+      weighing_start_index = weighing_start_index, onset_index = onset_index,
+      takeoff_index = takeoff_index, touchdown_index = touchdown_index,
+      registry = registry
+    ),
+    registry_identity_of(registry, registry_version)
+  ))
+}
+
+# What every record says about the registry behind it: the caller's pin, the registry's own
+# claim, and the measured digest. Beside the analysis rather than inside it, because a sweep
+# carries the same three against a request nested one level down.
+registry_identity_of <- function(registry, registry_version) {
+  drop_empty(list(
+    registry_digest = registry_digest(registry),
+    registry_version = registry_version,
+    registry_declared_version = registry_declared_version(registry)
+  ))
+}
+
+# The fields of one analysis request, as a list rather than as written JSON.
+#
+# A sweep varies an analysis request and carries it under `base`, so the two need the fields
+# before they are written. Assembled a second time inside `pf_spread`, the sweep took five of
+# the seventeen arguments the analysis takes and a caller could sweep around no derived
+# construct, no conditioning rule, no placed landmark and no name a rule reads.
+analysis_fields_of <- function(weighing, onset, takeoff,
+                               derived = NULL,
+                               conditioning = NULL,
+                               gravity_meters_per_second_squared = NULL,
+                               body_mass_kilograms = NULL,
+                               weighing_parameters = NULL, onset_parameters = NULL,
+                               takeoff_parameters = NULL,
+                               weighing_options = NULL, onset_options = NULL,
+                               takeoff_options = NULL,
+                               weighing_start_index = NULL, onset_index = NULL,
+                               takeoff_index = NULL, touchdown_index = NULL,
+                               registry = NULL) {
+  drop_empty(list(
     weighing = drop_empty(list(
       method_id = weighing,
       start_index = as_index(weighing_start_index),
@@ -209,11 +256,8 @@ analysis_request_of <- function(weighing, onset, takeoff,
     gravity_meters_per_second_squared = gravity_meters_per_second_squared,
     gravity_source = gravity_claim(gravity_meters_per_second_squared),
     body_mass_kilograms = body_mass_kilograms,
-    registry_digest = registry_digest(registry),
-    registry_version = registry_version,
-    registry_declared_version = registry_declared_version(registry),
     registry_backed_ids = registry_backed_ids(registry)
-  )
+  ))
 }
 
 # A gravity the caller stated travels with the claim that they stated it. Without one the
