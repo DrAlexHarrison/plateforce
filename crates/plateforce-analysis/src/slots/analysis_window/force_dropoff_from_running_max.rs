@@ -102,7 +102,10 @@ fn place(
                         "search_start_seconds".to_string(),
                         context.trial.time_at(onset),
                     ),
-                    ("search_end_seconds".to_string(), context.trial.time_at(last)),
+                    (
+                        "search_end_seconds".to_string(),
+                        context.trial.time_at(last),
+                    ),
                 ]),
             ))),
         );

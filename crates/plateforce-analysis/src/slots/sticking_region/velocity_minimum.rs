@@ -74,11 +74,8 @@ fn place(
     );
     let bound = resolved.finish();
 
-    let region = sticking_region_by_velocity_minimum(
-        velocity.meters_per_second(),
-        ascent_start,
-        ascent_end,
-    );
+    let region =
+        sticking_region_by_velocity_minimum(velocity.meters_per_second(), ascent_start, ascent_end);
 
     // The not-detected state the entry asks for, carrying the interval it read rather than
     // two blank keys. A lifter with no sticking point and a rule that never ran reach a

@@ -134,7 +134,11 @@ fn no_two_phase_models_publish_the_same_set_of_keys() {
     // names five.
     let single = &published[0].1;
     let split = &published[1].1;
-    assert_eq!(single.len(), 2, "the single-phase model published {single:?}");
+    assert_eq!(
+        single.len(),
+        2,
+        "the single-phase model published {single:?}"
+    );
     assert_eq!(split.len(), 5, "the split model published {split:?}");
     assert!(
         single.is_disjoint(split),
@@ -161,8 +165,7 @@ fn the_net_force_rule_ends_the_lift_before_the_other_two_and_the_gap_is_the_dece
         "phase.lift.end.absolute_force_zero.frost2008",
     ] {
         let response = run(&trial, &naming(&[("lifting_phase_end", rule)])).expect("well formed");
-        let seconds =
-            value(&response, KEY).unwrap_or_else(|| panic!("{rule} placed no lift end"));
+        let seconds = value(&response, KEY).unwrap_or_else(|| panic!("{rule} placed no lift end"));
         // One key, three rules. What tells them apart on the result is `computed_by`, so a
         // reader comparing two lifts is comparing the same quantity under two named rules.
         let metric = response
@@ -288,7 +291,10 @@ fn the_four_analysis_windows_are_four_different_stretches_of_one_recording() {
             .unwrap_or_else(|| panic!("{rule} placed no window start"));
         let end = value(&response, "analysis_window_end_seconds")
             .unwrap_or_else(|| panic!("{rule} placed no window end"));
-        println!("{rule}: {start:.4} s to {end:.4} s, {:.4} s long", end - start);
+        println!(
+            "{rule}: {start:.4} s to {end:.4} s, {:.4} s long",
+            end - start
+        );
         assert!(end > start, "{rule} placed a window of no length");
         spans.push((rule, start, end));
     }

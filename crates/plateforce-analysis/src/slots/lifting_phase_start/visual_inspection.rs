@@ -50,10 +50,9 @@ fn place(
     let Some(index) = choice.manual_index else {
         return DerivedOutcome::declined(
             bound,
-            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::required_parameter_unstated(
-                ID,
-                PLACED_INSTANT,
-            ))),
+            RuleRefusal::Refused(Box::new(
+                plateforce_core::Refusal::required_parameter_unstated(ID, PLACED_INSTANT),
+            )),
         );
     };
 

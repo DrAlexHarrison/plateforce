@@ -364,7 +364,9 @@ pub enum PhaseModelOutcome {
     /// reader handed only "the model placed nothing" cannot tell an athlete who never
     /// unweighted from one whose force never came back up through system weight, which are
     /// different recordings calling for different repairs.
-    SearchFoundNothing { searched: &'static str },
+    SearchFoundNothing {
+        searched: &'static str,
+    },
     /// The model did not search: the landmarks it was handed describe no interval to search
     /// in.
     NothingToPlace,
@@ -454,8 +456,7 @@ pub fn phase_model_unloading_yielding_split(
     // Four searches in sequence rather than one chain of `and_then`, so the one that came back
     // empty is the one the refusal names. Chained, all four collapsed to a single empty option
     // and a reader was told the model placed nothing without being told which search stopped it.
-    let Some(departure) = vertical_ground_reaction_force_newtons
-        [search_start_index..takeoff_index]
+    let Some(departure) = vertical_ground_reaction_force_newtons[search_start_index..takeoff_index]
         .iter()
         .position(|&force| force < unloading_level_newtons)
     else {
@@ -653,14 +654,13 @@ pub fn sticking_region_by_velocity_minimum(
     if ascent_start_index + 2 > last {
         return None;
     }
-    let rising = |index: usize| {
-        velocity_meters_per_second[index] > velocity_meters_per_second[index - 1]
-    };
-    let falling = |index: usize| {
-        velocity_meters_per_second[index] < velocity_meters_per_second[index - 1]
-    };
+    let rising =
+        |index: usize| velocity_meters_per_second[index] > velocity_meters_per_second[index - 1];
+    let falling =
+        |index: usize| velocity_meters_per_second[index] < velocity_meters_per_second[index - 1];
 
-    let start = (ascent_start_index + 1..last).find(|&index| rising(index) && !rising(index + 1))?;
+    let start =
+        (ascent_start_index + 1..last).find(|&index| rising(index) && !rising(index + 1))?;
     // The minimum has to be one velocity rises again from, which is the clause that separates
     // a sticking region from the final deceleration at the end of the lift.
     let end = (start + 1..last).find(|&index| falling(index) && !falling(index + 1))?;

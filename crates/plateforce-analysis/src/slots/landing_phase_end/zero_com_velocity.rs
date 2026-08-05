@@ -72,12 +72,8 @@ fn place(
     // exactly that: the same sample at 9.80665 and at the second gravity, with the chain
     // saying otherwise.
     let gravity = context.gravity_behind(None);
-    let takeoff_velocity = takeoff_velocity_meters_per_second(
-        context.trial,
-        context.epoch(),
-        &landmarks,
-        gravity,
-    );
+    let takeoff_velocity =
+        takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
 
     // The integral runs from the trial start and the constant is pinned at touchdown, which
     // is the same curve after touchdown as integrating the landing alone and keeps one
@@ -92,12 +88,8 @@ fn place(
             stated_by_method_id: ID.to_string(),
         },
     };
-    let velocity = centre_of_mass_velocity_meters_per_second(
-        context.trial,
-        context.epoch(),
-        &spec,
-        gravity,
-    );
+    let velocity =
+        centre_of_mass_velocity_meters_per_second(context.trial, context.epoch(), &spec, gravity);
     let [quadrature, direction, start, _anchor] = spec.method_ids();
     for (name, id) in [
         ("integration_rule", quadrature),
