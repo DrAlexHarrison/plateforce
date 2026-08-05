@@ -105,7 +105,7 @@ fn stamp() -> RegistryStamp {
 }
 
 /// The keys whose chain names the analysis gravity anywhere, over the numbers this response
-/// actually produced.
+/// produced. A rule that declined reports no value and leaves nothing to compare.
 fn naming_the_gravity(response: &AnalysisResponse) -> BTreeSet<String> {
     let chains = chains_of(response, &stamp(), true);
     response

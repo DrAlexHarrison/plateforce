@@ -44,7 +44,8 @@ fn compute(
     };
     // Every name is consulted before any of them is judged, so a request stating two of the
     // three does not report either as a name this rule never read.
-    let series = mechanical_power::power_series(context, &mut resolved, ID, onset, Some(super::KEY));
+    let series =
+        mechanical_power::power_series(context, &mut resolved, ID, onset, Some(super::KEY));
     let phase = mechanical_power::phase_interval(context, &mut resolved, ID);
     let bound = resolved.finish();
 

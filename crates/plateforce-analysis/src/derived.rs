@@ -373,18 +373,20 @@ impl<'a> DerivedContext<'a> {
     /// the eleven quantities one request reported and was a key short of the population this
     /// build computes when it was last widened.
     ///
-    /// `None` is a rule that reports no number of its own: a phase boundary read off a
-    /// velocity series moves with the gravity that scaled it, and the numbers that move are
-    /// other rules'. The record then travels with the samples this rule placed, so the
-    /// dependence closes over the graph the way the rules behind a sample already do. A rule
-    /// that reports nothing and places nothing moves nothing, and records nothing anywhere.
+    /// `None` says this rule reports no number that rests on the value, and records nothing
+    /// anywhere. Two of the boundary rules are that case and it is arithmetic rather than
+    /// oversight: `phase.propulsion_start.zero_velocity` takes the zero crossing of a velocity
+    /// series scaled by `1/g`, and scaling a series moves neither its zeros nor its extrema, so
+    /// the sample it places is the same at 9.0 and at 11.0.
+    /// `phase.propulsion_start.velocity_threshold` compares that same series against a
+    /// threshold in metres per second, which is not scale invariant, so it passes its key and
+    /// the record travels onto the sample it places and into every number measured across it.
     pub fn gravity_behind(&self, quantity_key: Option<&'static str>) -> f64 {
         self.record_global(crate::request::GRAVITY_GLOBAL, quantity_key);
         self.gravity_meters_per_second_squared
     }
 
-    /// One home for both spellings of the ask, so a rule that places a sample and a rule that
-    /// reports a number record the same fact the same way.
+    /// One home for the record, so the two accessors above cannot come to write it differently.
     fn record_global(&self, name: &'static str, quantity_key: Option<&'static str>) {
         let Some(key) = quantity_key else { return };
         self.globals_rested_on

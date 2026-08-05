@@ -259,7 +259,12 @@ impl RestsOn {
 impl Metric {
     /// A reported number, taking its key, label, unit and computed-by from the one
     /// declaration rather than from a literal at the call site.
-    pub fn declared(key: &str, value: Option<f64>, rests_on: RestsOn, note: Option<String>) -> Self {
+    pub fn declared(
+        key: &str,
+        value: Option<f64>,
+        rests_on: RestsOn,
+        note: Option<String>,
+    ) -> Self {
         let declared = quantity(key).unwrap_or_else(|| panic!("{key} is not a declared quantity"));
         Self::from_declaration(declared, value, rests_on, note)
     }
