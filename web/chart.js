@@ -45,14 +45,33 @@ function niceTicks(low, high, target) {
   return ticks;
 }
 
+/* A time axis whose ticks are far enough apart to read as different instants. Two ticks a
+ * ten-thousandth of a second apart both print as 0.0 at one decimal, so the axis takes the
+ * fewest decimals that tell its own ticks apart, which is what lets the view zoom to a pair of
+ * samples and still say where they are. */
+function timeDecimals(ticks) {
+  for (let places = 1; places < 6; places += 1) {
+    const shown = ticks.map((seconds) => seconds.toFixed(places));
+    if (new Set(shown).size === shown.length) return places;
+  }
+  return 6;
+}
+
 export class TraceChart {
-  constructor({ container, canvas, overlay, markers, onMarkerMove, onWindowChange, onViewChange }) {
+  constructor({
+    container, canvas, overlay, markers,
+    onMarkerMove, onWindowChange, onViewChange, onSelectionChange, regionLabel,
+  }) {
     this.container = container;
     this.canvas = canvas;
     this.overlay = overlay;
     this.onMarkerMove = onMarkerMove;
     this.onWindowChange = onWindowChange;
     this.onViewChange = onViewChange;
+    this.onSelectionChange = onSelectionChange;
+    /* The words for an interval the analysis placed. Supplied rather than held here, because
+     * those words are the registry's and this file names nothing the registry declares. */
+    this.regionLabel = regionLabel || ((name) => name);
     this.markerDefinitions = markers;
 
     this.envelope = null;
@@ -63,7 +82,21 @@ export class TraceChart {
     this.viewEnd = 0;
     this.plot = { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 };
 
+    /* The spans a reader has selected, each carrying where its two ends came from. A span the
+     * reader dragged is theirs; a span they double-clicked into is the phase rules', and the
+     * two are held apart here because everything computed over them says which it was. */
+    this.regions = [];
+    this.activeRegion = -1;
+    /* Intervals the analysis placed, as the engine reported them. Nothing here decides what a
+     * region is or what it is called. */
+    this.placedRegions = [];
+    this.drag = null;
+    this.pendingClear = null;
+    /* Views a zoom replaced, so a reader who zoomed to a span can step back out of it. */
+    this.viewStack = [];
+
     this.buildOverlay();
+    this.attachSelection();
 
     this.resizeObserver = new ResizeObserver(() => this.handleResize());
     this.resizeObserver.observe(container);
@@ -74,6 +107,12 @@ export class TraceChart {
 
   buildOverlay() {
     this.overlay.replaceChildren();
+
+    /* Before the weighing window and the markers, so a selection band sits behind everything a
+     * reader grabs rather than swallowing the pointer that reaches for them. */
+    this.selectionLayer = document.createElement('div');
+    this.selectionLayer.className = 'selection-layer';
+    this.overlay.append(this.selectionLayer);
 
     this.windowBody = document.createElement('button');
     this.windowBody.type = 'button';
@@ -280,6 +319,213 @@ export class TraceChart {
     element.addEventListener('pointercancel', release);
   }
 
+  /* ---------------------------------------------------------------- selecting */
+
+  /* Anything a reader can grab. A drag that starts on one of these is that control's drag and
+   * not a selection, and the pointer has to reach it. A selected span is not among them: a
+   * reader has to be able to draw a narrower span inside a wide one they already drew. */
+  static GRABBABLE = '.marker, .window-body, .window-handle';
+
+  attachSelection() {
+    this.container.addEventListener('pointerdown', (event) => this.beginDrag(event));
+    this.container.addEventListener('pointermove', (event) => this.growDrag(event));
+    this.container.addEventListener('pointerup', (event) => this.endDrag(event));
+    this.container.addEventListener('pointercancel', () => this.abandonDrag());
+    this.container.addEventListener('dblclick', (event) => {
+      // The click that opened this double-click already asked for the selection to be cleared.
+      window.clearTimeout(this.pendingClear);
+      this.pendingClear = null;
+      event.preventDefault();
+      this.selectPlacedAt(this.pointerIndex(event), event.shiftKey);
+    });
+  }
+
+  beginDrag(event) {
+    if (!this.envelope) return;
+    if (event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest(TraceChart.GRABBABLE)) return;
+    const bounds = this.canvas.getBoundingClientRect();
+    const pointerX = event.clientX - bounds.left;
+    if (pointerX < this.plot.left || pointerX > this.plot.right) return;
+
+    // No `preventDefault` here. Preventing the default on `pointerdown` suppresses the mouse
+    // events the browser synthesises from it, so the second click of a double-click never
+    // becomes one and selecting a placed phase silently stops working. Text selection during a
+    // drag is held off by `user-select` on the plot instead.
+    this.container.setPointerCapture(event.pointerId);
+    const anchor = this.pointerIndex(event);
+    this.drag = {
+      pointerId: event.pointerId,
+      anchor,
+      current: anchor,
+      additive: event.shiftKey,
+      // A press and release on a span the reader already has is that span's own button asking
+      // to become the active one, so the clear below has to keep out of its way.
+      onARegion: Boolean(event.target.closest?.('.selection-region')),
+    };
+    this.escapeListener = (key) => {
+      if (key.key !== 'Escape' || !this.drag) return;
+      key.preventDefault();
+      this.abandonDrag();
+    };
+    window.addEventListener('keydown', this.escapeListener);
+  }
+
+  growDrag(event) {
+    if (!this.drag || event.pointerId !== this.drag.pointerId) return;
+    this.drag.current = this.pointerIndex(event);
+    this.schedule();
+    this.onSelectionChange?.(this.selection(), { dragging: this.draggedSpan() });
+  }
+
+  endDrag(event) {
+    if (!this.drag || event.pointerId !== this.drag.pointerId) return;
+    const { additive, onARegion } = this.drag;
+    const span = this.draggedSpan();
+    this.container.releasePointerCapture?.(event.pointerId);
+    this.abandonDrag();
+    if (span.endIndex <= span.startIndex && onARegion) return;
+
+    // A press and release at one sample is a click, and a click is not a selection: it clears
+    // one. Deferred, because the first click of a double-click looks exactly like this until
+    // the second arrives, and a reader double-clicking a phase would otherwise watch their
+    // selection go before it came.
+    //
+    // One timer, cancelled before another is set. A double-click ends two clicks, so leaving
+    // the first one's timer running while the second replaced the handle left a clear pending
+    // that nothing could cancel: the phase appeared and vanished a quarter of a second later.
+    if (span.endIndex <= span.startIndex) {
+      window.clearTimeout(this.pendingClear);
+      this.pendingClear = window.setTimeout(() => {
+        this.pendingClear = null;
+        if (!this.regions.length) return;
+        this.setRegions([]);
+      }, 250);
+      return;
+    }
+    this.setRegions(additive ? [...this.regions, { ...span, stated: true }] : [{ ...span, stated: true }]);
+  }
+
+  abandonDrag() {
+    if (!this.drag) return;
+    this.drag = null;
+    window.removeEventListener('keydown', this.escapeListener);
+    this.schedule();
+    this.onSelectionChange?.(this.selection(), {});
+  }
+
+  /* The span under the pointer right now, in trace order whichever way the drag ran. */
+  draggedSpan() {
+    if (!this.drag) return null;
+    const { anchor, current } = this.drag;
+    return { startIndex: Math.min(anchor, current), endIndex: Math.max(anchor, current) };
+  }
+
+  /* The interval the analysis placed that holds this sample, or nothing where it placed none
+   * here. Nothing is guessed: an interval no rule placed is not offered under a rule's name. */
+  placedRegionAt(index) {
+    return this.placedRegions.find((region) => index >= region.start_index && index <= region.end_index) || null;
+  }
+
+  selectPlacedAt(index, additive) {
+    const placed = this.placedRegionAt(index);
+    if (!placed) {
+      this.onSelectionChange?.(this.selection(), { placedNothingHere: true });
+      return;
+    }
+    const region = {
+      startIndex: placed.start_index,
+      endIndex: placed.end_index,
+      stated: false,
+      placed,
+    };
+    const already = this.regions.findIndex((held) => held.placed?.phase === placed.phase);
+    if (additive && already === -1) this.setRegions([...this.regions, region]);
+    else if (additive) this.setRegions(this.regions, already);
+    else this.setRegions([region]);
+  }
+
+  setPlacedRegions(regions) {
+    this.placedRegions = regions || [];
+    // A region the reader picked off a rule that has since stopped placing it is a span with
+    // nothing behind it, so it goes rather than sitting there under a rule's name.
+    const surviving = this.regions.filter(
+      (region) => region.stated || this.placedRegions.some((placed) => placed.phase === region.placed.phase),
+    );
+    if (surviving.length !== this.regions.length) this.setRegions(surviving);
+  }
+
+  /* One home for every change to the set, so the record, the drawing and the controls cannot
+   * disagree about what is selected. */
+  setRegions(regions, active = regions.length - 1) {
+    this.regions = regions;
+    this.activeRegion = regions.length ? Math.min(Math.max(0, active), regions.length - 1) : -1;
+    this.drawSelectionHandles();
+    this.schedule();
+    this.onSelectionChange?.(this.selection(), {});
+  }
+
+  /* What is selected, as the caller reads it: every span, and which of them is the one a
+   * number would be taken over. */
+  selection() {
+    return { regions: this.regions, active: this.regions[this.activeRegion] || null };
+  }
+
+  clearSelection() {
+    this.setRegions([]);
+  }
+
+  /* The whole extent the selection covers, which is what a zoom to it shows. Several regions
+   * zoom to the stretch holding all of them rather than to one of them. */
+  selectionExtent() {
+    if (!this.regions.length) return null;
+    return {
+      startIndex: Math.min(...this.regions.map((region) => region.startIndex)),
+      endIndex: Math.max(...this.regions.map((region) => region.endIndex)),
+    };
+  }
+
+  /* Zooming leaves the selection where it is: a reader who zoomed still means the span they
+   * drew, and clearing it here would answer a question about the view by discarding the
+   * answer to a different one. */
+  zoomToSelection() {
+    const extent = this.selectionExtent();
+    if (!extent) return;
+    this.viewStack.push({ start: this.viewStart, end: this.viewEnd });
+    this.setView(extent.startIndex, extent.endIndex);
+  }
+
+  undoZoom() {
+    const previous = this.viewStack.pop();
+    if (!previous) return;
+    this.setView(previous.start, previous.end);
+  }
+
+  resetZoom() {
+    this.viewStack.length = 0;
+    this.fit();
+  }
+
+  canUndoZoom() {
+    return this.viewStack.length > 0;
+  }
+
+  /* One focusable element per selected span, so the set is reachable and legible without a
+   * pointer. The band itself is drawn on the canvas; this is what a reader tabs to and what a
+   * screen reader reads out. */
+  drawSelectionHandles() {
+    this.selectionLayer.replaceChildren();
+    this.regionElements = this.regions.map((region, position) => {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = `selection-region${position === this.activeRegion ? ' selection-region--active' : ''}`;
+      element.dataset.stated = String(region.stated);
+      element.addEventListener('click', () => this.setRegions(this.regions, position));
+      this.selectionLayer.append(element);
+      return element;
+    });
+  }
+
   /* ---------------------------------------------------------------- data in */
 
   setEnvelope(envelope) {
@@ -289,22 +535,34 @@ export class TraceChart {
 
   setAnalysis(analysis) {
     this.analysis = analysis;
+    this.setPlacedRegions(analysis?.regions || []);
   }
 
+  /* A different recording, so nothing selected on the last one survives: two indices mean
+   * different instants on a trace of a different length and rate. */
   setRecording(sampleCount, sampleRateHz) {
     this.totalSamples = Math.max(1, sampleCount);
     this.sampleRateHz = sampleRateHz;
     this.viewStart = 0;
     this.viewEnd = this.totalSamples - 1;
+    this.viewStack.length = 0;
+    this.placedRegions = [];
+    this.setRegions([]);
   }
 
   visibleRange() {
     return { start: this.viewStart, end: this.viewEnd };
   }
 
+  /* Two samples is the floor, because a view narrower than one sampling interval shows no
+   * interval. A quarter of a second stood in front of it, which is 300 samples at 1200 Hz and
+   * wider than the takeoff transition, so the one view this software exists to offer, the
+   * samples either side of a placed landmark, was the view the chart refused. At full zoom the
+   * plate's 1.398 N converter steps are visible, which is the right thing to see when the
+   * question is whether a threshold rule fired on a step or on the movement. */
   setView(start, end) {
     const fullSpan = Math.max(1, this.totalSamples - 1);
-    const minimumSpan = Math.min(fullSpan, Math.max(2, Math.round(this.sampleRateHz * 0.25)));
+    const minimumSpan = Math.min(fullSpan, 2);
     const span = Math.min(fullSpan, Math.max(minimumSpan, Math.round(end - start)));
     const nextStart = Math.min(fullSpan - span, Math.max(0, Math.round(start)));
     const changed = nextStart !== this.viewStart || nextStart + span !== this.viewEnd;
@@ -388,6 +646,7 @@ export class TraceChart {
     };
 
     this.drawWeighingWindow(context, colours);
+    this.drawSelection(context, colours);
     this.drawBands(context, colours);
     this.drawGrid(context, colours);
     this.drawTrace(context, colours);
@@ -417,10 +676,12 @@ export class TraceChart {
     context.textBaseline = 'top';
     const startSeconds = this.viewStart / this.sampleRateHz;
     const endSeconds = this.viewEnd / this.sampleRateHz;
-    for (const seconds of niceTicks(startSeconds, endSeconds, 8)) {
+    const ticks = niceTicks(startSeconds, endSeconds, 8);
+    const places = timeDecimals(ticks);
+    for (const seconds of ticks) {
       const x = Math.round(this.indexToX(seconds * this.sampleRateHz)) + 0.5;
       if (x < this.plot.left - 1 || x > this.plot.right + 1) continue;
-      context.fillText(seconds.toFixed(1), x, this.plot.bottom + 8);
+      context.fillText(seconds.toFixed(places), x, this.plot.bottom + 8);
     }
 
     context.fillStyle = colours.text;
@@ -446,6 +707,38 @@ export class TraceChart {
     context.fillStyle = colours.accent;
     context.globalAlpha = 0.1;
     context.fillRect(left, this.plot.top, Math.max(1, right - left), this.plot.height);
+    context.restore();
+  }
+
+  /* Selected spans, and the one under the pointer while a drag is running.
+   *
+   * Ink rather than a hue, because the three hues on this trace are the landmark tracks and a
+   * selection is not a landmark. Which end of the pair a span came from is never carried by the
+   * drawing alone: the readout beside the chart names each span's origin in words. */
+  drawSelection(context, colours) {
+    const spans = [...this.regions];
+    const dragging = this.draggedSpan();
+    if (dragging) spans.push(dragging);
+    if (!spans.length) return;
+
+    context.save();
+    for (const span of spans) {
+      const left = this.indexToX(Math.max(span.startIndex, this.viewStart));
+      const right = this.indexToX(Math.min(span.endIndex, this.viewEnd));
+      if (right < this.plot.left || left > this.plot.right) continue;
+      context.fillStyle = colours.text;
+      context.globalAlpha = 0.08;
+      context.fillRect(left, this.plot.top, Math.max(1, right - left), this.plot.height);
+      context.globalAlpha = 0.7;
+      context.strokeStyle = colours.border;
+      context.lineWidth = 1;
+      for (const x of [left, right]) {
+        context.beginPath();
+        context.moveTo(Math.round(x) + 0.5, this.plot.top);
+        context.lineTo(Math.round(x) + 0.5, this.plot.bottom);
+        context.stroke();
+      }
+    }
     context.restore();
   }
 
@@ -521,9 +814,34 @@ export class TraceChart {
 
   /* ---------------------------------------------------------------- overlay out */
 
+  /* What a span is, said in words rather than drawn. It carries the extent both ways a reader
+   * works in, seconds and samples, and where its two ends came from, because those are the two
+   * facts that separate a span somebody drew from a span a rule placed. */
+  selectionSentence(region, position) {
+    const from = (region.startIndex / this.sampleRateHz).toFixed(4);
+    const to = (region.endIndex / this.sampleRateHz).toFixed(4);
+    const samples = region.endIndex - region.startIndex + 1;
+    const origin = region.stated
+      ? 'selected by you'
+      : `${this.regionLabel(region.placed.phase)}, from the rules that placed its boundaries`;
+    return `Selection ${position + 1}, ${origin}, ${from} to ${to} seconds, ${samples} samples`;
+  }
+
   positionOverlay() {
     const top = `${this.plot.top}px`;
     const height = `${this.plot.height}px`;
+
+    for (const [position, region] of this.regions.entries()) {
+      const element = this.regionElements?.[position];
+      if (!element) continue;
+      const left = this.indexToX(Math.max(region.startIndex, this.viewStart));
+      const right = this.indexToX(Math.min(region.endIndex, this.viewEnd));
+      element.hidden = right < this.plot.left || left > this.plot.right;
+      if (element.hidden) continue;
+      element.style.cssText = `top:${top};height:${height};left:${left}px;width:${Math.max(2, right - left)}px`;
+      element.setAttribute('aria-label', this.selectionSentence(region, position));
+      element.setAttribute('aria-pressed', String(position === this.activeRegion));
+    }
 
     if (this.analysis) {
       const start = this.analysis.weighing_start_index;

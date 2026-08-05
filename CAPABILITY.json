@@ -780,6 +780,20 @@
         {
           "composed_from": null,
           "construct": "analysis_window",
+          "id": "window.from_named_phase",
+          "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window.stated.by_caller",
+          "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
           "requires": [],
           "slot": "analysis_window"
@@ -1796,6 +1810,20 @@
           "id": "vocab.downward_upward",
           "requires": [],
           "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window.from_named_phase",
+          "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window.stated.by_caller",
+          "requires": [],
+          "slot": "analysis_window"
         },
         {
           "composed_from": null,
@@ -2824,6 +2852,20 @@
         {
           "composed_from": null,
           "construct": "analysis_window",
+          "id": "window.from_named_phase",
+          "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window.stated.by_caller",
+          "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
           "requires": [],
           "slot": "analysis_window"
@@ -3842,6 +3884,20 @@
           "id": "vocab.downward_upward",
           "requires": [],
           "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window.from_named_phase",
+          "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window.stated.by_caller",
+          "requires": [],
+          "slot": "analysis_window"
         },
         {
           "composed_from": null,

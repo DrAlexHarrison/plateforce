@@ -8,7 +8,21 @@ import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
 import { runAnalysis, recordStated, withSources } from './analysis.js';
 import { endingOf } from './batch-run.js';
-import { renderPicker } from './add-quantity.js';
+import { renderPicker, putOnThePath, removeFromPath } from './add-quantity.js';
+import { findMethod } from './registry.js';
+
+/*
+ * The two rules a span selected on the trace binds, named by their registry ids the way the
+ * hand-placed weighing window is. The construct they fill is read off the build rather than
+ * written down here, so the rail can gain or lose a row without an edit in this file.
+ *
+ * They are two rules and not one because the two spans are two claims. A span the reader
+ * dragged has ends nobody published; a span they double-clicked into has ends a bound rule
+ * placed, and the record has to be able to say which of the two produced a number.
+ */
+const STATED_WINDOW = 'window.stated.by_caller';
+const PHASE_WINDOW = 'window.from_named_phase';
+const PHASE_NAME = 'phase';
 
 export function enterWorkspace() {
   setWindowTitle(state.fileName);
@@ -64,12 +78,15 @@ export function enterWorkspace() {
         refreshEnvelope();
         updateChartNavigation();
       },
+      onSelectionChange: (selection, event) => selectionChanged(selection, event),
+      regionLabel: (phase) => phaseLabels().get(phase) || phase,
     });
     container.addEventListener('chart:resize', () => refreshEnvelope());
   }
 
   state.chart.setRecording(info.sample_count, info.sample_rate_hz);
   wireChartNavigation();
+  wireSelectionControls();
   updateChartNavigation();
   renderLegend();
   refreshEnvelope();
@@ -146,6 +163,142 @@ function updateChartNavigation() {
   $('chart-fit').disabled = state.chart.isFit();
   $('chart-window-label').textContent =
     `${(start / state.info.sample_rate_hz).toFixed(2)}–${(end / state.info.sample_rate_hz).toFixed(2)} s`;
+  // The two zoom controls that read the view rather than the selection, so stepping back out
+  // of a zoom leaves them saying what the view can still do.
+  if (state.chart) updateSelectionControls(state.chart.selection());
+}
+
+/* ------------------------------------------------------- selecting a window */
+
+/* The construct the two window rules fill, read off the build. */
+function windowConstruct() {
+  return state.build.bindings.find((binding) => binding.id === STATED_WINDOW)?.construct || null;
+}
+
+/* The registry's own words for each interval a caller can name, keyed by the name they state.
+ * Written nowhere here: an interval the registry adds arrives with its label. */
+function phaseLabels() {
+  const parameter = (findMethod(state.registry, PHASE_WINDOW)?.parameter || [])
+    .find((entry) => entry.name === PHASE_NAME);
+  return new Map((parameter?.value || []).map((value) => [value.key, value.label]));
+}
+
+/*
+ * A span the reader selected, bound as the rule that describes how they selected it.
+ *
+ * Dragging binds the stated rule and states the two instants, exactly as dragging the weighing
+ * window binds the hand-placement rule and states its length. Double-clicking a placed phase
+ * binds the rule that takes the window from that phase and names the phase, so the two ends stay
+ * the boundary rules' and the record never reports them as the reader's.
+ */
+function bindTheWindow(region) {
+  const construct = windowConstruct();
+  if (!construct) return;
+  putOnThePath(construct);
+  state.windowCameFromASelection = true;
+  const rate = state.info.sample_rate_hz;
+  const stated = {
+    methodId: STATED_WINDOW,
+    values: { start_seconds: region.startIndex / rate, end_seconds: region.endIndex / rate },
+    options: {},
+  };
+  const placed = { methodId: PHASE_WINDOW, values: {}, options: { [PHASE_NAME]: region.placed?.phase } };
+  const choice = region.stated ? stated : placed;
+  state.selection[construct] = {
+    ...choice,
+    unresolved: [],
+    // Every name in this selection was put there by the act of selecting, so none of them is a
+    // registry default and none was accepted from a recommendation.
+    fromDefault: new Set(),
+    recommended: new Set(),
+    methodFromRecommendation: false,
+    methodStated: true,
+  };
+}
+
+/* Clearing takes the construct back off the path where selecting is what put it there, so the
+ * reader ends where they began rather than with a window rule bound to a span that is gone. */
+function releaseTheWindow() {
+  const construct = windowConstruct();
+  if (!construct || !state.windowCameFromASelection) return;
+  state.windowCameFromASelection = false;
+  removeFromPath(construct);
+}
+
+function selectionChanged(selection, event) {
+  // Mid-drag the span is not a selection yet, so it is drawn and reported and binds nothing.
+  if (event.dragging) return renderSelectionReadout(selection, event);
+
+  if (selection.active) bindTheWindow(selection.active);
+  else releaseTheWindow();
+  renderSelectionReadout(selection, event);
+  renderDecisions();
+  runAnalysis();
+}
+
+/* What is selected, as the reader's own data: the extent both ways they work in, and where the
+ * two ends came from. The origin is the half that matters, because two spans covering the same
+ * samples are different claims when one was drawn and the other was placed. */
+function renderSelectionReadout(selection, event) {
+  const host = $('chart-selection-readout');
+  const span = event.dragging || selection.active;
+  host.replaceChildren();
+
+  // Answered whether or not something is selected, because a reader who double-clicked and got
+  // nothing asked a question, and reading back the window they already had is not the answer.
+  // How to select at all is said once, under the trace, rather than repeated here.
+  if (event.placedNothingHere) {
+    host.append(element('span', 'chart-selection__origin',
+      'No phase boundary reaches this point. Put a phase boundary on the path to select one.'));
+  }
+  if (!span) {
+    updateSelectionControls(selection, event);
+    return;
+  }
+
+  const rate = state.info.sample_rate_hz;
+  const from = (span.startIndex / rate).toFixed(4);
+  const to = (span.endIndex / rate).toFixed(4);
+  const samples = span.endIndex - span.startIndex + 1;
+  host.append(element('span', 'chart-selection__span', `${from} to ${to} s, ${samples.toLocaleString()} samples`));
+
+  if (event.dragging) {
+    host.append(element('span', 'chart-selection__origin', 'Release to select this window.'));
+  } else if (span.stated) {
+    host.append(element('span', 'chart-selection__origin', 'Selected by you, so every number over it records the window as yours.'));
+  } else {
+    const rules = (span.placed.placed_by || []).join(', ');
+    const label = phaseLabels().get(span.placed.phase) || span.placed.phase;
+    host.append(element('span', 'chart-selection__origin', `${label}, placed by ${rules}`));
+  }
+  if (selection.regions.length > 1) {
+    host.append(element('span', 'chart-selection__origin', `${selection.regions.length} windows selected. Numbers are taken over this one.`));
+  }
+  updateSelectionControls(selection, event);
+}
+
+/* The row arrives with the first window and stays while a zoom it drove can still be stepped
+ * back out of. A reader with nothing selected has nothing here to act on, and on a phone the
+ * space it would hold is two screens of the reading order it sits above. */
+function updateSelectionControls(selection, event = {}) {
+  const selected = selection.regions.length > 0;
+  const undoable = state.chart.canUndoZoom();
+  $('chart-selection').hidden = !(selected || undoable || event.dragging || event.placedNothingHere);
+  $('selection-zoom').disabled = !selected;
+  $('selection-clear').disabled = !selected;
+  $('selection-undo-zoom').disabled = !undoable;
+  $('selection-reset-zoom').disabled = state.chart.isFit() && !undoable;
+}
+
+function wireSelectionControls() {
+  const controls = $('chart-selection');
+  if (controls.dataset.wired === 'true') return;
+  controls.dataset.wired = 'true';
+  $('selection-zoom').addEventListener('click', () => state.chart.zoomToSelection());
+  $('selection-undo-zoom').addEventListener('click', () => state.chart.undoZoom());
+  $('selection-reset-zoom').addEventListener('click', () => state.chart.resetZoom());
+  $('selection-clear').addEventListener('click', () => state.chart.clearSelection());
+  renderSelectionReadout({ regions: [], active: null }, {});
 }
 
 function renderLegend() {

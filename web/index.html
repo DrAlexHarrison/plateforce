@@ -191,8 +191,18 @@
         </label>
       </div>
 
+      <div class="chart-selection" id="chart-selection" hidden>
+        <div class="chart-selection__readout" id="chart-selection-readout" role="status" aria-live="polite"></div>
+        <div class="chart-selection__actions">
+          <button type="button" class="button button--ghost button--small" id="selection-zoom" disabled>Zoom to selection</button>
+          <button type="button" class="button button--ghost button--small" id="selection-undo-zoom" disabled>Undo zoom</button>
+          <button type="button" class="button button--ghost button--small" id="selection-reset-zoom" disabled>Reset zoom</button>
+          <button type="button" class="button button--ghost button--small" id="selection-clear" disabled>Clear selection</button>
+        </div>
+      </div>
+
       <div class="chart-legend" id="chart-legend"></div>
-      <p class="chart-help">Drag a marker to recompute.</p>
+      <p class="chart-help">Drag a marker to recompute. Drag across the trace to select a window, double-click inside a phase to select it.</p>
     </section>
 
     <section class="panel panel--headlines workspace__headlines" aria-labelledby="headline-metrics-heading">

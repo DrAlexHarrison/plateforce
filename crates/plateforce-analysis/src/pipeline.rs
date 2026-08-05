@@ -477,7 +477,7 @@ pub fn run(
     // match and one takes the last.
     metrics.retain(|metric| !bound_by_request.contains(&metric.key.as_str()));
 
-    run_derived_phase(
+    let regions = run_derived_phase(
         trial,
         request,
         &epoch,
@@ -515,6 +515,7 @@ pub fn run(
         bound_methods,
         bound_globals: request.bound_globals(),
         metrics,
+        regions,
         weighing_epoch_tied_window_count: epoch.tied_window_count,
         warnings,
         refusals,
@@ -779,9 +780,9 @@ fn run_derived_phase(
     bound_methods: &mut Vec<crate::resolution::BoundMethod>,
     refusals: &mut Vec<DeclinedRule>,
     warnings: &mut Vec<String>,
-) -> Result<(), Box<plateforce_core::Refusal>> {
+) -> Result<Vec<crate::response::PlacedRegion>, Box<plateforce_core::Refusal>> {
     if request.derived.is_empty() {
-        return Ok(());
+        return Ok(Vec::new());
     }
     for (construct, choice) in &request.derived {
         expect_derived_choice(construct, &choice.method_id)?;
@@ -901,7 +902,9 @@ fn run_derived_phase(
             });
         }
     }
-    Ok(())
+    // Reported from the map this phase filled rather than from the request, so the intervals a
+    // surface can offer are the ones whose boundaries a rule actually placed on this recording.
+    Ok(crate::boundaries::placed_regions(trial, &placed))
 }
 
 /// What the conditioning phase settled: the signal everything below reads, the rules that

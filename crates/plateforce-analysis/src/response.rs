@@ -361,6 +361,23 @@ pub fn drawable(value: f64) -> Option<f64> {
     value.is_finite().then_some(value)
 }
 
+/// An interval this run's own boundary rules settled, and the rules that settled it.
+///
+/// The name is the one a caller states to take a window over this interval, so a surface that
+/// offers a phase and a caller who names one on the terminal are naming the same thing. No
+/// label travels: the words for each interval are the registry's, beside the name it publishes.
+#[derive(Debug, Clone, Serialize)]
+pub struct PlacedRegion {
+    pub phase: &'static str,
+    pub start_index: usize,
+    pub end_index: usize,
+    pub start_seconds: f64,
+    pub end_seconds: f64,
+    /// Every rule behind the two ends, which is what makes this interval the rules' and not the
+    /// reader's. A window drawn over the same samples by hand carries none of these.
+    pub placed_by: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct AnalysisResponse {
     /// Samples of the recording that carried no number, counted over the trace as it was
@@ -387,6 +404,10 @@ pub struct AnalysisResponse {
     /// no rule's entry declares it.
     pub bound_globals: Vec<BoundGlobal>,
     pub metrics: Vec<Metric>,
+    /// The intervals this run's boundary rules settled, offered so a caller can take a window
+    /// over one of them by name. Empty where no phase boundary was on the path, which is a
+    /// report about this request rather than about the recording.
+    pub regions: Vec<PlacedRegion>,
     /// Windows the weighing rule could not choose between. One for a fixed window, and
     /// anything above one means the selection is an artefact of the arithmetic. Skipped
     /// over the wire, where the interface draws it inside the warning that reports it.

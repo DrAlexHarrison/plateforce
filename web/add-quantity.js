@@ -55,7 +55,23 @@ export function askableConstructs() {
  * the reader stated them.
  */
 export function addToPath(construct) {
-  if (state.path.includes(construct)) return;
+  if (!putOnThePath(construct)) return;
+  renderPicker();
+  renderDecisions();
+  runAnalysis();
+  $('add-quantity-search').value = '';
+}
+
+/*
+ * The path change on its own, without the run.
+ *
+ * A caller that puts a construct on the path and then states a value for the rule it will run
+ * needs the two to reach the engine together. Running in between asks the rule for a number
+ * before the value it needs has been stated, so a reader adding a window by selecting one would
+ * meet the refusal for the window they were in the middle of stating.
+ */
+export function putOnThePath(construct) {
+  if (state.path.includes(construct)) return false;
   state.path.push(construct);
   state.slots = buildDecisionModel(state.registry, state.build, state.path);
   initialiseMissingSelections();
@@ -65,10 +81,25 @@ export function addToPath(construct) {
     for (const name of Object.keys(selection.values)) selection.fromDefault.add(name);
     for (const name of Object.keys(selection.options || {})) selection.fromDefault.add(name);
   }
+  return true;
+}
+
+/*
+ * Take a construct back off the path, with whatever was bound to it.
+ *
+ * The inverse of the gesture that put it there. A construct a reader reached by selecting a
+ * span on the trace has to leave when they clear that span, or a rule stays bound to values
+ * describing a selection that is gone.
+ */
+export function removeFromPath(construct) {
+  const at = state.path.indexOf(construct);
+  if (at === -1) return false;
+  state.path.splice(at, 1);
+  delete state.selection[construct];
+  state.slots = buildDecisionModel(state.registry, state.build, state.path);
+  initialiseMissingSelections();
   renderPicker();
-  renderDecisions();
-  runAnalysis();
-  $('add-quantity-search').value = '';
+  return true;
 }
 
 export function renderPicker() {

@@ -173,6 +173,7 @@ fn the_two_documents_spell_their_identity_the_same_way() {
         takeoff_index: None,
         touchdown_index: None,
         metrics: Vec::new(),
+        regions: Vec::new(),
         bound_methods: Vec::new(),
         bound_globals: Vec::new(),
         levels: plateforce_analysis::Levels {

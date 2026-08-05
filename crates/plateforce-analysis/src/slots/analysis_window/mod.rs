@@ -11,7 +11,9 @@
 
 pub mod fixed_duration_isometric;
 pub mod force_dropoff_from_running_max;
+pub mod named_phase;
 pub mod positive_impulse;
+pub mod stated_by_caller;
 pub mod takeoff_detected;
 
 use crate::binding::Binding;

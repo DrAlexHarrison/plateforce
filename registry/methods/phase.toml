@@ -1217,6 +1217,11 @@ ended. On a jump a fixed length from onset lands mid-flight or past touchdown, d
 length.
 """
 
+[[method.disagrees_with]]
+id = "window.stated.by_caller"
+kind = "genuine"
+note = "A protocol's declared test length against a span read off this recording."
+
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "moderate on peak force, large on peak and best-window rate of force development"
@@ -1279,6 +1284,11 @@ The two answer different questions: how long a sustained effort was maintained, 
 jump ended. On a jump the running maximum is reached during the countermovement, so the dropoff
 closes the window before the propulsion it was meant to bound.
 """
+
+[[method.disagrees_with]]
+id = "window.stated.by_caller"
+kind = "genuine"
+note = "A stopping condition searched for in the signal against a span read off it by eye."
 
 [method.gui]
 surfacing = "surface_on_demand"
@@ -1343,6 +1353,20 @@ As the window for integrated per-phase quantities the two differ at both ends an
 different physical principles, velocity landmarks against net-force sign. The alias positive
 impulse is bound to this interval and not to the propulsive one, on primary evidence including the
 source's own figure read directly.
+"""
+
+[[method.disagrees_with]]
+id = "window.stated.by_caller"
+kind = "genuine"
+note = "Two crossings of system weight against two instants the reader states."
+
+[[method.disagrees_with]]
+id = "window.from_named_phase"
+kind = "genuine"
+note = """
+Both are intervals inside the jump and they are not the same interval: this one runs between two
+crossings of system weight and contains the whole braking phase, where a named phase runs between
+the boundaries its own two constructs placed.
 """
 
 [method.gui]
@@ -1498,6 +1522,25 @@ jump ended. A dropoff from a running maximum is reached during the countermoveme
 the propulsion that the maximum is meant to bound.
 """
 
+[[method.disagrees_with]]
+id = "window.stated.by_caller"
+kind = "genuine"
+note = """
+The two answer the same question from opposite authorities: where a bound rule placed takeoff,
+against where a reader looked. On an untrimmed recording holding several jumps they are the whole
+difference between a peak over the jump the reader means and a peak over whichever event the takeoff
+rule reached first.
+"""
+
+[[method.disagrees_with]]
+id = "window.from_named_phase"
+kind = "genuine"
+note = """
+The whole recording up to takeoff against one phase inside it. Every quantity taken as an extremum
+separates the two: the largest force in a countermovement jump falls in the propulsion phase, and the
+largest force before takeoff on an untrimmed recording need not fall in the jump at all.
+"""
+
 [method.gui]
 surfacing = "default_and_show"
 sensitivity = """
@@ -1509,4 +1552,180 @@ rationale = """
 Peak force, peak rate of force development and the two phase-start landmarks are each an extremum
 over an interval, and the interval decides them. A peak taken over one jump is comparable with a peak
 taken over another only when both windows are named.
+"""
+
+[[method]]
+id = "window.stated.by_caller"
+construct = "analysis_window"
+group = "G"
+title = "The analysis window is the interval the caller states"
+rule = """
+The analysis window runs between two instants the caller states, both of them inside the window.
+No rule places either end. A reader who selects a span on the trace and a script that names its two
+instants state the same window, and the record carries it as theirs rather than as any published
+rule's.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "start_seconds"
+unit = "seconds"
+required = true
+notes = """
+No default and no published value, and that is the content of the entry rather than a gap in it. A
+window a reader drew is the one part of an analysis that is in no paper, so a value filled in here
+would put a published rule's name on a boundary the reader chose. Unstated, the rule declines and
+names this parameter.
+"""
+
+[[method.parameter]]
+name = "end_seconds"
+unit = "seconds"
+required = true
+notes = """
+Refused where it is not after the start: an interval narrower than one sampling interval encloses
+no interval at all. Refused too where either instant falls outside the recording, with the
+recording's own extent named, rather than clamped to it, because a number taken over a window
+shortened to fit is not the number that was asked for.
+"""
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. Selecting a span by hand is what every interactive tool offers and what no source states as a method, so it is written down as an entry rather than left as an interface gesture with no rule behind it"
+obtained = true
+
+[[method.disagrees_with]]
+id = "window_end.takeoff.detected"
+kind = "genuine"
+note = """
+The two answer the same question from opposite authorities: where a bound rule placed takeoff,
+against where a reader looked. On an untrimmed recording holding several jumps they are the whole
+difference between a peak over the jump the reader means and a peak over whichever event the
+takeoff rule reached first.
+"""
+
+[[method.disagrees_with]]
+id = "window_end.fixed_duration.isometric"
+kind = "genuine"
+note = "A protocol's declared test length against a span read off this recording."
+
+[[method.disagrees_with]]
+id = "window_end.force_dropoff_from_running_max"
+kind = "genuine"
+note = "A stopping condition searched for in the signal against a span read off it by eye."
+
+[[method.disagrees_with]]
+id = "phase.window.positive_impulse.net_force_positive"
+kind = "genuine"
+note = "Two crossings of system weight against two instants the reader states."
+
+[[method.disagrees_with]]
+id = "window.from_named_phase"
+kind = "genuine"
+note = """
+The pair this construct exists to keep apart. Two windows can enclose the same samples and mean
+different things: one is where a reader looked, the other is where a published rule placed a
+boundary, and a result that cannot say which it was is not a result.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = """
+total on any quantity taken as an extremum or an integral over an interval, and nil on quantities
+bounded by two landmarks.
+"""
+rationale = """
+Reached by selecting a span on the trace, the way the hand-placed weighing window is reached by
+dragging it, and offered on the rail as well so the same window can be stated by typing two
+instants. Named wherever the window is named: a number taken over a window a reader drew is not
+comparable with one taken over a window a rule placed, and only the record can say which happened.
+"""
+
+[[method]]
+id = "window.from_named_phase"
+construct = "analysis_window"
+group = "G"
+title = "The analysis window is the interval of the phase the caller names"
+rule = """
+The analysis window runs between the two boundaries the named phase lies between. Each boundary
+belongs to whichever rule is bound to the construct that places it, so this entry names a phase and
+places nothing itself, and a number taken over the window rests on those rules.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+Which phase the window covers. Required with no default, because no phase is the one this rule
+means: a phase chosen without the caller would take every quantity over an interval nobody named.
+
+Each value names the two boundaries it runs between rather than a school's word for the interval,
+because which named phase those boundaries enclose is settled by the rules bound to them. With the
+braking phase starting at the force minimum the first value is Harry's unloading phase; starting at
+peak negative centre of mass velocity it is McMahon's unweighting phase.
+"""
+
+[[method.parameter.value]]
+key = "onset_to_braking_start"
+label = "Start of the jump to the start of braking"
+
+[[method.parameter.value]]
+key = "braking_start_to_propulsion_start"
+label = "Start of braking to the start of propulsion"
+
+[[method.parameter.value]]
+key = "propulsion_start_to_propulsion_end"
+label = "Start of propulsion to the end of propulsion"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. Taking a per-phase quantity over the phase its own boundary rules placed is what the per-phase entries assume and none of them states, so the window it implies is written down here rather than assembled silently inside each of them"
+obtained = true
+
+[[method.disagrees_with]]
+id = "window.stated.by_caller"
+kind = "genuine"
+note = """
+The pair this construct exists to keep apart. A phase boundary carries the citation of the rule that
+placed it and a stated boundary carries none, so the same two samples support different claims.
+"""
+
+[[method.disagrees_with]]
+id = "window_end.takeoff.detected"
+kind = "genuine"
+note = """
+The whole recording up to takeoff against one phase inside it. Every quantity taken as an extremum
+separates the two: the largest force in a countermovement jump falls in the propulsion phase, and
+the largest force before takeoff on an untrimmed recording need not fall in the jump at all.
+"""
+
+[[method.disagrees_with]]
+id = "phase.window.positive_impulse.net_force_positive"
+kind = "genuine"
+note = """
+Both are intervals inside the jump and they are not the same interval: the positive-impulse window
+runs between two crossings of system weight and contains the whole braking phase, where a named
+phase runs between the boundaries its own two constructs placed.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = """
+total on any quantity taken as an extremum or an integral over an interval, and the phase named
+moves it as far again: peak force over the braking phase and over the propulsion phase are
+different numbers on every trial.
+"""
+rationale = """
+Reached by selecting a placed phase on the trace, and offered on the rail beside the rules that
+search for a window. The phase is named beside the result, because a peak taken over one phase is
+comparable with a peak taken over another only when both intervals are named, and the boundary
+rules are named with it because they are what placed the interval.
 """

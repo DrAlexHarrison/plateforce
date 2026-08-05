@@ -73,6 +73,10 @@ pub struct ResultDocument {
     pub takeoff_index: Option<usize>,
     pub touchdown_index: Option<usize>,
     pub metrics: Vec<Metric>,
+    /// The intervals this run's boundary rules settled, each under the name a caller states to
+    /// take a window over it. Carried on the document rather than only on the response so a
+    /// notebook, an R session and a terminal can offer the same intervals a tab can.
+    pub regions: Vec<crate::response::PlacedRegion>,
     pub bound_methods: Vec<BoundMethod>,
     /// What the request bound for the whole analysis. Beside `bound_methods` because a
     /// reader asking what produced a number asks both questions in one place, and no rule's
@@ -226,6 +230,7 @@ impl ResultDocument {
             takeoff_index: response.takeoff_index,
             touchdown_index: response.touchdown_index,
             metrics: response.metrics.clone(),
+            regions: response.regions.clone(),
             bound_methods: response.bound_methods.clone(),
             bound_globals: response.bound_globals.clone(),
             levels: response.levels.clone(),

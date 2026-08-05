@@ -345,6 +345,73 @@ pub(crate) const PHASE_VALUES: &[(&str, Phase)] = &[
     ),
 ];
 
+/// The two boundaries a phase runs between, under the names their rules place them by.
+///
+/// One table, read by the rule that takes a window over a phase and by the report of which
+/// phases this run settled. Each name is both the construct a refusal reports and the name a
+/// later rule reads the sample by, which is why one string serves for both here.
+pub(crate) fn phase_boundaries(phase: Phase) -> (&'static str, &'static str) {
+    use crate::slots::{braking_phase_start, propulsion_phase_end, propulsion_phase_start};
+
+    match phase {
+        Phase::OnsetToBrakingStart => (crate::derived::MOVEMENT_ONSET, braking_phase_start::PLACED),
+        Phase::BrakingStartToPropulsionStart => {
+            (braking_phase_start::PLACED, propulsion_phase_start::PLACED)
+        }
+        Phase::PropulsionStartToPropulsionEnd => {
+            (propulsion_phase_start::PLACED, propulsion_phase_end::PLACED)
+        }
+    }
+}
+
+/// The phases this run's own rules settled, as the samples they placed.
+///
+/// Read straight off the map rather than through a `DerivedContext`, because nothing is being
+/// computed: the result is reporting which intervals it settled, so a surface can offer them
+/// without asking the engine once per phase to find out.
+///
+/// A phase with either end unplaced is absent rather than present and empty, because an
+/// interface offering an interval with one end missing is offering a span it invented. Ends out
+/// of order are absent for the same reason.
+pub fn placed_regions(
+    trial: &plateforce_core::Trial,
+    placed: &BTreeMap<&'static str, crate::derived::PlacedSample>,
+) -> Vec<crate::response::PlacedRegion> {
+    let sample = |name: &'static str| placed.get(name).and_then(|held| held.index);
+    let rules = |name: &'static str| {
+        placed
+            .get(name)
+            .map(|held| held.placed_by.clone())
+            .unwrap_or_default()
+    };
+
+    let mut regions = Vec::new();
+    for (named, phase) in PHASE_VALUES {
+        let (from_name, to_name) = phase_boundaries(*phase);
+        let (Some(first), Some(last)) = (sample(from_name), sample(to_name)) else {
+            continue;
+        };
+        if last <= first {
+            continue;
+        }
+        let mut placed_by = rules(from_name);
+        for id in rules(to_name) {
+            if !placed_by.contains(&id) {
+                placed_by.push(id);
+            }
+        }
+        regions.push(crate::response::PlacedRegion {
+            phase: named,
+            start_index: first,
+            end_index: last,
+            start_seconds: trial.time_at(first),
+            end_seconds: trial.time_at(last),
+            placed_by,
+        });
+    }
+    regions
+}
+
 /// The samples one phase runs between, or the constructs whose rules placed no boundary for it.
 ///
 /// Both ends are asked for whichever is missing, so the chain records that the rule read them
@@ -353,37 +420,8 @@ pub(crate) fn phase_interval(
     context: &DerivedContext,
     phase: Phase,
 ) -> Result<(usize, usize), Vec<&'static str>> {
-    use crate::slots::{braking_phase_start, propulsion_phase_end, propulsion_phase_start};
-
-    let ((from_construct, from), (to_construct, to)) = match phase {
-        Phase::OnsetToBrakingStart => (
-            (crate::binding::ONSET_CONSTRUCT, context.onset_index()),
-            (
-                braking_phase_start::CONSTRUCT,
-                braking_phase_start::placed(context),
-            ),
-        ),
-        Phase::BrakingStartToPropulsionStart => (
-            (
-                braking_phase_start::CONSTRUCT,
-                braking_phase_start::placed(context),
-            ),
-            (
-                propulsion_phase_start::CONSTRUCT,
-                propulsion_phase_start::placed(context),
-            ),
-        ),
-        Phase::PropulsionStartToPropulsionEnd => (
-            (
-                propulsion_phase_start::CONSTRUCT,
-                propulsion_phase_start::placed(context),
-            ),
-            (
-                propulsion_phase_end::CONSTRUCT,
-                propulsion_phase_end::placed(context),
-            ),
-        ),
-    };
+    let (from_construct, to_construct) = phase_boundaries(phase);
+    let (from, to) = (context.sample(from_construct), context.sample(to_construct));
     match (from, to) {
         (Some(from), Some(to)) if to > from => Ok((from, to)),
         (from, to) => {

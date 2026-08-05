@@ -400,7 +400,7 @@ input:invalid { border-color: var(--danger); }
 
 /* ---------------------------------------------------------------- chart */
 
-.chart { position: relative; width: 100%; height: 380px; touch-action: none; overflow: hidden; }
+.chart { position: relative; width: 100%; height: 380px; touch-action: none; overflow: hidden; user-select: none; }
 .chart canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .chart__overlay { position: absolute; inset: 0; }
 
@@ -467,6 +467,50 @@ input:invalid { border-color: var(--danger); }
 }
 .window-body { position: absolute; top: 0; background: transparent; border: 0; cursor: grab; }
 .window-body:active { cursor: grabbing; }
+
+/* The band itself is drawn on the canvas. This layer is what a reader tabs to and what a
+ * screen reader reads out, so it takes no ink of its own beyond the mark on the active span. */
+.selection-layer { position: absolute; inset: 0; pointer-events: none; }
+.selection-region {
+  position: absolute;
+  top: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: crosshair;
+  pointer-events: auto;
+}
+.selection-region::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--border-strong);
+}
+.selection-region--active::before { height: 4px; background: var(--text-secondary); }
+.selection-region:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+
+.chart-selection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+.chart-selection[hidden] { display: none; }
+.chart-selection__actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.chart-selection__readout {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.chart-selection__span { color: var(--text); font-family: var(--font-mono); }
+.chart-selection__origin { color: var(--text-secondary); }
 
 .chart-crosshair {
   position: absolute;
@@ -1040,6 +1084,8 @@ table.data td.failed { color: var(--danger); white-space: normal; }
   .chart-help { display: none; }
   .chart-nav { grid-template-columns: minmax(0, 1fr); }
   .chart-nav__actions .button { flex: 1; }
+  .chart-selection { grid-template-columns: minmax(0, 1fr); }
+  .chart-selection__actions .button { flex: 1 1 auto; }
   .chart-nav__range { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
   .metric-grid { grid-template-columns: minmax(0, 1fr); }
   .metric-grid--headlines { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }

@@ -227,8 +227,96 @@ pub const BINDINGS: &[Binding] = &[
         dispatch: Dispatch::Spine,
     },
     // Everything below the spine runs after it, in this order. A rule that reads what
-    // another rule placed is declared after it, which is the whole of the ordering: the
-    // window is placed here and every peak below reads it.
+    // another rule placed is declared after it, which is the whole of the ordering.
+    //
+    // The phase boundaries, in trace order, which is also dependency order: propulsion end
+    // reads what braking start placed under its force option, and the phase models read the
+    // propulsion boundaries. Above the analysis window because one window rule is the interval
+    // between two of these, and nothing between here and where they used to sit reads a phase
+    // boundary, so moving them up exposed no rule to a sample it could not see before.
+    Binding {
+        id: crate::slots::braking_phase_start::zero_net_force::ID,
+        slot: crate::slots::braking_phase_start::CONSTRUCT,
+        construct: crate::slots::braking_phase_start::CONSTRUCT,
+        title: "Net force crosses zero upward after the minimum",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::braking_phase_start::zero_net_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::zero_net_force::RULE),
+    },
+    Binding {
+        id: crate::slots::braking_phase_start::min_force::ID,
+        slot: crate::slots::braking_phase_start::CONSTRUCT,
+        construct: crate::slots::braking_phase_start::CONSTRUCT,
+        title: "The instant of minimum vertical force following onset",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::braking_phase_start::min_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::min_force::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::zero_velocity::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "Centre of mass velocity crosses zero from below",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::zero_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::zero_velocity::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::velocity_threshold::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "Centre of mass velocity first exceeds a small positive threshold",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::velocity_threshold::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::velocity_threshold::RULE),
+    },
+    Binding {
+        id: crate::slots::propulsion_phase_start::peak_grf::ID,
+        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
+        title: "The instant of peak vertical force",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_start::peak_grf::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::peak_grf::RULE),
+    },
+    // Declared after braking start, which its force option reads and names.
+    Binding {
+        id: crate::slots::propulsion_phase_end::peak_com_velocity::ID,
+        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
+        title: "Propulsion ends at maximum centre of mass velocity rather than at takeoff",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
+    },
+    // Beside the rule it disagrees with rather than at the end of the array, because this
+    // position is what the two subdivisions read. Declared after them, a caller composing this
+    // boundary with a subdivision would meet the subdivision first and be told the propulsion
+    // end placed nothing, which is the one composition this entry exists to make work.
+    Binding {
+        id: crate::slots::propulsion_phase_end::takeoff::ID,
+        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
+        title: "Propulsion ends at takeoff",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_end::takeoff::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::takeoff::RULE),
+    },
+    // The window is placed here and every peak below reads it.
     Binding {
         id: crate::slots::analysis_window::takeoff_detected::ID,
         slot: crate::slots::analysis_window::CONSTRUCT,
@@ -279,6 +367,30 @@ pub const BINDINGS: &[Binding] = &[
         note: "",
         quantities: crate::slots::analysis_window::positive_impulse::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::analysis_window::positive_impulse::RULE),
+    },
+    Binding {
+        id: crate::slots::analysis_window::stated_by_caller::ID,
+        slot: crate::slots::analysis_window::CONSTRUCT,
+        construct: crate::slots::analysis_window::CONSTRUCT,
+        title: "The interval the caller states",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::analysis_window::stated_by_caller::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::analysis_window::stated_by_caller::RULE),
+    },
+    // After the three phase-boundary families and before the peaks, which is the only place it
+    // can sit: it reads what those families placed, and every peak below reads what it places.
+    Binding {
+        id: crate::slots::analysis_window::named_phase::ID,
+        slot: crate::slots::analysis_window::CONSTRUCT,
+        construct: crate::slots::analysis_window::CONSTRUCT,
+        title: "The interval of the phase the caller names",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::analysis_window::named_phase::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::analysis_window::named_phase::RULE),
     },
     Binding {
         id: crate::slots::peak_force::gross::ID,
@@ -557,93 +669,9 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::reactive_strength_index::jh_ft_over_ttt::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::reactive_strength_index::jh_ft_over_ttt::RULE),
     },
-    // The phase boundaries, in trace order, which is also dependency order: propulsion end
-    // reads what braking start placed under its force option, and the phase models read the
-    // propulsion boundaries.
-    Binding {
-        id: crate::slots::braking_phase_start::zero_net_force::ID,
-        slot: crate::slots::braking_phase_start::CONSTRUCT,
-        construct: crate::slots::braking_phase_start::CONSTRUCT,
-        title: "Net force crosses zero upward after the minimum",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::braking_phase_start::zero_net_force::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::zero_net_force::RULE),
-    },
-    Binding {
-        id: crate::slots::braking_phase_start::min_force::ID,
-        slot: crate::slots::braking_phase_start::CONSTRUCT,
-        construct: crate::slots::braking_phase_start::CONSTRUCT,
-        title: "The instant of minimum vertical force following onset",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::braking_phase_start::min_force::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::braking_phase_start::min_force::RULE),
-    },
-    Binding {
-        id: crate::slots::propulsion_phase_start::zero_velocity::ID,
-        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
-        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
-        title: "Centre of mass velocity crosses zero from below",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::propulsion_phase_start::zero_velocity::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::zero_velocity::RULE),
-    },
-    Binding {
-        id: crate::slots::propulsion_phase_start::velocity_threshold::ID,
-        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
-        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
-        title: "Centre of mass velocity first exceeds a small positive threshold",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::propulsion_phase_start::velocity_threshold::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::velocity_threshold::RULE),
-    },
-    Binding {
-        id: crate::slots::propulsion_phase_start::peak_grf::ID,
-        slot: crate::slots::propulsion_phase_start::CONSTRUCT,
-        construct: crate::slots::propulsion_phase_start::CONSTRUCT,
-        title: "The instant of peak vertical force",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::propulsion_phase_start::peak_grf::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_start::peak_grf::RULE),
-    },
-    // Declared after braking start, which its force option reads and names.
-    Binding {
-        id: crate::slots::propulsion_phase_end::peak_com_velocity::ID,
-        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
-        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
-        title: "Propulsion ends at maximum centre of mass velocity rather than at takeoff",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
-    },
-    // Beside the rule it disagrees with rather than at the end of the array, because this
-    // position is what the two subdivisions read. Declared after them, a caller composing this
-    // boundary with a subdivision would meet the subdivision first and be told the propulsion
-    // end placed nothing, which is the one composition this entry exists to make work.
-    Binding {
-        id: crate::slots::propulsion_phase_end::takeoff::ID,
-        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
-        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
-        title: "Propulsion ends at takeoff",
-        composed_from: None,
-        records_under: None,
-        note: "",
-        quantities: crate::slots::propulsion_phase_end::takeoff::QUANTITIES,
-        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::takeoff::RULE),
-    },
-    // Declared last of the phase rules: the two propulsion subdivisions read the boundaries
-    // the propulsion rules placed, so the interval they split is already settled here.
+    // The phase models are declared here rather than beside the boundary rules they read,
+    // because the two propulsion subdivisions below read the boundaries the propulsion rules
+    // placed, so the interval they split is already settled by this point.
     Binding {
         id: crate::slots::phase_model::unweighting_single::ID,
         slot: crate::slots::phase_model::CONSTRUCT,
