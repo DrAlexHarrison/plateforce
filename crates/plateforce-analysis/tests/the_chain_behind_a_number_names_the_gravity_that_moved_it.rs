@@ -21,7 +21,8 @@ use plateforce_analysis::{
     chains_of, run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice, GRAVITY_GLOBAL,
 };
 use plateforce_core::provenance::{ParameterSource, RegistryStamp};
-use plateforce_core::Trial;
+use plateforce_core::reporting::fingerprint;
+use plateforce_core::{Acquisition, Trial};
 
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 const FLIGHT_SAMPLES: usize = 811;
@@ -252,4 +253,82 @@ fn a_rule_publishing_its_own_gravity_puts_the_one_it_ran_at_into_the_chain() {
         (height - STANDARD * flight * flight / 8.0).abs() > 1e-9,
         "the two gravities give the same height, so this proves nothing about which was used"
     );
+}
+
+/// Two numbers that are not the same number do not fingerprint as one result.
+///
+/// The fingerprint is taken over the chain, so a value the chain does not carry cannot reach
+/// it. Four of the five quantities here moved between two gravities and fingerprinted alike,
+/// which is the strongest form the defect took: a reader comparing two results against each
+/// other was told they matched.
+///
+/// The plate is fully recorded, because an incomplete acquisition block matches nothing,
+/// itself included, and two incomplete fingerprints compare equal whatever the digests are.
+#[test]
+fn two_gravities_that_move_a_number_give_it_two_fingerprints() {
+    let standard = at(STANDARD, ParameterSource::Stated);
+    let published = at(PUBLISHED, ParameterSource::Stated);
+    let moved = moved_between(&standard, &published);
+    assert!(
+        !moved.is_empty(),
+        "no number moved, so nothing here is being fingerprinted twice"
+    );
+
+    let taken = |response: &AnalysisResponse, key: &str| {
+        let chains = chains_of(response, &stamp(), true);
+        let derived = chains
+            .iter()
+            .find(|held| held.quantity == key)
+            .unwrap_or_else(|| panic!("{key} has no chain"));
+        fingerprint(
+            &derived.chain.provenance,
+            &a_recorded_plate(),
+            SAMPLE_RATE_HZ,
+        )
+    };
+
+    for key in &moved {
+        let one = taken(&standard, key);
+        assert!(one.complete, "a recorded plate publishes a digest");
+        assert_ne!(
+            one,
+            taken(&published, key),
+            "{key} is a different number at {STANDARD} and at {PUBLISHED} and fingerprints the \
+             same, so two results that do not match would be declared to"
+        );
+    }
+
+    // The control on the loop above. A fingerprint that moved for every quantity would satisfy
+    // it while telling a reader that two identical numbers are two results.
+    let still: Vec<&String> = standard
+        .metrics
+        .iter()
+        .filter(|metric| metric.value.is_some())
+        .map(|metric| &metric.key)
+        .filter(|key| !moved.contains(*key))
+        .collect();
+    assert!(
+        !still.is_empty(),
+        "every number moved, so nothing held still"
+    );
+    for key in still {
+        assert_eq!(
+            taken(&standard, key),
+            taken(&published, key),
+            "{key} is the same number at both gravities and fingerprints as two results"
+        );
+    }
+}
+
+/// A plate whose settings were all recorded, so a fingerprint taken over it is one that
+/// publishes. An unfilled block matches nothing, itself included, so a comparison over two
+/// incomplete fingerprints passes whatever the digests are.
+fn a_recorded_plate() -> Acquisition {
+    Acquisition {
+        filter_at_capture: Some("none".to_string()),
+        tare_state: Some("tared_before_trial".to_string()),
+        plate_natural_frequency_hz: Some(400.0),
+        floor_surface: Some("concrete".to_string()),
+        firmware_version: Some("2.4.1".to_string()),
+    }
 }
