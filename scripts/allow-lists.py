@@ -15,15 +15,14 @@ reports both rather than either alone:
   "we have not got to this yet" is a coverage hole wearing a whitelist. Nothing mechanical
   tells those apart, so each is ruled by a reader and the ruling is what this checks.
 
-Every candidate is ruled once, in `scripts/allow-lists-ruled.txt`, and `--check` compares the
-set this finds against the set that file records. It fails in both directions: a list nobody has
-ruled on is red, and a ruling the census no longer finds is red. A file that only grew would pass
-in both of those cases, which is the shape it exists to prevent.
+Every candidate is ruled once, in `scripts/allow-lists-ruled.txt`. A population that drives a
+check is `drives`. A permanent exclusion from that population is `exemption`. `excuses` is a
+coverage hole that still lets a named case through. `--check` compares the set this finds against
+the set that file records. It fails in both directions: a list nobody has ruled on is red, and a
+ruling the census no longer finds is red.
 
-What this does not do is decide whether a list is pinned. It was written to, and the classifier
-said 0 of 15 while `FILES_THAT_QUOTE_A_DIGEST` was pinned in both directions by an emptiness
-assertion no pattern for equalities can see. A verdict that is true and whose reason is false is
-worse than none, so the pinning is ruled by a reader in the file and never guessed here.
+What this does not do is decide whether a list is pinned. A verdict that is true and whose reason
+is false is worse than none, so pinning is ruled by a reader in the file and never guessed here.
 
 Run: python3 scripts/allow-lists.py [--json] [--check]
 """
@@ -120,11 +119,23 @@ def declaration_of(text: str, name: str) -> tuple[int, str] | None:
 def statement_around(text: str, index: int) -> str:
     """The membership test with enough of its statement to see what the answer does with it.
 
-    A window rather than a parse, and it runs to the end of the following line because the
-    skipping half of `if X.contains(y) { continue }` is often on the next one.
+    A window rather than a language parser. A braced conditional runs through its matching
+    close; every other statement runs through the following line.
     """
     start = text.rfind("\n", 0, text.rfind("\n", 0, index) + 1) + 1
-    end = text.find("\n", text.find("\n", index) + 1)
+    current_line = text.rfind("\n", 0, index) + 1
+    line_end = text.find("\n", index)
+    brace = text.find("{", index, line_end if line_end != -1 else len(text))
+    if brace != -1 and re.search(r"\bif\b", text[current_line:brace]):
+        depth = 0
+        for position in range(brace, len(text)):
+            if text[position] == "{":
+                depth += 1
+            elif text[position] == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : position + 1]
+    end = text.find("\n", (line_end if line_end != -1 else index) + 1)
     return text[start : end if end != -1 else len(text)]
 
 
@@ -148,11 +159,13 @@ def audit() -> dict:
                 position, body = declared
                 entries = len(re.findall(r'"[^"]*"|\'[^\']*\'', body))
                 if entries == 0:
-                    # An empty list is the closed shape rather than an absent one, and the pin
-                    # beside it is what keeps it empty. Counted, and never as a hole.
-                    if "= &[]" not in text[position : position + 200] and "= []" not in text[
-                        position : position + 200
-                    ]:
+                    # An empty population is the closed shape rather than an absent one. The
+                    # register of unasked surfaces is keyed by request kind, so its empty
+                    # nested set is the population the membership test reads.
+                    empty_population = re.search(r"^[\[\{]\s*[\]\}]$", body, re.S) or re.search(
+                        r":\s*\{\s*\}", body
+                    )
+                    if not empty_population:
                         continue
                 exempting = [
                     statement
@@ -206,13 +219,18 @@ def main() -> int:
     excusing = [
         row for row in rows if rulings.get(f"{row['file']}:{row['name']}", ("", ""))[0] == "excuses"
     ]
+    exemptions = [
+        row
+        for row in rows
+        if rulings.get(f"{row['file']}:{row['name']}", ("", ""))[0] == "exemption"
+    ]
     print(
         f"{report['corpus_total']} gate sources walked: "
         + ", ".join(f"{count} {language}" for language, count in report["corpus"].items())
     )
     print(
-        f"{len(rows)} of them hold a list consulted to skip, negate or excuse, and "
-        f"{len(excusing)} of {len(rows)} were ruled an exemption rather than a population"
+        f"{len(rows)} of them hold a list consulted to skip, negate or excuse: "
+        f"{len(exemptions)} genuine exemptions and {len(excusing)} coverage holes"
     )
     print(
         f"{report['driving_collections']} further collections are tested for membership and "
@@ -232,18 +250,25 @@ def main() -> int:
 
     found = {f"{row['file']}:{row['name']}" for row in rows}
     recorded = set(rulings)
+    allowed_verdicts = {"drives", "exemption", "excuses"}
+    invalid = sorted(key for key, (verdict, _) in rulings.items() if verdict not in allowed_verdicts)
+    unreasoned = sorted(key for key, (_, reasoning) in rulings.items() if not reasoning)
     print()
     # An equality rather than a floor, so this fails in both directions. A list nobody has ruled
     # on is a check that cannot fail for whatever it names, and a ruling the census no longer
     # finds is a ruling that outlived its list. A file compared by `issubset` would pass on the
     # second, which is the shape this file exists to refuse.
-    if found == recorded:
+    if found == recorded and not invalid and not unreasoned:
         print(f"{len(found)} lists found and {len(recorded)} ruled, and they are the same set.")
         return 0
     for key in sorted(found - recorded):
         print(f"  not ruled on: {key}")
     for key in sorted(recorded - found):
         print(f"  ruled and no longer found: {key}")
+    for key in invalid:
+        print(f"  unknown verdict: {key} says {rulings[key][0]}")
+    for key in unreasoned:
+        print(f"  ruling gives no reason: {key}")
     print(
         f"{len(found)} found against {len(recorded)} ruled. Read the list, rule on it in "
         f"{RULINGS.relative_to(ROOT)}, and say what it records."

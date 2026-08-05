@@ -16,7 +16,8 @@ include!("src/content_types.rs");
 /// Repository documentation that sits beside the interface without being part of it.
 /// Serving it would put a build instruction on a port somebody opened to analyse a trial.
 /// The name travels into the binary so a caller can subtract a deliberate exclusion from a
-/// directory listing rather than counting to a number.
+/// directory listing rather than counting to a number. The directory walk is held equal to
+/// this set, so an exclusion that no longer sits beside the interface fails the build.
 const NOT_PART_OF_THE_INTERFACE: &[&str] = &["README.md"];
 
 /// The one subdirectory of `web/` the interface is allowed to have. Anything else is a set
@@ -75,6 +76,11 @@ fn main() {
 /// so a set of assets is never dropped without saying so.
 fn interface_files(web: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
+    let expected_exclusions: BTreeSet<String> = NOT_PART_OF_THE_INTERFACE
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect();
+    let mut exclusions_found = BTreeSet::new();
     for entry in std::fs::read_dir(web).unwrap() {
         let entry = entry.unwrap();
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -87,10 +93,15 @@ fn interface_files(web: &Path) -> Vec<PathBuf> {
             continue;
         }
         if NOT_PART_OF_THE_INTERFACE.contains(&name.as_str()) {
+            exclusions_found.insert(name);
             continue;
         }
         files.push(entry.path());
     }
+    assert_eq!(
+        exclusions_found, expected_exclusions,
+        "the browser interface exclusions differ from the files beside it"
+    );
     files.sort();
     files
 }

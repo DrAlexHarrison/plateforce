@@ -24,17 +24,18 @@
 //! Reading the directory again here would be a second implementation of that rule inside a
 //! file about a different one, which is what a scan over the whole tree used to do beside this
 //! one until it was collapsed in: that scan passed a correct digest written into an unlisted
-//! committed file, where `no_committed_file_quotes_a_digest_from_outside_the_list` below fails
+//! committed file, where `registry_digest_files_are_exactly_the_files_that_quote_one` below fails
 //! it, so the wider-looking guard was the narrower one.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Files a digest is allowed to appear in, each because it is a worked example a reader acts
-/// on. Listed rather than discovered: a new file quoting a digest is a decision somebody
-/// makes, and the point of a list is that it is read in review.
-const FILES_THAT_QUOTE_A_DIGEST: [&str; 2] = [
+/// The exact population of worked examples that quote this registry's digest.
+///
+/// The tree scan below is held equal to this set. A file appearing fails as an unreviewed
+/// example, and a file leaving fails as a stale population member.
+const REGISTRY_DIGEST_FILES: [&str; 2] = [
     "crates/plateforce-core/src/provenance.rs",
     "crates/plateforce-python/README.md",
 ];
@@ -109,7 +110,7 @@ fn every_digest_in_prose_is_the_one_the_registry_answers() {
 
     let mut checked = 0;
     let mut wrong = Vec::new();
-    for name in FILES_THAT_QUOTE_A_DIGEST {
+    for name in REGISTRY_DIGEST_FILES {
         let path = root.join(name);
         let text = std::fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("{name} is listed here and unreadable: {error}"));
@@ -129,9 +130,9 @@ fn every_digest_in_prose_is_the_one_the_registry_answers() {
 
     // The control. A guard over no digests passes every assertion above it.
     assert!(
-        checked >= FILES_THAT_QUOTE_A_DIGEST.len(),
+        checked >= REGISTRY_DIGEST_FILES.len(),
         "only {checked} digests were read across {} files",
-        FILES_THAT_QUOTE_A_DIGEST.len()
+        REGISTRY_DIGEST_FILES.len()
     );
 
     assert!(
@@ -236,12 +237,9 @@ fn every_digest_in_the_parity_plate_record_is_the_one_its_members_hash_to() {
     );
 }
 
-/// Every file in the tree that quotes a real digest is on one of the lists above.
-///
-/// Without this the guard is only as wide as whoever last edited the list, and a new worked
-/// example carrying a stale digest passes by not being mentioned.
+/// The files that quote this registry's digest are exactly the stated population.
 #[test]
-fn no_committed_file_quotes_a_digest_from_outside_the_list() {
+fn registry_digest_files_are_exactly_the_files_that_quote_one() {
     let root = repository();
     let tracked = Command::new("git")
         .args(["ls-files", "-z"])
@@ -250,27 +248,30 @@ fn no_committed_file_quotes_a_digest_from_outside_the_list() {
         .expect("git lists the tracked files");
     assert!(tracked.status.success());
 
-    let mut unlisted = Vec::new();
+    let expected: BTreeSet<String> = REGISTRY_DIGEST_FILES
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect();
+    let mut found = BTreeSet::new();
     let mut scanned = 0;
     for name in String::from_utf8_lossy(&tracked.stdout).split('\0') {
         // The plate record is held too, by the test above, to the members its own request
         // states rather than to the registry. Skipped here and asserted there, never exempt.
-        if name.is_empty() || FILES_THAT_QUOTE_A_DIGEST.contains(&name) || name == PLATE_RECORD {
+        if name.is_empty() || name == PLATE_RECORD {
             continue;
         }
         let Ok(text) = std::fs::read_to_string(root.join(name)) else {
             continue; // Binary, or a path this checkout does not hold.
         };
         scanned += 1;
-        for (line, digest) in digests_in(&text) {
-            unlisted.push(format!("{name}:{line} says {digest}"));
+        if !digests_in(&text).is_empty() {
+            found.insert(name.to_string());
         }
     }
 
     assert!(scanned > 100, "only {scanned} tracked files were read");
-    assert!(
-        unlisted.is_empty(),
-        "these quote a registry digest and are not held to it:\n    {}",
-        unlisted.join("\n    ")
+    assert_eq!(
+        found, expected,
+        "the files quoting a registry-shaped digest differ from the stated population"
     );
 }
