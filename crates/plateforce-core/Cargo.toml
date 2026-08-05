@@ -14,6 +14,9 @@ authors.workspace = true
 plateforce-registry = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+# The saved-plate file. Already in this crate's tree through `plateforce-registry`, which
+# reads the registry out of the same format, so naming it here adds no crate to any surface.
+toml = { workspace = true }
 
 [dev-dependencies]
 # The workspace entry carries `float_roundtrip`. Naming it here rather than taking the bare
