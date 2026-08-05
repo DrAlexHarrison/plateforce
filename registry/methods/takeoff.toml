@@ -99,7 +99,7 @@ id = "contact_event.mat_switch_or_optical_beam"
 kind = "genuine"
 
 [[method.disagrees_with]]
-id = "onset.op.hysteresis"
+id = "takeoff.op.hysteresis"
 kind = "genuine"
 
 [[method.disagrees_with]]
@@ -770,6 +770,48 @@ rationale = """
 Show where the search began and which rule put it there. It runs whenever one of the two rules that
 take it is chosen, so hiding it would leave the most consequential bound on takeoff unstated.
 """
+
+[[method]]
+id = "takeoff.op.hysteresis"
+construct = "takeoff"
+group = "D"
+title = "Different thresholds to enter and to exit a state"
+rule = "Use one threshold to enter a state and a different one to leave it, guarding a boundary against chatter."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "enter_threshold_n"
+unit = "newtons"
+published_values = [5.0]
+default = 5.0
+default_source = "acu_sprint"
+required = true
+
+[[method.parameter]]
+name = "exit_threshold_n"
+unit = "newtons"
+published_values = [20.0]
+default = 20.0
+default_source = "acu_sprint"
+required = true
+
+[[method.citation]]
+key = "acu_sprint"
+role = "uses"
+reference = "ACU SPRINT Jump, 5 N to enter flight and 20 N to exit"
+obtained = true
+
+[[method.disagrees_with]]
+id = "takeoff.threshold.absolute_force"
+kind = "genuine"
+note = "Lengthens the detected flight phase relative to a symmetric threshold at the higher value and shortens it relative to the lower."
+
+[method.gui]
+surfacing = "default_and_hide"
+sensitivity = "moderate on flight time"
+rationale = "No other tool in the sweep does it, which makes it worth naming so its absence elsewhere is visible."
 
 [[method]]
 id = "takeoff.op.search_floor_at_trial_start"
