@@ -323,6 +323,36 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "slot": "rate_of_force_development"
@@ -422,6 +452,12 @@
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
@@ -871,6 +907,36 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "slot": "rate_of_force_development"
@@ -970,6 +1036,12 @@
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
@@ -1423,6 +1495,36 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "slot": "rate_of_force_development"
@@ -1522,6 +1624,12 @@
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
@@ -1973,6 +2081,36 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "slot": "rate_of_force_development"
@@ -2072,6 +2210,12 @@
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
