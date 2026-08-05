@@ -392,6 +392,17 @@ pub const BINDINGS: &[Binding] = &[
         dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::work_energy::RULE),
     },
     Binding {
+        id: crate::slots::jh_takeoff_frame::mcmahon_correction_factor::ID,
+        slot: crate::slots::jh_takeoff_frame::CONSTRUCT,
+        construct: crate::slots::jh_takeoff_frame::CONSTRUCT,
+        title: "Rise from takeoff on a drop jump, from the arrival the standing period recovers",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::jh_takeoff_frame::mcmahon_correction_factor::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::jh_takeoff_frame::mcmahon_correction_factor::RULE),
+    },
+    Binding {
         id: crate::slots::jh_standing_frame::double_integral::ID,
         slot: crate::slots::jh_standing_frame::CONSTRUCT,
         construct: crate::slots::jh_standing_frame::CONSTRUCT,

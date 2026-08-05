@@ -45,8 +45,7 @@ pub mod waveform;
 
 pub use acquisition::{Acquisition, Capture, MemberFault, PlateProfileAttribution};
 pub use landing::{
-    arrival_velocity_from_final_standing_period_meters_per_second, final_period_samples,
-    landing_first_sustained_run,
+    arrival_velocity_from_final_standing_period_meters_per_second, landing_first_sustained_run,
 };
 pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};

@@ -87,23 +87,6 @@ pub fn arrival_velocity_from_final_standing_period_meters_per_second(
     Some(-mean)
 }
 
-/// The half-open range of the last `seconds` of a recording of `sample_count` samples.
-///
-/// Nothing where the recording is shorter than the period asked for, because a mean taken over
-/// a period the recording does not hold is a mean over whatever it does hold, reported under
-/// the length that was asked for.
-pub fn final_period_samples(
-    sample_count: usize,
-    seconds: f64,
-    sample_rate_hz: f64,
-) -> Option<std::ops::Range<usize>> {
-    let wanted = (seconds * sample_rate_hz).round() as usize;
-    if wanted == 0 || wanted > sample_count {
-        return None;
-    }
-    Some(sample_count - wanted..sample_count)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -213,9 +196,4 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_final_period_longer_than_the_recording_is_refused_rather_than_shortened() {
-        assert_eq!(final_period_samples(1200, 1.0, 1000.0), Some(200..1200));
-        assert_eq!(final_period_samples(600, 1.0, 1000.0), None);
-    }
 }
