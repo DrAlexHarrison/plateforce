@@ -115,29 +115,52 @@ def fills(declared, request):
     return not declared.filled_by or request in declared.filled_by
 
 
+def request_decided(kind):
+    """The registers that can hold a field one request fills and another leaves off.
+
+    Two of them, because a field the request decides began as a divergence and now has a
+    register of its own: `FILLED_BY_REQUEST` is where one lands whose carriers all agree, and
+    a divergence carrying a `filled_by` is one whose carriers do not. A scanner reading only
+    the first would find nothing the day the last such divergence is discharged, and would
+    report that as the register having nothing to say rather than as itself looking in one
+    place.
+    """
+    return (gate.FILLED_BY_REQUEST[kind], gate.SURFACES_THAT_DIFFER[kind])
+
+
 def a_field_the_request_leaves_off_every_wire(kind, request):
     """One field the document declares that no answer to this request carries.
 
-    Read off the register rather than named, for the reason `a_recorded_divergence` is: a case
-    naming `plate_profile` goes quiet the moment that entry is discharged, and this script is
-    run by hand.
+    Read off the registers rather than named, for the reason `a_recorded_divergence` is: a
+    case naming `plate_profile` goes quiet the moment that entry moves, and this script is run
+    by hand.
     """
-    for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
-        if not fills(declared, request):
-            return field
+    for register in request_decided(kind):
+        for field, declared in register.items():
+            if not fills(declared, request):
+                return field
     raise SystemExit(
-        f"plateforce: the {kind} register records no field a request decides, so on the "
+        f"plateforce: the {kind} registers record no field a request decides, so on the "
         f"{request} request there is no declared field whose account can be taken away"
     )
 
 
+def register_holding(kind, field):
+    """Which of the two registers carries this field's entry."""
+    for register in request_decided(kind):
+        if field in register:
+            return register
+    raise SystemExit(f"plateforce: no {kind} register carries {field}")
+
+
 def a_field_the_request_fills(kind, request):
     """One field on a wire because this request asked for it, and on no other request's."""
-    for field, declared in gate.SURFACES_THAT_DIFFER[kind].items():
-        if declared.filled_by and request in declared.filled_by:
-            return field
+    for register in request_decided(kind):
+        for field, declared in register.items():
+            if declared.filled_by and request in declared.filled_by:
+                return field
     raise SystemExit(
-        f"plateforce: the {kind} register records no field the {request} request puts on a "
+        f"plateforce: the {kind} registers record no field the {request} request puts on a "
         "wire, so there is nothing here to stop filling"
     )
 
@@ -212,10 +235,15 @@ def faults_when(name, change, expected, kind=None, build=None, request=QUIET):
     struct a kind is answered in is restored for the same reason, and it is the loudest of the
     three: left pointing elsewhere it would redden every remaining case for a reason that is
     not the case.
+
+    A register added to the gate and not to this list is the failure this note exists to stop:
+    the first case to empty it takes the raw material away from every case after it, and they
+    refuse for the absence rather than for what they plant.
     """
     kind = kind or gate.ANALYSED
     differ_was = dict(gate.SURFACES_THAT_DIFFER[kind])
     never_was = dict(gate.NEVER_ON_THE_WIRE[kind])
+    filled_was = dict(gate.FILLED_BY_REQUEST[kind])
     document_was = gate.DOCUMENT_OF_KIND[kind]
     if build is None:
         answers, fields = answers_that_pass()
@@ -232,6 +260,8 @@ def faults_when(name, change, expected, kind=None, build=None, request=QUIET):
         gate.SURFACES_THAT_DIFFER[kind].update(differ_was)
         gate.NEVER_ON_THE_WIRE[kind].clear()
         gate.NEVER_ON_THE_WIRE[kind].update(never_was)
+        gate.FILLED_BY_REQUEST[kind].clear()
+        gate.FILLED_BY_REQUEST[kind].update(filled_was)
         gate.DOCUMENT_OF_KIND[kind] = document_was
     hit = [fault for fault in faults if expected in fault]
     if not hit:
@@ -422,9 +452,8 @@ def stop_naming_a_field_no_answer_here_carries(answers, fields):
     disagreement above is: a case naming `plate_profile` goes quiet the moment that entry
     moves, and this script is run by hand.
     """
-    gate.SURFACES_THAT_DIFFER[gate.ANALYSED].pop(
-        a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
-    )
+    field = a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
+    register_holding(gate.ANALYSED, field).pop(field)
 
 
 def name_a_field_the_document_does_not_declare(answers, fields):
@@ -443,7 +472,7 @@ def put_a_field_named_as_reaching_no_wire_on_every_surface(answers, fields):
     left wrong with the run and the refusal that fires is this one.
     """
     field = a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
-    gate.SURFACES_THAT_DIFFER[gate.ANALYSED].pop(field)
+    register_holding(gate.ANALYSED, field).pop(field)
     gate.NEVER_ON_THE_WIRE[gate.ANALYSED][field] = gate.NeverOnTheWire(
         "a request that fills it", "a field every request in this population leaves off"
     )
@@ -461,7 +490,11 @@ def carry_a_field_this_request_does_not_fill(answers, fields):
     once.
     """
     field = a_field_the_request_leaves_off_every_wire(gate.ANALYSED, QUIET)
-    for surface in gate.SURFACES_THAT_DIFFER[gate.ANALYSED][field].carried_by:
+    declared = register_holding(gate.ANALYSED, field)[field]
+    # A field the request decides is on every surface where the request asks for it, so its
+    # entry names no carriers and the answers themselves are the population.
+    carriers = getattr(declared, "carried_by", None) or answers.keys()
+    for surface in carriers:
         answers[surface][field] = f"one-{field}"
 
 
@@ -595,7 +628,7 @@ PLATE_CASES = [
     (
         "the one request that puts a field on a wire, leaving it off",
         stop_filling_the_field_this_request_fills,
-        "which it is recorded as reaching",
+        "the request stopped filling it",
     ),
     (
         "a field one surface publishes on the request that states a plate, and the others do not",
@@ -1005,20 +1038,63 @@ MANIFEST_CASES = [
 # standard nothing is measured against, which is the defect one level up from a baseline no
 # row is held to.
 
-def a_divergence_held_to_the_record(kind, answers):
+def a_divergence_held_to_the_record(kind, answers, committed):
     """One recorded divergence these answers put on a wire, read off the register.
 
     Named nowhere, for the reason `a_recorded_divergence` is named nowhere: a case naming
     `plate_profile` goes quiet the moment that entry names something that would move a record,
     and this script is run by hand.
+
+    Planted where the register holds none, the way the reach cases plant theirs. Every
+    divergence left today names something that would move a record for a reason that is not
+    parity, so this population is empty and a case that only read it would stop running the
+    day it emptied. The planted entry is a real divergence in every respect the record checks:
+    two carriers publishing one value, held to a committed one.
     """
     for field in sorted(gate.divergences_held_to_a_record(kind)):
         if gate.surfaces_publishing(answers, field):
             return field
+    return plant_a_divergence_held_to_the_record(kind, answers, committed)
+
+
+def plant_a_divergence_held_to_the_record(kind, answers, committed):
+    """Put one record-held divergence into the register, over a field these answers carry.
+
+    The committed block is filled at the same time, because it was measured before the entry
+    existed and a regeneration would write the carriers' own value there.
+    """
+    for field in sorted(gate.divergent_values_measured_from(answers, kind)):
+        carriers = gate.surfaces_publishing(answers, field)
+        if len(carriers) > 1:
+            gate.SURFACES_THAT_DIFFER[kind][field] = gate.Divergence(
+                frozenset(carriers),
+                True,
+                "planted by the self-test, held to the record",
+                "a divergence the register holds to a committed value",
+            )
+            committed.setdefault(field, answers[sorted(carriers)[0]][field])
+            return field
+    for field in sorted(PLANTABLE_FIELDS):
+        carriers = sorted(gate.surfaces_publishing(answers, field))
+        if len(carriers) > 1:
+            gate.SURFACES_THAT_DIFFER[kind][field] = gate.Divergence(
+                frozenset(carriers),
+                True,
+                "planted by the self-test, held to the record",
+                "a divergence the register holds to a committed value",
+            )
+            committed.setdefault(field, answers[carriers[0]][field])
+            return field
     raise SystemExit(
-        f"plateforce: no {kind} divergence is both held to a record and on a wire here, so "
-        "there is no record for a case to break"
+        f"plateforce: no {kind} field reaches more than one surface here, so there is no "
+        "divergence to hold to a record and nothing for a case to break"
     )
+
+
+# Fields the plate answers carry on more than one surface, for the planter above to make a
+# record-held divergence out of when the register holds none. Read off the answers rather than
+# assumed present: a name that has left the document plants nothing and the planter says so.
+PLANTABLE_FIELDS = ("acquisition_complete", "plateforce_version", "registry_digest")
 
 
 def a_record_that_matches():
@@ -1035,13 +1111,19 @@ def a_record_that_matches():
 def record_faults_when(name, change, expected):
     """Apply one change to a matching record and require a fault that names `expected`.
 
-    No register is restored afterwards, because no case here edits one: each changes the
-    committed block or one carrier's answer, and both are built fresh for every case.
+    The register is restored afterwards because a case needing a record-held divergence
+    plants one where the register holds none, and an entry left behind would be measured
+    against by every case after it.
     """
     committed, answers = a_record_that_matches()
-    change(committed, answers)
-    print(f"applied {name}", flush=True)
-    faults = gate.divergent_record_faults(committed, answers, gate.ANALYSED)
+    differ_was = dict(gate.SURFACES_THAT_DIFFER[gate.ANALYSED])
+    try:
+        change(committed, answers)
+        print(f"applied {name}", flush=True)
+        faults = gate.divergent_record_faults(committed, answers, gate.ANALYSED)
+    finally:
+        gate.SURFACES_THAT_DIFFER[gate.ANALYSED].clear()
+        gate.SURFACES_THAT_DIFFER[gate.ANALYSED].update(differ_was)
     hit = [fault for fault in faults if expected in fault]
     if not hit:
         print(f"  NOT REFUSED: no fault mentions {expected!r}", file=sys.stderr)
@@ -1068,7 +1150,7 @@ def a_record_control_that_must_pass():
 def take_a_value_out_of_the_record(committed, answers):
     """A field on two wires and nothing committed for it, which is where every one of these
     fields sat until the block existed."""
-    committed.pop(a_divergence_held_to_the_record(gate.ANALYSED, answers))
+    committed.pop(a_divergence_held_to_the_record(gate.ANALYSED, answers, committed))
 
 
 def move_a_carrier_away_from_the_record(committed, answers):
@@ -1077,7 +1159,7 @@ def move_a_carrier_away_from_the_record(committed, answers):
     The claim a record makes that carriers-agree cannot: two surfaces wrong the same way agree
     perfectly, and only a committed value puts the change in front of a reviewer.
     """
-    field = a_divergence_held_to_the_record(gate.ANALYSED, answers)
+    field = a_divergence_held_to_the_record(gate.ANALYSED, answers, committed)
     carrier = sorted(gate.surfaces_publishing(answers, field))[0]
     answers[carrier][field] = "went-its-own-way"
 
