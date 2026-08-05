@@ -44,12 +44,12 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
  * substring of "nobody has chosen", and neither reaches "you chose".
  */
 const SAYS = {
-  stated: 'you chose ',
-  recommended: 'you took ',
-  assumed: 'nobody chose ',
-  measured: ' was read off this trace',
-  cited: ' bound ',
-  provisional: 'nobody has chosen ',
+  stated: 'Chosen by you',
+  recommended: 'Recommended',
+  assumed: 'Default',
+  measured: 'Measured here',
+  cited: 'pipeline',
+  provisional: 'Not chosen',
 };
 
 /* Every source this build can record, read out of the macro that declares them beside the
@@ -176,7 +176,10 @@ await evaluate(`(() => {
   document.getElementById('columns-confirm').click();
 })()`);
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
-await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the results panel');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0",
+  'the results panel',
+);
 
 /*
  * What the rail says, and what the record says, as two separately gathered lists.
@@ -221,7 +224,7 @@ const READ_THE_RAIL = `(async () => {
       '#decision-list .decision:has(select[data-construct]), #decision-list .ran-beside__row',
     ).length,
     claimingRows: document.querySelectorAll(
-      '#decision-list .decision:has(select[data-construct]) > .rule-source, #decision-list .ran-beside__row .rule-source',
+      '#decision-list .decision:has(select[data-construct]) > .decision__head .rule-source, #decision-list .ran-beside__row .rule-source',
     ).length,
   };
 })()`;
@@ -311,12 +314,22 @@ check('two rules from different sources do not read the same',
  */
 const beside = await evaluate(`(async () => {
   const { state } = await import('./state.js');
-  const chips = [...document.querySelectorAll('#metric-grid .metric__provenance .provenance')];
-  const read = chips.map((chip) => {
-    const parts = chip.title.split(' | ');
-    return { method: parts[0], said: parts[1] ?? null };
-  });
-  chips[0].click();
+  const records = [...document.querySelectorAll('#headline-metric-grid .metric-record, #metric-grid .metric-record')];
+  const read = [];
+  for (const record of records) {
+    record.click();
+    for (const row of document.querySelectorAll('#drawer-body .method-list .provenance')) {
+      const line = row.querySelector('.rule-source');
+      read.push({
+        method: line?.dataset.method ?? row.title ?? null,
+        said: line?.textContent.trim() ?? null,
+      });
+    }
+    document.querySelector('#method-drawer [data-close-drawer]').click();
+  }
+
+  records[0]?.click();
+  document.querySelector('#drawer-body .method-list .provenance')?.click();
   const line = document.querySelector('#drawer-body .rule-source');
   const panel = { method: line?.dataset.method ?? null, text: line?.textContent.trim() ?? null };
   document.querySelector('#method-drawer [data-close-drawer]').click();

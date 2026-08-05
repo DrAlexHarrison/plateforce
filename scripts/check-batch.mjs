@@ -174,7 +174,11 @@ check('the run cannot start until the rate these files were sampled at is stated
 
 await evaluate("document.getElementById('columns-confirm').click()");
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
-await settle("document.querySelectorAll('#metric-grid .metric').length > 0 || document.querySelector('#analysis-warnings button')", 'the first paint');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0"
+    + " || document.querySelector('#analysis-warnings button')",
+  'the first paint',
+);
 
 const offered = await evaluate(`(() => {
   const action = document.getElementById('run-folder');
@@ -187,8 +191,7 @@ check('the folder is offered from the trial it was declared on',
 // A run under rules nobody chose is held open by the engine, so the decisions are made
 // before the run rather than the refusal being read as the browser's own failure.
 await evaluate(`(() => {
-  const button = [...document.querySelectorAll('#decision-list button')]
-    .find((b) => b.textContent.startsWith('Take the recommended'));
+  const button = document.getElementById('accept-recommended');
   if (button) button.click();
   return Boolean(button);
 })()`);
@@ -204,6 +207,7 @@ const table = await evaluate(`(() => {
     rows: read(first.querySelector('tbody')),
     declaration: document.getElementById('batch-declaration').textContent,
     coverage: document.querySelector('#batch-result .panel__sub')?.textContent ?? '',
+    summary: document.querySelector('#batch-result .batch-summary')?.textContent ?? '',
     tables: document.querySelectorAll('#batch-result table.data').length,
   };
 })()`);
@@ -230,6 +234,30 @@ await evaluate(`(() => {
   toggle.dispatchEvent(new Event('change'));
 })()`);
 
+const declinedControl = await evaluate(`(() => {
+  const toggle = document.getElementById('batch-declined');
+  const before = document.querySelectorAll('#batch-result table.data').length;
+  toggle.checked = false;
+  toggle.dispatchEvent(new Event('change'));
+  const hidden = document.querySelectorAll('#batch-result table.data').length;
+  toggle.checked = true;
+  toggle.dispatchEvent(new Event('change'));
+  const restored = document.querySelectorAll('#batch-result table.data').length;
+  const head = document.querySelector('#batch-result .batch-table thead th');
+  const frame = document.querySelector('#batch-result .batch-table');
+  return {
+    before, hidden, restored,
+    sticky: getComputedStyle(head).position,
+    overflow: getComputedStyle(frame).overflowY,
+  };
+})()`);
+check('declined trials can be isolated without leaving the batch stage',
+  declinedControl.before > declinedControl.hidden && declinedControl.restored === declinedControl.before,
+  `${declinedControl.before} tables shown, ${declinedControl.hidden} with declined hidden, ${declinedControl.restored} restored`);
+check('the batch table keeps its headings while its rows scroll',
+  declinedControl.sticky === 'sticky' && ['auto', 'scroll'].includes(declinedControl.overflow),
+  `heading ${declinedControl.sticky}, rows overflow-y ${declinedControl.overflow}`);
+
 /*
  * The account every number in the table gives of itself, read out of the panel a reader
  * opens rather than off the envelope behind it. An envelope carrying eighty-eight accounts
@@ -250,8 +278,8 @@ const pageAccounts = await evaluate(`(async () => {
       named,
       titled: document.getElementById('drawer-title').textContent,
       opened: !document.getElementById('method-drawer').hidden,
-      accounts: [...document.querySelectorAll('#drawer-body section')].map((block) => [
-        block.querySelector('h3').textContent,
+      accounts: [...document.querySelectorAll('#drawer-body details.metric-account')].map((block) => [
+        block.querySelector('summary').textContent,
         block.querySelector('pre').textContent,
       ]),
     });
@@ -388,10 +416,14 @@ check('every number the terminal accounted for is one the browser accounts for, 
     `${onlyPage.length} the terminal did not write${onlyPage.length ? ` (${firstFew(onlyPage)})` : ''}`);
 
 const differing = [...terminalAccounts].filter(([key, account]) => pageAccountsAt.get(key) !== account);
+const firstDifference = differing[0];
 check('the account each number gives of itself reads the same in the browser as in the terminal',
   terminalAccounts.size > 0 && differing.length === 0,
   `${terminalAccounts.size - differing.length} of ${terminalAccounts.size} accounts identical` +
-    (differing.length ? `, first differing at ${differing[0][0]}` : ''));
+    (firstDifference
+      ? `, first differing at ${firstDifference[0]}: page ${JSON.stringify(pageAccountsAt.get(firstDifference[0])).slice(0, 120)}, ` +
+        `terminal ${JSON.stringify(firstDifference[1]).slice(0, 120)}`
+      : ''));
 
 /*
  * A trial's record on a phone.
@@ -406,6 +438,7 @@ await new Promise((wait) => setTimeout(wait, 400));
 const onAPhone = await evaluate(`(() => {
   document.querySelector('#batch-result .row-record').click();
   const body = document.getElementById('drawer-body');
+  for (const account of document.querySelectorAll('#drawer-body details.metric-account')) account.open = true;
   const blocks = [...document.querySelectorAll('#drawer-body pre.account')];
   return {
     blocks: blocks.length,
@@ -424,8 +457,10 @@ check('at 390 px a trial’s record scrolls each account inside its own frame, n
 // Both numbers, because a line stating only the files a declared suffix kept reads as the
 // whole folder, and the fixture folder holds files that are not traces.
 check('the run states its coverage against the denominator it was taken over',
-  /files \d+, \d+ carrying a declared trial suffix and \d+ not/.test(table.coverage),
-  table.coverage);
+  table.declaration.includes(`${everyFixture.length} files chosen, ${trialNames.length} named as trials`)
+    && table.declaration.includes(`${strays} left out`)
+    && new RegExp(`${trialNames.length} of ${trialNames.length} analysed · \\d+ declined`).test(table.summary),
+  `${table.summary}; ${table.declaration}`);
 
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {

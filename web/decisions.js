@@ -44,15 +44,16 @@ export function renderDecisions() {
 
   const pending = unresolvedDecisions();
   $('decisions-sub').textContent = pending.length
-    ? `${pending.length} still to choose. Every number resting on one of them is marked provisional until you do.`
-    : 'Every choice below appears in the provenance of the numbers.';
+    ? `${pending.length} ${pending.length === 1 ? 'choice' : 'choices'} open.`
+    : '';
 
   // One act covering every open choice, which is a different act from choosing each and is
   // recorded as the one it is. It sits with the choices rather than in front of the
   // numbers, because the numbers are already there.
   if (pending.length) {
-    const accept = element('button', 'button button--primary button--small', 'Take the recommended rule for each');
+    const accept = element('button', 'button button--primary button--small', 'Use recommended rules');
     accept.type = 'button';
+    accept.id = 'accept-recommended';
     accept.addEventListener('click', acceptRecommended);
     host.append(accept);
   }
@@ -66,7 +67,8 @@ export function renderDecisions() {
     drawn.add(slot.construct);
     host.append(renderSlot(slot));
   }
-  for (const row of rulesThatRanUnderNoRow(drawn)) host.append(row);
+  const records = rulesThatRanUnderNoRow(drawn);
+  if (records) host.append(records);
 }
 
 function renderSlot(slot) {
@@ -91,12 +93,6 @@ function renderSlot(slot) {
     head.append(element('span', 'tag tag--advanced', 'advanced'));
   }
   wrap.append(head);
-  /* What this choice costs, as the entry bound to the row states it, falling back to what
-   * the registry says about the quantity itself. A row whose entry states neither carries
-   * no sentence rather than an invented one. */
-  const consequence = boundEntry?.method?.gui?.sensitivity || slot.notes;
-  if (consequence) wrap.append(element('p', 'decision__why', consequence));
-
   const select = document.createElement('select');
   select.setAttribute('aria-label', `${slot.title} method`);
   // The construct is the row's identity, and it stays readable when the label changes.
@@ -124,37 +120,45 @@ function renderSlot(slot) {
     renderDecisions();
     runAnalysis();
   });
-  wrap.append(select);
-
-  const source = ruleSourceNode(slot, selection);
-  if (source) wrap.append(source);
+  const control = element('div', 'decision__control');
+  control.append(select);
 
   const candidate = boundEntry;
+  if (candidate?.method) {
+    const inspect = element('button', 'chip decision__inspect', 'Details');
+    inspect.type = 'button';
+    inspect.addEventListener('click', () =>
+      openDrawer(candidate.method, candidate.id, boundRecordFor(candidate.id)));
+    control.append(inspect);
+  }
+  wrap.append(control);
+
+  const source = ruleSourceNode(slot, selection);
+  if (source) head.append(source);
+
   if (candidate) {
+    const settings = element('div', 'decision__settings-body');
     const failure = candidate.method?.failure;
     if (failure) {
       const note = element(
         'p',
         'undecided undecided--clamped',
-        `Fails on ${(failure.rate * 100).toFixed(1)}% of trials (${failure.numerator} of ${failure.denominator}, ${failure.corpus}), detectability ${failure.detectability}: ${failure.definition}`,
+        `${(failure.rate * 100).toFixed(1)}% failure rate · ${failure.numerator} of ${failure.denominator} · ` +
+          `${failure.corpus} · ${failure.detectability}`,
       );
       note.title = failure.definition;
-      wrap.append(note);
+      settings.append(note);
     }
-    wrap.append(renderParameters(slot, candidate, selection));
+    const parameters = renderParameters(slot, candidate, selection);
+    const parametersOpen = (selection.unresolved || []).length > 0;
+    if (parametersOpen) wrap.append(parameters);
+    else if (parameters.childElementCount) settings.append(parameters);
     const beneath = choicesBeneath(slot, selection.methodId);
-    if (beneath) wrap.append(beneath);
-
-    if (candidate.method) {
-      const inspect = element('button', 'chip', 'Rule, citations and bias');
-      inspect.type = 'button';
-      // Opened with the row the record wrote for this rule, so the panel states who chose it
-      // and what it was bound to rather than the entry alone.
-      inspect.addEventListener('click', () =>
-        openDrawer(candidate.method, candidate.id, boundRecordFor(candidate.id)));
-      const row = element('div', 'metric__provenance');
-      row.append(inspect);
-      wrap.append(row);
+    if (beneath) settings.append(beneath);
+    if (settings.childElementCount) {
+      const disclosure = element('details', 'decision__settings');
+      disclosure.append(element('summary', null, 'Settings'), settings);
+      wrap.append(disclosure);
     }
   }
   const ranBeside = renderRulesThatRanBeside(slot, selection.methodId);
@@ -219,7 +223,7 @@ function choicesBeneath(slot, statedId) {
     if (wrap.open) opened.add(slot.key);
     else opened.delete(slot.key);
   });
-  wrap.append(element('summary', null, 'More choices under this rule'), body);
+  wrap.append(element('summary', null, 'More choices'), body);
   return wrap;
 }
 
@@ -262,28 +266,21 @@ function renderRulesThatRanBeside(slot, statedId) {
  * choosing costs, and a row holding no choice has no cost to name.
  */
 function rulesThatRanUnderNoRow(drawn) {
-  const byConstruct = new Map();
+  const ran = [];
   for (const { method, bound } of ranUnasked((entry) => !drawn.has(entry.construct))) {
-    if (!byConstruct.has(method.construct)) byConstruct.set(method.construct, []);
-    byConstruct.get(method.construct).push({ method, bound });
+    ran.push({ method, bound });
   }
+  if (!ran.length) return null;
 
-  const rows = [];
-  for (const [construct, ran] of byConstruct) {
-    const entry = state.registry.constructs.find((c) => c.id === construct);
-    const wrap = element('div', 'decision decision--record');
-    const head = element('div', 'decision__head');
-    // The field's spoken words for the quantity, the same words the row one higher and the
-    // picker below both use for it.
-    head.append(element('span', 'decision__title', entry?.label || entry?.title || construct));
-    wrap.append(head);
+  const wrap = element('div', 'decision decision--record');
+  const head = element('div', 'decision__head');
+  head.append(element('span', 'decision__title', 'Applied rules'));
+  wrap.append(head);
 
-    const host = element('div', 'ran-beside');
-    for (const { method, bound } of ran) host.append(ranBesideRow(method, bound));
-    wrap.append(host);
-    rows.push(wrap);
-  }
-  return rows;
+  const host = element('div', 'ran-beside');
+  for (const { method, bound } of ran) host.append(ranBesideRow(method, bound));
+  wrap.append(host);
+  return wrap;
 }
 
 /* Every rule this analysis ran that the registry says to display unasked or to name, in the
@@ -302,7 +299,8 @@ function* ranUnasked(wanted) {
  * because a reader meeting the same fact in two parts of the rail is meeting one fact. */
 function ranBesideRow(method, bound) {
   const verdict = method.gui.surfacing;
-  const row = element('div', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
+  const row = element('button', `ran-beside__row ran-beside__row--${verdict.replace(/_/g, '-')}`);
+  row.type = 'button';
   row.append(element('span', 'ran-beside__title', method.title));
   // The claim about the rule leads the claims about its values, in one voice: a reader who can
   // see where every number came from and not where the rule came from is reading three
@@ -311,11 +309,9 @@ function ranBesideRow(method, bound) {
   if (source) row.append(source);
   const values = valuesWithTheirSource(method, bound);
   if (values) row.append(element('span', 'ran-beside__value', values));
-
-  const open = element('button', 'chip chip--quiet', verdict === NAMES_ITS_ALTERNATIVES ? 'Rule and its alternatives' : 'Rule and citations');
-  open.type = 'button';
-  open.addEventListener('click', () => openDrawer(method, bound.method_id, bound));
-  row.append(open);
+  row.append(element('span', 'ran-beside__action', verdict === NAMES_ITS_ALTERNATIVES ? 'Alternatives' : 'Details'));
+  row.title = values ? `${method.title}: ${values}` : method.title;
+  row.addEventListener('click', () => openDrawer(method, bound.method_id, bound));
   return row;
 }
 
@@ -333,9 +329,17 @@ function valuesWithTheirSource(method, bound) {
   return (bound.bound_parameters || [])
     .map(([name, value]) => {
       const source = sources[name];
-      if (source !== 'assumed') return `${name} ${value}${source ? ` (${source})` : ''}`;
       const published = (method.parameter || []).find((entry) => entry.name === name)?.default_source;
-      return `${name} ${value} (from the rule${published ? `, ${published}` : ''})`;
+      const sourceLabel = source === 'assumed'
+        ? `default${published ? `: ${published}` : ''}`
+        : source === 'measured'
+          ? 'measured'
+          : source === 'stated'
+            ? 'entered'
+            : source === 'recommended'
+              ? 'recommended'
+              : source;
+      return `${name} ${value}${sourceLabel ? ` · ${sourceLabel}` : ''}`;
     })
     .join(', ');
 }

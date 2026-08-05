@@ -127,14 +127,15 @@ if (journey[0]) {
   await evaluate("document.getElementById('load-demo').click()");
   journey.push(await settle("!document.getElementById('stage-workspace').hidden", 'the workspace'));
   await evaluate(`(() => {
-    const button = [...document.querySelectorAll('#analysis-warnings button')]
-      .find((b) => b.textContent.startsWith('Take the recommended'));
+    const button = document.getElementById('accept-recommended');
     if (button) button.click();
   })()`).catch(() => {});
-  journey.push(await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid'));
   journey.push(await settle(
-    "!!document.querySelector('.spread-headline__figure')"
-      + " || !!document.querySelector('#spread-result .notice')",
+    "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0",
+    'the metric grids',
+  ));
+  journey.push(await settle(
+    "!!document.querySelector('.spread-headline__figure')",
     'the spread panel',
   ));
 }

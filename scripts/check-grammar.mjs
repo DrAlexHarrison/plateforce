@@ -265,12 +265,15 @@ const picker = await evaluate(`(async () => {
     runnableNotVisited: [...runnable].filter((c) => !visited.has(c)).length,
     copy: document.querySelector('#add-quantity label').textContent,
     hidden: document.getElementById('add-quantity').hidden,
+    listHidden: document.getElementById('add-quantity-list').hidden,
   };
 })()`);
 
-check('the picker offers every quantity a rule can produce that the path does not visit',
-  !picker.hidden && picker.offered.length === picker.runnableNotVisited && picker.offerable === picker.runnableNotVisited,
-  `${picker.offered.length} offered against ${picker.runnableNotVisited} the build can run and the path does not visit: ${picker.offered.join(', ')}`);
+check('the picker can reach every unvisited quantity and waits for a search before listing them',
+  !picker.hidden && picker.listHidden && picker.offered.length === 0
+    && picker.offerable === picker.runnableNotVisited,
+  `${picker.offerable} reachable against ${picker.runnableNotVisited} the build can run; ` +
+    `${picker.offered.length} listed before typing`);
 check('the picker names the reader’s quantity and not the software’s inventory',
   picker.copy === 'Add a quantity', picker.copy);
 
@@ -298,13 +301,15 @@ const searched = await evaluate(`(async () => {
   };
 })()`);
 check('searching the spoken words narrows the list rather than listing every construct',
-  searched.labels.length > 0 && searched.labels.length < picker.offered.length
+  searched.labels.length > 0 && searched.labels.length < picker.offerable
     && searched.labels.every((label) => label.toLowerCase().includes(SPOKEN)),
-  `${searched.labels.length} of ${picker.offered.length} match "${SPOKEN}": ${searched.labels.join(', ')}`);
+  `${searched.labels.length} of ${picker.offerable} match "${SPOKEN}": ${searched.labels.join(', ')}`);
 
 /* The second interaction. A row appears in the rail, a card appears in the results, and the
  * card carries the rules that produced it. */
-const beforeAdd = await evaluate(`(() => document.querySelectorAll('#metric-grid .metric').length)()`);
+const beforeAdd = await evaluate(`(() =>
+  document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length
+)()`);
 await evaluate(`document.querySelector('#add-quantity-list button[data-construct="${searched.chosen}"]').click()`);
 await settle(`document.querySelector('#decision-list select[data-construct="${searched.chosen}"]')`,
   'the row for the quantity just added');

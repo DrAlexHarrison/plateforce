@@ -142,7 +142,10 @@ await settle("!document.getElementById('stage-empty').hidden", 'the empty stage'
 
 await evaluate("document.getElementById('load-demo').click()");
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
-await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the first paint');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0",
+  'the first paint',
+);
 
 /*
  * The members the page offers are the members the module says the block holds.
@@ -346,8 +349,7 @@ await evaluate(`(() => {
 })()`);
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
 await evaluate(`(() => {
-  const take = [...document.querySelectorAll('#decision-list button')]
-    .find((b) => b.textContent.startsWith('Take the recommended'));
+  const take = document.getElementById('accept-recommended');
   if (take) take.click();
   return true;
 })()`);
@@ -367,7 +369,7 @@ const ranUnder = await evaluate(`(async () => {
 })()`);
 check('a folder run says which plate and which revision of it produced the table',
   ranUnder.plate === PLATE_NAME && ranUnder.rows === trialNames.length
-    && ranUnder.lines.some((line) => line === `${PLATE_NAME}, revision ${ranUnder.revision}.`),
+    && ranUnder.lines.some((line) => line === `${PLATE_NAME} · revision ${ranUnder.revision}`),
   `${ranUnder.rows} of ${trialNames.length} trials under ${ranUnder.plate} ${ranUnder.revision}; ` +
   `lines: ${ranUnder.lines.join(' | ')}`);
 
@@ -378,13 +380,14 @@ await stateThePlate({ [RESTATED_MEMBER]: RESTATED_VALUE });
 await evaluate(`(() => { document.getElementById('plate-save').click(); return true; })()`);
 await evaluate("document.querySelector('#plate-drawer [data-close-drawer]').click()");
 await waitFor(
-  `[...document.querySelectorAll('#batch-result .panel__sub')].some((p) => p.textContent.includes('now reads'))`,
+  `[...document.querySelectorAll('#batch-result .panel__sub')].some((p) => p.textContent.includes('· current '))`,
 );
 const stale = await evaluate(`(async () => {
   const { state } = await import('./state.js');
   const { revisionNow } = await import('./plate.js');
   return {
-    line: [...document.querySelectorAll('#batch-result .panel__sub')].find((p) => p.textContent.includes('revision'))?.textContent ?? null,
+    line: [...document.querySelectorAll('#batch-result .panel__sub')]
+      .find((p) => p.textContent.includes(${JSON.stringify(PLATE_NAME + ' · run ')}))?.textContent ?? null,
     ranUnder: JSON.parse(state.run.envelope).ok.run.plate_profile?.revision ?? null,
     now: revisionNow(${JSON.stringify(PLATE_NAME)}),
     onScreen: state.analysis?.plate_profile?.revision ?? null,
@@ -392,7 +395,7 @@ const stale = await evaluate(`(async () => {
 })()`);
 check('a plate edited after a run leaves both revisions on screen, told apart',
   stale.ranUnder !== stale.now && stale.now === stale.onScreen
-    && stale.line === `${PLATE_NAME}, revision ${stale.ranUnder}. The plate now reads ${stale.now}.`,
+    && stale.line === `${PLATE_NAME} · run ${stale.ranUnder} · current ${stale.now}`,
   `the table ran under ${stale.ranUnder}, the trial on screen under ${stale.onScreen}, ` +
   `the plate now reads ${stale.now}: "${stale.line}"`);
 
@@ -413,13 +416,13 @@ const refused = await evaluate(`(async () => {
   return {
     heading: notice?.querySelector('strong')?.textContent ?? null,
     message: notice?.querySelector('p')?.textContent ?? null,
-    metrics: document.querySelectorAll('#metric-grid .metric').length,
+    metrics: document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length,
     members: state.plate.members,
   };
 })()`);
 const namesEveryMember = refused.members.every((member) => (refused.message ?? '').includes(member));
 check('a member the block does not hold refuses, naming what the block does hold',
-  refused.metrics === 0 && refused.heading === 'The plate could not be read'
+  refused.metrics === 0 && refused.heading === 'Plate data error'
     && (refused.message ?? '').includes('debounce_ms') && namesEveryMember,
   `"${refused.heading}": ${refused.message}; ${refused.metrics} values left on screen, ` +
   `${refused.members.filter((m) => (refused.message ?? '').includes(m)).length} of ${refused.members.length} members named`);

@@ -21,7 +21,22 @@ here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repository=$(dirname -- "$here")
 cd "$repository"
 
-library="$repository/target/r-surface/library"
+surface_root="$repository/target/r-surface"
+library="${PLATEFORCE_R_LIBRARY:-$surface_root/library}"
+
+# Two gate runs share the vendored package source and its Cargo target. Serialise that build,
+# then let each caller consume its own installed library without another run deleting it.
+mkdir -p "$surface_root"
+exec 9>"$surface_root/install.lock"
+flock 9
+
+case "$library" in
+    "$surface_root"/library*) ;;
+    *)
+        echo "the R gate library must stay under $surface_root" >&2
+        exit 1
+        ;;
+esac
 
 # `R` is a shell alias on this machine, pointing at an unrelated program that answers
 # `R CMD INSTALL` with "unexpected argument 'INSTALL'". That reads like a broken R rather than a
@@ -49,7 +64,7 @@ if [ ! -f "$library/plateforce/DESCRIPTION" ]; then
 fi
 
 if [ "${1:-}" = "--install-only" ]; then
-    echo "R library built from this tree at $library"
+    echo "$library"
     exit 0
 fi
 

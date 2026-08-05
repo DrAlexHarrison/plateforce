@@ -37,7 +37,7 @@ function renderRegistryBanner() {
   banner.hidden = false;
   $('registry-banner-text').textContent =
     `${state.build.registry_violations.length} violations across ${state.build.registry_file_count} registry files. ` +
-    'No number below carries a citation until they clear.';
+    'Results are uncited.';
   const list = $('registry-violations');
   list.replaceChildren(...state.build.registry_violations.map((line) => element('li', null, line)));
 }
@@ -71,6 +71,7 @@ export function resetSelections() {
   state.selection = {};
   initialiseMissingSelections();
   state.weighing = { startIndex: null };
+  state.spread = { quantity: 'jump_height_from_takeoff_meters', axes: new Set() };
 }
 
 /* A slot with nothing bound to it yet opens on the registry's own first-ranked runnable

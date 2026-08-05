@@ -61,9 +61,9 @@ fi
 # `check-minute`, `check-grammar`, `check-batch` and `check-spread-scope` green against a
 # bundle built from a tree nobody is testing.
 #
-# `r-surface.sh` clears its library first and `install-python-wheel.sh` drops its installed
-# package first, for the same reason: a producer that deletes before it builds leaves nothing
-# when it fails, and its consumers fail loudly instead of answering from the last good run.
+# `r-surface.sh` clears its private library first and `install-python-wheel.sh` drops its
+# installed package first, for the same reason: a producer that deletes before it builds leaves
+# nothing when it fails, and its consumers fail loudly instead of answering from the last good run.
 rm -rf "$output_dir"
 
 echo "building plateforce-wasm for wasm32-unknown-unknown (${profile})"

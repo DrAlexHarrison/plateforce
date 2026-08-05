@@ -10,8 +10,9 @@
  */
 
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
 const [root, port] = [process.argv[2], Number(process.argv[3] || 8731)];
@@ -29,10 +30,15 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(port, resolve));
 
+const profile = `/dev/shm/plateforce-screen-check-${port}`;
 const chrome = spawn('google-chrome', [
   '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=/tmp/plateforce-screen-check-${port}`, 'about:blank',
-], { stdio: 'ignore' });
+  '--disable-gpu', `--user-data-dir=${profile}`, 'about:blank',
+], { stdio: 'ignore', detached: true });
+process.on('exit', () => {
+  try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
+  try { rmSync(profile, { recursive: true, force: true }); } catch { /* already gone */ }
+});
 
 const targets = await (async () => {
   for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -98,34 +104,70 @@ await settle("!document.getElementById('stage-workspace').hidden", 'the workspac
 // rather than a number. Taking the recommendation is the act a user performs, and it is
 // what the numbers below are the numbers for.
 const wall = await evaluate(`(() => {
-  const button = [...document.querySelectorAll('#analysis-warnings button')]
-    .find((b) => b.textContent.startsWith('Take the recommended'));
+  const button = document.getElementById('accept-recommended');
   if (!button) return null;
   const text = document.querySelector('#analysis-warnings strong')?.textContent ?? '';
   button.click();
   return text;
 })()`);
-await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0",
+  'the metric grids',
+);
 // The sweep settles after the markers do, so reading the panel the instant the metrics
 // appear reads it before it has run. Waiting for the rows is the difference between an
 // instrument that reports a regression and one that causes it.
 await settle(
-  "!!document.querySelector('.spread-headline__figure')"
-    + " || !!document.querySelector('#spread-result .notice')",
+  "!!document.querySelector('.spread-headline__figure')",
   'the spread panel',
 );
+
+const screenshotDirectory = process.env.PLATEFORCE_SCREENSHOT_DIR;
+if (screenshotDirectory) {
+  const screenshotSet = process.env.PLATEFORCE_SCREENSHOT_SET || 'full';
+  await mkdir(screenshotDirectory, { recursive: true });
+  const capture = async (name, width, height, deviceScaleFactor, prepare) => {
+    await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor, mobile: width <= 640 });
+    await evaluate(`window.scrollTo(0, 0)`);
+    if (prepare) await evaluate(prepare);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const reply = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+    const path = join(screenshotDirectory, name);
+    await writeFile(path, Buffer.from(reply.result.data, 'base64'));
+    console.log(`screenshot: ${path}`);
+  };
+
+  if (screenshotSet === 'full') {
+    await capture('desktop-overview.png', 1440, 900, 1, `(() => {
+      document.getElementById('method-drawer').hidden = true;
+      window.scrollTo(0, 0);
+    })()`);
+    await capture('desktop-spread.png', 1440, 900, 1, `(() => {
+      document.getElementById('method-drawer').hidden = true;
+      document.querySelector('.panel--spread').scrollIntoView({ block: 'start' });
+    })()`);
+  }
+  await capture('mobile-results.png', 390, 844, 2, `(() => {
+    document.getElementById('method-drawer').hidden = true;
+    document.querySelector('.panel--headlines').scrollIntoView({ block: 'start' });
+  })()`);
+  await capture('mobile-method-record.png', 390, 844, 2, `(() => {
+    document.querySelector('#headline-metric-grid .metric-record').click();
+  })()`);
+  await send('Emulation.clearDeviceMetricsOverride');
+}
 
 const report = await evaluate(`(() => {
   const WALL = ${JSON.stringify(wall ?? 'numbers on first paint')};
   const stages = [...document.querySelectorAll('.stage')].map((s) => s.id + (s.hidden ? ' hidden' : ' SHOWN'));
-  const metrics = [...document.querySelectorAll('#metric-grid .metric')].map((card) => [
+  const metrics = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')].map((card) => [
     card.querySelector('.metric__label')?.textContent,
     card.querySelector('.metric__value')?.textContent,
     [...card.querySelectorAll('.provenance__name')].map((n) => n.textContent).join(' + '),
   ].join(' | '));
   const decisions = [...document.querySelectorAll('#decision-list .decision__title')].map((n) => n.textContent);
   const spread = document.querySelector('.spread-headline__figure')?.textContent ?? 'no spread';
-  const rows = [...document.querySelectorAll('#spread-result table.data tbody tr')].map((r) =>
+  const rows = [...document.querySelectorAll('#spread-result .spread-summary table.data tbody tr')].map((r) =>
     [...r.children].map((c) => c.textContent).join(' | '));
   return [
     'first paint: ' + WALL,
@@ -163,6 +205,5 @@ if (!Number.isFinite(headline) || headline < 0 || headline > 500) {
 if (complaints.length) console.log('rendered values:\n' + complaints.join('\n'));
 
 socket.close();
-chrome.kill();
 server.close();
 process.exit(consoleLines.length || complaints.length ? 1 : 0);

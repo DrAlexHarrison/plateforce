@@ -41,7 +41,7 @@ export function renderColumnChooser(fileName, summary) {
     `${fileName}: ${summary.row_count.toLocaleString()} rows, ${summary.column_count} columns, ${summary.delimiter} separated` +
     (summary.skipped_leading_lines ? `, ${summary.skipped_leading_lines} header lines skipped` : '') +
     (summary.ragged_rows_dropped ? `, ${summary.ragged_rows_dropped} ragged rows dropped` : '') +
-    `. ${summary.suggested_force_column_reason}.`;
+    '.';
 
   const grid = $('column-grid');
   grid.replaceChildren();
@@ -80,8 +80,8 @@ export function renderColumnChooser(fileName, summary) {
   rate.value = derived ? String(Number(derived.toFixed(4))) : '';
   rate.placeholder = 'state the rate';
   $('sample-rate-hint').textContent = derived
-    ? `${summary.sample_rate_source}. A wrong rate scales every time and every impulse.`
-    : 'The file carries no time column, so the rate cannot be recovered from it. It scales every time, every velocity and every impulse, so plateforce will not guess it.';
+    ? summary.sample_rate_source
+    : 'No time column. Enter the acquisition rate.';
   rate.oninput = updateColumnsReady;
   renderRunDeclaration(summary);
   updateColumnsReady();
@@ -130,8 +130,8 @@ function renderRunDeclaration(summary) {
   separator.onchange = updateColumnsReady;
   $('run-delimiter-hint').textContent =
     summary.column_count === 1
-      ? 'Each row of the trial on screen holds one value.'
-      : `The trial on screen reads as ${summary.delimiter} separated across ${summary.column_count} columns.`;
+      ? 'One value per row.'
+      : `Detected ${summary.delimiter} across ${summary.column_count} columns.`;
   $('run-count').textContent = declarationLine();
 }
 

@@ -17,11 +17,8 @@
 # same manufactured split one paragraph up, arriving through the sync instead of through the
 # library path.
 #
-# Installed into `target/r-surface/library` rather than the user library, so a gate run does not
-# reach outside the checkout. A bare `R CMD INSTALL` writes to the machine's default library,
-# where one capability run removes and rebuilds the package every concurrent run's R arm reads:
-# the run that met it reported `there is no package called 'plateforce'` and found it gone on
-# retry.
+# Installed into a private directory under `target/r-surface` rather than the user library,
+# so concurrent gates cannot remove the package while this row reads it.
 #
 # The sync, the install and the two refusals it carries, that `R` on this path really is R and
 # that a reported success landed a package, are scripts/r-surface.sh's whole subject, so
@@ -32,8 +29,10 @@
 set -o errexit -o nounset -o pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "$root/target/r-surface"
+library="$(mktemp -d "$root/target/r-surface/library.XXXXXX")"
+trap 'rm -rf "$library"' EXIT
 
-bash "$root/scripts/r-surface.sh" --install-only >&2
+PLATEFORCE_R_LIBRARY="$library" bash "$root/scripts/r-surface.sh" --install-only >&2
 
-library="$root/target/r-surface/library"
-exec env R_LIBS="$library" Rscript --vanilla -e 'cat(plateforce::capability_json())'
+env R_LIBS="$library" Rscript --vanilla -e 'cat(plateforce::capability_json())'

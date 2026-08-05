@@ -1,8 +1,8 @@
 /* The trace, the landmarks drawn on it, and the gestures that move them. */
 
-import { TraceChart } from './chart.js';
+import { TraceChart, landmarkDefinitions } from './chart.js';
 import { $, state } from './state.js';
-import { element, showStage } from './format.js';
+import { element, setWindowTitle, showStage } from './format.js';
 import { windowLengthParameter } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
@@ -11,6 +11,7 @@ import { endingOf } from './batch-run.js';
 import { renderPicker } from './add-quantity.js';
 
 export function enterWorkspace() {
+  setWindowTitle(state.fileName);
   state.overrides = { onset: null, takeoff: null, touchdown: null };
   resetSelections();
   recordTheOpeningSelection();
@@ -19,14 +20,10 @@ export function enterWorkspace() {
 
   const info = JSON.parse(state.loadedTrial.infoJson());
   state.info = info;
-  // Two sentences for two facts. One sentence over one total said both things about one
-  // number, and on a jump trace under the zero convention most of that number is the
-  // athlete in the air rather than anything the recording lost.
   $('trial-summary').textContent =
-    `${info.sample_count.toLocaleString()} samples at ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
-    (info.synthetic ? '. Drawn rather than recorded.' : '') +
-    (info.samples_matching_the_convention ? ` ${info.samples_matching_the_convention} samples read the missing-data convention you declared.` : '') +
-    (info.samples_carrying_no_number ? ` ${info.samples_carrying_no_number} samples carry no number at all, which is a gap in the recording.` : '');
+    `${info.sample_count.toLocaleString()} samples, ${info.sample_rate_hz} Hz, ${info.duration_seconds.toFixed(2)} s` +
+    (info.samples_matching_the_convention ? `, ${info.samples_matching_the_convention} matched the missing-value convention` : '') +
+    (info.samples_carrying_no_number ? `, ${info.samples_carrying_no_number} missing samples` : '');
 
   if (!state.chart) {
     const container = $('chart');
@@ -34,6 +31,7 @@ export function enterWorkspace() {
       container,
       canvas: $('chart-canvas'),
       overlay: $('chart-overlay'),
+      markers: landmarkDefinitions(state.registry, state.slots),
       onMarkerMove: (key, index) => {
         state.overrides[key] = Math.max(0, Math.min(state.info.sample_count - 1, index));
         runAnalysis();
@@ -62,10 +60,17 @@ export function enterWorkspace() {
         renderDecisions();
         runAnalysis();
       },
+      onViewChange: () => {
+        refreshEnvelope();
+        updateChartNavigation();
+      },
     });
     container.addEventListener('chart:resize', () => refreshEnvelope());
   }
 
+  state.chart.setRecording(info.sample_count, info.sample_rate_hz);
+  wireChartNavigation();
+  updateChartNavigation();
   renderLegend();
   refreshEnvelope();
   renderPicker();
@@ -108,19 +113,47 @@ function recordTheOpeningSelection() {
 
 export function refreshEnvelope() {
   if (!state.loadedTrial || !state.chart) return;
-  state.envelope = JSON.parse(state.loadedTrial.envelopeJson(state.chart.plotWidthPx()));
+  const { start, end } = state.chart.visibleRange();
+  state.envelope = JSON.parse(
+    state.loadedTrial.windowEnvelopeJson(state.chart.plotWidthPx(), start, end + 1),
+  );
+  state.envelope.start_index = start;
+  state.envelope.end_index = end;
   state.chart.setEnvelope(state.envelope);
   state.chart.schedule();
+}
+
+function wireChartNavigation() {
+  const nav = $('chart-nav');
+  if (nav.dataset.wired === 'true') return;
+  nav.dataset.wired = 'true';
+  $('chart-zoom-in').addEventListener('click', () => state.chart.zoom(0.5));
+  $('chart-zoom-out').addEventListener('click', () => state.chart.zoom(2));
+  $('chart-fit').addEventListener('click', () => state.chart.fit());
+  $('chart-pan').addEventListener('input', () => state.chart.pan(Number($('chart-pan').value) / 1000));
+}
+
+function updateChartNavigation() {
+  if (!state.chart || !state.info) return;
+  const nav = $('chart-nav');
+  nav.hidden = state.info.duration_seconds <= 10;
+  const { start, end } = state.chart.visibleRange();
+  const span = end - start;
+  const available = Math.max(0, state.info.sample_count - 1 - span);
+  $('chart-pan').value = available > 0 ? String(Math.round((start / available) * 1000)) : '0';
+  $('chart-pan').disabled = available === 0;
+  $('chart-zoom-out').disabled = state.chart.isFit();
+  $('chart-fit').disabled = state.chart.isFit();
+  $('chart-window-label').textContent =
+    `${(start / state.info.sample_rate_hz).toFixed(2)}–${(end / state.info.sample_rate_hz).toFixed(2)} s`;
 }
 
 function renderLegend() {
   const entries = [
     ['var(--trace)', 'vGRF'],
-    ['var(--accent)', 'System weight and the k SD band'],
-    ['var(--mark-threshold)', 'The force takeoff is called at'],
-    ['var(--track-onset)', 'Start of the jump'],
-    ['var(--track-takeoff)', 'Takeoff'],
-    ['var(--track-touchdown)', 'Touchdown'],
+    ['var(--accent)', 'System weight + k SD band'],
+    ['var(--mark-threshold)', 'Takeoff force level'],
+    ...state.chart.markers.map((marker) => [`var(--track-${marker.key})`, marker.label]),
   ];
   const legend = $('chart-legend');
   legend.replaceChildren(

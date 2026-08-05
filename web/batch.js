@@ -39,13 +39,17 @@ function cellFor(row, column, units) {
 function coverageLine(run) {
   if (!run) return '';
   const present = run.files_found + run.files_without_declared_suffix;
-  return (
-    `files ${present}, ${run.files_found} carrying a declared trial suffix and ` +
-    `${run.files_without_declared_suffix} not, ${run.trial_count} named, ` +
-    `${run.computed_count} of ${run.trial_count} computed, ` +
-    `${run.refusal_count} of ${run.trial_count} declined, ` +
-    `${run.trials_excluded} of ${run.trial_count} left out by a rule`
-  );
+  return `${run.files_found} trial files of ${present}` +
+    (run.files_without_declared_suffix ? ` · ${run.files_without_declared_suffix} excluded by suffix` : '') +
+    (run.trials_excluded ? ` · ${run.trials_excluded} excluded by a rule` : '');
+}
+
+function resultSummary(result) {
+  const run = result.run;
+  if (!run) return '';
+  const records = new Set((result.results ?? []).map((row) => row.provenance_id).filter(Boolean)).size;
+  return `${run.computed_count} of ${run.trial_count} analysed · ${run.refusal_count} declined` +
+    (records ? ` · ${records} method ${records === 1 ? 'record' : 'records'}` : '');
 }
 
 /*
@@ -59,8 +63,10 @@ function plateLine(run, revisionNow) {
   const attribution = run?.plate_profile;
   if (!attribution) return null;
   const now = revisionNow?.(attribution.name);
-  const moved = now && now !== attribution.revision ? ` The plate now reads ${now}.` : '';
-  return `${attribution.name}, revision ${attribution.revision}.${moved}`;
+  if (now && now !== attribution.revision) {
+    return `${attribution.name} · run ${attribution.revision} · current ${now}`;
+  }
+  return `${attribution.name} · revision ${attribution.revision}`;
 }
 
 /*
@@ -83,7 +89,7 @@ function table(result, rendering) {
   const columns = columnsFor(result, rendering);
   const accounts = accountsByTrial(result);
   const units = result.units ?? {};
-  const scroll = element('div', 'table-scroll');
+  const scroll = element('div', 'table-scroll batch-table');
   const node = element('table', 'data');
 
   const head = element('thead');
@@ -208,7 +214,13 @@ function refusedRun(refusal) {
  * reliability interval is shown-by-default, that treatment has no component yet, and showing
  * a figure through a surface with no rule for showing it would be a choice nobody made.
  */
-export function renderBatch(container, envelope, rendering = WITH_PROVENANCE, revisionNow = null) {
+export function renderBatch(
+  container,
+  envelope,
+  rendering = WITH_PROVENANCE,
+  revisionNow = null,
+  showDeclined = true,
+) {
   container.replaceChildren();
   const parsed = typeof envelope === 'string' ? JSON.parse(envelope) : envelope;
 
@@ -220,10 +232,10 @@ export function renderBatch(container, envelope, rendering = WITH_PROVENANCE, re
   const result = parsed.ok;
   const panel = element('section', 'panel panel--standalone');
   const head = element('div', 'panel__head');
-  head.append(element('h2', null, 'Every trial in this folder'));
+  head.append(element('h2', null, 'Batch results'));
   panel.append(head);
+  panel.append(element('p', 'batch-summary', resultSummary(result)));
   panel.append(element('p', 'panel__sub', coverageLine(result.run)));
-  panel.append(element('p', 'panel__sub', 'Each value carries the methods that produced it.'));
   const plate = plateLine(result.run, revisionNow);
   if (plate) panel.append(element('p', 'panel__sub', plate));
   panel.append(table(result, rendering));
@@ -232,8 +244,8 @@ export function renderBatch(container, envelope, rendering = WITH_PROVENANCE, re
   if (reduced) panel.append(reduced);
 
   const declined = refusals(result);
-  if (declined) {
-    panel.append(element('h3', 'panel__lead', 'Trials that declined'));
+  if (declined && showDeclined) {
+    panel.append(element('h3', 'panel__lead', 'Declined trials'));
     panel.append(declined);
   }
   container.append(panel);
@@ -251,13 +263,21 @@ export function renderBatch(container, envelope, rendering = WITH_PROVENANCE, re
 export function renderProgress(container, filesChosen, trialCount, trialsRead) {
   container.replaceChildren();
   const panel = element('section', 'panel panel--standalone');
-  panel.append(element('h2', null, 'Reading this folder'));
+  panel.append(element('h2', null, 'Preparing batch'));
   panel.append(
     element(
       'p',
       'panel__sub',
-      `${trialsRead} of ${trialCount} trials read, from ${filesChosen} files chosen`,
+      `${trialsRead} of ${trialCount} trials loaded · ${filesChosen} files chosen`,
     ),
   );
+  container.append(panel);
+}
+
+export function renderAnalysisProgress(container, trialCount) {
+  container.replaceChildren();
+  const panel = element('section', 'panel panel--standalone');
+  panel.append(element('h2', null, 'Analysing batch'));
+  panel.append(element('p', 'panel__sub', `${trialCount} trials`));
   container.append(panel);
 }

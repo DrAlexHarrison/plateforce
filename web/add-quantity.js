@@ -79,12 +79,14 @@ export function renderPicker() {
 
   const search = $('add-quantity-search');
   const typed = search.value.trim().toLowerCase();
-  const matching = offers.filter((offer) => offer.label.toLowerCase().includes(typed));
-
   const list = $('add-quantity-list');
   list.replaceChildren();
+  list.hidden = typed.length === 0;
+  if (!typed) return;
+
+  const matching = offers.filter((offer) => offer.label.toLowerCase().includes(typed));
   if (matching.length === 0) {
-    list.append(element('li', 'add-quantity__none', 'No quantity here goes by that name.'));
+    list.append(element('li', 'add-quantity__none', 'No matches.'));
     return;
   }
   for (const offer of matching) {
