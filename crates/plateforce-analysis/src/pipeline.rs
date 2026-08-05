@@ -615,6 +615,9 @@ fn run_spine_default(
     // and reaches them through the same map by the same names a rule reached by construct
     // does. That is what makes one id leave one chain whichever way a caller arrived: both
     // routes ask, and both are answered from here.
+    // No rule filed under a construct has reported anything at this point, for the same
+    // reason none has placed anything.
+    let nothing_measured = BTreeMap::new();
     let context = DerivedContext::new(
         trial,
         epoch,
@@ -626,6 +629,7 @@ fn run_spine_default(
         request.body_mass_kilograms,
         placed,
         &request.derived,
+        &nothing_measured,
     );
     let choice = MethodChoice {
         method_id: binding.id.to_string(),
@@ -749,6 +753,23 @@ fn run_derived_phase(
             continue;
         };
 
+        // What the rules declared before this one reported, taken fresh each time so a rule
+        // reads its predecessors and never itself. Owned, because the metric list it is
+        // drawn from is written to again below.
+        let measured: BTreeMap<String, crate::derived::Measured> = metrics
+            .iter()
+            .filter_map(|metric| {
+                metric.value.map(|value| {
+                    (
+                        metric.key.clone(),
+                        crate::derived::Measured {
+                            value,
+                            computed_by: metric.computed_by.clone(),
+                        },
+                    )
+                })
+            })
+            .collect();
         let context = DerivedContext::new(
             trial,
             epoch,
@@ -760,6 +781,7 @@ fn run_derived_phase(
             request.body_mass_kilograms,
             &placed,
             &request.derived,
+            &measured,
         );
         let mut outcome = rule(&context, choice, warnings);
         crate::derived::record_stated_touchdown(

@@ -45,7 +45,7 @@ print(jump.jump_height_takeoff_frame_meters.describe())
     integration_direction = integration.direction.forward
     integration_rule = integration.rule.trapezoid
     integration_start = integration.start.detected_onset
-  registry declaring 2026-07-25 (content-50d4e559c9283f29)
+  registry declaring 2026-07-25 (content-e7609bcbe3b16cee)
     filter.none {}
       passband_edge = none
     bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}

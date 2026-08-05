@@ -149,6 +149,12 @@ status = "accepted"
 confidence = "medium"
 debate = "single_position"
 
+[[method.parameter]]
+name = "time_after_onset_seconds"
+unit = "seconds"
+required = true
+notes = "The instant the early force is read at. The whole content of the method is which instant, and the source states no single one, so it is stated per analysis rather than filled in."
+
 [[method.citation]]
 key = "comfort2020"
 role = "proposes"
@@ -245,6 +251,12 @@ rule = "Divide power by mass times gravity to the three-halves times leg length 
 status = "accepted"
 confidence = "low"
 debate = "single_position"
+
+[[method.parameter]]
+name = "leg_length_meters"
+unit = "meters"
+required = true
+notes = "An anthropometric the plate cannot measure and no representative value exists for, so it is stated per athlete."
 
 [[method.citation]]
 key = "hof1996"

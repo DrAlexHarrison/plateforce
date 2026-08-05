@@ -186,6 +186,36 @@
         {
           "composed_from": null,
           "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
           "id": "normalise.denominator",
           "slot": "normalisation_basis"
         },
@@ -766,6 +796,36 @@
           "construct": "landing",
           "id": "landing.threshold.tied_to_takeoff",
           "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
@@ -1358,6 +1418,36 @@
         {
           "composed_from": null,
           "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
           "id": "normalise.denominator",
           "slot": "normalisation_basis"
         },
@@ -1940,6 +2030,36 @@
           "construct": "landing",
           "id": "landing.threshold.tied_to_takeoff",
           "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
