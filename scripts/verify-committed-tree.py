@@ -22,12 +22,53 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 # A declaration ending in a semicolon needs a file. One ending in a brace carries its own body.
+# Attributes may sit on either side of `#[path]`, and on the same line as the declaration, so
+# both attribute runs are optional and the path is read out of whichever position it takes. The
+# leading run refuses to swallow `#[path]` itself, or the group would consume it and the
+# declaration would resolve to the module's name rather than to the file it points at.
 DECLARES_A_MODULE = re.compile(
-    r"^\s*(?:#\[path\s*=\s*\"(?P<path>[^\"]+)\"\]\s*)?"
+    r"^\s*(?:#\[(?!path\s*=)[^\]]*\]\s*)*"
+    r"(?:#\[path\s*=\s*\"(?P<path>[^\"]+)\"\]\s*)?"
+    r"(?:#\[[^\]]+\]\s*)*"
     r"(?:pub\s*(?:\([^)]*\)\s*)?)?mod\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*;",
     re.M,
 )
 COMMENTS = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+
+# The parser decides both directions this script reports, so a silent regression in it turns a
+# real orphan green rather than red. `^\s*` is what keeps `let s = "no mod bar;";` from reading
+# as a declaration: string literals are not stripped, only comments and macro bodies are.
+PARSER_CASES = (
+    ("mod foo;", "foo", None),
+    ("pub(crate) mod foo;", "foo", None),
+    ("#[cfg(test)]\nmod tests;", "tests", None),
+    ("#[cfg(test)] mod tests;", "tests", None),
+    ('#[path = "a.rs"] mod t;', "t", "a.rs"),
+    ('#[path = "a.rs"] #[cfg(test)] mod t;', "t", "a.rs"),
+    ('#[cfg(test)] #[path = "a.rs"] mod t;', "t", "a.rs"),
+    ('#[cfg(test)]\n#[path = "a.rs"]\nmod t;', "t", "a.rs"),
+    ("    #[cfg(test)] pub mod t;", "t", None),
+    ("mod foo { fn x() {} }", None, None),
+    ('let s = "no mod bar;";', None, None),
+    ("foo(); mod bar;", None, None),
+)
+
+
+def parser_faults() -> list[str]:
+    """Cases where the declaration parser reads a source line wrongly.
+
+    Run before either direction is reported, because a parser that has quietly stopped
+    matching a shape reports every file using that shape as unreachable, and a parser that
+    has started matching too much reports a real orphan as reached. The second failure is
+    the one that reads like a pass.
+    """
+    faults = []
+    for source, name, path in PARSER_CASES:
+        found = DECLARES_A_MODULE.search(source)
+        read = (found.group("name"), found.group("path")) if found else (None, None)
+        if read != (name, path):
+            faults.append(f"{source!r} reads as {read}, wanted {(name, path)}")
+    return faults
 
 # `include!` splices a file's tokens in, so the file is compiled while no `mod` names it.
 # `include_str!` and `include_bytes!` embed rather than compile, and are followed too: the
@@ -172,8 +213,8 @@ def reachable_from_roots(ref: str, paths: set[str]) -> set[str]:
     return reached
 
 
-def unreachable_modules(ref: str) -> list[str]:
-    """Files that compile for nobody, because no crate root reaches them.
+def unreachable_modules(ref: str) -> tuple[list[str], int]:
+    """Files that compile for nobody, because no crate root reaches them, and how many were read.
 
     The mirror of `unresolved_modules`, and the quieter direction of the same fault. A
     declaration without its file fails a clean build loudly with E0583. A file without its
@@ -181,15 +222,19 @@ def unreachable_modules(ref: str) -> list[str]:
     and it reads as shipped code to anyone who opens it. `preset.rs` sat in
     `plateforce-registry` that way, and declaring it cost five compile errors that no
     reviewer had seen.
+
+    The denominator travels with the verdict because a pass over zero files reads exactly
+    like a pass over every file.
     """
     paths = committed_paths(ref)
     reached = reachable_from_roots(ref, paths)
+    sources = sorted(p for p in paths if p.endswith(".rs"))
     orphans = []
-    for path in sorted(p for p in paths if p.endswith(".rs")):
+    for path in sources:
         if path in reached:
             continue
         orphans.append(f"{path} is committed and no crate root reaches it, so it is never compiled")
-    return orphans
+    return orphans, len(sources)
 
 
 def compiles(ref: str) -> bool:
@@ -209,6 +254,14 @@ def main() -> int:
     ref = arguments[0] if arguments else "HEAD"
     also_compile = "--compile" in sys.argv[1:]
 
+    faults = parser_faults()
+    if faults:
+        print("the declaration parser reads source wrongly, so neither answer below "
+              "would mean anything:", file=sys.stderr)
+        for line in faults:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+
     missing = unresolved_modules(ref)
     if missing:
         print(f"{ref} does not build from a clean checkout:", file=sys.stderr)
@@ -219,15 +272,16 @@ def main() -> int:
 
     print(f"{ref}: every declared module is committed")
 
-    orphans = unreachable_modules(ref)
+    orphans, sources = unreachable_modules(ref)
     if orphans:
-        print(f"\n{ref} carries source no crate root reaches:", file=sys.stderr)
+        print(f"\n{ref} carries source no crate root reaches, "
+              f"{len(orphans)} of {sources} committed .rs files:", file=sys.stderr)
         for line in orphans:
             print(f"  {line}", file=sys.stderr)
         print("\ndeclare it beside its module, or delete it until it is wanted", file=sys.stderr)
         return 1
 
-    print(f"{ref}: every committed module is reachable")
+    print(f"{ref}: every committed module is reachable, {sources} of {sources} .rs files")
 
     if also_compile and not compiles(ref):
         print(f"{ref} does not compile from a clean checkout", file=sys.stderr)
