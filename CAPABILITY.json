@@ -41,6 +41,12 @@
         },
         {
           "composed_from": null,
+          "construct": "mechanical_object",
+          "id": "declaration.computed_on_object",
+          "slot": "mechanical_object"
+        },
+        {
+          "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
           "slot": "conditioned_force_signal"
@@ -161,6 +167,12 @@
         },
         {
           "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "normalise.denominator",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -260,6 +272,36 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power",
+          "id": "power.instantaneous.force_x_velocity",
+          "slot": "mechanical_power"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.mean",
+          "id": "power.mean.phase",
+          "slot": "mechanical_power.mean"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak.instantaneous",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.lewis",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.regression",
+          "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
@@ -374,6 +416,24 @@
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
           "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_force_ds",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_power_dt",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.single_force_displacement_product",
+          "slot": "mechanical_work"
         }
       ],
       "operations": [
@@ -511,6 +571,12 @@
         },
         {
           "composed_from": null,
+          "construct": "mechanical_object",
+          "id": "declaration.computed_on_object",
+          "slot": "mechanical_object"
+        },
+        {
+          "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
           "slot": "conditioned_force_signal"
@@ -631,6 +697,12 @@
         },
         {
           "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "normalise.denominator",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -730,6 +802,36 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power",
+          "id": "power.instantaneous.force_x_velocity",
+          "slot": "mechanical_power"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.mean",
+          "id": "power.mean.phase",
+          "slot": "mechanical_power.mean"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak.instantaneous",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.lewis",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.regression",
+          "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
@@ -844,6 +946,24 @@
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
           "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_force_ds",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_power_dt",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.single_force_displacement_product",
+          "slot": "mechanical_work"
         }
       ],
       "operations": [
@@ -985,6 +1105,12 @@
         },
         {
           "composed_from": null,
+          "construct": "mechanical_object",
+          "id": "declaration.computed_on_object",
+          "slot": "mechanical_object"
+        },
+        {
+          "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
           "slot": "conditioned_force_signal"
@@ -1105,6 +1231,12 @@
         },
         {
           "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "normalise.denominator",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -1204,6 +1336,36 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power",
+          "id": "power.instantaneous.force_x_velocity",
+          "slot": "mechanical_power"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.mean",
+          "id": "power.mean.phase",
+          "slot": "mechanical_power.mean"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak.instantaneous",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.lewis",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.regression",
+          "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
@@ -1318,6 +1480,24 @@
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
           "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_force_ds",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_power_dt",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.single_force_displacement_product",
+          "slot": "mechanical_work"
         }
       ],
       "operations": [
@@ -1457,6 +1637,12 @@
         },
         {
           "composed_from": null,
+          "construct": "mechanical_object",
+          "id": "declaration.computed_on_object",
+          "slot": "mechanical_object"
+        },
+        {
+          "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
           "slot": "conditioned_force_signal"
@@ -1577,6 +1763,12 @@
         },
         {
           "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "normalise.denominator",
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
           "slot": "onset"
@@ -1676,6 +1868,36 @@
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power",
+          "id": "power.instantaneous.force_x_velocity",
+          "slot": "mechanical_power"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.mean",
+          "id": "power.mean.phase",
+          "slot": "mechanical_power.mean"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak.instantaneous",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.lewis",
+          "slot": "mechanical_power.peak"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_power.peak",
+          "id": "power.peak_from_height.regression",
+          "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
@@ -1790,6 +2012,24 @@
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
           "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_force_ds",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.integral_power_dt",
+          "slot": "mechanical_work"
+        },
+        {
+          "composed_from": null,
+          "construct": "mechanical_work",
+          "id": "work.single_force_displacement_product",
+          "slot": "mechanical_work"
         }
       ],
       "operations": [

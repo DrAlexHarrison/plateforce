@@ -298,6 +298,7 @@ id = "rate_of_power_development"
 title = "How fast power rises"
 label = "How fast power rises"
 unit = "watts_per_second"
+rules_answer = "one_question"
 
 [[construct]]
 id = "mechanical_power"

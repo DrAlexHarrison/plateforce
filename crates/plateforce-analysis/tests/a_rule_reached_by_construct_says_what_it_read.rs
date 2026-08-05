@@ -319,12 +319,12 @@ fn a_peak_whose_chosen_window_placed_nothing_points_upstream() {
 fn a_construct_with_no_rule_behind_it_is_refused_by_name() {
     let error = run(
         &a_jump_that_lands(),
-        &naming(&[("mechanical_power", "power.peak.instantaneous")]),
+        &naming(&[("waveform_inference", "waveform.spm1d.pataky")]),
     )
     .expect_err("a construct with no rule is refused");
     println!("{error}");
     assert_eq!(error.code, RefusalCode::MethodNotImplemented);
-    assert_eq!(error.method_id, "mechanical_power");
+    assert_eq!(error.method_id, "waveform_inference");
     assert!(
         error.available.iter().any(|name| name == "peak_force"),
         "{error}"

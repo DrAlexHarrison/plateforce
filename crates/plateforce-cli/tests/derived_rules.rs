@@ -126,12 +126,12 @@ fn a_value_set_against_a_derived_construct_reaches_its_rule() {
 /// A construct with no rule behind it is refused by name, listing what this build does run.
 #[test]
 fn a_construct_this_build_runs_no_rule_for_is_refused_by_name() {
-    let output = analyse(&["--derive", "mechanical_power=power.peak.instantaneous"]);
+    let output = analyse(&["--derive", "waveform_inference=waveform.spm1d.pataky"]);
     let text = String::from_utf8_lossy(&output.stderr).to_string()
         + &String::from_utf8_lossy(&output.stdout);
     println!("{text}");
     assert_ne!(output.status.code(), Some(0));
-    assert!(text.contains("mechanical_power"), "{text}");
+    assert!(text.contains("waveform_inference"), "{text}");
     assert!(text.contains("peak_force"), "{text}");
 }
 
