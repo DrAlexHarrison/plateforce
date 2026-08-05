@@ -84,7 +84,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let lower_seconds = resolved.number(LOWER_PARAMETER, LOWER_DEFAULT_SECONDS);
     let upper_seconds = resolved.number(UPPER_PARAMETER, UPPER_DEFAULT_SECONDS);
     let selection = resolved.required_enumerated(ID, SELECTION_PARAMETER, SELECTIONS);

@@ -831,14 +831,28 @@ pub fn analyse_under_preset_json(
     if let Some(refusal) = refused {
         return refuse::<AnalysisReport>(Refusal::from(*refusal));
     }
+    // After the pipeline is adopted, because adopting one names rules this request did not
+    // name before, and a rule whose entry was never read falls back to nothing.
+    request.analysis.reading(&registry);
     run_and_report(handle, request)
 }
 
-pub fn analyse_json(handle: &TrialHandle, request_json: &str) -> String {
-    let request: AnalyseRequest = match parse_request(request_json) {
+/// The registry root rides on every analysis, because the rules read the registry's declared
+/// defaults through the request. A path that ran without reading it left every fallback to a
+/// literal in the engine, which is entry 35's defect: `registry show` saying one value and
+/// the run binding another.
+pub fn analyse_json(handle: &TrialHandle, root: &str, request_json: &str) -> String {
+    let registry = match Registry::load(root) {
+        Ok(registry) => registry,
+        Err(error) => {
+            return refuse::<AnalysisReport>(Refusal::of("registry_invalid", error.to_string()))
+        }
+    };
+    let mut request: AnalyseRequest = match parse_request(request_json) {
         Ok(request) => request,
         Err(refusal) => return refuse::<AnalysisReport>(*refusal),
     };
+    request.analysis.reading(&registry);
     run_and_report(handle, request)
 }
 
@@ -910,11 +924,18 @@ fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
 ///
 /// This is what answers "how much does the method choice move this number", so it takes no
 /// option to enable it and sits beside the analysis rather than behind it.
-pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
-    let request: SweepRequest = match parse_request(request_json) {
+pub fn spread_json(handle: &TrialHandle, root: &str, request_json: &str) -> String {
+    let registry = match Registry::load(root) {
+        Ok(registry) => registry,
+        Err(error) => {
+            return refuse::<SpreadDocument>(Refusal::of("registry_invalid", error.to_string()))
+        }
+    };
+    let mut request: SweepRequest = match parse_request(request_json) {
         Ok(request) => request,
         Err(refusal) => return refuse::<SpreadDocument>(*refusal),
     };
+    request.sweep.base.reading(&registry);
     swept(handle, request)
 }
 
@@ -947,6 +968,8 @@ pub fn spread_under_preset_json(
     if let Some(refusal) = refused {
         return refuse::<SpreadDocument>(Refusal::from(*refusal));
     }
+    // After the pipeline is adopted, for the reason analyse_under_preset_json states.
+    request.sweep.base.reading(&registry);
     swept(handle, request)
 }
 

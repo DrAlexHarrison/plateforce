@@ -53,7 +53,7 @@ fn a_jump_that_lands() -> Trial {
 /// The onset rule that bounds its search above, because the value entry 8 of the queue was
 /// written about is the instant that bound landed on.
 fn a_request_whose_onset_bounds_its_search() -> AnalysisRequest {
-    AnalysisRequest {
+    let mut request = AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -68,7 +68,9 @@ fn a_request_whose_onset_bounds_its_search() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    };
+    request.reading(&registry());
+    request
 }
 
 struct Recorded {

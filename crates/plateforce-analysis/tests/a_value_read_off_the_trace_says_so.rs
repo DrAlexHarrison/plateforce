@@ -14,6 +14,8 @@ use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice, BI
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 
+mod common;
+
 /// Quiet stance, an unweighting dip, a push, flight, then landing, at a stated system weight,
 /// sample rate, and quiet-stance length. All three move the landmarks a rule measures while
 /// leaving every value a caller states exactly where it was.
@@ -102,6 +104,7 @@ fn request_for(slot: &str, method_id: &str) -> AnalysisRequest {
 /// Every `(method id, name)` the record carries for one recording, with the text shown for it
 /// and the source the record claims.
 fn record_over(trial: &Trial) -> BTreeMap<(String, String), (String, ParameterSource)> {
+    let registry = common::registry();
     let mut recorded = BTreeMap::new();
     for binding in BINDINGS {
         // Both branches of every rule that behaves differently when the caller anchors it,
@@ -110,6 +113,7 @@ fn record_over(trial: &Trial) -> BTreeMap<(String, String), (String, ParameterSo
         for start_index in [None, Some(STATED_WEIGHING_START_INDEX)] {
             let mut request = request_for(binding.slot, binding.id);
             request.weighing.start_index = start_index;
+            request.reading(&registry);
             let Ok(response) = run(trial, &request) else {
                 continue;
             };

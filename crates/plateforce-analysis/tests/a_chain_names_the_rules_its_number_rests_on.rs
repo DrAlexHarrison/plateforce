@@ -14,6 +14,8 @@ use plateforce_analysis::binding::Dispatch;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 
 /// A countermovement jump that leaves the plate and lands back on it, so every landmark is
@@ -33,7 +35,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn request(onset_id: &str, takeoff_id: &str) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -48,7 +50,7 @@ fn request(onset_id: &str, takeoff_id: &str) -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn chain<'a>(response: &'a AnalysisResponse, key: &str) -> &'a [String] {

@@ -17,6 +17,8 @@ use plateforce_analysis::document::refusal_from_rule;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{read_trial_from_path, RefusalCode, Trial};
 
+mod common;
+
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/fixtures/subject01_trial1.force.txt"
@@ -81,7 +83,9 @@ fn asking(construct: &str, method_id: &str, stated: &[(&str, f64)]) -> AnalysisR
             ..Default::default()
         },
     );
-    request
+    // The registry declares no value for a box height or a foot length, so the refusal these
+    // rules owe an unstating reader survives this.
+    common::prepared(request)
 }
 
 fn value(response: &AnalysisResponse, key: &str) -> Option<f64> {

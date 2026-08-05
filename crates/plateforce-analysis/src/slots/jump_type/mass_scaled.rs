@@ -58,7 +58,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let anchor_kilograms = resolved.number(ANCHOR_PARAMETER, ANCHOR_DEFAULT_KILOGRAMS);
     let exponent = resolved.number(EXPONENT_PARAMETER, EXPONENT_DEFAULT);
     let threshold_at_anchor_newtons =

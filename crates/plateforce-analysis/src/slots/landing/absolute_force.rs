@@ -43,7 +43,12 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let rate_hz = context.trial.sample_rate_hz();
     let threshold_newtons = resolved.number(super::THRESHOLD_PARAMETER, THRESHOLD_DEFAULT_NEWTONS);
     let minimum_contact_samples = resolved

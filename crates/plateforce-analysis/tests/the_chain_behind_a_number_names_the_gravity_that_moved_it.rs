@@ -24,6 +24,8 @@ use plateforce_core::provenance::{ParameterSource, RegistryStamp};
 use plateforce_core::reporting::fingerprint;
 use plateforce_core::{Acquisition, Trial};
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 const FLIGHT_SAMPLES: usize = 811;
 const FLIGHT_TIME: &str = "flight_time_seconds";
@@ -73,7 +75,7 @@ fn base() -> AnalysisRequest {
                 ..Default::default()
             });
     }
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -89,7 +91,7 @@ fn base() -> AnalysisRequest {
         },
         derived,
         ..Default::default()
-    }
+    })
 }
 
 /// The claim is written beside the value rather than through `state_gravity`, because these

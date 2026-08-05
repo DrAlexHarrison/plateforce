@@ -34,7 +34,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
 
     if resolved.stated_name(FRAME_PARAMETER).is_none() {
         return DerivedOutcome::declined(
@@ -48,11 +53,7 @@ fn compute(
 
     // The fallback is unreachable: the name was stated a line above. It is empty rather than
     // one of the two, so a reader of this rule cannot mistake either frame for a default.
-    match resolved.enumerated(
-        FRAME_PARAMETER,
-        "",
-        &[(TAKEOFF, TAKEOFF), (STANDING, STANDING)],
-    ) {
+    match resolved.enumerated(FRAME_PARAMETER, &[(TAKEOFF, TAKEOFF), (STANDING, STANDING)]) {
         Ok(_) => DerivedOutcome {
             values: Vec::new(),
             placed: Vec::new(),

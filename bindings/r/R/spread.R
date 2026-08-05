@@ -107,7 +107,7 @@ pf_spread <- function(trial,
 
   # The pipeline is laid on by the engine rather than here, as the analysis lays it on.
   reply <- if (is.null(preset)) {
-    rust_spread_json(trial@handle, request)
+    rust_spread_json(trial@handle, registry_root(registry), request)
   } else {
     rust_spread_under_preset_json(trial@handle, registry_root(registry), preset, request)
   }

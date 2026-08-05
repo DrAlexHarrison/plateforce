@@ -697,7 +697,7 @@ mod tests {
     }
 
     pub(super) fn base() -> AnalysisRequest {
-        AnalysisRequest {
+        crate::request::prepared(AnalysisRequest {
             weighing: WeighingChoice {
                 method_id: "bwepoch.fixed_window".into(),
                 start_index: None,
@@ -717,7 +717,7 @@ mod tests {
             gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
             registry_backed_ids: Vec::new(),
             ..Default::default()
-        }
+        })
     }
 
     /// Two swept values a reader can tell apart are two variants a reader can tell apart.

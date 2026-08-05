@@ -164,7 +164,7 @@ analyse_countermovement_jump <- function(trial,
   )
   # The pipeline is laid on by the engine rather than here.
   reply <- if (is.null(preset)) {
-    rust_analyse_json(trial@handle, request)
+    rust_analyse_json(trial@handle, registry_root(registry), request)
   } else {
     rust_analyse_under_preset_json(trial@handle, registry_root(registry), preset, request)
   }

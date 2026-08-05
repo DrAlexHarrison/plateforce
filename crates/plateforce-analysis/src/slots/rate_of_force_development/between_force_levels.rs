@@ -53,7 +53,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     // All three are consulted before any of them is judged, so a request stating two of them
     // and omitting the third does not report the two it stated as names this rule never read.
     let basis = resolved.required_enumerated(ID, BASIS_PARAMETER, &[(ABSOLUTE_BASIS, ())]);

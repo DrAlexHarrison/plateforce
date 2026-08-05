@@ -37,7 +37,12 @@ fn compute(
     choice: &MethodChoice,
     warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let bound = resolved.finish();
 
     let onset = context.onset_index();

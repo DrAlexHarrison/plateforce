@@ -45,7 +45,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let threshold_newtons = resolved.number(THRESHOLD_PARAMETER, THRESHOLD_DEFAULT_NEWTONS);
     let unweighting = super::unweighting_newtons(context, ID);
     let bound = resolved.finish();

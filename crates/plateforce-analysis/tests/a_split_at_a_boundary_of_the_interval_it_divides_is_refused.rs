@@ -15,6 +15,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 const START: &str = "propulsion_phase_start_seconds";
 const END: &str = "propulsion_phase_end_seconds";
 const SPLIT: &str = "propulsion_subdivision_seconds";
@@ -89,7 +91,7 @@ fn request(subdivision_id: &str, propulsion_end_id: &str, search_signal: &str) -
             ..Default::default()
         },
     );
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -105,7 +107,7 @@ fn request(subdivision_id: &str, propulsion_end_id: &str, search_signal: &str) -
         },
         derived,
         ..Default::default()
-    }
+    })
 }
 
 fn value(response: &AnalysisResponse, key: &str) -> Option<f64> {

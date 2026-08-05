@@ -11,10 +11,12 @@ use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 
 fn request_with(onset_parameters: &[(&str, f64)]) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: None,
@@ -38,7 +40,7 @@ fn request_with(onset_parameters: &[(&str, f64)]) -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    })
 }
 
 fn onset_seconds(onset_parameters: &[(&str, f64)]) -> f64 {

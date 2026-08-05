@@ -45,8 +45,8 @@ pub use chain::{
 };
 pub use pipeline::run;
 pub use request::{
-    gravity_stated, AnalysisRequest, MethodChoice, WeighingChoice, BODY_MASS_GLOBAL,
-    GRAVITY_GLOBAL, TOUCHDOWN_GLOBAL,
+    gravity_stated, AnalysisRequest, DeclaredDefaults, EntryDefaults, MethodChoice, WeighingChoice,
+    BODY_MASS_GLOBAL, GRAVITY_GLOBAL, TOUCHDOWN_GLOBAL,
 };
 pub use resolution::{BoundMethod, DeclinedRule, RuleRefusal};
 

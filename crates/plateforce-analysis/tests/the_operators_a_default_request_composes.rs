@@ -13,6 +13,8 @@ use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_registry::schema::{Status, Surfacing};
 use plateforce_registry::Registry;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 
 fn registry() -> Registry {
@@ -34,8 +36,12 @@ fn trial() -> Trial {
 }
 
 /// Nothing stated anywhere: the request a surface sends before a user has touched anything.
+///
+/// Prepared against the registry, because that is the rest of what a surface sends. A name
+/// nobody stated falls back to what the entry declares, which is a value on the request rather
+/// than one in a rule body, so a request that skipped this would meet rules reading nothing.
 fn bare_request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: None,
@@ -55,7 +61,7 @@ fn bare_request() -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    })
 }
 
 /// What an operator id looks like, in one place, so every count in this file is over one

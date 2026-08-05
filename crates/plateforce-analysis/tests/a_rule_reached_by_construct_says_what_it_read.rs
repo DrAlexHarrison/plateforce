@@ -11,6 +11,8 @@ use plateforce_analysis::spread::{run as sweep, Axis, SpreadRequest};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{RefusalCode, Trial};
 
+mod common;
+
 /// A countermovement jump with a landing, so both window rules have something to place and
 /// the landing sits above the propulsive peak. Peak force over the whole recording and peak
 /// force over the jump are then different numbers, which is what makes the window a choice
@@ -30,7 +32,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn base() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -45,7 +47,7 @@ fn base() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn naming(pairs: &[(&str, &str)]) -> AnalysisRequest {
@@ -59,7 +61,8 @@ fn naming(pairs: &[(&str, &str)]) -> AnalysisRequest {
             },
         );
     }
-    request
+    // Again, because the slots above arrived after the read in `base`.
+    common::prepared(request)
 }
 
 fn value(response: &AnalysisResponse, key: &str) -> Option<f64> {

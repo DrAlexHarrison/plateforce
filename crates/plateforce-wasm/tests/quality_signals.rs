@@ -19,11 +19,13 @@ use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, 
 use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 
+mod common;
+
 const FROM_TAKEOFF: &str = "jump_height_from_takeoff_meters";
 const FROM_FLIGHT: &str = "jump_height_from_flight_time_meters";
 
 fn request_with_onset(method_id: &str) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: None,
@@ -44,7 +46,7 @@ fn request_with_onset(method_id: &str) -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    })
 }
 
 fn metric(response: &AnalysisResponse, key: &str) -> f64 {

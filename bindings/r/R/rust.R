@@ -44,16 +44,16 @@ rust_trial_report_json <- function(handle) .Call(wrap__pf_trial_report_json, han
 
 rust_trial_force <- function(handle) .Call(wrap__pf_trial_force, handle)
 
-rust_analyse_json <- function(handle, request_json) {
-  .Call(wrap__pf_analyse_json, handle, request_json)
+rust_analyse_json <- function(handle, root, request_json) {
+  .Call(wrap__pf_analyse_json, handle, root, request_json)
 }
 
 rust_analyse_under_preset_json <- function(handle, root, preset_id, request_json) {
   .Call(wrap__pf_analyse_under_preset_json, handle, root, preset_id, request_json)
 }
 
-rust_spread_json <- function(handle, request_json) {
-  .Call(wrap__pf_spread_json, handle, request_json)
+rust_spread_json <- function(handle, root, request_json) {
+  .Call(wrap__pf_spread_json, handle, root, request_json)
 }
 
 rust_spread_under_preset_json <- function(handle, root, preset_id, request_json) {

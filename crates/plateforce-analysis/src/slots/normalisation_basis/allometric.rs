@@ -63,7 +63,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let provenance = resolved.required_enumerated(ID, PROVENANCE_PARAMETER, PROVENANCES);
     // Read before the branch below so the name reaches the record whichever way it goes, and
     // so a caller who did state one under a fitted provenance is credited with it.

@@ -1063,7 +1063,7 @@ mod tests {
     }
 
     fn request(onset_id: &str, takeoff_id: &str) -> AnalysisRequest {
-        AnalysisRequest {
+        crate::request::prepared(AnalysisRequest {
             weighing: weighing("bwepoch.fixed_window", None, 0.8),
             onset: MethodChoice {
                 method_id: onset_id.into(),
@@ -1077,7 +1077,7 @@ mod tests {
             gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
             registry_backed_ids: vec!["onset.threshold.noise_relative".into()],
             ..Default::default()
-        }
+        })
     }
 
     /// Which rule each construct declared before the one under test is bound to, where that is
@@ -1140,7 +1140,7 @@ mod tests {
                     ..Default::default()
                 },
             );
-            return candidate;
+            return crate::request::prepared(candidate);
         }
         match binding.slot {
             "onset" => candidate.onset.method_id = binding.id.to_string(),
@@ -1189,7 +1189,8 @@ mod tests {
                     .insert(binding.construct.to_string(), choosing(binding));
             }
         }
-        candidate
+        // Again, because the slots above arrived after the read in `request`.
+        crate::request::prepared(candidate)
     }
 
     #[test]
@@ -2204,7 +2205,8 @@ mod tests {
             "takeoff.threshold.longest_run",
         );
         candidate.weighing = weighing(&candidate.weighing.method_id.clone(), None, 0.5);
-        let response = run(&trial, &candidate).unwrap();
+        // Replacing a whole slot drops what the read put on it, so the read comes after.
+        let response = run(&trial, &crate::request::prepared(candidate)).unwrap();
         assert!(
             response
                 .warnings
@@ -3063,7 +3065,10 @@ mod tests {
                 _ => &synthetic_trial,
             };
             report.push_str(&format!("case {} on {}\n", case.name, case.trial));
-            match run(trial, &case.request) {
+            // Every case replaces at least one whole slot after it is built, which drops what
+            // the read put there, so the read is here rather than in the builders.
+            let request = crate::request::prepared(case.request);
+            match run(trial, &request) {
                 Ok(response) => {
                     report.push_str(&format!(
                         "  window {}..{}\n  onset {:?}\n  takeoff {:?}\n  touchdown {:?}\n",

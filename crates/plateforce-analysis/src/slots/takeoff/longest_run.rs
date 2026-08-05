@@ -28,7 +28,6 @@ pub(crate) fn crossing(
     let comparison = resolved.residual_comparison()?;
     let handling = resolved.enumerated(
         "short_run_handling",
-        "rank_then_filter",
         &[
             ("rank_then_filter", ShortRunHandling::RankThenFilter),
             ("filter_then_rank", ShortRunHandling::FilterThenRank),

@@ -66,7 +66,12 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let dropoff_percent = resolved.number(DROPOFF_PARAMETER, DROPOFF_DEFAULT_PERCENT);
     let moving_average_seconds =
         resolved.number(MOVING_AVERAGE_PARAMETER, MOVING_AVERAGE_DEFAULT_SECONDS);

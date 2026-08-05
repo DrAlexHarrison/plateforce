@@ -26,6 +26,8 @@ use plateforce_analysis::{
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::Trial;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 const FLIGHT_SAMPLES: usize = 811;
 const FLIGHT_TIME_HEIGHT: &str = "jump_height_from_flight_time_meters";
@@ -55,7 +57,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn base() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -70,7 +72,7 @@ fn base() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 /// An analysis at one gravity under one claim. The claim is set directly rather than through

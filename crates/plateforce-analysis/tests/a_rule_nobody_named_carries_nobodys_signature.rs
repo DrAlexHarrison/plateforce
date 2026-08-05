@@ -18,6 +18,8 @@ use plateforce_core::provenance::{ParameterSource, RegistryStamp};
 use plateforce_core::Trial;
 use plateforce_registry::{Citation, CitationRole, Preset, PresetBinding, Registry};
 
+mod common;
+
 /// Quiet stance, an unweighting dip, a push, flight, then a landing. The same shape the other
 /// provenance tests in this crate use, so a rule that runs there runs here.
 fn trial() -> Trial {
@@ -69,8 +71,11 @@ fn named_landmarks() -> AnalysisRequest {
     }
 }
 
+/// Prepared here rather than in `named_landmarks`, because two of these tests adopt a pipeline
+/// or name a conditioning construct after building the request, and a slot that arrives after
+/// the read falls back to nothing.
 fn bound(request: &AnalysisRequest) -> Vec<BoundMethod> {
-    run(&trial(), request)
+    run(&trial(), &common::prepared(request.clone()))
         .expect("the fixture produces a result")
         .bound_methods
 }

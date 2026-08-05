@@ -14,6 +14,8 @@ use plateforce_core::provenance::{ParameterSource, RegistryStamp};
 use plateforce_core::{RefusalCode, Trial};
 use plateforce_registry::{Citation, CitationRole, Preset, PresetBinding, Registry};
 
+mod common;
+
 /// Quiet stance, an unweighting dip, a push, flight, then a landing. The same shape the
 /// other provenance tests in this crate use, so a rule that runs there runs here.
 fn trial() -> Trial {
@@ -48,7 +50,7 @@ fn trial() -> Trial {
 /// A request naming the rule for every landmark and stating no value of its own, so every
 /// value in the record came from a rule or from the pipeline under test.
 fn bare_request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             ..Default::default()
@@ -62,7 +64,7 @@ fn bare_request() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn citation() -> Citation {
@@ -119,6 +121,8 @@ fn bound_with(
     request
         .adopt(preset)
         .expect("the pipeline binds rules this build runs");
+    // Again, because adopting names rules the request did not name before.
+    let request = common::prepared(request);
     run(&trial(), &request)
         .expect("the fixture produces a result")
         .bound_methods

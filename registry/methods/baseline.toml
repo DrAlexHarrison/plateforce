@@ -272,10 +272,29 @@ label = "Divide the sum of squares by the sample count"
 key = "sample"
 label = "Divide the sum of squares by one less than the sample count"
 
+[[method.parameter]]
+name = "centre"
+unit = "enumeration"
+default_key = "mean"
+default_source = "plateforce_derivation"
+notes = """
+Read on the placed path: a caller who states a start turns the search into a placement, and the
+placed window's centre is this choice. The rule reads the name either way, so the entry declares
+it rather than leaving a stated start refused over a name no surface can discover.
+"""
+
+[[method.parameter.value]]
+key = "mean"
+label = "The arithmetic mean of force over the window"
+
+[[method.parameter.value]]
+key = "median"
+label = "The middle value of force over the window"
+
 [[method.citation]]
 key = "plateforce_derivation"
 role = "proposes"
-reference = "Derived in this registry: the mass-relative form of a fixed 20 N gate, the two-pass accumulation, and the sample divisor. No publication states any of the three for this rule"
+reference = "Derived in this registry: the mass-relative form of a fixed 20 N gate, the two-pass accumulation, the sample divisor, and the mean centre on the placed path. No publication states any of the four for this rule"
 obtained = true
 
 [[method.citation]]

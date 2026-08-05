@@ -26,6 +26,8 @@ use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 use plateforce_wasm::registry_embed;
 
+mod common;
+
 fn base_request() -> AnalysisRequest {
     AnalysisRequest {
         weighing: WeighingChoice {
@@ -63,7 +65,9 @@ fn request_naming(slot: &str, method_id: &str, option: Option<(&str, &str)>) -> 
         "takeoff" => request.takeoff = choice,
         _ => request.onset = choice,
     }
-    request
+    // After the slot is written, because a choice put there afterwards carries no declarations
+    // and refuses by name rather than falling back to what the registry publishes.
+    common::prepared(request)
 }
 
 /// What one rule did with one named value a caller stated on it.

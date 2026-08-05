@@ -24,6 +24,8 @@ use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::Trial;
 
+mod common;
+
 /// One surface that hands a caller a document, what it names to reach the one generator, and
 /// what a second generator would have to define.
 struct Publisher {
@@ -272,7 +274,7 @@ fn a_trial_that_never_leaves_the_plate() -> Trial {
 }
 
 fn a_request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             ..Default::default()
@@ -286,7 +288,7 @@ fn a_request() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn document_for(trial: &Trial) -> ResultDocument {

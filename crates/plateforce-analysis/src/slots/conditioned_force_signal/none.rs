@@ -23,7 +23,12 @@ pub(crate) fn apply(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> ConditioningOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     // Recorded as a value this rule read, so the fingerprint carries the answer rather than
     // carrying the rule's name over an empty binding.
     //

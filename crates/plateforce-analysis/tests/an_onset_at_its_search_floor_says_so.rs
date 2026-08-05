@@ -15,6 +15,8 @@ use plateforce_analysis::{
 };
 use plateforce_core::{read_trial_from_path, Trial};
 
+mod common;
+
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/fixtures/subject01_trial1.force.txt"
@@ -89,6 +91,7 @@ fn analyse(trial: &Trial, onset_id: &str, parameters: BTreeMap<String, f64>) -> 
         },
         ..Default::default()
     };
+    let request = common::prepared(request);
     run(trial, &request).unwrap_or_else(|refusal| panic!("{onset_id} did not run: {refusal}"))
 }
 

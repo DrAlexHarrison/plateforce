@@ -14,6 +14,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 const SINGLE: &str = "phase.model.unweighting_single.mcmahon2018";
 const SPLIT: &str = "phase.model.unloading_yielding_split.harry2020";
 const PHASE_MODEL: &str = "phase_model";
@@ -82,7 +84,8 @@ fn naming(model: &str) -> AnalysisRequest {
             ..Default::default()
         },
     );
-    request
+    // After the model is named, because a slot that arrives later reads nothing.
+    common::prepared(request)
 }
 
 fn refusal_from(response: &AnalysisResponse, model: &str) -> String {

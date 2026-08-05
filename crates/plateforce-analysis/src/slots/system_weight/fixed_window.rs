@@ -20,7 +20,6 @@ pub(crate) fn place(
     let centre = resolved
         .enumerated(
             "centre",
-            "mean",
             &[
                 ("mean", CentralTendency::Mean),
                 ("median", CentralTendency::Median),

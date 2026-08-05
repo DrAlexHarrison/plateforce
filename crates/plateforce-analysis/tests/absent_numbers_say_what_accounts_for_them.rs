@@ -28,6 +28,8 @@ use plateforce_analysis::quality::{QualitySignal, QualityStatus};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{read_trial_from_path, Trial};
 
+mod common;
+
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/fixtures/synthetic_untrimmed_step_off_after_jump.force.txt"
@@ -70,6 +72,7 @@ fn analyse(weighing: &str, window: &str, onset: &str, takeoff: &str) -> Analysis
         },
         ..Default::default()
     };
+    let request = common::prepared(request);
     run(&trial(), &request).unwrap_or_else(|refusal| panic!("{onset} did not run: {refusal}"))
 }
 

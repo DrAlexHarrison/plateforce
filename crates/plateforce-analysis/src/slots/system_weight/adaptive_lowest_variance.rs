@@ -2,7 +2,9 @@
 
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::statistics::{median, WeighingWindowSearch};
-use plateforce_core::{DispersionEstimator, Refusal, Trial, VarianceAccumulation, WeighingEpoch};
+use plateforce_core::{
+    CentralTendency, DispersionEstimator, Refusal, Trial, VarianceAccumulation, WeighingEpoch,
+};
 
 use crate::resolution::Resolution;
 
@@ -67,13 +69,21 @@ pub(crate) fn search(
     let accumulation = resolved
         .enumerated(
             "accumulation",
-            "two_pass",
             &[
                 (
                     "cumulative_sum_of_squares",
                     VarianceAccumulation::CumulativeSumOfSquares,
                 ),
                 ("two_pass", VarianceAccumulation::TwoPass),
+            ],
+        )
+        .map_err(Refusal::from)?;
+    let centre = resolved
+        .enumerated(
+            "centre",
+            &[
+                ("mean", CentralTendency::Mean),
+                ("median", CentralTendency::Median),
             ],
         )
         .map_err(Refusal::from)?;
@@ -99,6 +109,7 @@ pub(crate) fn search(
         Some(reject_at_or_below_newtons),
         accumulation,
         dispersion,
+        centre,
     )
     .map_err(Refusal::from)?;
     // The gate above takes windows out of the running, 985 of 4801 on subject 01's first

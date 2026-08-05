@@ -54,7 +54,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let standard_deviations = resolved.number(DEVIATIONS_PARAMETER, DEVIATIONS_DEFAULT);
     let dispersion = resolved.dispersion();
 

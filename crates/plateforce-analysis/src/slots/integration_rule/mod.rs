@@ -24,7 +24,12 @@ fn compute(
     method_id: &'static str,
     quadrature: QuadratureRule,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(method_id),
+        choice.claims(),
+    );
     let Some(landmarks) = context.landmarks() else {
         return DerivedOutcome::declined(
             resolved.finish(),
@@ -118,7 +123,7 @@ mod tests {
                 },
             );
         }
-        request
+        crate::request::prepared(request)
     }
 
     #[test]

@@ -24,6 +24,8 @@ use plateforce_analysis::{accounts_of, run, AnalysisRequest, MethodChoice, Weigh
 use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::read_trial_from_path;
 
+mod common;
+
 const README: &str = "crates/plateforce-python/README.md";
 const TRIAL: &str = "crates/plateforce-conformance/fixtures/subject01_trial1.force.txt";
 const SAMPLE_RATE_HZ: f64 = 1200.0;
@@ -46,7 +48,7 @@ fn the_account_this_engine_writes() -> String {
         SAMPLE_RATE_HZ,
     )
     .expect("the committed trace reads");
-    let request = AnalysisRequest {
+    let request = common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -63,7 +65,7 @@ fn the_account_this_engine_writes() -> String {
             ..Default::default()
         },
         ..Default::default()
-    };
+    });
     let response = run(&trial, &request).expect("the committed trial computes");
     // The README's block ends by saying the acquisition block could not be filled, which is
     // what a reader loading a bare column of newtons gets.

@@ -42,10 +42,14 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let signal = match resolved.enumerated(
         "search_signal",
-        "velocity_argmin",
         &[
             ("velocity_argmin", SearchSignal::VelocityArgmin),
             ("force_bw_crossing", SearchSignal::ForceCrossing),

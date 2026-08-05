@@ -14,6 +14,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{read_trial_from_path, Trial};
 
+mod common;
+
 const FIXTURE_ROOT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/fixtures"
@@ -46,7 +48,7 @@ fn subject01_trial1() -> Trial {
 }
 
 fn base() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -61,7 +63,7 @@ fn base() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 /// A construct, the rule to bind there, and the options stated on it.
@@ -84,7 +86,9 @@ fn naming(pairs: &[BoundSlot]) -> AnalysisRequest {
             },
         );
     }
-    request
+    // After the slots are named, not before: a choice inserted into a prepared request carries
+    // its own empty declared table and would reach a rule reading nothing.
+    common::prepared(request)
 }
 
 /// The landmarks every rule in this file divides, named once.

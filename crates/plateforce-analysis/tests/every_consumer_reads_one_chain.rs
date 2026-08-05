@@ -19,6 +19,8 @@ use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::Trial;
 
+mod common;
+
 /// One way of assembling a chain step by hand, and a file that still spells it that way.
 ///
 /// The second half is the control on the first. A pattern that drifted out of the language
@@ -256,7 +258,7 @@ fn a_jump_that_lands() -> Trial {
 /// would not, and four consumers calling it would still be four answers.
 #[test]
 fn one_response_gives_one_tree_however_many_times_it_is_asked() {
-    let request = AnalysisRequest {
+    let request = common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             ..Default::default()
@@ -270,7 +272,7 @@ fn one_response_gives_one_tree_however_many_times_it_is_asked() {
             ..Default::default()
         },
         ..Default::default()
-    };
+    });
     let response = run(&a_jump_that_lands(), &request).expect("the request is well formed");
     let stamp = RegistryStamp {
         version: Some("fixture-pin".to_string()),
