@@ -346,7 +346,8 @@ pub fn work_from_single_force_displacement_product_joules(
         .iter()
         .copied()
         .fold(f64::NEG_INFINITY, f64::max);
-    let rise_meters = displacement_meters[phase.last_index] - displacement_meters[phase.first_index];
+    let rise_meters =
+        displacement_meters[phase.last_index] - displacement_meters[phase.first_index];
     Ok(peak_force_newtons * rise_meters)
 }
 

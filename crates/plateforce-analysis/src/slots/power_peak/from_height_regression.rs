@@ -11,9 +11,7 @@
 //! equal, so a set edited in the registry and not here is a failing test rather than a number
 //! that quietly keeps its old calibration.
 
-use plateforce_core::power::{
-    HeightRegressionCoefficients, WATTS_PER_CENTIMETRE, WATTS_PER_METRE,
-};
+use plateforce_core::power::{HeightRegressionCoefficients, WATTS_PER_CENTIMETRE, WATTS_PER_METRE};
 
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
@@ -28,8 +26,7 @@ pub const POPULATION_PARAMETER: &str = "population";
 /// The one name this rule cannot run without.
 pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(POPULATION_PARAMETER, "harman1991")];
 
-pub const GRAVITY_PARAMETER: &str =
-    crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
+pub const GRAVITY_PARAMETER: &str = crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
 pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 =
     crate::slots::jh_takeoff_frame::flight_time::GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED;
 

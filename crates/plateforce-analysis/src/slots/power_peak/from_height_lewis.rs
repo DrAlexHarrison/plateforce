@@ -23,8 +23,7 @@ pub const ID: &str = "power.peak_from_height.lewis";
 /// Read through the same name the height entry uses, because the height this estimate is built
 /// on is that entry's number and a second constant here would give a height the entry it names
 /// does not produce.
-pub const GRAVITY_PARAMETER: &str =
-    crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
+pub const GRAVITY_PARAMETER: &str = crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
 pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 =
     crate::slots::jh_takeoff_frame::flight_time::GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED;
 

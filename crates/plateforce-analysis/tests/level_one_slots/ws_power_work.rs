@@ -182,7 +182,11 @@ fn the_coefficient_sets_are_the_ones_the_registry_publishes() {
             held.body_mass_coefficient,
             "{key} mass"
         );
-        assert_eq!(number("intercept").value, held.intercept_watts, "{key} intercept");
+        assert_eq!(
+            number("intercept").value,
+            held.intercept_watts,
+            "{key} intercept"
+        );
         compared += 1;
     }
     println!("{compared} of {} coefficient sets compared against the registry, every coefficient and every unit", COEFFICIENT_SETS.len());
@@ -237,8 +241,9 @@ fn the_phase_names_a_rule_accepts_are_the_ones_its_entry_publishes() {
         let mut unpublished = over("whole_recording");
         unpublished.retain(|(name, _)| *name != "phase" || true);
         let response = responded(&trial, construct, method_id, &stating(&unpublished));
-        let refusal = refusal_for(&response, method_id)
-            .unwrap_or_else(|| panic!("{method_id} accepted a phase the registry does not publish"));
+        let refusal = refusal_for(&response, method_id).unwrap_or_else(|| {
+            panic!("{method_id} accepted a phase the registry does not publish")
+        });
         assert!(
             refusal.contains("whole_recording"),
             "{method_id} refused without naming the value: {refusal}"
@@ -274,12 +279,30 @@ fn the_interval_a_caller_names_moves_the_mean_and_the_work_and_the_peak_where_it
     for phase in PHASES {
         let stated = over(phase);
         let options = stating(&stated);
-        let peak = answered(&trial, PEAK_CONSTRUCT, "power.peak.instantaneous", &options, PEAK_KEY)
-            .unwrap_or_else(|| panic!("no peak over {phase}"));
-        let mean = answered(&trial, MEAN_CONSTRUCT, "power.mean.phase", &options, MEAN_KEY)
-            .unwrap_or_else(|| panic!("no mean over {phase}"));
-        let work = answered(&trial, WORK_CONSTRUCT, "work.integral_power_dt", &options, WORK_KEY)
-            .unwrap_or_else(|| panic!("no work over {phase}"));
+        let peak = answered(
+            &trial,
+            PEAK_CONSTRUCT,
+            "power.peak.instantaneous",
+            &options,
+            PEAK_KEY,
+        )
+        .unwrap_or_else(|| panic!("no peak over {phase}"));
+        let mean = answered(
+            &trial,
+            MEAN_CONSTRUCT,
+            "power.mean.phase",
+            &options,
+            MEAN_KEY,
+        )
+        .unwrap_or_else(|| panic!("no mean over {phase}"));
+        let work = answered(
+            &trial,
+            WORK_CONSTRUCT,
+            "work.integral_power_dt",
+            &options,
+            WORK_KEY,
+        )
+        .unwrap_or_else(|| panic!("no work over {phase}"));
         println!("{phase:16} peak {peak:10.1} W   mean {mean:9.1} W   work {work:9.1} J");
         readings.push((phase, peak, mean, work));
     }
@@ -361,8 +384,14 @@ fn the_three_peak_rules_disagree_on_one_recording() {
         PEAK_KEY,
     )
     .expect("the measured peak answers");
-    let lewis = answered(&trial, PEAK_CONSTRUCT, "power.peak_from_height.lewis", &[], PEAK_KEY)
-        .expect("the dimensional estimate answers");
+    let lewis = answered(
+        &trial,
+        PEAK_CONSTRUCT,
+        "power.peak_from_height.lewis",
+        &[],
+        PEAK_KEY,
+    )
+    .expect("the dimensional estimate answers");
 
     let mut regressions: Vec<(String, f64)> = Vec::new();
     for population in [
@@ -431,7 +460,9 @@ fn the_three_peak_rules_disagree_on_one_recording() {
         .map(|(_, watts)| *watts)
         .collect();
     let mean_of_others = others.iter().sum::<f64>() / others.len() as f64;
-    println!("shetty2002 {shetty:.1} W against a mean of {mean_of_others:.1} W over the other nine");
+    println!(
+        "shetty2002 {shetty:.1} W against a mean of {mean_of_others:.1} W over the other nine"
+    );
     assert!(
         (shetty / mean_of_others - 1.0).abs() < 1.0,
         "shetty2002 reads {shetty} W against {mean_of_others} W over the nine per-centimetre \
@@ -453,10 +484,22 @@ fn the_two_quadrature_routes_are_one_integral_here_and_the_vendor_product_is_not
     let stated = over("propulsion");
     let options = stating(&stated);
 
-    let by_power = answered(&trial, WORK_CONSTRUCT, "work.integral_power_dt", &options, WORK_KEY)
-        .expect("the power-time route answers");
-    let by_force = answered(&trial, WORK_CONSTRUCT, "work.integral_force_ds", &options, WORK_KEY)
-        .expect("the force-displacement route answers");
+    let by_power = answered(
+        &trial,
+        WORK_CONSTRUCT,
+        "work.integral_power_dt",
+        &options,
+        WORK_KEY,
+    )
+    .expect("the power-time route answers");
+    let by_force = answered(
+        &trial,
+        WORK_CONSTRUCT,
+        "work.integral_force_ds",
+        &options,
+        WORK_KEY,
+    )
+    .expect("the force-displacement route answers");
     let vendor = answered(
         &trial,
         WORK_CONSTRUCT,
@@ -489,14 +532,20 @@ fn the_two_quadrature_routes_are_one_integral_here_and_the_vendor_product_is_not
     // routes are read again. A shorter window over a trace that is not perfectly still gives a
     // different system weight, which is the error the note describes.
     let mut request = asking(WORK_CONSTRUCT, "work.integral_power_dt", &options);
-    request.weighing.parameters.insert("duration".to_string(), 0.3);
+    request
+        .weighing
+        .parameters
+        .insert("duration".to_string(), 0.3);
     let moved_by_power = run(&trial, &request)
         .expect("the request runs")
         .metric(WORK_KEY)
         .and_then(|metric| metric.value)
         .expect("the power-time route answers");
     let mut request = asking(WORK_CONSTRUCT, "work.integral_force_ds", &options);
-    request.weighing.parameters.insert("duration".to_string(), 0.3);
+    request
+        .weighing
+        .parameters
+        .insert("duration".to_string(), 0.3);
     let moved_by_force = run(&trial, &request)
         .expect("the request runs")
         .metric(WORK_KEY)
@@ -570,7 +619,10 @@ fn the_force_term_and_the_sign_reach_every_number_read_off_the_series() {
         )
         .expect("the reversed sign answers");
         println!("{method_id:40} total {total:10.2}  net {net:10.2}  reversed {downward:10.2}");
-        assert_ne!(total, net, "{method_id}: the force term reached no arithmetic");
+        assert_ne!(
+            total, net,
+            "{method_id}: the force term reached no arithmetic"
+        );
         // Reversing the sign of every sample reverses a peak into a trough rather than
         // negating the peak, so what is asserted is that it moved, not that it negated.
         assert_ne!(
@@ -754,8 +806,8 @@ fn the_object_a_number_describes_and_the_mass_it_is_divided_by_are_one_answer() 
         "normalise.denominator",
         &[("denominator", "body_mass")],
     );
-    let refusal = refusal_for(&response, "normalise.denominator")
-        .expect("an unstated body mass is refused");
+    let refusal =
+        refusal_for(&response, "normalise.denominator").expect("an unstated body mass is refused");
     println!("unstated: {refusal}");
     assert!(
         refusal.contains("body_mass_kilograms"),
@@ -802,9 +854,27 @@ fn the_family_answers_on_every_committed_trial() {
         let trial = committed_trial(name);
         let response = responded(&trial, PEAK_CONSTRUCT, "power.peak.instantaneous", &options);
         let peak = response.metric(PEAK_KEY).and_then(|metric| metric.value);
-        let mean = answered(&trial, MEAN_CONSTRUCT, "power.mean.phase", &options, MEAN_KEY);
-        let work = answered(&trial, WORK_CONSTRUCT, "work.integral_power_dt", &options, WORK_KEY);
-        let lewis = answered(&trial, PEAK_CONSTRUCT, "power.peak_from_height.lewis", &[], PEAK_KEY);
+        let mean = answered(
+            &trial,
+            MEAN_CONSTRUCT,
+            "power.mean.phase",
+            &options,
+            MEAN_KEY,
+        );
+        let work = answered(
+            &trial,
+            WORK_CONSTRUCT,
+            "work.integral_power_dt",
+            &options,
+            WORK_KEY,
+        );
+        let lewis = answered(
+            &trial,
+            PEAK_CONSTRUCT,
+            "power.peak_from_height.lewis",
+            &[],
+            PEAK_KEY,
+        );
         let landed = response.touchdown_index.is_some();
         trials_carrying_a_landing += usize::from(landed);
         let shown = |value: Option<f64>| {
@@ -855,10 +925,22 @@ fn the_family_answers_on_every_committed_trial() {
     // hundreds of joules. A rule off by the sampling rate, by gravity, or by a factor of a
     // thousand would still pass every assertion above.
     let trial = committed_trial("subject01_trial1");
-    let peak = answered(&trial, PEAK_CONSTRUCT, "power.peak.instantaneous", &options, PEAK_KEY)
-        .expect("the peak answered");
-    let work = answered(&trial, WORK_CONSTRUCT, "work.integral_power_dt", &options, WORK_KEY)
-        .expect("the work answered");
+    let peak = answered(
+        &trial,
+        PEAK_CONSTRUCT,
+        "power.peak.instantaneous",
+        &options,
+        PEAK_KEY,
+    )
+    .expect("the peak answered");
+    let work = answered(
+        &trial,
+        WORK_CONSTRUCT,
+        "work.integral_power_dt",
+        &options,
+        WORK_KEY,
+    )
+    .expect("the work answered");
     assert!(
         (1000.0..10000.0).contains(&peak),
         "peak power came to {peak} W, outside the thousands the literature reports for a \
