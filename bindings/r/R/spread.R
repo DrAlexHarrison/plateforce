@@ -13,8 +13,8 @@ NULL
 #'   and the takeoff rule both move a jump height, and sweeping them one at a time reports
 #'   neither the widest disagreement nor the narrowest.
 #' @param method_ids Registry identifiers to sweep. A character vector is the set for the one
-#'   step named; a list keyed by step names the ids for each. Absent, every rule this build
-#'   runs for that step is compared, read off the binding table rather than listed here.
+#'   step named; a list keyed by step names the ids for each. Absent, every rule bound to
+#'   that step is compared, read off the binding table rather than listed here.
 #' @param vary Settings to sweep, keyed by the step and the setting, as
 #'   `list("onset.k" = c(2, 5, 10))`. Numbers or names per key: `"epoch_impulse.convention" =
 #'   c("net", "gross")` compares two names, and `"global.gravity_meters_per_second_squared"`
