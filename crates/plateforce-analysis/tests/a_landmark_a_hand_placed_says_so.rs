@@ -5,14 +5,17 @@
 //! reader who drags the onset marker has supplied a sample no rule produced, so the two runs
 //! did not compute it the same way however identical the rules and their values read.
 //!
-//! Two collisions, and both were live rather than latent. A dragged onset sheds the values its
-//! rule would have read, so the record thins rather than changing, and a rule that reads
-//! nothing sheds nothing: `onset.threshold.noise_relative` binds no operator and states no value,
-//! and its record is byte-identical whether the sample came from the rule or from a hand. A
-//! dragged takeoff does not even thin, because the takeoff rule runs under a dragged marker to
-//! resolve the threshold touchdown is found against, so its record is the detection's record
-//! exactly. And neither carries the sample, so two hands placing two different takeoffs reached
-//! one digest.
+//! Two collisions, both live before this. A dragged onset sheds the values its rule would have
+//! read, so the record thins rather than changing, and nothing in what is left says a hand
+//! placed anything. A dragged takeoff does not even thin, because the takeoff rule runs under a
+//! dragged marker to resolve the threshold touchdown is found against, so its record was the
+//! detection's record exactly. And neither carried the sample, so two hands placing two
+//! different takeoffs reached one digest over flight times of 0.000 s and 0.659 s: one of those
+//! two says the athlete never left the plate.
+//!
+//! The sample and not a flag, which is the rule `a_landing_the_caller_placed_says_so` already
+//! states for a landing the caller supplied. A flag separates a detection from a hand placement
+//! and leaves two hand placements declaring they are one result.
 
 use std::collections::BTreeMap;
 
@@ -23,10 +26,13 @@ use plateforce_core::reporting::fingerprint;
 use plateforce_core::{Acquisition, Trial};
 
 const SAMPLE_RATE_HZ: f64 = 1200.0;
+const ONSET_RULE: &str = "onset.threshold.noise_relative";
+const TAKEOFF_RULE: &str = "takeoff.threshold.absolute_force";
 const INTERVAL: &str = "time_to_takeoff_seconds";
 const FLIGHT: &str = "flight_time_seconds";
 
-/// A countermovement jump that leaves the plate and lands back on it.
+/// A countermovement jump that leaves the plate and lands back on it, so a number bounded by
+/// takeoff and a number bounded by onset are both reported and can be read apart.
 fn a_jump_that_lands() -> Trial {
     let mut force = vec![600.0; 1200];
     for (index, sample) in force.iter_mut().enumerate() {
@@ -41,7 +47,7 @@ fn a_jump_that_lands() -> Trial {
     Trial::new(force, SAMPLE_RATE_HZ).unwrap()
 }
 
-fn request(onset_rule: &str, onset_at: Option<usize>, takeoff_at: Option<usize>) -> AnalysisRequest {
+fn request(onset_at: Option<usize>, takeoff_at: Option<usize>) -> AnalysisRequest {
     AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
@@ -49,12 +55,12 @@ fn request(onset_rule: &str, onset_at: Option<usize>, takeoff_at: Option<usize>)
             ..Default::default()
         },
         onset: MethodChoice {
-            method_id: onset_rule.into(),
+            method_id: ONSET_RULE.into(),
             manual_index: onset_at,
             ..Default::default()
         },
         takeoff: MethodChoice {
-            method_id: "takeoff.threshold.absolute_force".into(),
+            method_id: TAKEOFF_RULE.into(),
             manual_index: takeoff_at,
             ..Default::default()
         },
@@ -108,131 +114,140 @@ fn digest(response: &AnalysisResponse, key: &str) -> String {
         .to_string()
 }
 
-#[test]
-fn probe_report_the_collisions() {
-    let detected = analysed(request("onset.threshold.noise_relative", None, None));
-    let placed_onset = analysed(request("onset.threshold.noise_relative", Some(1180), None));
-    let placed_elsewhere = analysed(request("onset.threshold.noise_relative", Some(1120), None));
-
-    println!(
-        "onset detected      {INTERVAL}={:.6}  digest={}",
-        value(&detected, INTERVAL),
-        digest(&detected, INTERVAL)
-    );
-    println!(
-        "onset placed 1180   {INTERVAL}={:.6}  digest={}",
-        value(&placed_onset, INTERVAL),
-        digest(&placed_onset, INTERVAL)
-    );
-    println!(
-        "onset placed 1120   {INTERVAL}={:.6}  digest={}",
-        value(&placed_elsewhere, INTERVAL),
-        digest(&placed_elsewhere, INTERVAL)
-    );
-
-    let takeoff_detected = analysed(request("onset.threshold.noise_relative", None, None));
-    let takeoff_placed = analysed(request("onset.threshold.noise_relative", None, Some(2300)));
-    let takeoff_placed_elsewhere =
-        analysed(request("onset.threshold.noise_relative", None, Some(2360)));
-    println!(
-        "takeoff detected    {FLIGHT}={:.6}  digest={}",
-        value(&takeoff_detected, FLIGHT),
-        digest(&takeoff_detected, FLIGHT)
-    );
-    println!(
-        "takeoff placed 2300 {FLIGHT}={:.6}  digest={}",
-        value(&takeoff_placed, FLIGHT),
-        digest(&takeoff_placed, FLIGHT)
-    );
-    println!(
-        "takeoff placed 2360 {FLIGHT}={:.6}  digest={}",
-        value(&takeoff_placed_elsewhere, FLIGHT),
-        digest(&takeoff_placed_elsewhere, FLIGHT)
-    );
-}
-
-/// The material `fingerprint()` hashes, rebuilt here so a collision can be read rather than
-/// inferred from two equal digests.
-fn material(response: &AnalysisResponse, key: &str) -> Vec<String> {
-    let metric = response
-        .metrics
+/// Every rule on the run whose record says a hand placed its landmark, with the sample.
+fn rows_a_hand_placed(response: &AnalysisResponse) -> Vec<(String, usize)> {
+    response
+        .bound_methods
         .iter()
-        .find(|metric| metric.key == key)
-        .expect("the quantity is reported");
-    let chain = chain_of(response, metric, &stamp(), true);
-    let mut lines = Vec::new();
-    for (depth, step) in chain.provenance.flattened().iter().enumerate() {
-        lines.push(format!(
-            "{depth:04} {} source={:?} manual_override={}",
-            step.method_id, step.method_source, step.manual_override
-        ));
-        for parameter in &step.parameters {
-            lines.push(format!(
-                "{depth:04}   parameter {} = {} {}",
-                parameter.name,
-                parameter.value,
-                parameter.source.wire_name()
-            ));
-        }
-        for choice in &step.choices {
-            lines.push(format!(
-                "{depth:04}   choice {} = {} {}",
-                choice.name,
-                choice.value,
-                choice.source.wire_name()
-            ));
-        }
-    }
-    lines
+        .filter_map(|bound| {
+            bound
+                .placed_by_hand_at_sample
+                .map(|sample| (bound.method_id.clone(), sample))
+        })
+        .collect()
 }
 
+/// Two hands placing two different samples give two numbers, so they are two results.
+///
+/// Both members of each pair are hand placements. Written against a detection instead, this
+/// would pass on the record thinning, which is what separated them before and is a side effect
+/// rather than a rule.
 #[test]
-fn probe_report_the_material() {
-    for (name, left, right, key) in [
+fn two_hands_placing_two_samples_do_not_fingerprint_as_one_result() {
+    for (slot, key, one, other) in [
         (
-            "onset detected vs placed 1180",
-            request("onset.threshold.noise_relative", None, None),
-            request("onset.threshold.noise_relative", Some(1180), None),
+            "onset",
             INTERVAL,
+            request(Some(1180), None),
+            request(Some(1120), None),
         ),
         (
-            "onset placed 1180 vs placed 1120",
-            request("onset.threshold.noise_relative", Some(1180), None),
-            request("onset.threshold.noise_relative", Some(1120), None),
-            INTERVAL,
-        ),
-        (
-            "takeoff detected vs placed 2360",
-            request("onset.threshold.noise_relative", None, None),
-            request("onset.threshold.noise_relative", None, Some(2360)),
+            "takeoff",
             FLIGHT,
-        ),
-        (
-            "takeoff placed 2300 vs placed 2360",
-            request("onset.threshold.noise_relative", None, Some(2300)),
-            request("onset.threshold.noise_relative", None, Some(2360)),
-            FLIGHT,
+            request(None, Some(2300)),
+            request(None, Some(2360)),
         ),
     ] {
-        let one = analysed(left);
-        let other = analysed(right);
-        let (a, b) = (material(&one, key), material(&other, key));
-        let differing: Vec<String> = a
-            .iter()
-            .zip(b.iter())
-            .filter(|(x, y)| x != y)
-            .map(|(x, y)| format!("      {x}   |   {y}"))
-            .collect();
-        println!(
-            "== {name}: {} vs {} | material lines {} vs {} | differing {}",
-            value(&one, key),
-            value(&other, key),
-            a.len(),
-            b.len(),
-            differing.len()
+        let (left, right) = (analysed(one), analysed(other));
+
+        // The premise of the comparison. Two placements that gave one number would fingerprint
+        // alike correctly, and the assertion below would pass on nothing.
+        assert_ne!(
+            value(&left, key),
+            value(&right, key),
+            "the two {slot} placements give one {key}, so this proves nothing about the digest"
         );
-        for line in differing.iter().take(6) {
-            println!("{line}");
-        }
+        assert_ne!(
+            digest(&left, key),
+            digest(&right, key),
+            "two hands placed {slot} at two samples, {key} is {} and {}, and both fingerprint as \
+             one result",
+            value(&left, key),
+            value(&right, key)
+        );
     }
+}
+
+/// The other half, so the guard above cannot be satisfied by a build where every digest differs
+/// from every other. Two runs that placed one landmark at one sample computed the number the
+/// same way and say so.
+#[test]
+fn one_hand_placing_one_sample_twice_is_one_result() {
+    for (slot, key, placed, repeated) in [
+        (
+            "onset",
+            INTERVAL,
+            request(Some(1180), None),
+            request(Some(1180), None),
+        ),
+        (
+            "takeoff",
+            FLIGHT,
+            request(None, Some(2360)),
+            request(None, Some(2360)),
+        ),
+    ] {
+        let (left, right) = (analysed(placed), analysed(repeated));
+        assert_eq!(
+            value(&left, key),
+            value(&right, key),
+            "the same {slot} placement gave two numbers"
+        );
+        assert_eq!(
+            digest(&left, key),
+            digest(&right, key),
+            "one {slot} placement run twice fingerprints as two results"
+        );
+    }
+}
+
+/// A hand placement and a detection are two results even where the two records are otherwise
+/// identical.
+///
+/// The hand places the sample the rule itself found, so both runs report the same number off the
+/// same values and nothing but the placement is left to tell them apart. That is the case the
+/// entry called latent, reached on the rules this build ships rather than on a rule it does not
+/// have.
+#[test]
+fn a_hand_placing_the_sample_a_rule_found_is_still_not_that_detection() {
+    let detected = analysed(request(None, None));
+    let found_at = detected
+        .takeoff_index
+        .expect("the rule placed takeoff on this trace");
+    let by_hand = analysed(request(None, Some(found_at)));
+
+    assert_eq!(
+        value(&detected, FLIGHT),
+        value(&by_hand, FLIGHT),
+        "the hand placed a different sample from the one the rule found, so the two records \
+         differ for a reason other than the one under test"
+    );
+    assert_eq!(
+        rows_a_hand_placed(&by_hand),
+        vec![(TAKEOFF_RULE.to_string(), found_at)],
+        "the sample a hand placed reaches the record of the rule whose landmark it placed, and \
+         no other rule's"
+    );
+    assert!(
+        rows_a_hand_placed(&detected).is_empty(),
+        "a run nobody touched claims a hand placed something"
+    );
+    assert_ne!(
+        digest(&detected, FLIGHT),
+        digest(&by_hand, FLIGHT),
+        "a hand placing the sample the rule found fingerprints as that detection, so a result no \
+         rule produced declares that one did"
+    );
+}
+
+/// A run nobody touched keeps the digest it had, so carrying the placement did not move every
+/// recorded result.
+///
+/// Pinned as a literal rather than compared against a second run of the same request, which
+/// would agree with itself whatever the material became.
+#[test]
+fn a_run_nobody_touched_fingerprints_as_it_did_before() {
+    let detected = analysed(request(None, None));
+    assert_eq!(digest(&detected, INTERVAL), "content-40ef792dc0d2ced7");
+    assert_eq!(digest(&detected, FLIGHT), "content-bd0d92d1edf1ce15");
 }

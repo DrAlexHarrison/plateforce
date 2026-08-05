@@ -129,7 +129,7 @@ fn a_conditioning_default_says_it_came_from_the_registry_rather_than_the_caller(
         .find(|bound| bound.method_id == CONDITIONING_ID)
         .expect("the conditioning rule is on the record");
     assert!(
-        !bound.manual_override,
+        bound.placed_by_hand_at_sample.is_none(),
         "nobody dragged anything to arrive at this"
     );
     // The rule ran and read a value, so the record carries what it read rather than an

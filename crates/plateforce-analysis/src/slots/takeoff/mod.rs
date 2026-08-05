@@ -94,14 +94,14 @@ pub(crate) fn bound_methods(
     method_id: &str,
     values: BoundValues,
     request: &AnalysisRequest,
-    manual_override: bool,
+    placed_by_hand_at_sample: Option<usize>,
 ) -> Vec<BoundMethod> {
     crate::resolution::bound_with_operators(
         method_id,
         values,
         operator_for,
         |id| request.is_backed(id),
-        manual_override,
+        placed_by_hand_at_sample,
     )
 }
 

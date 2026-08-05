@@ -43,12 +43,28 @@ impl Fingerprint {
 }
 
 /// What proves two labs computed the same quantity: the whole chain of methods and their
-/// bound values, plus the acquisition block.
+/// bound values, the sample a hand supplied for any landmark it placed, plus the acquisition
+/// block.
 ///
 /// The chain is taken over `depends_on` rather than the top step alone, because the parameter
 /// that moved the number usually sits upstream of the method that reported it. Each value
 /// carries its source, since two runs that reached one number from a stated value and from a
 /// registry default did not compute it the same way.
+///
+/// What is deliberately not material, each for the same reason: it moves no number, or the
+/// material already carries what moves it.
+///
+/// - `not_read` is the names the request carried that this rule ignored. A caller who typed a
+///   name the rule never reads changed nothing about the number.
+/// - `registry_entry` and `composed_from` are facts about which registry row files this id.
+///   Two runs whose `registry_digest` agrees answer them identically, so hashing them would
+///   record one fact twice.
+/// - `preset` names the published pipeline a caller adopted. The values it put on the path are
+///   in `parameters` and `choices` already, each carrying `cited` as its source, so two labs
+///   reaching one rule and one set of values from two pipelines computed the same quantity.
+/// - `registry_declared_version` is the registry's claim about itself. Two labs whose rule
+///   bytes are identical computed the same quantity whatever their VERSION files say, and
+///   hashing the claim would break every recorded match on a VERSION-only edit.
 pub fn fingerprint(
     provenance: &Provenance,
     acquisition: &Acquisition,
@@ -63,6 +79,12 @@ pub fn fingerprint(
             at("method_source"),
             step.method_source.wire_name().to_string(),
         ));
+        // The sample and not the fact of a hand, because two hands placing two different
+        // samples give two numbers. Written only where a hand placed one, so a run nobody
+        // touched keeps the digest it already had.
+        if let Some(sample) = step.placed_by_hand_at_sample {
+            material.push((at("placed_by_hand_at_sample"), sample.to_string()));
+        }
         for parameter in &step.parameters {
             material.push((
                 at(&format!("parameter/{}", parameter.name)),
@@ -83,9 +105,6 @@ pub fn fingerprint(
             at("registry_version"),
             step.registry_version.clone().unwrap_or_default(),
         ));
-        // `registry_declared_version` is not material: two labs whose rule bytes are identical
-        // computed the same quantity whatever their VERSION files say, and hashing the claim
-        // would break every recorded match on a VERSION-only edit.
     }
 
     material.push((
