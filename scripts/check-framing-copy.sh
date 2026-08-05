@@ -480,6 +480,7 @@ for blind in blind_patterns:
 # way round reaches it past a label that is present.
 
 constructs = Path("registry/constructs.toml")
+rows = []
 if not constructs.exists():
     report("rule 2", f"cannot read {constructs}, which is where the titles are")
 else:
@@ -504,8 +505,9 @@ else:
                          f"reader falls through to a title this rule does not check: {unlabelled}")
 
 # `slot?.title` is the rail's already-resolved label rather than a construct's title, so the
-# pattern anchors on the registry entry the resolution reads from.
-title_first = re.compile(r"\bentry\??\.title\b[^;\n]*\|\|[^;\n]*\bentry\??\.label\b")
+# pattern anchors on the registry entry the resolution reads from. The span between the two
+# crosses lines, because a formatter wrapping the chain would otherwise hide the reversal.
+title_first = re.compile(r"\bentry\??\.title\b[\s\S]{0,80}?\|\|[\s\S]{0,80}?\bentry\??\.label\b")
 resolvers = sorted(path for path in Path("web").glob("*.js"))
 resolves_a_construct = [path for path in resolvers if "entry?.label" in path.read_text()]
 if not resolves_a_construct:
