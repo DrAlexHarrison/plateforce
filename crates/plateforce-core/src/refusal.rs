@@ -474,6 +474,24 @@ impl Refusal {
         )
     }
 
+    /// A model made of several searches, one of which read the recording and found nothing.
+    ///
+    /// The same code as any other search that places nothing, because to a caller they are one
+    /// answer: this rule places no boundary on this recording. `searched` names the search that
+    /// came back empty, and it travels in `available` for the reason `dependency_unresolved`
+    /// puts the steps it waited on there: the field carries the names a refusal names, and a
+    /// model that placed nothing offers a caller no value to state instead.
+    pub fn model_placed_nothing(method_id: impl Into<String>, searched: impl Into<String>) -> Self {
+        Self::build(
+            RefusalCode::NoCrossing,
+            method_id,
+            None,
+            None,
+            BTreeMap::from([("searches_that_found_nothing".to_string(), 1.0)]),
+            vec![searched.into()],
+        )
+    }
+
     /// A rule that divides an interval in two, whose answer fell on one of that interval's own
     /// ends.
     ///
@@ -846,6 +864,16 @@ fn sentence(
                 }
             )
         }
+        // A model whose boundaries come from several searches, told apart from the other forms
+        // of this code by the detail. It names the search rather than the model, because the
+        // model is already the subject and what a reader needs is which of its searches stopped.
+        RefusalCode::NoCrossing if detail.contains_key("searches_that_found_nothing") => format!(
+            "{subject} found no {} on this recording, so it placed no boundary",
+            available
+                .first()
+                .map(String::as_str)
+                .unwrap_or("boundary it searches for")
+        ),
         RefusalCode::NoCrossing => format!(
             "{subject} found no crossing within the search bound of {} s",
             named("search_bound_seconds")
