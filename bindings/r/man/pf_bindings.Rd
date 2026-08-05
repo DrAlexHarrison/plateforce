@@ -2,7 +2,7 @@
 % Please edit documentation in R/registry.R
 \name{pf_bindings}
 \alias{pf_bindings}
-\title{The rules this build can run}
+\title{The rules available for each step}
 \usage{
 pf_bindings()
 }
@@ -12,7 +12,7 @@ A data frame with one row per rule, carrying the registry id it binds, the slot
   it does.
 }
 \description{
-The rules this build can run
+The rules available for each step
 }
 \examples{
 pf_bindings()[["id"]]

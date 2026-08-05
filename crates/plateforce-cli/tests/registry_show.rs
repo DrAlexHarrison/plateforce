@@ -117,3 +117,94 @@ fn a_default_chosen_by_name_is_shown_by_name() {
     // Both options, so the reader sees what they may choose instead of the default.
     assert!(said.contains("force_bw_crossing"), "{said}");
 }
+
+/// What the registry says about a parameter reaches the terminal, not only the browser.
+///
+/// 185 of the registry's 241 parameters carry a note, and it holds what the name cannot: which
+/// of four studies disagreed about a window width and whether they disagreed about the
+/// measurement or the acceptance criterion. The browser has drawn these since it had a drawer.
+/// The terminal printed the name alone, so a reader comparing the two surfaces on one entry got
+/// two different registries.
+///
+/// Read out of the registry rather than written here. A literal copied into this file goes
+/// stale the first time somebody edits the note, and the assertion then holds the terminal to a
+/// sentence the registry has stopped saying.
+#[test]
+fn what_the_registry_says_about_a_parameter_reaches_the_terminal() {
+    let registry =
+        plateforce_registry::Registry::load(concat!(env!("CARGO_MANIFEST_DIR"), "/../../registry"))
+            .expect("the shipped registry loads");
+
+    // Three entries rather than one: a long note that wraps, a note beside named values, and
+    // one whose parameters carry none, so the check is caught both saying and not saying.
+    let noted = [CARRIES_BOTH_KINDS, "onset.op.search_upper_bound"];
+    let mut sentences_checked = 0;
+    for id in noted {
+        let entry = registry
+            .methods
+            .get(id)
+            .expect("the entry is in the registry");
+        let said = String::from_utf8(show(id).stdout).expect("the entry is UTF-8");
+        // Whitespace-normalised, because the renderer wraps a note across lines at the
+        // terminal's width and a byte comparison would fail on a note that is present.
+        let flattened = said.split_whitespace().collect::<Vec<_>>().join(" ");
+        for parameter in &entry.parameters {
+            let Some(note) = parameter.notes.as_deref().map(str::trim) else {
+                continue;
+            };
+            if note.is_empty() {
+                continue;
+            }
+            let wanted = note.split_whitespace().collect::<Vec<_>>().join(" ");
+            sentences_checked += 1;
+            assert!(
+                flattened.contains(&wanted),
+                "{id} says this about {}, and the terminal does not: {wanted:?}",
+                parameter.name
+            );
+        }
+    }
+    assert!(
+        sentences_checked >= 5,
+        "checked {sentences_checked} notes, too few to have read the entries"
+    );
+
+    // The control, and getting it right took two tries worth recording. It has to declare a
+    // parameter: an entry with none never reaches the parameter block at all, and reports every
+    // line after the heading as printed under one. And that parameter's own line has to fit in
+    // one, because a note and the continuation of a long parameter line are written at the same
+    // indent and cannot be told apart afterwards. `spline_order = 3.0, required, published 3.0`
+    // fits, says nothing, and names no values, so the line under it belongs to the next field.
+    let silent = "drift.aerial_phase_spline.alcantara2019";
+    let entry = registry
+        .methods
+        .get(silent)
+        .expect("the entry is in the registry");
+    assert!(
+        entry.parameters.len() == 1
+            && entry.parameters.iter().all(|parameter| {
+                parameter.named_values.is_empty()
+                    && parameter
+                        .notes
+                        .as_deref()
+                        .map(str::trim)
+                        .unwrap_or("")
+                        .is_empty()
+            }),
+        "{silent} has gained a note or a named value, so it can no longer serve as the control"
+    );
+    let said = String::from_utf8(show(silent).stdout).expect("the entry is UTF-8");
+    println!("{said}");
+    let after_the_parameter = said
+        .lines()
+        .skip_while(|line| !line.trim_start().starts_with("parameter"))
+        .nth(1)
+        .unwrap_or_default();
+    assert!(
+        after_the_parameter.trim_start().starts_with("citation")
+            || after_the_parameter.trim_start().starts_with("bias")
+            || after_the_parameter.trim().is_empty(),
+        "{silent} says nothing about its one parameter and the terminal wrote \
+         {after_the_parameter:?} under it"
+    );
+}

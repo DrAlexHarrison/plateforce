@@ -40,8 +40,8 @@ time reports neither the widest disagreement nor the narrowest.}
 
 \item{takeoff}{Registry id of the rule that places the instant of takeoff.}
 
-\item{method_ids}{Registry identifiers to sweep. When absent, every rule this build
-runs for that slot, read off the binding table rather than listed here.}
+\item{method_ids}{Registry identifiers to sweep. When absent, every rule available for
+that slot, read off the binding table rather than listed here.}
 
 \item{parameter}{A parameter name to sweep instead of the method.}
 

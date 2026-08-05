@@ -352,9 +352,13 @@ LABEL_SOURCES = (
     (Path("registry/constructs.toml"), r"^label\s*=\s*\"([^\"]*)\"", "a slot title"),
     (Path("web/workspace.js"), r"\['var\(--[a-z-]+\)',\s*'([^']*)'\]", "a legend entry"),
     # Every `label` in the method files is a parameter value's label and the rail renders
-    # them all, so the whole file set is a reader-facing source. Method titles are not
-    # labels and are deliberately not here; whether a rule's own name answers to this rule
-    # is an unruled registry question.
+    # them all, so the whole file set is a reader-facing source. A `title` is not a label
+    # and is deliberately not here, ruled in `registry/constructs.toml`'s header: a title
+    # states what the quantity or the rule is in the field's own words, which is what a
+    # reader matching it against a paper needs, and the label says the same thing in the
+    # audience's words. Held to this rule as well, a title would be the label written twice.
+    # What makes that exemption safe rather than assumed is checked below: every construct
+    # declares a label, and no reader resolves a title ahead of one.
     *(
         (path, r"^label\s*=\s*\"([^\"]*)\"", "a value label the rail renders")
         for path in sorted(Path("registry/methods").glob("*.toml"))
@@ -464,11 +468,67 @@ for source, pattern, what in WITNESSES:
 for blind in blind_patterns:
     report("rule 2", f"read nothing from {blind}, so it is not checking what it claims to")
 
+# ---------------------------------------- what makes the title exemption safe rather than luck
+#
+# A title is exempt because a reader never meets one: every construct declares a label, and
+# every resolution reads the label first, `entry?.label || entry?.title || construct`. Six
+# construct titles carry a word this rule bans and would become live failures the day either
+# half stopped holding, so both halves are checked rather than assumed.
+#
+# The two halves fail differently and neither implies the other. A construct with no label
+# reaches its title through a fallback that is written correctly; a reader written the other
+# way round reaches it past a label that is present.
+
+constructs = Path("registry/constructs.toml")
+rows = []
+if not constructs.exists():
+    report("rule 2", f"cannot read {constructs}, which is where the titles are")
+else:
+    text = constructs.read_text()
+    rows = [block for block in text.split("[[construct]]")[1:]]
+    if not rows:
+        report("rule 2", f"read no construct from {constructs}, so the title exemption is unchecked")
+    titled = [row for row in rows if re.search(r'^title\s*=\s*"[^"]', row, re.M)]
+    unlabelled = [
+        re.search(r'^id\s*=\s*"([^"]+)"', row, re.M).group(1)
+        for row in rows
+        if re.search(r'^id\s*=\s*"([^"]+)"', row, re.M)
+        and not re.search(r'^label\s*=\s*"[^"]', row, re.M)
+    ]
+    # The title population is the control: a parse that read no title would report every
+    # construct as safely labelled while seeing nothing it was aimed at.
+    if len(titled) < len(rows):
+        report("rule 2", f"read a title from {len(titled)} of {len(rows)} constructs, so this "
+                         f"is not reading the field the exemption is about")
+    if unlabelled:
+        report("rule 2", f"{len(unlabelled)} of {len(rows)} constructs declare no label, so a "
+                         f"reader falls through to a title this rule does not check: {unlabelled}")
+
+# `slot?.title` is the rail's already-resolved label rather than a construct's title, so the
+# pattern anchors on the registry entry the resolution reads from. The span between the two
+# crosses lines, because a formatter wrapping the chain would otherwise hide the reversal.
+title_first = re.compile(r"\bentry\??\.title\b[\s\S]{0,80}?\|\|[\s\S]{0,80}?\bentry\??\.label\b")
+resolvers = sorted(path for path in Path("web").glob("*.js"))
+resolves_a_construct = [path for path in resolvers if "entry?.label" in path.read_text()]
+if not resolves_a_construct:
+    report("rule 2", f"no file in web/ resolves a construct's words, across {len(resolvers)} "
+                     f"scanned, so the title exemption is unchecked on the surface a reader uses")
+for path in resolves_a_construct:
+    source = path.read_text()
+    found = title_first.search(source)
+    if found:
+        number = source.count("\n", 0, found.start()) + 1
+        report(f"{path}:{number}", "resolves a construct's title ahead of its label, and six "
+                                   "titles carry a word this rule bans in a label")
+
 if not blind_patterns and not vocabulary_failures and not any(f.startswith("rule 2 ") for f in failures):
     print(f"pass  rule 2, {len(labelled)} labels the audience reads use the words the "
           f"audience uses, across {markup_kinds_read} of {len(READER_MEETS)} markup kinds "
           f"the reader meets, {len(LABEL_SOURCES)} further label sources and "
-          f"{notices} notice headings, with {len(WITNESSES)} witnesses found by id")
+          f"{notices} notice headings, with {len(WITNESSES)} witnesses found by id. "
+          f"A title is not a label: all {len(rows)} constructs declare one of each, and the "
+          f"{len(resolves_a_construct)} files in web/ that resolve a construct's words read "
+          f"the label first")
 
 
 # --------------------------------------------------- 3. strings about the software

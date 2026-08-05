@@ -11,8 +11,8 @@ A single JSON string with sorted keys and no spacing, so a comparison against
   another surface is a plain diff.
 }
 \description{
-Every method this build runs, the operations this package dispatches, the container
-formats it can write, and every way it can decline with the exit status a shell reads.
+Every method available, the operations this package dispatches, the container formats it
+writes, and every way it can decline with the exit status a shell reads.
 }
 \details{
 The operations are the ones this package exports rather than a list forwarded from the

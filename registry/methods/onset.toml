@@ -1232,48 +1232,6 @@ sensitivity = "moderate"
 rationale = "Genuine but narrow, and only when the search is unbounded."
 
 [[method]]
-id = "onset.op.hysteresis"
-construct = "movement_onset"
-group = "C"
-title = "Different thresholds to enter and to exit a state"
-rule = "Use one threshold to enter a state and a different one to leave it, guarding a boundary against chatter."
-status = "accepted"
-confidence = "high"
-debate = "single_position"
-
-[[method.parameter]]
-name = "enter_threshold_n"
-unit = "newtons"
-published_values = [5.0]
-default = 5.0
-default_source = "acu_sprint"
-required = true
-
-[[method.parameter]]
-name = "exit_threshold_n"
-unit = "newtons"
-published_values = [20.0]
-default = 20.0
-default_source = "acu_sprint"
-required = true
-
-[[method.citation]]
-key = "acu_sprint"
-role = "uses"
-reference = "ACU SPRINT Jump, 5 N to enter flight and 20 N to exit"
-obtained = true
-
-[[method.disagrees_with]]
-id = "takeoff.threshold.absolute_force"
-kind = "genuine"
-note = "Lengthens the detected flight phase relative to a symmetric threshold at the higher value and shortens it relative to the lower."
-
-[method.gui]
-surfacing = "default_and_hide"
-sensitivity = "moderate on flight time"
-rationale = "No other tool in the sweep does it, which makes it worth naming so its absence elsewhere is visible."
-
-[[method]]
 id = "onset.op.search_floor"
 construct = "movement_onset"
 group = "C"
@@ -1414,7 +1372,12 @@ debate = "single_position"
 [[method.parameter]]
 name = "bound"
 unit = "enumeration"
-notes = "Which downstream landmark closes the search, so a last-crossing rule cannot pick up a crossing the movement itself produced."
+notes = """
+Which downstream landmark closes the search, so a last-crossing rule cannot pick up a crossing the
+movement itself produced. The landmark named here lands somewhere different on every recording, and
+where it landed is reported against this entry as search_bound_seconds, read off the trace rather
+than stated by the caller.
+"""
 
 [[method.parameter.value]]
 key = "minimum_force"

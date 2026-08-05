@@ -79,7 +79,7 @@ pf_entry <- function(id, path = NULL) {
   unwrap(decode(rust_registry_entry_json(registry_root(path), id)))
 }
 
-#' The rules this build can run
+#' The rules available for each step
 #'
 #' @return A data frame with one row per rule, carrying the registry id it binds, the slot
 #'   it fills, the construct it computes, and the entry it composes an operator onto when
