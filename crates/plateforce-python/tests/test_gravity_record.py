@@ -138,12 +138,10 @@ def test_the_sweep_moves_the_panel_when_gravity_is_the_axis(
     spread = pf.spread(
         landing_trial,
         "jump_height_from_flight_time_meters",
-        "global",
         weighing_epoch=epoch,
         onset=onset,
         takeoff=takeoff,
-        parameter=GRAVITY,
-        values=[9.79, STANDARD, PUBLISHED],
+        vary={f"global.{GRAVITY}": [9.79, STANDARD, PUBLISHED]},
     )
     assert spread.succeeded == 3
     assert spread.spread_absolute > 0.0

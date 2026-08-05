@@ -59,6 +59,7 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
         | "Sentinel"
         | "SentinelPartition"
         | "Spread"
+        | "SpreadAxis"
         | "SpreadVariant"
         | "Trial"
         | "TrialIdentity" => Some(&[]),

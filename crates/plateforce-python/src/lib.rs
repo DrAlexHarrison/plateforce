@@ -51,6 +51,7 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
 
     module.add_class::<spread::Spread>()?;
     module.add_class::<spread::SpreadVariant>()?;
+    module.add_class::<spread::SpreadAxis>()?;
 
     module.add_class::<batch::BatchResult>()?;
     module.add_class::<batch::BatchRun>()?;
