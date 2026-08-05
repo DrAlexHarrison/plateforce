@@ -397,14 +397,16 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
     let varied: Vec<String> = response
         .axes_varied
         .iter()
-        .filter_map(|axis| match (axis.rules_varied, axis.parameter.as_deref()) {
-            (rules, _) if rules > 1 => Some(format!("{} ({rules} rules)", axis.construct)),
-            (_, Some(parameter)) if axis.values_varied > 1 => Some(format!(
-                "{}.{parameter} ({} values)",
-                axis.construct, axis.values_varied
-            )),
-            _ => None,
-        })
+        .filter_map(
+            |axis| match (axis.rules_varied, axis.parameter.as_deref()) {
+                (rules, _) if rules > 1 => Some(format!("{} ({rules} rules)", axis.construct)),
+                (_, Some(parameter)) if axis.values_varied > 1 => Some(format!(
+                    "{}.{parameter} ({} values)",
+                    axis.construct, axis.values_varied
+                )),
+                _ => None,
+            },
+        )
         .collect();
     if !varied.is_empty() {
         let _ = writeln!(block, "  varied {}", varied.join(", "));
