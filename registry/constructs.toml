@@ -436,6 +436,23 @@ id = "reactive_strength_index"
 title = "Jump height per unit of ground contact or takeoff time"
 label = "Jump height for each unit of time on the ground"
 unit = "meters_per_second"
+rules_answer = "one_question"
+notes = """
+Two numerators over one denominator, so the choice moves the value and the entry id says which
+height produced it. The numerator choice is almost inert on a countermovement jump and reaches 25.7
+percent between vendors on a drop jump.
+"""
+
+[[construct]]
+id = "reactive_strength_index.rpem"
+title = "Jump height per unit of a push-off duration derived from distance and velocity"
+label = "Jump height for each unit of time spent pushing off"
+unit = "meters_per_second"
+notes = """
+Separate from the index beside it because the denominator is a modelled push-off duration rather
+than a measured interval, and it is roughly a third of the time to takeoff on the same jump. One
+reported in the other's place is a number three times the size under an unchanged heading.
+"""
 
 [[construct]]
 id = "reactive_strength_ratio"

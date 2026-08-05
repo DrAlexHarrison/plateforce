@@ -542,6 +542,21 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::reactive_strength_index::jh_tov_over_ttt::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::reactive_strength_index::jh_tov_over_ttt::RULE),
     },
+    // Beside its sibling rather than at the end of this table, because the two are one
+    // construct and the harnesses that reach a rule bind every construct declared before its
+    // own, stopping at the first row of that construct. Split apart, the second rule would be
+    // reached with everything between them unbound.
+    Binding {
+        id: crate::slots::reactive_strength_index::jh_ft_over_ttt::ID,
+        slot: crate::slots::reactive_strength_index::CONSTRUCT,
+        construct: crate::slots::reactive_strength_index::CONSTRUCT,
+        title: "Flight-time jump height over the time taken to produce it",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::reactive_strength_index::jh_ft_over_ttt::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::reactive_strength_index::jh_ft_over_ttt::RULE),
+    },
     // The phase boundaries, in trace order, which is also dependency order: propulsion end
     // reads what braking start placed under its force option, and the phase models read the
     // propulsion boundaries.
@@ -1243,6 +1258,44 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::trial_validity::flight_time_window::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::trial_validity::flight_time_window::RULE),
     },
+    // The ratios, after every landmark they divide. Two of the three read past takeoff and the
+    // third reads the push-off, so a row declared above the phase and landing boundaries would
+    // be reached with the samples it divides unplaced.
+    Binding {
+        id: crate::slots::reactive_strength_ratio::ft_over_ttt_cmj::ID,
+        slot: crate::slots::reactive_strength_ratio::CONSTRUCT,
+        construct: crate::slots::reactive_strength_ratio::CONSTRUCT,
+        title: "Flight time over the time from onset to takeoff",
+        composed_from: None,
+        records_under: None,
+        note: "The vendor whose convention a figure was produced under is stated by the caller, because the entry records that three parties ship this and names none of them.",
+        quantities: crate::slots::reactive_strength_ratio::ft_over_ttt_cmj::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::reactive_strength_ratio::ft_over_ttt_cmj::RULE),
+    },
+    Binding {
+        id: crate::slots::rpem_index::push_off_distance_over_velocity::ID,
+        slot: crate::slots::rpem_index::CONSTRUCT,
+        construct: crate::slots::rpem_index::CONSTRUCT,
+        title: "Jump height over a push-off duration of distance divided by velocity",
+        composed_from: None,
+        records_under: None,
+        note: "Which velocity divides the distance is stated, and the three the plate can supply are a factor of two and three apart.",
+        quantities: crate::slots::rpem_index::push_off_distance_over_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(
+            crate::slots::rpem_index::push_off_distance_over_velocity::RULE,
+        ),
+    },
+    Binding {
+        id: crate::slots::time_to_stabilisation::band_and_dwell::ID,
+        slot: crate::slots::time_to_stabilisation::CONSTRUCT,
+        construct: crate::slots::time_to_stabilisation::CONSTRUCT,
+        title: "Force back within a band of system weight for a stated dwell",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::time_to_stabilisation::band_and_dwell::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::time_to_stabilisation::band_and_dwell::RULE),
+    },
 ];
 
 /// One name a caller may state on a landmark rule, and the registry entry that carries it.
@@ -1420,6 +1473,12 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         }
         crate::slots::trial_validity::flight_time_window::ID => {
             crate::slots::trial_validity::flight_time_window::REQUIRED_OPTIONS
+        }
+        crate::slots::rpem_index::push_off_distance_over_velocity::ID => {
+            crate::slots::rpem_index::push_off_distance_over_velocity::REQUIRED_OPTIONS
+        }
+        crate::slots::reactive_strength_ratio::ft_over_ttt_cmj::ID => {
+            crate::slots::reactive_strength_ratio::ft_over_ttt_cmj::REQUIRED_OPTIONS
         }
         _ => &[],
     }
