@@ -410,6 +410,7 @@ this software's reading of a column heading.
 
 [[method.parameter.value]]
 key = "mean_from_takeoff_velocity"
+label = "Half the takeoff velocity, the mean of a uniform rise"
 notes = """
 Half the takeoff velocity, which is the mean of a velocity rising linearly from rest and the value
 the source's own analysis ran on. Its code reads a Velocity column out of a vendor export and never
@@ -421,6 +422,7 @@ push-off duration a uniform acceleration implies rather than the interval the pl
 
 [[method.parameter.value]]
 key = "mean_over_push_off"
+label = "The measured mean velocity across the push-off"
 notes = """
 The distance divided by the interval the plate recorded it over. The derived time is then the
 measured push-off duration exactly, so the two agree only to the extent that the acceleration really
@@ -429,6 +431,7 @@ was uniform.
 
 [[method.parameter.value]]
 key = "takeoff"
+label = "The instantaneous velocity at takeoff"
 notes = """
 The instantaneous velocity at takeoff, which is what the bare word invites and which halves the time
 and doubles the index against the source's own value.
