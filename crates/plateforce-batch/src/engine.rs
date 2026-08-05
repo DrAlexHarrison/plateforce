@@ -737,11 +737,21 @@ fn rows_for_chain_step(
         .map(|record| {
             let text = text_the_rule_wrote(&record.name)
                 .unwrap_or_else(|| plateforce_analysis::parameter_value_text(record.value));
-            (position(&record.name), record.name.clone(), text, record.source)
+            (
+                position(&record.name),
+                record.name.clone(),
+                text,
+                record.source,
+            )
         })
         .chain(chain.provenance.choices.iter().map(|record| {
             let text = text_the_rule_wrote(&record.name).unwrap_or_else(|| record.value.clone());
-            (position(&record.name), record.name.clone(), text, record.source)
+            (
+                position(&record.name),
+                record.name.clone(),
+                text,
+                record.source,
+            )
         }))
         .collect();
     named.sort_by_key(|(position, _, _, _)| *position);

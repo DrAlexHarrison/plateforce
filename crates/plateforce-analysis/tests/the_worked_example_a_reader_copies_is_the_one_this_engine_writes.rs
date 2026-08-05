@@ -144,7 +144,10 @@ fn the_readme_prints_the_account_this_engine_writes() {
         };
         panic!("{README} prints an account this engine does not write: {told}\n\nthe engine's own account:\n{}", written.join("\n"));
     }
-    println!("{} lines compared, one line skipped for digests_in_prose", expected.len());
+    println!(
+        "{} lines compared, one line skipped for digests_in_prose",
+        expected.len()
+    );
 }
 
 /// The half above cannot see: that the README quotes the registry line at all.

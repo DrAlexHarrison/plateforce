@@ -170,7 +170,10 @@ const QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY: &[&str] = &[
 /// This lived in the Python package, which put the record on one surface. Every consumer reads
 /// the tree from here, so here is where one account of what produced a number reaches all of
 /// them.
-fn analysis_gravity_behind(response: &AnalysisResponse, metric: &Metric) -> Option<ParameterRecord> {
+fn analysis_gravity_behind(
+    response: &AnalysisResponse,
+    metric: &Metric,
+) -> Option<ParameterRecord> {
     use crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
 
     if !QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY.contains(&metric.key.as_str()) {

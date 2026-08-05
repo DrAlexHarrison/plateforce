@@ -160,7 +160,11 @@ fn every_number_the_analysis_gravity_moves_carries_it_in_its_chain() {
         .filter(|metric| metric.value.is_some())
         .map(|metric| metric.key.clone())
         .collect();
-    println!("{} of {} numbers moved: {moved:?}", moved.len(), reported.len());
+    println!(
+        "{} of {} numbers moved: {moved:?}",
+        moved.len(),
+        reported.len()
+    );
     assert!(
         !moved.is_empty(),
         "no number moved between {STANDARD} and {PUBLISHED}, so nothing here is being tested"
@@ -190,7 +194,10 @@ fn the_gravity_a_number_names_is_recorded_once_at_the_root_and_is_the_one_it_ran
     for requested in [STANDARD, PUBLISHED] {
         let response = at(requested, ParameterSource::Stated);
         let named = naming_the_gravity(&response);
-        assert!(!named.is_empty(), "no number named a gravity at {requested}");
+        assert!(
+            !named.is_empty(),
+            "no number named a gravity at {requested}"
+        );
         for key in &named {
             let found = gravity_in_the_chain(&response, key);
             assert_eq!(
@@ -199,7 +206,11 @@ fn the_gravity_a_number_names_is_recorded_once_at_the_root_and_is_the_one_it_ran
                 "{key} names the gravity {} times: {found:?}",
                 found.len()
             );
-            assert_eq!(found[0].0, 0, "{key} names the gravity at depth {}", found[0].0);
+            assert_eq!(
+                found[0].0, 0,
+                "{key} names the gravity at depth {}",
+                found[0].0
+            );
             assert_eq!(
                 found[0].1, requested,
                 "{key} ran at {requested} and its chain names {}",
