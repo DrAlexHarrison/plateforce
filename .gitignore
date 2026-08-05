@@ -24,3 +24,6 @@ plateforce_*.tar.gz
 # Written by the R surface build, and it holds this machine's absolute vendor path, so a
 # commit of it would point every other machine at a directory it does not have.
 bindings/r/src/.cargo/
+
+# Working notes from a round, never tree content.
+*.log
