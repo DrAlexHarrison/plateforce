@@ -55,11 +55,17 @@ impl Asked {
     }
 }
 
+/// The phase the two phase-anchored rules are read across here, which is the one both
+/// propulsion constructs bound in `asking` place the ends of.
+const PROPULSION_PHASE: &str = "propulsion_start_to_propulsion_end";
+
 /// The seven rate rules this build runs, and the values each needs before it will answer.
 ///
 /// The two force levels are stated here and nowhere in the registry, which publishes no pair
 /// and says why: no published pair was located. They are the values this reading was taken
-/// under, not a recommendation.
+/// under, not a recommendation. The phase the two phase-anchored rules run across is stated on
+/// the same terms: the registry publishes no default for it either, and the spread below is a
+/// spread taken across one phase rather than across whichever each rule chose.
 fn rate_rules() -> Vec<Asked> {
     vec![
         Asked::rate("rfd.epoch_from_onset.overlapping", &[("epoch_ms", 200.0)]),
@@ -71,10 +77,16 @@ fn rate_rules() -> Vec<Asked> {
             &[("lower_level", 700.0), ("upper_level", 900.0)],
         )
         .stating("reference_basis", "absolute"),
-        Asked::rate("rfd.phase_endpoint_secant.harry", &[]),
-        Asked::rate("rfd.mean_force_over_duration.lapuente", &[]),
+        Asked::rate("rfd.phase_endpoint_secant.harry", &[]).stating("phase", PROPULSION_PHASE),
+        Asked::rate("rfd.mean_force_over_duration.lapuente", &[])
+            .stating("phase", PROPULSION_PHASE),
         Asked::rate("rfd.exponential_model.padulles", &[]),
     ]
+}
+
+/// One stated phase, as the option map `asking` takes.
+fn across(phase: &str) -> BTreeMap<String, String> {
+    BTreeMap::from([("phase".to_string(), phase.to_string())])
 }
 
 /// A request carrying the analysis window, the propulsion boundaries, and one rule of this
@@ -446,7 +458,7 @@ fn the_rules_that_divide_by_an_interval_multiply_back_out_to_the_samples_they_na
             RATE_CONSTRUCT,
             "rfd.phase_endpoint_secant.harry",
             BTreeMap::new(),
-            BTreeMap::new(),
+            across(PROPULSION_PHASE),
         ),
     )
     .expect("the analysis ran");
@@ -472,7 +484,7 @@ fn the_rules_that_divide_by_an_interval_multiply_back_out_to_the_samples_they_na
             RATE_CONSTRUCT,
             "rfd.mean_force_over_duration.lapuente",
             BTreeMap::new(),
-            BTreeMap::new(),
+            across(PROPULSION_PHASE),
         ),
     )
     .expect("the analysis ran");

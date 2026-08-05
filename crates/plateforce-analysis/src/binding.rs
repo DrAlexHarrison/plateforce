@@ -828,6 +828,15 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         | crate::slots::epoch_impulse::to_fraction_of_peak::ID => {
             crate::slots::epoch_impulse::REQUIRED_OPTIONS
         }
+        crate::slots::rate_of_force_development::phase_endpoint_secant::ID => {
+            crate::slots::rate_of_force_development::phase_endpoint_secant::REQUIRED_OPTIONS
+        }
+        crate::slots::rate_of_force_development::mean_force_over_duration::ID => {
+            crate::slots::rate_of_force_development::mean_force_over_duration::REQUIRED_OPTIONS
+        }
+        crate::slots::rate_of_force_development::between_force_levels::ID => {
+            crate::slots::rate_of_force_development::between_force_levels::REQUIRED_OPTIONS
+        }
         _ => &[],
     }
 }
@@ -846,6 +855,9 @@ pub fn required_numbers(method_id: &str) -> &'static [(&'static str, f64)] {
         }
         crate::slots::jh_standing_frame::heel_rise_constant::ID => {
             crate::slots::jh_standing_frame::heel_rise_constant::REQUIRED_NUMBERS
+        }
+        crate::slots::rate_of_force_development::between_force_levels::ID => {
+            crate::slots::rate_of_force_development::between_force_levels::REQUIRED_NUMBERS
         }
         _ => &[],
     }

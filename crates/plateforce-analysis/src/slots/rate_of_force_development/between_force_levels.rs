@@ -36,6 +36,16 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     computed_by: Some(ID),
 }];
 
+/// What a caller has to answer before this rule can run, with one value that answers each.
+///
+/// Three at once, so a check probing any one of them meets a refusal naming the next unless it
+/// states all three. Not published values and not defaults: the entry publishes none, and these
+/// are the pair a check states to reach the rule, chosen only to be a pair both committed
+/// recordings' analysis windows reach.
+pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(BASIS_PARAMETER, ABSOLUTE_BASIS)];
+
+pub const REQUIRED_NUMBERS: &[(&str, f64)] = &[(LOWER_PARAMETER, 700.0), (UPPER_PARAMETER, 900.0)];
+
 pub const RULE: DerivedRule = compute;
 
 fn compute(

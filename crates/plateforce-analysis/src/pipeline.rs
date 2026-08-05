@@ -998,10 +998,52 @@ mod tests {
         }
     }
 
+    /// Which rule each construct declared before the one under test is bound to, where that is
+    /// anything other than the first-declared rule.
+    ///
+    /// A composition is a property of the whole request rather than of any one rule, so the
+    /// reading below holds one per construct and reads every entry of that construct under it.
+    /// Read under different surroundings, two entries' key sets would differ by what was bound
+    /// above them as much as by what they compute, and the pair comparison would be measuring
+    /// the harness.
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    struct Composition {
+        substituted: Option<(&'static str, &'static str)>,
+    }
+
+    impl Composition {
+        /// The first-declared rule of every earlier construct, which is what every guard in
+        /// this file reads unless it says otherwise.
+        const PLAIN: Composition = Composition { substituted: None };
+
+        fn describe(&self) -> String {
+            match self.substituted {
+                None => "the first-declared rule of every construct above it".to_string(),
+                Some((construct, method_id)) => format!("{construct} bound to {method_id}"),
+            }
+        }
+    }
+
     /// A request naming the rule under test, and the first rule of every construct declared
     /// before its own so anything it reads has been placed. Declaration order is the whole
     /// of the ordering rule, so building the request this way is also what exercises it.
     fn request_reaching(binding: &crate::binding::Binding) -> AnalysisRequest {
+        request_reaching_under(binding, Composition::PLAIN)
+    }
+
+    /// The same, with one earlier construct bound to a rule other than its first-declared one.
+    ///
+    /// The substitution reaches a rule the plainest surroundings starve. `by_force_crossing`
+    /// splits the propulsion phase where force descends through system weight, and peak centre
+    /// of mass velocity is that instant, so a phase ended there ends exactly where the split
+    /// has to be found and the search reads every sample inside without qualifying one. Ended
+    /// at takeoff the same rule divides the same recording. Neither propulsion-end rule fails:
+    /// both place a boundary, and which of them lets the subdivision produce is a fact about
+    /// the pair rather than a property either one could declare.
+    fn request_reaching_under(
+        binding: &crate::binding::Binding,
+        composition: Composition,
+    ) -> AnalysisRequest {
         let mut candidate = request(
             "onset.threshold.noise_relative",
             "takeoff.threshold.absolute_force",
@@ -1023,14 +1065,20 @@ mod tests {
             "takeoff" => candidate.takeoff.method_id = binding.id.to_string(),
             "weighing" => candidate.weighing.method_id = binding.id.to_string(),
             _ => {
-                // Whatever an entry states required with no default is answered here. A rule
-                // that cannot run unasked is the entry working, and leaving it unanswered
-                // would make every rule downstream of it undemonstrable too.
+                // Whatever an entry states required with no default is answered here, names and
+                // numbers alike. A rule that cannot run unasked is the entry working, and
+                // leaving it unanswered would make every rule downstream of it undemonstrable
+                // too. Both halves, because a rule wanting one of each declines at whichever
+                // is missing and a request answering only the names reads as reaching it.
                 let choosing = |chosen: &crate::binding::Binding| MethodChoice {
                     method_id: chosen.id.to_string(),
                     options: crate::binding::required_options(chosen.id)
                         .iter()
                         .map(|(name, value)| (name.to_string(), value.to_string()))
+                        .collect(),
+                    parameters: crate::binding::required_numbers(chosen.id)
+                        .iter()
+                        .map(|(name, value)| (name.to_string(), *value))
                         .collect(),
                     ..Default::default()
                 };
@@ -1038,10 +1086,21 @@ mod tests {
                     if earlier.construct == binding.construct {
                         break;
                     }
+                    // The substituted rule stands in for the first-declared one of its own
+                    // construct, and only there. Every other construct is bound as plainly as
+                    // before, so one composition differs from the plain one in one place.
+                    let taken = match composition.substituted {
+                        Some((construct, method_id)) if construct == earlier.construct => {
+                            crate::binding::derived_bindings()
+                                .find(|candidate| candidate.id == method_id)
+                                .expect("a composition names a rule this build runs")
+                        }
+                        _ => earlier,
+                    };
                     candidate
                         .derived
                         .entry(earlier.construct.to_string())
-                        .or_insert_with(|| choosing(earlier));
+                        .or_insert_with(|| choosing(taken));
                 }
                 candidate
                     .derived
@@ -1212,34 +1271,133 @@ mod tests {
         }
     }
 
+    /// Why one entry contributed nothing to the reading, which is a different thing from how
+    /// many entries did.
+    ///
+    /// Two states rather than one. A rule that declined and named what it wanted has reported,
+    /// and a construct left unread by two such rules is unread for reasons a reader can act
+    /// on. A rule that neither produced a quantity under its own name nor declined has said
+    /// nothing at all, and counting it would be reading the rules bound around it and
+    /// attributing them to this entry.
+    #[derive(Debug)]
+    enum Silence {
+        Refused(String),
+        WithoutSaying,
+    }
+
+    impl std::fmt::Display for Silence {
+        fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Silence::Refused(sentence) => write!(out, "{sentence}"),
+                Silence::WithoutSaying => write!(
+                    out,
+                    "reported no quantity under its own name and declined nothing"
+                ),
+            }
+        }
+    }
+
     /// The quantities a request naming one entry comes back with, read off a result rather
     /// than off the row that declares them.
     ///
     /// A key carrying neither a number nor the state that says its arithmetic ran is a
-    /// quantity nobody produced, so it is not one this entry offers a caller. `None` for an
-    /// entry this recording gave nothing to: it produced none of its own quantities, so every
-    /// comparison against it comes back overlapping whatever the taxonomy says, and a verdict
-    /// that cannot go the other way is not a reading.
+    /// quantity nobody produced, so it is not one this entry offers a caller. The whole
+    /// response rather than this entry's own keys, because what a caller reaching for this
+    /// rule comes back with is the whole response, and what the choice costs them is the
+    /// question. That only reads as this entry's doing while the two entries being compared
+    /// were run under one composition, which is why the composition is a parameter here.
     fn quantities_produced_by(
         trial: &Trial,
         binding: &crate::binding::Binding,
-    ) -> Option<BTreeSet<String>> {
-        let response = run(trial, &request_reaching(binding)).ok()?;
-        if response
+        composition: Composition,
+    ) -> Result<BTreeSet<String>, Silence> {
+        let response = match run(trial, &request_reaching_under(binding, composition)) {
+            Ok(response) => response,
+            Err(refusal) => return Err(Silence::Refused(refusal.to_string())),
+        };
+        if let Some(declined) = response
             .refusals
             .iter()
-            .any(|rule| rule.method_id == binding.id)
+            .find(|rule| rule.method_id == binding.id)
         {
-            return None;
+            return Err(Silence::Refused(declined.refusal.to_string()));
         }
-        Some(
-            response
+        // Naming itself on a metric is what separates a rule that ran and found nothing from
+        // one that never reported. The first publishes its key with no number against it; the
+        // second leaves a response holding only what the rules above it put there, which
+        // withholds no key from anything and so reads as agreeing with every entry it is
+        // compared against.
+        //
+        // Asked of the rules computed from the landmarks and not of the three spine slots. A
+        // weighing, onset or takeoff rule places an instant the response reports as a field
+        // rather than as a metric, so it names itself on no metric while working perfectly,
+        // and `every_rule_computed_from_the_landmarks_reports_what_it_declares` is where the
+        // same question is put to them.
+        if matches!(binding.dispatch, Dispatch::Derived(_))
+            && !response
                 .metrics
                 .iter()
-                .filter(|metric| metric.value.is_some() || metric.carried_no_number)
-                .map(|metric| metric.key.clone())
-                .collect(),
-        )
+                .any(|metric| metric.computed_by.as_deref() == Some(binding.id))
+        {
+            return Err(Silence::WithoutSaying);
+        }
+        Ok(response
+            .metrics
+            .iter()
+            .filter(|metric| metric.value.is_some() || metric.carried_no_number)
+            .map(|metric| metric.key.clone())
+            .collect())
+    }
+
+    /// What one construct's entries came back with under one composition.
+    struct Reading<'a> {
+        measured: Vec<(&'a str, BTreeSet<String>)>,
+        unmeasured: Vec<(&'a str, Silence)>,
+    }
+
+    fn read_under<'a>(
+        trial: &Trial,
+        entries: &[&'a crate::binding::Binding],
+        composition: Composition,
+    ) -> Reading<'a> {
+        let mut reading = Reading {
+            measured: Vec::new(),
+            unmeasured: Vec::new(),
+        };
+        for binding in entries {
+            match quantities_produced_by(trial, binding, composition) {
+                Ok(produced) => reading.measured.push((binding.id, produced)),
+                Err(silence) => reading.unmeasured.push((binding.id, silence)),
+            }
+        }
+        reading
+    }
+
+    /// The compositions the reading may try for one construct: the plain one first, then one
+    /// substitution at a time over the rules of the constructs declared before it.
+    ///
+    /// One substitution at a time rather than every combination, so the set stays linear in
+    /// the number of rules above the construct rather than exponential in it. That reaches the
+    /// case this exists for, an entry starved by exactly one boundary above it, and a
+    /// construct still unread afterwards is reported unread with each entry's own words rather
+    /// than searched harder. An unread construct nobody can account for is the thing being
+    /// fixed; a green line arrived at by search would be the same thing wearing a better hat.
+    fn compositions_before(construct: &str) -> Vec<Composition> {
+        let mut compositions = vec![Composition::PLAIN];
+        let mut first_declared: Vec<&str> = Vec::new();
+        for earlier in crate::binding::derived_bindings() {
+            if earlier.construct == construct {
+                break;
+            }
+            if first_declared.contains(&earlier.construct) {
+                compositions.push(Composition {
+                    substituted: Some((earlier.construct, earlier.id)),
+                });
+            } else {
+                first_declared.push(earlier.construct);
+            }
+        }
+        compositions
     }
 
     /// Whether each of two entries reports a quantity the other withholds, which is what one
@@ -1435,28 +1593,72 @@ mod tests {
         let mut whole: BTreeSet<&str> = BTreeSet::new();
         let mut forked: BTreeSet<&str> = BTreeSet::new();
         let mut faults: Vec<String> = Vec::new();
+        // Every construct this reading did not rule on, with each entry that produced nothing
+        // and the words it produced nothing in. The count of what was read means nothing
+        // without it: a reading that quietly drops a construct reports the same pass as one
+        // that covers it.
+        let mut unread: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+        let mut entries_measured = 0usize;
+        let mut entries_in_multi_entry_constructs = 0usize;
 
         for (recording, trial) in recordings() {
             for (construct, entries) in &entries_per_construct {
                 if entries.len() < 2 {
                     continue;
                 }
-                let mut measured: Vec<(&str, BTreeSet<String>)> = Vec::new();
-                let mut unmeasured: Vec<&str> = Vec::new();
-                for binding in entries {
-                    match quantities_produced_by(&trial, binding) {
-                        Some(produced) => measured.push((binding.id, produced)),
-                        None => unmeasured.push(binding.id),
+                entries_in_multi_entry_constructs += entries.len();
+
+                // The plain composition is this reading's stated baseline and a construct read
+                // under it stays read under it: varying the surroundings of a construct that
+                // already has a verdict would make that verdict depend on a search. A
+                // construct with too few entries to make a pair has no verdict at all, so a
+                // search there buys a reading rather than changing one.
+                let mut composition = Composition::PLAIN;
+                let mut reading = read_under(&trial, entries, composition);
+                if reading.measured.len() < 2 {
+                    for candidate in compositions_before(construct).into_iter().skip(1) {
+                        let attempt = read_under(&trial, entries, candidate);
+                        if attempt.measured.len() > reading.measured.len() {
+                            composition = candidate;
+                            reading = attempt;
+                        }
+                        if reading.measured.len() == entries.len() {
+                            break;
+                        }
+                    }
+                }
+                entries_measured += reading.measured.len();
+
+                // Silence is the fault wherever it happens, read or unread. A rule that
+                // reported nothing under its own name and declined nothing leaves a response
+                // holding only its neighbours' work, and a reading that took that response for
+                // this entry's answer would be reporting the neighbours under this entry's
+                // name.
+                for (id, silence) in &reading.unmeasured {
+                    if matches!(silence, Silence::WithoutSaying) {
+                        faults.push(format!(
+                            "On {recording}. {id}, filed under {construct}, {silence}. A caller \
+                             naming it gets a result carrying every quantity the rules above it \
+                             produced and none of its own, with nothing on that result saying so."
+                        ));
                     }
                 }
 
-                if measured.len() < 2 {
+                if reading.measured.len() < 2 {
+                    let reasons: Vec<String> = reading
+                        .unmeasured
+                        .iter()
+                        .map(|(id, silence)| format!("{id}: {silence}"))
+                        .collect();
                     println!(
-                        "{construct}, on {recording}: not ruled on, {} of {} entries produced a \
-                         quantity and a pair needs two, {unmeasured:?} produced none",
-                        measured.len(),
-                        entries.len()
+                        "{construct}, on {recording}: not ruled on under any of {} compositions, \
+                         {} of {} entries produced a quantity and a pair needs two\n    {}",
+                        compositions_before(construct).len(),
+                        reading.measured.len(),
+                        entries.len(),
+                        reasons.join("\n    ")
                     );
+                    unread.entry(construct).or_default().extend(reasons);
                     continue;
                 }
 
@@ -1468,12 +1670,13 @@ mod tests {
                     .get(*construct)
                     .and_then(|row| row.rules_answer);
                 ruled_on.insert(construct);
-                let verdict = read_construct(construct, declared, &measured);
+                let verdict = read_construct(construct, declared, &reading.measured);
                 println!(
-                    "{construct}, on {recording}: {} of {} entries measured, declared {}, read as \
-                     {}{}",
-                    measured.len(),
+                    "{construct}, on {recording}: {} of {} entries measured under {}, declared \
+                     {}, read as {}{}",
+                    reading.measured.len(),
                     entries.len(),
+                    composition.describe(),
                     match declared {
                         None => "nothing",
                         Some(plateforce_registry::RulesAnswer::OneQuestion) => "one_question",
@@ -1485,10 +1688,18 @@ mod tests {
                         Verdict::ForkedByDeclaration => "forked by declaration",
                         Verdict::Faulted(_) => "faulted",
                     },
-                    if unmeasured.is_empty() {
+                    if reading.unmeasured.is_empty() {
                         String::new()
                     } else {
-                        format!(", outside the reading {unmeasured:?}")
+                        format!(
+                            ", outside the reading {}",
+                            reading
+                                .unmeasured
+                                .iter()
+                                .map(|(id, silence)| format!("{id} ({silence})"))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
                     }
                 );
                 match verdict {
@@ -1521,17 +1732,60 @@ mod tests {
             whole.len(),
             forked.len(),
         );
+        // The denominator, beside what it is a denominator of. A reading that reports how many
+        // constructs it ruled on and not how many it could have is reporting its own subject
+        // as its own population, and every construct that drops out of it improves the ratio.
+        //
+        // Split, because `ruled_on` counts a construct any recording ruled on and a construct
+        // one recording could not rule on is a different fact from one no recording could.
+        // Printed together they would total more than the population they are counted against.
+        let (unread_everywhere, unread_on_one_recording): (BTreeMap<_, _>, BTreeMap<_, _>) = unread
+            .into_iter()
+            .partition(|(construct, _)| !ruled_on.contains(*construct));
+        println!(
+            "read {} of {constructs_holding_two_or_more} constructs holding two or more rules, \
+             over {entries_measured} of {entries_in_multi_entry_constructs} entry readings \
+             attempted across {} recordings. {} unread by every recording, {} unread by one of \
+             them:",
+            ruled_on.len(),
+            recordings().len(),
+            unread_everywhere.len(),
+            unread_on_one_recording.len(),
+        );
+        for (label, group) in [
+            ("unread by every recording", &unread_everywhere),
+            ("unread by one recording", &unread_on_one_recording),
+        ] {
+            for (construct, reasons) in group {
+                let mut distinct: Vec<&String> = reasons.iter().collect();
+                distinct.sort();
+                distinct.dedup();
+                println!("  {construct}, {label}");
+                for reason in distinct {
+                    println!("    {reason}");
+                }
+            }
+        }
+
         // The population this reading was written against. A guard whose subject shrank below
         // it would pass by having less to read.
         assert!(
-            ruled_on.len() >= 10,
-            "only {} constructs were ruled on, so this read almost nothing",
+            ruled_on.len() >= 15,
+            "only {} constructs were ruled on, so this read less than it did when this floor \
+             was set",
             ruled_on.len()
         );
         // What was read comes before what was covered. A construct contradicting its row is the
         // finding; a shape going unread is a fact about the population, and asserting it first
         // would answer a fault with a sentence about coverage.
         assert!(faults.is_empty(), "{}", faults.join("\n\n"));
+        // A floor on the entry readings behind the constructs, because a construct counts as
+        // read on two of its entries and the rest can fall out without moving the count above.
+        assert!(
+            entries_measured >= 96,
+            "only {entries_measured} entry readings produced a quantity, so the constructs \
+             counted above were read on fewer entries than when this floor was set"
+        );
         // Both sound shapes are present in what was read. A run finding only one of them would
         // leave the other arm of the reading unexercised by the shipped registry.
         assert!(
@@ -1558,8 +1812,8 @@ mod tests {
                 .iter()
                 .find(|binding| binding.id == id)
                 .unwrap_or_else(|| panic!("{id} is not a rule this build runs"));
-            quantities_produced_by(&trial, binding)
-                .unwrap_or_else(|| panic!("{id} produced nothing on this recording"))
+            quantities_produced_by(&trial, binding, Composition::PLAIN)
+                .unwrap_or_else(|why| panic!("{id} produced nothing on this recording: {why}"))
         };
 
         let noise_relative = produced("onset.threshold.noise_relative");
@@ -1618,8 +1872,8 @@ mod tests {
                 .unwrap_or_else(|| panic!("{id} is not a rule this build runs"));
             (
                 id,
-                quantities_produced_by(&trial, binding)
-                    .unwrap_or_else(|| panic!("{id} produced nothing on this recording")),
+                quantities_produced_by(&trial, binding, Composition::PLAIN)
+                    .unwrap_or_else(|why| panic!("{id} produced nothing on this recording: {why}")),
             )
         };
 
