@@ -291,10 +291,8 @@ def main():
             f"plateforce: this request reported {len(population)} quantities, under the "
             f"{QUANTITIES_AT_LEAST} a comparison needs"
         )
-    answered_for = dict(
-        {arm: set(published) for arm, published in trees.items()},
-        **{"folder run": {row[0] for row in folder_run_steps}},
-    )
+    answered_for = {arm: set(published) for arm, published in trees.items()}
+    answered_for["folder run"] = {row[0] for row in folder_run_steps}
     for arm, answered in sorted(answered_for.items()):
         missing = [name for name in population if name not in answered]
         if missing:
@@ -365,19 +363,15 @@ def main():
                 + str(sorted(told_apart["python"] - told_apart["r"]))
             )
 
-    named = dict(
-        {
-            arm: {
-                row
-                for name in population
-                for row in parameters_of(
-                    published[name], name, fields=("parameters", "choices")
-                )
-            }
-            for arm, published in trees.items()
-        },
-        **{"folder run": folder_run_named},
-    )
+    named = {
+        arm: {
+            row
+            for name in population
+            for row in parameters_of(published[name], name, fields=("parameters", "choices"))
+        }
+        for arm, published in trees.items()
+    }
+    named["folder run"] = folder_run_named
     on_every_arm = set.intersection(*named.values())
     differences = {(arm, *row) for arm, rows in named.items() for row in rows - on_every_arm}
     print(
