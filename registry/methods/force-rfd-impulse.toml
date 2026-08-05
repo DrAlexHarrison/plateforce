@@ -483,7 +483,7 @@ phase ended at peak centre of mass velocity and -5020.38 N/s ended at takeoff.
 
 [[method.parameter.value]]
 key = "onset_to_braking_start"
-label = "Movement onset to the start of braking"
+label = "Start of the jump to the start of braking"
 
 [[method.parameter.value]]
 key = "braking_start_to_propulsion_start"
@@ -785,7 +785,7 @@ them.
 
 [[method.parameter.value]]
 key = "onset_to_braking_start"
-label = "Movement onset to the start of braking"
+label = "Start of the jump to the start of braking"
 
 [[method.parameter.value]]
 key = "braking_start_to_propulsion_start"
