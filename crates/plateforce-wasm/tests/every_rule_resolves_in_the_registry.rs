@@ -126,25 +126,69 @@ fn a_composition_with_an_entry_of_its_own_records_under_itself() {
 /// The operators a rule composes are entries too, and a request that states one has to be able
 /// to name it. The takeoff family existed nowhere until the onset family had been there from the
 /// start, so a takeoff composition recorded its selection against a movement_onset row.
+///
+/// The population is every operator entry the registry carries, not the two lists this build
+/// composes. Read off the lists, an operator no rule composes sits outside the check entirely,
+/// and one did: `onset.op.hysteresis` was filed under `movement_onset` while its citation, its
+/// published thresholds and the only entry naming it were all takeoff, and it went unread for
+/// exactly as long as nothing composed it. An id names a construct or it does not, whether or
+/// not a rule has been written yet.
 #[test]
-fn both_operator_families_sit_on_the_construct_they_operate_on() {
+fn every_operator_entry_sits_on_the_construct_its_id_names() {
     let loaded = registry_embed::load().expect("a registry file did not parse");
 
-    for id in ONSET_OPERATOR_IDS.iter().chain(TAKEOFF_OPERATOR_IDS) {
-        let entry = loaded
-            .registry
-            .methods
-            .get(*id)
-            .unwrap_or_else(|| panic!("{id} is not in the registry"));
-        let expected = if id.starts_with("takeoff.") {
-            "takeoff"
-        } else {
-            "movement_onset"
-        };
-        assert_eq!(
-            entry.construct, expected,
-            "{id} is filed under {} and an operator has to sit on the construct it operates on",
-            entry.construct
+    let declared: Vec<(&String, &str)> = loaded
+        .registry
+        .methods
+        .values()
+        .filter(|entry| entry.id.contains(".op."))
+        .map(|entry| (&entry.id, entry.construct.as_str()))
+        .collect();
+
+    // Both namespaces present, or a green says only that one family is consistent.
+    for namespace in ["onset.op.", "takeoff.op."] {
+        assert!(
+            declared.iter().any(|(id, _)| id.starts_with(namespace)),
+            "no {namespace} entry was read, so this sweep cannot see that family"
         );
     }
+
+    // The control that separates reading the registry from reading the two lists. A sweep
+    // narrowed back to the composed ids passes every other assertion here, which is how the
+    // misfiling above survived. If this ever fails because the build composes every operator
+    // the registry files, the extra reach is genuinely gone and this assertion should be
+    // deleted deliberately rather than the sweep quietly narrowed.
+    let uncomposed: Vec<&String> = declared
+        .iter()
+        .map(|(id, _)| *id)
+        .filter(|id| {
+            !ONSET_OPERATOR_IDS.contains(&id.as_str())
+                && !TAKEOFF_OPERATOR_IDS.contains(&id.as_str())
+        })
+        .collect();
+    assert!(
+        !uncomposed.is_empty(),
+        "read {} operator entries and every one of them is composed, so this sweep reaches no \
+         further than the two lists it was widened past",
+        declared.len()
+    );
+
+    let misfiled: Vec<String> = declared
+        .iter()
+        .filter_map(|(id, construct)| {
+            let expected = if id.starts_with("takeoff.op.") {
+                "takeoff"
+            } else {
+                "movement_onset"
+            };
+            (*construct != expected).then(|| format!("{id} is filed under {construct}"))
+        })
+        .collect();
+    assert!(
+        misfiled.is_empty(),
+        "{} of {} operator entries name one construct in their id and another in their \
+         construct field, and an operator has to sit on the construct it operates on: {misfiled:#?}",
+        misfiled.len(),
+        declared.len()
+    );
 }
