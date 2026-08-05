@@ -233,11 +233,34 @@ mod fingerprint_tests {
 
     #[test]
     fn the_material_spells_sources_by_wire_name_not_by_variant() {
-        let block = filled_block();
-        let printed = fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0);
+        the_material_is(&chain(5.0, ParameterSource::Stated), &[]);
+    }
 
-        // The same material with each source hand-spelled as its wire name. Goes red if
-        // the material reverts to Debug formatting, where "Stated" replaces "stated".
+    /// A hand placement adds one key and moves nothing else, so a run nobody touched keeps the
+    /// digest it had.
+    ///
+    /// Held by hand-building both materials rather than by pinning a digest, because a digest
+    /// written into a committed file is a registry digest to every reader and to
+    /// `digests_in_prose`, and this is not one.
+    #[test]
+    fn a_hand_placement_adds_one_key_to_the_material_and_moves_nothing_else() {
+        the_material_is(
+            &placed_by_hand(5.0, 1180),
+            &[("analysis/0001/placed_by_hand_at_sample", "1180")],
+        );
+    }
+
+    /// The material for the two-step chain above, with `extra` merged in, hand-spelled rather
+    /// than read back from the function under test.
+    ///
+    /// Goes red if the material reverts to Debug formatting, where "Stated" replaces "stated",
+    /// and red if a key joins it that no caller here asked for: a placement written
+    /// unconditionally would appear on the run that has none and move every digest ever
+    /// recorded.
+    fn the_material_is(provenance: &Provenance, extra: &[(&str, &str)]) {
+        let block = filled_block();
+        let printed = fingerprint(provenance, &block, 1200.0);
+
         let mut material: Vec<(String, String)> = vec![
             (
                 "analysis/0000/method_id".to_string(),
@@ -267,6 +290,9 @@ mod fingerprint_tests {
         ];
         for (member, value) in block.members_as_text() {
             material.push((format!("acquisition/{member}"), value));
+        }
+        for (key, value) in extra {
+            material.push(((*key).to_string(), (*value).to_string()));
         }
 
         let expected = content_digest(

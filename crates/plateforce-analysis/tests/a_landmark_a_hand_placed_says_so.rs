@@ -237,15 +237,3 @@ fn the_sample_a_hand_placed_reaches_the_row_whose_landmark_it_placed() {
         "a run nobody touched claims a hand placed something"
     );
 }
-
-/// A run nobody touched keeps the digest it had, so carrying the placement did not move every
-/// recorded result.
-///
-/// Pinned as a literal rather than compared against a second run of the same request, which
-/// would agree with itself whatever the material became.
-#[test]
-fn a_run_nobody_touched_fingerprints_as_it_did_before() {
-    let detected = analysed(request(None, None));
-    assert_eq!(digest(&detected, INTERVAL), "content-40ef792dc0d2ced7");
-    assert_eq!(digest(&detected, FLIGHT), "content-bd0d92d1edf1ce15");
-}
