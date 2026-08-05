@@ -14,6 +14,7 @@ import { rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { listenForConsoleErrors } from './console-errors.mjs';
 
 const [root, port] = [process.argv[2], Number(process.argv[3] || 8731)];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
@@ -56,6 +57,7 @@ await new Promise((resolve) => socket.addEventListener('open', resolve));
 
 let nextId = 0;
 const pending = new Map();
+const consoleLines = listenForConsoleErrors(socket);
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
   if (pending.has(message.id)) {
@@ -76,15 +78,8 @@ const evaluate = async (expression) => {
   return reply.result.result.value;
 };
 
-const consoleLines = [];
 await send('Runtime.enable');
 await send('Log.enable');
-socket.addEventListener('message', (event) => {
-  const message = JSON.parse(event.data);
-  if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
-    consoleLines.push(message.params.entry.text);
-  }
-});
 
 await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
 
