@@ -49,6 +49,15 @@ pub use request::{
     GRAVITY_GLOBAL, TOUCHDOWN_GLOBAL,
 };
 pub use resolution::{BoundMethod, DeclinedRule, RuleRefusal};
+
+/// How a number reads in a record of what produced a value.
+///
+/// Every rule already writes its own values through this, so a surface writing a record the
+/// rules did not write reaches the one spelling rather than inventing a second. Five reads as
+/// `5`, the way somebody states it, rather than as `5.0`.
+pub fn parameter_value_text(value: f64) -> String {
+    resolution::format_number(value)
+}
 pub use response::{AnalysisResponse, BoundGlobal, Levels, Metric};
 pub use slots::movement_onset::ONSET_OPERATOR_IDS;
 pub use slots::system_weight::weighing_epoch_at;
