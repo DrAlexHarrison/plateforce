@@ -205,14 +205,18 @@ pub fn read_csv(directory: &Path) -> Result<ReadBack, WriteRefusal> {
         })?;
 
     let results_table = parse(&read("results.csv")?);
-    let quantities: Vec<String> = results_table.header.iter().skip(4).cloned().collect();
+    // Read off the header the writer generates rather than written here as a number. The two
+    // were a literal 4 in three places, so adding a column to the row shifted every quantity
+    // by one and the reader went on parsing a trial id as a force.
+    let fixed = ResultRow::header(&[]).len();
+    let quantities: Vec<String> = results_table.header.iter().skip(fixed).cloned().collect();
     let results = results_table
         .rows
         .iter()
         .map(|cells| {
             let mut values = BTreeMap::new();
             for (index, quantity) in quantities.iter().enumerate() {
-                let cell = cells.get(4 + index).cloned().unwrap_or_default();
+                let cell = cells.get(fixed + index).cloned().unwrap_or_default();
                 values.insert(
                     quantity.clone(),
                     if cell.is_empty() {
@@ -224,9 +228,10 @@ pub fn read_csv(directory: &Path) -> Result<ReadBack, WriteRefusal> {
             }
             ResultRow {
                 trial_id: cells[0].clone(),
-                source_path: cells[1].clone(),
-                provenance_id: cells[2].clone(),
-                refusal_code: cells[3].clone(),
+                subject: cells[1].clone(),
+                source_path: cells[2].clone(),
+                provenance_id: cells[3].clone(),
+                refusal_code: cells[4].clone(),
                 values,
             }
         })

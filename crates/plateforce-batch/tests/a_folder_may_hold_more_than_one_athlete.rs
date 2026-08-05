@@ -245,3 +245,87 @@ fn masses_by_subject_over_a_folder_with_no_pattern_are_refused() {
     println!("{}", refused.message);
     assert!(refused.message.contains("pattern"), "{}", refused.message);
 }
+
+/// Every row names the athlete it belongs to, so a cohort question can group the table.
+///
+/// The run resolved the subject to route the mass; the table dropped it, so anyone grouping by
+/// athlete had to re-parse `trial_id` against the pattern, which is this software's own
+/// identity rule reimplemented by its caller and free to disagree with it.
+#[test]
+fn every_row_names_the_athlete_it_belongs_to() {
+    let set = a_folder("subject-column");
+    let result = analyse(
+        &set,
+        &bound_request().massing(a_squads_masses()),
+        &registry(),
+    )
+    .expect("the folder runs");
+
+    let named: Vec<&str> = result
+        .results
+        .iter()
+        .map(|row| row.subject.as_str())
+        .collect();
+    assert!(
+        named.iter().all(|subject| !subject.is_empty()),
+        "{} of {} rows name no athlete, so grouping by athlete drops them silently",
+        named.iter().filter(|subject| subject.is_empty()).count(),
+        named.len(),
+    );
+
+    let distinct: std::collections::BTreeSet<&str> = named.iter().copied().collect();
+    assert_eq!(
+        distinct.len(),
+        SUBJECTS,
+        "the table names {} athletes over a folder holding {SUBJECTS}: {distinct:?}",
+        distinct.len(),
+    );
+
+    // The column is the run's own answer rather than a re-reading of the file name, so it
+    // agrees with the mass routing, which is the other consumer of the same resolution.
+    for row in &result.results {
+        assert!(
+            a_squads_masses().contains_key(&row.subject),
+            "the table names an athlete the mass map does not: {}",
+            row.subject,
+        );
+    }
+    println!(
+        "rows {} over {} athletes, every row named",
+        result.results.len(),
+        distinct.len()
+    );
+}
+
+/// A run that declared no pattern names no athlete, rather than inventing one per trial.
+///
+/// The control for the test above: without it, a column filled with the trial id would satisfy
+/// every assertion there and would be wrong in the one way that matters.
+#[test]
+fn a_run_with_no_declared_pattern_names_no_athlete_rather_than_inventing_one() {
+    let directory = tempdir("no-pattern");
+    plateforce_batch::synthetic::write_corpus(&directory, SUBJECTS, TRIALS_EACH, 11).unwrap();
+    let set = TrialSet::walk(
+        &directory,
+        &synthetic_format(),
+        &plateforce_batch::TrialIdentity::FileStem,
+    )
+    .unwrap();
+    let result = analyse(&set, &bound_request(), &registry()).expect("the folder runs");
+
+    assert!(
+        !result.results.is_empty(),
+        "the run produced no rows, so this proves nothing about the column",
+    );
+    let invented: Vec<&str> = result
+        .results
+        .iter()
+        .map(|row| row.subject.as_str())
+        .filter(|subject| !subject.is_empty())
+        .collect();
+    assert!(
+        invented.is_empty(),
+        "{} rows name an athlete over a run that declared no grouping: {invented:?}",
+        invented.len(),
+    );
+}

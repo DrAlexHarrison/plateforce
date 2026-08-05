@@ -88,14 +88,20 @@ impl BatchResult {
     }
 
     fn results_batch(&self) -> Result<RecordBatch, ParquetError> {
+        // Spelled in the same order as `ResultRow::header`, and held to it by
+        // `the_parquet_results_schema_names_what_the_csv_header_names`, because this list is
+        // written out here rather than derived and a column added to one and not the other
+        // gives a reader two shapes of the same table depending on which container they open.
         let mut fields = vec![
             Field::new("trial_id", DataType::Utf8, false),
+            Field::new("subject", DataType::Utf8, false),
             Field::new("source_path", DataType::Utf8, false),
             Field::new("provenance_id", DataType::Utf8, false),
             Field::new("refusal_code", DataType::Utf8, false),
         ];
         let mut columns: Vec<ArrayRef> = vec![
             text(self.results.iter().map(|row| row.trial_id.clone())),
+            text(self.results.iter().map(|row| row.subject.clone())),
             text(self.results.iter().map(|row| row.source_path.clone())),
             text(self.results.iter().map(|row| row.provenance_id.clone())),
             text(self.results.iter().map(|row| row.refusal_code.clone())),

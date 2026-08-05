@@ -108,6 +108,19 @@ refused and how many a gate excluded. **Never report a count from this tool with
 denominator beside it**, because the denominator is the part that tells anyone whether the number
 means anything.
 
+`results.csv` and `results.parquet` are one table in two containers, with the same columns in the
+same order: `trial_id`, `subject`, `source_path`, `provenance_id`, `refusal_code`, then one column
+per quantity. **Group by `subject` rather than parsing `trial_id` yourself.** The run resolved the
+athlete from the pattern you declared, and re-deriving it is this software's identity rule
+reimplemented by you and free to disagree with it. It is empty when the run declared no pattern,
+which means there is no grouping to do, not that the athlete is unnamed. **A trial that produced
+no numbers keeps its subject**, so an athlete's denominator includes the trials that refused;
+count those rows rather than dropping them, and `refusal_code` says why each one is there.
+
+`provenance_id` is the join back to `provenance.csv`, which carries one row per method per
+parameter with `source` reading `stated`, `assumed` or `measured`. That join is how a value in the
+table keeps the rule that produced it.
+
 ## What every refusal means
 
 Refusals carry a code and an exit code. Branch on the code, not on the text.

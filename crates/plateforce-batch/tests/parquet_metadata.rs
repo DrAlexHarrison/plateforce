@@ -72,3 +72,43 @@ fn a_file_with_no_record_is_named_rather_than_read_as_if_it_had_one() {
     );
     std::fs::remove_dir_all(&directory).ok();
 }
+
+/// The two containers describe one table, so their column names agree.
+///
+/// The parquet schema is written out by hand and the CSV header is generated, so the two are
+/// free to drift and a reader gets a different shape depending on which file they open. The
+/// subject column was added to the CSV first and would have been absent here.
+#[test]
+fn the_parquet_results_schema_names_what_the_csv_header_names() {
+    use plateforce_batch::relations::ResultRow;
+
+    let directory = tempdir("parquet-schema");
+    copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = analyse(&set, &bound_request_describing_the_plate(), &registry()).unwrap();
+
+    let out = directory.join("out");
+    result.write_parquet(&out).unwrap();
+
+    let path = out.join("results.parquet");
+    let file = std::fs::File::open(&path).unwrap();
+    let reader = parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder::try_new(file)
+        .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    let in_parquet: Vec<String> = reader
+        .schema()
+        .fields()
+        .iter()
+        .map(|field| field.name().clone())
+        .collect();
+
+    let in_csv = ResultRow::header(&result.quantities);
+    assert_eq!(
+        in_parquet, in_csv,
+        "the two containers describe one table under different column names, so a reader gets \
+         a different shape depending on which file they open",
+    );
+    println!(
+        "both containers name {} columns, in one order",
+        in_csv.len()
+    );
+}

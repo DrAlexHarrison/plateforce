@@ -504,7 +504,12 @@ pub fn analyse(
                     available: String::new(),
                     message: error.to_string(),
                 });
-                results.push(refused_row(trial_id, &source_path, code));
+                results.push(refused_row(
+                    trial_id,
+                    &subject_of(entry),
+                    &source_path,
+                    code,
+                ));
                 refused += 1;
                 continue;
             }
@@ -517,7 +522,12 @@ pub fn analyse(
             Err(declined) => {
                 let code = declined.code.wire_name();
                 refusals.push(refusal_row(trial_id, ordinal(&refusals), &declined));
-                results.push(refused_row(trial_id, &source_path, code));
+                results.push(refused_row(
+                    trial_id,
+                    &subject_of(entry),
+                    &source_path,
+                    code,
+                ));
                 refused += 1;
                 continue;
             }
@@ -605,6 +615,8 @@ pub fn analyse(
         }
         results.push(ResultRow {
             trial_id: trial_id.clone(),
+            // Read off the entry the walk already resolved rather than parsed again here.
+            subject: subject_of(entry),
             source_path,
             provenance_id: identifier,
             refusal_code: String::new(),
@@ -744,9 +756,27 @@ pub fn analyse(
     })
 }
 
-fn refused_row(trial_id: &str, source_path: &str, code: &str) -> ResultRow {
+/// The athlete a walked trial belongs to, or empty where the run declared no pattern.
+///
+/// One reading, so a refused row and a computed row cannot come to disagree about whose trial
+/// they describe.
+fn subject_of(entry: &crate::identity::TrialEntry) -> String {
+    entry
+        .subject
+        .as_ref()
+        .map(|key| key.subject.clone())
+        .unwrap_or_default()
+}
+
+/// A trial that produced no numbers still belongs to the athlete it was recorded on.
+///
+/// So the subject travels on a refused row too. Without it, grouping by athlete would count
+/// only that athlete's trials that computed, and the count would read as their whole session:
+/// a silent exclusion of exactly the trials a reader most needs to see.
+fn refused_row(trial_id: &str, subject: &str, source_path: &str, code: &str) -> ResultRow {
     ResultRow {
         trial_id: trial_id.to_string(),
+        subject: subject.to_string(),
         source_path: source_path.to_string(),
         provenance_id: String::new(),
         refusal_code: code.to_string(),

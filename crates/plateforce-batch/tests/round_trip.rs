@@ -118,7 +118,7 @@ fn the_parquet_set_carries_the_run_in_its_own_schema_metadata() {
     let columns = batches[0].num_columns();
     assert_eq!(
         columns,
-        4 + result.quantities.len(),
+        plateforce_batch::relations::ResultRow::header(&result.quantities).len(),
         "and every column, with the quantities still numbers"
     );
     std::fs::remove_dir_all(&directory).ok();

@@ -22,6 +22,16 @@ pub struct ResultRow {
     /// Set when the trial produced nothing. A trial that produced some numbers and declined
     /// a landmark carries values here and its refusals in `refusals`.
     pub refusal_code: String,
+    /// The athlete this trial belongs to, where a declared pattern named one, and empty
+    /// where the run declared none.
+    ///
+    /// On the row rather than left to the reader. The run already resolved it, and a table
+    /// that omits it forces anyone grouping by athlete to re-parse `trial_id` against the
+    /// pattern, which is this software's own identity rule reimplemented by its caller and
+    /// free to disagree with it. Empty is a run with no declared grouping, which is a
+    /// different fact from an athlete whose name is blank.
+    #[serde(default)]
+    pub subject: String,
     pub values: BTreeMap<String, Option<f64>>,
 }
 
@@ -30,6 +40,7 @@ impl ResultRow {
     pub fn header(quantities: &[String]) -> Vec<String> {
         let mut header = vec![
             "trial_id".to_string(),
+            "subject".to_string(),
             "source_path".to_string(),
             "provenance_id".to_string(),
             "refusal_code".to_string(),
@@ -41,6 +52,7 @@ impl ResultRow {
     pub fn cells(&self, quantities: &[String]) -> Vec<String> {
         let mut cells = vec![
             self.trial_id.clone(),
+            self.subject.clone(),
             self.source_path.clone(),
             self.provenance_id.clone(),
             self.refusal_code.clone(),
@@ -547,8 +559,11 @@ mod tests {
         assert_eq!(format_value(2.001), "2.001");
     }
 
+    /// The keys are written out rather than counted, because the reader that parses this table
+    /// takes the quantity offset from this header's own length. A key added here and not there
+    /// would have the reader parse a trial id as a force.
     #[test]
-    fn the_result_header_carries_the_four_keys_then_the_quantities_in_order() {
+    fn the_result_header_carries_the_keys_then_the_quantities_in_order() {
         let quantities = vec![
             "jump_height_from_takeoff_meters".to_string(),
             "takeoff_velocity_meters_per_second".to_string(),
@@ -557,12 +572,21 @@ mod tests {
             ResultRow::header(&quantities),
             vec![
                 "trial_id",
+                "subject",
                 "source_path",
                 "provenance_id",
                 "refusal_code",
                 "jump_height_from_takeoff_meters",
                 "takeoff_velocity_meters_per_second",
             ]
+        );
+
+        // The offset the reader uses, held against the header rather than assumed equal to it.
+        assert_eq!(
+            ResultRow::header(&[]).len(),
+            5,
+            "the fixed columns moved, so every reader taking the quantity offset from this \
+             length reads a different table than the one the writer wrote",
         );
     }
 

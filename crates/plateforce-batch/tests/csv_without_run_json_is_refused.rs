@@ -86,7 +86,7 @@ fn the_table_carries_the_join_back_to_the_record() {
     let header = results.lines().next().unwrap();
     println!("{header}");
     assert!(
-        header.starts_with("trial_id,source_path,provenance_id,refusal_code,"),
+        header.starts_with("trial_id,subject,source_path,provenance_id,refusal_code,"),
         "{header}"
     );
     assert!(
