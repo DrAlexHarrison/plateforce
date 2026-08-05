@@ -827,11 +827,14 @@ fn run_derived_phase(
         // reaches the rules behind it without naming any of them itself. A sample carrying
         // only the rule that placed it would stop the chain one construct short.
         //
-        // The analysis values it read travel the same way and for the same reason: a boundary
-        // placed off a velocity series moves with the gravity that scaled it, so every number
-        // measured across that boundary moves with it and says so without reading one itself.
+        // The analysis values it recorded travel the same way and for the same reason: a
+        // boundary placed against a velocity threshold moves with the gravity that scaled the
+        // series, so every number measured across that boundary moves with it and says so
+        // without reading one itself. A boundary that is a zero or an extremum of that series
+        // is the same sample at any gravity, its rule records nothing, and nothing downstream
+        // inherits a dependence it has not got.
         let read_by_the_placing_rule = context.names_read();
-        let globals_the_placing_rule_read = context.globals_read();
+        let globals_the_placing_rule_recorded = context.globals_recorded();
         for (name, index) in outcome.placed {
             placed.insert(
                 name,
@@ -839,7 +842,7 @@ fn run_derived_phase(
                     index: Some(index),
                     placed_by: vec![binding.id.to_string()],
                     rests_on: read_by_the_placing_rule.clone(),
-                    globals: globals_the_placing_rule_read.clone(),
+                    globals: globals_the_placing_rule_recorded.clone(),
                     order: next_order,
                 },
             );

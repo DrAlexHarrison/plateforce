@@ -218,12 +218,6 @@ pub struct DerivedContext<'a> {
     /// is read off the integrated series and does. A record on the rule's row would give the
     /// net impulse a dependence it has not got.
     globals_rested_on: RefCell<BTreeMap<&'static str, BTreeSet<&'static str>>>,
-    /// The same values, read by a rule that places a sample rather than reporting a number.
-    ///
-    /// A boundary rule has no quantity key to record against, and the numbers it moves are
-    /// other rules'. The pipeline writes this onto every sample the rule placed, so the
-    /// dependence travels the graph rather than being restated by each later rule.
-    globals_read: RefCell<BTreeSet<&'static str>>,
 }
 
 impl<'a> DerivedContext<'a> {
@@ -255,7 +249,6 @@ impl<'a> DerivedContext<'a> {
             read: RefCell::new(BTreeSet::new()),
             rested_on: RefCell::new(BTreeMap::new()),
             globals_rested_on: RefCell::new(BTreeMap::new()),
-            globals_read: RefCell::new(BTreeSet::new()),
         }
     }
 
@@ -393,14 +386,12 @@ impl<'a> DerivedContext<'a> {
     /// One home for both spellings of the ask, so a rule that places a sample and a rule that
     /// reports a number record the same fact the same way.
     fn record_global(&self, name: &'static str, quantity_key: Option<&'static str>) {
-        self.globals_read.borrow_mut().insert(name);
-        if let Some(key) = quantity_key {
-            self.globals_rested_on
-                .borrow_mut()
-                .entry(key)
-                .or_default()
-                .insert(name);
-        }
+        let Some(key) = quantity_key else { return };
+        self.globals_rested_on
+            .borrow_mut()
+            .entry(key)
+            .or_default()
+            .insert(name);
     }
 
     /// The analysis-level values this rule declared one of its numbers rests on.
@@ -412,10 +403,25 @@ impl<'a> DerivedContext<'a> {
             .unwrap_or_default()
     }
 
-    /// The analysis-level values this rule read at all, which the pipeline writes onto every
-    /// sample it placed.
-    pub fn globals_read(&self) -> Vec<&'static str> {
-        self.globals_read.borrow().iter().copied().collect()
+    /// The analysis-level values this rule recorded against any number it reports, which the
+    /// pipeline writes onto every sample it placed.
+    ///
+    /// What it recorded rather than what it read. A rule can read the gravity and place a
+    /// boundary that does not rest on it: `phase.propulsion_start.zero_velocity` takes the
+    /// zero crossing of a velocity series scaled by `1/g`, and scaling a series moves neither
+    /// its zeros nor its extrema, so the sample is the same at any gravity. Writing what it
+    /// read would put the gravity on that sample and on every number measured across it, and
+    /// `propulsion_subdivision_seconds` reddened for exactly that: it named a gravity that
+    /// moved it by nothing.
+    pub fn globals_recorded(&self) -> Vec<&'static str> {
+        self.globals_rested_on
+            .borrow()
+            .values()
+            .flatten()
+            .copied()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
     }
 
     /// The analysis-level values behind every sample this rule read, and behind the samples
