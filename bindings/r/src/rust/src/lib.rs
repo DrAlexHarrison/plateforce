@@ -326,8 +326,11 @@ pub fn plate_save_json(request_json: &str) -> String {
         Err(refusal) => return refuse::<PlateSavedReport>(*refusal),
     };
     let folder = folder_of(&request.plates_folder);
-    match plateforce_core::plate_store::write(&request.name, &request.acquisition, folder.as_deref())
-    {
+    match plateforce_core::plate_store::write(
+        &request.name,
+        &request.acquisition,
+        folder.as_deref(),
+    ) {
         Ok((saved, replaced)) => {
             let replaced_members = replaced
                 .as_ref()
