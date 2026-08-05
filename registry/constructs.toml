@@ -11,6 +11,14 @@
 # which quantities exist. It is stated wherever the software can run two of a construct's
 # rules and read the answer back off a recording, and the guard that reads it refuses a
 # construct whose rules do not do what it says.
+#
+# `title` and `label` carry the same quantity twice and are not interchangeable. `title` states
+# what the quantity is, in the field's own words, and a reader matching this against a paper
+# needs the paper's vocabulary. `label` says the same thing in the words a first-year uses, and
+# is the one a reader meets. Every construct declares both, so a reader never falls through to
+# the title, and the vocabulary rule in `scripts/check-framing-copy.sh` binds the label alone.
+# Held the other way, the two fields would say one sentence twice, which is the duplication
+# this registry exists to refuse.
 
 [[construct]]
 id = "movement_onset"
