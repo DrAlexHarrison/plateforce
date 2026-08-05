@@ -96,7 +96,12 @@ pub fn run(
         );
     }
 
-    let axes = match axes_asked_for(&prepared.request, &args.slot, &args.vary, &args.vary_choice) {
+    let axes = match axes_asked_for(
+        &prepared.request,
+        &args.slot,
+        &args.vary,
+        &args.vary_choice,
+    ) {
         Ok(axes) => axes,
         Err(declined) => return Outcome::declined(declined),
     };
@@ -157,11 +162,7 @@ fn axes_over_every_step(request: &AnalysisRequest) -> Vec<Axis> {
     // same reason it is a step `--set` accepts: the phase runs on every run, and a rule that
     // shapes the trace the landmark rules read is an alternative in the sense every other
     // rule on this list is.
-    let bound = request
-        .derived
-        .keys()
-        .chain(request.conditioning.keys())
-        .cloned();
+    let bound = request.derived.keys().chain(request.conditioning.keys()).cloned();
     landmarks
         .chain(bound)
         .map(|slot| Axis {
@@ -263,10 +264,7 @@ fn axes_asked_for(
     // caller never asked for. The other two surfaces refuse the repeat in these words.
     for position in 0..axes.len() {
         let named = |axis: &Axis| (axis.slot.clone(), axis.parameter.clone());
-        if axes[..position]
-            .iter()
-            .any(|held| named(held) == named(&axes[position]))
-        {
+        if axes[..position].iter().any(|held| named(held) == named(&axes[position])) {
             let axis = &axes[position];
             let word = match axis.parameter.as_deref() {
                 Some(parameter) => format!("{}.{parameter}", axis.slot),
@@ -368,9 +366,7 @@ fn axis_over_a_name(request: &AnalysisRequest, written: &str) -> Result<Axis, De
         if options.contains(&chosen) {
             return Err(Declined::line(
                 Fault::Request,
-                format!(
-                    "--vary-choice {qualified} names {chosen} twice, and one name is one variant"
-                ),
+                format!("--vary-choice {qualified} names {chosen} twice, and one name is one variant"),
             ));
         }
         options.push(chosen);

@@ -72,12 +72,7 @@ impl SpreadVariant {
 }
 
 /// One dimension a sweep varied, as the record of what was varied rather than the request.
-#[pyclass(
-    frozen,
-    skip_from_py_object,
-    module = "plateforce",
-    name = "SpreadAxis"
-)]
+#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "SpreadAxis")]
 #[derive(Clone)]
 pub struct SpreadAxis {
     /// The word the request reaches this step by.
@@ -713,7 +708,8 @@ fn rules_named(
     }
     let listed: Vec<String> = method_ids.extract().map_err(|_| {
         MethodError::new_err(
-            "method_ids is a list of registry ids, or a mapping from a step to its ids".to_string(),
+            "method_ids is a list of registry ids, or a mapping from a step to its ids"
+                .to_string(),
         )
     })?;
     match named {
