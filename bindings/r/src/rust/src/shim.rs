@@ -98,9 +98,9 @@ pub fn pf_analyse_under_preset_json(
 }
 
 #[extendr]
-pub fn pf_spread_json(handle: Robj, request_json: &str) -> String {
+pub fn pf_spread_json(handle: Robj, root: &str, request_json: &str) -> String {
     match held(&handle) {
-        Some(trial) => crate::spread_json(trial, request_json),
+        Some(trial) => crate::spread_json(trial, root, request_json),
         None => crate::handle_lost_json(),
     }
 }
@@ -119,9 +119,9 @@ pub fn pf_spread_under_preset_json(
 }
 
 #[extendr]
-pub fn pf_analyse_json(handle: Robj, request_json: &str) -> String {
+pub fn pf_analyse_json(handle: Robj, root: &str, request_json: &str) -> String {
     match held(&handle) {
-        Some(trial) => crate::analyse_json(trial, request_json),
+        Some(trial) => crate::analyse_json(trial, root, request_json),
         None => crate::handle_lost_json(),
     }
 }
