@@ -276,7 +276,7 @@ fn request_for(
             .cloned()
             .unwrap_or_default()
     };
-    plateforce_analysis::AnalysisRequest {
+    let mut request = plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: args.weighing.clone().unwrap_or_default(),
             parameters: parameters(plateforce_analysis::WEIGHING_CONSTRUCT),
@@ -324,7 +324,11 @@ fn request_for(
                 )
             })
             .collect(),
-    }
+    };
+    // The published defaults every rule in the folder runs on, read from the registry this
+    // command was pointed at rather than held in the rules.
+    request.reading(registry);
+    request
 }
 
 /// A comparison that cannot be set up, in the shape the caller's other refusals arrive in.

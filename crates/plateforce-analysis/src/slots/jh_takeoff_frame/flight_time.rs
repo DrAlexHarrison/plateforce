@@ -48,7 +48,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let gravity = resolved.number_or_chosen(
         GRAVITY_PARAMETER,
         context.chosen_gravity_behind(super::FLIGHT_TIME_KEY),

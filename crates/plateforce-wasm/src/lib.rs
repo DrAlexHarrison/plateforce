@@ -488,10 +488,14 @@ impl LoadedTrial {
         trial_name: Option<String>,
         capture_json: Option<String>,
     ) -> Result<String, JsError> {
-        let request: AnalysisRequest =
+        let mut request: AnalysisRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
         let capture = stated_capture(capture_json.as_deref())?;
         let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
+        // Read here rather than sent by the page: what a rule falls back to is the registry's
+        // claim, and a field the page could fill would let a page publish a default nobody
+        // wrote down.
+        request.reading(&loaded.registry);
         match plateforce_analysis::run(&self.trial, &request) {
             Ok(response) => replied(&document::ResultDocument::of(
                 version(),
@@ -526,9 +530,12 @@ impl LoadedTrial {
     /// declares about itself is carried beside the absent pin rather than in place of it.
     #[wasm_bindgen(js_name = spread)]
     pub fn spread(&self, request_json: &str) -> Result<String, JsError> {
-        let request: spread::SpreadRequest =
+        let mut request: spread::SpreadRequest =
             serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
         let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
+        // Every combination is the base request with one rule or one value swapped, so the
+        // declarations are read onto the base once and every candidate reads its own rule's.
+        request.base.reading(&loaded.registry);
         match spread::run(&self.trial, &request) {
             Ok(response) => replied(&document::SpreadDocument::of(
                 version(),

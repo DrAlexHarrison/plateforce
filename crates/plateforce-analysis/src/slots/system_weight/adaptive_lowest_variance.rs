@@ -67,7 +67,6 @@ pub(crate) fn search(
     let accumulation = resolved
         .enumerated(
             "accumulation",
-            "two_pass",
             &[
                 (
                     "cumulative_sum_of_squares",

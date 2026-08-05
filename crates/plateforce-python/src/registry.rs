@@ -65,6 +65,11 @@ pub struct RegistryIdentity {
     /// Beside the stamp rather than in it: this is what the registry holds, and the stamp is
     /// what a result says about where it came from.
     pub method_ids: Arc<Vec<String>>,
+    /// What this registry declares every rule falls back to. Carried here because a request
+    /// is built from bound entries and the entries alone cannot answer for the operators a
+    /// binding composes: no caller ever names `onset.op.crossing_selection`, and the value
+    /// its `selection` falls back to is declared there.
+    pub declared: Arc<plateforce_analysis::DeclaredDefaults>,
 }
 
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Construct")]
@@ -1045,6 +1050,7 @@ impl Registry {
             )
             .pinned_to(self.version.clone()),
             method_ids: Arc::new(self.inner.methods.keys().cloned().collect()),
+            declared: Arc::new(plateforce_analysis::DeclaredDefaults::of(&self.inner)),
         }
     }
 }

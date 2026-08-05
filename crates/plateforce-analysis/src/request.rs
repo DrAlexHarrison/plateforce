@@ -2,6 +2,7 @@
 //! request itself carries.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use plateforce_core::provenance::{ParameterSource, PresetAttribution};
 use plateforce_core::{Refusal, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
@@ -9,6 +10,109 @@ use plateforce_registry::{Preset, PresetBinding, Registry};
 use serde::{Deserialize, Serialize};
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
+
+/// What the registry declares a rule falls back to for each name nobody states.
+///
+/// The engine takes bound values and knows nothing about where they came from, which is the
+/// property that lets one binding layer serve four surfaces. So a published default reaches a
+/// rule the way every other published value does: on the request, put there by the software
+/// reading the registry rather than by a caller.
+///
+/// It used to reach a rule as a string in the rule's own body, which is a second home for a
+/// value the registry publishes. Editing the registry alone, which is the act
+/// "adding a method is a data edit" sanctions, then gave one build two answers:
+/// `registry show bwepoch.fixed_window` reported `centre = median` while a run of that entry
+/// bound `mean`, and the record published the second while a reader checked the first. Worse
+/// than documentary, because the notebook surface already read `default_key` and the other
+/// three did not: one published method returned two numbers, decided by which surface asked.
+///
+/// Not on the wire. A caller states what it chose; this is what the registry says, and a
+/// field a caller could send would let a caller publish a default nobody wrote down.
+/// Keyed by entry id rather than held per slot, because a sweep swaps the rule in a slot and
+/// keeps everything else: `spread::materialise` writes a new `method_id` onto a cloned choice,
+/// and a block read for the rule that was there before would answer for the rule that is there
+/// now. Keyed by id, the lookup happens where the rule reads the value and cannot go stale.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DeclaredDefaults {
+    by_entry: BTreeMap<String, EntryDefaults>,
+}
+
+/// What one entry declares, flattened with the operator entries a rule filed under its
+/// construct composes.
+///
+/// The operators are folded in because a rule reads their names through its own binding:
+/// `onset.threshold.noise_relative` reads `selection`, and the value that name falls back to
+/// is declared on `onset.op.crossing_selection`, an entry no caller ever names. Splitting the
+/// record back onto the operator's own row is `bound_with_operators`' job, and it happens
+/// after the rule has read anything.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct EntryDefaults {
+    /// Values the entry declares under `default_key`, which are choices between published
+    /// names.
+    names: BTreeMap<String, String>,
+    /// Values the entry declares under `default`, which are quantities.
+    numbers: BTreeMap<String, f64>,
+}
+
+impl EntryDefaults {
+    /// The name this parameter falls back to, or nothing where the registry declares none.
+    pub fn name(&self, parameter: &str) -> Option<&str> {
+        self.names.get(parameter).map(String::as_str)
+    }
+
+    /// The quantity this parameter falls back to, or nothing where the registry declares none.
+    pub fn number(&self, parameter: &str) -> Option<f64> {
+        self.numbers.get(parameter).copied()
+    }
+}
+
+impl DeclaredDefaults {
+    /// Everything the registry declares, for every entry it carries.
+    ///
+    /// The whole registry rather than the entries one request names, so a sweep that swaps a
+    /// rule into a slot finds that rule's declarations already here.
+    pub fn of(registry: &Registry) -> Self {
+        let mut by_entry: BTreeMap<String, EntryDefaults> = BTreeMap::new();
+        for (id, entry) in &registry.methods {
+            let mut declared = EntryDefaults::default();
+            let composed = operators_composed_under(&entry.construct);
+            for source in std::iter::once(id.as_str()).chain(composed.iter().copied()) {
+                let Some(read) = registry.methods.get(source) else {
+                    continue;
+                };
+                for parameter in &read.parameters {
+                    if let Some(key) = &parameter.default_key {
+                        declared.names.insert(parameter.name.clone(), key.clone());
+                    }
+                    if let Some(value) = parameter.default {
+                        declared.numbers.insert(parameter.name.clone(), value);
+                    }
+                }
+            }
+            by_entry.insert(id.clone(), declared);
+        }
+        Self { by_entry }
+    }
+
+    /// What one entry declares. An entry this registry does not carry declares nothing, which
+    /// leaves every name it reads unstated and refused rather than filled from a neighbour.
+    ///
+    /// The id is resolved through `records_under` first, because a caller may reach a rule by
+    /// a compound name the registry spells as a pair, and the declarations belong to the entry
+    /// a reader can look up rather than to the name they arrived by.
+    pub fn of_entry(&self, method_id: &str) -> &EntryDefaults {
+        let entry_id = crate::binding::records_under(method_id);
+        static NOTHING: std::sync::LazyLock<EntryDefaults> =
+            std::sync::LazyLock::new(EntryDefaults::default);
+        self.by_entry.get(entry_id).unwrap_or(&NOTHING)
+    }
+
+    /// Whether anything was read into this at all, which is the difference between a request
+    /// the software prepared against a registry and one built by hand.
+    pub fn is_empty(&self) -> bool {
+        self.by_entry.is_empty()
+    }
+}
 
 /// Unknown fields are refused rather than ignored. A caller whose field name has drifted
 /// from this one would otherwise send every value it holds into nothing, and each rule
@@ -58,6 +162,14 @@ pub struct MethodChoice {
     /// The pipeline this rule and its cited values were adopted from.
     #[serde(default)]
     pub preset: Option<PresetAttribution>,
+    /// What the registry declares, for every entry it carries.
+    ///
+    /// Skipped over the wire, and filled by `AnalysisRequest::reading` rather than by any
+    /// caller: it is what the registry says, not what a caller chose. Shared rather than
+    /// copied into each slot, because a request holds several choices and a sweep clones the
+    /// whole request per combination.
+    #[serde(skip)]
+    pub declared: Arc<DeclaredDefaults>,
 }
 
 /// What a choice claims about where its values came from, borrowed together.
@@ -140,6 +252,14 @@ pub struct WeighingChoice {
     /// The pipeline this rule and its cited values were adopted from.
     #[serde(default)]
     pub preset: Option<PresetAttribution>,
+    /// What the registry declares, for every entry it carries.
+    ///
+    /// Skipped over the wire, and filled by `AnalysisRequest::reading` rather than by any
+    /// caller: it is what the registry says, not what a caller chose. Shared rather than
+    /// copied into each slot, because a request holds several choices and a sweep clones the
+    /// whole request per combination.
+    #[serde(skip)]
+    pub declared: Arc<DeclaredDefaults>,
 }
 
 impl MethodChoice {
@@ -275,6 +395,35 @@ impl AnalysisRequest {
         self.registry_backed_ids.iter().any(|id| id == method_id)
     }
 
+    /// Reads what the registry declares for every rule this request names, so the rules run
+    /// on the published defaults rather than on copies of them.
+    ///
+    /// One home called by every surface, rather than each surface filling its own values in.
+    /// The notebook surface already did it alone, which is how one build came to answer two
+    /// numbers for one published method: it followed the registry and the terminal, R and the
+    /// browser followed a string in the rule.
+    ///
+    /// Called after a pipeline has been adopted, because adopting one names rules this
+    /// request did not name before, and a rule whose entry was never read falls back to
+    /// nothing and refuses by name.
+    pub fn reading(&mut self, registry: &Registry) {
+        self.declared_from(Arc::new(DeclaredDefaults::of(registry)));
+    }
+
+    /// The same, for a surface that read the registry once and kept the answer.
+    ///
+    /// One writer either way, so no surface fills its own slots and none can fill some of
+    /// them. A construct the request names and this misses is a rule reading nothing, which
+    /// refuses rather than falling back.
+    pub fn declared_from(&mut self, declared: Arc<DeclaredDefaults>) {
+        self.weighing.declared = Arc::clone(&declared);
+        self.onset.declared = Arc::clone(&declared);
+        self.takeoff.declared = Arc::clone(&declared);
+        for choice in self.derived.values_mut().chain(self.conditioning.values_mut()) {
+            choice.declared = Arc::clone(&declared);
+        }
+    }
+
     /// Writes a gravity for the whole analysis, with the claim that says whether anybody
     /// chose it. `None` is the caller declining to state one.
     pub fn state_gravity(&mut self, value: Option<f64>) {
@@ -386,6 +535,19 @@ impl AnalysisRequest {
             }
         }
         Ok(())
+    }
+}
+
+/// The operator entries a rule filed under this construct composes.
+///
+/// Read off the engine's own lists rather than written out, for the reason
+/// `fallbacks_match_the_registry` had to stop writing them out: a hand-written copy carried
+/// six of the thirteen this build composes and nothing said so.
+fn operators_composed_under(construct: &str) -> &'static [&'static str] {
+    match construct {
+        ONSET_CONSTRUCT => crate::slots::movement_onset::ONSET_OPERATOR_IDS,
+        TAKEOFF_CONSTRUCT => crate::slots::takeoff::TAKEOFF_OPERATOR_IDS,
+        _ => &[],
     }
 }
 

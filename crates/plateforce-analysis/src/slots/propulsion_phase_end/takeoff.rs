@@ -33,7 +33,12 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let bound = resolved.finish();
 
     let Some(takeoff) = context.takeoff_index() else {

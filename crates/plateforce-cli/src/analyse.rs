@@ -264,6 +264,10 @@ pub(crate) fn prepare(
     if let Err(declined) = crate::preset::adopt(&mut request, &registry, args.preset.as_ref()) {
         return Err(Outcome::declined(declined));
     }
+    // After the pipeline is laid on, because adopting one names rules this request did not
+    // name before, and a rule whose entry was never read falls back to nothing.
+    request.reading(&registry);
+
     let chosen = crate::preset::methods_in(&request);
     let bound = crate::preset::parameters_in(&request);
 

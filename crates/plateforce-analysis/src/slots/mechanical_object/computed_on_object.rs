@@ -43,7 +43,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let object = resolved.required_enumerated(ID, OBJECT_PARAMETER, OBJECTS);
     let mass = object.and_then(|object| {
         super::mass_kilograms(context, &mut resolved, ID, OBJECT_PARAMETER, object, super::KEY)

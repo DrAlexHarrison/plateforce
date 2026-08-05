@@ -6,6 +6,7 @@
 //! into the chain of choices a Python caller reads.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use plateforce_analysis::{
     bindings_for, chain_of, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice,
@@ -804,6 +805,10 @@ pub(crate) fn analysis_request_of(
             .adopt(&preset.inner)
             .map_err(|refusal| raise_refusal(python, &refusal))?;
     }
+
+    // Every rule in this request runs on what the registry declares, read from the registry
+    // the bound entries came out of rather than held in the rules.
+    request.declared_from(Arc::clone(&registry.declared));
 
     Ok((request, registry))
 }

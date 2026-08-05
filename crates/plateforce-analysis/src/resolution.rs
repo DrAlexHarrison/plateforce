@@ -15,6 +15,10 @@ use crate::request::Claims;
 pub(crate) struct Resolution<'a> {
     parameters: &'a BTreeMap<String, f64>,
     options: &'a BTreeMap<String, String>,
+    /// What the registry declares this rule falls back to. The rule holds no copy: a value
+    /// the registry publishes has one home, and a string in a function body beside it is the
+    /// second home this type exists to have removed.
+    declared: &'a crate::request::EntryDefaults,
     /// Names the caller says it accepted from the registry's recommendation, and names it
     /// filled from a default with nobody asked. A rule cannot tell either from the number.
     recommended: &'a BTreeSet<String>,
@@ -77,11 +81,13 @@ impl<'a> Resolution<'a> {
     pub(crate) fn over(
         parameters: &'a BTreeMap<String, f64>,
         options: &'a BTreeMap<String, String>,
+        declared: &'a crate::request::EntryDefaults,
         claims: Claims<'a>,
     ) -> Self {
         Self {
             parameters,
             options,
+            declared,
             recommended: claims.recommended,
             from_registry_default: claims.from_registry_default,
             cited: claims.cited,
@@ -231,16 +237,39 @@ impl<'a> Resolution<'a> {
         (milliseconds, samples)
     }
 
-    pub(crate) fn option(&mut self, name: &str, fallback: &'static str) -> String {
+    /// A named choice, taken from the caller where the caller made one and from the value the
+    /// entry declares where nobody did.
+    ///
+    /// The declared value is the registry's, read off the request the software prepared, and
+    /// this rule holds no copy of it. It used to hold one, and the two disagreed the moment
+    /// anybody edited the entry: `registry show` published one name and the run bound the
+    /// other, on three surfaces out of four.
+    ///
+    /// Refused where neither the caller nor the entry states one, because the alternative is a
+    /// value this function would have to invent, which is the silent default the record exists
+    /// to make impossible. The id is left empty for the reason `enumerated` leaves it empty:
+    /// a `Resolution` reads a request rather than knowing which entry reached it, and
+    /// `document.rs` stamps the bound id on.
+    pub(crate) fn option(&mut self, name: &str) -> Result<String, RuleRefusal> {
         self.consulted.insert(name.to_string());
         let stated = self.options.get(name).cloned();
         let source = match &stated {
             Some(_) => self.stated_source(name),
             None => ParameterSource::Assumed,
         };
-        let value = stated.unwrap_or_else(|| fallback.to_string());
+        let value = match stated {
+            Some(chosen) => chosen,
+            None => match self.declared.name(name) {
+                Some(declared) => declared.to_string(),
+                None => {
+                    return Err(RuleRefusal::Refused(Box::new(
+                        plateforce_core::Refusal::required_parameter_unstated("", name),
+                    )))
+                }
+            },
+        };
         self.record(name, value.clone(), source);
-        value
+        Ok(value)
     }
 
     /// An enumerated choice, refused rather than mapped onto a default when the value is
@@ -249,10 +278,9 @@ impl<'a> Resolution<'a> {
     pub(crate) fn enumerated<T: Copy>(
         &mut self,
         name: &str,
-        fallback: &'static str,
         accepted: &[(&'static str, T)],
     ) -> Result<T, RuleRefusal> {
-        let chosen = self.option(name, fallback);
+        let chosen = self.option(name)?;
         accepted
             .iter()
             .find(|(label, _)| *label == chosen)
@@ -425,10 +453,12 @@ impl<'a> Resolution<'a> {
         Ok(())
     }
 
+    /// Five registry entries declare a default for this name and one helper answered for all
+    /// of them, which is why the declared value has to be looked up per entry rather than
+    /// held here: one string in this body was standing in for five published declarations.
     pub(crate) fn dispersion(&mut self) -> Result<DispersionEstimator, RuleRefusal> {
         self.enumerated(
             "dispersion",
-            "sample",
             &[
                 ("population", DispersionEstimator::Population),
                 ("sample", DispersionEstimator::Sample),
@@ -439,7 +469,6 @@ impl<'a> Resolution<'a> {
     pub(crate) fn residual_comparison(&mut self) -> Result<ResidualComparison, RuleRefusal> {
         self.enumerated(
             "comparison",
-            "signed",
             &[
                 ("signed", ResidualComparison::SignedValue),
                 ("magnitude", ResidualComparison::Magnitude),

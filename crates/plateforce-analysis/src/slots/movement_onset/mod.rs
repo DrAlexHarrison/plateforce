@@ -35,7 +35,7 @@ pub(crate) enum OnsetDirection {
 /// asked for. Which of the two it was is the difference between a typo and a method fork,
 /// and `onset.op.direction`'s own entry is where that difference is written.
 pub(crate) fn direction(resolved: &mut Resolution) -> Result<OnsetDirection, RuleRefusal> {
-    let chosen = resolved.option("direction", "below_only");
+    let chosen = resolved.option("direction")?;
     match chosen.as_str() {
         "below_only" => Ok(OnsetDirection::BelowOnly),
         "two_sided" => Ok(OnsetDirection::TwoSided),
@@ -117,7 +117,6 @@ pub(crate) fn onset_search(
             .max(1),
         selection: resolved.enumerated(
             "selection",
-            "first",
             &[
                 ("first", CrossingSelection::First),
                 ("last", CrossingSelection::Last),
@@ -218,7 +217,12 @@ pub(crate) fn resolve(
     warnings: &mut Vec<String>,
 ) -> OnsetOutcome {
     let rate = trial.sample_rate_hz();
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(&choice.method_id),
+        choice.claims(),
+    );
     let found = crossing(
         trial,
         epoch,

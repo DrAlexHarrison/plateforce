@@ -61,7 +61,12 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
 
     let foot_angle_sine = resolved.number(FOOT_ANGLE_SINE_PARAMETER, FOOT_ANGLE_SINE_DEFAULT);
     let malleolus_fraction =

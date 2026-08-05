@@ -38,7 +38,12 @@ fn place(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(
+        &choice.parameters,
+        &choice.options,
+        choice.declared.of_entry(ID),
+        choice.claims(),
+    );
     let epoch_samples = resolved.milliseconds_as_samples(
         "epoch_ms",
         PUBLISHED_EPOCH_MILLISECONDS,
