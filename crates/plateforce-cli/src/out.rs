@@ -23,13 +23,18 @@ fn passing(colour: Colour) -> anstream::ColorChoice {
 }
 
 /// What a result is written as.
+///
+/// Markdown is the same bytes the browser's copy buttons put on the clipboard, because a reader
+/// piping a result into a model from a script wants what a reader pressing a button gets.
+///
+/// No doc comment sits on a variant here. Clap reads one as long help and expands the whole
+/// `--format` entry from a line in the options list into a paragraph, so a sentence written for
+/// a maintainer ends up in the first thing every reader of this program sees.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 #[value(rename_all = "lower")]
 pub enum Format {
     Text,
     Json,
-    /// The same bytes the browser's copy buttons put on the clipboard, because a reader piping
-    /// a result into a model from a script wants what a reader pressing a button gets.
     Markdown,
 }
 

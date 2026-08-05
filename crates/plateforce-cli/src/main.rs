@@ -44,7 +44,7 @@ struct Invocation {
     /// Keep saved plates in this directory rather than beside this machine's other settings
     #[arg(long, global = true, action = clap::ArgAction::Append, value_name = "DIR")]
     plates: Vec<PathBuf>,
-    /// Write the result as readable text or as JSON
+    /// Write the result as readable text, as JSON, or as Markdown to paste into a chat
     #[arg(long, global = true, value_enum, default_value_t = Format::Text)]
     format: Format,
     /// Write the result to this path

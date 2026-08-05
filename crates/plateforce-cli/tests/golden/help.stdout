@@ -17,7 +17,7 @@ Commands:
 Options:
       --registry <DIR>   Read the registry in this directory rather than the one compiled in
       --plates <DIR>     Keep saved plates in this directory rather than beside this machine's other settings
-      --format <FORMAT>  Write the result as readable text or as JSON [default: text] [possible values: text, json]
+      --format <FORMAT>  Write the result as readable text, as JSON, or as Markdown to paste into a chat [default: text] [possible values: text, json, markdown]
       --out <PATH>       Write the result to this path
       --color <COLOR>    When to colour the output [default: auto] [possible values: auto, always, never]
   -h, --help             Print help
