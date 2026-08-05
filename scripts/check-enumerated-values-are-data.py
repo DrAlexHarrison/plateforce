@@ -41,6 +41,11 @@ SAMPLE_RATE_HZ = "1200"
 # A value no rule takes, so every enumerated name refuses and names what it does take.
 UNTAKEN = "__not_a_value_any_rule_takes__"
 
+# The engine's own names for a rule and for a name that rule takes, and the run that names
+# neither because the construct rides in the preset instead.
+FLAG_FOR = {"derived": "--derive", "conditioning": "--condition", "choose": "--choose"}
+NOTHING_NAMED: dict[str, list[str]] = {"derived": [], "conditioning": [], "choose": []}
+
 # The three landmark slots, each named by the construct a preset binds it under.
 SPINE = ("system_weight", "movement_onset", "takeoff")
 
@@ -146,8 +151,49 @@ class Engine:
         self.registry = workspace / "registry"
         shutil.copytree(REGISTRY, self.registry)
         self.methods = registry_methods()
+        self._conditioning: set[str] | None = None
 
-    def analyse(self, bindings: list[dict], derived: list[str]) -> dict | None:
+    def conditioning_constructs(self) -> set[str]:
+        """The constructs this build reaches through `--condition`, asked of the software.
+
+        The engine refuses a construct named through the wrong one of its two names, so a rule
+        that conditions the signal is unreachable through `--derive` and every enumeration on
+        its row goes unasked what it takes. Handed a construct it does not condition, the
+        engine refuses and lists the ones it does, which is the same idiom the accepted values
+        below are read with: the list branched on rather than a transcription of it, so a
+        construct this build gains is routed without an edit here.
+        """
+        if self._conditioning is None:
+            spine = [self.bindings_for(slot, BASELINE[slot]) for slot in SPINE]
+            refusal = self.analyse(spine, {**NOTHING_NAMED, "conditioning": [f"{UNTAKEN}={UNTAKEN}"]}) or {}
+            self._conditioning = set(refusal.get("available") or [])
+        return self._conditioning
+
+    def route(self, construct: str, method_id: str, options: dict[str, str] | None = None) -> dict:
+        """How the engine takes a rule for `construct`, as the arguments a run needs.
+
+        A rule that conditions the signal runs before the landmarks, and the engine takes it
+        under its own names: `--condition` for the rule and `--choose` for a name that rule
+        takes. **A preset cannot carry one at all.** Writing the binding into the probe preset
+        is refused before the rule is ever reached, which is why every enumeration on a
+        conditioning row went unasked what it accepts and was scored against what it happened
+        to emit.
+        """
+        if construct in self.conditioning_constructs():
+            return {
+                "bindings": [],
+                "derived": [],
+                "conditioning": [f"{construct}={method_id}"],
+                "choose": [f"{construct}.{name}={value}" for name, value in sorted((options or {}).items())],
+            }
+        return {
+            "bindings": [self.bindings_for(construct, method_id, options)],
+            "derived": [f"{construct}={method_id}"],
+            "conditioning": [],
+            "choose": [],
+        }
+
+    def analyse(self, bindings: list[dict], named: dict) -> dict | None:
         (self.registry / "presets" / "probe.toml").write_text(preset_document(bindings))
         arguments = [
             str(self.binary),
@@ -166,8 +212,9 @@ class Engine:
             "--preset",
             "probe",
         ]
-        for assignment in derived:
-            arguments.extend(["--derive", assignment])
+        for flag in ("derived", "conditioning", "choose"):
+            for assignment in named.get(flag, []):
+                arguments.extend([FLAG_FOR[flag], assignment])
         _, output = run(arguments)
         first = output.strip().splitlines()
         if not first:
@@ -268,26 +315,27 @@ def check(engine: Engine) -> int:  # noqa: C901
     # so its parameters are the composed entry's and that is the row a reader is sent to.
     row_of = {rule["id"]: rule.get("composed_from") or rule["id"] for rule in rules}
 
-    # Every rule this build runs, swept one slot at a time so each one reaches the record.
-    runs: list[tuple[list[dict], list[str]]] = []
+    # Every rule this build runs, swept one slot at a time so each one reaches the record. How
+    # a construct is named is the engine's answer rather than a list here, so a rule that
+    # conditions the signal is reached under the names that reach it.
+    runs: list[tuple[list[dict], dict, str | None]] = []
     for rule in rules:
         construct = rule["construct"]
         if construct in SPINE:
-            runs.append((spine_bindings(engine, construct, rule["id"], None), []))
+            runs.append((spine_bindings(engine, construct, rule["id"], None), NOTHING_NAMED, None))
         else:
-            bindings = [engine.bindings_for(slot, BASELINE[slot]) for slot in SPINE]
-            bindings.append(engine.bindings_for(construct, rule["id"]))
-            runs.append((bindings, [f"{construct}={rule['id']}"]))
+            spine = [engine.bindings_for(slot, BASELINE[slot]) for slot in SPINE]
+            named = engine.route(construct, rule["id"])
+            runs.append((spine + named["bindings"], named, construct))
 
     # Which construct each entry's choices are stated under, so a probe reaches the rule that
     # reads them rather than the slot next to it.
     population: dict[str, dict[str, str]] = {}
     construct_of: dict[str, str] = {}
-    for bindings, derived in runs:
-        result = engine.analyse(bindings, derived)
+    for bindings, named, swept in runs:
+        result = engine.analyse(bindings, named)
         if result is None:
             continue
-        swept = bindings[-1]["construct"] if derived else None
         for method_id, chosen in recorded_choices(result, entry_ids).items():
             population.setdefault(method_id, {}).update(chosen)
             if method_id not in construct_of:
@@ -349,12 +397,12 @@ def check(engine: Engine) -> int:  # noqa: C901
             continue
         if construct in SPINE:
             bindings = spine_bindings(engine, construct, bound_in(construct, method_id), {name: UNTAKEN})
-            derived: list[str] = []
+            named = NOTHING_NAMED
         else:
-            bindings = [engine.bindings_for(slot, BASELINE[slot]) for slot in SPINE]
-            bindings.append(engine.bindings_for(construct, method_id, {name: UNTAKEN}))
-            derived = [f"{construct}={method_id}"]
-        result = engine.analyse(bindings, derived)
+            spine = [engine.bindings_for(slot, BASELINE[slot]) for slot in SPINE]
+            named = engine.route(construct, method_id, {name: UNTAKEN})
+            bindings = spine + named["bindings"]
+        result = engine.analyse(bindings, named)
         offered = offered_for(result, name) if result else None
         if offered is None:
             # A name the record carries and no rule reads as a choice. Its values are the ones

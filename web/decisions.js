@@ -138,16 +138,17 @@ function renderSlot(slot) {
 
   if (candidate) {
     const settings = element('div', 'decision__settings-body');
+    // The rate, its denominator and the corpus it was measured on. What counted as a failure
+    // is the definition, and it reads in full in the drawer this row's Details button opens,
+    // which is a place a reader on a touch screen can reach.
     const failure = candidate.method?.failure;
     if (failure) {
-      const note = element(
+      settings.append(element(
         'p',
-        'undecided undecided--clamped',
+        'undecided',
         `${(failure.rate * 100).toFixed(1)}% failure rate · ${failure.numerator} of ${failure.denominator} · ` +
           `${failure.corpus} · ${failure.detectability}`,
-      );
-      note.title = failure.definition;
-      settings.append(note);
+      ));
     }
     const parameters = renderParameters(slot, candidate, selection);
     const parametersOpen = (selection.unresolved || []).length > 0;

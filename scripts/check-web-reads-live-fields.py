@@ -24,8 +24,13 @@ import sys
 # either and this scan was checking the wrong declaration: it would have reported a field only
 # the document carries as gone, and passed a field only the response carries, which never
 # crosses the boundary at all.
+# `BoundGlobal` is the row for a value the analysis was bound to rather than any one rule, and
+# the Analysis record renders one per row. It carries the claim about where the value came
+# from, so a field renamed here blanks the line that tells a stated gravity from the constant
+# nobody was asked about, which is the one thing that row exists to say.
 RECORDS = {
     'BoundMethod': 'crates/plateforce-analysis/src/resolution.rs',
+    'BoundGlobal': 'crates/plateforce-analysis/src/response.rs',
     'ResultDocument': 'crates/plateforce-analysis/src/document.rs',
     'BuildInfo': 'crates/plateforce-wasm/src/lib.rs',
 }
@@ -39,6 +44,7 @@ RECORDS = {
 # so `buildDecisionModel` and `buildRequest` are not read as reads.
 READERS = {
     'BoundMethod': r'\bbound(?:\?)?\.(\w+)',
+    'BoundGlobal': r'\bboundGlobal(?:\?)?\.(\w+)',
     'ResultDocument': r'\bstate\.analysis(?:\?)?\.(\w+)',
     'BuildInfo': r'\bbuild(?:\?)?\.(\w+)',
 }

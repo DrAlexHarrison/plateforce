@@ -291,6 +291,20 @@
       </section>
 
       <section>
+        <h3>Gravity</h3>
+        <div class="field">
+          <label for="gravity">What is gravity where this plate stands?</label>
+          <div class="field__input-group">
+            <input type="number" id="gravity" min="9.5" max="10" step="any" inputmode="decimal"
+                   list="gravity-published" autocomplete="off">
+            <span class="field__suffix" id="gravity-unit"></span>
+          </div>
+          <datalist id="gravity-published"></datalist>
+          <p class="field__hint" id="gravity-hint"></p>
+        </div>
+      </section>
+
+      <section>
         <h3>Record a plate</h3>
         <div class="field">
           <label for="plate-name">Plate name</label>

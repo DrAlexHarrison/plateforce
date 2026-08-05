@@ -21,6 +21,7 @@ import { rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { listenForConsoleErrors } from './console-errors.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8781)];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
@@ -67,6 +68,7 @@ await new Promise((resolve) => socket.addEventListener('open', resolve));
 
 let nextId = 0;
 const pending = new Map();
+const consoleLines = listenForConsoleErrors(socket);
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
   if (pending.has(message.id)) {
@@ -87,6 +89,7 @@ const evaluate = async (expression) => {
 };
 
 await send('Runtime.enable');
+await send('Log.enable');
 await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
 
 const settle = async (expression, label) => {
@@ -230,6 +233,13 @@ check(
   'the browser and terminal run the same number of combinations',
   terminal != null && painted.spread?.combinations_run === terminal.combinations_run,
   terminalError || `browser ${painted.spread?.combinations_run ?? 'none'}; terminal ${terminal?.combinations_run ?? 'none'}`,
+);
+// The sweep runs 512 requests through the module from one click, so a page that starts
+// raising on the tenth of them still paints a table and every assertion above still reads.
+check(
+  'the page raised nothing while the sweep ran',
+  consoleLines.length === 0,
+  consoleLines.length ? consoleLines.join(' | ') : 'no console errors',
 );
 
 for (const { name, passed, read } of results) {
