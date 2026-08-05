@@ -21,6 +21,14 @@ use std::path::{Path, PathBuf};
 use crate::acquisition::{Acquisition, Capture, MemberFault, PlateProfileAttribution};
 use crate::refusal::Refusal;
 
+/// What a call on the store answers with when it declines.
+///
+/// Boxed for the reason `RuleRefusal::Refused` boxes one: a `Refusal` carries every field a
+/// caller branches on and is several times the size of anything here returns on the ok side,
+/// so an unboxed error would make every call in this module pay for the refusal it did not
+/// make.
+pub type Declined = Result<(), Box<Refusal>>;
+
 /// The folder under the user's configuration directory, and the ending every saved plate is
 /// filed under.
 const FOLDER: &str = "plateforce/plates";
@@ -47,7 +55,7 @@ impl SavedPlate {
     /// The revision is taken here rather than accepted from the caller, because a surface
     /// computing it would be a second implementation of the one thing that tells two
     /// revisions of a plate apart.
-    pub fn named(name: &str, members: Acquisition) -> Result<Self, Refusal> {
+    pub fn named(name: &str, members: Acquisition) -> Result<Self, Box<Refusal>> {
         Ok(Self {
             name: checked_name(name)?.to_string(),
             revision: PlateProfileAttribution::revision_of(&members),
@@ -107,15 +115,15 @@ pub fn capture_from(plate: Option<&SavedPlate>, stated: &Acquisition) -> Capture
 /// folder of data, because a plate is a fact about a room and the same person analyses several
 /// projects off it. A named folder is how a plate travels with a dataset rather than with the
 /// person.
-pub fn directory(named: Option<&Path>) -> Result<PathBuf, Refusal> {
+pub fn directory(named: Option<&Path>) -> Result<PathBuf, Box<Refusal>> {
     if let Some(named) = named {
         return Ok(named.to_path_buf());
     }
     configuration_root().map(|root| root.join(FOLDER)).ok_or_else(|| {
-        Refusal::file_not_read(
+        Box::new(Refusal::file_not_read(
             "the folder saved plates live in",
             "this machine reports no configuration folder, so the folder saved plates live in has to be named",
-        )
+        ))
     })
 }
 
@@ -149,7 +157,7 @@ fn configuration_root() -> Option<PathBuf> {
 /// The name is the file name, so it is held to what every filesystem carries and what a
 /// terminal renders: a name with a separator in it would name a folder somewhere else, and one
 /// with a full stop in it would be read as an ending.
-pub fn checked_name(name: &str) -> Result<&str, Refusal> {
+pub fn checked_name(name: &str) -> Result<&str, Box<Refusal>> {
     let usable = !name.is_empty()
         && name.chars().all(|character| {
             character.is_ascii_alphanumeric() || character == '-' || character == '_'
@@ -157,32 +165,32 @@ pub fn checked_name(name: &str) -> Result<&str, Refusal> {
     if usable {
         Ok(name)
     } else {
-        Err(Refusal::name_not_accepted(
+        Err(Box::new(Refusal::name_not_accepted(
             STORE,
             "name",
             name,
             vec!["letters, digits, - and _".to_string()],
-        ))
+        )))
     }
 }
 
 /// One saved plate, read back through the same member parser every surface uses, so a file
 /// somebody edited by hand is held to what the block holds rather than read and dropped.
-pub fn read(name: &str, plates_directory: Option<&Path>) -> Result<SavedPlate, Refusal> {
+pub fn read(name: &str, plates_directory: Option<&Path>) -> Result<SavedPlate, Box<Refusal>> {
     let name = checked_name(name)?;
     let path = directory(plates_directory)?.join(format!("{name}{ENDING}"));
     let text = std::fs::read_to_string(&path).map_err(|error| {
-        Refusal::file_not_read(
+        Box::new(Refusal::file_not_read(
             path.display().to_string(),
             format!("no plate is saved as {name}: {error}"),
-        )
+        ))
     })?;
     Ok(SavedPlate::from_file(name, members_in(&text, &path)?, path))
 }
 
 /// Every saved plate a folder holds, by name. A folder that is not there holds none, which is
 /// the state a machine that has saved no plate is in.
-pub fn saved_names(plates_directory: Option<&Path>) -> Result<Vec<String>, Refusal> {
+pub fn saved_names(plates_directory: Option<&Path>) -> Result<Vec<String>, Box<Refusal>> {
     let directory = directory(plates_directory)?;
     let Ok(entries) = std::fs::read_dir(&directory) else {
         return Ok(Vec::new());
@@ -202,7 +210,7 @@ pub fn saved_names(plates_directory: Option<&Path>) -> Result<Vec<String>, Refus
 }
 
 /// Every saved plate a folder holds, read.
-pub fn saved(plates_directory: Option<&Path>) -> Result<Vec<SavedPlate>, Refusal> {
+pub fn saved(plates_directory: Option<&Path>) -> Result<Vec<SavedPlate>, Box<Refusal>> {
     saved_names(plates_directory)?
         .iter()
         .map(|name| read(name, plates_directory))
@@ -218,23 +226,23 @@ pub fn write(
     name: &str,
     members: &Acquisition,
     plates_directory: Option<&Path>,
-) -> Result<(SavedPlate, Option<SavedPlate>), Refusal> {
+) -> Result<(SavedPlate, Option<SavedPlate>), Box<Refusal>> {
     let name = checked_name(name)?;
     let directory = directory(plates_directory)?;
     let path = directory.join(format!("{name}{ENDING}"));
     let replaced = read(name, plates_directory).ok();
 
     std::fs::create_dir_all(&directory).map_err(|error| {
-        Refusal::file_not_read(
+        Box::new(Refusal::file_not_read(
             directory.display().to_string(),
             format!("the folder saved plates live in cannot be made: {error}"),
-        )
+        ))
     })?;
     std::fs::write(&path, file_text(members)).map_err(|error| {
-        Refusal::file_not_read(
+        Box::new(Refusal::file_not_read(
             path.display().to_string(),
             format!("{name} cannot be written: {error}"),
-        )
+        ))
     })?;
 
     Ok((SavedPlate::from_file(name, members.clone(), path), replaced))
@@ -242,17 +250,17 @@ pub fn write(
 
 /// A saved plate removed from a machine. Results already recorded against it carry its
 /// members and are unchanged, which is why removing one is not an edit to any of them.
-pub fn forget(name: &str, plates_directory: Option<&Path>) -> Result<PathBuf, Refusal> {
+pub fn forget(name: &str, plates_directory: Option<&Path>) -> Result<PathBuf, Box<Refusal>> {
     let saved = read(name, plates_directory)?;
     let path = saved
         .path
         .clone()
         .expect("a plate read from a folder carries the path it was read from");
     std::fs::remove_file(&path).map_err(|error| {
-        Refusal::file_not_read(
+        Box::new(Refusal::file_not_read(
             path.display().to_string(),
             format!("{name} cannot be removed: {error}"),
-        )
+        ))
     })?;
     Ok(path)
 }
@@ -276,7 +284,7 @@ pub fn replacements(before: &Acquisition, after: &Acquisition) -> Vec<(String, S
 /// Values are read as text whichever way they were written, so a person who typed
 /// `plate_natural_frequency_hz = 400` and one who typed `"400"` have saved one plate, and the
 /// revision they hash to is the same.
-pub fn members_in(text: &str, path: &Path) -> Result<Acquisition, Refusal> {
+pub fn members_in(text: &str, path: &Path) -> Result<Acquisition, Box<Refusal>> {
     #[derive(serde::Deserialize)]
     struct File {
         #[serde(default)]
@@ -284,10 +292,10 @@ pub fn members_in(text: &str, path: &Path) -> Result<Acquisition, Refusal> {
     }
 
     let file: File = toml::from_str(text).map_err(|error| {
-        Refusal::file_not_read(
+        Box::new(Refusal::file_not_read(
             path.display().to_string(),
             format!("this does not read as a saved plate: {error}"),
-        )
+        ))
     })?;
 
     let mut members = Acquisition::default();
@@ -301,20 +309,20 @@ pub fn members_in(text: &str, path: &Path) -> Result<Acquisition, Refusal> {
         members
             .set_member(member, &written)
             .map_err(|fault| match fault {
-                MemberFault::Unknown => Refusal::unknown_parameter(
+                MemberFault::Unknown => Box::new(Refusal::unknown_parameter(
                     STORE,
                     member,
                     Acquisition::MEMBERS
                         .iter()
                         .map(|held| (*held).to_string())
                         .collect(),
-                ),
-                MemberFault::NotANumber => Refusal::name_not_accepted(
+                )),
+                MemberFault::NotANumber => Box::new(Refusal::name_not_accepted(
                     STORE,
                     member,
                     &written,
                     vec!["a number".to_string()],
-                ),
+                )),
             })?;
     }
     Ok(members)

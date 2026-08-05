@@ -427,6 +427,9 @@ pub(crate) struct RequestArguments<'a> {
 /// The base is built by the one request builder this surface has, so the combination that
 /// varies nothing is the request a user's own analysis call sends and the sweep is around
 /// their result rather than around one assembled here.
+// Eight, and the eighth is `RequestArguments`, which already folds thirteen of them. Grouping
+// further would put the sweep's own axes behind a record whose only caller is this function.
+#[allow(clippy::too_many_arguments)]
 fn swept(
     python: Python<'_>,
     trial: &Trial,

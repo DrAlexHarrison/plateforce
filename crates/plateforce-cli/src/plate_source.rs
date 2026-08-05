@@ -40,16 +40,16 @@ pub(crate) fn read(name: &str, plates_directory: Option<&Path>) -> Result<SavedP
             "{}. `plateforce plate list` names the ones this machine holds",
             refusal.message()
         );
-        Declined::shown_as(refusal, shown)
+        Declined::shown_as(*refusal, shown)
     })
 }
 
 pub(crate) fn saved_names(plates_directory: Option<&Path>) -> Result<Vec<String>, Declined> {
-    plate_store::saved_names(plates_directory).map_err(Declined::recorded)
+    plate_store::saved_names(plates_directory).map_err(|refusal| Declined::recorded(*refusal))
 }
 
 pub(crate) fn directory(named: Option<&Path>) -> Result<std::path::PathBuf, Declined> {
-    plate_store::directory(named).map_err(Declined::recorded)
+    plate_store::directory(named).map_err(|refusal| Declined::recorded(*refusal))
 }
 
 pub(crate) fn write(
@@ -57,14 +57,15 @@ pub(crate) fn write(
     members: &plateforce_core::Acquisition,
     plates_directory: Option<&Path>,
 ) -> Result<(SavedPlate, Option<SavedPlate>), Declined> {
-    plate_store::write(name, members, plates_directory).map_err(Declined::recorded)
+    plate_store::write(name, members, plates_directory)
+        .map_err(|refusal| Declined::recorded(*refusal))
 }
 
 pub(crate) fn forget(
     name: &str,
     plates_directory: Option<&Path>,
 ) -> Result<std::path::PathBuf, Declined> {
-    plate_store::forget(name, plates_directory).map_err(Declined::recorded)
+    plate_store::forget(name, plates_directory).map_err(|refusal| Declined::recorded(*refusal))
 }
 
 #[cfg(test)]

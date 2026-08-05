@@ -28,6 +28,7 @@ Collate:
     'rust.R'
     'request.R'
     'refusal.R'
+    'plate.R'
     'trial.R'
     'provenance.R'
     'measured.R'
