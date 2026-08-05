@@ -227,7 +227,15 @@ used, because neither paper was read.
 """
 
 [method.reach]
-boundary = "both"
+boundary = "source"
+# The rule rather than the recording, and it was filed as both until 2026-08-05. An operator reading
+# `both` is told to record a sprint start on instrumented blocks, and having done so still has no
+# rule to run: the recommending paper states no normalisation and the paper holding one was never
+# obtained. Its file-mate `falsestart.kinetic_vendor_threshold` needs the same movement and the same
+# instrument and is filed `source` for the same reason, which is what makes this the file's own
+# convention rather than a preference. The control on the other side is `cod.deficit`, built on two
+# papers equally unobtained and correctly `both`, because a third party's use of it supplies the rule
+# in full and only the equipment is missing.
 
 [[method]]
 id = "sprint.mono_exponential_velocity_model"
