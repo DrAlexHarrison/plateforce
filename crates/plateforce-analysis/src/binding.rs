@@ -772,6 +772,128 @@ pub const BINDINGS: &[Binding] = &[
             crate::slots::rate_of_power_development::peak_to_peak_anchored::RULE,
         ),
     },
+    // What power is at each instant. Declared before everything that reads a power series, so
+    // a caller who names it has settled the force term and the sign before any number is read
+    // off the series they describe. It reports nothing itself: a series is not a value.
+    Binding {
+        id: crate::slots::mechanical_power::force_x_velocity::ID,
+        slot: crate::slots::mechanical_power::CONSTRUCT,
+        construct: crate::slots::mechanical_power::CONSTRUCT,
+        title: "Force at each instant multiplied by velocity at that instant",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::mechanical_power::force_x_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::mechanical_power::force_x_velocity::RULE),
+    },
+    // The largest power reached. One rule reads the series and two never form one, estimating
+    // the peak from a jump height and a mass.
+    Binding {
+        id: crate::slots::power_peak::instantaneous::ID,
+        slot: crate::slots::power_peak::CONSTRUCT,
+        construct: crate::slots::power_peak::CONSTRUCT,
+        title: "The most power reached during a stated phase",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::power_peak::instantaneous::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::power_peak::instantaneous::RULE),
+    },
+    Binding {
+        id: crate::slots::power_peak::from_height_lewis::ID,
+        slot: crate::slots::power_peak::CONSTRUCT,
+        construct: crate::slots::power_peak::CONSTRUCT,
+        title: "Estimated from how high they jumped and how much they weigh",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::power_peak::from_height_lewis::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::power_peak::from_height_lewis::RULE),
+    },
+    Binding {
+        id: crate::slots::power_peak::from_height_regression::ID,
+        slot: crate::slots::power_peak::CONSTRUCT,
+        construct: crate::slots::power_peak::CONSTRUCT,
+        title: "Estimated from height and weight, fitted on a stated population",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::power_peak::from_height_regression::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::power_peak::from_height_regression::RULE),
+    },
+    // Power averaged across a stated phase, which is a different quantity from the peak and
+    // sits under a construct of its own for that reason.
+    Binding {
+        id: crate::slots::power_mean::phase_mean::ID,
+        slot: crate::slots::power_mean::CONSTRUCT,
+        construct: crate::slots::power_mean::CONSTRUCT,
+        title: "Power averaged across a stated phase",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::power_mean::phase_mean::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::power_mean::phase_mean::RULE),
+    },
+    // Work over a stated phase, by the two quadrature routes the registry files as one
+    // quantity and the vendor product it files as a bias.
+    Binding {
+        id: crate::slots::mechanical_work::integral_power_dt::ID,
+        slot: crate::slots::mechanical_work::CONSTRUCT,
+        construct: crate::slots::mechanical_work::CONSTRUCT,
+        title: "The area under the power curve over a stated phase",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::mechanical_work::integral_power_dt::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::mechanical_work::integral_power_dt::RULE),
+    },
+    Binding {
+        id: crate::slots::mechanical_work::integral_force_ds::ID,
+        slot: crate::slots::mechanical_work::CONSTRUCT,
+        construct: crate::slots::mechanical_work::CONSTRUCT,
+        title: "Force added up through the distance it moved them",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::mechanical_work::integral_force_ds::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::mechanical_work::integral_force_ds::RULE),
+    },
+    Binding {
+        id: crate::slots::mechanical_work::single_product::ID,
+        slot: crate::slots::mechanical_work::CONSTRUCT,
+        construct: crate::slots::mechanical_work::CONSTRUCT,
+        title: "One force value multiplied by one distance value",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::mechanical_work::single_product::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::mechanical_work::single_product::RULE),
+    },
+    // Which object the numbers describe, and what they are divided by. Both resolve a named
+    // object to a mass, through one function, so the two cannot disagree about which mass a
+    // name stands for.
+    Binding {
+        id: crate::slots::mechanical_object::computed_on_object::ID,
+        slot: crate::slots::mechanical_object::CONSTRUCT,
+        construct: crate::slots::mechanical_object::CONSTRUCT,
+        title: "Whether the numbers describe the bar, the athlete, or both together",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::mechanical_object::computed_on_object::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::mechanical_object::computed_on_object::RULE),
+    },
+    Binding {
+        id: crate::slots::normalisation_basis::denominator::ID,
+        slot: crate::slots::normalisation_basis::CONSTRUCT,
+        construct: crate::slots::normalisation_basis::CONSTRUCT,
+        title: "Which mass the numbers are divided by",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::normalisation_basis::denominator::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::normalisation_basis::denominator::RULE),
+    },
 ];
 
 /// What a caller has to state before a rule will run, for the entries whose registry rows
@@ -789,6 +911,31 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         crate::slots::epoch_impulse::epoch_from_onset::ID
         | crate::slots::epoch_impulse::to_fraction_of_peak::ID => {
             crate::slots::epoch_impulse::REQUIRED_OPTIONS
+        }
+        // What power is, which the two rate rules state without a phase, and the four rules
+        // that read a number off a power series over an interval, which state all three.
+        crate::slots::mechanical_power::force_x_velocity::ID
+        | crate::slots::rate_of_power_development::phase_anchored::ID
+        | crate::slots::rate_of_power_development::peak_to_peak_anchored::ID => {
+            crate::slots::rate_of_power_development::REQUIRED_OPTIONS
+        }
+        crate::slots::power_peak::instantaneous::ID
+        | crate::slots::power_mean::phase_mean::ID
+        | crate::slots::mechanical_work::integral_power_dt::ID
+        | crate::slots::mechanical_work::integral_force_ds::ID => {
+            crate::slots::mechanical_power::REQUIRED_OPTIONS
+        }
+        crate::slots::mechanical_work::single_product::ID => {
+            crate::slots::mechanical_work::single_product::REQUIRED_OPTIONS
+        }
+        crate::slots::power_peak::from_height_regression::ID => {
+            crate::slots::power_peak::from_height_regression::REQUIRED_OPTIONS
+        }
+        crate::slots::mechanical_object::computed_on_object::ID => {
+            crate::slots::mechanical_object::computed_on_object::REQUIRED_OPTIONS
+        }
+        crate::slots::normalisation_basis::denominator::ID => {
+            crate::slots::normalisation_basis::denominator::REQUIRED_OPTIONS
         }
         _ => &[],
     }

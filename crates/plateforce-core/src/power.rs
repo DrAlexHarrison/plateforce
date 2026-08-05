@@ -280,6 +280,76 @@ pub fn peak_power_from_height_lewis_watts(
     Some(4.9f64.sqrt() * system_mass_kilograms * jump_height_meters.sqrt() * 9.81)
 }
 
+/// One population's regression on jump height and mass, as the registry publishes it.
+///
+/// The height coefficient carries its own unit because one of the ten published sets states a
+/// height in metres and nine state it in centimetres, so a set read under the wrong unit is
+/// wrong by a factor of a hundred. Carrying the unit beside the number is what makes that
+/// unreachable rather than warned about.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HeightRegressionCoefficients {
+    pub jump_height_coefficient: f64,
+    /// `watts_per_centimetre` or `watts_per_metre`, as the registry spells it.
+    pub jump_height_unit: &'static str,
+    pub body_mass_coefficient: f64,
+    pub intercept_watts: f64,
+}
+
+pub const WATTS_PER_CENTIMETRE: &str = "watts_per_centimetre";
+pub const WATTS_PER_METRE: &str = "watts_per_metre";
+
+/// Peak power from a population-calibrated regression on jump height and mass.
+///
+/// `None` for a unit this function does not know, rather than a height silently read in
+/// metres against a coefficient calibrated per centimetre, which is the factor of a hundred
+/// the registry warns about and the only way this arithmetic can be wrong.
+pub fn peak_power_from_height_regression_watts(
+    jump_height_meters: f64,
+    system_mass_kilograms: f64,
+    coefficients: &HeightRegressionCoefficients,
+) -> Option<f64> {
+    if !jump_height_meters.is_finite() || system_mass_kilograms <= 0.0 {
+        return None;
+    }
+    let height = match coefficients.jump_height_unit {
+        WATTS_PER_CENTIMETRE => jump_height_meters * 100.0,
+        WATTS_PER_METRE => jump_height_meters,
+        _ => return None,
+    };
+    let watts = coefficients.jump_height_coefficient * height
+        + coefficients.body_mass_coefficient * system_mass_kilograms
+        + coefficients.intercept_watts;
+    watts.is_finite().then_some(watts)
+}
+
+/// Work as one force value multiplied by one displacement value, the vendor construction.
+///
+/// Registered because the majority of a generation of results were produced with it, not
+/// because it is a second quadrature route. A single product equals the integral only where
+/// force is constant through the displacement, which it emphatically is not during a jump, so
+/// the peak taken per cycle biases the number high by an amount that depends on the shape of
+/// the force-displacement curve rather than by a constant.
+pub fn work_from_single_force_displacement_product_joules(
+    vertical_ground_reaction_force_newtons: &[f64],
+    displacement_meters: &[f64],
+    phase: &DeclaredPhase,
+) -> Result<f64, PowerError> {
+    phase.checked_against(vertical_ground_reaction_force_newtons.len())?;
+    if displacement_meters.len() != vertical_ground_reaction_force_newtons.len() {
+        return Err(PowerError::SeriesLengthMismatch {
+            force_samples: vertical_ground_reaction_force_newtons.len(),
+            velocity_samples: displacement_meters.len(),
+        });
+    }
+    let peak_force_newtons = vertical_ground_reaction_force_newtons
+        [phase.first_index..=phase.last_index]
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let rise_meters = displacement_meters[phase.last_index] - displacement_meters[phase.first_index];
+    Ok(peak_force_newtons * rise_meters)
+}
+
 /// A rate of power development, with the two instants the line was drawn between.
 ///
 /// The instants travel with the number because two rules under this construct anchor
