@@ -984,14 +984,16 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         crate::slots::rate_of_force_development::between_force_levels::ID => {
             crate::slots::rate_of_force_development::between_force_levels::REQUIRED_OPTIONS
         }
-        // What power is, which the two rate rules state without a phase, and the four rules
-        // that read a number off a power series over an interval, which state all three.
+        // What power is, which the rule forming the series and the peak-to-peak rate state
+        // without a phase.
         crate::slots::mechanical_power::force_x_velocity::ID
-        | crate::slots::rate_of_power_development::phase_anchored::ID
         | crate::slots::rate_of_power_development::peak_to_peak_anchored::ID => {
             crate::slots::rate_of_power_development::REQUIRED_OPTIONS
         }
-        crate::slots::power_peak::instantaneous::ID
+        // The five rules that read a number off a power series over an interval, which state
+        // all three.
+        crate::slots::rate_of_power_development::phase_anchored::ID
+        | crate::slots::power_peak::instantaneous::ID
         | crate::slots::power_mean::phase_mean::ID
         | crate::slots::mechanical_work::integral_power_dt::ID
         | crate::slots::mechanical_work::integral_force_ds::ID => {

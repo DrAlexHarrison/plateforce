@@ -28,8 +28,6 @@ pub mod mean_force_over_duration;
 pub mod peak_sliding_window;
 pub mod phase_endpoint_secant;
 
-use crate::derived::DerivedContext;
-
 /// The construct id, as `registry/constructs.toml` declares it.
 pub const CONSTRUCT: &str = "rate_of_force_development";
 
@@ -37,17 +35,3 @@ pub const CONSTRUCT: &str = "rate_of_force_development";
 /// `computed_by` vary is what makes them answers to one question rather than separate
 /// quantities.
 pub const KEY: &str = "rate_of_force_development_newtons_per_second";
-
-/// The propulsion interval, for a rule that names that phase rather than reading a caller's
-/// choice of one.
-///
-/// `crate::boundaries::phase_interval` is where the samples a phase runs between are worked
-/// out, for every phase a request can name and for every rule that runs across one.
-pub(crate) fn propulsion_interval(
-    context: &DerivedContext,
-) -> Result<(usize, usize), Vec<&'static str>> {
-    crate::boundaries::phase_interval(
-        context,
-        crate::boundaries::Phase::PropulsionStartToPropulsionEnd,
-    )
-}

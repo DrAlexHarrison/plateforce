@@ -223,7 +223,12 @@ fn gravity_is_a_value_this_surface_can_sweep() {
 fn the_rules_and_a_value_inside_them_vary_on_one_line() {
     let over_the_rules = record(&["--slot", "onset"]);
     let over_a_value = record(&["--vary", &format!("onset.k={PUBLISHED_K}")]);
-    let over_both = record(&["--slot", "onset", "--vary", &format!("onset.k={PUBLISHED_K}")]);
+    let over_both = record(&[
+        "--slot",
+        "onset",
+        "--vary",
+        &format!("onset.k={PUBLISHED_K}"),
+    ]);
 
     let width = |swept: &serde_json::Value| swept["combinations_run"].as_u64().expect("a count");
     println!(
@@ -233,7 +238,10 @@ fn the_rules_and_a_value_inside_them_vary_on_one_line() {
         width(&over_both)
     );
     assert!(width(&over_the_rules) > 1 && width(&over_a_value) > 1);
-    assert_eq!(width(&over_both), width(&over_the_rules) * width(&over_a_value));
+    assert_eq!(
+        width(&over_both),
+        width(&over_the_rules) * width(&over_a_value)
+    );
 
     // The record names both axes, so a reader of the figure can see the whole set it came
     // from rather than the half a one-axis sweep would have shown them.

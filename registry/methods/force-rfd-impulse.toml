@@ -1103,6 +1103,39 @@ status = "accepted"
 confidence = "high"
 debate = "single_position"
 
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+Which phase the rate is anchored at the start of. The rule says a declared phase and none is
+defaulted: the value moves the number, and no source here names the interval it means, so a phase
+chosen without the caller would carry a citation onto an interval it never took this rate across.
+
+The same four intervals the other rules reading a number off a power series take, in the same words,
+because a reader drawing a peak power and the rate that reached it against each other is entitled to
+have the two mean one thing by the phase they name.
+
+Peak power inside the phase is what the rate runs to, so a phase whose peak sits at its first sample
+leaves no line to draw and the rule says so rather than reporting a rate over no interval.
+"""
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
+
 [[method.citation]]
 key = "vald_glossary"
 role = "uses"

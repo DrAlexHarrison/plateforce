@@ -1,9 +1,11 @@
 //! `rpd.phase_anchored`: the line from the start of a declared phase to the instant of peak
 //! power inside it.
 //!
-//! The phase is the one the propulsion rules declared, so this rate inherits the phase model
-//! and moves with it. The chain names both boundaries, which is what lets a reader see why two
-//! results under this entry differ.
+//! The caller states which phase, in the same four words the other rules reading a number off
+//! a power series take, and the rate is taken across whatever the rules bound to that phase's
+//! boundaries put on the trace, so it inherits the phase model and moves with it. The chain
+//! names both boundaries, which is what lets a reader see why two results under this entry
+//! differ.
 
 use crate::binding::ONSET_CONSTRUCT;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
@@ -28,7 +30,6 @@ fn compute(
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
     let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
-
     let Some(onset) = context.onset_index() else {
         return DerivedOutcome::declined(
             resolved.finish(),
@@ -36,24 +37,22 @@ fn compute(
         );
     };
     let series = super::power_series(context, &mut resolved, ID, onset, Some(super::KEY));
+    // Both consulted before either is judged, so a request stating one does not get it back
+    // as a name this rule never read.
+    let interval = crate::slots::mechanical_power::phase_interval(context, &mut resolved, ID);
     let bound = resolved.finish();
 
     let series = match series {
         Ok(series) => series,
         Err(refusal) => return DerivedOutcome::declined(bound, refusal),
     };
-
-    let (start, end) = match crate::slots::rate_of_force_development::propulsion_interval(context) {
-        Ok(interval) => interval,
-        Err(missing) => return DerivedOutcome::declined(bound, context.unavailable(ID, &missing)),
+    let phase = match interval {
+        Ok(phase) => phase,
+        Err(refusal) => return DerivedOutcome::declined(bound, refusal),
     };
 
     super::record_entries_behind(context, onset);
-    let phase = plateforce_core::power::DeclaredPhase {
-        first_index: start,
-        last_index: end,
-        method_id: ID.to_string(),
-    };
+    let (start, end) = (phase.first_index, phase.last_index);
     match plateforce_core::power::rate_of_power_development_phase_anchored(
         &series,
         &phase,
