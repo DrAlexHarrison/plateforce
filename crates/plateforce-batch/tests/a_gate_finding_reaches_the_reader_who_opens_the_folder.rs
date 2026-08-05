@@ -165,7 +165,9 @@ fn every_column_carries_something_the_results_table_does_not() {
     assert_eq!(row[2], GATE_ID, "which rule examined the trial");
     assert_eq!(row[3], "removed", "whether it left the population");
     assert_eq!(row[4], "permitted_deviation_percent", "what the rule read");
-    assert_eq!(row[5], "10.0", "the figure it measured");
+    // A whole number reads as the digits somebody would type, the one spelling every
+    // recorded number takes.
+    assert_eq!(row[5], "10", "the figure it measured");
     assert_eq!(row[6], CRITERION, "what it concluded, in the gate's words");
     std::fs::remove_dir_all(&directory).ok();
 }

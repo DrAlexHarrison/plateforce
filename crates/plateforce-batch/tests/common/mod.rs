@@ -82,7 +82,7 @@ pub fn bound_request_describing_the_plate() -> BatchRequest {
 }
 
 pub fn analysis_request(weighing_duration_seconds: f64) -> AnalysisRequest {
-    AnalysisRequest {
+    let mut request = AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".to_string(),
             parameters: BTreeMap::from([("duration".to_string(), weighing_duration_seconds)]),
@@ -102,7 +102,12 @@ pub fn analysis_request(weighing_duration_seconds: f64) -> AnalysisRequest {
         gravity_meters_per_second_squared: 9.80665,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    };
+    // What every surface does before running: the rules read the registry's declared
+    // defaults rather than copies of them, and a request that skipped this reads nothing
+    // and refuses.
+    request.reading(&registry());
+    request
 }
 
 /// A directory of its own, so a denominator is what the test put there rather than what the
