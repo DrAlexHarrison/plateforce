@@ -318,7 +318,10 @@ fn every_name_a_rule_assumes_is_the_one_the_registry_declares() {
             let Some(taken) = row.values.get(&parameter.name) else {
                 continue;
             };
-            let named = format!("{} on {} via {}", parameter.name, row.entry_id, row.through.id);
+            let named = format!(
+                "{} on {} via {}",
+                parameter.name, row.entry_id, row.through.id
+            );
             match stating(row.through, &parameter.name, declared) {
                 Stating::Refused => fixed_by_the_rule.push(named),
                 Stating::Dropped => dropped.push(named),
