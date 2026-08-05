@@ -64,9 +64,12 @@ fn base() -> AnalysisRequest {
     }
 }
 
+/// A construct, the rule to bind there, and the options stated on it.
+type BoundSlot<'a> = (&'a str, &'a str, &'a [(&'a str, &'a str)]);
+
 /// A request naming one rule per construct, with the names and numbers each rule states
 /// required and publishes no value for.
-fn naming(pairs: &[(&str, &str, &[(&str, &str)])]) -> AnalysisRequest {
+fn naming(pairs: &[BoundSlot]) -> AnalysisRequest {
     let mut request = base();
     for (construct, method_id, options) in pairs {
         request.derived.insert(
@@ -85,7 +88,7 @@ fn naming(pairs: &[(&str, &str, &[(&str, &str)])]) -> AnalysisRequest {
 }
 
 /// The landmarks every rule in this file divides, named once.
-const LANDMARKS: &[(&str, &str, &[(&str, &str)])] = &[
+const LANDMARKS: &[BoundSlot<'static>] = &[
     (
         "propulsion_phase_start",
         "phase.propulsion_start.zero_velocity",
@@ -94,7 +97,7 @@ const LANDMARKS: &[(&str, &str, &[(&str, &str)])] = &[
     ("landing", "landing.threshold.tied_to_takeoff", &[]),
 ];
 
-fn with_landmarks(extra: &[(&str, &str, &[(&str, &str)])]) -> AnalysisRequest {
+fn with_landmarks(extra: &[BoundSlot]) -> AnalysisRequest {
     let mut pairs = LANDMARKS.to_vec();
     pairs.extend_from_slice(extra);
     naming(&pairs)
@@ -359,11 +362,7 @@ fn a_recording_that_ends_before_the_dwell_says_how_much_it_holds() {
     // percent of system weight at any dwell at all.
     let seconds_at_a_short_dwell = stabilisation_under(&trial, &[("dwell_seconds", 0.02)]);
     let never_entered = declined_because(
-        &run(
-            &trial,
-            &stating(&[("dwell_seconds", 0.02)]),
-        )
-        .expect("the request is answerable"),
+        &run(&trial, &stating(&[("dwell_seconds", 0.02)])).expect("the request is answerable"),
         "tts.band_and_dwell.hawkin",
     )
     .expect("the rule that reported nothing said why");
@@ -389,7 +388,8 @@ fn a_recording_that_ends_before_the_dwell_says_how_much_it_holds() {
 
 /// One request naming the stabilisation rule, carrying the numbers a probe states on it.
 fn stating(parameters: &[(&str, f64)]) -> AnalysisRequest {
-    let mut request = with_landmarks(&[(STABILISATION_CONSTRUCT, "tts.band_and_dwell.hawkin", &[])]);
+    let mut request =
+        with_landmarks(&[(STABILISATION_CONSTRUCT, "tts.band_and_dwell.hawkin", &[])]);
     let choice = request
         .derived
         .get_mut(STABILISATION_CONSTRUCT)
