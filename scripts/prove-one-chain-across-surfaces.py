@@ -181,25 +181,13 @@ def parameters_of(tree, quantity, depth=0, into=None):
 
 # What the surfaces are measured to disagree about, each entry naming the work that ends it.
 #
-# `Analysis::one` in `crates/plateforce-python/src/analysis.rs` appends the gravity the
-# analysis ran under to the root step of the quantities that rest on it, after reading the tree
-# from the one derivation. A rule may record only a parameter its own registry entry declares,
-# and of the twelve rules reading that value one declares it, so on every other surface the
-# number that moved these reaches no step of the chain at all. The information is real. Its
-# home is `chain_of`, which would put it on every surface at once and empty this register.
-KNOWN_DIFFERENCES = {
-    ("python", "jump_height_from_flight_time_meters", 0, "jumpheight.takeoff.flight_time",
-     "gravity_meters_per_second_squared"),
-    ("python", "jump_height_from_takeoff_meters", 0, "jumpheight.takeoff.impulse_momentum",
-     "gravity_meters_per_second_squared"),
-    ("python", "reactive_strength_index_modified", 0, "rsimod.jh_tov_over_ttt",
-     "gravity_meters_per_second_squared"),
-    ("python", "system_mass_kilograms", 0, "bwepoch.fixed_window",
-     "gravity_meters_per_second_squared"),
-    ("python", "takeoff_velocity_meters_per_second", 0,
-     "impulse.net_vertical.as_performance_determinant",
-     "gravity_meters_per_second_squared"),
-}
+# Empty, and it has been full. Five entries recorded the analysis gravity reaching the root step
+# of five quantities on the notebook and on no other surface, because `Analysis::one` added it
+# after reading the tree. The addition was right and its home was the derivation: it is
+# `chain_of`'s now, so the same record reaches every consumer and these five closed together.
+# The register reddens on a difference nobody recorded and on the repair of a recorded one, so
+# emptying it was part of the repair rather than a step after it.
+KNOWN_DIFFERENCES = set()
 
 # The floor the populations are held to, so a run over a shrunken answer cannot read as
 # agreement. Both are this build's own figures, taken with the request above.
