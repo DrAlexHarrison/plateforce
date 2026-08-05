@@ -308,6 +308,19 @@ never sufficient: the variant and its window must travel with the number.
 """
 
 [[construct]]
+id = "force_at_epoch"
+title = "The force reached at a stated elapsed time from onset"
+label = "How much force they had built by a set moment"
+unit = "newtons"
+notes = """
+Newtons, where a rate is newtons per second, which is why this is not filed among the rate rules
+that report it. One source states the force at the epoch and the mean rate over it together; under
+a net convention they are one quantity in two units, and under a gross convention they are two,
+because the force at onset does not cancel. A caller choosing among the rate rules is choosing how
+fast force rose, and none of that choice decides whether this number exists.
+"""
+
+[[construct]]
 id = "epoch_impulse"
 title = "Force integrated over a declared epoch from onset"
 rules_answer = "one_question"

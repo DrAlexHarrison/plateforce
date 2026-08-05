@@ -671,6 +671,20 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::rate_of_force_development::epoch_overlapping::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::rate_of_force_development::epoch_overlapping::RULE),
     },
+    // Newtons, beside the rules that report newtons per second. Its own construct, because a
+    // rate rule reporting it too would cost every caller reaching for one of the other eight
+    // rate rules a quantity, silently.
+    Binding {
+        id: crate::slots::force_at_epoch::at_epoch_from_onset::ID,
+        slot: crate::slots::force_at_epoch::CONSTRUCT,
+        construct: crate::slots::force_at_epoch::CONSTRUCT,
+        title: "The force reached a stated time after onset",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::force_at_epoch::at_epoch_from_onset::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::force_at_epoch::at_epoch_from_onset::RULE),
+    },
     Binding {
         id: crate::slots::rate_of_force_development::epoch_sequential::ID,
         slot: crate::slots::rate_of_force_development::CONSTRUCT,

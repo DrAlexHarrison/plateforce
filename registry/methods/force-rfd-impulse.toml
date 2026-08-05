@@ -204,6 +204,50 @@ them differently in the interface and in the export.
 boundary = "protocol"
 
 [[method]]
+id = "force.at_epoch_from_onset"
+construct = "force_at_epoch"
+group = "H"
+title = "Force reached at a stated elapsed time from onset"
+rule = """
+With onset fixed by a declared method, report the force the trace has reached a stated time later.
+The same source states this beside the mean rate over the interval, and the two are one quantity in
+two units only under a net convention: under a gross one the force at onset does not cancel, so the
+force reached and the rate travelled are two numbers. Reported against the same convention the
+caller's weighing rule established, so a reader comparing it against a rate over the same interval
+is comparing numbers taken the same way.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "epoch_ms"
+unit = "milliseconds"
+published_values = [30.0, 50.0, 90.0, 100.0, 150.0, 200.0, 250.0]
+default = 200.0
+default_source = "maffiuletti2016"
+required = true
+notes = "The same elapsed times the rate over the interval is quantified at, so the two can be read against each other."
+
+[[method.citation]]
+key = "aagaard2002"
+role = "proposes"
+reference = "Aagaard et al. 2002, J Appl Physiol, originating usage, not obtained"
+doi = "10.1152/japplphysiol.00283.2002"
+obtained = false
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, ingested at full quality"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "carries the whole of the onset bias at short elapsed times, as the rate over the same interval does"
+
+[[method]]
 id = "rfd.epoch_from_onset.overlapping"
 construct = "rate_of_force_development"
 group = "H"

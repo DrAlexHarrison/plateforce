@@ -607,6 +607,12 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "slot": "peak_force"
