@@ -1414,7 +1414,12 @@ debate = "single_position"
 [[method.parameter]]
 name = "bound"
 unit = "enumeration"
-notes = "Which downstream landmark closes the search, so a last-crossing rule cannot pick up a crossing the movement itself produced."
+notes = """
+Which downstream landmark closes the search, so a last-crossing rule cannot pick up a crossing the
+movement itself produced. The landmark named here lands somewhere different on every recording, and
+where it landed is reported against this entry as search_bound_seconds, read off the trace rather
+than stated by the caller.
+"""
 
 [[method.parameter.value]]
 key = "minimum_force"
