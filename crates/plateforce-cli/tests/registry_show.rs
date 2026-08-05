@@ -140,7 +140,10 @@ fn what_the_registry_says_about_a_parameter_reaches_the_terminal() {
     let noted = [CARRIES_BOTH_KINDS, "onset.op.search_upper_bound"];
     let mut sentences_checked = 0;
     for id in noted {
-        let entry = registry.methods.get(id).expect("the entry is in the registry");
+        let entry = registry
+            .methods
+            .get(id)
+            .expect("the entry is in the registry");
         let said = String::from_utf8(show(id).stdout).expect("the entry is UTF-8");
         // Whitespace-normalised, because the renderer wraps a note across lines at the
         // terminal's width and a byte comparison would fail on a note that is present.

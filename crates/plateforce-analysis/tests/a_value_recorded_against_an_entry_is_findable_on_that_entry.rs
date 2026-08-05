@@ -93,9 +93,7 @@ fn recorded(response: &AnalysisResponse) -> Vec<Recorded> {
 
 /// How a name is findable on the entry it was recorded against, or `None` when it is not.
 fn findable(registry: &Registry, ids: &BTreeSet<&str>, item: &Recorded) -> Option<&'static str> {
-    let Some(entry) = registry.methods.get(&item.entry) else {
-        return None;
-    };
+    let entry = registry.methods.get(&item.entry)?;
     if entry.parameters.iter().any(|p| p.name == item.name) {
         return Some("declared as a parameter");
     }
