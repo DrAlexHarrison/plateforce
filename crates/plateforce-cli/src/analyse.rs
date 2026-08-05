@@ -392,7 +392,7 @@ fn slot_and_parameter<'a>(qualified: &'a str, slots: &[&str]) -> Option<(&'a str
 /// the phase runs on every run. A step that always runs and takes no value is a rule reading
 /// its own answer with the reader holding theirs, which is the founding observation arriving
 /// on this surface's own request path.
-fn steps_of_this_run(also: &[String]) -> Vec<&str> {
+pub(crate) fn steps_of_this_run(also: &[String]) -> Vec<&str> {
     let mut slots: Vec<&str> = PATH.iter().map(|c| decisions::slot_of(c)).collect();
     slots.extend(plateforce_analysis::binding::conditioning_constructs());
     slots.extend(also.iter().map(String::as_str));
@@ -404,7 +404,7 @@ fn steps_of_this_run(also: &[String]) -> Vec<&str> {
 /// The shape of an assignment is a fault in the line and reaches no rule, so it carries no
 /// published code. Two flags rather than one shared grammar function would let the two drift
 /// into refusing differently for the same malformed line.
-fn assignment_of<'a>(
+pub(crate) fn assignment_of<'a>(
     flag: &str,
     shape: &str,
     assignment: &'a str,
