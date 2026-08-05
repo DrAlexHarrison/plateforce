@@ -63,7 +63,15 @@ fn place(
         );
     };
 
-    let gravity = context.gravity_behind(Some(super::KEY));
+    // `None`, because this boundary does not move with the gravity that scaled the series it
+    // is read off. Acceleration is g(F - W)/W, so the integrated velocity scales by g, and
+    // the anchor value is a takeoff velocity read off the same scaling; both terms carry the
+    // factor, and scaling a series moves neither its zeros nor its extrema. Recorded against
+    // the key, this boundary named a value that moves it by nothing, and every number
+    // measured across it would have inherited a dependence it has not got. The guard measured
+    // exactly that: the same sample at 9.80665 and at the second gravity, with the chain
+    // saying otherwise.
+    let gravity = context.gravity_behind(None);
     let takeoff_velocity = takeoff_velocity_meters_per_second(
         context.trial,
         context.epoch(),
