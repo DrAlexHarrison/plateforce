@@ -835,17 +835,19 @@ fn a_power_rate_states_what_power_is_before_it_reports_one() {
     );
 
     let under = |method_id: &str, force_term: &str| {
+        let mut options = BTreeMap::from([
+            ("force_term".to_string(), force_term.to_string()),
+            ("sign_convention".to_string(), "upward_positive".to_string()),
+        ]);
+        // The phase-anchored rule takes the interval as well, and states no default for it.
+        // The whole movement, because it runs between the two landmarks this request already
+        // places, so what varies here stays the force term.
+        if method_id == "rpd.phase_anchored" {
+            options.insert("phase".to_string(), "movement".to_string());
+        }
         run(
             &trial,
-            &asking(
-                POWER_RATE_CONSTRUCT,
-                method_id,
-                BTreeMap::new(),
-                BTreeMap::from([
-                    ("force_term".to_string(), force_term.to_string()),
-                    ("sign_convention".to_string(), "upward_positive".to_string()),
-                ]),
-            ),
+            &asking(POWER_RATE_CONSTRUCT, method_id, BTreeMap::new(), options),
         )
         .expect("the analysis ran")
     };
