@@ -112,3 +112,41 @@ fn the_parquet_results_schema_names_what_the_csv_header_names() {
         in_csv.len()
     );
 }
+
+/// The same agreement for the long-form table, which is the one a cohort question filters.
+///
+/// It gained a subject, a value and a method id in one edit, and each had to be added twice
+/// because the parquet schema is written by hand where the CSV header is generated.
+#[test]
+fn the_parquet_description_schema_names_what_the_csv_header_names() {
+    use plateforce_batch::relations::DescriptionRow;
+
+    let directory = tempdir("parquet-description-schema");
+    copy_committed_fixtures(&directory);
+    let set = TrialSet::walk(&directory, &committed_format(), &TrialIdentity::FileStem).unwrap();
+    let result = analyse(&set, &bound_request_describing_the_plate(), &registry()).unwrap();
+    assert!(
+        !result.descriptions.is_empty(),
+        "the run wrote no accounts, so this compares two empty schemas and proves nothing",
+    );
+
+    let out = directory.join("out");
+    result.write_parquet(&out).unwrap();
+    let path = out.join("descriptions.parquet");
+    let file = std::fs::File::open(&path).unwrap();
+    let reader = parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder::try_new(file)
+        .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    let in_parquet: Vec<String> = reader
+        .schema()
+        .fields()
+        .iter()
+        .map(|field| field.name().clone())
+        .collect();
+
+    assert_eq!(
+        in_parquet,
+        DescriptionRow::header(),
+        "the two containers describe one table under different column names",
+    );
+    println!("both containers name {} columns", in_parquet.len());
+}

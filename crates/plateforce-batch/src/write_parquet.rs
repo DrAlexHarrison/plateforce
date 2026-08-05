@@ -147,17 +147,32 @@ impl BatchResult {
     /// Beside `provenance` rather than folded into it: that relation collapses to one set of
     /// rows per distinct chain, and an account opens with the trial's own number.
     fn descriptions_batch(&self) -> Result<RecordBatch, ParquetError> {
+        // Spelled in `DescriptionRow::header`'s order, and held to it by
+        // `the_parquet_description_schema_names_what_the_csv_header_names`. The value stays a
+        // number here rather than becoming text, so a reader opening this in R or pandas
+        // filters on it without parsing.
         batch(
             "descriptions",
             vec![
                 Field::new("trial_id", DataType::Utf8, false),
+                Field::new("subject", DataType::Utf8, false),
                 Field::new("quantity", DataType::Utf8, false),
+                Field::new("value", DataType::Float64, true),
+                Field::new("method_id", DataType::Utf8, false),
                 Field::new("provenance_id", DataType::Utf8, false),
                 Field::new("account", DataType::Utf8, false),
             ],
             vec![
                 text(self.descriptions.iter().map(|row| row.trial_id.clone())),
+                text(self.descriptions.iter().map(|row| row.subject.clone())),
                 text(self.descriptions.iter().map(|row| row.quantity.clone())),
+                Arc::new(Float64Array::from(
+                    self.descriptions
+                        .iter()
+                        .map(|row| row.value)
+                        .collect::<Vec<Option<f64>>>(),
+                )) as ArrayRef,
+                text(self.descriptions.iter().map(|row| row.method_id.clone())),
                 text(
                     self.descriptions
                         .iter()

@@ -126,7 +126,7 @@ fn a_run_writes_its_accounts_beside_its_numbers_and_reads_them_back_whole() {
     let text =
         std::fs::read_to_string(out.join("descriptions.csv")).expect("the relation is on disk");
     assert!(
-        text.starts_with("trial_id,quantity,provenance_id,account\n"),
+        text.starts_with("trial_id,subject,quantity,value,method_id,provenance_id,account\n"),
         "{}",
         text.lines().next().unwrap_or_default()
     );

@@ -329,3 +329,82 @@ fn a_run_with_no_declared_pattern_names_no_athlete_rather_than_inventing_one() {
         invented.len(),
     );
 }
+
+/// The long-form table answers a cohort question without a join.
+///
+/// One row per trial per quantity, each carrying whose trial it was, the number, and the rule
+/// that produced it. The join through `provenance_id` is still there for every parameter; what
+/// is on the row is the part a question groups and splits on, because a filtered table that
+/// lost the method that produced each number is this project's founding defect at the cohort
+/// level.
+#[test]
+fn the_long_form_table_carries_the_athlete_the_number_and_the_rule_on_one_row() {
+    let set = a_folder("long-form");
+    let result = analyse(
+        &set,
+        &bound_request().massing(a_squads_masses()),
+        &registry(),
+    )
+    .expect("the folder runs");
+
+    assert!(
+        !result.descriptions.is_empty(),
+        "the run wrote no long-form rows, so nothing below is a measurement",
+    );
+
+    let with_a_number: Vec<&plateforce_batch::relations::DescriptionRow> = result
+        .descriptions
+        .iter()
+        .filter(|row| row.value.is_some())
+        .collect();
+    assert!(
+        !with_a_number.is_empty(),
+        "every row carries an account and none carries a number, so the table is still a \
+         commentary on another one rather than filterable on its own",
+    );
+
+    for row in &with_a_number {
+        assert!(
+            !row.subject.is_empty(),
+            "a row names its number and not its athlete: {} {}",
+            row.trial_id,
+            row.quantity,
+        );
+        assert!(
+            !row.method_id.is_empty(),
+            "a row names its number and not the rule that produced it: {} {}",
+            row.trial_id,
+            row.quantity,
+        );
+    }
+
+    // The number on the long row is the number in the wide table, not a second reading of it.
+    for row in &with_a_number {
+        let wide = result
+            .results
+            .iter()
+            .find(|result_row| result_row.trial_id == row.trial_id)
+            .and_then(|result_row| result_row.values.get(&row.quantity).copied().flatten());
+        assert_eq!(
+            wide, row.value,
+            "the two tables report different numbers for {} {}",
+            row.trial_id, row.quantity,
+        );
+    }
+
+    let rules: std::collections::BTreeSet<&str> = with_a_number
+        .iter()
+        .map(|row| row.method_id.as_str())
+        .collect();
+    println!(
+        "{} of {} long-form rows carry a number, over {} athletes and {} rules",
+        with_a_number.len(),
+        result.descriptions.len(),
+        with_a_number
+            .iter()
+            .map(|row| row.subject.as_str())
+            .collect::<std::collections::BTreeSet<&str>>()
+            .len(),
+        rules.len(),
+    );
+}

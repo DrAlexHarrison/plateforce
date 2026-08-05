@@ -121,6 +121,19 @@ count those rows rather than dropping them, and `refusal_code` says why each one
 parameter with `source` reading `stated`, `assumed` or `measured`. That join is how a value in the
 table keeps the rule that produced it.
 
+**`descriptions.csv` is the long-form table, and it is the one to filter a cohort question over.**
+One row per trial per quantity: `trial_id`, `subject`, `quantity`, `value`, `method_id`,
+`provenance_id`, `account`. The number, whose trial it was, and the rule that produced it are all
+on the row, so grouping, splitting and relating need no join. `account` is that number's own
+account of itself in prose. The join through `provenance_id` is still how you reach every
+parameter the rule bound.
+
+Same columns in `descriptions.parquet`, with `value` a float rather than text.
+
+**If you filter or concatenate these tables, carry `run.json` with them.** It holds the registry
+digest, the request digest and the run fingerprint. A table separated from its record is a set of
+numbers whose method nobody can recover, which is the failure this tool exists to prevent.
+
 ## What every refusal means
 
 Refusals carry a code and an exit code. Branch on the code, not on the text.

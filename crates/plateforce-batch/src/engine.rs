@@ -579,6 +579,15 @@ pub fn analyse(
 
         let rows = provenance_rows(&response, &stamp, acquisition_is_complete);
         let identifier = provenance_id(&rows);
+        // The rule that produced each quantity, taken from depth 0 of that quantity's own
+        // chain, which is where `ProvenanceRow` says the arithmetic sits. Read before the
+        // rows move into the map, because the entry is only filled for a chain nobody has
+        // seen and a second trial under the same rules would find nothing to read.
+        let producing: BTreeMap<String, String> = rows
+            .iter()
+            .filter(|row| row.depth == 0)
+            .map(|row| (row.quantity.clone(), row.method_id.clone()))
+            .collect();
         provenance.entry(identifier.clone()).or_insert_with(|| {
             rows.into_iter()
                 .map(|mut row| {
@@ -591,12 +600,28 @@ pub fn analyse(
         // The account each of this trial's numbers gives of itself, from the one site that
         // writes them. A folder run wrote none, so a reader who ran two hundred trials held
         // the rules as rows and no number's own account of itself.
+        //
+        // The value and the rule ride here too, so this is one row per trial per quantity
+        // carrying the number, what produced it, whose trial it was and the account of
+        // itself. That is the long-form table a cohort question is filtered over, and it is
+        // this one rather than a second one beside it: two tables at one row per trial per
+        // quantity would be two answers to one question, free to disagree.
         for (quantity, account) in
             plateforce_analysis::accounts_of(&response, &stamp, acquisition_is_complete)
         {
+            // The metric already carries its own absence, so the two Nones are flattened into
+            // the one this row means: no number for this quantity on this trial.
+            let value = response
+                .metrics
+                .iter()
+                .find(|metric| metric.key == quantity)
+                .and_then(|metric| metric.value);
             descriptions.push(DescriptionRow {
                 trial_id: trial_id.clone(),
-                quantity,
+                subject: subject_of(entry),
+                quantity: quantity.clone(),
+                value,
+                method_id: producing.get(&quantity).cloned().unwrap_or_default(),
                 provenance_id: identifier.clone(),
                 account,
             });

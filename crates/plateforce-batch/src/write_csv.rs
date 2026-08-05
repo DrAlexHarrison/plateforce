@@ -276,9 +276,18 @@ pub fn read_csv(directory: &Path) -> Result<ReadBack, WriteRefusal> {
         .iter()
         .map(|cells| DescriptionRow {
             trial_id: cells[0].clone(),
-            quantity: cells[1].clone(),
-            provenance_id: cells[2].clone(),
-            account: cells[3].clone(),
+            subject: cells[1].clone(),
+            quantity: cells[2].clone(),
+            // An empty cell is a quantity with an account and no number, which is a different
+            // fact from a zero and is written as an empty cell for exactly that reason.
+            value: if cells[3].is_empty() {
+                None
+            } else {
+                cells[3].parse::<f64>().ok()
+            },
+            method_id: cells[4].clone(),
+            provenance_id: cells[5].clone(),
+            account: cells[6].clone(),
         })
         .collect();
 

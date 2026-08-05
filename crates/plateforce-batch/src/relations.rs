@@ -125,7 +125,23 @@ impl ProvenanceRow {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DescriptionRow {
     pub trial_id: String,
+    /// The athlete whose trial this is, empty where the run declared no pattern. Same rule as
+    /// `ResultRow::subject`, and read from the same resolution.
+    #[serde(default)]
+    pub subject: String,
     pub quantity: String,
+    /// The number itself, so this table is filterable on its own rather than only as a
+    /// commentary on another one. `None` where the quantity has an account and no value.
+    #[serde(default)]
+    pub value: Option<f64>,
+    /// The rule that produced the number, from depth 0 of its own chain.
+    ///
+    /// On the row rather than left to the join. The join through `provenance_id` is still
+    /// there and still carries every parameter, but the one fact a cohort question groups and
+    /// splits on is which rule made the number, and requiring a join to learn it is how a
+    /// filtered table loses the method that produced it.
+    #[serde(default)]
+    pub method_id: String,
     /// The chain this account was written from, so a reader can reach the same decisions as
     /// rows in `provenance`.
     pub provenance_id: String,
@@ -136,16 +152,27 @@ pub struct DescriptionRow {
 
 impl DescriptionRow {
     pub fn header() -> Vec<String> {
-        ["trial_id", "quantity", "provenance_id", "account"]
-            .iter()
-            .map(|name| name.to_string())
-            .collect()
+        [
+            "trial_id",
+            "subject",
+            "quantity",
+            "value",
+            "method_id",
+            "provenance_id",
+            "account",
+        ]
+        .iter()
+        .map(|name| name.to_string())
+        .collect()
     }
 
     pub fn cells(&self) -> Vec<String> {
         vec![
             self.trial_id.clone(),
+            self.subject.clone(),
             self.quantity.clone(),
+            self.value.map(format_value).unwrap_or_default(),
+            self.method_id.clone(),
             self.provenance_id.clone(),
             self.account.clone(),
         ]
