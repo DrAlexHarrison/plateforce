@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::{
-    bindings_for, chain_of, AnalysisRequest, AnalysisResponse, MethodChoice, Metric, WeighingChoice,
+    bindings_for, chain_of, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice,
 };
 use plateforce_core::{
     jump_height_from_flight_time as core_jump_height_from_flight_time, Measured as CoreMeasured,
@@ -250,23 +250,6 @@ fn weighing_choice(chosen: MethodChoice, start_index: Option<usize>) -> Weighing
     }
 }
 
-/// The quantities whose value moves when the gravity the analysis was bound to moves.
-///
-/// A rule may only record a parameter its own registry entry declares, and of the twelve rules
-/// that read this value one declares it, so for these five the number that moved them reaches
-/// no rule's row. `AnalysisResponse::bound_globals` carries it once for the whole analysis; a
-/// `Measured` travels away from the result it came out of, so it carries it as well.
-///
-/// `tests/test_gravity_record.py` measures which numbers move and holds this list to the
-/// measurement, in both directions.
-const QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY: &[&str] = &[
-    "jump_height_from_flight_time_meters",
-    "jump_height_from_takeoff_meters",
-    "reactive_strength_index_modified",
-    "system_mass_kilograms",
-    "takeoff_velocity_meters_per_second",
-];
-
 /// A landmark rule that placed nothing, raised as the error it was rather than as a
 /// sentence, so a caller can branch on the parameter that failed.
 fn refusal_of(python: Python<'_>, response: &AnalysisResponse, slot: &str) -> PyErr {
@@ -294,9 +277,6 @@ struct Derived<'a> {
     response: &'a AnalysisResponse,
     registry: &'a RegistryIdentity,
     acquisition_complete: bool,
-    /// What the request bound for the whole analysis, which no rule's row can carry because
-    /// no rule's entry declares it.
-    analysis_gravity: (f64, plateforce_core::provenance::ParameterSource),
 }
 
 impl Derived<'_> {
@@ -318,20 +298,19 @@ impl Derived<'_> {
     /// and no inputs at all.
     ///
     /// The tree itself is `plateforce_analysis::chain_of`'s, which is where every surface
-    /// reads it.
+    /// reads it, and what it carries reaches a caller here unaltered. This surface used to add
+    /// the analysis gravity to the root step of five quantities on its way out, so a notebook
+    /// and an R session held two accounts of what produced one number. The addition was right
+    /// and its home was the derivation.
     fn one(&self, key: &str) -> Option<Measured> {
         let metric = self.response.metric(key)?;
         let value = metric.value?;
-        let mut chain = chain_of(
+        let chain = chain_of(
             self.response,
             metric,
             &self.registry.stamp,
             self.acquisition_complete,
         );
-        chain
-            .provenance
-            .parameters
-            .extend(self.gravity_behind(metric));
         Some(Measured::new(
             CoreMeasured {
                 value,
@@ -341,47 +320,6 @@ impl Derived<'_> {
             chain.enumerated_choices,
             chain.depends_on,
         ))
-    }
-
-    /// The gravity one number ran under, for the quantities that move with it, read off the
-    /// record rather than off the request.
-    ///
-    /// A rule whose registry entry publishes a gravity of its own records it on its own row
-    /// and may have run at a value the request never held. `jumpheight.takeoff.flight_time`
-    /// is that rule: on a request nobody stated a gravity for it runs at the 9.81 its entry
-    /// declares while the request carries 9.80665, so its own row and the analysis value are
-    /// two different numbers and only one of them produced the height.
-    fn gravity_behind(&self, metric: &Metric) -> Vec<plateforce_core::provenance::ParameterRecord> {
-        use plateforce_analysis::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
-        use plateforce_core::provenance::{ParameterRecord, ParameterSource};
-
-        if !QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY.contains(&metric.key.as_str()) {
-            return Vec::new();
-        }
-        let published_by_the_rule = metric
-            .computed_by
-            .as_deref()
-            .and_then(|id| {
-                self.response
-                    .bound_methods
-                    .iter()
-                    .find(|bound| bound.method_id == id)
-            })
-            .and_then(|bound| {
-                let value = *bound.numeric_values.get(GRAVITY_PARAMETER)?;
-                let source = bound
-                    .parameter_sources
-                    .get(GRAVITY_PARAMETER)
-                    .copied()
-                    .unwrap_or(ParameterSource::Assumed);
-                Some((value, source))
-            });
-        let (value, source) = published_by_the_rule.unwrap_or(self.analysis_gravity);
-        vec![ParameterRecord {
-            name: plateforce_analysis::GRAVITY_GLOBAL.to_string(),
-            value,
-            source,
-        }]
     }
 
     /// Every quantity the response reported a number for, keyed by the engine's own name for
@@ -1115,10 +1053,6 @@ pub fn analyse_countermovement_jump(
         response: &response,
         registry: &registry,
         acquisition_complete,
-        analysis_gravity: (
-            request.gravity_meters_per_second_squared,
-            request.gravity_source,
-        ),
     };
     // A quantity the spine always reports, and the slot whose rule declined when it is
     // missing, so a caller meets the refusal that rule made rather than an absent attribute.

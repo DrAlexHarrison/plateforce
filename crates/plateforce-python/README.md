@@ -39,32 +39,36 @@ print(jump.jump_height_takeoff_frame_meters.describe())
 ```
 
 ```
-0.3419695652891413 meters
+0.4105176602724294 meters
   jumpheight.takeoff.impulse_momentum {'gravity_meters_per_second_squared': 9.80665}
-  registry declaring 2026-07-25 (content-17dbb0d46b988a50)
-    impulse.net_vertical.as_performance_determinant {'gravity_meters_per_second_squared': 9.80665}
-      bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
-        centre = mean
-        dispersion = sample
-      onset.threshold.noise_relative {'k': 5}
-        degenerate_band = refuse
-        reference_distribution = quiet_stance_force
-        sd_convention = sample
-        onset.op.backward_offset_fixed {'offset_ms': 30}
-        onset.op.crossing_selection {}
-          selection = first
-        onset.op.direction {}
-          direction = below_only
-        onset.op.persistence {'span_ms': 0}
-        onset.op.search_floor_at_weighing_epoch_end {'floor_seconds': 1}
-        bwepoch.fixed_window {'duration': 1}
-          central_tendency = mean
-          dispersion_estimator = sample
-      takeoff.threshold.absolute_force {'threshold_n': 20}
-        residual_comparison = signed_value
-        bwepoch.fixed_window {'duration': 1}
-          central_tendency = mean
-          dispersion_estimator = sample
+    integration_anchor = integration.anchor.single_point
+    integration_direction = integration.direction.forward
+    integration_rule = integration.rule.trapezoid
+    integration_start = integration.start.detected_onset
+  registry declaring 2026-07-25 (content-00529496ec77bbe7)
+    filter.none {}
+      passband_edge = none
+    bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
+      centre = mean
+      dispersion = sample
+      window_anchor = trial_start
+    onset.threshold.noise_relative {'k': 5}
+      degenerate_band = refuse
+      reference_distribution = quiet_stance_force
+      sd_convention = sample
+      onset.op.backward_offset_fixed {'offset_ms': 30}
+      onset.op.crossing_selection {}
+        selection = first
+      onset.op.direction {}
+        direction = below_only
+      onset.op.persistence {'span_ms': 30}
+      onset.op.search_floor_at_weighing_epoch_end {'weighing_epoch_end_seconds': 1}
+    takeoff.threshold.absolute_force {'persistence_ms': 0, 'threshold_n': 20}
+      takeoff.op.crossing_selection {}
+        selection = first
+      takeoff.op.residual_comparison {}
+        comparison = signed
+      takeoff.op.search_floor_at_weighing_epoch_end {'weighing_epoch_end_seconds': 1}
   acquisition block incomplete, so this result cannot be declared to match another lab's
 ```
 

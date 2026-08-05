@@ -17,7 +17,7 @@
 
 use std::collections::BTreeMap;
 
-use plateforce_core::provenance::RegistryStamp;
+use plateforce_core::provenance::{ParameterRecord, ParameterSource, RegistryStamp};
 use plateforce_core::reporting::describe;
 use plateforce_core::{Measured, Provenance, ProvenanceChain};
 
@@ -133,6 +133,92 @@ fn unbound_step(
     }
 }
 
+/// The quantities whose number moves when the gravity the analysis was bound to moves.
+///
+/// A rule may record only a parameter its own registry entry declares, and almost none of the
+/// rules reading this value declares one, so for these the number that moved them reaches no
+/// rule's row. `AnalysisResponse::bound_globals` carries it once for the whole analysis, and a
+/// `Measured` travels away from the result it came out of, so the chain behind each number
+/// carries it too.
+///
+/// How many rules read it is a query rather than a figure written here, and the figure written
+/// here was already stale when this moved out of the Python package:
+/// `grep -rcE 'context\.(gravity_meters_per_second_squared|chosen_gravity\(\))' src/` answers
+/// it, and the guard named below answers the question this list is actually about.
+///
+/// Per quantity rather than per rule, because one rule can produce two numbers that rest on
+/// different things: `impulse.net_vertical.as_performance_determinant` reports both the net
+/// impulse, integrated over the interval directly, and the takeoff velocity, read off the
+/// integrated series, and only the second moves with gravity. A record on the rule's row would
+/// give the first a dependence it does not have.
+///
+/// Held to a measurement in both directions rather than trusted:
+/// `every_number_the_analysis_gravity_moves_carries_it_in_its_chain` moves the gravity, reads
+/// which numbers followed, and requires that set and this list to be the same set. That guard
+/// runs one rule for every construct this build offers rather than the spine's alone, which is
+/// what found the sixth entry below: it moves with gravity, it was on no surface's list, and two
+/// analyses at two gravities gave it one fingerprint.
+const QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY: &[&str] = &[
+    "jump_height_from_flight_time_meters",
+    "jump_height_from_standing_meters",
+    "jump_height_from_takeoff_meters",
+    "reactive_strength_index_modified",
+    "system_mass_kilograms",
+    "takeoff_velocity_meters_per_second",
+];
+
+/// The gravity one number ran under, for the quantities that move with it, read off the record
+/// rather than off the request.
+///
+/// A rule whose registry entry publishes a gravity of its own records it on its own row and may
+/// have run at a value the request never held. `jumpheight.takeoff.flight_time` is that rule: on
+/// a request nobody stated a gravity for, it runs at the 9.81 its entry declares while the
+/// request carries 9.80665, so its own row and the analysis value are two different numbers and
+/// only one of them produced the height.
+///
+/// This lived in the Python package, which put the record on one surface. Every consumer reads
+/// the tree from here, so here is where one account of what produced a number reaches all of
+/// them.
+fn analysis_gravity_behind(
+    response: &AnalysisResponse,
+    metric: &Metric,
+) -> Option<ParameterRecord> {
+    use crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
+
+    if !QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY.contains(&metric.key.as_str()) {
+        return None;
+    }
+    let published_by_the_rule = metric
+        .computed_by
+        .as_deref()
+        .and_then(|id| {
+            response
+                .bound_methods
+                .iter()
+                .find(|bound| bound.method_id == id)
+        })
+        .and_then(|bound| {
+            let value = *bound.numeric_values.get(GRAVITY_PARAMETER)?;
+            let source = bound
+                .parameter_sources
+                .get(GRAVITY_PARAMETER)
+                .copied()
+                .unwrap_or(ParameterSource::Assumed);
+            Some((value, source))
+        });
+    let bound_for_the_analysis = response
+        .bound_globals
+        .iter()
+        .find(|bound| bound.name == crate::GRAVITY_GLOBAL)
+        .map(|bound| (bound.value, bound.source));
+    let (value, source) = published_by_the_rule.or(bound_for_the_analysis)?;
+    Some(ParameterRecord {
+        name: crate::GRAVITY_GLOBAL.to_string(),
+        value,
+        source,
+    })
+}
+
 /// The chain behind one number: the rule that computed it, the rules its answer rests on, and
 /// the operators those rules composed.
 ///
@@ -220,7 +306,7 @@ pub fn chain_of(
 
     let under_the_root: Vec<ProvenanceChain> = built.into_iter().chain(orphaned).collect();
 
-    match (arithmetic, landmark_root) {
+    let mut rooted = match (arithmetic, landmark_root) {
         (Some(id), _) => match bound_for(id) {
             Some(bound) => step(bound, registry, acquisition_complete, under_the_root),
             None => unbound_step(id, registry, acquisition_complete, under_the_root),
@@ -234,7 +320,17 @@ pub fn chain_of(
         // inventing a step, and `Provenance::of("")` is the shape the R boundary already wrote
         // for it.
         (None, None) => unbound_step("", registry, acquisition_complete, under_the_root),
-    }
+    };
+
+    // The value the analysis was bound to that produced this number, which belongs to the
+    // analysis and to no rule's registry entry, so it reaches the root of the chain rather than
+    // any row. On the root because that is the step a reader meets first and the one every
+    // consumer publishes.
+    rooted
+        .provenance
+        .parameters
+        .extend(analysis_gravity_behind(response, metric));
+    rooted
 }
 
 /// Whether one number's chain names a rule: the arithmetic that computed it, or one of the

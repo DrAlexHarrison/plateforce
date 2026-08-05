@@ -678,59 +678,107 @@ fn rows_for_step(
     depth: usize,
     rows: &mut Vec<ProvenanceRow>,
 ) {
-    let method_id = &chain.provenance.method_id;
-    match response
+    let recorded = response
         .bound_methods
         .iter()
-        .find(|bound| bound.method_id == *method_id)
-    {
-        Some(bound) => rows.extend(rows_for_bound_method(quantity, bound, depth)),
-        // A rule the response named and left no bound record for still opens the chain,
-        // because dropping it would put the rules above it under nothing.
-        None => rows.push(ProvenanceRow {
-            provenance_id: String::new(),
-            quantity: quantity.to_string(),
-            depth,
-            method_id: method_id.clone(),
-            parameter: String::new(),
-            value: String::new(),
-            source: String::new(),
-        }),
-    }
+        .find(|bound| bound.method_id == chain.provenance.method_id);
+    rows.extend(rows_for_chain_step(quantity, chain, recorded, depth));
     for input in &chain.depends_on {
         rows_for_step(input, response, quantity, depth + 1, rows);
     }
 }
 
-fn rows_for_bound_method(quantity: &str, bound: &BoundMethod, depth: usize) -> Vec<ProvenanceRow> {
-    if bound.bound_parameters.is_empty() {
+/// One step of a chain as rows: what the step says produced the number, at the depth it sits.
+///
+/// The names are the step's own rather than the rule row's beside it. The two agree wherever a
+/// rule recorded every value it read, and the derivation carries one a rule cannot: the gravity
+/// belongs to the analysis and no registry entry declares it, so no rule may record it. Reading
+/// the rule row instead put that value on a notebook and an R session and left it off this
+/// relation, which is one number with two accounts.
+///
+/// The text is the rule's own wherever the rule wrote one. Rules spell a measured second at
+/// four places and a stated one as it was typed, so re-rendering here would rewrite every value
+/// in the relation. What no rule wrote is spelled the way every record spells a number.
+///
+/// A rule the response named and left no row for still opens the chain, and a step that read
+/// nothing still gets a row: dropping either would put the rules above it under nothing.
+fn rows_for_chain_step(
+    quantity: &str,
+    chain: &ProvenanceChain,
+    recorded: Option<&BoundMethod>,
+    depth: usize,
+) -> Vec<ProvenanceRow> {
+    let text_the_rule_wrote = |name: &str| {
+        recorded.and_then(|bound| {
+            bound
+                .bound_parameters
+                .iter()
+                .find(|(held, _)| held == name)
+                .map(|(_, text)| text.clone())
+        })
+    };
+    // The rule's own order, so a relation reads as the rule recorded it and a name only the
+    // step carries follows the ones that were read.
+    let position = |name: &str| {
+        recorded
+            .and_then(|bound| {
+                bound
+                    .bound_parameters
+                    .iter()
+                    .position(|(held, _)| held == name)
+            })
+            .unwrap_or(usize::MAX)
+    };
+
+    let mut named: Vec<(usize, String, String, ParameterSource)> = chain
+        .provenance
+        .parameters
+        .iter()
+        .map(|record| {
+            let text = text_the_rule_wrote(&record.name)
+                .unwrap_or_else(|| plateforce_analysis::parameter_value_text(record.value));
+            (
+                position(&record.name),
+                record.name.clone(),
+                text,
+                record.source,
+            )
+        })
+        .chain(chain.provenance.choices.iter().map(|record| {
+            let text = text_the_rule_wrote(&record.name).unwrap_or_else(|| record.value.clone());
+            (
+                position(&record.name),
+                record.name.clone(),
+                text,
+                record.source,
+            )
+        }))
+        .collect();
+    named.sort_by_key(|(position, _, _, _)| *position);
+
+    if named.is_empty() {
         return vec![ProvenanceRow {
             provenance_id: String::new(),
             quantity: quantity.to_string(),
             depth,
-            method_id: bound.method_id.clone(),
+            method_id: chain.provenance.method_id.clone(),
             parameter: String::new(),
             value: String::new(),
             source: String::new(),
         }];
     }
-    bound
-        .bound_parameters
-        .iter()
-        .map(|(parameter, value)| ProvenanceRow {
+    named
+        .into_iter()
+        .map(|(_, parameter, value, source)| ProvenanceRow {
             provenance_id: String::new(),
             quantity: quantity.to_string(),
             depth,
-            method_id: bound.method_id.clone(),
-            parameter: parameter.clone(),
-            value: value.clone(),
-            // The rule recorded where each value came from; deriving it again here could
+            method_id: chain.provenance.method_id.clone(),
+            parameter,
+            value,
+            // The step recorded where each value came from; deriving it again here could
             // only ever spell two of the six sources.
-            source: bound
-                .parameter_sources
-                .get(parameter)
-                .map(|source| source.wire_name().to_string())
-                .unwrap_or_else(|| ParameterSource::Assumed.wire_name().to_string()),
+            source: source.wire_name().to_string(),
         })
         .collect()
 }

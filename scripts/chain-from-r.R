@@ -20,12 +20,15 @@ analysed <- analyse_countermovement_jump(
   takeoff_parameters = list(threshold_n = 20.0)
 )
 
-# The class this package hands a caller, walked into the two fields the comparison reads. The
-# parameter names alone: the comparison asks which choices a surface says produced a number.
+# The class this package hands a caller, walked into the fields the comparison reads. Names
+# alone: the comparison asks which choices a surface says produced a number. Numbers and named
+# alternatives stay apart, because a surface publishing one as the other is a divergence a
+# single list would hide.
 as_tree <- function(provenance) {
   list(
     method_id = provenance@method_id,
     parameters = as.list(sort(provenance@parameters[["name"]])),
+    choices = as.list(sort(provenance@choices[["name"]])),
     depends_on = unname(lapply(provenance@depends_on, as_tree))
   )
 }

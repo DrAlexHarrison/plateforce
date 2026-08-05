@@ -64,6 +64,15 @@ const CONSUMERS: &[Consumer] = &[
         reads: "chain_of(",
         builds_none_of: RUST_CHAIN_CONSTRUCTORS,
     },
+    // The terminal reads a narrow projection, the rule each number's chain roots at, printed
+    // under the number. A projection is still a consumer: the row it prints has to root where
+    // the account below it roots, and a second derivation here would put two answers on one
+    // screen. This table named four consumers while five sites read the derivation.
+    Consumer {
+        path: "crates/plateforce-cli/src/analyse.rs",
+        reads: "chains_of(",
+        builds_none_of: RUST_CHAIN_CONSTRUCTORS,
+    },
     Consumer {
         path: "crates/plateforce-python/src/analysis.rs",
         reads: "chain_of(",

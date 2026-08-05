@@ -7,13 +7,26 @@ sites: each consumer names the derivation and none assembles a chain of its own.
 scan cannot see is what a consumer does with the tree after it has it, because that is a value
 rather than a line of source.
 
-This asks the surfaces. Two of them hand a caller a tree, and neither can be reached from
-`cargo test`: R links the engine through the copies `sync-engine.sh` makes, and the notebook
-needs an interpreter. So the comparison runs here, over the artefacts the two surface scripts
-build, and refuses rather than skips when either is absent: a skip reads exactly like a pass.
+This asks the surfaces, at the reader's hand rather than at the boundary each surface calls.
+Two consumers that both reach one Rust function through one call prove the function is
+deterministic and nothing about themselves: the interesting failure is a consumer that reads
+the shared tree and then adds to it, or drops from it, on the way out. Both have happened. The
+notebook added the analysis gravity to five root steps; the folder run took each row's
+parameters from `bound_methods` rather than from the step it was standing on, and dropped the
+same value.
+
+Three arms, covering the four converted consumers. R goes through both of them, the boundary
+crate and the package. The notebook is the third. The folder run is the fourth and publishes a
+relation rather than a tree, so it is compared on what a relation can express: which rule sits
+at which depth under which number, and what each of those says produced it.
+
+None of the three can be reached from `cargo test`. R links the engine through the copies
+`sync-engine.sh` makes, the notebook needs an interpreter, and the folder run writes files. So
+the comparison runs here, over the artefacts the surface scripts build, and refuses rather than
+skips when one is absent: a skip reads exactly like a pass.
 
 The terminal names the population. Asking each arm which quantities it can answer for and
-comparing what both happened to reach would report agreement over the intersection, and a
+comparing what they happened to reach would report agreement over the intersection, and a
 quantity that fell off one surface would leave no trace. So the terminal is asked what this
 request reports, and an arm that cannot answer for one of those names fails this run.
 
@@ -25,6 +38,7 @@ entry describing a state that has passed.
     python3 scripts/prove-one-chain-across-surfaces.py
 """
 
+import csv
 import json
 import os
 import pathlib
@@ -160,6 +174,60 @@ def tree_from_python(trace, quantities):
     return json.loads(finished.stdout)
 
 
+def tree_from_the_folder_run(trace, folder):
+    """What the folder run's own reader receives: `provenance.csv`, as the two sets below.
+
+    A relation, not a tree, so it carries the depth of each step and not the parent that put it
+    there. Compared on what it can express rather than reshaped into a tree it does not
+    publish, because inventing the missing parent link here would compare this arm against a
+    guess rather than against its reader.
+    """
+    if not TERMINAL.is_file():
+        raise absent("folder run", "cargo build -p plateforce-cli")
+    trials = folder / "trials"
+    trials.mkdir()
+    trace.rename(trials / trace.name)
+    out = folder / "written"
+    finished = subprocess.run(
+        [
+            str(TERMINAL),
+            "batch",
+            str(trials),
+            "--out-dir",
+            str(out),
+            "--trial-suffix",
+            ".force.txt",
+            "--column",
+            "0",
+            "--sample-rate-hz",
+            str(SAMPLE_RATE_HZ),
+            "--sentinel",
+            "none",
+            "--delimiter",
+            "\t",
+            *WEIGHING,
+            *ONSET,
+            *TAKEOFF,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if finished.returncode != 0:
+        raise SystemExit(
+            f"plateforce: the folder run exited {finished.returncode}\n{finished.stdout}"
+            f"{finished.stderr}"
+        )
+    steps, named = set(), set()
+    with (out / "provenance.csv").open() as written:
+        for row in csv.DictReader(written):
+            where = (row["quantity"], int(row["depth"]), row["method_id"])
+            steps.add(where)
+            if row["parameter"]:
+                named.add((*where, row["parameter"]))
+    return steps, named
+
+
 def steps_of(tree, quantity, depth=0, into=None):
     """Every step of one chain as (quantity, depth, method_id), in the order it is walked."""
     into = [] if into is None else into
@@ -169,37 +237,31 @@ def steps_of(tree, quantity, depth=0, into=None):
     return into
 
 
-def parameters_of(tree, quantity, depth=0, into=None):
-    """Every parameter record as (quantity, depth, method_id, name), values excluded."""
+def parameters_of(tree, quantity, depth=0, into=None, fields=("parameters",)):
+    """Every record as (quantity, depth, method_id, name), values excluded.
+
+    `fields` selects numbers, named alternatives, or both. Both is what the folder run's one
+    column can be compared against; apart is what tells a surface publishing a number as a
+    named alternative from one that does not.
+    """
     into = [] if into is None else into
-    for name in tree["parameters"]:
-        into.append((quantity, depth, tree["method_id"], name))
+    for field in fields:
+        for name in tree[field]:
+            into.append((quantity, depth, tree["method_id"], name))
     for below in tree["depends_on"]:
-        parameters_of(below, quantity, depth + 1, into)
+        parameters_of(below, quantity, depth + 1, into, fields)
     return into
 
 
 # What the surfaces are measured to disagree about, each entry naming the work that ends it.
 #
-# `Analysis::one` in `crates/plateforce-python/src/analysis.rs` appends the gravity the
-# analysis ran under to the root step of the quantities that rest on it, after reading the tree
-# from the one derivation. A rule may record only a parameter its own registry entry declares,
-# and of the twelve rules reading that value one declares it, so on every other surface the
-# number that moved these reaches no step of the chain at all. The information is real. Its
-# home is `chain_of`, which would put it on every surface at once and empty this register.
-KNOWN_DIFFERENCES = {
-    ("python", "jump_height_from_flight_time_meters", 0, "jumpheight.takeoff.flight_time",
-     "gravity_meters_per_second_squared"),
-    ("python", "jump_height_from_takeoff_meters", 0, "jumpheight.takeoff.impulse_momentum",
-     "gravity_meters_per_second_squared"),
-    ("python", "reactive_strength_index_modified", 0, "rsimod.jh_tov_over_ttt",
-     "gravity_meters_per_second_squared"),
-    ("python", "system_mass_kilograms", 0, "bwepoch.fixed_window",
-     "gravity_meters_per_second_squared"),
-    ("python", "takeoff_velocity_meters_per_second", 0,
-     "impulse.net_vertical.as_performance_determinant",
-     "gravity_meters_per_second_squared"),
-}
+# Empty, and it has been full. Five entries recorded the analysis gravity reaching the root step
+# of five quantities on the notebook and on no other surface, because `Analysis::one` added it
+# after reading the tree. The addition was right and its home was the derivation: it is
+# `chain_of`'s now, so the same record reaches every consumer and these five closed together.
+# The register reddens on a difference nobody recorded and on the repair of a recorded one, so
+# emptying it was part of the repair rather than a step after it.
+KNOWN_DIFFERENCES = set()
 
 # The floor the populations are held to, so a run over a shrunken answer cannot read as
 # agreement. Both are this build's own figures, taken with the request above.
@@ -214,39 +276,50 @@ def main():
         samples = a_jump_that_lands(trace)
         population = quantities_this_request_reports(trace)
         print(f"trace of {samples} samples, {len(population)} quantities reported")
-        arms = {
+        trees = {
             "r": tree_from_r(trace),
             "python": tree_from_python(trace, population),
         }
+        # Last, because it moves the trace into the folder it reads.
+        folder_run_steps, folder_run_named = tree_from_the_folder_run(
+            trace, pathlib.Path(folder)
+        )
 
-    # The control on everything below. Two arms that answered nothing agree about nothing.
+    # The control on everything below. Arms that answered nothing agree about nothing.
     if len(population) < QUANTITIES_AT_LEAST:
         raise SystemExit(
             f"plateforce: this request reported {len(population)} quantities, under the "
             f"{QUANTITIES_AT_LEAST} a comparison needs"
         )
-    for arm, trees in sorted(arms.items()):
-        missing = [name for name in population if name not in trees]
+    answered_for = {arm: set(published) for arm, published in trees.items()}
+    answered_for["folder run"] = {row[0] for row in folder_run_steps}
+    for arm, answered in sorted(answered_for.items()):
+        missing = [name for name in population if name not in answered]
         if missing:
             raise SystemExit(
-                f"plateforce: the terminal reports {missing} and {arm} publishes no chain "
-                "for them"
+                f"plateforce: the terminal reports {missing} and the {arm} arm publishes no "
+                "chain for them"
             )
-        extra = sorted(set(trees) - set(population))
+        extra = sorted(answered - set(population))
         if extra:
             raise SystemExit(
-                f"plateforce: {arm} publishes a chain for {extra}, which this request does "
-                "not report"
+                f"plateforce: the {arm} arm publishes a chain for {extra}, which this request "
+                "does not report"
             )
 
-    # The shape first: which rule sits where, under which number.
+    # The shape first: which rule sits where, under which number. The two tree-publishing arms
+    # are compared in the order each walks its own tree, which is more than a set comparison
+    # asks; the folder run publishes a relation and is compared as one.
     shapes = {
-        arm: {name: steps_of(trees[name], name) for name in population}
-        for arm, trees in arms.items()
+        arm: {name: steps_of(published[name], name) for name in population}
+        for arm, published in trees.items()
     }
     steps = sum(len(rows) for rows in shapes["r"].values())
     deepest = max(row[1] for rows in shapes["r"].values() for row in rows)
-    print(f"steps compared: {steps} over {len(population)} quantities, deepest {deepest}")
+    print(
+        f"steps compared: {steps} over {len(population)} quantities, deepest {deepest}, "
+        f"across {len(answered_for)} arms"
+    )
     if steps < STEPS_AT_LEAST or deepest < DEEPEST_AT_LEAST:
         raise SystemExit(
             f"plateforce: {steps} steps and a deepest chain of {deepest}, so this compares "
@@ -259,35 +332,71 @@ def main():
     ]
     if disagreeing:
         raise SystemExit("plateforce: one response, two trees:\n    " + "\n    ".join(disagreeing))
+    against_the_relation = {row for rows in shapes["r"].values() for row in rows}
+    if against_the_relation != folder_run_steps:
+        raise SystemExit(
+            "plateforce: the folder run stands a rule at a depth the tree does not, or the "
+            "other way about:\n    only the tree "
+            + str(sorted(against_the_relation - folder_run_steps))
+            + "\n    only the folder run "
+            + str(sorted(folder_run_steps - against_the_relation))
+        )
 
-    # Then what each step says produced its number.
+    # Then what each step says produced its number. Numbers and named alternatives are kept
+    # apart between the two arms that publish them apart, and taken together against the
+    # relation, whose one column cannot tell them apart.
+    for field in ("parameters", "choices"):
+        told_apart = {
+            arm: {
+                row
+                for name in population
+                for row in parameters_of(published[name], name, fields=(field,))
+            }
+            for arm, published in trees.items()
+        }
+        if told_apart["r"] != told_apart["python"]:
+            raise SystemExit(
+                f"plateforce: one response, two accounts of which {field} produced a number:"
+                "\n    only r      "
+                + str(sorted(told_apart["r"] - told_apart["python"]))
+                + "\n    only python "
+                + str(sorted(told_apart["python"] - told_apart["r"]))
+            )
+
     named = {
-        arm: {row for name in population for row in parameters_of(trees[name], name)}
-        for arm, trees in arms.items()
+        arm: {
+            row
+            for name in population
+            for row in parameters_of(published[name], name, fields=("parameters", "choices"))
+        }
+        for arm, published in trees.items()
     }
+    named["folder run"] = folder_run_named
     on_every_arm = set.intersection(*named.values())
-    differences = {
-        (arm, *row)
-        for arm, rows in named.items()
-        for row in rows - on_every_arm
-    }
+    differences = {(arm, *row) for arm, rows in named.items() for row in rows - on_every_arm}
     print(
-        f"parameter records: {len(set.union(*named.values()))} across both arms, "
-        f"{len(on_every_arm)} on both"
+        f"records of what produced a number: {len(set.union(*named.values()))} across "
+        f"{len(named)} arms, {len(on_every_arm)} on every one"
     )
     if not on_every_arm:
         raise SystemExit(
-            "plateforce: no parameter record appears on both arms, so the comparison below "
-            "is between two empty sets"
+            "plateforce: no record appears on every arm, so the comparison below is between "
+            "empty sets"
         )
 
     appeared = differences - KNOWN_DIFFERENCES
     repaired = KNOWN_DIFFERENCES - differences
     if appeared:
+        # Named from both sides. With three arms, the surface a record is missing from is the
+        # one a reader needs and the one a list of the arms that carry it does not state.
+        told = [
+            f"{row}\n        named by {sorted(arm for arm in named if row in named[arm])}, "
+            f"missing from {sorted(arm for arm in named if row not in named[arm])}"
+            for row in sorted({row[1:] for row in appeared})
+        ]
         raise SystemExit(
-            "plateforce: a surface names a choice behind a number that the other does not, "
-            "and nothing records it:\n    "
-            + "\n    ".join(str(row) for row in sorted(appeared))
+            "plateforce: a surface names a choice behind a number that the others do not, "
+            "and nothing records it:\n    " + "\n    ".join(told)
         )
     if repaired:
         raise SystemExit(
