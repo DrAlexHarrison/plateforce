@@ -17,6 +17,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { buildDecisionModel } from '../web/registry.js';
+import { listenForConsoleErrors } from './console-errors.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8791)];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
@@ -170,15 +171,12 @@ await new Promise((open) => socket.addEventListener('open', open));
 
 let nextId = 0;
 const pending = new Map();
-const consoleLines = [];
+const consoleLines = listenForConsoleErrors(socket);
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
   if (pending.has(message.id)) {
     pending.get(message.id)(message);
     pending.delete(message.id);
-  }
-  if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
-    consoleLines.push(message.params.entry.text);
   }
 });
 const send = (method, params = {}) =>

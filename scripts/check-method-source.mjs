@@ -27,6 +27,7 @@ import { readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { listenForConsoleErrors } from './console-errors.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8757)];
 const FIXTURES = 'crates/plateforce-conformance/fixtures';
@@ -107,24 +108,12 @@ await new Promise((resolve) => socket.addEventListener('open', resolve));
 
 let nextId = 0;
 const pending = new Map();
-const consoleLines = [];
+const consoleLines = listenForConsoleErrors(socket);
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
   if (pending.has(message.id)) {
     pending.get(message.id)(message);
     pending.delete(message.id);
-  }
-  // Three sources, because the browser reports an error three ways and the log carries only
-  // one of them: a page calling console.error and a page throwing out of a click handler both
-  // leave `Log.entryAdded` silent, so a check reading that alone cannot go red on either.
-  if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
-    consoleLines.push(message.params.entry.text);
-  }
-  if (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error') {
-    consoleLines.push(message.params.args.map((argument) => argument.value ?? argument.description).join(' '));
-  }
-  if (message.method === 'Runtime.exceptionThrown') {
-    consoleLines.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
   }
 });
 const send = (method, params = {}) =>

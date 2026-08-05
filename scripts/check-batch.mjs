@@ -19,6 +19,7 @@ import { createServer } from 'node:http';
 import { readFile, readdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize, resolve } from 'node:path';
+import { listenForConsoleErrors } from './console-errors.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8751)];
 const FIXTURES = 'crates/plateforce-conformance/fixtures';
@@ -70,15 +71,12 @@ await new Promise((open) => socket.addEventListener('open', open));
 
 let nextId = 0;
 const pending = new Map();
-const consoleLines = [];
+const consoleLines = listenForConsoleErrors(socket);
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
   if (pending.has(message.id)) {
     pending.get(message.id)(message);
     pending.delete(message.id);
-  }
-  if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
-    consoleLines.push(message.params.entry.text);
   }
 });
 const send = (method, params = {}) =>
