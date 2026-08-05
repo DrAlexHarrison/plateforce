@@ -170,14 +170,18 @@ export function runSpread() {
   const headline = element('div', 'spread-headline');
   const percent = result.spread_percent_of_median;
   headline.append(element('span', 'spread-headline__figure', percent == null ? '--' : `${percent.toFixed(1)}%`));
+  // A sweep that produced one number carries no spread, so the sentence is the count alone.
+  // Written through the figure unconditionally it read "jump height: null m across 1 of 1".
+  const moved = formatNumber(result.spread_absolute, result.unit);
+  const counted =
+    `${result.succeeded} of ${result.combinations_run} combinations.` +
+    (result.capped ? ` Capped from ${result.combinations_requested}.` : '') +
+    (result.failed ? ` ${result.failed} failed.` : '');
   headline.append(
     element(
       'p',
       'spread-headline__text',
-      `${label}: ${formatNumber(result.spread_absolute, result.unit)} ${result.unit_symbol} across ` +
-        `${result.succeeded} of ${result.combinations_run} combinations.` +
-        (result.capped ? ` Capped from ${result.combinations_requested}.` : '') +
-        (result.failed ? ` ${result.failed} failed.` : ''),
+      moved == null ? `${label}: ${counted}` : `${label}: ${moved} ${result.unit_symbol} across ${counted}`,
     ),
   );
   host.append(headline);
