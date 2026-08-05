@@ -154,6 +154,7 @@ fn every_rule_that_gravity_moves_records_it_and_every_rule_it_does_not_records_n
     let trial = a_jump_that_lands();
     let mut rules_whose_numbers_moved = Vec::new();
     let mut rules_reached = 0usize;
+    let mut out_of_reach: Vec<&str> = Vec::new();
     let mut numbers_that_held_still = 0usize;
     let mut disagreements = Vec::new();
 
@@ -161,9 +162,11 @@ fn every_rule_that_gravity_moves_records_it_and_every_rule_it_does_not_records_n
         let low = run(&trial, &naming(binding, LOW)).expect("the trace carries every landmark");
         let high = run(&trial, &naming(binding, HIGH)).expect("the trace carries every landmark");
         let (before, after) = (values(&low), values(&high));
+        // A rule reporting a different set of keys at the two gravities would put itself out
+        // of reach of everything below, so it is counted rather than skipped in silence: a
+        // guard whose population quietly shrinks is the shape this file exists to answer.
         if before.keys().ne(after.keys()) {
-            // A rule that reported different quantities at the two gravities is a different
-            // question from one whose number moved, and it is not this one.
+            out_of_reach.push(binding.id);
             continue;
         }
         rules_reached += 1;
@@ -186,10 +189,17 @@ fn every_rule_that_gravity_moves_records_it_and_every_rule_it_does_not_records_n
         }
     }
 
+    let offered = derived_bindings().count();
     println!(
-        "{rules_reached} rules reached, {} of them move a number when the gravity moves, \
-         {numbers_that_held_still} number-readings held still",
+        "{rules_reached} of {offered} rules reached, {} of them move a number when the gravity \
+         moves, {numbers_that_held_still} number-readings held still",
         rules_whose_numbers_moved.len()
+    );
+    assert!(
+        out_of_reach.is_empty(),
+        "{} of {offered} rules reported a different set of quantities at {LOW} and at {HIGH}, \
+         so this measured nothing about them: {out_of_reach:?}",
+        out_of_reach.len()
     );
     assert!(
         !rules_whose_numbers_moved.is_empty(),
