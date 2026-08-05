@@ -52,9 +52,10 @@ pub(crate) fn mass_kilograms(
     method_id: &str,
     parameter: &str,
     object: Object,
+    quantity_key: &'static str,
 ) -> Result<f64, RuleRefusal> {
     let system_mass =
-        context.epoch().system_weight_newtons / context.gravity_meters_per_second_squared;
+        context.epoch().system_weight_newtons / context.gravity_behind(Some(quantity_key));
     if object == Object::System {
         return Ok(system_mass);
     }

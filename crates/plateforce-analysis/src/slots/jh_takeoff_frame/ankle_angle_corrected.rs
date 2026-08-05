@@ -143,7 +143,7 @@ fn compute(
             Some(jump_height_from_flight_time_with_landing_offset(
                 seconds,
                 landing_below_takeoff_meters,
-                context.gravity_meters_per_second_squared,
+                context.gravity_behind(Some(super::KEY)),
             )),
         )],
         placed: Vec::new(),

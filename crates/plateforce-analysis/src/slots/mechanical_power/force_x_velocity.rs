@@ -43,7 +43,7 @@ fn compute(
 
     // The series is formed rather than described, so a request whose velocity cannot be
     // integrated is refused here rather than by each rule that would have read it.
-    let series = super::power_series(context, &mut resolved, ID, onset);
+    let series = super::power_series(context, &mut resolved, ID, onset, None);
     let bound = resolved.finish();
     match series {
         Ok(_) => DerivedOutcome {

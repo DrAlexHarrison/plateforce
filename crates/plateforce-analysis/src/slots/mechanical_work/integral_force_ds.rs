@@ -43,7 +43,8 @@ fn compute(
             context.unavailable(ID, &[ONSET_CONSTRUCT]),
         );
     };
-    let series = mechanical_power::power_series(context, &mut resolved, ID, onset);
+    let series =
+        mechanical_power::power_series(context, &mut resolved, ID, onset, Some(super::KEY));
     let phase = mechanical_power::phase_interval(context, &mut resolved, ID);
     let bound = resolved.finish();
 

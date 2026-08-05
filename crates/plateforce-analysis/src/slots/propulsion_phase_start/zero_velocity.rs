@@ -42,7 +42,7 @@ fn place(
         context.trial,
         context.epoch(),
         onset,
-        context.gravity_meters_per_second_squared,
+        context.gravity_behind(None),
         &mut resolved,
     );
     let crossing = velocity_zero_crossing(&velocity, onset, takeoff);

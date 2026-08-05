@@ -56,7 +56,7 @@ fn compute(
         context.trial,
         context.epoch(),
         landmarks.onset_index,
-        context.gravity_meters_per_second_squared,
+        context.gravity_behind(Some(super::KEY)),
         &mut resolved,
     );
     let bound = resolved.finish();

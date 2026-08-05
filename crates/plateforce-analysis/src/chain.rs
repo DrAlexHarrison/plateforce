@@ -133,7 +133,8 @@ fn unbound_step(
     }
 }
 
-/// The quantities whose number moves when the gravity the analysis was bound to moves.
+/// The gravity one number ran under, where the rule that produced it read one, read off the
+/// record rather than off the request.
 ///
 /// A rule may record only a parameter its own registry entry declares, and almost none of the
 /// rules reading this value declares one, so for these the number that moved them reaches no
@@ -141,10 +142,13 @@ fn unbound_step(
 /// `Measured` travels away from the result it came out of, so the chain behind each number
 /// carries it too.
 ///
-/// How many rules read it is a query rather than a figure written here, and the figure written
-/// here was already stale when this moved out of the Python package:
-/// `grep -rcE 'context\.(gravity_meters_per_second_squared|chosen_gravity\(\))' src/` answers
-/// it, and the guard named below answers the question this list is actually about.
+/// Which numbers those are used to be a list here, and a list is a claim somebody keeps: it was
+/// measured against the eleven quantities one request reports and went a key short the day it
+/// was measured against every construct this build offers. It is now the rule's own answer.
+/// `DerivedContext::gravity_behind` records the ask at the point the rule reads the value, and
+/// a rule that places a boundary rather than reporting a number puts the record on the sample,
+/// so a number measured across that boundary reaches it through the same closure that reaches
+/// the rules behind it.
 ///
 /// Per quantity rather than per rule, because one rule can produce two numbers that rest on
 /// different things: `impulse.net_vertical.as_performance_determinant` reports both the net
@@ -154,21 +158,7 @@ fn unbound_step(
 ///
 /// Held to a measurement in both directions rather than trusted:
 /// `every_number_the_analysis_gravity_moves_carries_it_in_its_chain` moves the gravity, reads
-/// which numbers followed, and requires that set and this list to be the same set. That guard
-/// runs one rule for every construct this build offers rather than the spine's alone, which is
-/// what found the sixth entry below: it moves with gravity, it was on no surface's list, and two
-/// analyses at two gravities gave it one fingerprint.
-const QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY: &[&str] = &[
-    "jump_height_from_flight_time_meters",
-    "jump_height_from_standing_meters",
-    "jump_height_from_takeoff_meters",
-    "reactive_strength_index_modified",
-    "system_mass_kilograms",
-    "takeoff_velocity_meters_per_second",
-];
-
-/// The gravity one number ran under, for the quantities that move with it, read off the record
-/// rather than off the request.
+/// which numbers followed, and requires that set and the set recorded here to be one set.
 ///
 /// A rule whose registry entry publishes a gravity of its own records it on its own row and may
 /// have run at a value the request never held. `jumpheight.takeoff.flight_time` is that rule: on
@@ -185,7 +175,7 @@ fn analysis_gravity_behind(
 ) -> Option<ParameterRecord> {
     use crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
 
-    if !QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY.contains(&metric.key.as_str()) {
+    if !metric.rests_on_globals.contains(&crate::GRAVITY_GLOBAL) {
         return None;
     }
     let published_by_the_rule = metric

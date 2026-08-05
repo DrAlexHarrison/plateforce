@@ -131,7 +131,7 @@ fn compute(
         },
     };
     context.rests_on(super::KEY, &spec.method_ids());
-    let gravity = context.gravity_meters_per_second_squared;
+    let gravity = context.gravity_behind(Some(super::KEY));
     let velocity = centre_of_mass_velocity_meters_per_second(context.trial, epoch, &spec, gravity);
     let bound = resolved.finish();
 

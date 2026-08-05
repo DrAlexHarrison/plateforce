@@ -75,6 +75,9 @@ pub(crate) fn power_series(
     resolved: &mut Resolution,
     method_id: &str,
     onset_index: usize,
+    // The number this series feeds, or `None` from the rule that forms the series and
+    // reports nothing: its gravity moves no number of its own.
+    quantity_key: Option<&'static str>,
 ) -> Result<PowerSeries, RuleRefusal> {
     let force_term = resolved.required_enumerated(method_id, FORCE_TERM_PARAMETER, FORCE_TERMS);
     let sign_convention =
@@ -90,7 +93,7 @@ pub(crate) fn power_series(
         context.trial,
         context.epoch(),
         onset_index,
-        context.gravity_meters_per_second_squared,
+        context.gravity_behind(quantity_key),
         resolved,
     );
     plateforce_core::power::instantaneous_power_watts(

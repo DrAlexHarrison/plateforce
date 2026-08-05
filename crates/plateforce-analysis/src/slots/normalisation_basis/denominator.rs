@@ -51,6 +51,7 @@ fn compute(
             ID,
             DENOMINATOR_PARAMETER,
             object,
+            super::KEY,
         )
     });
     let bound = resolved.finish();
