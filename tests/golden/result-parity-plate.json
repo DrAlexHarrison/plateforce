@@ -1,27 +1,14 @@
 {
-  "carried_by_some": {
-    "acquisition": {
-      "filter_at_capture": "none",
-      "firmware_version": "2.2",
-      "floor_surface": "concrete",
-      "plate_natural_frequency_hz": 400.0,
-      "tare_state": "tared_before_trial"
-    },
-    "plate_profile": {
-      "name": "parity-lab-plate",
-      "revision": "content-fa359f464ec26791",
-      "superseded_members": {
-        "firmware_version": "2.1"
-      }
-    }
-  },
+  "carried_by_some": {},
   "compared_fields": [
+    "acquisition",
     "acquisition_complete",
     "bound_globals",
     "bound_methods",
     "levels",
     "metrics",
     "onset_index",
+    "plate_profile",
     "refusals",
     "registry_version",
     "samples_carrying_no_number",
@@ -33,6 +20,13 @@
     "weighing_start_index"
   ],
   "result": {
+    "acquisition": {
+      "filter_at_capture": "none",
+      "firmware_version": "2.2",
+      "floor_surface": "concrete",
+      "plate_natural_frequency_hz": 400.0,
+      "tare_state": "tared_before_trial"
+    },
     "acquisition_complete": true,
     "bound_globals": [
       {
@@ -648,6 +642,13 @@
       }
     ],
     "onset_index": 4091,
+    "plate_profile": {
+      "name": "parity-lab-plate",
+      "revision": "content-fa359f464ec26791",
+      "superseded_members": {
+        "firmware_version": "2.1"
+      }
+    },
     "refusals": [],
     "registry_version": null,
     "samples_carrying_no_number": 0,

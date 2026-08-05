@@ -1,14 +1,7 @@
 {
-  "carried_by_some": {
-    "acquisition": {
-      "filter_at_capture": null,
-      "firmware_version": null,
-      "floor_surface": null,
-      "plate_natural_frequency_hz": null,
-      "tare_state": null
-    }
-  },
+  "carried_by_some": {},
   "compared_fields": [
+    "acquisition",
     "acquisition_complete",
     "bound_globals",
     "bound_methods",
@@ -26,6 +19,13 @@
     "weighing_start_index"
   ],
   "result": {
+    "acquisition": {
+      "filter_at_capture": null,
+      "firmware_version": null,
+      "floor_surface": null,
+      "plate_natural_frequency_hz": null,
+      "tare_state": null
+    },
     "acquisition_complete": false,
     "bound_globals": [
       {
