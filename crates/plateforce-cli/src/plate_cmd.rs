@@ -2,7 +2,8 @@
 
 use std::path::Path;
 
-use plateforce_core::Acquisition;
+use plateforce_core::plate_store::replacements;
+use plateforce_core::SavedPlate;
 use serde_json::json;
 
 use crate::exit::Outcome;
@@ -70,7 +71,7 @@ fn save(
     Ok(match format {
         Format::Json => Outcome::complete(canonical(&json!({
             "plate": saved.name,
-            "path": saved.path.display().to_string(),
+            "path": filed_at(&saved),
             "revision": saved.revision,
             "acquisition": saved.members,
             "acquisition_complete": saved.members.is_complete(),
@@ -83,7 +84,7 @@ fn save(
         }))),
         Format::Text => {
             let mut lines = vec![
-                format!("{} saved at {}", saved.name, saved.path.display()),
+                format!("{} saved at {}", saved.name, filed_at(&saved)),
                 format!("revision {}", saved.revision),
             ];
             for (member, value) in saved.members.stated_members() {
@@ -159,7 +160,7 @@ fn show(
     Ok(match format {
         Format::Json => Outcome::complete(canonical(&json!({
             "plate": saved.name,
-            "path": saved.path.display().to_string(),
+            "path": filed_at(&saved),
             "revision": saved.revision,
             "acquisition": saved.members,
             "acquisition_complete": saved.members.is_complete(),
@@ -167,7 +168,7 @@ fn show(
         }))),
         Format::Text => {
             let mut lines = vec![
-                format!("{} at {}", saved.name, saved.path.display()),
+                format!("{} at {}", saved.name, filed_at(&saved)),
                 format!("revision {}", saved.revision),
             ];
             for (member, value) in saved.members.stated_members() {
@@ -201,19 +202,15 @@ fn forget(
     })
 }
 
-/// Every member whose answer moved between two revisions of one saved plate.
-fn replacements(before: &Acquisition, after: &Acquisition) -> Vec<(String, String, String)> {
-    let was: std::collections::BTreeMap<&str, String> =
-        before.stated_members().into_iter().collect();
-    after
-        .stated_members()
-        .into_iter()
-        .filter_map(|(member, now)| {
-            was.get(member)
-                .filter(|earlier| **earlier != now)
-                .map(|earlier| (member.to_string(), earlier.clone(), now))
-        })
-        .collect()
+/// Where a plate this command wrote or read is filed. Every plate these four subcommands
+/// reach came off a folder, so the empty case is a plate stated in a request on some other
+/// surface and never reaches this line.
+fn filed_at(plate: &SavedPlate) -> String {
+    plate
+        .path
+        .as_deref()
+        .map(|path| path.display().to_string())
+        .unwrap_or_default()
 }
 
 /// The count with the thing it counts, since a bare number reads as a total of something else.

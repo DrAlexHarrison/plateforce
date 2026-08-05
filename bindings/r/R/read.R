@@ -19,6 +19,11 @@ NULL
 #' @param sentinel_convention How this export writes a missing sample: `"none"`, `"zero"`
 #'   or `"negative_one"`.
 #' @param acquisition What the plate and its settings were, from [pf_acquisition()].
+#' @param plate A saved plate to fill the block from: a name this machine holds, or the list
+#'   [pf_plate()] returns. A member in `acquisition` beside it is the answer that runs, and
+#'   the result records what it replaced.
+#' @param plates_folder Where to look for `plate`, when it is a name. Absent reads the folder
+#'   `plateforce plate save` writes to.
 #' @return A `trial` whose `@read_report` names the delimiter, the column, the rows read,
 #'   the columns per row, the blank lines skipped, the samples that matched the sentinel
 #'   convention, and the samples that carried no number at all.
@@ -28,14 +33,17 @@ pf_read_force_file <- function(path,
                                delimiter = NULL,
                                force_column = NULL,
                                sentinel_convention = "none",
-                               acquisition = NULL) {
+                               acquisition = NULL,
+                               plate = NULL,
+                               plates_folder = NULL) {
   carried <- rust_trial_from_file(request_of(
     path = path,
     sample_rate_hz = sample_rate_hz,
     delimiter = delimiter,
     force_column = if (is.null(force_column)) NULL else as.integer(force_column),
     sentinel_convention = sentinel_convention,
-    acquisition = acquisition
+    acquisition = acquisition,
+    plate = stated_plate_of(plate, plates_folder)
   ))
   trial_from_carried(carried)
 }

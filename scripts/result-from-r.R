@@ -9,24 +9,34 @@ asked <- plateforce:::decode(paste(
   collapse = "\n"
 ))
 
-# What the plate was, as far as this surface can state it. An R session holds no store of
-# saved plates, so it types the answers the request states and lays the ones stated on the
-# capture over the ones the plate holds, which is what the two surfaces reading a saved plate
-# do with them. What it cannot say is which saved plate they came off: the record this surface
-# produces carries the members and no attribution, and `plate_profile` in
-# scripts/result_parity.py is where that gap is recorded with the work that closes it.
-acquisition <- NULL
-if (!is.null(asked$capture)) {
-  members <- asked$capture$plate$members
-  for (member in names(asked$capture$acquisition)) {
-    members[[member]] <- asked$capture$acquisition[[member]]
+# What the plate was, and which saved plate the answers were typed into.
+#
+# Through the block's own builder, so a name the block does not hold stops this arm rather
+# than travelling as an answer nobody asked for.
+block_of <- function(members) {
+  if (is.null(members)) {
+    return(NULL)
   }
   if (!is.null(members$plate_natural_frequency_hz)) {
     members$plate_natural_frequency_hz <- as.numeric(members$plate_natural_frequency_hz)
   }
-  # Through the block's own builder, so a name the block does not hold stops this arm rather
-  # than travelling as an answer nobody asked for.
-  acquisition <- do.call(plateforce::pf_acquisition, members)
+  do.call(plateforce::pf_acquisition, members)
+}
+
+# The plate travels as its name and its members rather than as a path, because the request is
+# answered on four machines and none of them saved it. `pf_plate` takes the revision from the
+# members, so the attribution this arm produces is the one the terminal produces off its own
+# store. Naming a plate this machine holds is the same call without `acquisition`.
+acquisition <- NULL
+plate <- NULL
+if (!is.null(asked$capture)) {
+  acquisition <- block_of(asked$capture$acquisition)
+  if (!is.null(asked$capture$plate)) {
+    plate <- plateforce::pf_plate(
+      asked$capture$plate$name,
+      block_of(asked$capture$plate$members)
+    )
+  }
 }
 
 trial <- plateforce::pf_read_force_file(
@@ -35,7 +45,8 @@ trial <- plateforce::pf_read_force_file(
   delimiter = asked$delimiter,
   force_column = asked$force_column,
   sentinel_convention = asked$sentinel_convention,
-  acquisition = acquisition
+  acquisition = acquisition,
+  plate = plate
 )
 
 # A request carrying a `sweep` block asks how far the number moves across the slots it names,

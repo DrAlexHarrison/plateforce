@@ -124,6 +124,31 @@ impl Acquisition {
     }
 }
 
+impl Acquisition {
+    /// The engine's block, so a plate, a trial and a record hold one type rather than each
+    /// re-listing the members. Read member by member on purpose: a member added to the block
+    /// upstream is a compile error here rather than a field this surface quietly drops.
+    pub(crate) fn block(&self) -> plateforce_core::Acquisition {
+        plateforce_core::Acquisition {
+            filter_at_capture: self.filter_at_capture.clone(),
+            tare_state: self.tare_state.clone(),
+            plate_natural_frequency_hz: self.plate_natural_frequency_hz,
+            floor_surface: self.floor_surface.clone(),
+            firmware_version: self.firmware_version.clone(),
+        }
+    }
+
+    pub(crate) fn of(block: &plateforce_core::Acquisition) -> Self {
+        Self {
+            filter_at_capture: block.filter_at_capture.clone(),
+            tare_state: block.tare_state.clone(),
+            plate_natural_frequency_hz: block.plate_natural_frequency_hz,
+            floor_surface: block.floor_surface.clone(),
+            firmware_version: block.firmware_version.clone(),
+        }
+    }
+}
+
 /// A value a vendor export writes to mean "no measurement".
 #[pyclass(frozen, from_py_object, module = "plateforce", name = "Sentinel")]
 #[derive(Clone)]
@@ -294,7 +319,10 @@ impl ReadReport {
 #[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "Trial")]
 pub struct Trial {
     pub(crate) inner: CoreTrial,
-    acquisition: Option<Acquisition>,
+    /// What the plate was and which saved plate it was read off, or None where the caller
+    /// stated neither. None rather than an empty block: a caller who said nothing and one who
+    /// said the block is empty are two states, and only the first leaves nothing to report.
+    pub(crate) capture: Option<plateforce_core::Capture>,
     exclusions: Exclusions,
     read_report: Option<ReadReport>,
 }
@@ -311,9 +339,20 @@ impl Trial {
         values: Vec<f64>,
         sample_rate_hz: f64,
         acquisition: Option<Acquisition>,
+        plate: Option<crate::plate::Plate>,
         sentinel: Option<Sentinel>,
         read_report: Option<ReadReport>,
     ) -> PyResult<Self> {
+        // Through the store's own combiner, so which of a stated member and a plate's wins,
+        // and what the record says the stated one displaced, are decided in one place for
+        // every surface rather than once per binding.
+        let capture = match (&acquisition, &plate) {
+            (None, None) => None,
+            _ => Some(plateforce_core::plate_store::capture_from(
+                plate.as_ref().map(|named| &named.inner),
+                &acquisition.unwrap_or_default().block(),
+            )),
+        };
         let declared = sentinel.as_ref().map(|declared| declared.inner);
         // Through the one home. This surface used to reach the same total a second way, by
         // partitioning against a stand-in convention and taking the length of what it dropped,
@@ -335,7 +374,7 @@ impl Trial {
         };
         Ok(Self {
             inner,
-            acquisition,
+            capture,
             exclusions: Exclusions {
                 inner: CoreExclusions {
                     dropped_samples: reported.total(),
@@ -359,16 +398,25 @@ impl Trial {
     /// Declaring `sentinel` reports how many samples match that convention. It never
     /// removes them: closing a gap in a trace would shift every timestamp after it.
     #[new]
-    #[pyo3(signature = (force_newtons, sample_rate_hz, acquisition = None, sentinel = None))]
+    #[pyo3(signature = (force_newtons, sample_rate_hz, acquisition = None, plate = None, sentinel = None))]
     fn new(
         python: Python<'_>,
         force_newtons: &Bound<'_, PyAny>,
         sample_rate_hz: f64,
         acquisition: Option<Acquisition>,
+        plate: Option<crate::plate::Plate>,
         sentinel: Option<Sentinel>,
     ) -> PyResult<Self> {
         let values = read_float64_values(python, force_newtons, "force_newtons")?;
-        Self::of_values(python, values, sample_rate_hz, acquisition, sentinel, None)
+        Self::of_values(
+            python,
+            values,
+            sample_rate_hz,
+            acquisition,
+            plate,
+            sentinel,
+            None,
+        )
     }
 
     /// What the reader decided about the file this trace came from, or None for a trace
@@ -400,15 +448,28 @@ impl Trial {
 
     #[getter]
     fn acquisition(&self) -> Option<Acquisition> {
-        self.acquisition.clone()
+        self.capture
+            .as_ref()
+            .map(|capture| Acquisition::of(&capture.acquisition))
+    }
+
+    /// The saved plate the block was filled from, and None where the caller typed the members
+    /// or stated none. A result carries the members either way; this is what says which plate
+    /// they were typed into, so two results off one name after an edit differ visibly.
+    #[getter]
+    fn plate(&self) -> Option<crate::plate::PlateProfile> {
+        self.capture
+            .as_ref()
+            .and_then(|capture| capture.plate_profile.clone())
+            .map(|attribution| crate::plate::PlateProfile { attribution })
     }
 
     /// True only when a complete acquisition block was supplied.
     #[getter]
     pub(crate) fn acquisition_complete(&self) -> bool {
-        self.acquisition
+        self.capture
             .as_ref()
-            .map(|block| block.is_complete())
+            .map(|capture| capture.acquisition.is_complete())
             .unwrap_or(false)
     }
 
@@ -465,6 +526,10 @@ impl Trial {
 /// every velocity, displacement, impulse and rate of force development with it, and a
 /// guessed column can be the wrong one quietly.
 #[pyfunction]
+// The arity is the call a user writes, and every one of these is a fact the reader has to be
+// told rather than allowed to infer. Folding two into a record would make the notebook build
+// an object before it can read a file.
+#[allow(clippy::too_many_arguments)]
 #[pyo3(signature = (
     path,
     *,
@@ -473,6 +538,7 @@ impl Trial {
     force_column,
     sentinel = None,
     acquisition = None,
+    plate = None,
 ))]
 pub fn read_force_file(
     python: Python<'_>,
@@ -482,6 +548,7 @@ pub fn read_force_file(
     force_column: usize,
     sentinel: Option<Sentinel>,
     acquisition: Option<Acquisition>,
+    plate: Option<crate::plate::Plate>,
 ) -> PyResult<Trial> {
     let separator = one_character(python, delimiter)?;
     let text = std::fs::read_to_string(&path).map_err(|error| {
@@ -498,6 +565,7 @@ pub fn read_force_file(
         values,
         sample_rate_hz,
         acquisition,
+        plate,
         sentinel,
         Some(ReadReport {
             source: path.display().to_string(),

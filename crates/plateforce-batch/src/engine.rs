@@ -937,7 +937,7 @@ fn rows_for_chain_step(
         .iter()
         .map(|record| {
             let text = spelling(&record.name, record.value)
-                .unwrap_or_else(|| plateforce_analysis::parameter_value_text(record.value));
+                .unwrap_or_else(|| plateforce_analysis::recorded_number_text(record.value));
             (record.name.clone(), text, record.source)
         })
         .chain(

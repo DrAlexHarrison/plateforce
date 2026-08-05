@@ -4,13 +4,14 @@
 //! implementation in the core, and this layer adds the record of which method produced it
 //! and what that method was bound to.
 //!
-//! `Acquisition` and `Sentinel` are the only classes a caller passes back in; the rest
-//! travel outward only, and every class states which of the two it is.
+//! `Acquisition`, `Plate` and `Sentinel` are the only classes a caller passes back in; the
+//! rest travel outward only, and every class states which of the two it is.
 
 mod analysis;
 mod batch;
 mod capability;
 mod errors;
+mod plate;
 mod quality;
 mod registry;
 mod result;
@@ -28,6 +29,9 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<trial::Sentinel>()?;
     module.add_class::<trial::SentinelPartition>()?;
     module.add_class::<trial::ReadReport>()?;
+    module.add_class::<plate::Plate>()?;
+    module.add_class::<plate::PlateSaved>()?;
+    module.add_class::<plate::PlateProfile>()?;
 
     module.add_class::<registry::Registry>()?;
     module.add_class::<registry::MethodEntry>()?;
@@ -80,6 +84,13 @@ fn plateforce(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(wrap_pyfunction!(trial::partition_sentinel_values, module)?)?;
     module.add_function(wrap_pyfunction!(trial::read_force_file, module)?)?;
+
+    // The store the terminal writes with `plateforce plate save`, so a plate saved in one
+    // surface on this machine is the plate a notebook names in the next.
+    module.add_function(wrap_pyfunction!(plate::save_plate, module)?)?;
+    module.add_function(wrap_pyfunction!(plate::saved_plates, module)?)?;
+    module.add_function(wrap_pyfunction!(plate::forget_plate, module)?)?;
+    module.add_function(wrap_pyfunction!(plate::plates_folder, module)?)?;
 
     module.add_function(wrap_pyfunction!(spread::spread_over, module)?)?;
     // The engine's own record of a sweep, for the reason `_analyse_json` is here: the shaped

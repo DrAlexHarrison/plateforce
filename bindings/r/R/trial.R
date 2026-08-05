@@ -55,6 +55,11 @@ trial <- S7::new_class(
 #' @param acquisition What the plate and its settings were, from [pf_acquisition()]. A
 #'   block missing any member makes every result from this trial carry
 #'   `acquisition_complete = FALSE`.
+#' @param plate A saved plate to fill the block from: a name this machine holds, or the list
+#'   [pf_plate()] returns. A member in `acquisition` beside it is the answer that runs, and
+#'   the result records what it replaced.
+#' @param plates_folder Where to look for `plate`, when it is a name. Absent reads the folder
+#'   `plateforce plate save` writes to.
 #' @return A `trial`.
 #' @export
 #' @examples
@@ -62,7 +67,7 @@ trial <- S7::new_class(
 #' quiet@sample_count
 #' quiet@duration_seconds
 pf_trial <- function(force_newtons, sample_rate_hz = NULL, sentinel_convention = "none",
-                     acquisition = NULL) {
+                     acquisition = NULL, plate = NULL, plates_folder = NULL) {
   if (is.integer(force_newtons)) {
     refuse_here(
       "force_not_double",
@@ -86,7 +91,8 @@ pf_trial <- function(force_newtons, sample_rate_hz = NULL, sentinel_convention =
     request_of(
       sample_rate_hz = sample_rate_hz,
       sentinel_convention = sentinel_convention,
-      acquisition = acquisition
+      acquisition = acquisition,
+      plate = stated_plate_of(plate, plates_folder)
     )
   )
   trial_from_carried(carried)

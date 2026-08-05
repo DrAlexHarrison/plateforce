@@ -35,6 +35,9 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
         // Values and records that travel outward. None of them is a computation this
         // manifest asserts over.
         "Acquisition"
+        | "Plate"
+        | "PlateProfile"
+        | "PlateSaved"
         | "Bias"
         | "BatchResult"
         | "BatchRun"
@@ -73,6 +76,12 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
         | "PlateforceError"
         | "RegistryError"
         | "TrialError" => Some(&[]),
+
+        // The saved-plate store, which reads and writes a folder of settings and computes no
+        // quantity. `Operation` has no word for it and neither the terminal's manifest nor
+        // the browser's reports one, so a ruling here that invented a value would put this
+        // surface's manifest out of step with the two it is compared against.
+        "save_plate" | "saved_plates" | "forget_plate" | "plates_folder" => Some(&[]),
 
         // Rules the research harness reaches directly rather than through an analysis, and
         // one identity computed from a number a plate did not measure.

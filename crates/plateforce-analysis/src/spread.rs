@@ -590,7 +590,10 @@ fn materialise(
         }
 
         let value = axis.values[position];
-        settings.push((parameter.clone(), format_value(value)));
+        // The spelling every other record uses. Written at two decimals here, a sweep over
+        // 9.80665 and 9.8070 labelled both variants `9.81` and left two different numbers
+        // resting on one account of what produced them.
+        settings.push((parameter.clone(), crate::recorded_number_text(value)));
 
         match (axis.slot.as_str(), parameter.as_str()) {
             // Stated, because naming an axis and the values along it is the caller choosing
@@ -673,16 +676,6 @@ fn release_dragged_marker(request: &mut AnalysisRequest, slot: &str) {
     }
 }
 
-fn format_value(value: f64) -> String {
-    if (value.fract()).abs() < 1e-9 {
-        format!("{value:.0}")
-    } else if value.abs() < 0.1 {
-        format!("{value:.3}")
-    } else {
-        format!("{value:.2}")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -725,6 +718,84 @@ mod tests {
             registry_backed_ids: Vec::new(),
             ..Default::default()
         }
+    }
+
+    /// Two swept values a reader can tell apart are two variants a reader can tell apart.
+    ///
+    /// The settings were written at two decimals, so `k` swept over 2.001 and 2.002 labelled
+    /// both variants `k 2.00` while the two produced different numbers, and the panel showed
+    /// a spread over an axis whose own record said it had not moved. Asserted on the settings
+    /// rather than on the label, because the label is assembled from them and a guard reading
+    /// the assembled string cannot say which half lost the digits.
+    #[test]
+    fn two_swept_values_that_differ_late_are_two_settings_a_reader_can_tell_apart() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base(),
+                axes: vec![Axis {
+                    slot: "onset".into(),
+                    parameter: Some("k".into()),
+                    values: vec![2.001, 2.002],
+                    options: Vec::new(),
+                    method_ids: Vec::new(),
+                }],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 512,
+            },
+        )
+        .unwrap();
+
+        let written: Vec<String> = response
+            .variants
+            .iter()
+            .flat_map(|variant| variant.settings.iter())
+            .filter(|(name, _)| name == "k")
+            .map(|(_, value)| value.clone())
+            .collect();
+        assert_eq!(
+            written,
+            vec!["2.001".to_string(), "2.002".to_string()],
+            "the sweep ran two values of k and wrote {written:?}"
+        );
+    }
+
+    /// The spelling a swept setting is written in is the one every other record uses, so a
+    /// reader comparing a swept `k` against the `k` an analysed record names is comparing two
+    /// spellings of one number rather than two numbers.
+    #[test]
+    fn a_swept_setting_is_written_the_way_every_other_record_writes_it() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base(),
+                axes: vec![Axis {
+                    slot: "onset".into(),
+                    parameter: Some("k".into()),
+                    values: vec![5.0, 2.5],
+                    options: Vec::new(),
+                    method_ids: Vec::new(),
+                }],
+                quantity_key: "time_to_takeoff_seconds".into(),
+                maximum_combinations: 512,
+            },
+        )
+        .unwrap();
+
+        // The sweep orders its own axis, which `the_order_the_caller_typed_the_values_in_does
+        // _not_reach_the_document` pins, so the set is compared rather than the sequence.
+        let written: Vec<String> = response
+            .variants
+            .iter()
+            .flat_map(|variant| variant.settings.iter())
+            .filter(|(name, _)| name == "k")
+            .map(|(_, value)| value.clone())
+            .collect();
+        let through_the_one_home: Vec<String> = [2.5_f64, 5.0]
+            .iter()
+            .map(|value| crate::recorded_number_text(*value))
+            .collect();
+        assert_eq!(written, through_the_one_home);
     }
 
     #[test]

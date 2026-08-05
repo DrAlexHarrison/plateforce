@@ -24,6 +24,7 @@ pub mod normalisation;
 pub mod onset;
 pub mod peak;
 pub mod phases;
+pub mod plate_store;
 pub mod power;
 pub mod provenance;
 pub mod rate;
@@ -47,6 +48,7 @@ pub use acquisition::{Acquisition, Capture, MemberFault, PlateProfileAttribution
 pub use landing::{
     arrival_velocity_from_final_standing_period_meters_per_second, landing_first_sustained_run,
 };
+pub use plate_store::SavedPlate;
 pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};
 pub use refusal::{exit_code, Refusal, RefusalCode};

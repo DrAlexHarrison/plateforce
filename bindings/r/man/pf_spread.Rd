@@ -56,8 +56,8 @@ Every value it supplies is recorded as cited, naming the pipeline, so a result r
 this way is a different record from one reached by typing the same numbers.}
 
 \item{method_ids}{Registry identifiers to sweep. A character vector is the set for the one
-step named; a list keyed by step names the ids for each. Absent, every rule this build
-runs for that step is compared, read off the binding table rather than listed here.}
+step named; a list keyed by step names the ids for each. Absent, every rule bound to
+that step is compared, read off the binding table rather than listed here.}
 
 \item{vary}{Settings to sweep, keyed by the step and the setting, as
 `list("onset.k" = c(2, 5, 10))`. Numbers or names per key: `"epoch_impulse.convention" =

@@ -34,6 +34,31 @@ pub fn pf_acquisition_members_json() -> String {
 }
 
 #[extendr]
+pub fn pf_plate_save_json(request_json: &str) -> String {
+    crate::plate_save_json(request_json)
+}
+
+#[extendr]
+pub fn pf_plate_json(request_json: &str) -> String {
+    crate::plate_json(request_json)
+}
+
+#[extendr]
+pub fn pf_plate_stated_json(request_json: &str) -> String {
+    crate::plate_stated_json(request_json)
+}
+
+#[extendr]
+pub fn pf_plates_json(request_json: &str) -> String {
+    crate::plates_json(request_json)
+}
+
+#[extendr]
+pub fn pf_plate_forget_json(request_json: &str) -> String {
+    crate::plate_forget_json(request_json)
+}
+
+#[extendr]
 pub fn pf_trial_from_force(force_newtons: &[f64], request_json: &str) -> List {
     carried(crate::trial_from_force(force_newtons, request_json))
 }
@@ -174,6 +199,11 @@ extendr_module! {
     fn pf_registry_entry_json;
     fn pf_bindings_json;
     fn pf_acquisition_members_json;
+    fn pf_plate_save_json;
+    fn pf_plate_json;
+    fn pf_plate_stated_json;
+    fn pf_plates_json;
+    fn pf_plate_forget_json;
     fn pf_trial_from_force;
     fn pf_trial_from_file;
     fn pf_trial_report_json;

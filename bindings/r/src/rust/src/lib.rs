@@ -240,6 +240,185 @@ pub fn registry_entry_json(root: &str, id: &str) -> String {
     }
 }
 
+/// One saved plate as an R caller reads it: the name, the revision the members hash to, the
+/// members themselves, and whether a run filled from it can be declared to match another lab.
+#[derive(Serialize)]
+struct PlateReport {
+    plate: String,
+    revision: String,
+    /// Where it is filed, and absent for a plate stated from its members.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    path: Option<String>,
+    acquisition: Acquisition,
+    acquisition_complete: bool,
+    acquisition_missing: Vec<&'static str>,
+}
+
+impl From<&plateforce_core::SavedPlate> for PlateReport {
+    fn from(plate: &plateforce_core::SavedPlate) -> Self {
+        Self {
+            plate: plate.name.clone(),
+            revision: plate.revision.clone(),
+            path: plate.path.as_deref().map(|at| at.display().to_string()),
+            acquisition: plate.members.clone(),
+            acquisition_complete: plate.members.is_complete(),
+            acquisition_missing: plate.members.missing(),
+        }
+    }
+}
+
+/// What one save did, including what it replaced.
+///
+/// The replaced revision travels with the new one rather than being passed over, because
+/// saving over a name is the edit that leaves an already-recorded result resting on answers
+/// this machine no longer holds.
+#[derive(Serialize)]
+struct PlateSavedReport {
+    #[serde(flatten)]
+    saved: PlateReport,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    replaced_revision: Option<String>,
+    replaced_members: Vec<ReplacedMember>,
+}
+
+#[derive(Serialize)]
+struct ReplacedMember {
+    member: String,
+    was: String,
+    now: String,
+}
+
+/// Where saved plates live, and every one this machine holds.
+#[derive(Serialize)]
+struct PlatesReport {
+    plates_folder: String,
+    plates: Vec<PlateReport>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PlateRequest {
+    name: String,
+    #[serde(default)]
+    acquisition: Acquisition,
+    /// Where to keep them, and absent for the folder this system keeps a program's settings
+    /// in, which is the one the terminal writes to.
+    #[serde(default)]
+    plates_folder: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PlatesRequest {
+    #[serde(default)]
+    plates_folder: Option<String>,
+}
+
+fn folder_of(named: &Option<String>) -> Option<std::path::PathBuf> {
+    named.as_ref().map(std::path::PathBuf::from)
+}
+
+/// Record a plate's settings once, so a later run in any surface on this machine is told
+/// about it by name. The store is the terminal's, so `plateforce plate list` names this one.
+pub fn plate_save_json(request_json: &str) -> String {
+    let request: PlateRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<PlateSavedReport>(*refusal),
+    };
+    let folder = folder_of(&request.plates_folder);
+    match plateforce_core::plate_store::write(&request.name, &request.acquisition, folder.as_deref())
+    {
+        Ok((saved, replaced)) => {
+            let replaced_members = replaced
+                .as_ref()
+                .map(|before| {
+                    plateforce_core::plate_store::replacements(&before.members, &saved.members)
+                })
+                .unwrap_or_default();
+            ok(PlateSavedReport {
+                saved: PlateReport::from(&saved),
+                replaced_revision: replaced.map(|before| before.revision),
+                replaced_members: replaced_members
+                    .into_iter()
+                    .map(|(member, was, now)| ReplacedMember { member, was, now })
+                    .collect(),
+            })
+        }
+        Err(refusal) => refuse::<PlateSavedReport>(Refusal::from(*refusal)),
+    }
+}
+
+/// One saved plate, read back through the member parser every surface reads one with.
+pub fn plate_json(request_json: &str) -> String {
+    let request: PlateRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<PlateReport>(*refusal),
+    };
+    let folder = folder_of(&request.plates_folder);
+    match plateforce_core::plate_store::read(&request.name, folder.as_deref()) {
+        Ok(plate) => ok(PlateReport::from(&plate)),
+        Err(refusal) => refuse::<PlateReport>(Refusal::from(*refusal)),
+    }
+}
+
+/// A plate stated from the members a caller holds, with no file behind it. The revision is
+/// taken here, so a stated plate and a saved one with the same answers are one plate.
+pub fn plate_stated_json(request_json: &str) -> String {
+    let request: PlateRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<PlateReport>(*refusal),
+    };
+    match plateforce_core::SavedPlate::named(&request.name, request.acquisition) {
+        Ok(plate) => ok(PlateReport::from(&plate)),
+        Err(refusal) => refuse::<PlateReport>(Refusal::from(*refusal)),
+    }
+}
+
+/// Every plate this machine holds, with the folder they are held in.
+pub fn plates_json(request_json: &str) -> String {
+    let request: PlatesRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<PlatesReport>(*refusal),
+    };
+    let folder = folder_of(&request.plates_folder);
+    let named = match plateforce_core::plate_store::directory(folder.as_deref()) {
+        Ok(path) => path.display().to_string(),
+        Err(refusal) => return refuse::<PlatesReport>(Refusal::from(*refusal)),
+    };
+    match plateforce_core::plate_store::saved(folder.as_deref()) {
+        Ok(plates) => ok(PlatesReport {
+            plates_folder: named,
+            plates: plates.iter().map(PlateReport::from).collect(),
+        }),
+        Err(refusal) => refuse::<PlatesReport>(Refusal::from(*refusal)),
+    }
+}
+
+/// Remove a saved plate. Results already recorded against it carry its members and are
+/// unchanged, so this is not an edit to any of them.
+pub fn plate_forget_json(request_json: &str) -> String {
+    #[derive(Serialize)]
+    struct Forgotten {
+        plate: String,
+        path: String,
+        saved: bool,
+    }
+
+    let request: PlateRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<Forgotten>(*refusal),
+    };
+    let folder = folder_of(&request.plates_folder);
+    match plateforce_core::plate_store::forget(&request.name, folder.as_deref()) {
+        Ok(path) => ok(Forgotten {
+            plate: request.name,
+            path: path.display().to_string(),
+            saved: false,
+        }),
+        Err(refusal) => refuse::<Forgotten>(Refusal::from(*refusal)),
+    }
+}
+
 /// The members of the acquisition block, named by the block itself, so a member added
 /// upstream is one an R caller can be held to rather than one R silently never asks for.
 pub fn acquisition_members_json() -> String {
@@ -256,7 +435,10 @@ pub fn bindings_json() -> String {
 pub struct TrialHandle {
     trial: Trial,
     report: TrialReport,
-    acquisition: Acquisition,
+    /// What the plate was and which saved plate it was read off. One record rather than the
+    /// block alone, so a session that named a plate hands the attribution to its result the
+    /// way the terminal and a tab do.
+    capture: plateforce_core::Capture,
 }
 
 /// What the reader did, rather than what it assumed. Both silent exclusion and silent
@@ -297,6 +479,26 @@ struct TrialRequest {
     /// without an edit.
     #[serde(default)]
     acquisition: Acquisition,
+    #[serde(default)]
+    plate: Option<StatedPlate>,
+}
+
+/// A saved plate as a request states it: the name a reader recognises and the members it
+/// holds. The revision is taken from the members here rather than accepted, because a caller
+/// that could set it could declare two different plates to be one.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StatedPlate {
+    name: String,
+    #[serde(default)]
+    members: Acquisition,
+}
+
+impl StatedPlate {
+    fn resolved(self) -> Result<plateforce_core::SavedPlate, Box<Refusal>> {
+        plateforce_core::SavedPlate::named(&self.name, self.members)
+            .map_err(|refusal| Box::new(Refusal::from(*refusal)))
+    }
 }
 
 #[derive(Deserialize)]
@@ -310,6 +512,8 @@ struct ReadRequest {
     sentinel_convention: Option<String>,
     #[serde(default)]
     acquisition: Acquisition,
+    #[serde(default)]
+    plate: Option<StatedPlate>,
 }
 
 fn sentinel_from(convention: &str) -> Result<Option<Sentinel>, Box<Refusal>> {
@@ -356,7 +560,12 @@ fn build_trial(
     convention: Option<String>,
     source: String,
     acquisition: Acquisition,
+    plate: Option<StatedPlate>,
 ) -> Result<TrialHandle, Box<Refusal>> {
+    // Through the store's own combiner, so which of a stated member and a plate's wins, and
+    // what the record says the stated one displaced, are one answer on every surface.
+    let saved = plate.map(StatedPlate::resolved).transpose()?;
+    let capture = plateforce_core::plate_store::capture_from(saved.as_ref(), &acquisition);
     let sample_rate_hz = sample_rate_hz.ok_or_else(|| {
         Box::new(Refusal::naming_parameter(
             "required_parameter_unstated",
@@ -381,13 +590,13 @@ fn build_trial(
         rows_read: None,
         columns_per_row: None,
         blank_lines_skipped: None,
-        acquisition_complete: acquisition.is_complete(),
-        acquisition_missing: acquisition.missing(),
+        acquisition_complete: capture.acquisition.is_complete(),
+        acquisition_missing: capture.acquisition.missing(),
     };
     Ok(TrialHandle {
         trial,
         report,
-        acquisition,
+        capture,
     })
 }
 
@@ -405,6 +614,7 @@ pub fn trial_from_force(
         request.sentinel_convention,
         "vector".to_string(),
         request.acquisition,
+        request.plate,
     ) {
         Ok(handle) => (ok(handle.report.clone()), Some(handle)),
         Err(refusal) => (refuse::<TrialReport>(*refusal), None),
@@ -467,6 +677,7 @@ pub fn trial_from_file(request_json: &str) -> (String, Option<TrialHandle>) {
         request.sentinel_convention,
         request.path.clone(),
         request.acquisition,
+        request.plate,
     ) {
         Ok(mut handle) => {
             handle.report.delimiter = Some(delimiter.to_string());
@@ -530,7 +741,16 @@ struct AnalysisReport {
     registry_version: Option<String>,
     /// The revision the registry names about itself, and null where it names none.
     registry_declared_version: Option<String>,
+    /// What the plate and its settings were, carried whole rather than as the flag alone. A
+    /// reader holding the flag knows the result cannot be declared to match another lab's and
+    /// has no way to see which of the members it holds.
+    acquisition: Acquisition,
     acquisition_complete: bool,
+    /// The saved plate the block was filled from, absent where the caller typed the members or
+    /// stated none. Absent rather than null: a run with no saved plate behind it has nothing
+    /// to attribute, so the field is on the wire only where a plate was named.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    plate_profile: Option<plateforce_core::PlateProfileAttribution>,
     /// The chain of rules behind each number, one per metric, in the order and the length of
     /// `metrics`. A list rather than a map keyed by the quantity, because a response may
     /// report one key twice and a map would keep one of them.
@@ -658,7 +878,7 @@ fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
     if let Err(refusal) = checked_body_mass(&request.analysis) {
         return refuse::<AnalysisReport>(*refusal);
     }
-    let complete = handle.acquisition.is_complete();
+    let complete = handle.capture.acquisition.is_complete();
     let stamp = request.stamp();
     match run(&handle.trial, &request.analysis) {
         Ok(response) => {
@@ -671,7 +891,9 @@ fn run_and_report(handle: &TrialHandle, request: AnalyseRequest) -> String {
                 registry_digest: stamp.digest.clone(),
                 registry_version: stamp.version.clone(),
                 registry_declared_version: stamp.declared_version.clone(),
+                acquisition: handle.capture.acquisition.clone(),
                 acquisition_complete: complete,
+                plate_profile: handle.capture.plate_profile.clone(),
             })
         }
         // The code the engine decided it was declining under. This site used to wrap the

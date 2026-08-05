@@ -72,7 +72,12 @@ impl SpreadVariant {
 }
 
 /// One dimension a sweep varied, as the record of what was varied rather than the request.
-#[pyclass(frozen, skip_from_py_object, module = "plateforce", name = "SpreadAxis")]
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "plateforce",
+    name = "SpreadAxis"
+)]
 #[derive(Clone)]
 pub struct SpreadAxis {
     /// The word the request reaches this step by.
@@ -422,6 +427,9 @@ pub(crate) struct RequestArguments<'a> {
 /// The base is built by the one request builder this surface has, so the combination that
 /// varies nothing is the request a user's own analysis call sends and the sweep is around
 /// their result rather than around one assembled here.
+// Eight, and the eighth is `RequestArguments`, which already folds thirteen of them. Grouping
+// further would put the sweep's own axes behind a record whose only caller is this function.
+#[allow(clippy::too_many_arguments)]
 fn swept(
     python: Python<'_>,
     trial: &Trial,
@@ -708,8 +716,7 @@ fn rules_named(
     }
     let listed: Vec<String> = method_ids.extract().map_err(|_| {
         MethodError::new_err(
-            "method_ids is a list of registry ids, or a mapping from a step to its ids"
-                .to_string(),
+            "method_ids is a list of registry ids, or a mapping from a step to its ids".to_string(),
         )
     })?;
     match named {
