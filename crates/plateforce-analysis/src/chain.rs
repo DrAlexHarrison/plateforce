@@ -135,11 +135,16 @@ fn unbound_step(
 
 /// The quantities whose number moves when the gravity the analysis was bound to moves.
 ///
-/// A rule may record only a parameter its own registry entry declares, and of the twelve rules
-/// reading this value one declares it, so for these the number that moved them reaches no
+/// A rule may record only a parameter its own registry entry declares, and almost none of the
+/// rules reading this value declares one, so for these the number that moved them reaches no
 /// rule's row. `AnalysisResponse::bound_globals` carries it once for the whole analysis, and a
 /// `Measured` travels away from the result it came out of, so the chain behind each number
 /// carries it too.
+///
+/// How many rules read it is a query rather than a figure written here, and the figure written
+/// here was already stale when this moved out of the Python package:
+/// `grep -rcE 'context\.(gravity_meters_per_second_squared|chosen_gravity\(\))' src/` answers
+/// it, and the guard named below answers the question this list is actually about.
 ///
 /// Per quantity rather than per rule, because one rule can produce two numbers that rest on
 /// different things: `impulse.net_vertical.as_performance_determinant` reports both the net

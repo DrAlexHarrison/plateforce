@@ -1,11 +1,17 @@
-//! Four of eleven numbers move when the request's gravity moves, and the only rule row that
-//! carries a gravity of its own belongs to the one entry that declares one, which is the one
-//! number the request's gravity does not decide.
+//! Five of the eleven numbers this request reports move when a stated gravity moves, and four
+//! when one nobody stated moves. The difference is the one entry that declares a gravity of its
+//! own, and it is the whole of the difference, which the third test below holds.
 //!
-//! Twelve rules read the analysis gravity and record nothing about it: their registry entries
-//! declare no such parameter and a rule may not record one its entry does not carry. So the
-//! value belongs to the analysis rather than to any rule, and the analysis is where the record
-//! carries it.
+//! Both counts are printed by the tests that take them rather than trusted from here. The
+//! request binds the spine and nothing else, so eleven is this request's population and not the
+//! build's: `the_chain_behind_a_number_names_the_gravity_that_moved_it.rs` runs one rule for
+//! every construct instead and reaches twenty-one, which is where a sixth number resting on the
+//! gravity was found.
+//!
+//! Rules read the analysis gravity and record nothing about it: their registry entries declare
+//! no such parameter and a rule may not record one its entry does not carry. So the value
+//! belongs to the analysis rather than to any rule, and the analysis is where the record carries
+//! it.
 //!
 //! Every set below is computed by moving the gravity and reading which numbers followed.
 //! A list of four keys written here would go stale the day a fifth arrived, and would pass
