@@ -325,6 +325,69 @@ mod fingerprint_tests {
         );
     }
 
+    /// The same chain with the onset sample placed by a hand rather than found by the rule.
+    /// One field apart from `chain`, so a digest that moves moved for that field.
+    fn placed_by_hand(k: f64, at_sample: usize) -> Provenance {
+        let mut root = chain(k, ParameterSource::Stated);
+        root.depends_on[0].placed_by_hand_at_sample = Some(at_sample);
+        root
+    }
+
+    /// A hand placing the sample a rule would have found is still not that detection.
+    ///
+    /// The pair is one field apart. An engine-level comparison cannot ask this: a dragged marker
+    /// rests on nothing, so its chain loses a step and two digests differ whether or not the
+    /// placement is material at all.
+    #[test]
+    fn a_landmark_a_hand_placed_is_not_the_detection_that_found_the_same_sample() {
+        let block = filled_block();
+        let detected = fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0);
+        let by_hand = fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0);
+
+        assert!(detected.complete && by_hand.complete);
+        assert_ne!(
+            detected, by_hand,
+            "a rule finding the sample and a hand supplying it fingerprint as one result"
+        );
+    }
+
+    /// Two hands placing two samples give two numbers, so the material carries the sample and
+    /// not the fact of a hand. A flag satisfies the guard above and leaves this one red.
+    #[test]
+    fn two_hands_placing_two_samples_are_two_results() {
+        let block = filled_block();
+        assert_ne!(
+            fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0),
+            fingerprint(&placed_by_hand(5.0, 1120), &block, 1200.0),
+            "two hand placements 60 samples apart fingerprint as one result"
+        );
+    }
+
+    /// The control on both, so neither passes on a build where every fingerprint differs from
+    /// every other. One placement repeated is one result.
+    #[test]
+    fn one_hand_placing_one_sample_twice_is_one_result() {
+        let block = filled_block();
+        assert_eq!(
+            fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0),
+            fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0)
+        );
+    }
+
+    /// A hand placing a landmark at sample zero is a hand placing a landmark. Written apart from
+    /// the guards above because zero is the sample a flag derived from the value gets wrong, and
+    /// every other sample in this file would pass a build that read the placement as a boolean
+    /// the wrong way round.
+    #[test]
+    fn a_landmark_placed_at_sample_zero_is_still_placed_by_a_hand() {
+        let block = filled_block();
+        assert_ne!(
+            fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0),
+            fingerprint(&placed_by_hand(5.0, 0), &block, 1200.0),
+            "a landmark placed at sample zero fingerprints as the detection"
+        );
+    }
+
     #[test]
     fn a_different_plate_or_rate_is_a_different_result() {
         let base = chain(5.0, ParameterSource::Stated);

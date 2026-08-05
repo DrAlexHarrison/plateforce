@@ -201,15 +201,20 @@ fn one_hand_placing_one_sample_twice_is_one_result() {
     }
 }
 
-/// A hand placement and a detection are two results even where the two records are otherwise
-/// identical.
+/// The sample a hand placed reaches the record of the rule whose landmark it placed, and no
+/// other rule's.
 ///
 /// The hand places the sample the rule itself found, so both runs report the same number off the
-/// same values and nothing but the placement is left to tell them apart. That is the case the
-/// entry called latent, reached on the rules this build ships rather than on a rule it does not
-/// have.
+/// same values, and the row is the only thing left saying which of the two a reader is holding.
+///
+/// Nothing here compares the two digests. They differ, and they differ for a reason that is not
+/// the placement: a dragged marker rests on nothing, so the chain behind flight time loses the
+/// weighing rule and runs 6 steps against the detection's 7. Asserting on that inequality would
+/// read the thinning and report it as the placement, which is the state this whole entry exists
+/// to correct. The placement's own effect on a digest is held where the chain can be pinned, in
+/// `plateforce_core::reporting`'s own tests.
 #[test]
-fn a_hand_placing_the_sample_a_rule_found_is_still_not_that_detection() {
+fn the_sample_a_hand_placed_reaches_the_row_whose_landmark_it_placed() {
     let detected = analysed(request(None, None));
     let found_at = detected
         .takeoff_index
@@ -219,24 +224,17 @@ fn a_hand_placing_the_sample_a_rule_found_is_still_not_that_detection() {
     assert_eq!(
         value(&detected, FLIGHT),
         value(&by_hand, FLIGHT),
-        "the hand placed a different sample from the one the rule found, so the two records \
-         differ for a reason other than the one under test"
+        "the hand placed a different sample from the one the rule found, so the two runs differ \
+         for a reason other than the one under test"
     );
     assert_eq!(
         rows_a_hand_placed(&by_hand),
         vec![(TAKEOFF_RULE.to_string(), found_at)],
-        "the sample a hand placed reaches the record of the rule whose landmark it placed, and \
-         no other rule's"
+        "the row a hand placed is not the only row carrying a sample, or is not the takeoff rule"
     );
     assert!(
         rows_a_hand_placed(&detected).is_empty(),
         "a run nobody touched claims a hand placed something"
-    );
-    assert_ne!(
-        digest(&detected, FLIGHT),
-        digest(&by_hand, FLIGHT),
-        "a hand placing the sample the rule found fingerprints as that detection, so a result no \
-         rule produced declares that one did"
     );
 }
 
