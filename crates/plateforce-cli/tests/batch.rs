@@ -58,6 +58,21 @@ fn sources(out_dir: &std::path::Path) -> std::collections::BTreeMap<String, usiz
     counted
 }
 
+/// What the record says produced one named value on one named rule, and None where no row
+/// names it. Read off the relation rather than counted, so a claim about one value cannot be
+/// met by a total that moved somewhere else.
+fn source_of(out_dir: &std::path::Path, method_id: &str, parameter: &str) -> Option<String> {
+    let text = std::fs::read_to_string(out_dir.join("provenance.csv")).expect("a record");
+    let mut lines = text.lines();
+    let header: Vec<&str> = lines.next().expect("a header").split(',').collect();
+    let column = |name: &str| header.iter().position(|held| *held == name).expect(name);
+    let (rule, held, source) = (column("method_id"), column("parameter"), column("source"));
+    lines
+        .map(|line| line.split(',').collect::<Vec<&str>>())
+        .find(|fields| fields.get(rule) == Some(&method_id) && fields.get(held) == Some(&parameter))
+        .and_then(|fields| fields.get(source).map(|found| (*found).to_string()))
+}
+
 /// What a run over this folder exits with, and why it is not zero.
 ///
 /// Five of the six subject-01 trials never return above the takeoff threshold, so no touchdown
@@ -74,45 +89,48 @@ fn scratch(name: &str) -> std::path::PathBuf {
     path
 }
 
-/// Without the flag every value is the rule's own, and the record says so honestly. The
-/// defect was that there was no way to make it say anything else.
+/// What the record says about one value the operator stated and one they did not.
+///
+/// Taken over `takeoff.threshold_n`, which sits on a construct that forces no decision, so it
+/// is a value the run may reach either way. The two values the path does force are named in
+/// both arms: a folder run naming neither is refused before a trial is read, the way one trial
+/// has always been, so a baseline that named nothing would be comparing two refusals.
 #[test]
 fn a_value_stated_for_a_folder_is_recorded_as_stated() {
+    let forced = vec!["--set", "weighing.duration=1.0", "--set", "onset.k=5"];
+
     let without = scratch("plain");
     assert_eq!(
-        batch(&without, &[]).status.code(),
+        batch(&without, &forced).status.code(),
         Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
     );
     let before = sources(&without);
 
     let with = scratch("stated");
-    let output = batch(
-        &with,
-        &[
-            "--set",
-            "weighing.duration=1.0",
-            "--set",
-            "onset.k=5",
-            "--set",
-            "takeoff.threshold_n=20",
-        ],
-    );
+    let mut also = forced.clone();
+    also.extend(["--set", "takeoff.threshold_n=20"]);
+    let output = batch(&with, &also);
     assert_eq!(
         output.status.code(),
         Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
     );
     let after = sources(&with);
 
-    println!("without --set {before:?}");
-    println!("with --set    {after:?}");
+    println!("without the value {before:?}");
+    println!("with the value    {after:?}");
     assert_eq!(
-        before.get("stated"),
-        None,
-        "nothing was stated, so nothing reads stated"
+        source_of(&without, "takeoff.threshold.absolute_force", "threshold_n"),
+        Some("assumed".to_string()),
+        "a value nobody stated reads as the rule's own"
+    );
+    assert_eq!(
+        source_of(&with, "takeoff.threshold.absolute_force", "threshold_n"),
+        Some("stated".to_string()),
+        "a value the operator stated reads stated"
     );
     assert!(
-        after.get("stated").copied().unwrap_or(0) > 0,
-        "a value the operator stated reads stated"
+        after.get("stated").copied().unwrap_or(0) > before.get("stated").copied().unwrap_or(0),
+        "stating a value did not move the count of stated rows"
     );
     assert!(
         after.get("assumed").copied().unwrap_or(0) < before.get("assumed").copied().unwrap_or(0),
@@ -189,7 +207,12 @@ fn a_folder_run_cannot_proceed_without_saying_how_a_missing_sample_is_written() 
 fn the_record_names_the_convention_the_run_applied() {
     let out = scratch("recorded");
     assert_eq!(
-        batch(&out, &[]).status.code(),
+        batch(
+            &out,
+            &["--set", "weighing.duration=1.0", "--set", "onset.k=5"]
+        )
+        .status
+        .code(),
         Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
     );
     let run: serde_json::Value =

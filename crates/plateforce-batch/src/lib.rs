@@ -30,7 +30,10 @@ pub use agreement::{
     bind_statistic, bound_statistic_ids, compare, AgreementRefusal, BatchCompareRequest,
     BatchCompareResult, LimitsRequest, PairedRow, ReliabilityInterval, UnitOfAnalysis,
 };
-pub use decisions::{unresolved, UnresolvedDecision};
+pub use decisions::{
+    open_parameters, published_choices, unresolved, unresolved_values, values_forcing_a_choice,
+    UnresolvedDecision, UnresolvedValue,
+};
 pub use derive::DeriveRefusal;
 pub use engine::{analyse, BatchRequest, BatchResult, Coverage, RunRefusal};
 pub use exclusions::{GateFinding, GateRegistry, GateTally, PopulationExclusion, ValidityGate};

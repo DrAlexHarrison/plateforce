@@ -646,38 +646,68 @@ fn unresolved_parameters(
     renderer: &Renderer,
 ) -> Option<Declined> {
     let empty = BTreeMap::new();
-    let mut lines = Vec::new();
-    let mut outstanding = Vec::new();
-    for (construct, method_id) in chosen {
-        let slot = decisions::slot_of(construct);
-        let open = decisions::open_parameters(
-            registry,
-            construct,
-            method_id,
-            stated.get(slot).unwrap_or(&empty),
-        );
-        for (name, published) in open {
-            outstanding.push(format!("{slot}.{name}"));
-            let values: Vec<String> = published.iter().map(|value| format!("{value:?}")).collect();
-            lines.push(format!("  --set {slot}.{name}=<VALUE>"));
-            lines.extend(renderer.wrap(
-                &format!("{method_id} was published at {}", values.join(", ")),
-                6,
-            ));
-        }
-    }
-    if lines.is_empty() {
+    let bound: Vec<(&str, &str, &BTreeMap<String, f64>)> = chosen
+        .iter()
+        .map(|(construct, method_id)| {
+            (
+                construct.as_str(),
+                method_id.as_str(),
+                stated.get(decisions::slot_of(construct)).unwrap_or(&empty),
+            )
+        })
+        .collect();
+    let open = plateforce_batch::unresolved_values(registry, &bound);
+    if open.is_empty() {
         return None;
     }
+    Some(open_values_refusal(
+        &open,
+        plateforce_batch::values_forcing_a_choice(registry, &bound),
+        "this result",
+        renderer,
+    ))
+}
+
+/// A value the literature publishes several ways that nobody named, stated once as the record
+/// and once as the terminal's layout.
+///
+/// One writer for the single trial and the folder run. The terminal refused this and the
+/// folder ran every trial at whichever value the code held, so a second layout beside this one
+/// would be the same divergence one layer down.
+pub(crate) fn open_values_refusal(
+    open: &[plateforce_batch::UnresolvedValue],
+    published_more_than_one_way: usize,
+    subject: &str,
+    renderer: &Renderer,
+) -> Declined {
+    let mut outstanding = Vec::new();
+    let mut lines = Vec::new();
+    for value in open {
+        let slot = decisions::slot_of(&value.construct);
+        outstanding.push(format!("{slot}.{}", value.name));
+        // TOML floats carry a decimal point and `f64`'s Display drops it on a whole number,
+        // so a reader searching the registry for what they were shown finds it.
+        let published: Vec<String> = value
+            .published_values
+            .iter()
+            .map(|number| format!("{number:?}"))
+            .collect();
+        lines.push(format!("  --set {slot}.{}=<VALUE>", value.name));
+        lines.extend(renderer.wrap(
+            &format!(
+                "{} was published at {}",
+                value.method_id,
+                published.join(", ")
+            ),
+            6,
+        ));
+    }
     let mut terminal = format!(
-        "{} values on the path to a jump height are published more than one way and were not named.\n",
-        outstanding.len(),
+        "{} of {published_more_than_one_way} values on this path are published more than one way.\n",
+        open.len(),
     );
     terminal.push_str(&lines.join("\n"));
-    Some(Declined::shown_as(
-        Refusal::decision_not_made("this result", outstanding),
-        terminal,
-    ))
+    Declined::shown_as(Refusal::decision_not_made(subject, outstanding), terminal)
 }
 
 fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {

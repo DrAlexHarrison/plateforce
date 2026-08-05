@@ -244,7 +244,7 @@ pub fn run(
         .describing(capture);
 
     match args.mode {
-        Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format),
+        Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format, renderer),
         Mode::Compare => run_compare(out_dir, args, &set, request, &registry, format),
     }
 }
@@ -346,10 +346,11 @@ fn run_analyse(
     request: &BatchRequest,
     registry: &Registry,
     format: Format,
+    renderer: &crate::render::Renderer,
 ) -> Outcome {
     let result = match analyse(set, request, registry) {
         Ok(result) => result,
-        Err(refusal) => return declined_run(refusal),
+        Err(refusal) => return declined_run(refusal, registry, &request.analysis, renderer),
     };
 
     if let Err(error) = result.write_csv(out_dir) {
@@ -427,9 +428,24 @@ fn run_compare(
 
 /// A run that read no trial, because a choice on its path is still open.
 ///
-/// The constructs and their published alternatives travel out so the caller renders them
-/// through whatever it already uses for a forced decision, rather than a second layout here.
-fn declined_run(refusal: plateforce_batch::RunRefusal) -> Outcome {
+/// Two kinds of open choice arrive here. A construct nobody bound a rule to renders through the
+/// run's own sentence, which already names the constructs and their published alternatives. A
+/// rule whose required number the literature publishes several ways renders through the layout
+/// the single trial refuses with, so one request refused on two surfaces reads one way.
+fn declined_run(
+    refusal: plateforce_batch::RunRefusal,
+    registry: &Registry,
+    request: &plateforce_analysis::AnalysisRequest,
+    renderer: &crate::render::Renderer,
+) -> Outcome {
+    if !refusal.unresolved_values.is_empty() {
+        return Outcome::declined(crate::analyse::open_values_refusal(
+            &refusal.unresolved_values,
+            values_forcing_a_choice(registry, request),
+            "this run",
+            renderer,
+        ));
+    }
     let outstanding: Vec<String> = refusal
         .unresolved
         .iter()
@@ -442,6 +458,32 @@ fn declined_run(refusal: plateforce_batch::RunRefusal) -> Outcome {
         other => return Outcome::declined_line(fault_for(other), refusal.message.clone()),
     };
     Outcome::declined(Declined::shown_as(recorded, refusal.message.clone()))
+}
+
+/// How many values on this run's path the literature publishes more than one way, which is the
+/// denominator the open count is reported against.
+fn values_forcing_a_choice(
+    registry: &Registry,
+    request: &plateforce_analysis::AnalysisRequest,
+) -> usize {
+    let bound = [
+        (
+            plateforce_analysis::WEIGHING_CONSTRUCT,
+            request.weighing.method_id.as_str(),
+            &request.weighing.parameters,
+        ),
+        (
+            plateforce_analysis::ONSET_CONSTRUCT,
+            request.onset.method_id.as_str(),
+            &request.onset.parameters,
+        ),
+        (
+            plateforce_analysis::TAKEOFF_CONSTRUCT,
+            request.takeoff.method_id.as_str(),
+            &request.takeoff.parameters,
+        ),
+    ];
+    plateforce_batch::values_forcing_a_choice(registry, &bound)
 }
 
 /// The table as a terminal reads it, in the shape the renderer already decided.

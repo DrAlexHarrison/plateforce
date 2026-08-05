@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::bindings_for;
-use plateforce_registry::{Method, Registry, Status, Surfacing};
+use plateforce_registry::{Registry, Status, Surfacing};
 
 use crate::render::{Renderer, Role};
 
@@ -109,53 +109,12 @@ fn candidates_for(registry: &Registry, slot: &str) -> Vec<Candidate> {
                 }),
                 standing,
                 derivation,
-                published: entry.map(published_choices).unwrap_or_default(),
+                published: entry
+                    .map(plateforce_batch::published_choices)
+                    .unwrap_or_default(),
             })
         })
         .collect()
-}
-
-/// The parameters on a bound rule that the literature does not agree on, which is a
-/// different question from the parameters it reads.
-fn published_choices(method: &Method) -> Vec<(String, Vec<f64>)> {
-    method
-        .parameters
-        .iter()
-        .filter(|parameter| parameter.required && parameter.published_values.len() > 1)
-        .map(|parameter| (parameter.name.clone(), parameter.published_values.clone()))
-        .collect()
-}
-
-/// A parameter is unresolved when its construct forces the decision, the rule requires it,
-/// the literature publishes more than one value for it, and the request named none. Dropping
-/// the requirement test makes `takeoff.threshold.absolute_force`'s persistence an unmade
-/// decision on a construct carrying no forced entry, so a fully specified run would refuse.
-pub fn open_parameters(
-    registry: &Registry,
-    construct: &str,
-    method_id: &str,
-    stated: &BTreeMap<String, f64>,
-) -> Vec<(String, Vec<f64>)> {
-    if !construct_forces(registry, construct) {
-        return Vec::new();
-    }
-    let Some(method) = registry.methods.get(method_id) else {
-        return Vec::new();
-    };
-    published_choices(method)
-        .into_iter()
-        .filter(|(name, _)| !stated.contains_key(name))
-        .collect()
-}
-
-fn construct_forces(registry: &Registry, construct: &str) -> bool {
-    registry.methods.values().any(|method| {
-        method.construct == construct
-            && method
-                .gui
-                .as_ref()
-                .is_some_and(|gui| gui.surfacing == Surfacing::ForceADecision)
-    })
 }
 
 /// The flag a construct is chosen with, read off the binding table rather than held as a

@@ -17,7 +17,7 @@ use plateforce_core::{Capture, ProvenanceChain, Refusal, RefusalCode};
 use plateforce_registry::Registry;
 use serde::Serialize;
 
-use crate::decisions::{unresolved, UnresolvedDecision};
+use crate::decisions::{unresolved, UnresolvedDecision, UnresolvedValue};
 use crate::exclusions::{GateRegistry, PopulationExclusion, ValidityGate};
 use crate::fingerprint::{provenance_id, request_digest, run_fingerprint};
 use crate::identity::{TrialSet, UnidentifiedFile};
@@ -100,6 +100,11 @@ pub struct RunRefusal {
     pub code: RefusalCode,
     pub message: String,
     pub unresolved: Vec<UnresolvedDecision>,
+    /// Values a bound rule requires that the literature publishes several ways and nobody
+    /// named. A construct with no rule is the list above; a rule whose number is still open
+    /// is this one, and both refuse the run.
+    #[serde(default)]
+    pub unresolved_values: Vec<UnresolvedValue>,
 }
 
 /// What the run walked, stated against the denominator each count is taken over.
@@ -211,6 +216,39 @@ fn path_constructs() -> [&'static str; 3] {
     [WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]
 }
 
+/// Each construct on the path with the rule it holds and the values the request stated
+/// against it, which is what deciding whether a number is still open takes.
+///
+/// The three landmark steps, which is the set the single trial asks the same question of. A
+/// construct computed from the landmarks is a separate question and neither surface asks it,
+/// so asking it here would put the two back out of step.
+fn values_on_the_path(request: &BatchRequest) -> Vec<(&'static str, &str, &BTreeMap<String, f64>)> {
+    let analysis = &request.analysis;
+    vec![
+        (
+            WEIGHING_CONSTRUCT,
+            analysis.weighing.method_id.as_str(),
+            &analysis.weighing.parameters,
+        ),
+        (
+            ONSET_CONSTRUCT,
+            analysis.onset.method_id.as_str(),
+            &analysis.onset.parameters,
+        ),
+        (
+            TAKEOFF_CONSTRUCT,
+            analysis.takeoff.method_id.as_str(),
+            &analysis.takeoff.parameters,
+        ),
+    ]
+}
+
+/// How many values on this path the literature publishes more than one way, which is the
+/// denominator the open count is taken over.
+fn published_more_than_one_way(registry: &Registry, request: &BatchRequest) -> usize {
+    crate::decisions::values_forcing_a_choice(registry, &values_on_the_path(request))
+}
+
 /// Run one analysis over every trial in the set.
 ///
 /// The registry arrives as a loaded object rather than as a digest string, because the digest
@@ -230,6 +268,7 @@ pub fn analyse(
                 code: refusal.code,
                 message: refusal.message().to_string(),
                 unresolved: Vec::new(),
+                unresolved_values: Vec::new(),
             });
         }
     }
@@ -248,6 +287,28 @@ pub fn analyse(
                 named.join("; ")
             ),
             unresolved: open,
+            unresolved_values: Vec::new(),
+        });
+    }
+
+    // Naming the rule does not always close the choice. A rule requiring a number the
+    // literature publishes several ways leaves the number open, and a folder multiplies that
+    // by the trial count into a spreadsheet nobody re-reads the provenance of. The terminal
+    // has refused this since it shipped and the folder ran it at whichever value the code
+    // held, recording that nobody was asked, which is one request answered two ways.
+    let values = crate::decisions::unresolved_values(registry, &values_on_the_path(request));
+    if !values.is_empty() {
+        let named: Vec<String> = values.iter().map(UnresolvedValue::message).collect();
+        return Err(RunRefusal {
+            code: RefusalCode::DecisionNotMade,
+            message: format!(
+                "{} of {} values on this path are published more than one way and were not named: {}",
+                values.len(),
+                published_more_than_one_way(registry, request),
+                named.join("; ")
+            ),
+            unresolved: Vec::new(),
+            unresolved_values: values,
         });
     }
 
@@ -857,7 +918,10 @@ mod rows_come_from_the_chain_step {
     #[test]
     fn a_value_only_the_step_carries_reaches_the_relation() {
         let chain = step(
-            vec![number("k", 5.0), number("gravity_meters_per_second_squared", 9.80665)],
+            vec![
+                number("k", 5.0),
+                number("gravity_meters_per_second_squared", 9.80665),
+            ],
             Vec::new(),
         );
         let written = published(&chain, Some(&row(&[("k", "5")], &[("k", 5.0)])));
@@ -918,7 +982,11 @@ mod rows_come_from_the_chain_step {
         let written = published(&chain, None);
 
         println!("published: {written:?}");
-        assert_eq!(written.len(), 1, "one choice was published twice: {written:?}");
+        assert_eq!(
+            written.len(),
+            1,
+            "one choice was published twice: {written:?}"
+        );
         assert_eq!(written[0].1, "sample");
     }
 
