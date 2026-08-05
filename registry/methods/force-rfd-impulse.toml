@@ -665,6 +665,40 @@ status = "accepted"
 confidence = "medium"
 debate = "genuine"
 
+# Four of the five readings this rule names take a value, and the fifth takes none: an
+# exponential pinned at the start has its steepest slope there, so the maximum rate is the
+# amplitude over the time constant by construction rather than by search. Each of the four is
+# published here so a reader can see which reading rests on what. No source states any of the
+# four: the rule is undisclosed and attributed through a copyright holder, so a value written
+# here would be a number of this registry's own sitting where the reading's whole content is.
+
+[[method.parameter]]
+name = "instant_from_onset_ms"
+unit = "milliseconds"
+required = false
+notes = "Which instant the instantaneous rate is read at, elapsed from onset."
+
+[[method.parameter]]
+name = "chord_span_ms"
+unit = "milliseconds"
+required = false
+notes = "The span the model chord is taken across, from onset."
+
+[[method.parameter]]
+name = "fraction_of_asymptote_pct"
+unit = "percent"
+required = false
+notes = """
+Which fraction of the fitted asymptote the rate is read at. A fraction rather than a force,
+because the asymptote is the fit's own and differs from the force the athlete reached.
+"""
+
+[[method.parameter]]
+name = "average_window_ms"
+unit = "milliseconds"
+required = false
+notes = "The window the best average rate is searched over."
+
 [[method.citation]]
 key = "chronojump_r"
 role = "uses"
