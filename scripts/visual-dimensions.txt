@@ -1,0 +1,51 @@
+# Exact declaration<TAB>count<TAB>reason. New or duplicated pixel geometry must be explained.
+height: 1px	1	Crosshair hairline.
+height: 2px	1	Spread-axis hairline.
+height: 4px	1	Loading progress track.
+height: 7px	1	Method-status dot.
+height: 10px	1	Spread range band.
+height: 14px	1	Plate icon.
+height: 16px	2	Header and button icons.
+height: 30px	1	Spread alternative tick.
+height: 32px	2	App mark and column sparkline.
+height: 40px	1	File-drop glyph.
+height: 44px	1	Current-setting tick above alternatives.
+height: 70px	1	Compact spread-axis plot.
+height: 180px	1	Phone trace viewport.
+height: 380px	1	Desktop trace viewport.
+margin-left: -1px	1	Centres a 2 px spread tick.
+margin-left: -12px	1	Centres a 24 px window handle.
+margin-left: -22px	3	Centres a 44 px marker or phone window handle.
+max-height: 220px	2	Caps violation and quantity result lists.
+max-height: min(70vh, 720px)	1	Keeps a large batch table inside the viewport.
+max-width: 420px	1	Loading track reading width.
+max-width: 780px	1	Empty-state reading width.
+max-width: 900px	1	Single-task panel reading width.
+max-width: 1500px	1	Desktop workspace measure.
+min-height: 16px	2	Desktop checkbox hit geometry.
+min-height: 20px	1	Tablet checkbox hit geometry.
+min-height: 22px	2	Phone checkbox hit geometry.
+min-height: 24px	1	Batch trial-name row.
+min-height: 26px	1	Compact method row.
+min-height: 32px	2	Compact desktop button and plate chip.
+min-height: 36px	2	Desktop method record and parameter control.
+min-height: 44px	25	Minimum touch target across responsive controls.
+min-width: 16px	2	Desktop checkbox hit geometry.
+min-width: 20px	1	Tablet checkbox hit geometry.
+min-width: 22px	2	Phone checkbox hit geometry.
+top: -3px	1	Centres the taller current-setting tick on the spread axis.
+top: 4px	1	Places alternative ticks on the spread axis.
+top: 14px	1	Places the spread range band.
+top: 18px	1	Places the spread-axis hairline.
+top: 36px	1	Places spread endpoint labels below the line.
+width: 1px	1	Crosshair hairline.
+width: 2px	3	Marker, window and spread tick strokes.
+width: 3px	1	Current-setting emphasis on the spread axis.
+width: 7px	1	Method-status dot.
+width: 14px	2	Plate and chart-legend marks.
+width: 16px	2	Header and button icons.
+width: 24px	1	Desktop weighing-window handle.
+width: 32px	1	App mark.
+width: 40px	1	File-drop glyph.
+width: 44px	4	Icon buttons, markers and phone window handles.
+width: min(560px, 100%)	1	Method drawer width capped to the viewport.
