@@ -608,7 +608,10 @@ pub struct BoundMethod {
     /// `manual_override`, the answer to whether a hand was involved, which is what a marker on
     /// a chart and a badge beside a row ask. The sample itself travels in the record
     /// `into_provenance` writes, which is what a fingerprint is taken over.
-    #[serde(rename = "manual_override", serialize_with = "whether_a_hand_placed_it")]
+    #[serde(
+        rename = "manual_override",
+        serialize_with = "whether_a_hand_placed_it"
+    )]
     pub placed_by_hand_at_sample: Option<usize>,
     /// The published pipeline this rule and its cited values were adopted from. A surface
     /// that printed the values without this would report a published author's numbers as

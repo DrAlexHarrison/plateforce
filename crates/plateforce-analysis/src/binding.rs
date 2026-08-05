@@ -1305,7 +1305,8 @@ mod operator_routing_tests {
             let mut listed: Vec<&str> = declared.to_vec();
             listed.sort();
             assert_eq!(
-                reached, listed,
+                reached,
+                listed,
                 "{construct}: {} names reach {} entries and the build declares {}",
                 operator_names_for_construct(construct).len(),
                 reached.len(),

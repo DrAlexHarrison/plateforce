@@ -125,7 +125,10 @@ fn every_operator_entry_this_build_composes_is_published_with_the_names_that_rea
 
     let declared: usize = plateforce_analysis::ONSET_OPERATOR_IDS.len()
         + plateforce_analysis::TAKEOFF_OPERATOR_IDS.len();
-    println!("{} operator rows published, {declared} declared", rows.len());
+    println!(
+        "{} operator rows published, {declared} declared",
+        rows.len()
+    );
     assert_eq!(rows.len(), declared);
 
     // Named rather than counted. A row per entry with the wrong construct on it counts the
