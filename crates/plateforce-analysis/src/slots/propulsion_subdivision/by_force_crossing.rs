@@ -50,17 +50,23 @@ fn place(
         );
     };
 
+    let system_weight_newtons = context.epoch().system_weight_newtons;
     let index = propulsion_subdivision_by_force_crossing(
         context.trial.force(),
-        context.epoch().system_weight_newtons,
+        system_weight_newtons,
         start,
         end,
     );
-    boundaries::crossing_or_refusal(
+    boundaries::subdivision_crossing_outcome(
         context,
         ID,
         super::by_time::KEY,
         super::by_time::PLACED,
+        boundaries::SearchedInterval {
+            start_index: start,
+            end_index: end,
+            reference_newtons: system_weight_newtons,
+        },
         index,
         bound,
     )

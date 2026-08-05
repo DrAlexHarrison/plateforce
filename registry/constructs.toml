@@ -179,7 +179,12 @@ id = "propulsion_phase_end"
 title = "The instant the propulsion phase ends"
 label = "End of the push"
 unit = "seconds"
-notes = "Peak centre of mass velocity and takeoff are different instants, and both appear in the literature."
+rules_answer = "one_question"
+notes = """
+Peak centre of mass velocity and takeoff are different instants, and both appear in the
+literature. Which one bounds the phase decides whether a rule splitting it at the falling
+crossing of system weight divides anything, because that crossing is the earlier of the two.
+"""
 
 [[construct]]
 id = "propulsion_subdivision"
