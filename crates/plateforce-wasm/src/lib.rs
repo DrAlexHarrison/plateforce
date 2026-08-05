@@ -186,11 +186,10 @@ fn operations_named(export: &str) -> Option<&'static [Operation]> {
             Operation::RegistryValidate,
         ]),
         "buildInfoJson" => Some(&[Operation::Version, Operation::RegistryValidate]),
-        // Loading a trial, drawing it, and describing what was loaded. None of the four is
+        // Loading a trial, drawing it, and describing what was loaded. None is
         // a computation this manifest asserts over.
-        "fromForceFile" | "demonstration" | "infoJson" | "envelopeJson" | "summaryJson" => {
-            Some(&[])
-        }
+        "fromForceFile" | "demonstration" | "infoJson" | "envelopeJson" | "windowEnvelopeJson"
+        | "summaryJson" => Some(&[]),
         _ => None,
     }
 }
@@ -212,6 +211,7 @@ const EXPORTS: &[&str] = &[
     "registryJson",
     "spread",
     "summaryJson",
+    "windowEnvelopeJson",
 ];
 
 /// What this surface can be asked to do, reported by this surface.
@@ -423,15 +423,40 @@ impl LoadedTrial {
     /// instead of being averaged away.
     #[wasm_bindgen(js_name = envelopeJson)]
     pub fn envelope_json(&self, buckets: usize) -> Result<String, JsError> {
+        self.envelope_between(buckets, 0, self.trial.force().len())
+    }
+
+    /// The same lossless envelope over one visible interval. Long recordings can be
+    /// inspected without allocating one browser-side value per sample or flattening the
+    /// event of interest into a few pixels.
+    #[wasm_bindgen(js_name = windowEnvelopeJson)]
+    pub fn window_envelope_json(
+        &self,
+        buckets: usize,
+        start_index: usize,
+        end_index: usize,
+    ) -> Result<String, JsError> {
+        self.envelope_between(buckets, start_index, end_index)
+    }
+
+    fn envelope_between(
+        &self,
+        buckets: usize,
+        start_index: usize,
+        end_index: usize,
+    ) -> Result<String, JsError> {
         let force = self.trial.force();
-        let buckets = buckets.clamp(1, force.len());
-        let width = force.len() as f64 / buckets as f64;
+        let start = start_index.min(force.len().saturating_sub(1));
+        let end = end_index.clamp(start + 1, force.len());
+        let visible = &force[start..end];
+        let buckets = buckets.clamp(1, visible.len());
+        let width = visible.len() as f64 / buckets as f64;
         let mut lower = Vec::with_capacity(buckets);
         let mut upper = Vec::with_capacity(buckets);
         for bucket in 0..buckets {
             let start = (bucket as f64 * width) as usize;
-            let end = (((bucket + 1) as f64 * width) as usize).min(force.len());
-            let slice = &force[start..end.max(start + 1)];
+            let end = (((bucket + 1) as f64 * width) as usize).min(visible.len());
+            let slice = &visible[start..end.max(start + 1)];
             lower.push(slice.iter().copied().fold(f64::INFINITY, f64::min));
             upper.push(slice.iter().copied().fold(f64::NEG_INFINITY, f64::max));
         }
