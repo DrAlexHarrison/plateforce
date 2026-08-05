@@ -117,7 +117,6 @@ SURFACE_ONLY_CODES <- c(
   "quantity_not_reported",
   "registry_not_found",
   "slot_offers_no_alternative",
-  "sweep_axes_not_understood",
   "unknown_field"
 )
 

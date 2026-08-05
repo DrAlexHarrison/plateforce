@@ -112,7 +112,7 @@ test_that("one step is one axis, whichever keyboard names it twice", {
     plateforce_refusal = identity
   )
 
-  expect_s3_class(condition, "plateforce_sweep_axes_not_understood")
+  expect_s3_class(condition, "plateforce_value_not_accepted")
   expect_identical(
     conditionMessage(condition),
     "'onset' is named twice, and one step is one axis"
@@ -136,7 +136,7 @@ test_that("a rule list or a parameter describes one step, so several is refused"
       plateforce_refusal = identity
     )
 
-    expect_s3_class(condition, "plateforce_sweep_axes_not_understood")
+    expect_s3_class(condition, "plateforce_value_not_accepted")
     expect_identical(
       conditionMessage(condition),
       "parameter and method_ids each describe one step, so name one step or neither"

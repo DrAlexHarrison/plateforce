@@ -112,9 +112,13 @@ axes_of <- function(slot, method_ids, parameter, values) {
       parameter = "slot"
     )
   }
+  # Both faults are in the value of `slot`, so both take the code the engine refuses an
+  # unacceptable value under rather than a code of this surface's own. A word this package
+  # invented would be one more name a caller has to learn to branch on, for a fault the
+  # vocabulary already spells.
   if (length(named) > 1 && (!is.null(parameter) || !is.null(method_ids))) {
     refuse_here(
-      "sweep_axes_not_understood",
+      "value_not_accepted",
       "parameter and method_ids each describe one step, so name one step or neither",
       parameter = if (is.null(parameter)) "method_ids" else "parameter",
       available = named
@@ -123,7 +127,7 @@ axes_of <- function(slot, method_ids, parameter, values) {
   repeated <- named[duplicated(named)]
   if (length(repeated)) {
     refuse_here(
-      "sweep_axes_not_understood",
+      "value_not_accepted",
       paste0("'", repeated[[1]], "' is named twice, and one step is one axis"),
       slot = repeated[[1]],
       available = named
