@@ -50,12 +50,16 @@ pub use request::{
 };
 pub use resolution::{BoundMethod, DeclinedRule, RuleRefusal};
 
-/// How a number reads in a record of what produced a value.
+/// How a number reads in a record: a value somebody stated, and a value a rule produced.
 ///
-/// Every rule already writes its own values through this, so a surface writing a record the
-/// rules did not write reaches the one spelling rather than inventing a second. Five reads as
-/// `5`, the way somebody states it, rather than as `5.0`.
-pub fn parameter_value_text(value: f64) -> String {
+/// One spelling for both, because the two meet in one column. A batch writes a rule's
+/// threshold beside the value it declined on, and a swept setting beside the number it moved,
+/// so a record spelling the stated one and the produced one differently spells one value two
+/// ways. Five reads as `5`, the way somebody states it, rather than as `5.0`, and anything
+/// else reads at the digits that read back as the same binary64, never at display precision:
+/// a sweep over 9.80665 and 9.8070 rendered at two decimals labels two runs identically and
+/// leaves a reader unable to tell which produced which number.
+pub fn recorded_number_text(value: f64) -> String {
     resolution::format_number(value)
 }
 pub use response::{AnalysisResponse, BoundGlobal, Levels, Metric};

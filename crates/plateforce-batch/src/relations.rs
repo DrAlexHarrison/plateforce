@@ -492,19 +492,60 @@ impl AggregateRow {
     }
 }
 
-/// Full precision, because a table written at display precision is a different number from
-/// the one the rule produced and the two get compared.
+/// Every number this crate writes into a table, through the one spelling the records the
+/// rules write already use.
+///
+/// The columns here carry both kinds: a measured value beside the threshold it was held to,
+/// a refused value beside the parameter it was refused under. Spelling a stated 5 as `5.0`
+/// here and as `5` in the analysed record put one value on two surfaces under two names.
 pub(crate) fn format_value(value: f64) -> String {
-    if value == value.trunc() && value.abs() < 1e15 {
-        format!("{value:.1}")
-    } else {
-        format!("{value}")
-    }
+    plateforce_analysis::recorded_number_text(value)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// One value, one spelling, across the two surfaces that write it.
+    ///
+    /// A table here wrote a stated 5 as `5.0` where the analysed record it gets compared with
+    /// wrote `5`. Nothing failed, because the two never met on one number in any test, which
+    /// is what a divergence looks like before somebody compares the columns. The whole numbers
+    /// are the cases that separated the two; the rest are here so a renderer that agrees on
+    /// integers and rounds everything else cannot pass.
+    #[test]
+    fn a_table_writes_a_number_the_way_the_analysed_record_writes_it() {
+        for value in [
+            0.0,
+            5.0,
+            -5.0,
+            1.0 / 3.0,
+            9.806_65,
+            9.807,
+            2.001,
+            0.05,
+            1e15,
+            586.190_274_75,
+        ] {
+            assert_eq!(
+                format_value(value),
+                plateforce_analysis::recorded_number_text(value),
+                "the table and the analysed record spell {value} differently"
+            );
+        }
+    }
+
+    /// The spelling itself, pinned where a reader of a CSV meets it. A whole number reads as
+    /// the digits somebody would type, and everything else at the digits that read back as the
+    /// number that ran rather than at a display precision.
+    #[test]
+    fn a_whole_number_reads_as_the_digits_somebody_would_type() {
+        assert_eq!(format_value(5.0), "5");
+        assert_eq!(format_value(0.0), "0");
+        assert_eq!(format_value(-5.0), "-5");
+        assert_eq!(format_value(9.806_65), "9.80665");
+        assert_eq!(format_value(2.001), "2.001");
+    }
 
     #[test]
     fn the_result_header_carries_the_four_keys_then_the_quantities_in_order() {
