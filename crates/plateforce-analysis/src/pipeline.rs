@@ -64,7 +64,7 @@ pub fn run(
         &request.weighing.method_id,
         weighing.bound,
         request.is_backed(&request.weighing.method_id),
-        request.weighing.start_index.is_some(),
+        request.weighing.start_index,
     ));
 
     let mut refusals: Vec<DeclinedRule> = Vec::new();
@@ -109,7 +109,9 @@ pub fn run(
         &request.onset.method_id,
         onset_bound,
         request,
-        request.onset.manual_index.is_some(),
+        // The sample that ran rather than the one asked for. A placement past the end of the
+        // recording is clamped above, and the record names what produced the number.
+        request.onset.manual_index.and(onset_index),
     );
     let onset_ids: Vec<String> = onset_methods
         .iter()
@@ -131,7 +133,7 @@ pub fn run(
         &request.takeoff.method_id,
         takeoff.bound,
         request,
-        request.takeoff.manual_index.is_some(),
+        request.takeoff.manual_index.and(takeoff_index),
     );
     let takeoff_ids_bound: Vec<String> = takeoff_methods
         .iter()
@@ -671,11 +673,13 @@ fn run_spine_default(
     };
     let mut outcome = rule(&context, &choice, warnings);
     crate::derived::record_stated_touchdown(&context, &mut outcome.bound, request.touchdown_index);
+    // Nobody was asked, so nobody placed anything. A landing the caller did state reaches the
+    // record above as a value the rules that read it were bound to.
     bound_methods.push(bound_method(
         binding.id,
         outcome.bound,
         request.is_backed(binding.id),
-        false,
+        None,
     ));
     // A rule the spine ran for itself declines out loud, on the same terms as one the caller
     // named. Five of the six trials in the conformance corpus report no flight time, because
@@ -852,7 +856,7 @@ fn run_derived_phase(
             binding.id,
             outcome.bound,
             request.is_backed(binding.id),
-            choice.manual_index.is_some(),
+            choice.manual_index,
         ));
         if let Some(rejected) = outcome.refusal {
             warnings.push(rejected.to_string());
@@ -939,11 +943,12 @@ fn run_conditioning_phase(
             );
         }
         settled.ids.push(binding.id.to_string());
+        // A rule that conditions the signal places no landmark, so no hand placed one here.
         settled.bound_methods.push(bound_method(
             binding.id,
             outcome.bound,
             request.is_backed(binding.id),
-            false,
+            None,
         ));
     }
     Ok(settled)
@@ -2047,8 +2052,11 @@ mod tests {
         assert!(!takeoff.registry_backed);
     }
 
+    /// The sample and not the fact of a hand, because two hands placing two different samples
+    /// give two numbers. A row recording only that somebody dragged something cannot tell a
+    /// reader which of the two they are holding.
     #[test]
-    fn dragging_a_marker_is_recorded_as_an_override() {
+    fn dragging_a_marker_is_recorded_as_the_sample_the_hand_placed() {
         let mut candidate = request(
             "onset.threshold.noise_relative",
             "takeoff.threshold.absolute_force",
@@ -2056,7 +2064,23 @@ mod tests {
         candidate.onset.manual_index = Some(1100);
         let response = run(&synthetic(), &candidate).unwrap();
         assert_eq!(response.onset_index, Some(1100));
-        assert!(response.bound_methods.iter().any(|m| m.manual_override));
+        assert!(response
+            .bound_methods
+            .iter()
+            .any(|bound| bound.placed_by_hand_at_sample == Some(1100)));
+
+        // Every other row on the same run, so the sample lands on the rule whose landmark a
+        // hand placed rather than on all of them.
+        let untouched: Vec<&str> = response
+            .bound_methods
+            .iter()
+            .filter(|bound| bound.placed_by_hand_at_sample.is_none())
+            .map(|bound| bound.method_id.as_str())
+            .collect();
+        assert!(
+            !untouched.is_empty(),
+            "every rule on the run claims a hand placed its landmark"
+        );
     }
 
     /// The picker cannot reach an id with no rule behind it, and the module surface can. A
@@ -3028,8 +3052,10 @@ mod tests {
                     }
                     for method in &response.bound_methods {
                         report.push_str(&format!(
-                            "  method {} backed {} override {}\n",
-                            method.method_id, method.registry_backed, method.manual_override
+                            "  method {} backed {} placed_by_hand_at_sample {:?}\n",
+                            method.method_id,
+                            method.registry_backed,
+                            method.placed_by_hand_at_sample
                         ));
                     }
                     for warning in &response.warnings {

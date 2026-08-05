@@ -25,432 +25,559 @@
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.adaptive_lowest_variance",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.fixed_window",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.manual_placement",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "mechanical_object",
           "id": "declaration.computed_on_object",
+          "requires": [
+            "object"
+          ],
           "slot": "mechanical_object"
         },
         {
           "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
+          "requires": [],
           "slot": "conditioned_force_signal"
         },
         {
           "composed_from": null,
           "construct": "flight_time",
           "id": "flight_time.takeoff_to_touchdown",
+          "requires": [],
           "slot": "flight_time"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.gross",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "net_peak_force",
           "id": "force.peak.net",
+          "requires": [],
           "slot": "net_peak_force"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.epoch_from_onset",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
+          "requires": [],
           "slot": "net_impulse"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.to_fraction_of_peak_force",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.mcmahon_correction_factor",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "requires": [
+            "ankle_angle_at_landing_degrees",
+            "ankle_angle_at_takeoff_degrees",
+            "stature_m"
+          ],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.frame",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.min_of_ft_and_tov.labanalysis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
+          "requires": [
+            "ankle_height_m",
+            "foot_length_m",
+            "sole_thickness_m"
+          ],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.tov_plus_displacement",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.flight_time",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.impulse_momentum",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.peak_velocity.chavda2018",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.absolute_force",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.tied_to_takeoff",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "normalisation_basis",
           "id": "normalise.denominator",
+          "requires": [
+            "denominator"
+          ],
           "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.adaptive_trailing_window",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": "onset.threshold.noise_relative",
           "construct": "movement_onset",
           "id": "onset.threshold.last_within_band",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.noise_relative",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.min_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.zero_net_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unweighting_single.mcmahon2018",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.peak_com_velocity",
+          "requires": [
+            "search_signal"
+          ],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.takeoff",
+          "requires": [],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.peak_grf",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.velocity_threshold",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.zero_velocity",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_force_crossing",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power",
           "id": "power.instantaneous.force_x_velocity",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "mechanical_power"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.mean",
           "id": "power.mean.phase",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.mean"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak.instantaneous",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.lewis",
+          "requires": [],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.regression",
+          "requires": [
+            "population"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.average_to_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.between_force_levels",
+          "requires": [
+            "lower_level",
+            "reference_basis",
+            "upper_level"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.mean_force_over_duration.lapuente",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.peak_sliding_window",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.phase_endpoint_secant.harry",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.peak_to_peak_anchored.amti",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.phase_anchored",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
+          "requires": [],
           "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.descending_crossing",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.flight_noise_k_sd",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.landing_shape",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
+          "requires": [],
           "slot": "time_to_takeoff"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_force_ds",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_power_dt",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.single_force_displacement_product",
+          "requires": [
+            "phase"
+          ],
           "slot": "mechanical_work"
         }
       ],
@@ -464,6 +591,102 @@
         "registry_validate",
         "spread",
         "version"
+      ],
+      "operators": [
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backtrack_to_tolerance",
+          "states": [
+            "inverse_lookback_seconds",
+            "retreat_cap_samples",
+            "tolerance"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backward_offset_fixed",
+          "states": [
+            "offset_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.direction",
+          "states": [
+            "direction"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.persistence",
+          "states": [
+            "span_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor",
+          "states": [
+            "floor_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_upper_bound",
+          "states": [
+            "bound",
+            "search_bound_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.residual_comparison",
+          "states": [
+            "comparison"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_trial_start",
+          "states": [
+            "search_floor_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.short_run_handling",
+          "states": [
+            "short_run_handling"
+          ]
+        }
       ],
       "output_formats": [
         "json"
@@ -573,432 +796,559 @@
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.adaptive_lowest_variance",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.fixed_window",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.manual_placement",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "mechanical_object",
           "id": "declaration.computed_on_object",
+          "requires": [
+            "object"
+          ],
           "slot": "mechanical_object"
         },
         {
           "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
+          "requires": [],
           "slot": "conditioned_force_signal"
         },
         {
           "composed_from": null,
           "construct": "flight_time",
           "id": "flight_time.takeoff_to_touchdown",
+          "requires": [],
           "slot": "flight_time"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.gross",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "net_peak_force",
           "id": "force.peak.net",
+          "requires": [],
           "slot": "net_peak_force"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.epoch_from_onset",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
+          "requires": [],
           "slot": "net_impulse"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.to_fraction_of_peak_force",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.mcmahon_correction_factor",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "requires": [
+            "ankle_angle_at_landing_degrees",
+            "ankle_angle_at_takeoff_degrees",
+            "stature_m"
+          ],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.frame",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.min_of_ft_and_tov.labanalysis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
+          "requires": [
+            "ankle_height_m",
+            "foot_length_m",
+            "sole_thickness_m"
+          ],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.tov_plus_displacement",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.flight_time",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.impulse_momentum",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.peak_velocity.chavda2018",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.absolute_force",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.tied_to_takeoff",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "normalisation_basis",
           "id": "normalise.denominator",
+          "requires": [
+            "denominator"
+          ],
           "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.adaptive_trailing_window",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": "onset.threshold.noise_relative",
           "construct": "movement_onset",
           "id": "onset.threshold.last_within_band",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.noise_relative",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.min_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.zero_net_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unweighting_single.mcmahon2018",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.peak_com_velocity",
+          "requires": [
+            "search_signal"
+          ],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.takeoff",
+          "requires": [],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.peak_grf",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.velocity_threshold",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.zero_velocity",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_force_crossing",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power",
           "id": "power.instantaneous.force_x_velocity",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "mechanical_power"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.mean",
           "id": "power.mean.phase",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.mean"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak.instantaneous",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.lewis",
+          "requires": [],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.regression",
+          "requires": [
+            "population"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.average_to_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.between_force_levels",
+          "requires": [
+            "lower_level",
+            "reference_basis",
+            "upper_level"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.mean_force_over_duration.lapuente",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.peak_sliding_window",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.phase_endpoint_secant.harry",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.peak_to_peak_anchored.amti",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.phase_anchored",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
+          "requires": [],
           "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.descending_crossing",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.flight_noise_k_sd",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.landing_shape",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
+          "requires": [],
           "slot": "time_to_takeoff"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_force_ds",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_power_dt",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.single_force_displacement_product",
+          "requires": [
+            "phase"
+          ],
           "slot": "mechanical_work"
         }
       ],
@@ -1014,6 +1364,102 @@
         "registry_validate",
         "spread",
         "version"
+      ],
+      "operators": [
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backtrack_to_tolerance",
+          "states": [
+            "inverse_lookback_seconds",
+            "retreat_cap_samples",
+            "tolerance"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backward_offset_fixed",
+          "states": [
+            "offset_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.direction",
+          "states": [
+            "direction"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.persistence",
+          "states": [
+            "span_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor",
+          "states": [
+            "floor_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_upper_bound",
+          "states": [
+            "bound",
+            "search_bound_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.residual_comparison",
+          "states": [
+            "comparison"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_trial_start",
+          "states": [
+            "search_floor_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.short_run_handling",
+          "states": [
+            "short_run_handling"
+          ]
+        }
       ],
       "output_formats": [
         "csv",
@@ -1125,432 +1571,559 @@
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.adaptive_lowest_variance",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.fixed_window",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.manual_placement",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "mechanical_object",
           "id": "declaration.computed_on_object",
+          "requires": [
+            "object"
+          ],
           "slot": "mechanical_object"
         },
         {
           "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
+          "requires": [],
           "slot": "conditioned_force_signal"
         },
         {
           "composed_from": null,
           "construct": "flight_time",
           "id": "flight_time.takeoff_to_touchdown",
+          "requires": [],
           "slot": "flight_time"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.gross",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "net_peak_force",
           "id": "force.peak.net",
+          "requires": [],
           "slot": "net_peak_force"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.epoch_from_onset",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
+          "requires": [],
           "slot": "net_impulse"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.to_fraction_of_peak_force",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.mcmahon_correction_factor",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "requires": [
+            "ankle_angle_at_landing_degrees",
+            "ankle_angle_at_takeoff_degrees",
+            "stature_m"
+          ],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.frame",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.min_of_ft_and_tov.labanalysis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
+          "requires": [
+            "ankle_height_m",
+            "foot_length_m",
+            "sole_thickness_m"
+          ],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.tov_plus_displacement",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.flight_time",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.impulse_momentum",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.peak_velocity.chavda2018",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.absolute_force",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.tied_to_takeoff",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "normalisation_basis",
           "id": "normalise.denominator",
+          "requires": [
+            "denominator"
+          ],
           "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.adaptive_trailing_window",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": "onset.threshold.noise_relative",
           "construct": "movement_onset",
           "id": "onset.threshold.last_within_band",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.noise_relative",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.min_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.zero_net_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unweighting_single.mcmahon2018",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.peak_com_velocity",
+          "requires": [
+            "search_signal"
+          ],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.takeoff",
+          "requires": [],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.peak_grf",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.velocity_threshold",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.zero_velocity",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_force_crossing",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power",
           "id": "power.instantaneous.force_x_velocity",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "mechanical_power"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.mean",
           "id": "power.mean.phase",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.mean"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak.instantaneous",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.lewis",
+          "requires": [],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.regression",
+          "requires": [
+            "population"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.average_to_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.between_force_levels",
+          "requires": [
+            "lower_level",
+            "reference_basis",
+            "upper_level"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.mean_force_over_duration.lapuente",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.peak_sliding_window",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.phase_endpoint_secant.harry",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.peak_to_peak_anchored.amti",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.phase_anchored",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
+          "requires": [],
           "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.descending_crossing",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.flight_noise_k_sd",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.landing_shape",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
+          "requires": [],
           "slot": "time_to_takeoff"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_force_ds",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_power_dt",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.single_force_displacement_product",
+          "requires": [
+            "phase"
+          ],
           "slot": "mechanical_work"
         }
       ],
@@ -1564,6 +2137,102 @@
         "registry_validate",
         "spread",
         "version"
+      ],
+      "operators": [
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backtrack_to_tolerance",
+          "states": [
+            "inverse_lookback_seconds",
+            "retreat_cap_samples",
+            "tolerance"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backward_offset_fixed",
+          "states": [
+            "offset_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.direction",
+          "states": [
+            "direction"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.persistence",
+          "states": [
+            "span_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor",
+          "states": [
+            "floor_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_upper_bound",
+          "states": [
+            "bound",
+            "search_bound_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.residual_comparison",
+          "states": [
+            "comparison"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_trial_start",
+          "states": [
+            "search_floor_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.short_run_handling",
+          "states": [
+            "short_run_handling"
+          ]
+        }
       ],
       "output_formats": [
         "csv",
@@ -1675,432 +2344,559 @@
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.adaptive_lowest_variance",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.fixed_window",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "system_weight",
           "id": "bwepoch.manual_placement",
+          "requires": [],
           "slot": "weighing"
         },
         {
           "composed_from": null,
           "construct": "mechanical_object",
           "id": "declaration.computed_on_object",
+          "requires": [
+            "object"
+          ],
           "slot": "mechanical_object"
         },
         {
           "composed_from": null,
           "construct": "conditioned_force_signal",
           "id": "filter.none",
+          "requires": [],
           "slot": "conditioned_force_signal"
         },
         {
           "composed_from": null,
           "construct": "flight_time",
           "id": "flight_time.takeoff_to_touchdown",
+          "requires": [],
           "slot": "flight_time"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.gross",
+          "requires": [],
           "slot": "peak_force"
         },
         {
           "composed_from": null,
           "construct": "net_peak_force",
           "id": "force.peak.net",
+          "requires": [],
           "slot": "net_peak_force"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.epoch_from_onset",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "net_impulse",
           "id": "impulse.net_vertical.as_performance_determinant",
+          "requires": [],
           "slot": "net_impulse"
         },
         {
           "composed_from": null,
           "construct": "epoch_impulse",
           "id": "impulse.to_fraction_of_peak_force",
+          "requires": [
+            "convention"
+          ],
           "slot": "epoch_impulse"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.mcmahon_correction_factor",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.flight_time.ankle_angle_corrected",
+          "requires": [
+            "ankle_angle_at_landing_degrees",
+            "ankle_angle_at_takeoff_degrees",
+            "stature_m"
+          ],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.frame",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.min_of_ft_and_tov.labanalysis",
+          "requires": [],
           "slot": "jump_height.undeclared"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.double_integration",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.flight_time_anthropometric_correction.wade2020",
+          "requires": [
+            "ankle_height_m",
+            "foot_length_m",
+            "sole_thickness_m"
+          ],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.standing_frame",
           "id": "jumpheight.standing.tov_plus_displacement",
+          "requires": [],
           "slot": "jump_height.standing_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.flight_time",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.impulse_momentum",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.peak_velocity.chavda2018",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
+          "requires": [],
           "slot": "jump_height.takeoff_frame"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.absolute_force",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "landing",
           "id": "landing.threshold.tied_to_takeoff",
+          "requires": [],
           "slot": "landing"
         },
         {
           "composed_from": null,
           "construct": "normalisation_basis",
           "id": "normalise.denominator",
+          "requires": [
+            "denominator"
+          ],
           "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.absolute_force",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.adaptive_trailing_window",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": "onset.threshold.noise_relative",
           "construct": "movement_onset",
           "id": "onset.threshold.last_within_band",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.noise_relative",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "movement_onset",
           "id": "onset.threshold.relative_to_system_weight",
+          "requires": [],
           "slot": "onset"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.anchor.time_epochs.schmidtbleicher",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.min_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "braking_phase_start",
           "id": "phase.braking_start.zero_net_force",
+          "requires": [],
           "slot": "braking_phase_start"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unweighting_single.mcmahon2018",
+          "requires": [],
           "slot": "phase_model"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.peak_com_velocity",
+          "requires": [
+            "search_signal"
+          ],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.takeoff",
+          "requires": [],
           "slot": "propulsion_phase_end"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.peak_grf",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.velocity_threshold",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.zero_velocity",
+          "requires": [],
           "slot": "propulsion_phase_start"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_force_crossing",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "propulsion_subdivision",
           "id": "phase.propulsion_subdivision.by_time",
+          "requires": [],
           "slot": "propulsion_subdivision"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power",
           "id": "power.instantaneous.force_x_velocity",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "mechanical_power"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.mean",
           "id": "power.mean.phase",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.mean"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak.instantaneous",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.lewis",
+          "requires": [],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "mechanical_power.peak",
           "id": "power.peak_from_height.regression",
+          "requires": [
+            "population"
+          ],
           "slot": "mechanical_power.peak"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.average_to_peak_force",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.between_force_levels",
+          "requires": [
+            "lower_level",
+            "reference_basis",
+            "upper_level"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.mean_force_over_duration.lapuente",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.peak_sliding_window",
+          "requires": [],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.phase_endpoint_secant.harry",
+          "requires": [
+            "phase"
+          ],
           "slot": "rate_of_force_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.peak_to_peak_anchored.amti",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "rate_of_power_development",
           "id": "rpd.phase_anchored",
+          "requires": [
+            "force_term",
+            "sign_convention"
+          ],
           "slot": "rate_of_power_development"
         },
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
+          "requires": [],
           "slot": "reactive_strength_index"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.descending_crossing",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.flight_noise_k_sd",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.landing_shape",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": "takeoff.threshold.absolute_force",
           "construct": "takeoff",
           "id": "takeoff.threshold.longest_run",
+          "requires": [],
           "slot": "takeoff"
         },
         {
           "composed_from": null,
           "construct": "time_to_takeoff",
           "id": "time_to_takeoff.onset_to_takeoff",
+          "requires": [],
           "slot": "time_to_takeoff"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.takeoff.detected",
+          "requires": [],
           "slot": "analysis_window"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_force_ds",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.integral_power_dt",
+          "requires": [
+            "force_term",
+            "phase",
+            "sign_convention"
+          ],
           "slot": "mechanical_work"
         },
         {
           "composed_from": null,
           "construct": "mechanical_work",
           "id": "work.single_force_displacement_product",
+          "requires": [
+            "phase"
+          ],
           "slot": "mechanical_work"
         }
       ],
@@ -2112,6 +2908,102 @@
         "registry_show",
         "spread",
         "version"
+      ],
+      "operators": [
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backtrack_to_tolerance",
+          "states": [
+            "inverse_lookback_seconds",
+            "retreat_cap_samples",
+            "tolerance"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.backward_offset_fixed",
+          "states": [
+            "offset_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.direction",
+          "states": [
+            "direction"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.persistence",
+          "states": [
+            "span_ms"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor",
+          "states": [
+            "floor_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "movement_onset",
+          "entry": "onset.op.search_upper_bound",
+          "states": [
+            "bound",
+            "search_bound_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.crossing_selection",
+          "states": [
+            "selection"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.residual_comparison",
+          "states": [
+            "comparison"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_trial_start",
+          "states": [
+            "search_floor_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.search_floor_at_weighing_epoch_end",
+          "states": [
+            "weighing_epoch_end_seconds"
+          ]
+        },
+        {
+          "construct": "takeoff",
+          "entry": "takeoff.op.short_run_handling",
+          "states": [
+            "short_run_handling"
+          ]
+        }
       ],
       "output_formats": [],
       "plateforce_version": "0.1.0",

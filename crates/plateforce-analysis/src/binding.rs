@@ -934,6 +934,121 @@ pub const BINDINGS: &[Binding] = &[
     },
 ];
 
+/// One name a caller may state on a landmark rule, and the registry entry that carries it.
+///
+/// A threshold rule carries its own threshold and the convention its spread was taken under.
+/// Every other value belongs to an operator the registry files as an entry in its own right,
+/// so recording one against the threshold rule puts a parameter on a row that does not have
+/// it, and a reader who looks the id up does not find the value that moved the number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct OperatorName {
+    /// What a caller writes.
+    pub name: &'static str,
+    /// The registry entry that publishes it, which is never the entry the request named.
+    pub entry: &'static str,
+}
+
+/// Which registry entry carries each name an onset rule reads.
+///
+/// Data rather than a match, so a surface can enumerate what a caller may state to reach an
+/// operator. Two names may reach one entry: the window searched for an excursion the other
+/// side of the band is the trigger the retreat fires on, and where the retreat stops.
+pub const ONSET_OPERATOR_NAMES: &[OperatorName] = &[
+    OperatorName {
+        name: crate::slots::movement_onset::OFFSET_MILLISECONDS,
+        entry: crate::slots::movement_onset::BACKWARD_OFFSET_FIXED,
+    },
+    OperatorName {
+        name: "span_ms",
+        entry: "onset.op.persistence",
+    },
+    OperatorName {
+        name: crate::slots::movement_onset::FLOOR_SECONDS,
+        entry: crate::slots::movement_onset::SEARCH_FLOOR,
+    },
+    OperatorName {
+        name: crate::slots::movement_onset::WEIGHING_EPOCH_END_SECONDS,
+        entry: crate::slots::movement_onset::SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
+    },
+    OperatorName {
+        name: "direction",
+        entry: "onset.op.direction",
+    },
+    OperatorName {
+        name: "selection",
+        entry: crate::slots::movement_onset::CROSSING_SELECTION,
+    },
+    OperatorName {
+        name: crate::slots::movement_onset::INVERSE_LOOKBACK_SECONDS,
+        entry: crate::slots::movement_onset::BACKTRACK_TO_TOLERANCE,
+    },
+    OperatorName {
+        name: crate::slots::movement_onset::TOLERANCE,
+        entry: crate::slots::movement_onset::BACKTRACK_TO_TOLERANCE,
+    },
+    OperatorName {
+        name: crate::slots::movement_onset::RETREAT_CAP_SAMPLES,
+        entry: crate::slots::movement_onset::BACKTRACK_TO_TOLERANCE,
+    },
+    OperatorName {
+        name: "bound",
+        entry: crate::slots::movement_onset::SEARCH_UPPER_BOUND,
+    },
+    OperatorName {
+        name: "search_bound_seconds",
+        entry: crate::slots::movement_onset::SEARCH_UPPER_BOUND,
+    },
+];
+
+/// The same, for a takeoff rule. A separate table because the two operator families are
+/// separate registry entries, and a takeoff parameter recorded against an onset operator is a
+/// value filed under a construct it never touched.
+///
+/// `comparison` and `short_run_handling` decide whether an unloaded plate reading negative
+/// counts as flight, and whether a run too short to be a flight can win the comparison and
+/// disqualify the trial. A threshold row lists neither.
+pub const TAKEOFF_OPERATOR_NAMES: &[OperatorName] = &[
+    OperatorName {
+        name: "comparison",
+        entry: crate::slots::takeoff::TAKEOFF_OP_RESIDUAL_COMPARISON,
+    },
+    OperatorName {
+        name: "short_run_handling",
+        entry: crate::slots::takeoff::TAKEOFF_OP_SHORT_RUN_HANDLING,
+    },
+    OperatorName {
+        name: "selection",
+        entry: crate::slots::takeoff::TAKEOFF_OP_CROSSING_SELECTION,
+    },
+    OperatorName {
+        name: crate::slots::takeoff::TAKEOFF_WEIGHING_EPOCH_END_SECONDS,
+        entry: crate::slots::takeoff::TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END,
+    },
+    OperatorName {
+        name: crate::slots::takeoff::TAKEOFF_SEARCH_FLOOR_SECONDS,
+        entry: crate::slots::takeoff::TAKEOFF_SEARCH_FLOOR_AT_TRIAL_START,
+    },
+];
+
+/// The names a caller may state on a rule of this construct to reach an operator entry, and
+/// nothing for a construct whose rules compose none.
+pub fn operator_names_for_construct(construct: &str) -> &'static [OperatorName] {
+    match construct {
+        ONSET_CONSTRUCT => ONSET_OPERATOR_NAMES,
+        TAKEOFF_CONSTRUCT => TAKEOFF_OPERATOR_NAMES,
+        _ => &[],
+    }
+}
+
+/// The entry a name reaches on a rule of this construct, and nothing for a name the rule
+/// carries itself.
+pub fn operator_for(construct: &str, name: &str) -> Option<&'static str> {
+    operator_names_for_construct(construct)
+        .iter()
+        .find(|routed| routed.name == name)
+        .map(|routed| routed.entry)
+}
+
 /// What a caller has to state before a rule will run, for the entries whose registry rows
 /// publish no default, each with one value that answers it.
 ///
@@ -1166,4 +1281,57 @@ pub(crate) fn expect_bound(
         return Ok(());
     }
     Err(Box::new(unbound_method_refusal(method_id, slot)))
+}
+
+#[cfg(test)]
+mod operator_routing_tests {
+    use super::*;
+
+    /// The routing table and the operator id lists are one fact and were two homes. This is
+    /// what the second home said before it went away, so the collapse is held to a comparison
+    /// rather than to a reading.
+    #[test]
+    fn the_names_reach_exactly_the_operator_entries_this_build_declares() {
+        for (construct, declared) in [
+            (ONSET_CONSTRUCT, crate::ONSET_OPERATOR_IDS),
+            (TAKEOFF_CONSTRUCT, crate::TAKEOFF_OPERATOR_IDS),
+        ] {
+            let mut reached: Vec<&str> = operator_names_for_construct(construct)
+                .iter()
+                .map(|routed| routed.entry)
+                .collect();
+            reached.sort();
+            reached.dedup();
+            let mut listed: Vec<&str> = declared.to_vec();
+            listed.sort();
+            assert_eq!(
+                reached,
+                listed,
+                "{construct}: {} names reach {} entries and the build declares {}",
+                operator_names_for_construct(construct).len(),
+                reached.len(),
+                listed.len()
+            );
+        }
+    }
+
+    /// The two families are separate registry entries, so a name shared between them routes to
+    /// two different ids. `selection` is the one that does, and a table keyed on the name alone
+    /// would file a takeoff crossing under the onset construct.
+    #[test]
+    fn one_name_on_two_constructs_reaches_two_entries() {
+        assert_eq!(
+            operator_for(ONSET_CONSTRUCT, "selection"),
+            Some("onset.op.crossing_selection")
+        );
+        assert_eq!(
+            operator_for(TAKEOFF_CONSTRUCT, "selection"),
+            Some("takeoff.op.crossing_selection")
+        );
+        assert_eq!(operator_for(WEIGHING_CONSTRUCT, "selection"), None);
+        // The control on the three above: a name no rule of either construct routes reaches
+        // nothing, so the lookup is answering the name rather than answering the construct.
+        assert_eq!(operator_for(ONSET_CONSTRUCT, "k"), None);
+        assert_eq!(operator_for(TAKEOFF_CONSTRUCT, "threshold_n"), None);
+    }
 }

@@ -100,11 +100,72 @@ fn a_surface_answers_for_the_arrays_and_no_others() {
             "acquisition",
             "methods",
             "operations",
+            "operators",
             "output_formats",
             "plateforce_version",
             "refusal_codes",
             "schema"
         ]
+    );
+}
+
+/// Every operator entry this build composes is on the wire, under the construct whose rules
+/// reach it, with the names a caller states to reach it.
+///
+/// A caller never names an operator: it arrives because the rule they picked composed it. So
+/// the manifest is the only place a chooser learns that stating `selection` on a takeoff rule
+/// reaches the takeoff crossing entry and not the onset one, and before this it learned
+/// nothing, because no id containing `.op.` appeared anywhere in the document.
+#[test]
+fn every_operator_entry_this_build_composes_is_published_with_the_names_that_reach_it() {
+    let published = reported();
+    let rows = published["operators"]
+        .as_array()
+        .expect("the surface publishes the operators its rules compose");
+
+    let declared: usize = plateforce_analysis::ONSET_OPERATOR_IDS.len()
+        + plateforce_analysis::TAKEOFF_OPERATOR_IDS.len();
+    println!(
+        "{} operator rows published, {declared} declared",
+        rows.len()
+    );
+    assert_eq!(rows.len(), declared);
+
+    // Named rather than counted. A row per entry with the wrong construct on it counts the
+    // same and sends a chooser to state a name on a rule that never had it.
+    let reached: Vec<(&str, &str)> = rows
+        .iter()
+        .map(|row| {
+            (
+                row["construct"].as_str().expect("a construct"),
+                row["entry"].as_str().expect("an entry"),
+            )
+        })
+        .collect();
+    assert!(
+        reached.contains(&("takeoff", "takeoff.op.crossing_selection")),
+        "{reached:?}"
+    );
+    assert!(
+        reached.contains(&("movement_onset", "onset.op.crossing_selection")),
+        "{reached:?}"
+    );
+
+    let names_for = |entry: &str| -> Vec<String> {
+        rows.iter()
+            .find(|row| row["entry"] == entry)
+            .expect("the entry is published")["states"]
+            .as_array()
+            .expect("the names that reach it")
+            .iter()
+            .map(|name| name.as_str().expect("a name").to_string())
+            .collect()
+    };
+    assert_eq!(names_for("takeoff.op.crossing_selection"), ["selection"]);
+    // The one entry two names reach, so a row carrying a single name would read as complete.
+    assert_eq!(
+        names_for("onset.op.search_upper_bound"),
+        ["bound", "search_bound_seconds"]
     );
 }
 
@@ -334,4 +395,120 @@ fn every_container_this_binary_writes_is_one_it_declares() {
             .collect::<Vec<&str>>()
     );
     assert!(faults.is_empty(), "{faults:?}");
+}
+
+/// What a rule declines without is a claim about the engine, so it is held against the engine
+/// rather than against the table it was read from.
+///
+/// One rule of the nineteen, driven both ways through the built binary: it declines with the
+/// name missing, and produces its number with the name supplied. A comparison against
+/// `required_options` would be the table checked against itself.
+///
+/// Parsed, never searched. A run that states the name legitimately carries it in the record of
+/// what the rule was bound to, so a substring check for the name reads a successful run as a
+/// refusal, which is what the first draft of this did.
+#[test]
+fn a_name_a_rule_declines_without_is_a_name_the_engine_declines_without() {
+    const RULE: &str = "impulse.epoch_from_onset";
+    const NAME: &str = "convention";
+    const QUANTITY: &str = "epoch_impulse_newton_seconds";
+
+    let requires: Vec<String> = reported()["methods"]
+        .as_array()
+        .expect("the surface publishes its rules")
+        .iter()
+        .find(|row| row["id"] == RULE)
+        .expect("the rule is published")["requires"]
+        .as_array()
+        .expect("what it declines without")
+        .iter()
+        .map(|name| name.as_str().expect("a name").to_string())
+        .collect();
+    assert_eq!(requires, [NAME]);
+
+    let analysed = |extra: &[&str]| -> serde_json::Value {
+        let derive = format!("epoch_impulse={RULE}");
+        let mut line: Vec<&str> = vec![
+            "--registry",
+            "../../registry",
+            "--format",
+            "json",
+            "analyse",
+            "../plateforce-conformance/fixtures/subject01_trial1.force.txt",
+            "--column",
+            "0",
+            "--sample-rate-hz",
+            "1200",
+            "--sentinel",
+            "none",
+            "--delimiter",
+            "\t",
+            "--weighing",
+            "bwepoch.fixed_window",
+            "--set",
+            "weighing.duration=1.0",
+            "--onset",
+            "onset.threshold.noise_relative",
+            "--set",
+            "onset.k=5.0",
+            "--takeoff",
+            "takeoff.threshold.absolute_force",
+            "--set",
+            "takeoff.threshold_n=20.0",
+            "--derive",
+            &derive,
+        ];
+        line.extend_from_slice(extra);
+        let output = Command::new(env!("CARGO_BIN_EXE_plateforce"))
+            .args(&line)
+            .env("NO_COLOR", "1")
+            .current_dir(env!("CARGO_MANIFEST_DIR"))
+            .output()
+            .expect("the built binary runs");
+        let text = String::from_utf8_lossy(&output.stdout).to_string();
+        serde_json::from_str::<serde_json::Value>(&text)
+            .unwrap_or_else(|_| panic!("the run produced a document:\n{text}"))["ok"]
+            .clone()
+    };
+
+    let declined_over = |document: &serde_json::Value| -> Vec<String> {
+        document["refusals"]
+            .as_array()
+            .expect("a run names what declined")
+            .iter()
+            .filter(|refusal| refusal["method_id"] == RULE)
+            .map(|refusal| refusal["parameter"].as_str().unwrap_or("").to_string())
+            .collect()
+    };
+    let reported = |document: &serde_json::Value| -> bool {
+        document["metrics"]
+            .as_array()
+            .expect("a run reports its quantities")
+            .iter()
+            .any(|metric| metric["key"] == QUANTITY && !metric["value"].is_null())
+    };
+
+    let silent = analysed(&[]);
+    assert_eq!(
+        declined_over(&silent),
+        [NAME],
+        "the manifest names a requirement the engine does not have"
+    );
+    assert!(
+        !reported(&silent),
+        "the rule declined over {NAME} and reported {QUANTITY} anyway"
+    );
+
+    // The other direction, so the assertion above cannot be satisfied by a rule that declines
+    // whatever the caller states.
+    let answered = analysed(&["--choose", "epoch_impulse.convention=net"]);
+    assert!(
+        declined_over(&answered).is_empty(),
+        "stating {NAME} left the rule declining: {:?}",
+        declined_over(&answered)
+    );
+    assert!(
+        reported(&answered),
+        "stating {NAME} cleared the refusal and produced no {QUANTITY}"
+    );
 }

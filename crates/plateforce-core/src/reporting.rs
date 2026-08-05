@@ -43,12 +43,28 @@ impl Fingerprint {
 }
 
 /// What proves two labs computed the same quantity: the whole chain of methods and their
-/// bound values, plus the acquisition block.
+/// bound values, the sample a hand supplied for any landmark it placed, plus the acquisition
+/// block.
 ///
 /// The chain is taken over `depends_on` rather than the top step alone, because the parameter
 /// that moved the number usually sits upstream of the method that reported it. Each value
 /// carries its source, since two runs that reached one number from a stated value and from a
 /// registry default did not compute it the same way.
+///
+/// What is deliberately not material, each for the same reason: it moves no number, or the
+/// material already carries what moves it.
+///
+/// - `not_read` is the names the request carried that this rule ignored. A caller who typed a
+///   name the rule never reads changed nothing about the number.
+/// - `registry_entry` and `composed_from` are facts about which registry row files this id.
+///   Two runs whose `registry_digest` agrees answer them identically, so hashing them would
+///   record one fact twice.
+/// - `preset` names the published pipeline a caller adopted. The values it put on the path are
+///   in `parameters` and `choices` already, each carrying `cited` as its source, so two labs
+///   reaching one rule and one set of values from two pipelines computed the same quantity.
+/// - `registry_declared_version` is the registry's claim about itself. Two labs whose rule
+///   bytes are identical computed the same quantity whatever their VERSION files say, and
+///   hashing the claim would break every recorded match on a VERSION-only edit.
 pub fn fingerprint(
     provenance: &Provenance,
     acquisition: &Acquisition,
@@ -63,6 +79,12 @@ pub fn fingerprint(
             at("method_source"),
             step.method_source.wire_name().to_string(),
         ));
+        // The sample and not the fact of a hand, because two hands placing two different
+        // samples give two numbers. Written only where a hand placed one, so a run nobody
+        // touched keeps the digest it already had.
+        if let Some(sample) = step.placed_by_hand_at_sample {
+            material.push((at("placed_by_hand_at_sample"), sample.to_string()));
+        }
         for parameter in &step.parameters {
             material.push((
                 at(&format!("parameter/{}", parameter.name)),
@@ -83,9 +105,6 @@ pub fn fingerprint(
             at("registry_version"),
             step.registry_version.clone().unwrap_or_default(),
         ));
-        // `registry_declared_version` is not material: two labs whose rule bytes are identical
-        // computed the same quantity whatever their VERSION files say, and hashing the claim
-        // would break every recorded match on a VERSION-only edit.
     }
 
     material.push((
@@ -214,11 +233,34 @@ mod fingerprint_tests {
 
     #[test]
     fn the_material_spells_sources_by_wire_name_not_by_variant() {
-        let block = filled_block();
-        let printed = fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0);
+        the_material_is(&chain(5.0, ParameterSource::Stated), &[]);
+    }
 
-        // The same material with each source hand-spelled as its wire name. Goes red if
-        // the material reverts to Debug formatting, where "Stated" replaces "stated".
+    /// A hand placement adds one key and moves nothing else, so a run nobody touched keeps the
+    /// digest it had.
+    ///
+    /// Held by hand-building both materials rather than by pinning a digest, because a digest
+    /// written into a committed file is a registry digest to every reader and to
+    /// `digests_in_prose`, and this is not one.
+    #[test]
+    fn a_hand_placement_adds_one_key_to_the_material_and_moves_nothing_else() {
+        the_material_is(
+            &placed_by_hand(5.0, 1180),
+            &[("analysis/0001/placed_by_hand_at_sample", "1180")],
+        );
+    }
+
+    /// The material for the two-step chain above, with `extra` merged in, hand-spelled rather
+    /// than read back from the function under test.
+    ///
+    /// Goes red if the material reverts to Debug formatting, where "Stated" replaces "stated",
+    /// and red if a key joins it that no caller here asked for: a placement written
+    /// unconditionally would appear on the run that has none and move every digest ever
+    /// recorded.
+    fn the_material_is(provenance: &Provenance, extra: &[(&str, &str)]) {
+        let block = filled_block();
+        let printed = fingerprint(provenance, &block, 1200.0);
+
         let mut material: Vec<(String, String)> = vec![
             (
                 "analysis/0000/method_id".to_string(),
@@ -248,6 +290,9 @@ mod fingerprint_tests {
         ];
         for (member, value) in block.members_as_text() {
             material.push((format!("acquisition/{member}"), value));
+        }
+        for (key, value) in extra {
+            material.push(((*key).to_string(), (*value).to_string()));
         }
 
         let expected = content_digest(
@@ -303,6 +348,69 @@ mod fingerprint_tests {
                 &filled_block(),
                 1200.0
             )
+        );
+    }
+
+    /// The same chain with the onset sample placed by a hand rather than found by the rule.
+    /// One field apart from `chain`, so a digest that moves moved for that field.
+    fn placed_by_hand(k: f64, at_sample: usize) -> Provenance {
+        let mut root = chain(k, ParameterSource::Stated);
+        root.depends_on[0].placed_by_hand_at_sample = Some(at_sample);
+        root
+    }
+
+    /// A hand placing the sample a rule would have found is still not that detection.
+    ///
+    /// The pair is one field apart. An engine-level comparison cannot ask this: a dragged marker
+    /// rests on nothing, so its chain loses a step and two digests differ whether or not the
+    /// placement is material at all.
+    #[test]
+    fn a_landmark_a_hand_placed_is_not_the_detection_that_found_the_same_sample() {
+        let block = filled_block();
+        let detected = fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0);
+        let by_hand = fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0);
+
+        assert!(detected.complete && by_hand.complete);
+        assert_ne!(
+            detected, by_hand,
+            "a rule finding the sample and a hand supplying it fingerprint as one result"
+        );
+    }
+
+    /// Two hands placing two samples give two numbers, so the material carries the sample and
+    /// not the fact of a hand. A flag satisfies the guard above and leaves this one red.
+    #[test]
+    fn two_hands_placing_two_samples_are_two_results() {
+        let block = filled_block();
+        assert_ne!(
+            fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0),
+            fingerprint(&placed_by_hand(5.0, 1120), &block, 1200.0),
+            "two hand placements 60 samples apart fingerprint as one result"
+        );
+    }
+
+    /// The control on both, so neither passes on a build where every fingerprint differs from
+    /// every other. One placement repeated is one result.
+    #[test]
+    fn one_hand_placing_one_sample_twice_is_one_result() {
+        let block = filled_block();
+        assert_eq!(
+            fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0),
+            fingerprint(&placed_by_hand(5.0, 1180), &block, 1200.0)
+        );
+    }
+
+    /// A hand placing a landmark at sample zero is a hand placing a landmark. Written apart from
+    /// the guards above because zero is the sample a flag derived from the value gets wrong, and
+    /// every other sample in this file would pass a build that read the placement as a boolean
+    /// the wrong way round.
+    #[test]
+    fn a_landmark_placed_at_sample_zero_is_still_placed_by_a_hand() {
+        let block = filled_block();
+        assert_ne!(
+            fingerprint(&chain(5.0, ParameterSource::Stated), &block, 1200.0),
+            fingerprint(&placed_by_hand(5.0, 0), &block, 1200.0),
+            "a landmark placed at sample zero fingerprints as the detection"
         );
     }
 

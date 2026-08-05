@@ -110,10 +110,15 @@ pub struct Provenance {
     /// Names the request carried that this rule does not read, reported rather than dropped.
     #[serde(default)]
     pub not_read: Vec<String>,
-    /// Set when a marker was dragged. The strongest provenance fact a record can carry, and
-    /// an export that lost it would be exportable and wrong.
+    /// The sample a hand supplied for this rule's landmark, and None where the rule placed it.
+    /// The strongest provenance fact a record can carry, and an export that lost it would be
+    /// exportable and wrong.
+    ///
+    /// The sample and not a flag, because two hands placing two different samples give two
+    /// numbers: a takeoff dragged 60 samples gave flight times of 0.000 s and 0.659 s, and a
+    /// record carrying only that a hand was involved declared them one result.
     #[serde(default)]
-    pub manual_override: bool,
+    pub placed_by_hand_at_sample: Option<usize>,
     /// False when no registry row carries this id.
     #[serde(default = "registry_entry_default")]
     pub registry_entry: bool,
@@ -166,7 +171,7 @@ impl Provenance {
             registry_digest: None,
             acquisition_complete: false,
             not_read: Vec::new(),
-            manual_override: false,
+            placed_by_hand_at_sample: None,
             registry_entry: true,
             composed_from: None,
             preset: None,

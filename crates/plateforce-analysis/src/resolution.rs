@@ -581,6 +581,16 @@ impl Serialize for DeclinedRule {
     }
 }
 
+/// Whether a hand placed this rule's landmark, which is what the chart marker and the row
+/// badge branch on. Written from the sample rather than stored beside it, so the two cannot
+/// disagree about a landmark placed at sample zero.
+fn whether_a_hand_placed_it<S: serde::Serializer>(
+    placed_at: &Option<usize>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_bool(placed_at.is_some())
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct BoundMethod {
     pub method_id: String,
@@ -591,7 +601,18 @@ pub struct BoundMethod {
     /// Names the request carried that this rule does not read.
     pub unread_parameters: Vec<String>,
     pub registry_backed: bool,
-    pub manual_override: bool,
+    /// The sample a hand supplied for this rule's landmark, and None where the rule placed it.
+    ///
+    /// The sample rather than a flag, because two hands placing two different samples give two
+    /// numbers, and the record has to tell them apart. It reaches the wire as
+    /// `manual_override`, the answer to whether a hand was involved, which is what a marker on
+    /// a chart and a badge beside a row ask. The sample itself travels in the record
+    /// `into_provenance` writes, which is what a fingerprint is taken over.
+    #[serde(
+        rename = "manual_override",
+        serialize_with = "whether_a_hand_placed_it"
+    )]
+    pub placed_by_hand_at_sample: Option<usize>,
     /// The published pipeline this rule and its cited values were adopted from. A surface
     /// that printed the values without this would report a published author's numbers as
     /// though the reader had picked them.
@@ -684,7 +705,7 @@ impl BoundMethod {
             registry_digest,
             acquisition_complete,
             not_read: self.unread_parameters.clone(),
-            manual_override: self.manual_override,
+            placed_by_hand_at_sample: self.placed_by_hand_at_sample,
             registry_entry: self.registry_backed,
             composed_from: None,
             preset: self.preset.clone(),
@@ -714,7 +735,7 @@ pub(crate) fn bound_method(
     method_id: &str,
     values: BoundValues,
     registry_backed: bool,
-    manual_override: bool,
+    placed_by_hand_at_sample: Option<usize>,
 ) -> BoundMethod {
     BoundMethod {
         method_id: method_id.to_string(),
@@ -722,7 +743,7 @@ pub(crate) fn bound_method(
         parameter_sources: values.sources,
         unread_parameters: values.unread,
         registry_backed,
-        manual_override,
+        placed_by_hand_at_sample,
         preset: values.preset,
         method_source: values.method_source,
         numeric_values: values.numbers,
@@ -741,7 +762,7 @@ pub(crate) fn bound_with_operators(
     values: BoundValues,
     operator_for: fn(&str) -> Option<&'static str>,
     backed: impl Fn(&str) -> bool,
-    manual_override: bool,
+    placed_by_hand_at_sample: Option<usize>,
 ) -> Vec<BoundMethod> {
     let mut composed: BTreeMap<&'static str, BoundValues> = BTreeMap::new();
     let adopted = values.preset;
@@ -776,7 +797,7 @@ pub(crate) fn bound_with_operators(
         recorded,
         carried,
         backed(recorded),
-        manual_override,
+        placed_by_hand_at_sample,
     )];
     bound.extend(composed.into_iter().map(|(operator, mut read)| {
         read.preset = attribution_for(&read, adopted.as_ref(), false);
@@ -790,7 +811,8 @@ pub(crate) fn bound_with_operators(
             Some(_) => ParameterSource::Cited,
             None => ParameterSource::Assumed,
         };
-        bound_method(operator, read, backed(operator), false)
+        // An operator places no landmark of its own, so no hand placed one on this row.
+        bound_method(operator, read, backed(operator), None)
     }));
     bound
 }
