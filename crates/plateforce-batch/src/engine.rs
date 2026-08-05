@@ -671,6 +671,10 @@ fn provenance_rows(
 }
 
 /// One step of a chain and everything above it, each carrying the depth it sits at.
+///
+/// The rule row beside the step travels with it and decides nothing. It is consulted for one
+/// thing, the spelling of a number the step and the row already agree on, and `rows_for_chain_step`
+/// holds it to that agreement.
 fn rows_for_step(
     chain: &ProvenanceChain,
     response: &AnalysisResponse,
@@ -690,71 +694,69 @@ fn rows_for_step(
 
 /// One step of a chain as rows: what the step says produced the number, at the depth it sits.
 ///
-/// The names are the step's own rather than the rule row's beside it. The two agree wherever a
-/// rule recorded every value it read, and the derivation carries one a rule cannot: the gravity
-/// belongs to the analysis and no registry entry declares it, so no rule may record it. Reading
-/// the rule row instead put that value on a notebook and an R session and left it off this
-/// relation, which is one number with two accounts.
+/// Every name, every value and every source is the step's own. A rule's row can add nothing
+/// here and can take nothing away, which is the property this relation needs: the tree is what
+/// four surfaces publish, and a folder run reading a list beside it would be a fifth account.
+/// The derivation already carries values no rule may record, the analysis gravity among them,
+/// because no registry entry declares it.
 ///
-/// The text is the rule's own wherever the rule wrote one. Rules spell a measured second at
-/// four places and a stated one as it was typed, so re-rendering here would rewrite every value
-/// in the relation. What no rule wrote is spelled the way every record spells a number.
+/// The row supplies the rule's own spelling of a number, and only where the row holds the
+/// number this step is standing on. Rules spell a measured second at four places and a stated
+/// one as it was typed, so rendering every value here would rewrite the relation; taking a
+/// spelling off a row holding some other number would print a value this step never carried.
 ///
 /// A rule the response named and left no row for still opens the chain, and a step that read
 /// nothing still gets a row: dropping either would put the rules above it under nothing.
+///
+/// Row order is not decided here. `analyse` sorts the whole relation by provenance id,
+/// quantity, depth, method id and parameter before writing it, and `provenance_id` sorts its
+/// own input before digesting, so an order imposed at this depth reaches neither the file nor
+/// the identity.
 fn rows_for_chain_step(
     quantity: &str,
     chain: &ProvenanceChain,
     recorded: Option<&BoundMethod>,
     depth: usize,
 ) -> Vec<ProvenanceRow> {
-    let text_the_rule_wrote = |name: &str| {
-        recorded.and_then(|bound| {
-            bound
-                .bound_parameters
-                .iter()
-                .find(|(held, _)| held == name)
-                .map(|(_, text)| text.clone())
-        })
-    };
-    // The rule's own order, so a relation reads as the rule recorded it and a name only the
-    // step carries follows the ones that were read.
-    let position = |name: &str| {
+    let spelling = |name: &str, value: f64| {
         recorded
+            .filter(|bound| bound.numeric_values.get(name) == Some(&value))
             .and_then(|bound| {
                 bound
                     .bound_parameters
                     .iter()
-                    .position(|(held, _)| held == name)
+                    .find(|(held, _)| held == name)
+                    .map(|(_, text)| text.clone())
             })
-            .unwrap_or(usize::MAX)
     };
 
-    let mut named: Vec<(usize, String, String, ParameterSource)> = chain
+    let mut named: Vec<(String, String, ParameterSource)> = chain
         .provenance
         .parameters
         .iter()
         .map(|record| {
-            let text = text_the_rule_wrote(&record.name)
+            let text = spelling(&record.name, record.value)
                 .unwrap_or_else(|| plateforce_analysis::parameter_value_text(record.value));
-            (
-                position(&record.name),
-                record.name.clone(),
-                text,
-                record.source,
-            )
+            (record.name.clone(), text, record.source)
         })
-        .chain(chain.provenance.choices.iter().map(|record| {
-            let text = text_the_rule_wrote(&record.name).unwrap_or_else(|| record.value.clone());
-            (
-                position(&record.name),
-                record.name.clone(),
-                text,
-                record.source,
-            )
-        }))
+        .chain(
+            chain
+                .provenance
+                .choices
+                .iter()
+                .map(|record| (record.name.clone(), record.value.clone(), record.source)),
+        )
         .collect();
-    named.sort_by_key(|(position, _, _, _)| *position);
+    // A choice the chain carries beside the step rather than on it. The two hold one set today
+    // and the type allows them to differ, so a name reaching only the chain lands here rather
+    // than on an account a notebook and an R session publish and this relation does not. Its
+    // source is the weakest claim, which is what a record with no recorded source takes
+    // everywhere else: nobody wrote down who chose it, so nobody is said to have.
+    for (name, value) in &chain.enumerated_choices {
+        if !named.iter().any(|(held, _, _)| held == name) {
+            named.push((name.clone(), value.clone(), ParameterSource::Assumed));
+        }
+    }
 
     if named.is_empty() {
         return vec![ProvenanceRow {
@@ -769,7 +771,7 @@ fn rows_for_chain_step(
     }
     named
         .into_iter()
-        .map(|(_, parameter, value, source)| ProvenanceRow {
+        .map(|(parameter, value, source)| ProvenanceRow {
             provenance_id: String::new(),
             quantity: quantity.to_string(),
             depth,
@@ -781,4 +783,153 @@ fn rows_for_chain_step(
             source: source.wire_name().to_string(),
         })
         .collect()
+}
+
+/// What the folder run publishes for one step of a chain, against the rule row beside it.
+///
+/// Every case here is a way the step and the row can differ. They do not differ on the
+/// committed corpus, which is why this is built rather than read off a run: a guard taken
+/// over data where the two agree cannot tell a surface that reads the tree from one that
+/// reads the list, and that is the state this relation was in.
+#[cfg(test)]
+mod rows_come_from_the_chain_step {
+    use super::*;
+    use plateforce_core::provenance::{ChoiceRecord, ParameterRecord};
+    use plateforce_core::Provenance;
+
+    const RULE: &str = "onset.threshold.noise_relative";
+    const QUANTITY: &str = "jump_height_from_takeoff_meters";
+
+    fn step(parameters: Vec<ParameterRecord>, choices: Vec<ChoiceRecord>) -> ProvenanceChain {
+        ProvenanceChain::leaf(Provenance {
+            parameters,
+            choices,
+            ..Provenance::of(RULE)
+        })
+    }
+
+    fn number(name: &str, value: f64) -> ParameterRecord {
+        ParameterRecord {
+            name: name.to_string(),
+            value,
+            source: ParameterSource::Stated,
+        }
+    }
+
+    fn choice(name: &str, value: &str) -> ChoiceRecord {
+        ChoiceRecord {
+            name: name.to_string(),
+            value: value.to_string(),
+            source: ParameterSource::Stated,
+        }
+    }
+
+    /// A row for the same rule, holding whatever the caller of this helper says it holds.
+    fn row(bound: &[(&str, &str)], numbers: &[(&str, f64)]) -> BoundMethod {
+        BoundMethod {
+            method_id: RULE.to_string(),
+            bound_parameters: bound
+                .iter()
+                .map(|(name, text)| ((*name).to_string(), (*text).to_string()))
+                .collect(),
+            parameter_sources: BTreeMap::new(),
+            unread_parameters: Vec::new(),
+            registry_backed: true,
+            manual_override: false,
+            preset: None,
+            method_source: ParameterSource::Stated,
+            numeric_values: numbers
+                .iter()
+                .map(|(name, value)| ((*name).to_string(), *value))
+                .collect(),
+        }
+    }
+
+    fn published(chain: &ProvenanceChain, recorded: Option<&BoundMethod>) -> Vec<(String, String)> {
+        rows_for_chain_step(QUANTITY, chain, recorded, 0)
+            .into_iter()
+            .map(|written| (written.parameter, written.value))
+            .collect()
+    }
+
+    /// The case the whole entry is about: the chain carries a value the rule may not record,
+    /// because no registry entry declares it. The analysis gravity is the live one.
+    #[test]
+    fn a_value_only_the_step_carries_reaches_the_relation() {
+        let chain = step(
+            vec![number("k", 5.0), number("gravity_meters_per_second_squared", 9.80665)],
+            Vec::new(),
+        );
+        let written = published(&chain, Some(&row(&[("k", "5")], &[("k", 5.0)])));
+
+        println!("published: {written:?}");
+        assert!(
+            written.contains(&(
+                "gravity_meters_per_second_squared".to_string(),
+                "9.80665".to_string()
+            )),
+            "the folder run dropped a value the chain carried: {written:?}"
+        );
+    }
+
+    /// The rule spells the number, and only while it is the same number. A row holding some
+    /// other value under the name cannot rewrite what the step stood on.
+    #[test]
+    fn the_rules_spelling_is_taken_only_where_it_is_the_same_number() {
+        let chain = step(vec![number("k", 5.0)], Vec::new());
+
+        let agreeing = published(&chain, Some(&row(&[("k", "5.0")], &[("k", 5.0)])));
+        println!("row holds 5.0: {agreeing:?}");
+        assert_eq!(
+            agreeing,
+            vec![("k".to_string(), "5.0".to_string())],
+            "the rule's own spelling of its own number was not published"
+        );
+
+        let disagreeing = published(&chain, Some(&row(&[("k", "3")], &[("k", 3.0)])));
+        println!("row holds 3: {disagreeing:?}");
+        assert_eq!(
+            disagreeing,
+            vec![("k".to_string(), "5".to_string())],
+            "a number off the rule's row displaced the one the step ran at"
+        );
+    }
+
+    /// A choice recorded beside the step rather than on it. `ProvenanceChain::choosing` puts
+    /// one there, and the account a reader is shown and the Python package both publish it.
+    #[test]
+    fn a_choice_carried_beside_the_step_reaches_the_relation() {
+        let chain = step(vec![number("k", 5.0)], Vec::new())
+            .choosing(vec![("dispersion".to_string(), "sample".to_string())]);
+        let written = published(&chain, Some(&row(&[("k", "5")], &[("k", 5.0)])));
+
+        println!("published: {written:?}");
+        assert!(
+            written.contains(&("dispersion".to_string(), "sample".to_string())),
+            "a choice the chain carried reached three surfaces and not this one: {written:?}"
+        );
+    }
+
+    /// The other side of it, so the merge above cannot be met by writing every name twice.
+    #[test]
+    fn a_choice_the_step_already_records_is_written_once() {
+        let chain = step(Vec::new(), vec![choice("sd_convention", "sample")])
+            .choosing(vec![("sd_convention".to_string(), "sample".to_string())]);
+        let written = published(&chain, None);
+
+        println!("published: {written:?}");
+        assert_eq!(written.len(), 1, "one choice was published twice: {written:?}");
+        assert_eq!(written[0].1, "sample");
+    }
+
+    /// A step that read nothing still gets a row, or the rules above it would sit under
+    /// nothing.
+    #[test]
+    fn a_step_that_read_nothing_still_names_its_rule() {
+        let written = rows_for_chain_step(QUANTITY, &step(Vec::new(), Vec::new()), None, 2);
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].method_id, RULE);
+        assert_eq!(written[0].depth, 2);
+        assert!(written[0].parameter.is_empty());
+    }
 }
