@@ -144,12 +144,14 @@ id = "net_impulse"
 title = "Integral of vertical ground reaction force less system weight over a declared interval"
 label = "Force above standing weight, added up over time"
 unit = "newton_seconds"
+rules_answer = "one_question"
 
 [[construct]]
 id = "takeoff_velocity"
 title = "Centre of mass velocity at the instant of takeoff"
 label = "How fast the athlete is moving at takeoff"
 unit = "meters_per_second"
+rules_answer = "one_question"
 notes = "Takeoff velocity and peak velocity are different instants. Peak generally precedes takeoff."
 
 [[construct]]

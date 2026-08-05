@@ -8,6 +8,7 @@ pub mod conditioned_force_signal;
 pub mod epoch_impulse;
 pub mod flight_time;
 pub mod force_at_epoch;
+pub mod integration_rule;
 pub mod jh_standing_frame;
 pub mod jh_takeoff_frame;
 pub mod jh_undeclared;

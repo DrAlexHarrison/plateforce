@@ -226,6 +226,9 @@ declared, the method should be unavailable rather than wrong. Every backward-int
 in-ground lab plates; portable plates may saturate on landing forces.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "integration.start.trial_start"
 construct = "takeoff_velocity"
@@ -372,6 +375,9 @@ which. Naming the jump's start on a series that began at touchdown would report 
 integration did not use.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "integration.anchor.single_point"
 construct = "takeoff_velocity"
@@ -442,6 +448,9 @@ Default it on when a quiet finish is detected, with an explicit warning when it 
 method silently degrades if the athlete walks off. The residual drift it corrects is itself a
 useful data-quality readout.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "integration.anchor.per_jump_midflight.kistler"

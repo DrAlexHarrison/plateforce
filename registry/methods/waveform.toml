@@ -19,7 +19,9 @@ title = "Continuum inference with a random-field-theory threshold"
 rule = """
 Treat each trial's force-time curve as a one-dimensional continuum, compute the test statistic at
 every point, and set the critical threshold from random field theory so the family-wise error rate
-over the whole continuum is controlled. Report suprathreshold clusters with their extent.
+over the whole continuum is controlled. Report suprathreshold clusters with their extent. The input
+is at least two equally sampled curves in each compared condition, or at least two within-subject
+difference curves, after one declared time treatment.
 """
 # Prose grants recommended for continuum inference. The loader refuses it: pataky2010 was never obtained
 # and the rule rests on its users.
@@ -57,6 +59,9 @@ residual fields, which an unfiltered trace at 1000 Hz satisfies in practice, but
 untested at the sharp transitions where every other registry entry lives.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "waveform.snpm.permutation"
 construct = "waveform_inference"
@@ -65,7 +70,8 @@ title = "Continuum inference with a permutation null"
 rule = """
 As continuum inference, but the null distribution of the cluster statistic is built by permutation of
 the labels rather than from random field theory, so no parametric assumption on the residual field is
-required.
+required. The input is at least two equally sampled curves in each labelled condition, or at least
+two within-subject difference curves, after one declared time treatment.
 """
 status = "accepted"
 confidence = "low"
@@ -92,6 +98,9 @@ surfacing = "default_and_hide"
 sensitivity = "low on the verdict"
 rationale = "Exposed as an assumption-free fallback behind the parametric form. The paper that quantifies the difference exists and could not be obtained."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "waveform.fda_fpca.ramsay"
 construct = "waveform_inference"
@@ -99,7 +108,8 @@ group = "M"
 title = "Basis expansion with inference on functional principal components"
 rule = """
 Expand each curve in a smooth basis, optionally register the curves, then perform inference on the
-basis coefficients or on the functional principal components of the coefficient matrix.
+basis coefficients or on the functional principal components of the coefficient matrix. The input
+is at least two force-time curves covering the same declared movement interval.
 """
 status = "accepted"
 confidence = "medium"
@@ -140,6 +150,9 @@ surfacing = "surface_on_demand"
 sensitivity = "high through the preprocessing, low through the inference"
 rationale = "The basis size and penalty must be displayed and exported, never defaulted silently."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "waveform.acp.richter2014"
 construct = "waveform_inference"
@@ -149,7 +162,8 @@ rule = """
 Normalise with a b-spline basis chosen to avoid linear time normalisation, compute the force
 variance-covariance matrix rather than the correlation matrix, eigen-decompose and retain components
 to a stated variance share, apply a varimax rotation, and interpret the rotated components as key
-phases analysed in the time, magnitude and combined magnitude-time domains.
+phases analysed in the time, magnitude and combined magnitude-time domains. The input is at least
+two force-time curves covering the same declared movement interval.
 """
 status = "accepted"
 confidence = "low"
@@ -197,6 +211,9 @@ judged two statistically significant discrete variables functionally erroneous b
 between-subject variability in curve shape.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "waveform.pca_time_stratified_discrete.wu2019"
 construct = "waveform_inference"
@@ -204,7 +221,8 @@ group = "M"
 title = "Principal components of discrete features extracted at stratified time points"
 rule = """
 Extract discrete features at a stratified set of time points across the movement, run principal
-component analysis on that feature matrix, and interpret the components.
+component analysis on that feature matrix, and interpret the components. The input is at least two
+trials with the same named time strata extracted from every curve.
 """
 status = "accepted"
 confidence = "medium"
@@ -226,6 +244,9 @@ name, so it carries the bimodality problem in a form that is harder to notice be
 named.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "timenorm.none.landmark_aligned"
 construct = "time_treatment"
@@ -233,7 +254,8 @@ group = "M"
 title = "No time normalisation, aligned at one landmark and padded to a common length"
 rule = """
 Apply no time normalisation. Align every trial at one landmark and pad or truncate to a common
-length.
+length. The input is at least two trials that include the same declared alignment landmark and the
+full interval being compared.
 """
 status = "recommended"
 confidence = "high"
@@ -281,6 +303,9 @@ only scheme that preserves absolute time, so it is the only one under which a du
 measurable quantity, and it must be chosen with the region of interest in mind.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "timenorm.linear_length"
 construct = "time_treatment"
@@ -288,7 +313,8 @@ group = "M"
 title = "Linear length normalisation to a percent-of-movement timebase"
 rule = """
 Trim each trial to a defined interval and resample to a common number of points by interpolating
-spline, so the timebase becomes percent of movement.
+spline, so the timebase becomes percent of movement. The input is at least two trials with the same
+declared start and end landmarks.
 """
 status = "accepted"
 confidence = "high"
@@ -339,6 +365,9 @@ housekeeping step and is a method choice with a published consequence. It also c
 endpoints and inherits their forks from two other groups.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "timenorm.piecewise_per_phase"
 construct = "time_treatment"
@@ -346,7 +375,8 @@ group = "M"
 title = "Each phase normalised independently to a fixed proportion of the timebase"
 rule = """
 Normalise each phase independently to a fixed proportion of the output timebase, so phase boundaries
-land at the same normalised index in every trial.
+land at the same normalised index in every trial. The input is at least two trials on which every
+boundary in the selected phase set was placed.
 """
 status = "accepted"
 confidence = "medium"
@@ -378,12 +408,18 @@ silently zeroed. It is the only scheme that guarantees phase correspondence acro
 what a cluster-based test needs.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "timenorm.bspline_basis.richter"
 construct = "time_treatment"
 group = "M"
 title = "Normalise by expressing each curve in a b-spline basis"
-rule = "Normalise by expressing each curve in a b-spline basis rather than by resampling onto a common percentage grid."
+rule = """
+Normalise by expressing each curve in a b-spline basis rather than by resampling onto a common
+percentage grid. The input is at least two curves spanning the same declared movement interval.
+"""
 status = "accepted"
 confidence = "low"
 debate = "genuine"
@@ -408,6 +444,9 @@ nobody in this literature discusses.
 surfacing = "surface_on_demand"
 rationale = "With the basis size shown. It arrives bundled with one inference method and has not been evaluated separately."
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "registration.landmark"
 construct = "time_treatment"
@@ -415,7 +454,7 @@ group = "M"
 title = "Monotone warping so designated landmarks land at common normalised times"
 rule = """
 Warp each curve by a monotone function so that a set of designated features land at common normalised
-times.
+times. The input is at least two curves with the selected landmark set placed on every curve.
 """
 # Prose grants recommended as the target. The loader refuses it: ramsay2005, which proposes the technique,
 # was never obtained, and the property it is recommended for has never been demonstrated on real
@@ -469,6 +508,9 @@ bimodal across athletes, so the method is undefined for exactly the population h
 motivated it. Nobody has reported what fraction of a normal cohort's curves lack each landmark.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "registration.continuous_dtw"
 construct = "time_treatment"
@@ -476,7 +518,8 @@ group = "M"
 title = "Continuous monotone warping estimated from the data without designated landmarks"
 rule = """
 Warp each curve by a continuous monotone function estimated from the data itself, without designated
-landmarks, by minimising a distance to a reference curve.
+landmarks, by minimising a distance to a declared reference curve. The input is that reference and
+at least one other curve spanning the same movement.
 """
 status = "accepted"
 confidence = "low"
@@ -507,3 +550,6 @@ invisible in the output.
 [method.gui]
 surfacing = "surface_on_demand"
 rationale = "With the warping functions plotted, because a monotone warp that is wild is the only visible symptom of a bad registration."
+
+[method.reach]
+boundary = "protocol"
