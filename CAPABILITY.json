@@ -67,6 +67,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -119,6 +126,27 @@
             "velocity_term"
           ],
           "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
         },
         {
           "composed_from": null,
@@ -232,6 +260,47 @@
           "id": "landing.threshold.tied_to_takeoff",
           "requires": [],
           "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "requires": [],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "requires": [
+            "provenance"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "requires": [
+            "leg_length_meters"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "requires": [
+            "time_after_onset_seconds"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "requires": [],
+          "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
@@ -483,6 +552,44 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "requires": [
+            "flight_threshold_n",
+            "selection"
+          ],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "reactive_strength_ratio",
           "id": "ratio.ft_over_ttt.cmj",
           "requires": [
@@ -520,6 +627,15 @@
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
           "requires": [],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
           "slot": "rate_of_force_development"
         },
         {
@@ -570,6 +686,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -636,6 +753,15 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "requires": [
+            "criterion"
+          ],
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
@@ -961,6 +1087,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -1013,6 +1146,27 @@
             "velocity_term"
           ],
           "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
         },
         {
           "composed_from": null,
@@ -1126,6 +1280,47 @@
           "id": "landing.threshold.tied_to_takeoff",
           "requires": [],
           "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "requires": [],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "requires": [
+            "provenance"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "requires": [
+            "leg_length_meters"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "requires": [
+            "time_after_onset_seconds"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "requires": [],
+          "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
@@ -1377,6 +1572,44 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "requires": [
+            "flight_threshold_n",
+            "selection"
+          ],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "reactive_strength_ratio",
           "id": "ratio.ft_over_ttt.cmj",
           "requires": [
@@ -1414,6 +1647,15 @@
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
           "requires": [],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
           "slot": "rate_of_force_development"
         },
         {
@@ -1464,6 +1706,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -1530,6 +1773,15 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "requires": [
+            "criterion"
+          ],
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
@@ -1859,6 +2111,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -1911,6 +2170,27 @@
             "velocity_term"
           ],
           "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
         },
         {
           "composed_from": null,
@@ -2024,6 +2304,47 @@
           "id": "landing.threshold.tied_to_takeoff",
           "requires": [],
           "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "requires": [],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "requires": [
+            "provenance"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "requires": [
+            "leg_length_meters"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "requires": [
+            "time_after_onset_seconds"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "requires": [],
+          "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
@@ -2275,6 +2596,44 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "requires": [
+            "flight_threshold_n",
+            "selection"
+          ],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "reactive_strength_ratio",
           "id": "ratio.ft_over_ttt.cmj",
           "requires": [
@@ -2312,6 +2671,15 @@
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
           "requires": [],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
           "slot": "rate_of_force_development"
         },
         {
@@ -2362,6 +2730,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -2428,6 +2797,15 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "requires": [
+            "criterion"
+          ],
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
@@ -2755,6 +3133,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -2807,6 +3192,27 @@
             "velocity_term"
           ],
           "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
         },
         {
           "composed_from": null,
@@ -2920,6 +3326,47 @@
           "id": "landing.threshold.tied_to_takeoff",
           "requires": [],
           "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.absolute",
+          "requires": [],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.allometric",
+          "requires": [
+            "provenance"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.dimensionless_hof",
+          "requires": [
+            "leg_length_meters"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.pct_peak_force",
+          "requires": [
+            "time_after_onset_seconds"
+          ],
+          "slot": "normalisation_basis"
+        },
+        {
+          "composed_from": null,
+          "construct": "normalisation_basis",
+          "id": "norm.ratio_bodymass",
+          "requires": [],
+          "slot": "normalisation_basis"
         },
         {
           "composed_from": null,
@@ -3171,6 +3618,44 @@
         },
         {
           "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.countermovement_contamination.chavda2020",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.flight_time_acceptance_window",
+          "requires": [
+            "flight_threshold_n",
+            "selection"
+          ],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.mass_scaled",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "jump_type",
+          "id": "qc.jump_type_autodetection.sams",
+          "requires": [],
+          "slot": "jump_type"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "qc.transient_peak_count.pedley2023",
+          "requires": [],
+          "slot": "trial_validity"
+        },
+        {
+          "composed_from": null,
           "construct": "reactive_strength_ratio",
           "id": "ratio.ft_over_ttt.cmj",
           "requires": [
@@ -3208,6 +3693,15 @@
           "construct": "rate_of_force_development",
           "id": "rfd.epoch_from_onset.overlapping",
           "requires": [],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
           "slot": "rate_of_force_development"
         },
         {
@@ -3258,6 +3752,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -3324,6 +3819,15 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "trial_validity",
+          "id": "trial.gate.pretension_ceiling",
+          "requires": [
+            "criterion"
+          ],
+          "slot": "trial_validity"
         },
         {
           "composed_from": null,
