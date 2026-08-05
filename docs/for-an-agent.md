@@ -117,6 +117,7 @@ Refusals carry a code and an exit code. Branch on the code, not on the text.
 ambiguous_force_channels
 collapsed_band
 column_not_found
+command_line_not_parsed
 conventions_not_comparable
 decision_not_made
 dependency_unresolved
@@ -142,10 +143,22 @@ publishes several values for a parameter and the tool will not pick one for you.
 the parameter and lists the published values. Choose one, state it with `--set`, and say in your
 answer which you chose.
 
-**An argument the parser does not recognise also exits 64**, which is the exit code
-`decision_not_made` and `conventions_not_comparable` use. So the exit code alone does not tell a
-missing operation from an open decision. Read the message: the tool's own refusals begin
-`plateforce:` and argument errors begin `error:`.
+**`command_line_not_parsed` is the one raised before any rule runs**: a word this build does not
+offer, a required one you did not write, or two that cannot be written together. Its message is
+the parser's own sentence and names the token you wrote, usually with the nearest thing that does
+exist. It means re-read the manifest and rebuild the call, which is the opposite of what
+`decision_not_made` means, and the two are worth keeping straight.
+
+**Several codes share exit 64, so branch on the code and never on the status alone.**
+`command_line_not_parsed`, `decision_not_made`, `required_parameter_unstated` and
+`conventions_not_comparable` are all EX_USAGE and all mean something different. `file_not_read`
+takes 66 and `registry_invalid` takes 78, because a workflow manager that retries on bad data and
+stops on a missing file cannot tell those apart while they share a status.
+
+Refusals are written to stderr, whichever channel raised them, because a refusal carries no
+document and redirecting the document must not lose the reason one is absent. With
+`--format json` you get the same `{"refusal": {...}}` envelope either way; without it you get
+prose, because a person reading a terminal is not helped by an envelope.
 
 ## What this tool will not answer, and why silence is never the response
 

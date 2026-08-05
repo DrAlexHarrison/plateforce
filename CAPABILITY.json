@@ -3050,6 +3050,10 @@
           "exit_code": 65
         },
         {
+          "code": "command_line_not_parsed",
+          "exit_code": 64
+        },
+        {
           "code": "conventions_not_comparable",
           "exit_code": 64
         },
@@ -6170,6 +6174,10 @@
           "exit_code": 65
         },
         {
+          "code": "command_line_not_parsed",
+          "exit_code": 64
+        },
+        {
           "code": "conventions_not_comparable",
           "exit_code": 64
         },
@@ -9288,6 +9296,10 @@
           "exit_code": 65
         },
         {
+          "code": "command_line_not_parsed",
+          "exit_code": 64
+        },
+        {
           "code": "conventions_not_comparable",
           "exit_code": 64
         },
@@ -12397,6 +12409,10 @@
         {
           "code": "column_not_found",
           "exit_code": 65
+        },
+        {
+          "code": "command_line_not_parsed",
+          "exit_code": 64
         },
         {
           "code": "conventions_not_comparable",

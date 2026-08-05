@@ -126,6 +126,11 @@ fn class_of(code: RefusalCode) -> fn(String) -> PyErr {
         | RefusalCode::PlateNotLevel
         | RefusalCode::ConventionsNotComparable => MethodError::new_err,
         RefusalCode::RegistryInvalid => RegistryError::new_err,
+        // A word on a command line, which this surface has none of: a caller who names an
+        // argument this module does not take meets Python's own TypeError before any engine
+        // code runs. Ruled rather than left out, because the vocabulary is shared and a code
+        // no surface can raise still has to say which class it would be if it did.
+        RefusalCode::CommandLineNotParsed => ParameterError::new_err,
     }
 }
 

@@ -26,7 +26,7 @@ use std::process::ExitCode;
 
 use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
 
-use exit::{code_for, stream_for, Fault, Outcome};
+use exit::{code_for, stream_for, Outcome};
 use out::Format;
 use render::{Colour, Renderer};
 
@@ -194,21 +194,74 @@ fn main() -> ExitCode {
     )
 }
 
+/// Whether the line asked for JSON, read off the raw arguments.
+///
+/// A parse that failed produced no `--format` to read, and the caller who wrote it is exactly
+/// the caller who most needs a machine-readable answer: a program that mistypes one flag would
+/// otherwise get prose where every other decline is an object. Read from `args_os` because that
+/// is all there is at this point, and matched on the pair rather than on the word alone so a
+/// path named `json` does not turn a human's run into a document.
+fn asked_for_json() -> bool {
+    let written: Vec<String> = std::env::args_os()
+        .map(|word| word.to_string_lossy().into_owned())
+        .collect();
+    written
+        .windows(2)
+        .any(|pair| (pair[0] == "--format" && pair[1] == "json") || pair[0] == "--format=json")
+        || written.iter().any(|word| word == "--format=json")
+}
+
 /// clap's own `Error::exit` prints to stderr and terminates with 2 for a usage error, and
 /// two exit codes for one class of fault is the split this crate exists to close. Nothing
 /// here ever exits 2.
+///
+/// Argument parsing used to be a second refusal channel: it named the offending token, carried
+/// no code, and shared its exit status with `decision_not_made`, so a program branching on the
+/// status alone could not tell "there is no such operation" from "a decision on your path is
+/// still open". It answers in the same vocabulary as everything else now, under
+/// `command_line_not_parsed`, and clap's own sentence is carried through as the message because
+/// it names the token and often the nearest thing this build does offer.
 fn report_parse_failure(error: clap::Error) -> ExitCode {
-    let _ = error.print();
     match error.kind() {
-        ErrorKind::DisplayHelp | ErrorKind::DisplayVersion => ExitCode::SUCCESS,
+        ErrorKind::DisplayHelp | ErrorKind::DisplayVersion => {
+            let _ = error.print();
+            return ExitCode::SUCCESS;
+        }
         // A bare invocation is a reader asking what this program does.
         ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand | ErrorKind::MissingSubcommand
             if std::env::args_os().len() <= 1 =>
         {
-            ExitCode::SUCCESS
+            let _ = error.print();
+            return ExitCode::SUCCESS;
         }
-        _ => ExitCode::from(Fault::Request.code()),
+        _ => {}
     }
+
+    let refusal = plateforce_core::Refusal::command_line_not_parsed(
+        error
+            .render()
+            .to_string()
+            .lines()
+            .map(str::trim_end)
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<&str>>()
+            .join(" "),
+    );
+
+    if asked_for_json() {
+        // The envelope every other refusal is written in, on the stream `stream_for` sends a
+        // refusal carrying no document to, so one reader handles both channels the same way.
+        // Written to stdout it would have been the only refusal in the program that was.
+        match serde_json::to_string(&serde_json::json!({ "refusal": refusal })) {
+            Ok(document) => eprintln!("{document}"),
+            Err(_) => {
+                let _ = error.print();
+            }
+        }
+    } else {
+        let _ = error.print();
+    }
+    ExitCode::from(refusal.exit_code() as u8)
 }
 
 /// A flag whose value went missing does not resolve itself to the default, and two of them

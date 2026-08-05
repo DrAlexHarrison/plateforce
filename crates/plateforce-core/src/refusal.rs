@@ -81,6 +81,18 @@ refusal_codes! {
     /// remedy is the path rather than the request or the data, and it takes its own exit
     /// status for that reason.
     FileNotRead,
+    /// The command line itself did not parse: a word this build does not offer, a required one
+    /// nobody wrote, or two that cannot be written together. Named for what happened rather
+    /// than for the commonest case, because it covers all of them and a code that described
+    /// only the unknown-word case would mislabel the missing-argument one.
+    ///
+    /// The one code raised before any rule is reached, and it exists because argument parsing
+    /// was a second refusal channel carrying no code at all. A caller met a sentence beginning
+    /// `error:` where every other decline begins `plateforce:`, and the two shared an exit
+    /// status, so a program branching on the status alone could not tell **there is no such
+    /// operation** from **a decision on your path is still open**. Those want opposite
+    /// responses: the first is re-read the manifest, the second is state a value and run again.
+    CommandLineNotParsed,
 }
 
 /// Exit status for a refusal, from `sysexits.h`, which is the convention every workflow
@@ -109,6 +121,12 @@ pub fn exit_code(code: RefusalCode) -> i32 {
         | RefusalCode::RequiredParameterUnstated
         | RefusalCode::PlateNotLevel
         | RefusalCode::ConventionsNotComparable => 64,
+        // EX_USAGE, and it keeps 64 deliberately: the command really was used incorrectly,
+        // which is what 64 means, and a status invented to separate it from the codes beside
+        // it would be a private convention no workflow manager reads. The discrimination a
+        // caller needs is the code, which is why this variant exists at all, and it is the
+        // thing `docs/for-an-agent.md` tells a program to branch on.
+        RefusalCode::CommandLineNotParsed => 64,
         // EX_NOINPUT. A workflow manager that retries on bad data and stops on a missing
         // file cannot tell the two apart while they share a status.
         RefusalCode::FileNotRead => 66,
@@ -142,6 +160,7 @@ impl RefusalCode {
             RefusalCode::NotEnoughObservations => "not_enough_observations",
             RefusalCode::DependencyUnresolved => "dependency_unresolved",
             RefusalCode::FileNotRead => "file_not_read",
+            RefusalCode::CommandLineNotParsed => "command_line_not_parsed",
         }
     }
 }
@@ -700,6 +719,21 @@ impl Refusal {
         )
     }
 
+    /// A word on the command line this build does not offer.
+    ///
+    /// `detail` is the parser's own sentence, which names the offending token and often the
+    /// nearest thing the build does offer, and neither of those is recoverable here.
+    pub fn command_line_not_parsed(detail: impl Into<String>) -> Self {
+        Self::build(
+            RefusalCode::CommandLineNotParsed,
+            "",
+            Some(detail.into()),
+            None,
+            BTreeMap::new(),
+            Vec::new(),
+        )
+    }
+
     pub fn registry_invalid(detail: impl Into<String>) -> Self {
         Self::build(
             RefusalCode::RegistryInvalid,
@@ -1024,6 +1058,12 @@ fn sentence(
             "the registry does not load: {}",
             parameter.unwrap_or("no detail")
         ),
+        // The parser's own sentence, carried rather than rewritten: it names the token that
+        // was written and frequently the nearest one this build offers, and a sentence
+        // composed here would drop both to say less.
+        RefusalCode::CommandLineNotParsed => parameter
+            .unwrap_or("this build does not offer that argument")
+            .to_string(),
         RefusalCode::DecisionNotMade => format!(
             "{} states every choice behind a number, and {available:?} {} still open",
             parameter.unwrap_or("this artifact"),
