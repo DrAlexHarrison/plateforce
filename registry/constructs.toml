@@ -191,10 +191,17 @@ id = "propulsion_subdivision"
 title = "The instant the propulsion phase is divided into two named sub-phases"
 label = "Where the push is split in two"
 unit = "seconds"
+rules_answer = "one_question"
 notes = """
 Independent of which landmarks the phase model promotes. Both published partitions divide the
 interval the propulsion rules placed and neither says anything about whether the force minimum is
 a boundary, so a reader may answer this and the phase model separately.
+
+Both rules place one instant inside one interval and report it under one key, so the choice between
+them moves that instant rather than deciding which quantities exist. Which of them can place it at
+all depends on where the propulsion phase ends: the falling crossing of system weight is the
+instant of peak centre of mass velocity, so a phase ended there ends where the crossing rule has to
+search and that rule divides nothing.
 """
 
 [[construct]]

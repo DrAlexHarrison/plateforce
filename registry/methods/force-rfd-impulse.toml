@@ -457,6 +457,42 @@ source = "plateforce_inference"
 # rate by an amount that grows with phase duration and with how non-linear the force rise is, and it
 # inherits the phase-boundary disagreement at both ends. Not quantified.
 
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+Which phase the secant runs across. The implementing paper computes this rate for the unloading, the
+eccentric yielding and the eccentric braking phases, and not for the concentric phase, so no phase
+is the one this rule means and none is defaulted: a phase chosen without the caller would carry the
+paper's citation onto an interval it never took this rate across.
+
+Each value names the two boundaries it runs between rather than a school's word for the interval,
+because which named phase those boundaries enclose is settled by the rules bound to them. With the
+braking phase starting at the force minimum, the first value is Harry's unloading phase; starting at
+peak negative centre of mass velocity, it is McMahon's unweighting phase.
+
+Harry's eccentric yielding phase runs from the force minimum to peak negative centre of mass
+velocity, which are two rules for one construct, and a request carries one rule per construct.
+
+The sign moves with the choice. Across the propulsion phase the number is negative for every athlete
+on every trial, because force at the propulsion start is above system weight and force at either
+candidate propulsion end is at or below it: measured on subject 01 trial 1 at -2743.86 N/s with the
+phase ended at peak centre of mass velocity and -5020.38 N/s ended at takeoff.
+"""
+
+[[method.parameter.value]]
+key = "onset_to_braking_start"
+label = "Movement onset to the start of braking"
+
+[[method.parameter.value]]
+key = "braking_start_to_propulsion_start"
+label = "Start of braking to the start of propulsion"
+
+[[method.parameter.value]]
+key = "propulsion_start_to_propulsion_end"
+label = "Start of propulsion to the end of propulsion"
+
 [method.gui]
 surfacing = "force_a_decision"
 sensitivity = "very large"
@@ -731,6 +767,33 @@ source = "plateforce_algebra"
 id = "rfd.peak_sliding_window"
 kind = "genuine"
 note = "Not a genuine debate. It is the bad-mathematics case: a rate of force development is a derivative and this is a mean divided by a duration."
+
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+Which phase the mean and the duration are taken over. The source computes it per phase and names no
+primary, so the phase is the caller's and no value is defaulted.
+
+The values are the three phases one request can name, on the same footing as the secant rule, and
+each names the two boundaries it runs between rather than a school's word for the interval. This
+quantity falls with phase duration where a rate of force development does not, so the choice of
+phase moves it twice: through the forces at the two ends and again through the interval between
+them.
+"""
+
+[[method.parameter.value]]
+key = "onset_to_braking_start"
+label = "Movement onset to the start of braking"
+
+[[method.parameter.value]]
+key = "braking_start_to_propulsion_start"
+label = "Start of braking to the start of propulsion"
+
+[[method.parameter.value]]
+key = "propulsion_start_to_propulsion_end"
+label = "Start of propulsion to the end of propulsion"
 
 [method.gui]
 surfacing = "force_a_decision"

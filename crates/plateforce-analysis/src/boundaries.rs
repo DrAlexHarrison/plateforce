@@ -299,6 +299,102 @@ pub(crate) fn absent<'a>(context: &DerivedContext, needs: &[&'a str]) -> Vec<&'a
         .collect()
 }
 
+/// A phase a rule can run across, named by the two constructs that bound it.
+///
+/// Three, because three are what one request can name. Every other published sub-phase of the
+/// countermovement has both of its ends on one construct, and a request carries one rule per
+/// construct: Harry's eccentric yielding phase runs from the force minimum to peak negative
+/// centre of mass velocity, and those are two `braking_phase_start` rules, so a request naming
+/// one cannot also place the other.
+///
+/// Which named phase each of these is depends on the rules bound to its two ends, so the values
+/// name the boundaries rather than one school's word for the interval between them. With the
+/// braking phase starting at the force minimum, the first is Harry's unloading phase; starting
+/// at peak negative centre of mass velocity, it is McMahon's unweighting phase.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Phase {
+    OnsetToBrakingStart,
+    BrakingStartToPropulsionStart,
+    PropulsionStartToPropulsionEnd,
+}
+
+/// The name a caller states to choose one, and the keys it takes.
+///
+/// One home for both, so a rule reading the name, a check answering it and the registry rows
+/// publishing it cannot drift apart.
+pub(crate) const PHASE_PARAMETER: &str = "phase";
+
+pub(crate) const PHASE_VALUES: &[(&'static str, Phase)] = &[
+    ("onset_to_braking_start", Phase::OnsetToBrakingStart),
+    (
+        "braking_start_to_propulsion_start",
+        Phase::BrakingStartToPropulsionStart,
+    ),
+    (
+        "propulsion_start_to_propulsion_end",
+        Phase::PropulsionStartToPropulsionEnd,
+    ),
+];
+
+/// The samples one phase runs between, or the constructs whose rules placed no boundary for it.
+///
+/// Both ends are asked for whichever is missing, so the chain records that the rule read them
+/// and a refusal names only what is actually absent.
+pub(crate) fn phase_interval(
+    context: &DerivedContext,
+    phase: Phase,
+) -> Result<(usize, usize), Vec<&'static str>> {
+    use crate::slots::{braking_phase_start, propulsion_phase_end, propulsion_phase_start};
+
+    let ((from_construct, from), (to_construct, to)) = match phase {
+        Phase::OnsetToBrakingStart => (
+            (crate::binding::ONSET_CONSTRUCT, context.onset_index()),
+            (
+                braking_phase_start::CONSTRUCT,
+                braking_phase_start::placed(context),
+            ),
+        ),
+        Phase::BrakingStartToPropulsionStart => (
+            (
+                braking_phase_start::CONSTRUCT,
+                braking_phase_start::placed(context),
+            ),
+            (
+                propulsion_phase_start::CONSTRUCT,
+                propulsion_phase_start::placed(context),
+            ),
+        ),
+        Phase::PropulsionStartToPropulsionEnd => (
+            (
+                propulsion_phase_start::CONSTRUCT,
+                propulsion_phase_start::placed(context),
+            ),
+            (
+                propulsion_phase_end::CONSTRUCT,
+                propulsion_phase_end::placed(context),
+            ),
+        ),
+    };
+    match (from, to) {
+        (Some(from), Some(to)) if to > from => Ok((from, to)),
+        (from, to) => {
+            let mut missing = Vec::new();
+            if from.is_none() {
+                missing.push(from_construct);
+            }
+            if to.is_none() {
+                missing.push(to_construct);
+            }
+            // Both placed and out of order is a phase of no duration rather than a missing
+            // boundary, and the end is the one a caller moves to fix it.
+            if missing.is_empty() {
+                missing.push(to_construct);
+            }
+            Err(missing)
+        }
+    }
+}
+
 /// The sample of greatest force between two landmarks, bounding a crossing search short of
 /// the collapse toward zero that precedes takeoff.
 ///

@@ -37,32 +37,16 @@ pub const CONSTRUCT: &str = "rate_of_force_development";
 /// quantities.
 pub const KEY: &str = "rate_of_force_development_newtons_per_second";
 
-/// The propulsion interval the two phase-anchored rules run over, or the constructs whose
-/// rules placed no boundary.
+/// The propulsion interval, for a rule that names that phase rather than reading a caller's
+/// choice of one.
 ///
-/// Both ends are asked for whichever is missing, so the chain records that this rule read
-/// them and a refusal names only what is actually absent.
+/// `crate::boundaries::phase_interval` is where the samples a phase runs between are worked
+/// out, for every phase a request can name and for every rule that runs across one.
 pub(crate) fn propulsion_interval(
     context: &DerivedContext,
 ) -> Result<(usize, usize), Vec<&'static str>> {
-    let start = crate::slots::propulsion_phase_start::placed(context);
-    let end = crate::slots::propulsion_phase_end::placed(context);
-    match (start, end) {
-        (Some(start), Some(end)) if end > start => Ok((start, end)),
-        (start, end) => {
-            let mut missing = Vec::new();
-            if start.is_none() {
-                missing.push(crate::slots::propulsion_phase_start::CONSTRUCT);
-            }
-            if end.is_none() {
-                missing.push(crate::slots::propulsion_phase_end::CONSTRUCT);
-            }
-            // Both placed and out of order is a phase of no duration rather than a missing
-            // boundary, and the end is the one a caller moves to fix it.
-            if missing.is_empty() {
-                missing.push(crate::slots::propulsion_phase_end::CONSTRUCT);
-            }
-            Err(missing)
-        }
-    }
+    crate::boundaries::phase_interval(
+        context,
+        crate::boundaries::Phase::PropulsionStartToPropulsionEnd,
+    )
 }

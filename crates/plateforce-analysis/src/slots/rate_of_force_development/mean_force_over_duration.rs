@@ -8,9 +8,12 @@
 //! product that popularised the label wrote the objection into their own source at both sites
 //! that compute it.
 //!
-//! The phase is the one the propulsion rules declared, on the same footing as the secant rule
-//! beside it, and the chain names the two boundaries the number was taken between.
+//! The caller states which phase, on the same footing as the secant rule beside it, and the
+//! chain names the two boundaries the number was taken between. Required with no default for
+//! the same reason: the product that popularised the label computes it per phase and names no
+//! primary, so a phase chosen here would sit where the caller's choice belongs.
 
+use crate::boundaries;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
 use crate::resolution::{Resolution, RuleRefusal};
@@ -25,6 +28,12 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     computed_by: Some(ID),
 }];
 
+/// What a caller has to answer before this rule can run, with one value that answers it.
+pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(
+    boundaries::PHASE_PARAMETER,
+    "propulsion_start_to_propulsion_end",
+)];
+
 pub const RULE: DerivedRule = compute;
 
 fn compute(
@@ -32,10 +41,18 @@ fn compute(
     choice: &MethodChoice,
     _warnings: &mut Vec<String>,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let phase = match resolved.required_enumerated(
+        ID,
+        boundaries::PHASE_PARAMETER,
+        boundaries::PHASE_VALUES,
+    ) {
+        Ok(phase) => phase,
+        Err(refusal) => return DerivedOutcome::declined(resolved.finish(), refusal),
+    };
     let bound = resolved.finish();
 
-    let (start, end) = match super::propulsion_interval(context) {
+    let (start, end) = match boundaries::phase_interval(context, phase) {
         Ok(interval) => interval,
         Err(missing) => return DerivedOutcome::declined(bound, context.unavailable(ID, &missing)),
     };
