@@ -818,9 +818,9 @@ pub use plateforce_core::agreement::coefficient_of_variation as subject_coeffici
 /// The record a compare run carries: what it ran over, what it varied, and what identifies it.
 ///
 /// Every fact a reader would otherwise have to fetch from somewhere else is here as the thing
-/// itself. The digests identify the run; they do not describe it, and a reader holding a
-/// digest and no block cannot say what plate the numbers came off or at what rate they were
-/// sampled.
+/// itself. `registry_digest` identifies the registry, `base_request_digest` identifies the
+/// request before the sweep varied it, and `run_fingerprint` identifies the run when its
+/// acquisition block is complete. None describes the plate or its sampling settings.
 #[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize)]
 pub struct CompareRunRow {
     pub plateforce_version: String,
