@@ -68,10 +68,11 @@ bound <- list(
 if (is.null(asked$sweep)) {
   cat(plateforce:::rust_analyse_json(
     trial@handle,
+    plateforce:::registry_root(NULL),
     do.call(plateforce:::analysis_request_of, bound)
   ))
 } else {
-  cat(plateforce:::rust_spread_json(trial@handle, do.call(
+  cat(plateforce:::rust_spread_json(trial@handle, plateforce:::registry_root(NULL), do.call(
     plateforce:::spread_request_of,
     c(
       list(

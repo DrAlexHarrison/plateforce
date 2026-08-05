@@ -1,0 +1,2078 @@
+   Compiling plateforce-wasm v0.1.0 (/home/alex/pf-e35-round/crates/plateforce-wasm)
+   Compiling plateforce-python v0.1.0 (/home/alex/pf-e35-round/crates/plateforce-python)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.40s
+     Running unittests src/lib.rs (target/debug/deps/plateforce_analysis-dedb08ee4c0088b2)
+
+running 52 tests
+test derived::tests::a_number_resting_on_a_sample_rests_on_everything_under_it ... ok
+test capability::tests::the_manifest_names_every_member_of_the_acquisition_block ... ok
+test binding::operator_routing_tests::one_name_on_two_constructs_reaches_two_entries ... ok
+test binding::operator_routing_tests::the_names_reach_exactly_the_operator_entries_this_build_declares ... ok
+test capability::tests::a_surface_answers_for_its_own_intake_and_never_for_the_members ... ok
+test derived::tests::the_chain_names_the_rules_a_rule_read_and_not_the_rules_that_merely_ran ... ok
+test document::tests::a_declined_rule_arrives_as_fields_rather_than_a_sentence ... ok
+test capability::tests::the_manifest_carries_one_record_per_binding ... ok
+test pipeline::tests::the_baseline_is_rewritten_only_when_asked ... ok
+test quality::tests::every_status_prints_the_word_the_wire_carries ... ok
+test capability::tests::a_repeated_operation_is_reported_once ... ok
+test document::tests::a_refusal_that_names_no_rule_is_stamped_with_the_one_the_slot_ran ... ok
+test document::tests::a_value_the_rule_will_not_take_keeps_its_own_code_across_the_boundary ... ok
+test response::unit_reading_tests::a_yes_or_no_reads_as_a_word_and_a_magnitude_does_not ... ok
+test response::unit_reading_tests::every_unit_this_build_reports_is_drawn_as_a_symbol_or_as_nothing ... ok
+test pipeline::tests::a_moved_weighing_window_keeps_the_weight_and_restates_the_indices ... ok
+test quality::tests::no_two_statuses_travel_under_one_word ... ok
+test pipeline::tests::an_id_with_no_rule_behind_it_is_refused_rather_than_run_as_something_else ... ok
+test pipeline::tests::a_method_absent_from_the_registry_is_marked_unbacked_rather_than_hidden ... ok
+test pipeline::tests::every_metric_names_the_methods_that_produced_it ... ok
+test pipeline::tests::an_unbound_id_is_refused_even_when_a_marker_was_dragged ... ok
+test pipeline::tests::the_degenerate_band_policy_is_recorded_whichever_branch_ran ... ok
+test pipeline::tests::dragging_a_marker_is_recorded_as_the_sample_the_hand_placed ... ok
+test pipeline::tests::the_longest_run_rule_warns_when_it_skips_the_first_flight_phase ... ok
+test spread::a_slot_the_sweep_cannot_vary::an_unknown_method_axis_names_the_slot_rather_than_sweeping_nothing ... ok
+test spread::a_slot_the_sweep_cannot_vary::a_construct_id_the_sweep_does_not_know_is_refused_by_name ... ok
+test spread::a_slot_the_sweep_cannot_vary::a_slot_the_sweep_does_know_still_moves_the_number ... ok
+test spread::tests::an_axis_comparing_two_kinds_at_once_is_refused_rather_than_settled_by_precedence ... ok
+test spread::tests::the_names_a_rule_takes_sweep_the_way_its_numbers_do ... ok
+test spread::tests::a_swept_setting_is_written_the_way_every_other_record_writes_it ... ok
+test slots::integration_rule::tests::every_registry_quadrature_runs_and_names_the_rule_that_integrated ... ok
+test spread::tests::a_capped_sweep_says_it_was_capped_rather_than_reporting_a_short_denominator ... ok
+test spread::tests::a_variant_that_fails_is_listed_with_a_reason_and_not_dropped ... ok
+test spread::tests::a_reason_is_only_written_against_a_quantity_the_declining_rule_produced ... ok
+test spread::tests::two_swept_values_that_differ_late_are_two_settings_a_reader_can_tell_apart ... ok
+test spread::tests::an_axis_naming_nothing_to_vary_is_refused_rather_than_collapsing_the_sweep_beside_it ... ok
+test spread::a_slot_the_sweep_cannot_vary::the_gravity_field_is_not_a_slot_and_still_sweeps ... ok
+test spread::tests::sweeping_a_slot_releases_its_dragged_marker ... ok
+test spread::tests::the_order_the_caller_typed_the_names_in_does_not_reach_the_document ... ok
+test pipeline::tests::the_reading_reaches_whole_forked_and_faulted ... ok
+test spread::tests::a_spread_is_withheld_where_one_number_is_all_the_sweep_produced ... ok
+test spread::tests::the_order_the_caller_typed_the_values_in_does_not_reach_the_document ... ok
+test spread::tests::the_published_values_of_one_parameter_move_the_number ... ok
+test pipeline::tests::the_reading_that_tells_one_answer_from_two_answers_both_ways ... ok
+test spread::tests::two_axes_produce_their_cartesian_product ... ok
+test pipeline::tests::the_weighing_bindings_all_produce_a_window ... ok
+test pipeline::tests::a_rule_reading_a_placed_sample_is_declared_after_the_rule_that_places_it ... ok
+test pipeline::tests::every_rule_computed_from_the_landmarks_reports_what_it_declares ... ok
+test pipeline::tests::every_binding_this_build_advertises_actually_runs ... ok
+test pipeline::tests::recording_what_each_rule_resolved_moved_no_number ... ok
+test spread::tests::the_order_the_caller_listed_the_rules_in_does_not_reach_the_document ... ok
+test pipeline::tests::a_construct_holds_rules_that_all_answer_its_question_or_all_answer_their_own ... ok
+
+test result: ok. 52 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.21s
+
+     Running tests/a_chain_names_the_rules_its_number_rests_on.rs (target/debug/deps/a_chain_names_the_rules_its_number_rests_on-9c3731f0fdb99d7c)
+
+running 3 tests
+test the_weighing_rule_is_named_by_the_landmarks_that_read_it_and_not_by_the_ones_that_did_not ... ok
+test flight_time_names_no_onset_rule_under_any_onset_rule ... ok
+test every_landmark_rule_says_which_landmarks_it_reads ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
+
+     Running tests/a_drop_jump_height_names_the_landing_it_rested_on.rs (target/debug/deps/a_drop_jump_height_names_the_landing_it_rested_on-75cb90a7d6f9d1af)
+
+running 8 tests
+test the_spine_reads_the_drop_jump_the_way_the_trace_was_built ... ok
+test the_height_names_the_landing_rule_that_placed_its_start ... ok
+test a_landing_after_takeoff_is_refused_rather_than_integrated_backwards ... ok
+test a_weighing_window_before_the_jump_is_refused_by_name ... ok
+test a_drop_jump_height_rests_on_the_arrival_the_standing_period_recovers ... ok
+test assuming_the_box_and_recovering_the_arrival_do_not_agree ... ok
+test the_two_landing_rules_place_different_instants_on_a_drop_jump ... ok
+test the_correction_leaves_the_height_where_the_integration_started_out_of_it ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.78s
+
+     Running tests/a_height_that_needs_a_measurement_asks_for_it_by_name.rs (target/debug/deps/a_height_that_needs_a_measurement_asks_for_it_by_name-abb42f41c30aa991)
+
+running 5 tests
+test a_drop_the_contact_phase_cannot_pay_for_is_refused_over_the_height_stated ... ok
+test a_rule_whose_measurement_is_unstated_refuses_over_that_name ... ok
+test each_rule_computes_on_the_corpus_trial_and_names_the_entry_that_did_it ... ok
+test a_stated_box_height_moves_the_height_by_the_arrival_it_implies ... ok
+test each_correction_moves_its_height_the_way_its_source_says ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/a_landing_the_caller_placed_says_so.rs (target/debug/deps/a_landing_the_caller_placed_says_so-eb41ffe1ede562ab)
+
+running 4 tests
+test every_rule_carrying_the_landing_is_one_that_reads_it ... ok
+test a_stated_landing_and_a_found_one_do_not_fingerprint_alike ... ok
+test a_number_that_never_reads_the_landing_does_not_carry_it ... ok
+test two_stated_landings_do_not_fingerprint_alike ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/a_landmark_a_hand_placed_says_so.rs (target/debug/deps/a_landmark_a_hand_placed_says_so-2e7a61e2ea7b8573)
+
+running 3 tests
+test the_sample_a_hand_placed_reaches_the_row_whose_landmark_it_placed ... ok
+test one_hand_placing_one_sample_twice_is_one_result ... ok
+test two_hands_placing_two_samples_do_not_fingerprint_as_one_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/a_name_the_caller_states_is_read_or_refused_never_dropped.rs (target/debug/deps/a_name_the_caller_states_is_read_or_refused_never_dropped-427c810bf0599221)
+
+running 5 tests
+test both_rules_under_one_entry_decline_a_band_with_no_width ... ok
+test a_retreat_cap_this_rule_runs_without_is_declined_by_name ... ok
+test the_retreat_a_caller_names_lands_somewhere_else_than_the_fixed_step ... ok
+test the_sweep_reaches_enumerated_names_on_every_spine_construct ... ok
+test every_published_value_of_every_offered_name_is_read_or_declined ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+
+     Running tests/a_number_names_every_entry_behind_it_whichever_phase_ran_it.rs (target/debug/deps/a_number_names_every_entry_behind_it_whichever_phase_ran_it-76f8caffd0f6faf6)
+
+running 4 tests
+test the_spine_holds_no_second_expression_of_a_number_a_rule_now_produces ... ok
+test the_entry_a_headline_number_names_is_one_that_ran ... ok
+test a_number_the_derived_phase_produced_names_the_operators_and_the_integration_entries ... ok
+test one_entry_leaves_one_chain_whether_or_not_the_caller_named_the_rule ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+     Running tests/a_number_that_is_not_a_number_is_not_a_number_nobody_computed.rs (target/debug/deps/a_number_that_is_not_a_number_is_not_a_number_nobody_computed-3a01539aac5a3859)
+
+running 5 tests
+test an_intact_recording_puts_a_metric_in_neither_state ... ok
+test the_wire_tells_a_number_that_is_not_a_number_from_a_number_nobody_computed ... ok
+test the_response_counts_the_samples_the_recording_lost ... ok
+test the_weighing_statistics_and_their_metrics_agree_about_having_no_number ... ok
+test no_metric_carries_a_value_that_is_not_a_number ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests/a_phase_anchored_rate_runs_across_the_phase_the_caller_named.rs (target/debug/deps/a_phase_anchored_rate_runs_across_the_phase_the_caller_named-941bd3fa56ba2a03)
+
+running 5 tests
+test the_secant_across_the_propulsion_phase_is_negative_under_both_propulsion_end_schools ... ok
+test the_secant_is_the_force_between_the_two_boundaries_of_the_phase_that_was_named ... ok
+test the_mean_over_a_duration_is_the_mean_of_the_phase_that_was_named ... ok
+test a_phase_nobody_stated_is_refused_by_name_rather_than_chosen ... ok
+test the_phase_the_caller_named_is_on_the_record_beside_the_number ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+
+     Running tests/a_phase_boundary_carries_the_rule_that_placed_it.rs (target/debug/deps/a_phase_boundary_carries_the_rule_that_placed_it-a858332f4bb78318)
+
+running 20 tests
+test two_rules_under_one_construct_reach_the_engine_as_one_with_no_word_of_the_other ... ok
+test a_phase_model_and_a_propulsion_split_are_two_answers_one_analysis_can_carry ... ok
+test a_boundary_without_its_landmark_declines_naming_only_what_is_missing ... ok
+test a_propulsion_subdivision_names_both_boundaries_it_splits_between ... ok
+test propulsion_ends_before_takeoff_under_this_entry ... ok
+test the_propulsion_end_signal_is_refused_when_the_request_states_none ... ok
+test a_boundary_read_off_a_velocity_records_the_four_integration_choices ... ok
+test the_split_model_puts_a_boundary_inside_the_single_models_unweighting_phase ... ok
+test a_deeper_unloading_drop_starts_the_split_model_later ... ok
+test a_placed_boundary_names_the_landmark_rules_it_rests_on ... ok
+test the_force_signal_for_propulsion_end_rests_on_the_braking_rule_and_names_it ... ok
+test the_two_phase_models_report_two_different_sets_of_keys ... ok
+test the_two_search_signals_of_one_entry_land_at_two_instants_inside_the_countermovement ... ok
+test the_force_nadir_precedes_the_return_through_system_weight ... ok
+test raising_the_propulsion_threshold_moves_the_boundary_later ... ok
+test the_two_propulsion_subdivisions_split_one_interval_at_two_instants ... ok
+test the_three_propulsion_start_rules_place_three_instants_in_the_order_their_entries_predict ... ok
+test the_split_models_unloading_start_does_not_follow_the_bound_onset_rule ... ok
+test a_longer_time_epoch_ends_later_and_lands_the_stated_distance_from_onset ... ok
+test every_phase_model_fills_every_quantity_its_row_publishes ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+
+     Running tests/a_phase_model_that_places_nothing_says_why.rs (target/debug/deps/a_phase_model_that_places_nothing_says_why-9aee8a674811f982)
+
+running 2 tests
+test a_model_whose_search_found_nothing_names_the_search ... ok
+test a_model_that_read_the_recording_refuses_nothing ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests/a_preset_says_which_pipeline_produced_the_number.rs (target/debug/deps/a_preset_says_which_pipeline_produced_the_number-4666ea94abe4d6b4)
+
+running 10 tests
+test naming_a_pipeline_this_registry_does_not_carry_is_refused_with_the_ones_it_does ... ok
+test a_rule_accepted_from_the_recommendation_is_not_recorded_as_one_the_caller_stated ... ok
+test a_rule_the_caller_named_in_a_slot_the_pipeline_binds_is_refused_rather_than_half_adopted ... ok
+test a_binding_naming_a_rule_this_build_does_not_run_is_refused_by_name ... ok
+test an_operator_the_pipeline_supplied_no_value_for_is_not_attributed_to_it ... ok
+test a_value_the_caller_stated_displaces_the_pipelines_and_the_record_carries_both ... ok
+test a_value_the_pipeline_supplied_is_recorded_as_cited_rather_than_stated ... ok
+test a_construct_the_source_is_silent_about_is_not_attributed_to_it ... ok
+test typing_a_pipelines_values_does_not_produce_the_record_adopting_it_produces ... ok
+test every_construct_this_build_runs_records_the_pipeline_that_bound_it ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.36s
+
+     Running tests/a_rule_nobody_named_carries_nobodys_signature.rs (target/debug/deps/a_rule_nobody_named_carries_nobodys_signature-46e9290d6b633a26)
+
+running 7 tests
+test every_rule_a_plain_analysis_runs_says_whether_anybody_picked_it ... ok
+test a_rule_a_published_pipeline_supplied_is_recorded_as_cited ... ok
+test stating_a_value_against_a_phase_does_not_name_its_rule ... ok
+test a_rule_nobody_named_is_recorded_as_assumed ... ok
+test a_rule_accepted_from_the_recommendation_is_recorded_as_recommended ... ok
+test a_rule_the_caller_named_is_recorded_as_stated ... ok
+test a_marked_default_option_does_not_sign_the_inherited_convention ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/a_rule_reached_by_construct_says_what_it_read.rs (target/debug/deps/a_rule_reached_by_construct_says_what_it_read-d4f961ba550a5393)
+
+running 14 tests
+test a_declining_rule_crosses_the_wire_as_the_record_rather_than_the_sentence ... ok
+test a_request_naming_no_construct_reports_what_the_spine_reports ... ok
+test an_id_filed_under_another_construct_is_refused_rather_than_skipped ... ok
+test a_construct_the_request_did_not_name_is_refused_as_an_axis ... ok
+test a_construct_with_no_rule_behind_it_is_refused_by_name ... ok
+test a_peak_asked_for_with_no_window_chosen_says_which_choice_is_open ... ok
+test an_analysis_where_every_rule_ran_carries_no_refusals ... ok
+test the_window_a_peak_is_taken_over_moves_it_further_than_the_peak_rule_does ... ok
+test the_rules_of_a_construct_the_request_carries_sweep_against_each_other ... ok
+test a_parameter_of_a_rule_reached_by_construct_sweeps ... ok
+test a_peak_whose_chosen_window_placed_nothing_points_upstream ... ok
+test net_is_gross_less_one_system_weight_on_one_result ... ok
+test each_peak_rule_reports_its_own_arithmetic ... ok
+test the_averaging_estimator_agrees_at_its_published_width_and_reads_lower_above_it ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+
+     Running tests/a_rule_that_found_nothing_says_so_in_a_code.rs (target/debug/deps/a_rule_that_found_nothing_says_so_in_a_code-f7b00d62b7b3b266)
+
+running 1 test
+test a_threshold_nothing_reaches_is_a_no_crossing_rather_than_an_unknown_parameter ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests/a_split_at_a_boundary_of_the_interval_it_divides_is_refused.rs (target/debug/deps/a_split_at_a_boundary_of_the_interval_it_divides_is_refused-cd57c0725ac754f2)
+
+running 2 tests
+test the_crossing_split_divides_the_phase_only_where_the_phase_runs_to_takeoff ... ok
+test no_subdivision_lands_on_a_boundary_of_the_interval_it_divides ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
+
+     Running tests/a_spread_that_leaves_alone_says_which_build_produced_it.rs (target/debug/deps/a_spread_that_leaves_alone_says_which_build_produced_it-43a53d34fad1bf9d)
+
+running 3 tests
+test wrapping_the_sweep_moved_none_of_its_own_keys ... ok
+test the_two_documents_spell_their_identity_the_same_way ... ok
+test the_sweep_alone_names_no_build_and_the_document_around_it_does ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/a_stated_weighing_start_is_honoured_or_refused_never_moved.rs (target/debug/deps/a_stated_weighing_start_is_honoured_or_refused_never_moved-79ba42faa8722039)
+
+running 5 tests
+test a_stated_start_a_window_fits_at_is_read_where_it_was_stated ... ok
+test a_window_that_overruns_the_end_is_refused_in_the_recording_the_caller_has ... ok
+test the_last_start_a_window_fits_at_is_read_and_the_next_one_along_is_refused ... ok
+test every_weighing_rule_refuses_a_stated_start_under_its_own_name ... ok
+test a_start_past_the_end_is_refused_rather_than_moved_to_where_a_window_fits ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+
+     Running tests/a_takeoff_at_its_search_floor_says_so.rs (target/debug/deps/a_takeoff_at_its_search_floor_says_so-ea9662e395fdac90)
+
+running 7 tests
+test the_signal_names_every_number_the_takeoff_rule_moved ... ok
+test the_signal_carries_a_value_every_surface_can_render_truthfully ... ok
+test the_lowest_variance_rule_says_how_many_windows_it_ruled_out ... ok
+test the_signal_fires_on_an_index_equal_to_the_recorded_floor ... ok
+test a_takeoff_at_its_search_floor_is_not_distrusted_and_the_gap_is_why ... ok
+test a_rule_that_records_a_floor_and_searches_past_it_says_nothing ... ok
+test the_rules_that_returned_their_floor_say_so_and_the_rules_that_searched_on_do_not ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+     Running tests/a_value_read_off_the_trace_says_so.rs (target/debug/deps/a_value_read_off_the_trace_says_so-24239b879ae58c39)
+
+running 1 test
+test a_value_that_follows_the_recording_is_recorded_as_measured ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.02s
+
+     Running tests/a_value_recorded_against_an_entry_is_findable_on_that_entry.rs (target/debug/deps/a_value_recorded_against_an_entry_is_findable_on_that_entry-9f47a8c8b18e08d9)
+
+running 2 tests
+test the_two_instants_read_off_the_trace_are_recorded_on_the_entries_that_own_them ... ok
+test every_value_the_record_places_on_an_entry_is_findable_on_that_entry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+
+     Running tests/absent_numbers_say_what_accounts_for_them.rs (target/debug/deps/absent_numbers_say_what_accounts_for_them-a19ead6f2bbf3ab4)
+
+running 4 tests
+test the_same_recording_read_by_rules_that_order_the_landmarks_says_nothing ... ok
+test landmarks_that_came_back_out_of_order_are_said_rather_than_left_to_the_blank_cells ... ok
+test the_status_reaches_a_reader_under_the_name_the_record_carries ... ok
+test the_columns_the_signal_names_are_exactly_the_columns_that_came_back_empty ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/an_onset_at_its_search_floor_says_so.rs (target/debug/deps/an_onset_at_its_search_floor_says_so-2f508a00f9f065ca)
+
+running 4 tests
+test the_signal_names_every_number_the_onset_rule_moved ... ok
+test the_signal_hands_the_reader_a_value_a_surface_can_state_and_a_construct_it_can_open ... ok
+test the_onset_those_rules_report_is_the_floor_with_the_composed_offset_put_back ... ok
+test the_rules_that_returned_their_floor_say_so_and_the_rules_that_found_a_departure_do_not ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+
+     Running tests/an_operator_entry_is_reachable_by_a_name_a_rule_reads.rs (target/debug/deps/an_operator_entry_is_reachable_by_a_name_a_rule_reads-f94d463575a568ba)
+
+running 1 test
+test an_operator_entry_is_reachable_by_a_name_a_rule_reads ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
+
+     Running tests/every_consumer_reads_one_chain.rs (target/debug/deps/every_consumer_reads_one_chain-277132fd24b2b814)
+
+running 4 tests
+test the_patterns_a_second_derivation_would_match_still_match_a_first_one ... ok
+test every_consumer_names_the_one_derivation ... ok
+test no_consumer_builds_a_chain_of_its_own ... ok
+test one_response_gives_one_tree_however_many_times_it_is_asked ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/every_rule_that_gravity_moves_says_so_not_just_the_first_one_per_construct.rs (target/debug/deps/every_rule_that_gravity_moves_says_so_not_just_the_first_one_per_construct-5dadd4c56bc1b3d8)
+
+running 2 tests
+test two_rules_for_one_boundary_disagree_about_whether_gravity_moves_it ... ok
+test every_rule_that_gravity_moves_records_it_and_every_rule_it_does_not_records_nothing ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.82s
+
+     Running tests/every_surface_publishes_the_account_the_engine_wrote.rs (target/debug/deps/every_surface_publishes_the_account_the_engine_wrote-1bd8e76e0d9e5b5a)
+
+running 6 tests
+test the_spellings_a_second_generator_would_match_still_match_a_first_one ... ok
+test every_publisher_names_the_one_generator ... ok
+test the_document_fills_the_block_and_no_caller_states_one ... ok
+test no_publisher_writes_a_generator_of_its_own ... ok
+test a_quantity_with_no_value_gives_no_account_rather_than_an_invented_one ... ok
+test every_number_in_the_document_gives_an_account_of_itself ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/how_often_a_takeoff_floor_returns_something_that_is_not_the_jump.rs (target/debug/deps/how_often_a_takeoff_floor_returns_something_that_is_not_the_jump-125a41416f2e6b3c)
+
+running 2 tests
+test each_takeoff_floor_policy_fails_at_the_rate_its_registry_entry_publishes ... ok
+test each_floor_entry_publishes_a_rate_that_is_its_own_numerator_over_its_own_denominator ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/jump_height_carries_the_frame_it_was_measured_in.rs (target/debug/deps/jump_height_carries_the_frame_it_was_measured_in-c2d8db51dd71d423)
+
+running 15 tests
+test the_frame_declaration_refuses_until_a_reader_states_which_rise_they_mean ... ok
+test a_flight_time_height_on_a_recording_that_never_lands_is_refused_by_name ... ok
+test the_flight_phase_apex_and_the_whole_curve_apex_agree_on_a_single_jump ... ok
+test the_intervals_report_the_samples_between_the_landmarks_that_bound_them ... ok
+test the_flight_time_height_is_the_closed_form_at_the_gravity_its_entry_declares ... ok
+test the_work_energy_route_and_the_impulse_route_are_one_theorem ... ok
+test the_peak_velocity_route_never_reads_below_the_takeoff_velocity_route ... ok
+test the_frame_declaration_takes_the_two_frames_and_refuses_a_third_word ... ok
+test the_two_takeoff_frame_routes_meet_on_a_jump_that_is_consistent_with_itself ... ok
+test the_two_standing_frame_routes_agree_on_the_apex_they_both_measure ... ok
+test the_minimum_route_returns_the_smaller_of_the_two_it_computed ... ok
+test the_standing_frame_is_the_takeoff_frame_plus_the_rise_to_takeoff ... ok
+test every_height_records_the_integration_choices_its_series_was_built_under ... ok
+test each_height_rule_reports_its_own_arithmetic_exactly_once ... ok
+test no_rule_this_build_runs_reports_a_key_a_second_time ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.86s
+
+     Running tests/level_one_slots/main.rs (target/debug/deps/level_one_slots-d036c5ad8476e57e)
+
+running 45 tests
+test ws1::no_two_quantities_share_a_key_and_no_key_carries_a_registry_id ... ok
+test ws3_conditioning::a_conditioning_rule_that_declines_leaves_no_number_behind_it ... ok
+test ws2::the_two_readings_of_net_diverge_once_onset_sits_below_system_weight ... ok
+test ws3_conditioning::a_name_the_conditioning_rule_does_not_read_comes_back_unread ... ok
+test ws3_conditioning::a_conditioning_default_says_it_came_from_the_registry_rather_than_the_caller ... ok
+test ws3_conditioning::holding_a_place_for_values_without_naming_a_rule_records_the_run_unchanged ... ok
+test ws3_conditioning::naming_the_conditioning_rule_credits_the_caller_and_changes_nothing_else ... ok
+test ws3_conditioning::what_conditioned_the_signal_is_named_before_what_read_it ... ok
+test ws3_conditioning::conditioning_is_always_declared ... ok
+test ws3_conditioning::the_edge_a_conditioning_rule_reads_is_recorded_however_the_caller_arrived ... ok
+test ws_power_work::the_request_behind_every_reading_here ... ok
+test ws_power_work::a_power_number_names_what_power_meant_and_which_rules_bounded_it ... ok
+test ws_power_work::the_object_a_number_describes_and_the_mass_it_is_divided_by_are_one_answer ... ok
+test ws_rate_impulse::an_epoch_impulse_states_its_convention_and_the_two_differ_by_the_weight_it_spans ... ok
+test ws2::net_peak_force_is_the_gross_peak_less_one_system_weight_by_either_route ... ok
+test ws_rate_impulse::a_power_rate_states_what_power_is_before_it_reports_one ... ok
+test ws_power_work::the_two_quadrature_routes_are_one_integral_here_and_the_vendor_product_is_not ... ok
+test ws_rate_impulse::every_rate_rule_answers_on_one_trial_and_the_spread_between_them_is_the_method ... ok
+test ws_power_work::the_interval_a_caller_names_moves_the_mean_and_the_work_and_the_peak_where_it_can ... ok
+test ws_rate_impulse::the_rules_that_divide_by_an_interval_multiply_back_out_to_the_samples_they_name ... ok
+test ws_power_work::the_force_term_and_the_sign_reach_every_number_read_off_the_series ... ok
+test ws1::every_construct_a_rule_is_filed_under_is_declared_in_the_registry ... ok
+test ws_validity_normalisation::a_per_kilogram_number_names_the_peak_it_divided_and_the_mass_it_divided_by ... ok
+test ws_validity_normalisation::the_exponent_moves_the_scaled_number_and_the_divisor_says_what_it_is_per ... ok
+test ws_validity_normalisation::a_gate_that_cannot_reach_its_input_declines_rather_than_admitting ... ok
+test ws_validity_normalisation::early_force_is_a_share_of_the_net_peak_the_analysis_reported ... ok
+test ws2::moving_onset_moves_every_consecutive_window_not_only_the_first ... ok
+test ws5::every_committed_trial_settles_or_says_what_the_recording_lacks ... ok
+test ws_validity_normalisation::the_criterion_a_caller_states_is_the_one_that_admits_the_trial ... ok
+test ws_power_work::the_three_peak_rules_disagree_on_one_recording ... ok
+test ws_rate_impulse::the_fitted_rule_reports_the_models_own_rate_and_how_far_the_model_is_from_the_trace ... ok
+test ws_validity_normalisation::the_two_jump_type_rules_report_one_answer_and_the_threshold_follows_the_athlete ... ok
+test ws_validity_normalisation::the_window_a_caller_states_decides_which_candidates_survive ... ok
+test ws_validity_normalisation::the_transient_peak_count_is_a_property_of_the_signal_as_it_arrives ... ok
+test ws_rate_impulse::the_steepest_chord_is_never_shallower_than_the_chord_from_onset_at_the_same_width ... ok
+test ws1::every_arithmetic_a_quantity_names_resolves_in_the_registry ... ok
+test ws2::the_two_peak_estimators_differ_by_a_measurable_amount ... ok
+test ws_power_work::the_coefficient_sets_are_the_ones_the_registry_publishes ... ok
+test ws_rate_impulse::every_rule_in_this_family_reads_what_it_is_given_and_records_a_name_a_reader_can_look_up ... ok
+test ws_power_work::the_phase_names_a_rule_accepts_are_the_ones_its_entry_publishes ... ok
+test ws1::every_reported_quantity_carries_its_unit_or_the_registry_name_for_its_construct ... ok
+test ws3::conditioning_moves_onset_by_far_more_than_any_mean_shift_between_the_two ... ok
+test ws3_conditioning::every_conditioning_binding_fills_the_construct_the_registry_declares ... ok
+test ws_power_work::the_family_answers_on_every_committed_trial ... ok
+test ws_validity_normalisation::every_gate_answers_or_says_what_it_could_not_reach_across_the_committed_trials ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+
+     Running tests/one_id_reports_one_number_whichever_way_a_caller_arrives.rs (target/debug/deps/one_id_reports_one_number_whichever_way_a_caller_arrives-0cc70c17a1fae153)
+
+running 4 tests
+test a_gravity_chosen_for_the_analysis_moves_the_height_and_the_filled_in_one_does_not ... ok
+test the_flight_time_height_carries_one_record_whichever_way_it_was_reached ... ok
+test the_gravity_behind_the_height_is_recorded_and_says_whether_anybody_chose_it ... ok
+test naming_the_rule_that_already_produced_a_number_does_not_move_it ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.20s
+
+     Running tests/one_number_carries_one_chain.rs (target/debug/deps/one_number_carries_one_chain-e2dd6a3af2d040fa)
+
+running 9 tests
+test every_step_names_the_registry_behind_it ... ok
+test the_arithmetic_roots_the_chain_and_carries_the_values_it_read ... ok
+test every_reported_quantity_gets_a_chain_in_the_order_the_response_lists_them ... ok
+test an_operator_sits_under_the_landmark_rule_it_composes_onto ... ok
+test every_contributing_rule_is_somewhere_in_the_chain ... ok
+test the_integration_choices_behind_an_impulse_reach_the_record ... ok
+test a_quantity_no_rule_computed_is_rooted_at_the_rule_that_produced_it ... ok
+test a_rule_the_chain_runs_is_a_rule_the_number_rests_on ... ok
+test a_number_can_be_fingerprinted_from_the_response_that_reported_it ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s
+
+     Running tests/registry_backing_follows_the_list_the_engine_is_handed.rs (target/debug/deps/registry_backing_follows_the_list_the_engine_is_handed-0f6bbdc5424dab8d)
+
+running 2 tests
+test withholding_one_id_changes_the_answer_for_that_id_and_no_other ... ok
+test the_same_rule_reports_carried_or_not_according_to_the_list_alone ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/the_analysis_records_the_gravity_its_numbers_ran_under.rs (target/debug/deps/the_analysis_records_the_gravity_its_numbers_ran_under-e9ec1bb32d1e08d6)
+
+running 5 tests
+test stating_the_standard_value_is_an_act_and_stating_nothing_is_not ... ok
+test every_number_the_analysis_gravity_moves_runs_in_an_analysis_whose_record_names_that_gravity ... ok
+test one_gravity_under_two_claims_gives_two_records_and_moves_only_the_rule_that_reads_the_claim ... ok
+test the_record_names_every_value_the_request_binds_and_no_rule_records ... ok
+test a_gravity_nobody_chose_leaves_exactly_the_numbers_whose_rules_publish_their_own ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running tests/the_chain_behind_a_number_names_the_gravity_that_moved_it.rs (target/debug/deps/the_chain_behind_a_number_names_the_gravity_that_moved_it-46317655b964eaa3)
+
+running 4 tests
+test a_rule_publishing_its_own_gravity_puts_the_one_it_ran_at_into_the_chain ... ok
+test every_number_the_analysis_gravity_moves_carries_it_in_its_chain ... ok
+test two_gravities_that_move_a_number_give_it_two_fingerprints ... ok
+test the_gravity_a_number_names_is_recorded_once_at_the_root_and_is_the_one_it_ran_at ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+     Running tests/the_headline_number_names_the_integration_it_rests_on.rs (target/debug/deps/the_headline_number_names_the_integration_it_rests_on-ceb8c979e2a91cdb)
+
+running 2 tests
+test the_two_integration_starts_give_two_takeoff_velocities_from_one_recording ... ok
+test the_numbers_read_off_the_velocity_series_name_the_integration_and_the_impulse_does_not ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/the_operators_a_default_request_composes.rs (target/debug/deps/the_operators_a_default_request_composes-5488cbf2cf87069b)
+
+running 4 tests
+test the_reader_this_file_counts_operators_with_is_blind_to_the_construct ... ok
+test the_persistence_operator_runs_when_nobody_asked_for_it ... ok
+test every_operator_composed_unasked_carries_a_verdict_a_surface_can_act_on ... ok
+test every_construct_anchors_its_search_at_the_same_place_and_composes_no_deprecated_rule ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+
+     Running tests/the_ratio_family_says_which_denominator_it_divided_by.rs (target/debug/deps/the_ratio_family_says_which_denominator_it_divided_by-ba10d24b46c4da61)
+
+running 6 tests
+test the_push_off_index_is_not_the_index_it_would_have_replaced ... ok
+test the_two_numerators_are_two_numbers_over_one_denominator ... ok
+test the_ratio_refuses_a_figure_nobody_attributed ... ok
+test the_three_velocity_terms_are_three_numbers_from_one_recording ... ok
+test a_recording_that_ends_before_the_dwell_says_how_much_it_holds ... ok
+test the_uniform_acceleration_assumption_is_measured_over_every_committed_trial ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.41s
+
+     Running tests/the_window_a_sequential_rate_reports_is_the_one_the_caller_named.rs (target/debug/deps/the_window_a_sequential_rate_reports_is_the_one_the_caller_named-14210a7d0b1102af)
+
+running 3 tests
+test a_sequential_rate_with_no_window_named_refuses_by_that_name ... ok
+test the_force_at_an_epoch_is_the_sample_the_recording_holds_there ... ok
+test the_first_sequential_window_is_the_overlapping_scheme_at_the_same_width ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests/the_worked_example_a_reader_copies_is_the_one_this_engine_writes.rs (target/debug/deps/the_worked_example_a_reader_copies_is_the_one_this_engine_writes-e8de1d4a1650f9c3)
+
+running 2 tests
+test the_readme_still_names_the_registry_behind_the_number ... ok
+test the_readme_prints_the_account_this_engine_writes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/two_phase_models_produce_two_shapes_of_answer.rs (target/debug/deps/two_phase_models_produce_two_shapes_of_answer-ff18462fe217d2c7)
+
+running 4 tests
+test the_hand_placed_lift_start_refuses_an_unstated_instant_and_honours_a_stated_one ... ok
+test the_net_force_rule_ends_the_lift_before_the_other_two_and_the_gap_is_the_deceleration ... ok
+test no_two_phase_models_publish_the_same_set_of_keys ... ok
+test the_four_analysis_windows_are_four_different_stretches_of_one_recording ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.93s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce_batch-48a227dfe29646ca)
+
+running 44 tests
+test fingerprint::tests::the_digest_carries_the_shape_the_registry_already_uses ... ok
+test fingerprint::tests::a_changed_parameter_is_a_different_chain ... ok
+test engine::rows_come_from_the_chain_step::a_value_only_the_step_carries_reaches_the_relation ... ok
+test fingerprint::tests::one_chain_gets_one_id_however_the_rows_are_ordered ... ok
+test engine::rows_come_from_the_chain_step::a_choice_the_step_already_records_is_written_once ... ok
+test fingerprint::tests::a_run_that_recorded_its_plate_publishes_its_digest ... ok
+test identity::tests::the_longest_declared_suffix_names_the_stem ... ok
+test derive::tests::an_id_filed_under_another_construct_is_refused_with_the_ones_filed_under_this_one ... ok
+test engine::rows_come_from_the_chain_step::the_rules_spelling_is_taken_only_where_it_is_the_same_number ... ok
+test derive::tests::a_construct_this_build_runs_no_rule_for_is_refused_with_the_ones_it_does ... ok
+test fingerprint::tests::a_run_with_no_acquisition_block_publishes_no_digest ... ok
+test engine::rows_come_from_the_chain_step::a_step_that_read_nothing_still_names_its_rule ... ok
+test fingerprint::tests::what_a_lab_calls_its_plate_is_not_part_of_the_digest ... ok
+test fingerprint::tests::two_runs_that_ran_different_rules_the_same_number_of_ways_differ ... ok
+test derive::tests::a_line_carrying_no_equals_is_a_fault_in_the_line_rather_than_a_recorded_refusal ... ok
+test engine::rows_come_from_the_chain_step::a_choice_carried_beside_the_step_reaches_the_relation ... ok
+test fingerprint::tests::two_runs_off_different_plates_are_two_runs ... ok
+test identity::tests::a_name_the_template_does_not_describe_yields_nothing ... ok
+test relations::tests::a_whole_number_reads_as_the_digits_somebody_would_type ... ok
+test identity::tests::a_template_pulls_the_subject_and_the_trial_out_of_a_name ... ok
+test fingerprint::tests::one_run_fingerprints_the_same_way_twice ... ok
+test relations::tests::a_table_writes_a_number_the_way_the_analysed_record_writes_it ... ok
+test derive::tests::the_quantities_a_bound_rule_declares_are_read_off_its_binding_row ... ok
+test relations::tests::a_file_that_left_the_denominator_without_being_named_fails_its_own_invariant ... ok
+test identity::tests::two_placeholders_with_nothing_between_them_are_refused ... ok
+test relations::tests::a_run_that_named_more_trials_than_it_placed_fails_its_own_invariant ... ok
+test relations::tests::excluding_more_trials_than_computed_fails_its_own_invariant ... ok
+test relations::tests::files_carrying_no_declared_suffix_are_counted_outside_the_named_denominator ... ok
+test relations::tests::the_result_header_carries_the_four_keys_then_the_quantities_in_order ... ok
+test sweep::tests::a_derived_rule_names_its_construct_as_the_axis ... ok
+test sweep::tests::a_landmark_nothing_was_bound_for_is_refused_naming_its_own_flag ... ok
+test sweep::tests::a_name_no_rule_answers_to_is_refused_with_the_ones_that_do ... ok
+test sweep::tests::a_rule_named_twice_is_one_variant ... ok
+test sweep::tests::the_bound_rule_written_against_itself_is_one_variant ... ok
+test sweep::tests::an_onset_rule_names_the_onset_step_and_the_bound_rule_opens_the_list ... ok
+test sweep::tests::rules_from_two_steps_are_refused_naming_both ... ok
+test sweep::tests::a_step_written_where_a_rule_goes_is_refused_with_that_step_s_rules ... ok
+test synthetic::tests::a_generated_trace_stands_still_then_leaves_the_plate ... ok
+test sweep::tests::a_step_this_run_never_bound_is_refused_naming_how_to_bind_it ... ok
+test write_csv::tests::a_field_carrying_the_separator_survives_the_round_trip ... ok
+test synthetic::tests::one_seed_generates_one_corpus ... ok
+test decisions::tests::a_resolved_construct_is_no_longer_a_decision ... ok
+test decisions::tests::takeoff_carries_entries_and_no_decision ... ok
+test decisions::tests::a_jump_height_path_with_nothing_resolved_is_two_decisions_and_not_nine ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/a_binding_the_run_cannot_make_is_refused_once.rs (target/debug/deps/a_binding_the_run_cannot_make_is_refused_once-6f5f7649d40956c2)
+
+running 3 tests
+test a_construct_with_no_rule_behind_it_refuses_the_run_rather_than_each_trial ... ok
+test an_id_filed_under_another_construct_refuses_the_run ... ok
+test a_binding_this_build_can_make_is_not_refused ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/a_comparison_varies_the_step_it_was_asked_to.rs (target/debug/deps/a_comparison_varies_the_step_it_was_asked_to-75650c92192628ae)
+
+running 6 tests
+test a_comparison_with_no_plate_recorded_publishes_no_fingerprint ... ok
+test a_construct_computed_from_the_landmarks_is_an_axis_a_folder_can_sweep ... ok
+test an_onset_comparison_still_varies_onset_and_names_it ... ok
+test a_comparison_carries_the_registry_and_the_plate_it_ran_under ... ok
+test variants_that_differ_only_in_a_derived_rule_carry_different_chains ... ok
+test the_step_a_comparison_sweeps_follows_the_rules_it_was_given ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
+
+     Running tests/a_folder_may_hold_more_than_one_athlete.rs (target/debug/deps/a_folder_may_hold_more_than_one_athlete-be9abad22acaf3dd)
+
+running 7 tests
+test masses_by_subject_over_a_folder_with_no_pattern_are_refused ... ok
+test an_athlete_the_masses_do_not_cover_is_refused ... ok
+test a_mass_for_an_athlete_who_is_not_here_is_refused ... ok
+test each_athletes_trials_run_under_that_athletes_mass ... ok
+test a_folder_of_one_athlete_still_states_one_mass ... ok
+test the_record_names_a_mass_for_each_athlete ... ok
+test two_squads_at_different_masses_are_two_requests ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.24s
+
+     Running tests/a_folder_run_carries_each_numbers_own_account.rs (target/debug/deps/a_folder_run_carries_each_numbers_own_account-08e6a98bf4193d4c)
+
+running 3 tests
+test a_run_writes_its_accounts_beside_its_numbers_and_reads_them_back_whole ... ok
+test the_envelope_carries_the_accounts_the_tables_carry ... ok
+test every_account_the_engine_wrote_reaches_the_run ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+     Running tests/a_gate_finding_reaches_the_reader_who_opens_the_folder.rs (target/debug/deps/a_gate_finding_reaches_the_reader_who_opens_the_folder-ceb560693686f352)
+
+running 4 tests
+test a_run_writes_its_gate_findings_beside_its_numbers ... ok
+test every_column_carries_something_the_results_table_does_not ... ok
+test the_columnar_surface_carries_the_findings_too ... ok
+test the_outcome_column_says_whether_the_trial_left_the_population ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.97s
+
+     Running tests/a_gate_that_was_applied_removes_the_trial.rs (target/debug/deps/a_gate_that_was_applied_removes_the_trial-6599b856ef2569cf)
+
+running 3 tests
+test a_gate_that_only_reports_leaves_every_trial_in_the_population ... ok
+test a_reliability_figure_leaves_out_the_trials_the_run_removed ... ok
+test a_figure_is_not_taken_over_the_trials_the_run_says_it_removed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+     Running tests/a_run_over_a_folder_carries_what_the_analysis_knew.rs (target/debug/deps/a_run_over_a_folder_carries_what_the_analysis_knew-f30960034f0ed983)
+
+running 6 tests
+test the_rendered_table_says_it_too ... ok
+test the_envelope_carries_the_signals_through_a_round_trip ... ok
+test the_columns_a_signal_names_are_columns_the_results_table_carries ... ok
+test every_signal_the_analysis_raised_reaches_the_run ... ok
+test a_run_writes_its_signals_beside_its_numbers ... ok
+test the_columnar_surface_carries_them_too ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+     Running tests/aggregation.rs (target/debug/deps/aggregation-05934074abd23912)
+
+running 10 tests
+test aggregation_without_a_declared_count_is_refused ... ok
+test aggregation_without_a_declared_rule_is_refused ... ok
+test a_group_smaller_than_the_rule_requires_names_the_count_it_had_and_the_count_it_needs ... ok
+test grouping_refusal_names_the_pattern_that_would_supply_a_subject ... ok
+test grouping_by_subject_pools_the_occasions_that_grouping_by_session_keeps_apart ... ok
+test no_aggregation_writes_the_relations_without_a_fifth ... ok
+test bound_aggregation_writes_one_more ... ok
+test a_run_level_reduction_claims_no_published_rule ... ok
+test a_rule_that_ranks_on_a_quantity_this_analysis_does_not_produce_refuses_by_name ... ok
+test an_aggregate_names_its_rule_and_its_n ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.66s
+
+     Running tests/agreement.rs (target/debug/deps/agreement-885c4f83f5f59a2c)
+
+running 18 tests
+test every_value_these_choices_take_is_a_word_a_caller_can_state ... ok
+test every_agreement_refusal_carries_a_published_code ... ok
+test bland_altman_refuses_when_neither_required_parameter_is_stated ... ok
+test pairs_from_two_files_are_refused_and_named ... ok
+test a_variant_that_could_not_run_stays_in_the_denominator_with_its_reason ... ok
+test every_statistic_id_resolves_in_one_table_and_the_registry_carries_it ... ok
+test the_dispersion_the_request_states_is_the_one_the_limits_use ... ok
+test a_correlation_arrives_with_its_limits_or_not_at_all ... ok
+test a_compare_run_leaves_the_machine_with_its_record_beside_it ... ok
+test a_compare_run_records_what_it_walked_and_which_step_it_swept ... ok
+test every_paired_value_reaches_the_rules_that_produced_it ... ok
+test pairs_from_one_trace_satisfy_the_design_and_record_it ... ok
+test ordinary_least_products_runs_over_the_same_pairs ... ok
+test the_subject_unit_of_analysis_needs_a_declared_grouping ... ok
+test a_compare_run_refuses_an_unnamed_file_rather_than_dropping_it ... ok
+test paired_relation_is_one_row_per_trial_per_method ... ok
+test a_swept_slot_reports_the_rules_own_values_and_not_a_pinned_index ... ok
+test headline_shape ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+
+     Running tests/csv_without_run_json_is_refused.rs (target/debug/deps/csv_without_run_json_is_refused-546339db363ddd12)
+
+running 4 tests
+test the_record_lands_before_any_table ... ok
+test a_table_without_its_record_is_refused_and_says_where_the_record_goes ... ok
+test the_table_carries_the_join_back_to_the_record ... ok
+test four_files_or_none ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+
+     Running tests/fingerprint.rs (target/debug/deps/fingerprint-39b4887ce4ee5b0e)
+
+running 4 tests
+test trials_that_produced_the_same_quantities_under_the_same_rules_share_one_chain ... ok
+test the_chain_collapses_rather_than_repeating_itself_per_trial ... ok
+test every_number_reaches_the_rules_that_produced_it ... ok
+test a_trial_that_ran_differently_gets_its_own_chain ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.83s
+
+     Running tests/float_fidelity.rs (target/debug/deps/float_fidelity-e0a44bb1085eb554)
+
+running 4 tests
+test the_values_known_to_misparse_read_back_as_themselves ... ok
+test a_bare_float_and_a_vector_of_them_round_trip_exactly ... ok
+test a_typed_struct_round_trips_every_double_exactly ... ok
+test the_batch_envelope_survives_the_shapes_its_surfaces_read ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+
+     Running tests/identity.rs (target/debug/deps/identity-b2519a9062e64250)
+
+running 9 tests
+test a_run_that_declares_no_trial_names_is_refused_rather_than_given_a_default ... ok
+test a_run_walked_twice_lists_its_trials_in_the_same_order ... ok
+test grouping_by_subject_is_unavailable_when_no_pattern_was_declared ... ok
+test a_file_the_pattern_does_not_match_is_refused_by_name_rather_than_skipped ... ok
+test two_files_resolving_to_one_id_are_both_named_and_neither_is_preferred ... ok
+test a_declared_pattern_parses_what_the_conformance_crate_parses ... ok
+test reads_every_committed_fixture ... ok
+test a_declared_pattern_groups_one_subjects_trials_from_one_occasion ... ok
+test the_same_folder_read_from_memory_and_from_disk_gives_one_answer ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.87s
+
+     Running tests/one_bad_trial.rs (target/debug/deps/one_bad_trial-7cc817ab9afee37e)
+
+running 11 tests
+test a_trial_that_computed_and_declined_two_landmarks_carries_a_row_for_each ... ok
+test a_trial_that_declined_more_than_once_keeps_a_row_for_each_decline ... ok
+test a_run_with_a_choice_still_open_reads_no_trial_at_all ... ok
+test a_run_reports_the_files_its_declaration_passed_over ... ok
+test every_refusal_carries_a_published_code_that_names_its_fault ... ok
+test one_bad_trial_costs_one_row_and_the_run_continues ... ok
+test the_coverage_line_names_every_count_against_one_denominator ... ok
+test a_result_rebuilt_from_its_envelope_reports_the_counts_it_arrived_with ... ok
+test a_value_the_request_stated_is_not_attributed_to_the_registry ... ok
+test a_trace_no_rule_can_work_with_also_costs_one_row ... ok
+test a_run_that_states_nothing_about_its_capture_claims_no_complete_acquisition ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.80s
+
+     Running tests/parquet_metadata.rs (target/debug/deps/parquet_metadata-c6c1179e0e9ff62b)
+
+running 3 tests
+test the_key_is_ours_rather_than_a_language_private_block ... ok
+test a_file_with_no_record_is_named_rather_than_read_as_if_it_had_one ... ok
+test the_run_block_survives_a_parquet_round_trip_under_our_own_key ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.54s
+
+     Running tests/population.rs (target/debug/deps/population-4715a6cefe23d7ee)
+
+running 7 tests
+test the_registration_surface_is_the_one_the_validity_rules_plug_into ... ok
+test an_empty_channel_is_the_correct_state_of_a_run_that_bound_no_gate ... ok
+test excluded_never_exceeds_computed ... ok
+test read_equals_computed_plus_refused ... ok
+test the_baseline_records_what_each_gate_would_remove_and_fails_when_it_moves ... ok
+test applying_a_gate_is_a_request_field_and_the_count_still_carries_its_denominator ... ok
+test reporting_gate_names_every_trial_and_removes_none ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s
+
+     Running tests/reliability.rs (target/debug/deps/reliability-8232a4541a8a176e)
+
+running 4 tests
+test cv_is_taken_per_subject_then_averaged_across_subjects ... ok
+test two_coefficients_under_different_conventions_refuse_to_be_compared ... ok
+test an_intraclass_figure_also_carries_its_interval ... ok
+test interval_travels_with_every_reliability_figure ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+
+     Running tests/renderings.rs (target/debug/deps/renderings-5b99a7684f960fc4)
+
+running 4 tests
+test the_shorter_rendering_hides_a_column_and_drops_no_row ... ok
+test the_coverage_line_is_the_same_fact_under_both_renderings ... ok
+test the_summary_renders_beneath_the_table_with_its_count_beside_it ... ok
+test both_renderings_record_the_same_provenance ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.97s
+
+     Running tests/round_trip.rs (target/debug/deps/round_trip-58f130a0c9fd4e17)
+
+running 4 tests
+test a_refused_run_carries_the_other_key_and_never_both ... ok
+test envelope_carries_one_key_and_survives_the_round_trip ... ok
+test the_csv_set_rebuilds_the_run_from_the_record_beside_the_table ... ok
+test the_parquet_set_carries_the_run_in_its_own_schema_metadata ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+
+     Running tests/sentinel.rs (target/debug/deps/sentinel-1e2545b7d0292459)
+
+running 4 tests
+test declaring_a_convention_leaves_the_time_base_alone ... ok
+test reading_the_same_folder_two_ways_fingerprints_two_ways ... ok
+test declaring_a_missing_value_reports_it_and_moves_no_number ... ok
+test the_run_records_which_convention_it_applied_and_what_matched ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
+
+     Running tests/source_path.rs (target/debug/deps/source_path-2e3ef74492b3d17e)
+
+running 3 tests
+test a_declared_pattern_carries_the_subject_and_writes_no_path ... ok
+test without_a_pattern_the_path_is_the_identity_and_is_written ... ok
+test nothing_a_declared_run_writes_to_disk_names_the_directory_it_read ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+     Running tests/the_arithmetic_records_what_it_read.rs (target/debug/deps/the_arithmetic_records_what_it_read-73d658240d3478ba)
+
+running 3 tests
+test a_derived_column_survives_the_csv_the_envelope_its_read_back_and_the_parquet ... ok
+test every_value_the_arithmetic_read_reaches_the_relation_a_reader_opens ... ok
+test a_number_that_moves_with_a_stated_value_carries_that_value_in_the_record ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s
+
+     Running tests/the_folder_run_names_what_it_was_bound_to.rs (target/debug/deps/the_folder_run_names_what_it_was_bound_to-d6060099347e5f86)
+
+running 3 tests
+test the_bound_values_survive_the_round_trip_through_the_written_record ... ok
+test the_run_record_names_every_value_the_folder_was_bound_to_and_who_chose_it ... ok
+test two_folders_bound_to_different_masses_do_not_share_one_request_digest ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.87s
+
+     Running tests/the_relation_names_every_step_the_tree_names.rs (target/debug/deps/the_relation_names_every_step_the_tree_names-57bd2f8139508598)
+
+running 1 test
+test the_relation_names_what_the_tree_names_and_nothing_else ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running unittests src/main.rs (target/debug/deps/plateforce-dba9e9ef12e58e44)
+
+running 45 tests
+test acquisition_arg::tests::the_help_names_no_command_to_look_the_members_up_in ... ok
+test exit::tests::every_fault_carries_the_sysexits_code_its_class_names ... ok
+test acquisition_arg::tests::a_line_carrying_no_equals_is_refused_with_the_grammar ... ok
+test acquisition_arg::tests::stating_nothing_is_an_incomplete_block_that_names_what_is_missing ... ok
+test acquisition_arg::tests::one_member_given_two_values_is_refused ... ok
+test acquisition_arg::tests::every_member_stated_is_a_complete_block ... ok
+test acquisition_arg::tests::every_member_the_block_declares_is_a_member_this_flag_stores ... ok
+test acquisition_arg::tests::a_member_the_block_does_not_hold_is_refused_against_the_whole_list ... ok
+test analyse::tests::a_name_carrying_no_step_is_refused_rather_than_matched_by_its_opening ... ok
+test acquisition_arg::tests::a_frequency_that_is_not_a_number_is_refused ... ok
+test exit::tests::a_recorded_refusal_publishes_its_code_and_a_line_fault_publishes_none ... ok
+test capability_cmd::tests::every_command_this_binary_offers_says_what_it_can_do ... ok
+test acquisition_arg::tests::four_of_five_members_is_incomplete_and_names_the_fifth ... ok
+test exit::tests::a_refusal_with_no_result_beside_it_goes_to_the_other_stream ... ok
+test analyse::tests::a_value_naming_a_step_this_run_does_not_have_is_refused ... ok
+test capability_cmd::tests::the_commands_that_take_the_acquisition_block_are_named_rather_than_counted ... ok
+test exit::tests::a_layout_replaces_the_sentence_on_screen_and_never_on_the_wire ... ok
+test exit::tests::a_complete_result_exits_zero_and_a_partial_one_reports_the_recording ... ok
+test analyse::tests::a_step_whose_name_opens_another_takes_only_the_values_written_for_itself ... ok
+test analyse::tests::a_value_reaches_the_step_it_names_however_many_dots_that_name_carries ... ok
+test registry_source::tests::the_origin_is_reported_either_way ... ok
+test exit::tests::every_published_code_reaches_the_status_the_engine_gives_it ... ok
+test render::tests::a_document_asked_for_by_path_carries_no_escape_byte ... ok
+test plate_source::tests::a_plate_nobody_saved_is_refused_by_name_and_points_at_the_list ... ok
+test render::tests::wrapping_never_splits_a_word ... ok
+test out::tests::a_written_file_starts_with_its_own_first_character_and_ends_with_one_newline ... ok
+test render::tests::a_plain_renderer_emits_no_escape_byte ... ok
+test render::tests::colour_never_beats_every_other_signal ... ok
+test reach::tests::every_boundary_the_registry_files_names_a_barrier_a_reader_can_act_on ... ok
+test plate_source::tests::a_run_that_named_no_plate_has_nothing_to_attribute ... ok
+test registry_source::tests::a_named_directory_that_is_absent_refuses_rather_than_falling_back ... ok
+test plate_source::tests::a_member_written_beside_a_plate_reaches_the_run_and_the_record ... ok
+test tests::the_flag_means_the_same_thing_wherever_it_sits ... ok
+test tests::a_flag_with_no_value_is_refused_rather_than_resolved_to_the_default ... ok
+test verdict::tests::every_verdict_prints_the_word_the_schema_serialises ... ok
+test tests::two_plate_folders_on_one_line_are_refused ... ok
+test out::tests::writing_twice_leaves_one_document ... ok
+test tests::two_registries_on_one_line_are_refused ... ok
+test tests::the_joined_spelling_names_the_same_directory ... ok
+test tests::the_declared_command_surface_parses ... ok
+test registry_source::tests::the_binary_names_the_revision_the_registry_declares ... ok
+test registry_source::tests::the_registry_in_the_binary_is_the_registry_in_the_repository ... ok
+test tests::no_flag_names_no_directory_and_reads_what_this_build_carries ... ok
+test reach::tests::the_boundary_naming_two_barriers_names_them_for_the_entries_that_carry_it ... ok
+test registry_source::tests::naming_nothing_and_naming_the_directory_agree ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.52s
+
+     Running tests/a_name_stated_twice_is_refused_never_settled_by_position.rs (target/debug/deps/a_name_stated_twice_is_refused_never_settled_by_position-b494e2588917eec4)
+
+running 3 tests
+test a_name_written_twice_is_refused_and_the_refusal_names_both_values ... ok
+test two_names_under_one_flag_are_not_a_name_written_twice ... ok
+test one_name_under_two_slots_is_two_names ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 47.85s
+
+     Running tests/a_saved_plate_fills_the_block_it_names.rs (target/debug/deps/a_saved_plate_fills_the_block_it_names-adce9fe46d8d3d01)
+
+running 4 tests
+test a_plate_nobody_saved_is_refused_by_name ... ok
+test a_member_stated_beside_a_plate_wins_and_the_record_says_what_it_replaced ... ok
+test a_run_that_names_a_saved_plate_carries_its_members_and_fingerprints_complete ... ok
+test two_results_off_one_plate_name_show_that_the_plate_was_edited ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.15s
+
+     Running tests/a_signal_holding_no_value_names_its_own_status.rs (target/debug/deps/a_signal_holding_no_value_names_its_own_status-e0de626995add8f0)
+
+running 3 tests
+test a_signal_carrying_a_number_still_prints_it_against_its_threshold ... ok
+test the_terminal_names_the_status_the_record_carries ... ok
+test the_terminal_puts_no_comparison_of_its_own_where_the_number_goes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.04s
+
+     Running tests/batch.rs (target/debug/deps/batch-0598290f8ab911c0)
+
+running 4 tests
+test a_folder_run_cannot_proceed_without_saying_how_a_missing_sample_is_written ... ok
+test an_assignment_this_command_cannot_read_is_refused_before_a_trial_is ... ok
+test the_record_names_the_convention_the_run_applied ... ok
+test a_value_stated_for_a_folder_is_recorded_as_stated ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.85s
+
+     Running tests/batch_answerability.rs (target/debug/deps/batch_answerability-7ef2bc2533aee069)
+
+running 5 tests
+test a_refused_folder_writes_no_table ... ok
+test the_refusal_reads_at_eighty_columns_on_both_surfaces ... ok
+test the_folder_refuses_the_value_the_single_trial_refuses ... ok
+test a_stated_value_is_recorded_as_stated ... ok
+test naming_every_value_runs_on_both_surfaces ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.29s
+
+     Running tests/batch_compare_identity.rs (target/debug/deps/batch_compare_identity-6ba1ae97b6cc56ec)
+
+running 2 tests
+test moving_the_base_request_moves_the_base_digest ... ok
+test two_axes_over_one_base_request_share_the_base_digest ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+     Running tests/batch_derived.rs (target/debug/deps/batch_derived-384b2f0ec17f32f7)
+
+running 8 tests
+test a_construct_this_build_runs_no_rule_for_is_refused_before_a_trial_is_read ... ok
+test an_id_filed_under_another_construct_is_refused_with_the_ones_filed_under_this_one ... ok
+test a_construct_written_twice_is_refused_the_way_the_other_repeatable_flags_refuse ... ok
+test an_assignment_carrying_no_equals_is_refused_as_a_line_rather_than_as_a_rule ... ok
+test the_folder_and_the_single_trial_refuse_a_derived_binding_with_one_sentence ... ok
+test a_rule_that_declined_on_every_trial_leaves_a_blank_column_and_a_refusal_beside_it ... ok
+test a_rule_computed_from_the_landmarks_reaches_the_table_and_the_record ... ok
+test a_value_stated_against_a_derived_construct_is_recorded_as_stated ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
+
+     Running tests/batch_mass.rs (target/debug/deps/batch_mass-cae9847f85f9684a)
+
+running 6 tests
+test a_mass_for_an_athlete_who_is_not_here_is_refused ... ok
+test a_mass_for_the_folder_beside_one_by_athlete_is_refused ... ok
+test one_mass_for_the_folder_is_recorded_for_the_folder ... ok
+test a_mass_keyed_by_athlete_is_recorded_against_that_athlete ... ok
+test a_mass_at_or_below_zero_is_refused_in_either_spelling ... ok
+test every_mass_refusal_reads_at_eighty_columns ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+
+     Running tests/capability.rs (target/debug/deps/capability-b88a73f2f6d285d8)
+
+running 10 tests
+test every_operator_entry_this_build_composes_is_published_with_the_names_that_reach_it ... ok
+test a_surface_answers_for_the_arrays_and_no_others ... ok
+test the_manifest_names_one_method_per_rule_this_build_runs ... ok
+test every_container_this_binary_writes_is_one_it_declares ... ok
+test every_refusal_code_carries_an_exit_status_a_shell_reads ... ok
+test the_manifest_names_every_member_of_the_acquisition_block ... ok
+test this_surface_reports_what_is_committed_for_it ... ok
+test the_block_this_binary_declares_is_the_block_it_reads ... ok
+test every_operation_owed_is_one_this_surface_reaches ... ok
+test a_name_a_rule_declines_without_is_a_name_the_engine_declines_without ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.85s
+
+     Running tests/derived_rules.rs (target/debug/deps/derived_rules-849a5c0668eb2a2e)
+
+running 5 tests
+test a_construct_this_build_runs_no_rule_for_is_refused_by_name ... ok
+test an_id_filed_under_another_construct_is_refused_by_name ... ok
+test a_peak_with_no_window_chosen_names_the_open_choice ... ok
+test a_rule_named_on_the_command_line_reports_its_number_and_the_rule_behind_it ... ok
+test a_value_set_against_a_derived_construct_reaches_its_rule has been running for over 60 seconds
+test a_value_set_against_a_derived_construct_reaches_its_rule ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 104.84s
+
+     Running tests/digests_in_prose.rs (target/debug/deps/digests_in_prose-779baa3a5e6fb717)
+
+running 3 tests
+test every_digest_in_the_parity_plate_record_is_the_one_its_members_hash_to ... ok
+test registry_digest_files_are_exactly_the_files_that_quote_one ... ok
+test every_digest_in_prose_is_the_one_the_registry_answers ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/forced_decisions.rs (target/debug/deps/forced_decisions-7b84e01cb01c53f8)
+
+running 9 tests
+test a_value_for_a_step_that_is_not_on_the_path_is_refused ... ok
+test takeoff_is_not_listed_because_no_takeoff_rule_forces_a_decision ... ok
+test no_rule_named_produces_no_number_and_a_missing_argument_code ... ok
+test the_count_is_taken_over_the_constructs_on_the_path ... ok
+test a_published_disagreement_over_a_value_is_a_choice_too ... ok
+test the_refusal_reads_at_eighty_columns_without_splitting_an_id ... ok
+test a_documented_rule_with_no_code_is_refused_and_never_offered ... ok
+test a_value_the_rule_does_not_require_is_not_an_open_choice ... ok
+test every_rule_named_produces_every_number_and_exits_zero ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.25s
+
+     Running tests/quality.rs (target/debug/deps/quality-e6f4fc68b5dafb00)
+
+running 5 tests
+test a_signal_does_not_move_the_exit_code ... ok
+test the_signal_sits_between_the_value_it_qualifies_and_the_next_one ... ok
+test a_pipe_reading_the_result_can_branch_on_what_the_software_doubts ... ok
+test a_signal_over_two_metrics_is_said_once ... ok
+test a_trace_whose_routes_agree_says_nothing ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.47s
+
+     Running tests/reach.rs (target/debug/deps/reach-fe8bb3032b420771)
+
+running 8 tests
+test what_a_recording_supports_and_what_this_build_runs_are_counted_apart ... ok
+test a_construct_nobody_has_placed_carries_the_query_that_would_settle_it ... ok
+test the_floor_holds_the_number_that_only_rises ... ok
+test every_construct_out_of_reach_names_what_stands_in_the_way ... ok
+test the_terminal_is_told_how_many_constructs_compute ... ok
+test a_construct_walled_by_two_things_names_both ... ok
+test more_than_the_fixture_exercises_the_two_part_barrier_rule ... ok
+test each_barrier_the_registry_files_reaches_a_row ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+
+     Running tests/refusal_codes.rs (target/debug/deps/refusal_codes-f98cf8836a957901)
+
+running 7 tests
+test an_id_with_no_rule_behind_it_publishes_the_code_and_what_would_have_run ... ok
+test a_run_that_computed_nothing_hands_a_pipe_the_record_and_not_a_sentence ... ok
+test a_fault_in_the_line_publishes_no_code_and_a_refused_rule_publishes_one ... ok
+test the_screen_takes_the_candidates_and_the_pipe_takes_the_code ... ok
+test a_file_that_cannot_be_read_publishes_its_own_code_and_status ... ok
+test a_landmark_that_declined_carries_its_code_beside_the_numbers_that_did_not ... ok
+test a_record_names_the_construct_the_registry_declares_and_not_the_flag ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.14s
+
+     Running tests/registry_backing.rs (target/debug/deps/registry_backing-0a6a5f1121f6ad2c)
+
+running 1 test
+test every_bound_rule_the_registry_carries_says_the_registry_carries_it ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.24s
+
+     Running tests/registry_show.rs (target/debug/deps/registry_show-9a3d2cb41a92af0b)
+
+running 6 tests
+test a_required_parameter_with_no_default_shows_neither_a_value_nor_silence ... ok
+test a_required_parameter_with_a_default_shows_both ... ok
+test a_default_chosen_by_name_is_shown_by_name ... ok
+test a_parameter_the_reader_must_answer_says_so ... ok
+test an_optional_parameter_carries_no_statement_about_its_absence ... ok
+test what_the_registry_says_about_a_parameter_reaches_the_terminal ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+     Running tests/result_parity.rs (target/debug/deps/result_parity-5a1ea54a12902f2f)
+
+running 5 tests
+test the_terminal_document_names_the_build_and_the_registry_that_produced_it ... ok
+test the_document_is_the_same_characters_after_a_round_trip ... ok
+test a_reader_of_this_result_holds_the_number_that_was_written ... ok
+test the_same_request_twice_produces_the_same_document ... ok
+test the_pinned_revision_and_the_registry_s_own_claim_are_two_fields ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.95s
+
+     Running tests/set_assignment_spelling.rs (target/debug/deps/set_assignment_spelling-789e5f492b8be536)
+
+running 3 tests
+test both_commands_show_the_grammar_their_parser_accepts ... ok
+test a_refused_assignment_names_the_same_grammar_the_help_shows ... ok
+test the_word_the_method_flag_carries_is_the_word_the_assignment_takes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.34s
+
+     Running tests/spread.rs (target/debug/deps/spread-f8e24e6e892321a6)
+
+running 12 tests
+test a_step_with_one_rule_is_refused_rather_than_dropped_from_a_sweep_that_still_reports ... ok
+test an_unanswered_choice_refuses_here_exactly_as_it_does_in_the_analysis ... ok
+test a_step_named_twice_is_refused ... ok
+test a_quantity_this_build_does_not_compute_is_refused ... ok
+test a_step_this_run_did_not_bind_is_refused_rather_than_swept_over_a_rule_nobody_chose ... ok
+test the_construct_the_record_names_is_a_word_this_flag_takes ... ok
+test several_steps_can_be_named_and_the_order_they_were_named_in_does_not_reach_the_document ... ok
+test a_named_step_is_the_only_one_the_sweep_varies ... ok
+test the_sweep_reports_what_ran_and_what_did_not ... ok
+test the_sweep_names_what_the_registry_declares_without_laundering_it_into_the_pin ... ok
+test a_pinned_sweep_names_the_revision_and_an_unpinned_one_names_none ... ok
+test a_quantity_the_analysis_does_not_headline_can_be_swept ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.42s
+
+     Running tests/terminal_survival.rs (target/debug/deps/terminal_survival-be1ff31662feb335)
+
+running 10 tests
+test the_help_a_reader_meets_first_is_the_committed_one ... ok
+test the_refusal_for_an_id_that_resolves_nowhere_is_the_committed_one ... ok
+test a_shell_that_forces_colour_gets_it ... ok
+test no_color_is_honoured ... ok
+test the_answer_the_operator_gave_reaches_the_stream ... ok
+test a_terminal_that_reports_no_capability_gets_none ... ok
+test a_redirected_document_carries_no_escape_byte ... ok
+test never_beats_the_environment ... ok
+test a_document_asked_for_by_path_carries_none_whatever_the_operator_answered ... ok
+test no_environment_produces_a_twenty_four_bit_sequence ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+
+     Running tests/the_folder_comparison_sweeps_the_step_it_was_named.rs (target/debug/deps/the_folder_comparison_sweeps_the_step_it_was_named-cb2654365ce6ecbd)
+
+running 5 tests
+test every_remedy_a_comparison_offers_is_a_line_this_terminal_takes ... ok
+test the_record_names_what_the_comparison_held_as_well_as_what_it_varied ... ok
+test a_comparison_records_the_plate_and_the_revision_its_caller_stated ... ok
+test a_comparison_refuses_a_name_it_cannot_run_by_naming_what_it_takes ... ok
+test naming_a_takeoff_or_a_weighing_rule_sweeps_that_step_and_not_onset ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+
+     Running tests/the_folder_run_records_the_registry_and_the_plate.rs (target/debug/deps/the_folder_run_records_the_registry_and_the_plate-4e62c8794f08c559)
+
+running 7 tests
+test a_member_the_block_does_not_hold_is_refused ... ok
+test a_pinned_folder_run_records_the_pin_and_an_unpinned_one_records_null ... ok
+test only_a_run_that_recorded_its_plate_publishes_a_fingerprint ... ok
+test a_run_that_states_its_capture_records_it_and_one_that_does_not_says_so ... ok
+test two_runs_off_different_plates_fingerprint_differently ... ok
+test the_record_carries_what_the_registry_declares_beside_what_the_caller_pinned ... ok
+test two_runs_differing_only_in_the_pin_carry_different_request_digests ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.59s
+
+     Running tests/the_single_trial_run_records_the_plate.rs (target/debug/deps/the_single_trial_run_records_the_plate-5686bc34f39deec6)
+
+running 4 tests
+test an_unknown_member_is_refused_by_name_and_the_refusal_names_them_all ... ok
+test a_run_told_nothing_about_the_plate_fingerprints_as_incomplete ... ok
+test a_block_short_of_one_member_is_still_incomplete ... ok
+test a_run_told_every_member_fingerprints_as_complete ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.44s
+
+     Running tests/the_spread_panel_says_what_it_varied.rs (target/debug/deps/the_spread_panel_says_what_it_varied-e4e97bf22289d2ca)
+
+running 4 tests
+test the_held_line_reads_at_eighty_columns ... ok
+test sweeping_the_computing_construct_moves_the_reported_spread ... ok
+test the_record_names_what_varied_and_what_stood_still ... ok
+test the_reported_range_contains_every_value_a_rule_for_this_quantity_produces has been running for over 60 seconds
+test the_reported_range_contains_every_value_a_rule_for_this_quantity_produces ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 161.97s
+
+     Running tests/the_terminal_can_state_a_body_mass_and_says_it_was_stated.rs (target/debug/deps/the_terminal_can_state_a_body_mass_and_says_it_was_stated-9b4e13bca73fc5bd)
+
+running 4 tests
+test the_mass_flag_does_not_read_the_next_flag_as_its_value ... ok
+test a_mass_that_is_not_a_positive_finite_number_is_refused_by_name ... ok
+test the_recorded_mass_carries_its_unit ... ok
+test a_body_mass_the_reader_states_is_recorded_as_theirs_and_silence_is_recorded_as_nothing ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.62s
+
+     Running tests/the_terminal_can_state_a_gravity_and_says_it_was_stated.rs (target/debug/deps/the_terminal_can_state_a_gravity_and_says_it_was_stated-5e29ad36c77858b9)
+
+running 4 tests
+test a_line_that_places_a_landmark_twice_or_places_nothing_is_refused_by_name ... ok
+test the_terminal_names_the_gravity_without_being_asked_for_provenance ... ok
+test a_landmark_placed_by_hand_moves_the_analysis_and_leaves_a_record ... ok
+test a_gravity_the_reader_states_moves_the_numbers_and_is_recorded_as_theirs ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.46s
+
+     Running tests/the_terminal_names_the_rule_behind_each_number.rs (target/debug/deps/the_terminal_names_the_rule_behind_each_number-f518d0d9dbc123dc)
+
+running 2 tests
+test every_number_names_the_rule_the_record_roots_it_at ... ok
+test the_name_under_a_number_moves_when_the_run_changes_the_rule ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.79s
+
+     Running tests/the_terminal_says_how_each_number_was_produced.rs (target/debug/deps/the_terminal_says_how_each_number_was_produced-c9802381b3c5520d)
+
+running 3 tests
+test the_document_carries_an_account_of_every_number_it_reports ... ok
+test the_page_shows_the_accounts_the_record_holds ... ok
+test the_page_without_the_flag_carries_no_section_of_accounts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.33s
+
+     Running tests/the_terminal_states_what_conditioned_the_signal.rs (target/debug/deps/the_terminal_states_what_conditioned_the_signal-0eabc07fdd73750b)
+
+running 7 tests
+test a_conditioning_construct_written_twice_is_refused_never_settled_by_position ... ok
+test an_edge_this_rule_does_not_take_is_refused_with_the_one_it_does ... ok
+test a_conditioning_construct_given_no_rule_is_refused_rather_than_filled_in ... ok
+test a_conditioning_rule_this_build_does_not_run_is_refused_with_the_ones_it_does ... ok
+test a_folder_run_states_the_conditioning_choice_on_every_trial ... ok
+test a_stated_conditioning_choice_reaches_the_record_as_the_readers ... ok
+test naming_the_conditioning_rule_is_recorded_as_the_readers_own_choice ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.61s
+
+     Running tests/the_terminal_sweeps_a_value_inside_a_rule.rs (target/debug/deps/the_terminal_sweeps_a_value_inside_a_rule-2c609387e16e0ae5)
+
+running 7 tests
+test gravity_is_a_value_this_surface_can_sweep ... ok
+test the_record_names_the_value_it_varied_and_the_rule_it_held ... ok
+test the_panel_names_the_value_that_moved_rather_than_the_rules_that_did_not ... ok
+test a_name_a_rule_takes_is_swept_the_way_its_numbers_are ... ok
+test a_value_the_registry_publishes_several_ways_can_be_swept_from_the_terminal ... ok
+test a_line_this_flag_cannot_act_on_is_refused_by_name ... ok
+test the_rules_and_a_value_inside_them_vary_on_one_line ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+
+     Running tests/the_terminal_tells_no_number_from_no_value.rs (target/debug/deps/the_terminal_tells_no_number_from_no_value-16036eb22f7a7999)
+
+running 3 tests
+test the_page_and_the_record_agree_about_which_rows_carried_no_number ... ok
+test an_intact_recording_marks_no_row_either_way ... ok
+test the_terminal_says_what_the_recording_lost_and_over_how_many_samples ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.82s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce_conformance-15b25dd26c587fb6)
+
+running 3 tests
+test corpus::tests::a_trial_is_identified_by_number_and_never_by_the_directory_it_sat_in ... ok
+test bindings::tests::the_integration_start_moves_the_velocity_zero_it_is_read_from ... ok
+test bindings::tests::the_braking_start_reference_moves_the_boundary_on_every_committed_trial ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+
+     Running unittests src/main.rs (target/debug/deps/plateforce_conformance-5d9a07111a996cb7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/conformance.rs (target/debug/deps/conformance-77f1de703ecee18b)
+
+running 7 tests
+test a_reference_row_with_no_trace_is_reported_rather_than_skipped ... ok
+test the_coverage_of_this_run_is_stated ... ok
+test a_vendor_sentinel_row_is_excluded_and_named ... ok
+test the_two_readings_of_the_onset_rule_are_measured_against_each_other ... ok
+test the_full_corpus_reproduces_the_reference_where_the_corpus_is_present ... ok
+test index_columns_are_compared_exactly_and_measurements_are_not ... ok
+test the_committed_fixture_reproduces_the_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+     Running tests/landing_shape_agreement.rs (target/debug/deps/landing_shape_agreement-a0a108a049521795)
+
+running 2 tests
+test the_two_rules_agree_across_the_whole_corpus_when_it_is_on_disk ... ok
+test the_rust_landing_shape_rule_places_takeoff_where_the_reference_did_on_subject_01 ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/untrimmed_recording_time_to_takeoff.rs (target/debug/deps/untrimmed_recording_time_to_takeoff-35cc3e42b4a386bb)
+
+running 1 test
+test the_untrimmed_recording_stops_returning_a_step_off_time_to_takeoff ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce_core-9b97cdf621275f8c)
+
+running 348 tests
+test acquisition::tests::an_unfilled_block_names_every_member_it_declares ... ok
+test acquisition::tests::a_revision_follows_the_members_and_a_changed_member_is_a_different_one ... ok
+test acquisition::tests::a_member_the_saved_plate_is_silent_about_is_filled_rather_than_displaced ... ok
+test acquisition::tests::a_block_missing_one_member_names_that_member ... ok
+test acquisition::tests::a_block_with_every_member_is_complete ... ok
+test acquisition::tests::a_name_the_block_does_not_hold_and_a_value_of_the_wrong_kind_are_told_apart ... ok
+test acquisition::tests::restating_the_saved_answer_displaces_nothing ... ok
+test acquisition::tests::every_member_the_block_declares_can_be_set_from_text ... ok
+test acquisition::tests::the_stated_members_are_the_ones_somebody_answered ... ok
+test agreement::tests::a_coefficient_of_variation_is_the_spread_over_the_centre ... ok
+test acquisition::tests::a_stated_member_displaces_the_saved_one_and_says_what_it_displaced ... ok
+test agreement::tests::a_constant_offset_is_all_bias_and_no_width ... ok
+test agreement::tests::a_falling_relation_keeps_its_sign ... ok
+test agreement::tests::a_perfect_straight_line_regresses_onto_itself ... ok
+test agreement::tests::one_pair_gives_no_interval_rather_than_an_interval_of_zero ... ok
+test agreement::tests::identical_repeats_correlate_perfectly_and_a_ragged_set_does_not_correlate_at_all ... ok
+test agreement::tests::the_mean_coefficient_is_taken_over_subjects_and_says_so ... ok
+test agreement::tests::the_two_conventions_are_two_numbers ... ok
+test agreement::tests::the_two_intraclass_forms_are_two_numbers_when_one_measurement_runs_high ... ok
+test agreement::tests::two_methods_that_never_disagree_have_no_bias_and_no_width ... ok
+test baseline_offset::tests::an_interval_or_a_mass_no_ramp_can_be_built_on_reports_nothing ... ok
+test baseline_offset::tests::a_window_with_no_samples_in_it_reports_nothing ... ok
+test baseline_offset::tests::the_unloaded_window_reports_what_the_plate_read_with_nothing_on_it ... ok
+test baseline_offset::tests::the_ramp_starts_at_nothing_and_reaches_the_whole_residual_at_takeoff ... ok
+test bspline::tests::fewer_observations_than_functions_names_both_counts ... ok
+test butterworth::tests::a_trace_shorter_than_the_padding_names_both_lengths ... ok
+test bspline::tests::a_basis_smaller_than_the_degree_allows_names_both_numbers ... ok
+test butterworth::tests::two_passes_leave_a_step_where_it_was_and_one_pass_moves_it_later ... ok
+test agreement::tests::the_limits_sit_at_the_published_multiple_of_the_spread ... ok
+test calibration::tests::a_mass_nobody_could_have_meant_reconstructs_nothing ... ok
+test bspline::tests::the_basis_functions_sum_to_one_across_the_span ... ok
+test butterworth::tests::a_cutoff_at_or_above_nyquist_names_the_cutoff_and_the_nyquist_frequency ... ok
+test cutoff::tests::an_abscissa_that_does_not_vary_has_no_line_rather_than_an_infinite_slope ... ok
+test cutoff::tests::a_perfectly_reproduced_signal_leaves_no_residual ... ok
+test cutoff::tests::a_straight_line_fits_itself_and_reports_its_own_intercept ... ok
+test cutoff::tests::the_durbin_watson_statistic_spans_its_stated_range ... ok
+test baseline_offset::tests::the_velocity_ramp_adds_nothing_it_did_not_already_have ... ok
+test butterworth::tests::two_passes_put_the_half_power_point_at_the_nominal_cutoff ... ok
+test calibration::tests::the_margin_says_how_clear_the_call_was ... ok
+test butterworth::tests::the_correction_is_winters_quarter_power_form_at_second_order ... ok
+test calibration::tests::a_window_reading_nothing_was_zeroed_under_the_athlete_and_one_reading_a_weight_was_not ... ok
+test exponential_rise::tests::a_stretch_too_short_or_flat_to_carry_a_rise_is_refused ... ok
+test gravity::tests::gravity_falls_with_elevation_and_rises_with_latitude ... ok
+test landing::tests::a_brief_return_across_the_threshold_is_skipped_once_a_span_is_required ... ok
+test cutoff::tests::challiss_rule_carries_the_statistic_that_chose_the_cutoff ... ok
+test landing::tests::a_recording_that_opens_at_standing_weight_is_not_landed_on_at_its_first_sample ... ok
+test calibration::tests::reconstruction_puts_the_athletes_weight_back_under_them ... ok
+test cutoff::tests::an_interval_containing_a_step_is_declined_and_the_same_trace_away_from_it_is_not ... ok
+test butterworth::tests::one_pass_puts_the_half_power_point_at_the_nominal_cutoff ... ok
+test landing::tests::a_recording_that_opens_with_an_empty_plate_is_landed_on_at_the_arrival ... ok
+test cutoff::tests::winters_rule_returns_a_cutoff_and_the_intercept_that_chose_it ... ok
+test bspline::tests::a_cubic_is_returned_unchanged_by_a_cubic_basis ... ok
+test landing::tests::the_arrival_velocity_reverses_the_sign_of_what_the_final_period_reads ... ok
+test method_ids::tests::the_rule_no_surface_can_select_is_not_counted_as_selectable ... ok
+test method_ids::tests::no_id_is_listed_twice ... ok
+test normalisation::tests::a_mass_or_an_exponent_no_scaling_can_be_built_on_reports_nothing ... ok
+test normalisation::tests::an_exponent_of_one_is_the_quantity_per_kilogram ... ok
+test normalisation::tests::an_exponent_of_zero_leaves_the_quantity_where_it_was ... ok
+test normalisation::tests::hofs_divisor_carries_gravity_and_leg_length_at_their_own_powers ... ok
+test normalisation::tests::the_divisor_is_what_the_scaling_divided_by ... ok
+test butterworth::tests::the_second_order_correction_applied_to_a_fourth_order_filter_misses_the_cutoff ... ok
+test gravity::tests::elevation_alone_crosses_the_threshold_at_about_three_hundred_metres ... ok
+test gravity::tests::the_formula_reproduces_its_published_anchors ... ok
+test method_ids::tests::every_id_is_dotted_and_lowercase ... ok
+test onset::tests::a_search_floor_can_place_onset_later_than_the_athlete_moved ... ok
+test butterworth::tests::a_constant_returns_unchanged_from_a_settled_state_and_climbs_from_zeros ... ok
+test normalisation::tests::the_two_published_exponents_do_not_agree ... ok
+test onset::tests::a_backtrack_that_runs_off_the_front_reports_that_it_clamped ... ok
+test onset::tests::a_quiet_window_with_no_noise_collapses_the_band_and_is_named_as_such ... ok
+test onset::tests::a_rule_declines_under_the_same_id_it_succeeds_under ... ok
+test landing::tests::a_search_that_never_leaves_the_plate_refuses_rather_than_answering_its_first_sample ... ok
+test landing::tests::the_arrival_velocity_does_not_depend_on_the_seed_the_integration_carried ... ok
+test gravity::tests::a_hundredth_of_a_percent_is_crossed_by_ordinary_places ... ok
+test onset::tests::a_two_sided_band_catches_a_preload_that_a_one_sided_band_misses ... ok
+test onset::tests::onset_reports_which_method_and_parameter_failed ... ok
+test phases::tests::a_fallback_velocity_zero_is_flagged_as_not_a_crossing ... ok
+test phases::tests::a_placed_landmark_carries_the_rule_that_placed_it ... ok
+test onset::tests::persistence_brings_the_forward_reading_back_to_the_backward_one ... ok
+test phases::tests::a_force_minimum_bounded_at_takeoff_returns_the_sample_before_takeoff ... ok
+test phases::tests::a_velocity_minimum_search_that_runs_past_takeoff_finds_the_landing ... ok
+test phases::tests::a_rising_crossing_is_fixed_across_the_band_the_propulsive_peak_sits_in ... ok
+test peak::tests::a_span_running_past_the_recording_reads_what_is_there ... ok
+test peak::tests::a_span_selecting_nothing_refuses_rather_than_returning_a_sentinel ... ok
+test peak::tests::the_index_and_the_value_of_a_peak_name_the_same_sample ... ok
+test onset::tests::the_two_readings_of_one_rule_split_on_a_noise_excursion ... ok
+test phases::tests::integrating_a_constant_acceleration_gives_a_linear_velocity ... ok
+test phases::tests::the_braking_start_wrapper_is_the_rising_crossing ... ok
+test peak::tests::the_maximum_is_taken_over_the_half_open_span ... ok
+test peak::tests::a_span_shorter_than_the_window_still_has_a_smoothed_peak_from_the_whole_series ... ok
+test peak::tests::a_window_of_one_sample_or_none_is_the_raw_series ... ok
+test phases::tests::the_single_unweighting_model_does_not_declare_the_force_minimum ... ok
+test phases::tests::landing::the_landing_ends_where_the_descent_stops ... ok
+test phases::tests::one_crossing_search_returns_braking_start_rising_and_propulsion_end_falling ... ok
+test phases::tests::the_positive_impulse_window_ends_on_the_two_crossings ... ok
+test phases::tests::landing::a_harder_landing_stops_the_descent_sooner ... ok
+test phases::tests::the_velocity_extrema_are_the_two_boundaries_of_one_interval ... ok
+test phases::tests::landing::a_recording_that_ends_mid_descent_is_named_rather_than_left_empty ... ok
+test peak::tests::smoothing_the_whole_series_and_smoothing_the_span_alone_are_different_numbers ... ok
+test phases::tests::landing::a_series_pinned_somewhere_else_is_refused_rather_than_read ... ok
+test plate_store::tests::a_number_written_without_quotes_is_the_same_saved_plate ... ok
+test plate_store::tests::a_name_that_would_reach_another_folder_is_refused ... ok
+test plate_store::tests::a_member_stated_beside_a_plate_wins_and_the_record_says_what_it_replaced ... ok
+test phases::tests::the_split_models_unloading_start_does_not_follow_the_bound_onset_rule ... ok
+test phases::tests::the_threshold_form_of_the_velocity_crossing_is_the_zero_form_at_zero ... ok
+test phases::tests::the_two_propulsion_subdivisions_split_the_same_phase_at_two_instants ... ok
+test peak::tests::a_centred_average_never_peaks_above_the_raw_maximum ... ok
+test plate_store::tests::the_default_folder_is_the_one_this_system_keeps_settings_in ... ok
+test power::tests::a_mismatched_velocity_series_is_named_rather_than_truncated ... ok
+test plate_store::tests::a_saved_file_naming_a_member_the_block_does_not_hold_is_refused_by_name ... ok
+test power::tests::a_phase_whose_peak_is_its_own_first_sample_is_refused_rather_than_reported_as_zero ... ok
+test power::tests::a_power_series_carries_the_two_choices_that_produced_it ... ok
+test bspline::tests::a_zero_penalty_spends_the_whole_basis ... ok
+test power::tests::a_regression_set_is_read_under_the_height_unit_it_states ... ok
+test power::tests::a_ramp_integrates_to_the_area_under_it ... ok
+test power::tests::a_series_whose_trough_is_its_last_sample_is_refused ... ok
+test power::tests::peak_power_is_the_peak_inside_its_phase_and_not_the_peak_of_the_trace ... ok
+test onset::tests::persistence_rejects_a_single_sample_spike ... ok
+test power::tests::a_phase_the_trace_does_not_contain_is_refused ... ok
+test plate_store::tests::a_stated_plate_and_a_saved_one_hash_to_one_revision ... ok
+test plate_store::tests::saving_over_a_name_changes_the_revision_and_hands_back_what_was_replaced ... ok
+test plate_store::tests::a_saved_plate_fills_a_complete_block_on_a_later_run ... ok
+test power::tests::the_lewis_estimate_scales_as_the_root_of_height ... ok
+test power::tests::the_peak_to_peak_rate_takes_the_peak_that_follows_the_trough ... ok
+test power::tests::the_single_product_equals_the_integral_only_where_force_is_constant ... ok
+test power::tests::a_phase_comes_from_a_model_that_placed_it ... ok
+test power::tests::the_peak_to_peak_rate_reads_every_sample_of_the_interval_it_is_handed ... ok
+test power::tests::the_phase_anchored_rate_runs_from_the_phase_start_to_the_peak_inside_it ... ok
+test plate_store::tests::a_saved_number_reads_back_as_the_number_it_was ... ok
+test power::tests::the_mean_matches_the_sample_average_to_quadrature_error ... ok
+test provenance::tests::a_choice_the_reader_made_does_not_hold_the_result_back ... ok
+test provenance::tests::a_decision_three_deep_still_holds_the_result_back ... ok
+test provenance::tests::every_source_value_carries_its_declared_wire_spelling ... ok
+test provenance::tests::a_record_silent_about_who_chose_the_rule_does_not_credit_the_reader ... ok
+test provenance::tests::a_record_written_to_the_shared_schema_reads_back_unchanged ... ok
+test phases::tests::a_single_high_sample_after_the_peak_closes_the_window_earlier ... ok
+test provenance::tests::flattened_reaches_every_depth ... ok
+test provenance::tests::only_an_unmade_decision_taints_the_record ... ok
+test provenance::tests::one_open_decision_reached_twice_is_reported_once ... ok
+test rate::tests::a_chord_that_runs_off_the_end_returns_nothing_rather_than_a_shorter_one ... ok
+test rate::tests::a_level_never_reached_returns_nothing_and_one_already_held_returns_the_first_sample ... ok
+test provenance::tests::the_shared_schema_keys_are_written_in_the_order_every_surface_compares ... ok
+test rate::tests::a_position_at_the_edge_of_the_trace_has_no_centred_derivative ... ok
+test rate::tests::a_crossing_lands_between_the_samples_that_straddle_the_level ... ok
+test rate::tests::a_width_of_two_samples_is_the_centred_difference ... ok
+test rate::tests::a_width_of_zero_returns_nothing_rather_than_dividing_by_zero ... ok
+test provenance::tests::a_slot_running_under_no_chosen_rule_is_named_by_its_method ... ok
+test rate::tests::the_centred_derivative_between_samples_is_the_slope_on_a_ramp ... ok
+test rate::tests::sequential_chords_do_not_overlap_and_drop_the_partial_window ... ok
+test provenance::tests::every_source_prints_the_word_the_wire_carries ... ok
+test rate::tests::the_centred_derivative_interpolates_between_its_two_neighbours ... ok
+test provenance::tests::a_method_three_deep_is_still_found ... ok
+test rate::tests::the_steepest_chord_finds_the_steep_stretch_and_reports_where_it_was ... ok
+test read::reading_an_undeclared_export::a_file_with_no_numbers_says_so_rather_than_returning_an_empty_trace ... ok
+test read::reading_an_undeclared_export::an_unreadable_field_is_counted_rather_than_dropping_the_row ... ok
+test plate_store::tests::a_plate_nobody_saved_is_refused_by_name ... ok
+test rate::tests::a_chord_across_a_ramp_returns_the_ramps_slope ... ok
+test rate::tests::the_search_interval_bounds_the_steepest_chord ... ok
+test power::tests::the_interval_bounds_the_peak_to_peak_search ... ok
+test read::tests::a_carriage_return_at_the_end_of_a_row_does_not_break_the_last_column ... ok
+test read::tests::a_line_of_whitespace_is_blank_rather_than_a_row_with_one_column ... ok
+test read::tests::a_missing_column_names_the_line_and_the_index_it_wanted ... ok
+test read::tests::a_non_numeric_field_names_the_text_it_could_not_parse ... ok
+test refusal::tests::a_construct_off_the_path_names_the_steps_the_build_does_run ... ok
+test refusal::tests::a_declined_value_survives_the_wire_bit_for_bit ... ok
+test refusal::tests::a_document_from_a_later_version_says_which_version_it_wants ... ok
+test refusal::tests::a_failed_read_answers_with_one_code ... ok
+test refusal::tests::a_name_a_parameter_will_not_take_arrives_as_a_field ... ok
+test read::reading_an_undeclared_export::a_time_column_gives_up_the_sample_rate_and_is_not_offered_as_force ... ok
+test read::reading_an_undeclared_export::reads_a_headerless_tab_separated_matrix_with_carriage_returns ... ok
+test read::reading_an_undeclared_export::skips_a_vendor_preamble_and_keeps_the_header_line ... ok
+test refusal::tests::a_refusal_reports_what_it_costs_to_carry ... ok
+test refusal::tests::a_refusal_written_without_a_named_value_still_reads ... ok
+test refusal::tests::a_rule_whose_earlier_step_placed_nothing_names_that_step ... ok
+test refusal::tests::an_agreement_that_cannot_be_reported_says_what_it_needed ... ok
+test refusal::tests::every_code_carries_an_exit_status ... ok
+test refusal::tests::restamping_the_id_rewrites_the_sentence_rather_than_leaving_the_old_one ... ok
+test refusal::tests::every_code_is_listed_once_in_all_and_carries_a_known_exit_status ... ok
+test refusal::tests::the_name_a_caller_reads_is_the_name_on_the_wire ... ok
+test refusal::tests::a_refusal_round_trips_through_its_wire_form ... ok
+test refusal::tests::the_shipped_sentences_are_reproduced_unchanged ... ok
+test refusal::tests::the_slot_names_a_construct_rather_than_a_binding_table_word ... ok
+test phases::tests::the_moving_average_width_is_read_in_seconds_and_converted ... ok
+test refusal::tests::a_rule_that_rejected_every_candidate_reports_the_count_and_what_it_compared ... ok
+test refusal::tests::the_wire_spelling_of_every_code_is_snake_case ... ok
+test reporting::fingerprint_tests::a_filled_block_publishes_the_digest_it_measured ... ok
+test reporting::fingerprint_tests::a_landmark_a_hand_placed_is_not_the_detection_that_found_the_same_sample ... ok
+test reporting::fingerprint_tests::a_different_plate_or_rate_is_a_different_result ... ok
+test read::tests::a_column_padded_to_a_fixed_width_reads_as_a_number ... ok
+test reporting::fingerprint_tests::a_block_that_could_not_be_filled_matches_nothing_including_itself ... ok
+test reporting::fingerprint_tests::a_parameter_moved_upstream_is_a_different_result ... ok
+test reporting::fingerprint_tests::one_number_reached_two_ways_is_two_results ... ok
+test reporting::fingerprint_tests::one_hand_placing_one_sample_twice_is_one_result ... ok
+test read::two_plates_where_the_software_expects_one::declaring_the_file_single_plate_computes_and_the_declaration_is_a_value ... ok
+test reporting::fingerprint_tests::two_hands_placing_two_samples_are_two_results ... ok
+test reporting::tests::a_result_computed_without_a_registry_names_none ... ok
+test reporting::fingerprint_tests::two_incomplete_fingerprints_publish_nothing_to_compare ... ok
+test reporting::tests::an_incomplete_acquisition_block_says_so ... ok
+test reporting::fingerprint_tests::two_runs_that_computed_the_same_way_match ... ok
+test reporting::tests::describe_names_the_value_and_every_step ... ok
+test reporting::fingerprint_tests::a_partly_filled_block_is_still_incomplete ... ok
+test reporting::tests::the_registry_line_says_whose_each_revision_is ... ok
+test reporting::fingerprint_tests::a_landmark_placed_at_sample_zero_is_still_placed_by_a_hand ... ok
+test reporting::fingerprint_tests::the_material_spells_sources_by_wire_name_not_by_variant ... ok
+test resample::tests::a_peak_between_samples_survives_the_spline_and_not_the_straight_line ... ok
+test resample::tests::the_endpoints_are_the_samples_at_the_interval_bounds ... ok
+test resample::tests::a_cubic_comes_back_unchanged_at_every_resampled_point ... ok
+test series::tests::a_series_built_from_samples_still_states_its_choices ... ok
+test refusal::tests::a_decision_left_open_names_what_is_outstanding ... ok
+test resample::tests::an_interval_running_off_the_trace_names_both_bounds ... ok
+test resample::tests::the_two_end_segments_reproduce_the_cubic_between_their_knots ... ok
+test power::tests::the_sign_convention_reverses_the_series ... ok
+test resample::tests::an_interval_shorter_than_the_spline_needs_names_its_length ... ok
+test series::tests::a_two_point_anchor_holds_both_ends_at_zero ... ok
+test series::tests::an_anchor_at_a_stated_value_names_the_rule_that_stated_it ... ok
+test power::tests::the_two_force_terms_give_different_power_by_one_system_weight_times_velocity ... ok
+test power::tests::work_over_a_constant_power_interval_is_the_closed_form_answer ... ok
+test reporting::fingerprint_tests::a_hand_placement_adds_one_key_to_the_material_and_moves_nothing_else ... ok
+test read::two_plates_where_the_software_expects_one::a_file_with_two_force_columns_refuses_a_system_quantity_by_name ... ok
+test read::two_plates_where_the_software_expects_one::one_force_column_needs_no_declaration ... ok
+test series::tests::a_series_carries_the_four_ids_that_produced_it ... ok
+test exponential_rise::tests::the_maximum_modelled_rate_is_the_amplitude_over_the_time_constant ... ok
+test series::tests::an_anchor_at_a_stated_value_holds_that_value_rather_than_zero ... ok
+test signal::tests::a_clean_trace_reports_neither_reason ... ok
+test signal::tests::a_non_finite_value_is_never_read_as_a_measurement ... ok
+test signal::tests::an_empty_trace_is_rejected_rather_than_returning_a_number ... ok
+test series::tests::displacement_returns_to_the_standing_frame_it_was_anchored_in ... ok
+test signal::tests::sentinels_are_separated_from_measurements_and_counted ... ok
+test signal::tests::the_two_counts_add_up_to_what_the_partition_drops ... ok
+test series::tests::the_trial_start_trapezoid_reproduces_the_running_integral_it_replaces ... ok
+test signal::tests::a_small_real_measurement_is_not_mistaken_for_the_sentinel ... ok
+test smoothing::tests::a_window_longer_than_the_trace_names_the_window_and_the_trace ... ok
+test signal::tests::a_zero_length_range_integrates_to_zero ... ok
+test signal::tests::integrating_a_constant_force_gives_force_times_duration ... ok
+test signal::tests::the_two_reasons_a_sample_is_reported_are_counted_apart ... ok
+test smoothing::tests::coefficients_match_the_reference_for_an_even_window ... ok
+test series::tests::the_two_starts_give_different_velocities_on_the_same_trial ... ok
+test signal::tests::every_trial_error_becomes_a_refusal_that_says_the_same_thing ... ok
+test smoothing::tests::coefficients_match_the_reference_for_an_odd_window ... ok
+test smoothing::tests::an_even_boxcar_window_returns_the_mean_taken_half_a_sample_later ... ok
+test smoothing::tests::the_leading_and_trailing_half_windows_hold_one_level ... ok
+test spectrum::tests::a_fraction_outside_the_unit_interval_names_the_fraction ... ok
+test series::tests::displacement_carries_the_velocity_choices_it_rests_on ... ok
+test signal::tests::the_home_hands_back_the_trace_the_file_wrote ... ok
+test smoothing::tests::the_boxcar_is_the_arithmetic_mean_over_an_odd_window ... ok
+test series::tests::integrating_a_constant_acceleration_matches_the_closed_form_under_every_quadrature ... ok
+test stabilisation::tests::a_trace_that_never_settles_reports_the_longest_run_it_managed ... ok
+test spectrum::tests::the_spectrums_power_matches_the_traces_own ... ok
+test stabilisation::tests::a_band_or_dwell_no_search_can_be_run_against_returns_no_answer ... ok
+test exponential_rise::tests::the_residual_reports_how_far_the_trace_is_from_the_model ... ok
+test spectrum::tests::a_single_tone_puts_its_power_at_its_own_frequency ... ok
+test stabilisation::tests::a_trace_that_ends_inside_the_dwell_says_so_rather_than_stopping_short ... ok
+test stabilisation::tests::the_reported_instant_is_one_whole_dwell_after_the_band_was_entered ... ok
+test smoothing::tests::a_cubic_passes_through_an_odd_cubic_filter_unchanged ... ok
+test statistics::tests::compensated_summation_beats_the_naive_loop_on_a_hostile_sequence ... ok
+test statistics::tests::the_two_dispersion_estimators_are_not_interchangeable ... ok
+test statistics::tests::median_averages_the_two_central_values_on_an_even_count ... ok
+test stabilisation::tests::a_wider_band_settles_the_trace_sooner ... ok
+test statistics::tests::the_low_force_floor_keeps_the_flight_phase_out_of_the_weighing_window ... ok
+test smoothing::tests::an_even_window_shifts_the_signal_half_a_sample_later ... ok
+test stabilisation::tests::the_overstatement_is_the_dwell_and_moves_with_it ... ok
+test takeoff::tests::a_takeoff_that_is_never_reached_names_the_threshold_it_wanted ... ok
+test trial::tests::a_flight_time_height_with_no_landing_offset_is_the_projectile_equation ... ok
+test trial::tests::an_unchanged_ankle_moves_the_centre_of_mass_nowhere_and_a_changed_one_moves_it_down ... ok
+test takeoff::tests::the_longest_run_rule_lands_after_the_athlete_has_already_landed ... ok
+test trial::tests::reactive_strength_index_refuses_a_zero_denominator ... ok
+test takeoff::tests::a_negative_reading_on_an_unloaded_plate_splits_the_two_comparisons ... ok
+test trial::tests::the_ankle_to_toe_segment_matches_the_published_fraction_of_stature ... ok
+test trial::tests::the_heel_rise_constant_lands_in_the_range_its_source_reports ... ok
+test trial::tests::a_window_anchored_late_weighs_the_samples_under_it ... ok
+test trial::tests::takeoff_velocity_equals_net_impulse_over_mass ... ok
+test trial::tests::the_two_jump_height_methods_are_different_constructs ... ok
+test takeoff::tests::a_brief_dip_is_not_taken_for_a_flight_phase ... ok
+test trial::tests::the_two_published_values_of_gravity_move_jump_height ... ok
+test trial::tests::a_drop_height_gives_a_downward_touchdown_velocity ... ok
+test validity::tests::a_classification_carries_the_margin_it_was_decided_by ... ok
+test validity::tests::a_gate_reports_its_margin_on_both_sides_of_the_criterion ... ok
+test trial::tests::weighing_epoch_recovers_the_system_weight ... ok
+test validity::tests::a_zero_exponent_recovers_the_fixed_threshold_exactly ... ok
+test validity::tests::rejected_candidates_are_reported_rather_than_removed ... ok
+test validity::tests::the_anchor_mass_is_where_the_two_rules_meet ... ok
+test validity::tests::the_contamination_threshold_follows_how_still_the_athlete_stood ... ok
+test validity::tests::the_flight_window_reports_the_rejected_count_with_its_denominator ... ok
+test validity::tests::the_greatest_force_travels_with_a_period_that_has_no_transient_peak ... ok
+test validity::tests::the_reported_departure_is_the_one_the_gate_compared ... ok
+test validity::tests::the_selection_rule_changes_which_flight_phase_is_taken ... ok
+test trial::tests::the_identity_holds_at_every_sample_rate ... ok
+test validity::tests::the_two_pretension_criteria_disagree_across_athlete_mass ... ok
+test validity::tests::the_exponent_moves_the_threshold_for_an_athlete_off_the_anchor ... ok
+test spectrum::tests::the_retained_fraction_moves_the_cutoff_past_the_higher_tone ... ok
+test validity::tests::a_count_cannot_exceed_the_count_it_was_taken_over ... ok
+test validity::tests::a_ripple_on_a_smooth_period_is_what_the_count_finds ... ok
+test takeoff::tests::short_run_handling_changes_whether_the_trial_is_usable_at_all ... ok
+test phases::tests::the_window_closes_where_the_smoothed_force_has_fallen_the_stated_percentage ... ok
+test smoothing::tests::the_even_window_filter_matches_the_reference_implementation ... ok
+test statistics::tests::a_tie_reports_the_span_of_weights_it_could_have_returned ... ok
+test statistics::tests::a_tied_variance_plateau_is_reported_rather_than_hidden ... ok
+test statistics::tests::every_value_this_choice_takes_has_one_word_and_one_home ... ok
+test statistics::tests::index_of_minimum_takes_the_earliest_of_a_tie ... ok
+test spectrum::tests::a_standing_offset_does_not_reach_the_spectrum ... ok
+test warp::tests::a_band_narrower_than_the_length_difference_names_both_numbers ... ok
+test waveform::tests::a_basis_larger_than_the_data_is_named_rather_than_guessed_at ... ok
+test warp::tests::an_empty_curve_names_both_lengths ... ok
+test warp::tests::a_curve_aligned_onto_itself_needs_no_warping ... ok
+test waveform::tests::a_curve_missing_a_landmark_is_reported_with_its_denominator_and_not_dropped ... ok
+test waveform::tests::a_decomposition_reconstructs_the_matrix_it_came_from ... ok
+test waveform::tests::a_diagonal_matrix_decomposes_to_itself ... ok
+test waveform::tests::a_difference_confined_to_one_window_is_reported_in_that_window ... ok
+test waveform::tests::a_landmark_no_curve_carries_leaves_every_curve_unregistered_rather_than_guessed_at ... ok
+test waveform::tests::a_field_with_no_extent_needs_only_the_point_wise_height ... ok
+test waveform::tests::a_covariance_matrix_is_symmetric_and_carries_the_variance_on_its_diagonal ... ok
+test waveform::tests::a_one_sample_field_takes_its_degrees_of_freedom_from_the_curve_count ... ok
+test waveform::tests::a_longer_rougher_field_has_to_clear_a_higher_bar ... ok
+test waveform::tests::a_correlation_matrix_would_have_given_different_components ... ok
+test waveform::tests::a_permutation_run_with_no_permutations_is_refused ... ok
+test waveform::tests::a_ragged_curve_set_is_named_rather_than_truncated ... ok
+test waveform::tests::a_registration_with_no_designated_landmarks_is_refused ... ok
+test waveform::tests::a_smooth_field_reads_as_smoother_than_a_rough_one ... ok
+test waveform::tests::a_threshold_outside_its_range_is_refused_rather_than_clamped ... ok
+test waveform::tests::landmarks_that_share_an_instant_cannot_be_carried_by_a_monotone_warp ... ok
+test waveform::tests::a_variance_share_takes_the_components_that_reach_it ... ok
+test waveform::tests::clusters_carry_the_stretch_they_ran_over_and_not_only_their_peak ... ok
+test warp::tests::a_narrow_band_refuses_the_stretch_a_wide_one_allows ... ok
+test waveform::tests::the_sign_convention_survives_a_negated_input_vector ... ok
+test waveform::tests::the_student_tail_matches_the_table_it_replaces ... ok
+test waveform::tests::eigenvalues_come_back_descending_and_eigenvectors_are_orthonormal ... ok
+test waveform::tests::every_component_the_decomposition_returns_obeys_the_sign_convention ... ok
+test waveform::tests::kaiser_and_raw_normalisation_are_not_the_same_rotation ... ok
+test warp::tests::curves_of_different_lengths_align_end_to_end ... ok
+test waveform::tests::registration_carries_features_from_different_times_onto_one ... ok
+test waveform::tests::varimax_leaves_an_already_simple_structure_alone ... ok
+test waveform::tests::varimax_raises_the_simplicity_criterion_on_a_mixed_structure ... ok
+test waveform::tests::the_log_gamma_matches_values_that_are_known_in_closed_form ... ok
+test warp::tests::a_shifted_feature_is_aligned_and_the_stretch_is_reported ... ok
+test waveform::tests::two_curve_sets_that_do_not_differ_produce_no_cluster ... ok
+test waveform::tests::an_expansion_carries_the_basis_and_penalty_that_produced_it ... ok
+test smoothing::tests::a_constant_comes_back_as_the_same_constant ... ok
+test waveform::tests::the_variance_share_decides_how_many_components_come_back ... ok
+test exponential_rise::tests::a_noiseless_rise_returns_the_parameters_that_generated_it ... ok
+test waveform::tests::the_basis_size_moves_the_components_it_is_required_to_report ... ok
+test exponential_rise::tests::the_asymptote_stands_above_the_largest_sample_of_the_rise ... ok
+test bspline::tests::the_basis_size_decides_how_much_of_a_sharp_feature_survives ... ok
+test warp::tests::the_warping_function_never_runs_backwards ... ok
+test waveform::tests::a_heavier_penalty_spends_fewer_degrees_of_freedom ... ok
+test waveform::tests::the_rotation_separates_components_that_would_otherwise_share_a_bump ... ok
+test waveform::tests::the_loading_threshold_moves_the_phase_boundary ... ok
+test waveform::tests::the_two_routes_to_a_threshold_reach_comparable_heights ... ok
+test waveform::tests::a_permutation_threshold_is_the_same_on_every_run_from_one_seed ... ok
+test bspline::tests::the_criterion_spends_fewer_parameters_on_a_noisier_copy ... ok
+
+test result: ok. 348 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+     Running tests/a_boundary_search_that_met_nothing.rs (target/debug/deps/a_boundary_search_that_met_nothing-4ccd2c9f56bdbf9c)
+
+running 4 tests
+test a_force_crossing_that_returns_its_own_end_of_the_search_says_so ... ok
+test the_single_unweighting_model_refuses_the_boundary_its_search_did_not_meet ... ok
+test the_velocity_the_model_reads_comes_from_the_weighed_system_weight ... ok
+test the_split_model_refuses_the_boundary_its_velocity_search_did_not_meet ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/dual_pass_correction.rs (target/debug/deps/dual_pass_correction-c59def629942e429)
+
+running 1 test
+test the_correction_that_carries_the_order_and_the_one_that_does_not ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/recompute_budget.rs (target/debug/deps/recompute_budget-ea953a236c9c09fc)
+
+running 1 test
+test the_recompute_path_reports_its_cost_with_the_sample_count_beside_it ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce-8d0df3c25f00badd)
+
+running 8 tests
+test registry::tests::the_wheel_names_the_revision_the_registry_declares ... ok
+test registry::tests::the_wheel_carries_methods ... ok
+test registry::tests::the_registry_in_the_wheel_is_the_registry_in_the_repository ... ok
+test analysis::tests::a_name_the_registry_filled_in_is_bound_the_way_a_number_is ... ok
+test analysis::tests::a_value_the_registry_filled_in_is_not_recorded_as_one_the_caller_stated ... ok
+test analysis::tests::a_name_the_caller_stated_through_the_binding_is_recorded_as_theirs ... ok
+test analysis::tests::every_slot_says_which_of_its_values_the_registry_filled_in ... ok
+test analysis::tests::a_value_the_caller_named_is_recorded_as_theirs_on_every_slot ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce_registry-0a976848f6b1c598)
+
+running 13 tests
+test tests::a_directory_holding_no_entries_is_not_a_registry ... ok
+test tests::a_directory_holding_constructs_and_no_methods_is_not_a_registry ... ok
+test tests::a_method_file_in_a_subdirectory_is_loaded_the_way_the_browser_embeds_it ... ok
+test tests::a_path_with_no_directory_is_not_an_empty_registry ... ok
+test tests::a_file_belonging_to_no_population_is_refused_rather_than_walked_past ... ok
+test tests::every_variant_prints_the_way_the_registry_spells_it ... ok
+test tests::a_link_pointing_back_up_the_tree_is_refused_rather_than_walked_forever ... ok
+test tests::the_digest_follows_the_content_and_nothing_else ... ok
+test tests::two_definitions_of_one_id_are_a_violation_rather_than_a_census_of_one ... ok
+test tests::a_misspelt_key_is_refused_rather_than_dropped ... ok
+test tests::a_loaded_registry_names_the_files_the_loader_read ... ok
+test tests::a_registry_that_names_a_revision_reports_it ... ok
+test tests::a_registry_that_names_none_reports_none ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/a_bias_names_something_a_reader_can_resolve.rs (target/debug/deps/a_bias_names_something_a_reader_can_resolve-64bf112c33fe45ae)
+
+running 6 tests
+test a_criterion_naming_nothing_is_refused ... ok
+test two_implementations_of_one_rule_need_no_parameter ... ok
+test a_criterion_the_registry_carries_raises_nothing ... ok
+test every_external_criterion_the_vocabulary_declares_raises_nothing ... ok
+test a_model_self_comparison_with_no_parameter_to_sweep_is_refused ... ok
+test a_definition_of_record_reporting_a_direction_is_refused ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/a_parameter_that_varies_by_name_states_its_options.rs (target/debug/deps/a_parameter_that_varies_by_name_states_its_options-2ccad2dc00f75d09)
+
+running 7 tests
+test one_option_carries_several_numbers_each_in_its_own_unit ... ok
+test a_default_naming_an_option_the_parameter_does_not_list_is_refused ... ok
+test a_named_default_with_nobody_named_as_having_chosen_it_is_refused ... ok
+test an_option_stating_a_number_without_its_unit_does_not_parse ... ok
+test a_parameter_listing_one_option_twice_is_refused ... ok
+test a_parameter_naming_its_options_and_defaulting_to_one_of_them_raises_nothing ... ok
+test a_parameter_declaring_a_default_twice_is_refused ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/a_preset_is_checked_against_the_registry_it_names_into.rs (target/debug/deps/a_preset_is_checked_against_the_registry_it_names_into-11380987c548090a)
+
+running 10 tests
+test a_preset_whose_bindings_all_resolve_raises_nothing ... ok
+test a_preset_binding_a_rule_under_another_construct_is_refused_and_names_both ... ok
+test a_preset_is_counted_on_its_own_denominator_and_never_added_to_another ... ok
+test a_preset_stating_a_pipeline_with_no_source_for_it_is_refused ... ok
+test two_presets_under_one_id_are_a_refusal_rather_than_a_census_of_one ... ok
+test a_preset_naming_a_rule_the_registry_does_not_carry_is_refused ... ok
+test a_preset_silent_about_a_declared_construct_raises_nothing ... ok
+test a_preset_binding_one_construct_twice_is_refused ... ok
+test a_preset_file_outside_the_presets_directory_names_where_presets_live ... ok
+test a_preset_silent_about_a_construct_the_registry_does_not_carry_is_refused ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/an_entry_out_of_reach_states_what_stands_in_the_way.rs (target/debug/deps/an_entry_out_of_reach_states_what_stands_in_the_way-38b4460b8fe8f3d3)
+
+running 6 tests
+test an_entry_names_its_boundary_and_raises_nothing ... ok
+test a_boundary_the_vocabulary_does_not_carry_does_not_parse ... ok
+test a_query_beside_a_settled_boundary_is_refused ... ok
+test an_undetermined_boundary_carries_the_query_that_would_settle_it ... ok
+test an_undetermined_boundary_without_a_query_is_refused ... ok
+test every_boundary_the_classification_writes_is_one_the_registry_reads ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/every_construct_speaks_the_fields_words.rs (target/debug/deps/every_construct_speaks_the_fields_words-82168ce905605afb)
+
+running 2 tests
+test a_construct_the_field_names_plainly_keeps_that_name ... ok
+test every_declared_construct_carries_a_spoken_label ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/every_rule_the_loader_enforces_fires_when_it_is_broken.rs (target/debug/deps/every_rule_the_loader_enforces_fires_when_it_is_broken-6868953c3ab94707)
+
+running 20 tests
+test a_bias_disagreeing_with_the_parameter_it_equals_is_refused ... ok
+test a_bias_equalling_a_parameter_this_entry_does_not_carry_is_refused ... ok
+test a_bias_in_a_different_unit_from_the_parameter_it_equals_is_refused ... ok
+test a_bias_stated_against_a_blank_criterion_is_refused ... ok
+test a_method_naming_a_construct_that_is_not_declared_is_refused ... ok
+test a_registry_that_breaks_no_rule_raises_nothing ... ok
+test a_bias_that_names_no_parameter_is_left_alone ... ok
+test a_bias_equalling_a_parameter_that_declares_no_default_is_refused ... ok
+test a_failure_rate_that_does_not_match_its_own_numerator_and_denominator_is_refused ... ok
+test an_id_that_is_not_a_dotted_canonical_name_is_refused ... ok
+test a_rounded_failure_rate_is_accepted_and_a_transcription_error_is_not ... ok
+test refusing_to_offer_a_rule_without_saying_what_the_refusal_is_for_is_refused ... ok
+test a_failure_rate_stated_without_a_denominator_is_refused ... ok
+test a_numeric_default_with_nobody_named_as_having_chosen_it_is_refused ... ok
+test a_protocol_affecting_something_the_registry_does_not_carry_is_refused ... ok
+test a_disagreement_the_other_side_does_not_record_is_refused ... ok
+test one_id_in_both_populations_is_refused_even_though_neither_census_moves ... ok
+test a_default_naming_a_chooser_this_entry_does_not_cite_is_refused ... ok
+test a_recommendation_resting_on_a_source_nobody_obtained_is_refused ... ok
+test disagreeing_with_an_entry_that_does_not_exist_is_refused ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/every_rule_the_loader_enforces_is_named_by_a_test.rs (target/debug/deps/every_rule_the_loader_enforces_is_named_by_a_test-2f56d68cb26c0ccf)
+
+running 3 tests
+test every_rule_the_loader_enforces_is_named_by_a_test ... ok
+test the_scan_reads_the_vocabulary_rather_than_an_empty_list ... ok
+test every_rule_the_loader_enforces_is_named_in_the_published_contract ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/the_shipped_registry_is_valid.rs (target/debug/deps/the_shipped_registry_is_valid-585f3412e4d4f82c)
+
+running 1 test
+test the_registry_this_repository_ships_passes_validation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce_serve-48b99555e9d142b1)
+
+running 16 tests
+test assets::tests::nothing_outside_the_table_resolves ... ok
+test assets::tests::the_document_answers_the_root_and_its_own_name ... ok
+test http::tests::a_request_line_and_its_headers_are_read ... ok
+test http::tests::another_method_is_refused_with_what_this_server_answers ... ok
+test http::tests::every_response_carries_the_policy_that_keeps_the_page_local ... ok
+test http::tests::head_carries_the_headers_and_no_body ... ok
+test http::tests::the_policy_admits_what_the_document_carries_inline ... ok
+test http::tests::what_is_not_a_request_is_not_read_as_one ... ok
+test tests::a_port_that_went_missing_is_refused_rather_than_resolved_to_the_default ... ok
+test tests::a_usage_error_and_a_runtime_failure_carry_different_codes ... ok
+test tests::an_option_this_command_does_not_have_is_named_rather_than_dropped ... ok
+test tests::no_options_asks_the_operating_system_for_a_port_and_opens_nothing ... ok
+test tests::the_usage_names_the_options_this_command_reads ... ok
+test tests::two_ports_on_one_line_are_refused ... ok
+test tests::the_joined_spelling_names_the_same_port ... ok
+test http::tests::a_request_head_larger_than_the_cap_is_refused ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/the_embedded_assets_are_the_directory.rs (target/debug/deps/the_embedded_assets_are_the_directory-b6e404892b5f5087)
+
+running 1 test
+test the_embedded_set_is_the_directory_minus_what_was_excluded ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/the_page_loads.rs (target/debug/deps/the_page_loads-c0127196ba46c173)
+
+running 3 tests
+test the_module_arrives_as_webassembly ... ok
+test a_module_script_arrives_as_javascript ... ok
+test the_root_is_the_document ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/the_server_refuses_what_it_should.rs (target/debug/deps/the_server_refuses_what_it_should-c6351810415430af)
+
+running 2 tests
+test another_method_is_refused_with_the_ones_this_server_answers ... ok
+test a_path_the_interface_does_not_have_is_named_rather_than_guessed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/plateforce_wasm-60670fcf2354e92c)
+
+running 14 tests
+test tests::every_entry_point_states_what_it_dispatches ... ok
+test tests::the_block_the_manifest_claims_is_the_block_this_crate_builds ... ok
+test tests::the_manifest_is_built_from_the_entry_points_this_crate_exposes ... ok
+test tests::the_tab_names_every_member_of_the_acquisition_block ... ok
+test tests::the_browser_claims_neither_compare_nor_reach ... ok
+test registry_embed::tests::both_surfaces_refuse_the_same_duplicated_id ... ok
+test tests::the_only_container_the_tab_writes_is_json ... ok
+test demo::tests::the_demonstration_trial_has_the_shape_of_the_measured_corpus ... ok
+test demo::tests::its_impulse_and_its_stated_takeoff_velocity_agree ... ok
+test demo::tests::the_published_onset_rule_finds_an_onset_on_it ... ok
+test registry_embed::tests::every_embedded_file_parses_against_the_schema_types ... ok
+test registry_embed::tests::validator_output_reaches_the_caller ... ok
+test registry_embed::tests::the_browser_names_the_revision_the_registry_declares ... ok
+test registry_embed::tests::the_embedded_registry_is_the_directory_the_desktop_reads ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/a_preset_states_the_pipeline_its_source_states.rs (target/debug/deps/a_preset_states_the_pipeline_its_source_states-1b84fe7c573867ef)
+
+running 2 tests
+test a_preset_binding_a_rule_this_build_does_not_run_refuses_by_name ... ok
+test owen2014_resolves_to_every_value_its_source_states_and_no_others ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/browser_request.rs (target/debug/deps/browser_request-7b2e4e75dc1d431d)
+
+running 2 tests
+test a_field_this_module_does_not_carry_is_refused ... ok
+test every_value_the_interface_posts_is_read_by_the_rule_it_was_posted_for ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/entailed_operator_values.rs (target/debug/deps/entailed_operator_values-66b773c92f2abb41)
+
+running 1 test
+test a_named_value_a_composed_operator_publishes_is_honoured_or_refused_and_never_dropped ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.44s
+
+     Running tests/every_rule_resolves_in_the_registry.rs (target/debug/deps/every_rule_resolves_in_the_registry-a89dd44efdac4185)
+
+running 4 tests
+test every_id_this_build_records_resolves_in_the_registry ... ok
+test a_composition_with_an_entry_of_its_own_records_under_itself ... ok
+test an_id_is_redirected_only_while_the_registry_carries_no_row_for_it ... ok
+test every_operator_entry_sits_on_the_construct_its_id_names ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/fallbacks_match_the_registry.rs (target/debug/deps/fallbacks_match_the_registry-4518029386407d10)
+
+running 6 tests
+test a_published_value_is_not_a_default ... ok
+test a_declared_name_reaches_a_rule_from_the_registry_and_from_nowhere_else ... ok
+test every_declared_name_reaches_a_rule ... ok
+test every_value_a_rule_assumes_is_the_one_the_registry_declares ... ok
+test a_name_no_entry_declares_is_not_chosen_in_silence ... ok
+test every_name_a_rule_assumes_is_the_one_the_registry_declares ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.14s
+
+     Running tests/method_set_round_trip.rs (target/debug/deps/method_set_round_trip-8124399893c736fb)
+
+running 6 tests
+test a_slot_nobody_stated_is_absent_rather_than_written_empty ... ok
+test a_misspelt_field_is_refused_rather_than_dropped ... ok
+test a_construct_this_build_runs_no_slot_for_is_refused_by_name ... ok
+test a_document_from_a_later_version_is_refused_as_a_version ... ok
+test a_request_writes_a_document_that_reads_back_as_the_same_request ... ok
+test the_schema_string_is_the_one_that_gets_committed_to_other_peoples_repositories ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/metrics_name_the_rule_that_computed_them.rs (target/debug/deps/metrics_name_the_rule_that_computed_them-fa24450f8424c190)
+
+running 2 tests
+test modified_reactive_strength_says_which_numerator_it_used ... ok
+test every_named_computation_resolves_in_the_registry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/no_reader_repairs_the_recording_it_was_handed.rs (target/debug/deps/no_reader_repairs_the_recording_it_was_handed-2cbf8e268906d2f6)
+
+running 5 tests
+test declaring_the_convention_that_matches_the_flight_moves_no_number ... ok
+test the_batch_reader_hands_back_the_trace_the_file_wrote ... ok
+test the_tab_hands_back_the_trace_the_file_wrote ... ok
+test the_tab_declines_the_landmark_the_damaged_stance_puts_out_of_reach ... ok
+test the_tab_answers_the_damaged_recording_differently_from_the_clean_one ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+
+     Running tests/offered_parameters.rs (target/debug/deps/offered_parameters-8631df0c5a3ce105)
+
+running 4 tests
+test a_name_the_rule_does_not_read_is_reported_rather_than_dropped_in_silence ... ok
+test the_operators_this_sweep_walks_are_the_operators_this_build_declares ... ok
+test every_parameter_a_control_offers_reaches_the_rule_it_belongs_to ... ok
+test every_parameter_a_control_offers_moves_a_number ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.57s
+
+     Running tests/quality_signals.rs (target/debug/deps/quality_signals-a1a6fd8600e5e635)
+
+running 3 tests
+test a_start_dragged_past_the_unweighting_names_the_start_and_not_the_takeoff ... ok
+test a_trace_that_never_lands_says_the_check_could_not_run ... ok
+test a_step_off_produces_two_jump_heights_and_only_that_trace_is_flagged ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/search_floor_moves_the_onset.rs (target/debug/deps/search_floor_moves_the_onset-a6b9179253a13a8b)
+
+running 2 tests
+test the_stated_floor_is_recorded_against_its_own_operator ... ok
+test a_floor_after_the_movement_pushes_the_onset_past_it ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/the_tab_hands_out_an_account_of_every_number.rs (target/debug/deps/the_tab_hands_out_an_account_of_every_number-3765bc98a08d939b)
+
+running 1 test
+test every_number_carried_out_of_the_tab_gives_an_account_of_itself ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/window_envelope.rs (target/debug/deps/window_envelope-994072eb69be6c86)
+
+running 2 tests
+test a_window_envelope_never_allocates_more_buckets_than_visible_samples ... ok
+test a_window_envelope_draws_only_the_requested_samples ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+   Doc-tests plateforce_analysis
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests plateforce_batch
+
+running 1 test
+test crates/plateforce-batch/src/exclusions.rs - exclusions::GateRegistry (line 91) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+   Doc-tests plateforce_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests plateforce_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests plateforce
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests plateforce_registry
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests plateforce_serve
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests plateforce_wasm
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+CARGO_EXIT=0

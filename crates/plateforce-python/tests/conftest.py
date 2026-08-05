@@ -79,6 +79,23 @@ label = "Arithmetic mean of the span"
 key = "median"
 label = "Median of the span"
 
+# The rule reads this name, so the entry publishes it, which is the property the shipped
+# registry is held to. A fixture entry that omitted it left the rule reading a name no
+# caller could discover and the engine covering for it with a literal of its own.
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+default_key = "sample"
+default_source = "owen2014"
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
+
 [[method.citation]]
 key = "owen2014"
 role = "proposes"
@@ -120,6 +137,126 @@ direction = "late"
 criterion = "onset.manual_visual.tillin2010"
 criterion_kind = "human_visual"
 conditional_on_success = true
+
+# The operator entries a landmark rule composes. The shipped registry files each name a rule
+# reads on its own entry rather than on the rule's, and the engine folds them into the block
+# the rule resolves against, so a fixture without them leaves its rules reading names nothing
+# publishes.
+[[method]]
+id = "onset.op.crossing_selection"
+construct = "movement_onset"
+title = "Which crossing of the threshold is taken"
+rule = "Take the first or the last crossing of the threshold within the search bound."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "selection"
+unit = "enumeration"
+default_key = "first"
+default_source = "owen2014"
+
+[[method.parameter.value]]
+key = "first"
+label = "The first crossing"
+
+[[method.parameter.value]]
+key = "last"
+label = "The last crossing"
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+obtained = true
+
+[[method]]
+id = "onset.op.direction"
+construct = "movement_onset"
+title = "Which side of the baseline a crossing counts on"
+rule = "Count a departure below the baseline, above it, or on either side."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "direction"
+unit = "enumeration"
+default_key = "below_only"
+default_source = "owen2014"
+
+[[method.parameter.value]]
+key = "below_only"
+label = "Below the baseline only"
+
+[[method.parameter.value]]
+key = "either"
+label = "Either side of the baseline"
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+obtained = true
+
+[[method]]
+id = "takeoff.op.crossing_selection"
+construct = "takeoff"
+title = "Which crossing of the takeoff threshold is taken"
+rule = "Take the first or the last crossing of the threshold within the search bound."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "selection"
+unit = "enumeration"
+default_key = "first"
+default_source = "owen2014"
+
+[[method.parameter.value]]
+key = "first"
+label = "The first crossing"
+
+[[method.parameter.value]]
+key = "last"
+label = "The last crossing"
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+obtained = true
+
+[[method]]
+id = "takeoff.op.residual_comparison"
+construct = "takeoff"
+title = "How the residual force is compared against the threshold"
+rule = "Compare the signed residual or its magnitude against the threshold."
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "comparison"
+unit = "enumeration"
+default_key = "signed"
+default_source = "owen2014"
+
+[[method.parameter.value]]
+key = "signed"
+label = "The signed residual"
+
+[[method.parameter.value]]
+key = "magnitude"
+label = "The magnitude of the residual"
+
+[[method.citation]]
+key = "owen2014"
+role = "proposes"
+reference = "Owen et al. 2014, JSCR 28:1552-1558"
+obtained = true
 
 [[method]]
 id = "onset.manual_visual.tillin2010"

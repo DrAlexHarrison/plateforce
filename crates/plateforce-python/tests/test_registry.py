@@ -27,7 +27,7 @@ SHIPPED_REGISTRY = _find_shipped_registry()
 def test_the_census_reports_populations_separately(registry):
     census = registry.census
     assert census.constructs == 5
-    assert census.computation_entries == 8
+    assert census.computation_entries == 12
     assert census.protocol_entries == 0
     assert not hasattr(census, "total"), "the two populations are never summed"
 
@@ -91,8 +91,8 @@ def test_binding_records_the_registry_default_and_says_it_defaulted(registry):
     it no default while the entry beside it names one.
     """
     bound = registry.method("bwepoch.fixed_window").bind()
-    assert bound.parameters == {"duration": 1.0, "centre": "mean"}
-    assert bound.defaulted_parameters == ["centre", "duration"]
+    assert bound.parameters == {"duration": 1.0, "centre": "mean", "dispersion": "sample"}
+    assert bound.defaulted_parameters == ["centre", "dispersion", "duration"]
 
 
 def test_a_name_the_entry_does_not_publish_is_refused_with_the_ones_it_takes(registry):
@@ -117,8 +117,8 @@ def test_a_number_stated_for_a_named_parameter_is_refused(registry):
 
 def test_a_name_the_caller_states_is_bound_and_not_reported_as_defaulted(registry):
     bound = registry.method("bwepoch.fixed_window").bind(centre="median")
-    assert bound.parameters == {"duration": 1.0, "centre": "median"}
-    assert bound.defaulted_parameters == ["duration"]
+    assert bound.parameters == {"duration": 1.0, "centre": "median", "dispersion": "sample"}
+    assert bound.defaulted_parameters == ["dispersion", "duration"]
 
 
 def test_binding_a_value_the_literature_lacks_is_allowed_and_reported(registry):

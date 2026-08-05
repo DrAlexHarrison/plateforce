@@ -53,10 +53,7 @@ fn compute(
 
     // The fallback is unreachable: the name was stated a line above. It is empty rather than
     // one of the two, so a reader of this rule cannot mistake either frame for a default.
-    match resolved.enumerated(
-        FRAME_PARAMETER,
-        &[(TAKEOFF, TAKEOFF), (STANDING, STANDING)],
-    ) {
+    match resolved.enumerated(FRAME_PARAMETER, &[(TAKEOFF, TAKEOFF), (STANDING, STANDING)]) {
         Ok(_) => DerivedOutcome {
             values: Vec::new(),
             placed: Vec::new(),

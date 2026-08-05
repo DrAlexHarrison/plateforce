@@ -60,6 +60,10 @@
             "two_pass"
           ],
           [
+            "centre",
+            "mean"
+          ],
+          [
             "compared_window_count",
             "1405"
           ],
@@ -97,6 +101,7 @@
         "method_source": "stated",
         "parameter_sources": {
           "accumulation": "assumed",
+          "centre": "assumed",
           "compared_window_count": "measured",
           "dispersion": "assumed",
           "reject_at_or_below_fraction_of_weight": "assumed",

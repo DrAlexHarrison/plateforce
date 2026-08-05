@@ -422,7 +422,11 @@ impl AnalysisRequest {
         self.weighing.declared = Arc::clone(&declared);
         self.onset.declared = Arc::clone(&declared);
         self.takeoff.declared = Arc::clone(&declared);
-        for choice in self.derived.values_mut().chain(self.conditioning.values_mut()) {
+        for choice in self
+            .derived
+            .values_mut()
+            .chain(self.conditioning.values_mut())
+        {
             choice.declared = Arc::clone(&declared);
         }
     }
