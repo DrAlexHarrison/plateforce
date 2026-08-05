@@ -114,6 +114,11 @@ title = "Whether a trial is admitted to analysis"
 label = "Whether this trial counts"
 unit = "boolean"
 notes = "Every gate that rejects a trial is invisible data loss unless it reports what it rejected."
+rules_answer = "their_own_questions"
+# Four published tests of four different things: pre-loading before the effort, a
+# countermovement inside a trial meant not to hold one, transient peaks in braking, and a flight
+# duration outside a plausible window. Each reports what it observed and what it compared that
+# against, and no two of those are the same quantity, so choosing one settles which test ran.
 
 [[construct]]
 id = "landing"
@@ -407,6 +412,11 @@ title = "What a force, rate, power, work or impulse is expressed relative to"
 label = "What the number is divided by"
 unit = "enumeration"
 notes = "Relative power in the weightlifting literature and in strength and conditioning are different quantities with the same name."
+rules_answer = "their_own_questions"
+# Eight entries covering eight different quantities. Which mass the divisor is taken from, the
+# unmodified quantity, force per kilogram, force per kilogram to an exponent, early force as a
+# share of the peak, and power on a dimensionless scale. Their units differ, so choosing one
+# settles which of them the result holds rather than moving one number.
 
 [[construct]]
 id = "reactive_strength_index"
@@ -498,6 +508,9 @@ title = "Which jump the trial contains"
 label = "Which jump this is"
 unit = "enumeration"
 notes = "Misclassification is categorical, not numeric: a squat-jump pipeline has no unweighting or braking phase to find."
+rules_answer = "one_question"
+# Both rules answer whether the athlete unloaded the plate far enough, and they differ in the
+# threshold alone. The choice moves the threshold and can move the classification with it.
 
 [[construct]]
 id = "aggregated_value"

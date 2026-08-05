@@ -1093,6 +1093,131 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::landing_subdivision::impact_stabilising::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::landing_subdivision::impact_stabilising::RULE),
     },
+    Binding {
+        id: crate::slots::normalisation_basis::absolute::ID,
+        slot: crate::slots::normalisation_basis::CONSTRUCT,
+        construct: crate::slots::normalisation_basis::CONSTRUCT,
+        title: "The measured quantity, unmodified",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::normalisation_basis::absolute::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::normalisation_basis::absolute::RULE),
+    },
+    Binding {
+        id: crate::slots::normalisation_basis::ratio_body_mass::ID,
+        slot: crate::slots::normalisation_basis::CONSTRUCT,
+        construct: crate::slots::normalisation_basis::CONSTRUCT,
+        title: "Divided by the athlete's mass",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::normalisation_basis::ratio_body_mass::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::normalisation_basis::ratio_body_mass::RULE),
+    },
+    Binding {
+        id: crate::slots::normalisation_basis::allometric::ID,
+        slot: crate::slots::normalisation_basis::CONSTRUCT,
+        construct: crate::slots::normalisation_basis::CONSTRUCT,
+        title: "Divided by the athlete's mass raised to a declared exponent",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::normalisation_basis::allometric::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::normalisation_basis::allometric::RULE),
+    },
+    Binding {
+        id: crate::slots::normalisation_basis::percent_of_peak_force::ID,
+        slot: crate::slots::normalisation_basis::CONSTRUCT,
+        construct: crate::slots::normalisation_basis::CONSTRUCT,
+        title: "Early force as a share of the peak",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::normalisation_basis::percent_of_peak_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::normalisation_basis::percent_of_peak_force::RULE),
+    },
+    Binding {
+        id: crate::slots::normalisation_basis::dimensionless_hof::ID,
+        slot: crate::slots::normalisation_basis::CONSTRUCT,
+        construct: crate::slots::normalisation_basis::CONSTRUCT,
+        title: "Power on Hof's dimensionless scale",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::normalisation_basis::dimensionless_hof::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::normalisation_basis::dimensionless_hof::RULE),
+    },
+    // Which jump the trial holds, and whether the trial counts. Declared after the phase and
+    // landing rules because the transient-peak gate reads the braking period they bound.
+    Binding {
+        id: crate::slots::jump_type::fixed_threshold::ID,
+        slot: crate::slots::jump_type::CONSTRUCT,
+        construct: crate::slots::jump_type::CONSTRUCT,
+        title: "A countermovement jump unloads the plate by more than a fixed force",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::jump_type::fixed_threshold::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::jump_type::fixed_threshold::RULE),
+    },
+    Binding {
+        id: crate::slots::jump_type::mass_scaled::ID,
+        slot: crate::slots::jump_type::CONSTRUCT,
+        construct: crate::slots::jump_type::CONSTRUCT,
+        title: "The same threshold scaled by the athlete's mass",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::jump_type::mass_scaled::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::jump_type::mass_scaled::RULE),
+    },
+    Binding {
+        id: crate::slots::trial_validity::pretension_ceiling::ID,
+        slot: crate::slots::trial_validity::CONSTRUCT,
+        construct: crate::slots::trial_validity::CONSTRUCT,
+        title: "Force departed standing weight before the effort began",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::trial_validity::pretension_ceiling::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::trial_validity::pretension_ceiling::RULE),
+    },
+    Binding {
+        id: crate::slots::trial_validity::countermovement_contamination::ID,
+        slot: crate::slots::trial_validity::CONSTRUCT,
+        construct: crate::slots::trial_validity::CONSTRUCT,
+        title: "An isometric trial dipped below its own standing noise",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::trial_validity::countermovement_contamination::QUANTITIES,
+        dispatch: Dispatch::Derived(
+            crate::slots::trial_validity::countermovement_contamination::RULE,
+        ),
+    },
+    Binding {
+        id: crate::slots::trial_validity::transient_peak_count::ID,
+        slot: crate::slots::trial_validity::CONSTRUCT,
+        construct: crate::slots::trial_validity::CONSTRUCT,
+        title: "Braking arrived as a spike train rather than a curve",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::trial_validity::transient_peak_count::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::trial_validity::transient_peak_count::RULE),
+    },
+    Binding {
+        id: crate::slots::trial_validity::flight_time_window::ID,
+        slot: crate::slots::trial_validity::CONSTRUCT,
+        construct: crate::slots::trial_validity::CONSTRUCT,
+        title: "A flight phase too short or too long to be a jump",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::trial_validity::flight_time_window::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::trial_validity::flight_time_window::RULE),
+    },
 ];
 
 /// One name a caller may state on a landmark rule, and the registry entry that carries it.
@@ -1260,6 +1385,15 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         crate::slots::normalisation_basis::denominator::ID => {
             crate::slots::normalisation_basis::denominator::REQUIRED_OPTIONS
         }
+        crate::slots::normalisation_basis::allometric::ID => {
+            crate::slots::normalisation_basis::allometric::REQUIRED_OPTIONS
+        }
+        crate::slots::trial_validity::pretension_ceiling::ID => {
+            crate::slots::trial_validity::pretension_ceiling::REQUIRED_OPTIONS
+        }
+        crate::slots::trial_validity::flight_time_window::ID => {
+            crate::slots::trial_validity::flight_time_window::REQUIRED_OPTIONS
+        }
         _ => &[],
     }
 }
@@ -1281,6 +1415,42 @@ pub fn required_numbers(method_id: &str) -> &'static [(&'static str, f64)] {
         }
         crate::slots::rate_of_force_development::between_force_levels::ID => {
             crate::slots::rate_of_force_development::between_force_levels::REQUIRED_NUMBERS
+        }
+        crate::slots::normalisation_basis::percent_of_peak_force::ID => {
+            crate::slots::normalisation_basis::percent_of_peak_force::REQUIRED_NUMBERS
+        }
+        crate::slots::normalisation_basis::dimensionless_hof::ID => {
+            crate::slots::normalisation_basis::dimensionless_hof::REQUIRED_NUMBERS
+        }
+        crate::slots::trial_validity::flight_time_window::ID => {
+            crate::slots::trial_validity::flight_time_window::REQUIRED_NUMBERS
+        }
+        _ => &[],
+    }
+}
+
+/// The values a rule declines without that the request binds for the whole analysis rather
+/// than on the rule's own row.
+///
+/// The athlete's mass is the only one so far. It is not a parameter of any entry, because it
+/// is a property of the athlete rather than of a method, and a rule that needs it declines
+/// identically at every probe of its own parameters until it is stated. To a sweep that reads
+/// exactly like a rule whose parameters move nothing, which is the sweep failing to reach the
+/// question rather than the controls failing to matter, and it is the same fault
+/// `required_numbers` answers one row lower down.
+pub fn required_globals(method_id: &str) -> &'static [(&'static str, f64)] {
+    match method_id {
+        crate::slots::normalisation_basis::ratio_body_mass::ID => {
+            crate::slots::normalisation_basis::ratio_body_mass::REQUIRED_GLOBALS
+        }
+        crate::slots::normalisation_basis::allometric::ID => {
+            crate::slots::normalisation_basis::allometric::REQUIRED_GLOBALS
+        }
+        crate::slots::normalisation_basis::dimensionless_hof::ID => {
+            crate::slots::normalisation_basis::dimensionless_hof::REQUIRED_GLOBALS
+        }
+        crate::slots::jump_type::mass_scaled::ID => {
+            crate::slots::jump_type::mass_scaled::REQUIRED_GLOBALS
         }
         _ => &[],
     }

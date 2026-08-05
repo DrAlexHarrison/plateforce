@@ -13,3 +13,86 @@ pub const CONSTRUCT: &str = "normalisation_basis";
 
 /// The key the declaration reports the divisor under.
 pub const KEY: &str = "normalisation_denominator_kilograms";
+
+pub mod absolute;
+pub mod allometric;
+pub mod dimensionless_hof;
+pub mod percent_of_peak_force;
+pub mod ratio_body_mass;
+
+use crate::derived::DerivedContext;
+use crate::resolution::RuleRefusal;
+
+/// The athlete's mass, and the record that a number divided by it rests on the caller having
+/// stated it.
+///
+/// The weighed system mass is not it and a rule here declines rather than dividing by the
+/// other one: on a loaded lift the two differ by the bar, and a per-kilogram number that
+/// silently used the wrong kilograms is the failure this construct exists to name.
+pub(crate) fn body_mass_kilograms(
+    context: &DerivedContext,
+    resolved: &mut crate::resolution::Resolution,
+    method_id: &str,
+) -> Result<f64, RuleRefusal> {
+    let Some(kilograms) = context.body_mass_kilograms else {
+        return Err(RuleRefusal::Refused(Box::new(
+            plateforce_core::Refusal::required_parameter_unstated(
+                method_id,
+                crate::request::BODY_MASS_GLOBAL,
+            ),
+        )));
+    };
+    resolved.record_measured(
+        crate::request::BODY_MASS_GLOBAL,
+        kilograms,
+        crate::resolution::format_number(kilograms),
+        plateforce_core::provenance::ParameterSource::Stated,
+    );
+    Ok(kilograms)
+}
+
+/// A quantity another construct's chosen rule reported, and the entry that reported it.
+///
+/// A normalisation rule divides a result rather than the force trace, so the number it starts
+/// from is whichever rule the caller picked for that construct. Taking a second reading off
+/// the trace here would divide a peak this analysis never reported, under a convention nobody
+/// chose, and the two would agree until they did not.
+pub(crate) fn measured(
+    context: &DerivedContext,
+    method_id: &str,
+    construct: &'static str,
+    key: &str,
+) -> Result<(f64, Vec<String>), RuleRefusal> {
+    match context.measured(key) {
+        Some(found) => {
+            let mut behind = found.rests_on.clone();
+            if let Some(entry) = &found.computed_by {
+                if !behind.contains(entry) {
+                    behind.push(entry.clone());
+                }
+            }
+            Ok((found.value, behind))
+        }
+        None => Err(context.unavailable(method_id, &[construct])),
+    }
+}
+
+/// Everything the number this rule divided already rested on, written onto the number it
+/// produced. Deduplicated by `rests_on`, and the chain the pipeline assembles drops whatever
+/// this rule read for itself, so no entry is named twice.
+pub(crate) fn rests_on(context: &DerivedContext, key: &'static str, behind: &[String]) {
+    let named: Vec<&str> = behind.iter().map(String::as_str).collect();
+    context.rests_on(key, &named);
+}
+
+/// A stated mass no scaling can be built on, named back to the caller with the value they
+/// stated. Zero and below are the whole of it: dividing by either reports a sign flip or an
+/// infinity as a measurement.
+pub(crate) fn mass_not_accepted(method_id: &str, kilograms: f64) -> RuleRefusal {
+    RuleRefusal::Refused(Box::new(plateforce_core::Refusal::value_not_accepted(
+        method_id,
+        crate::request::BODY_MASS_GLOBAL,
+        kilograms,
+        vec!["a body mass above zero".to_string()],
+    )))
+}

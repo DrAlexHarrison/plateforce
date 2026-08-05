@@ -576,9 +576,20 @@ fn chain_behind(
     quantity_key: &str,
     conditioning_ids: &[String],
 ) -> crate::response::RestsOn {
-    let mut chain = conditioning_ids.to_vec();
-    chain.extend(context.rules_read());
-    chain.extend(context.entries_behind(quantity_key));
+    // Deduplicated across the three groups, not only inside each. A number that divides
+    // another number rests on everything that number rested on, so the second group and the
+    // third overlap by exactly the rules the first one already named.
+    let mut chain: Vec<String> = Vec::new();
+    for id in conditioning_ids
+        .iter()
+        .cloned()
+        .chain(context.rules_read())
+        .chain(context.entries_behind(quantity_key))
+    {
+        if !chain.contains(&id) {
+            chain.push(id);
+        }
+    }
 
     let mut globals = context.globals_behind(quantity_key);
     globals.extend(context.globals_behind_the_samples_read());
@@ -651,6 +662,9 @@ fn run_spine_default(
     // and reaches them through the same map by the same names a rule reached by construct
     // does. That is what makes one id leave one chain whichever way a caller arrived: both
     // routes ask, and both are answered from here.
+    // No rule filed under a construct has reported anything at this point, for the same
+    // reason none has placed anything.
+    let nothing_measured = BTreeMap::new();
     let context = DerivedContext::new(
         trial,
         epoch,
@@ -662,6 +676,7 @@ fn run_spine_default(
         request.body_mass_kilograms,
         placed,
         &request.derived,
+        &nothing_measured,
     );
     let choice = MethodChoice {
         method_id: binding.id.to_string(),
@@ -787,6 +802,24 @@ fn run_derived_phase(
             continue;
         };
 
+        // What the rules declared before this one reported, taken fresh each time so a rule
+        // reads its predecessors and never itself. Owned, because the metric list it is
+        // drawn from is written to again below.
+        let measured: BTreeMap<String, crate::derived::Measured> = metrics
+            .iter()
+            .filter_map(|metric| {
+                metric.value.map(|value| {
+                    (
+                        metric.key.clone(),
+                        crate::derived::Measured {
+                            value,
+                            computed_by: metric.computed_by.clone(),
+                            rests_on: metric.contributing_method_ids.clone(),
+                        },
+                    )
+                })
+            })
+            .collect();
         let context = DerivedContext::new(
             trial,
             epoch,
@@ -798,6 +831,7 @@ fn run_derived_phase(
             request.body_mass_kilograms,
             &placed,
             &request.derived,
+            &measured,
         );
         let mut outcome = rule(&context, choice, warnings);
         crate::derived::record_stated_touchdown(

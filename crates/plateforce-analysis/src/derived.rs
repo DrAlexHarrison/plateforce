@@ -155,6 +155,23 @@ pub fn record_stated_touchdown(
     bound.sources.insert(name, ParameterSource::Stated);
 }
 
+/// A quantity a rule earlier in declaration order already reported, and the entry that
+/// reported it.
+///
+/// The producing entry travels with the number because a rule that divides one by the
+/// athlete's mass rests on whatever produced it, and a chain naming only the divisor would
+/// describe half of where the number came from. `computed_by` is `None` for a quantity the
+/// spine reports directly, which no registry entry describes.
+#[derive(Debug, Clone)]
+pub struct Measured {
+    pub value: f64,
+    pub computed_by: Option<String>,
+    /// Every entry already behind that number. A rule that divides it rests on all of them,
+    /// and a chain naming only the last step would stop where the onset backtrack showed a
+    /// chain must not: one construct short of the choice that moved the number.
+    pub rests_on: Vec<String>,
+}
+
 /// What every rule computed from the landmarks is handed.
 pub struct DerivedContext<'a> {
     /// The signal every rule reads, which is what the conditioning phase produced. Public and
@@ -197,6 +214,14 @@ pub struct DerivedContext<'a> {
     /// nobody made from a choice that was made and declined, which are different faults
     /// with different remedies.
     pub requested: &'a BTreeMap<String, MethodChoice>,
+    /// What the rules declared before this one already reported, by key.
+    ///
+    /// The normalisation family is the first whose input is a result rather than the force
+    /// trace: dividing peak force by the athlete's mass needs the peak somebody's chosen rule
+    /// produced, not a second peak taken here under whichever convention this rule preferred.
+    /// Private, and reached through the accessor below, for the reason `placed` is: reading a
+    /// number another rule produced is what puts that rule into this number's chain.
+    measured: &'a BTreeMap<String, Measured>,
     /// The names this rule asked for, recorded as it asks. The chain behind its number is
     /// built from these, so a rule names the rules it rests on rather than every rule that
     /// happened to run before it.
@@ -234,6 +259,7 @@ impl<'a> DerivedContext<'a> {
         body_mass_kilograms: Option<f64>,
         placed: &'a BTreeMap<&'static str, PlacedSample>,
         requested: &'a BTreeMap<String, MethodChoice>,
+        measured: &'a BTreeMap<String, Measured>,
     ) -> Self {
         Self {
             trial,
@@ -246,10 +272,21 @@ impl<'a> DerivedContext<'a> {
             body_mass_kilograms,
             placed,
             requested,
+            measured,
             read: RefCell::new(BTreeSet::new()),
             rested_on: RefCell::new(BTreeMap::new()),
             globals_rested_on: RefCell::new(BTreeMap::new()),
         }
+    }
+
+    /// A quantity a rule declared before this one reported, or nothing where no rule this
+    /// request named produced it.
+    ///
+    /// Nothing is recorded here, because a number read is only half of what a chain needs: the
+    /// other half is which of this rule's own quantities rests on it, and only the rule knows
+    /// that. `rests_on` takes the entry this hands back.
+    pub fn measured(&self, key: &str) -> Option<&Measured> {
+        self.measured.get(key)
     }
 
     /// Entries one number this rule produces rests on, beyond the rules that placed samples
@@ -569,6 +606,7 @@ mod tests {
             ),
         ]);
         let requested = BTreeMap::new();
+        let measured = BTreeMap::new();
         let context = DerivedContext::new(
             &trial,
             &epoch,
@@ -580,6 +618,7 @@ mod tests {
             None,
             &placed,
             &requested,
+            &measured,
         );
 
         assert!(context.rules_read().is_empty(), "nothing has been read yet");

@@ -398,6 +398,23 @@ fn siblings_the_rule_cannot_run_without(method_id: &str) -> BTreeMap<String, f64
         .collect()
 }
 
+/// Whatever the rule under test declines without that the request binds for the whole
+/// analysis rather than on the rule's own row.
+///
+/// The athlete's mass is the first. It is not a parameter of any entry, so neither of the two
+/// functions above reaches it, and a rule that needs it declines identically at every probe of
+/// its own parameters. That reads exactly like a rule whose controls move nothing, which is
+/// this sweep failing to reach the question rather than the controls failing to matter: the
+/// same fault the two functions above were written for, one level up.
+fn state_the_globals_the_rule_cannot_run_without(request: &mut AnalysisRequest, method_id: &str) {
+    for (name, value) in plateforce_analysis::binding::required_globals(method_id) {
+        match *name {
+            plateforce_analysis::BODY_MASS_GLOBAL => request.body_mass_kilograms = Some(*value),
+            other => panic!("{other} is a global no request field here states"),
+        }
+    }
+}
+
 /// One rule named in its slot, carrying whatever the caller stated on it. An operator's
 /// parameter goes on the binding's own map, because a request names rules and never names
 /// the operators a rule composes.
@@ -407,6 +424,7 @@ fn request_stating(
     parameters: BTreeMap<String, f64>,
 ) -> AnalysisRequest {
     let mut request = base_request();
+    state_the_globals_the_rule_cannot_run_without(&mut request, method_id);
     let choice = MethodChoice {
         method_id: method_id.to_string(),
         parameters,

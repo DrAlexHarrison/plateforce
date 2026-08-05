@@ -23,6 +23,37 @@ pub fn scaled_by_body_mass(quantity: f64, body_mass_kilograms: f64, exponent: f6
     scaled.is_finite().then_some(scaled)
 }
 
+/// What a quantity is divided by when body mass is raised to an exponent.
+///
+/// Reported beside the scaled value because the units of the two differ with the exponent, so
+/// a reader holding the scaled number alone cannot say what it is per.
+pub fn body_mass_divisor(body_mass_kilograms: f64, exponent: f64) -> Option<f64> {
+    scaled_by_body_mass(1.0, body_mass_kilograms, exponent).map(|reciprocal| 1.0 / reciprocal)
+}
+
+/// Hof's divisor for a power: mass times gravity to the three-halves times leg length to the
+/// one-half.
+///
+/// Leg length is an anthropometric the plate cannot measure, so this takes it and the caller's
+/// rule asks for it. The reviewer who recommends the metric declines to restate the equation,
+/// which is the whole reason a normalisation convention has to travel with its number.
+pub fn dimensionless_power_divisor(
+    body_mass_kilograms: f64,
+    gravity_meters_per_second_squared: f64,
+    leg_length_meters: f64,
+) -> Option<f64> {
+    if body_mass_kilograms <= 0.0
+        || gravity_meters_per_second_squared <= 0.0
+        || leg_length_meters <= 0.0
+    {
+        return None;
+    }
+    let divisor = body_mass_kilograms
+        * gravity_meters_per_second_squared.powf(1.5)
+        * leg_length_meters.sqrt();
+    divisor.is_finite().then_some(divisor)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,6 +87,33 @@ mod tests {
              rounding",
             two_thirds / ratio
         );
+    }
+
+    /// The divisor and the scaling are one operation, so dividing by the one has to give the
+    /// other rather than agreeing to a rounding.
+    #[test]
+    fn the_divisor_is_what_the_scaling_divided_by() {
+        for exponent in [0.0f64, 0.67, 1.0] {
+            let divisor = body_mass_divisor(MASS_KILOGRAMS, exponent).unwrap();
+            let scaled = scaled_by_body_mass(PEAK_FORCE_NEWTONS, MASS_KILOGRAMS, exponent).unwrap();
+            assert!(
+                (PEAK_FORCE_NEWTONS / divisor - scaled).abs() < 1e-9,
+                "{exponent}: {divisor} against {scaled}"
+            );
+        }
+    }
+
+    /// Gravity enters to the three-halves and leg length to the one-half, so a divisor that
+    /// dropped either would move by a factor no reader could take for rounding.
+    #[test]
+    fn hofs_divisor_carries_gravity_and_leg_length_at_their_own_powers() {
+        let divisor = dimensionless_power_divisor(MASS_KILOGRAMS, 9.81, 0.9).unwrap();
+        let expected = MASS_KILOGRAMS * 9.81f64.powf(1.5) * 0.9f64.sqrt();
+        assert!((divisor - expected).abs() < 1e-9);
+        let longer = dimensionless_power_divisor(MASS_KILOGRAMS, 9.81, 1.1).unwrap();
+        assert!(longer > divisor);
+        assert!(dimensionless_power_divisor(MASS_KILOGRAMS, 9.81, 0.0).is_none());
+        assert!(dimensionless_power_divisor(0.0, 9.81, 0.9).is_none());
     }
 
     #[test]

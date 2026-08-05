@@ -12,3 +12,4 @@ mod ws3_conditioning;
 mod ws5;
 mod ws_power_work;
 mod ws_rate_impulse;
+mod ws_validity_normalisation;
