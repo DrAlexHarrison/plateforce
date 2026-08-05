@@ -36,7 +36,22 @@ pub struct Args {
     /// one rule for
     #[arg(long, value_name = "STEP")]
     pub slot: Vec<String>,
+    #[arg(long = "vary", value_name = "ASSIGNMENT", help = VARY_HELP)]
+    pub vary: Vec<String>,
 }
+
+/// What `--vary` takes, in the grammar `--set` already takes, because a reader who wrote
+/// `--set onset.k=5` to bind a value writes `--vary onset.k=2,5` to sweep it.
+///
+/// A separate flag from `--slot` because the two name different kinds of alternative: one
+/// varies which rule runs, the other varies a number inside the rule the run bound.
+pub(crate) const VARY_SHAPE: &str = "<slot>.<name>=<value>,<value>";
+
+pub(crate) const VARY_HELP: &str =
+    "A value to sweep instead of the rule, written <slot>.<name>=<value>,<value>. `global.gravity_meters_per_second_squared` sweeps gravity";
+
+/// The step gravity is written against, which is a value of the run rather than of any rule.
+const GLOBAL_STEP: &str = "global";
 
 pub fn run(
     args: &Args,
@@ -64,13 +79,9 @@ pub fn run(
         );
     }
 
-    let axes = if args.slot.is_empty() {
-        axes_over_every_rule(&prepared.request)
-    } else {
-        match axes_over_named_steps(&prepared.request, &args.slot) {
-            Ok(axes) => axes,
-            Err(sentence) => return Outcome::declined_line(Fault::Request, sentence),
-        }
+    let axes = match axes_asked_for(&prepared.request, &args.slot, &args.vary) {
+        Ok(axes) => axes,
+        Err(declined) => return Outcome::declined(declined),
     };
 
     match measure(&prepared.trial.trial, &prepared.request, quantity, axes) {
@@ -186,6 +197,102 @@ fn answers_to(slot: &str, word: &str) -> bool {
     slot == word || plateforce_analysis::binding::construct_for_slot(slot) == Some(word)
 }
 
+/// What this run was asked to sweep: rules, or one value inside the rules it bound.
+///
+/// A sweep varies the choice a reader would otherwise make once. Which rule runs is one such
+/// choice and the number the rule reads is another, and until this flag the terminal could
+/// state only the first: `k` moves a jump height by more than some pairs of onset rules do,
+/// and a terminal user could not ask by how much. The notebook and R take `parameter` and
+/// `values` for it and the tab has the same knob.
+///
+/// One kind at a time, which is the shape the other two surfaces take: they refuse a
+/// parameter beside several steps, because `parameter` names one step there and cannot say
+/// which. Stating both here would let this surface ask a question no other surface can, which
+/// is the same gap the other way round.
+fn axes_asked_for(
+    request: &AnalysisRequest,
+    slots: &[String],
+    varied: &[String],
+) -> Result<Vec<Axis>, Declined> {
+    if !slots.is_empty() && !varied.is_empty() {
+        return Err(Declined::line(
+            Fault::Request,
+            "--slot varies which rule runs and --vary varies a value inside one, so a sweep \
+             states one or the other"
+                .to_string(),
+        ));
+    }
+    if varied.is_empty() {
+        return if slots.is_empty() {
+            Ok(axes_over_every_rule(request))
+        } else {
+            axes_over_named_steps(request, slots)
+                .map_err(|sentence| Declined::line(Fault::Request, sentence))
+        };
+    }
+    if varied.len() > 1 {
+        let named: Vec<&str> = varied
+            .iter()
+            .map(|written| written.split('=').next().unwrap_or(written))
+            .collect();
+        return Err(Declined::line(
+            Fault::Request,
+            format!(
+                "a sweep varies one value, and this run named {}",
+                named.join(" and ")
+            ),
+        ));
+    }
+    axis_over_a_value(request, &varied[0]).map(|axis| vec![axis])
+}
+
+/// One `--vary` read into the axis the engine sweeps a number along.
+///
+/// The steps a value can be written against are the ones `--set` accepts, so a value that can
+/// be bound can be swept and neither flag reaches a step the other does not. `global` is here
+/// and not there because gravity belongs to the run rather than to a rule: it is bound by
+/// `--gravity` and swept by name.
+fn axis_over_a_value(request: &AnalysisRequest, written: &str) -> Result<Axis, Declined> {
+    let derived: Vec<String> = request.derived.keys().cloned().collect();
+    let mut steps = crate::analyse::steps_of_this_run(&derived);
+    steps.push(GLOBAL_STEP);
+
+    let (slot, name, stated) =
+        crate::analyse::assignment_of("--vary", VARY_SHAPE, written, &steps)?;
+    let qualified = format!("{slot}.{name}");
+
+    let mut values = Vec::new();
+    for one in stated.split(',') {
+        let value: f64 = one.trim().parse().map_err(|_| {
+            Declined::line(
+                Fault::Request,
+                format!("--vary {qualified} was given '{one}', which is not a number"),
+            )
+        })?;
+        if !value.is_finite() {
+            return Err(Declined::recorded(
+                plateforce_core::Refusal::parameter_not_finite("", qualified.clone(), value),
+            ));
+        }
+        // A value swept twice is a variant paired with a copy of itself, and it would pull the
+        // spread toward a number no second rule produced while counting in the denominator.
+        if values.contains(&value) {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--vary {qualified} names {one} twice, and one value is one variant"),
+            ));
+        }
+        values.push(value);
+    }
+
+    Ok(Axis {
+        slot: slot.to_string(),
+        parameter: Some(name.to_string()),
+        values,
+        method_ids: Vec::new(),
+    })
+}
+
 pub fn measure(
     trial: &Trial,
     request: &AnalysisRequest,
@@ -221,10 +328,14 @@ fn extremes(response: &SpreadResponse) -> Vec<(String, String)> {
     valued.sort_by(|left, right| left.1.total_cmp(&right.1));
     let lowest = valued.first().expect("two or more values");
     let highest = valued.last().expect("two or more values");
+    // A sweep over a value inside one rule runs every combination under the same rules, so
+    // naming them would print one identical list against each end and call it the
+    // disagreement. What differs there is the value, which is what the label carries.
+    let ends_run_the_same_rules = lowest.2 == highest.2;
     [("lowest", lowest), ("highest", highest)]
         .into_iter()
         .map(|(end, (label, value, ids))| {
-            let named = if ids.is_empty() {
+            let named = if ids.is_empty() || ends_run_the_same_rules {
                 label.to_string()
             } else {
                 ids.join(", ")
@@ -278,11 +389,22 @@ pub fn describe(response: &SpreadResponse, renderer: &Renderer) -> String {
     }
 
     // A spread is a number over a set of choices, and the set is printed beside it.
+    //
+    // Both kinds of choice. An axis over a rule's own value carries no rules, so a filter on
+    // the rule count alone dropped it: `--vary onset.k=2,2.5,3,4,5,8` printed 4.8 percent of
+    // the median with three held lines under it and never said what had moved, which is a
+    // figure whose provenance omits the choice that produced it.
     let varied: Vec<String> = response
         .axes_varied
         .iter()
-        .filter(|axis| axis.rules_varied > 1)
-        .map(|axis| format!("{} ({} rules)", axis.construct, axis.rules_varied))
+        .filter_map(|axis| match (axis.rules_varied, axis.parameter.as_deref()) {
+            (rules, _) if rules > 1 => Some(format!("{} ({rules} rules)", axis.construct)),
+            (_, Some(parameter)) if axis.values_varied > 1 => Some(format!(
+                "{}.{parameter} ({} values)",
+                axis.construct, axis.values_varied
+            )),
+            _ => None,
+        })
         .collect();
     if !varied.is_empty() {
         let _ = writeln!(block, "  varied {}", varied.join(", "));

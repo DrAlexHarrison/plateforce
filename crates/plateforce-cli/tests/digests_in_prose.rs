@@ -16,6 +16,16 @@
 //! held to what its digest is a digest of, measured by this build from the members its own
 //! request states. An allow-list in its place would be somewhere a stale registry digest could
 //! sit.
+//!
+//! The figure prose is held to is the one the shipped command reports, which is the registry
+//! compiled into the binary a reader runs. That the binary carries the repository's `registry/`
+//! bytes is a second rule and has one guard of its own,
+//! `registry_source::tests::the_registry_in_the_binary_is_the_registry_in_the_repository`.
+//! Reading the directory again here would be a second implementation of that rule inside a
+//! file about a different one, which is what a scan over the whole tree used to do beside this
+//! one until it was collapsed in: that scan passed a correct digest written into an unlisted
+//! committed file, where `no_committed_file_quotes_a_digest_from_outside_the_list` below fails
+//! it, so the wider-looking guard was the narrower one.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

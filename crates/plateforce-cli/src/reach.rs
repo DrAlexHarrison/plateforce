@@ -19,8 +19,8 @@ use crate::registry_cmd::canonical;
 use crate::render::{Renderer, Role};
 
 /// The four the report names, from the five the registry files. `Both` is a movement and an
-/// instrument at once and is 15 of the 76 walled entries, so it names both rather than being
-/// rounded to either.
+/// instrument at once, so it names both rather than being rounded to either. How many entries
+/// that costs is a query, and the test below runs it against the registry this build carries.
 fn barriers_of(boundary: Boundary) -> &'static [&'static str] {
     match boundary {
         Boundary::Protocol => &["movement"],
@@ -208,8 +208,7 @@ fn text_body(
 mod tests {
     use super::*;
 
-    /// Five field values, four report words, and `both` is the one that carries two. A mapping
-    /// that collapsed it would name one barrier on 15 of the 76 walled entries.
+    /// Five field values, four report words, and `both` is the one that carries two.
     #[test]
     fn every_boundary_the_registry_files_names_a_barrier_a_reader_can_act_on() {
         let filed = [
@@ -232,6 +231,52 @@ mod tests {
             "boundaries the registry files: {}, barriers the report names: {}",
             filed.len(),
             named.len()
+        );
+    }
+
+    /// What collapsing `Both` onto one word would cost, asked of this build's registry rather
+    /// than written in prose beside the mapping.
+    ///
+    /// A count in a comment is checked by nobody and goes stale on a registry data edit that
+    /// compiles. This runs the count, prints it against the denominator it is taken over, and
+    /// holds the mapping to the population that reaches it: entries carrying `both` exist, so
+    /// the word `both` has to name two barriers or those entries lose one on the report.
+    #[test]
+    fn the_boundary_naming_two_barriers_names_them_for_the_entries_that_carry_it() {
+        let registry = crate::registry_source::load(None).expect("this build carries a registry");
+        let declaring: Vec<&plateforce_registry::Method> = registry
+            .methods
+            .values()
+            .filter(|method| method.reach.is_some())
+            .collect();
+        let carrying_both = declaring
+            .iter()
+            .filter(|method| {
+                method
+                    .reach
+                    .as_ref()
+                    .is_some_and(|reach| reach.boundary == Boundary::Both)
+            })
+            .count();
+
+        println!(
+            "computation entries: {}, declaring a boundary: {}, carrying both: {carrying_both}",
+            registry.methods.len(),
+            declaring.len()
+        );
+        // The control. With no entry carrying `both`, the assertion under it is about a
+        // population of zero and passes whatever the mapping says.
+        assert!(
+            carrying_both > 0,
+            "no entry of the {} declaring a boundary carries both, so the mapping below is held \
+             against nothing",
+            declaring.len()
+        );
+        assert_eq!(
+            barriers_of(Boundary::Both).len(),
+            2,
+            "{carrying_both} entries carry both, and the report names {:?} for them",
+            barriers_of(Boundary::Both)
         );
     }
 }
