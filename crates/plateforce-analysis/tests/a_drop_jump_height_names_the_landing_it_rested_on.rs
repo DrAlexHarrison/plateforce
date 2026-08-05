@@ -154,7 +154,10 @@ fn height_in(response: &AnalysisResponse) -> Option<f64> {
         .and_then(|metric| metric.value)
 }
 
-fn refusal_naming(response: &AnalysisResponse, method_id: &str) -> Option<plateforce_core::Refusal> {
+fn refusal_naming(
+    response: &AnalysisResponse,
+    method_id: &str,
+) -> Option<plateforce_core::Refusal> {
     response
         .refusals
         .iter()

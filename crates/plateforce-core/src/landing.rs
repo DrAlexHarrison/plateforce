@@ -106,7 +106,11 @@ mod tests {
         signal
     }
 
-    fn first_run(signal: &[f64], minimum_contact_samples: usize, search_from: usize) -> Option<usize> {
+    fn first_run(
+        signal: &[f64],
+        minimum_contact_samples: usize,
+        search_from: usize,
+    ) -> Option<usize> {
         landing_first_sustained_run(
             signal,
             THRESHOLD_NEWTONS,
@@ -195,5 +199,4 @@ mod tests {
             );
         }
     }
-
 }

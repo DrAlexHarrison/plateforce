@@ -132,8 +132,7 @@ fn compute(
     };
     context.rests_on(super::KEY, &spec.method_ids());
     let gravity = context.gravity_meters_per_second_squared;
-    let velocity =
-        centre_of_mass_velocity_meters_per_second(context.trial, epoch, &spec, gravity);
+    let velocity = centre_of_mass_velocity_meters_per_second(context.trial, epoch, &spec, gravity);
     let bound = resolved.finish();
 
     let standing_period = epoch.start_index..epoch.end_index + 1;
