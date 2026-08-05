@@ -26,6 +26,7 @@ combinations over all three landmark constructs spanning 3.11 cm, and the parity
 it on every push.
 """
 
+import numpy as np
 import pytest
 
 import plateforce as pf
@@ -63,6 +64,22 @@ def bound(shipped_registry):
         slot: shipped_registry.method(method_id).bind(**parameters)
         for slot, (method_id, parameters) in RULES.items()
     }
+
+
+@pytest.fixture
+def force_the_athlete_never_leaves(force_newtons):
+    """The shared trace with its flight replaced by a settle back to standing.
+
+    The shared trace ends in flight, so every combination swept over it places a takeoff and
+    succeeds. A denominator asserted there is a denominator nothing was left out of, and the
+    only trace on which a combination that produced nothing can be reached is one where the
+    athlete stays on the plate.
+    """
+    flight_samples = int(0.5 * SAMPLE_RATE_HZ)
+    on_the_plate = force_newtons[:-flight_samples]
+    standing_newtons = float(on_the_plate[0])
+    settling = np.linspace(float(on_the_plate[-1]), standing_newtons, flight_samples)
+    return np.concatenate([on_the_plate, settling])
 
 
 def sweep(trial, bound, slot, **stated):
@@ -128,19 +145,88 @@ def test_sweeping_a_parameter_holds_the_rule(trial, bound):
 
 
 def test_the_denominator_holds_the_combinations_that_produced_nothing(trial, bound_methods):
-    """A synthetic trace no takeoff rule can read still reports every combination it ran."""
+    """A combination that produced nothing is counted, listed, and says why.
+
+    Swept over a takeoff threshold no sample of this trace falls below, beside one several
+    samples do, so the failing half is reached. Asserted over one combination on a trace that
+    places every landmark, `failed` is 0, `combinations_run == succeeded + failed` is
+    arithmetic rather than a claim about this software, and a build that dropped a failing
+    combination from the count or from the list reads exactly like one that kept it.
+
+    A threshold of zero newtons is the choice a reader makes who wants the instant force
+    reaches nothing at all. The plate reads zero in flight and never less, so the crossing the
+    rule looks for is one this recording does not contain.
+    """
     epoch, onset, takeoff = bound_methods
     swept = pf.spread(
+        trial,
+        quantity=QUANTITY,
+        slot="takeoff",
+        weighing_epoch=epoch,
+        onset=onset,
+        takeoff=takeoff,
+        parameter="threshold_n",
+        values=[20.0, 0.0],
+    )
+    assert swept.failed > 0, "nothing failed, so every claim below is about arithmetic"
+    assert swept.succeeded > 0, "nothing succeeded, so the failure is the sweep and not the value"
+    assert swept.combinations_requested == 2
+    assert swept.combinations_run == 2
+    assert swept.combinations_run == swept.succeeded + swept.failed
+    assert len(swept.variants) == swept.combinations_run
+
+    produced_nothing = [variant for variant in swept.variants if variant.value is None]
+    assert len(produced_nothing) == swept.failed
+    for variant in produced_nothing:
+        assert variant.failure_reason is not None, f"{variant.settings} produced nothing in silence"
+
+
+def test_a_sweep_that_computed_nothing_reports_its_denominator_and_no_width(
+    trial, force_the_athlete_never_leaves, bound_methods
+):
+    """Every combination failed, and the answer is three of three rather than an empty one.
+
+    No width beside it. A spread of zero over a set where nothing computed reads as the choice
+    of method moving the number by nothing, which is the reading this file's sibling refusal
+    exists to prevent, and it is the reading a reader cannot tell from a real agreement.
+    """
+    epoch, onset, takeoff = bound_methods
+    swept = pf.spread(
+        pf.Trial(force_the_athlete_never_leaves, sample_rate_hz=SAMPLE_RATE_HZ),
+        quantity=QUANTITY,
+        slot="onset",
+        weighing_epoch=epoch,
+        onset=onset,
+        takeoff=takeoff,
+        parameter="k",
+        values=[1.0, 5.0, 10.0],
+    )
+    assert swept.succeeded == 0
+    assert swept.failed == 3
+    assert swept.combinations_run == 3
+    assert len(swept.variants) == 3
+    assert swept.spread_absolute is None
+    assert swept.spread_percent_of_median is None
+    assert swept.baseline_value is None
+    for variant in swept.variants:
+        assert variant.value is None
+        assert variant.failure_reason is not None, f"{variant.settings} produced nothing in silence"
+
+    # The control, and it can come back empty for the same reason the assertions above can: the
+    # identical sweep on the shared trace, which ends in flight. A build that failed every
+    # combination everywhere satisfies all of the above and fails here.
+    with_flight = pf.spread(
         trial,
         quantity=QUANTITY,
         slot="onset",
         weighing_epoch=epoch,
         onset=onset,
         takeoff=takeoff,
-        method_ids=[onset.method_id],
+        parameter="k",
+        values=[1.0, 5.0, 10.0],
     )
-    assert swept.combinations_run == swept.succeeded + swept.failed
-    assert len(swept.variants) == swept.combinations_run
+    assert with_flight.succeeded == 3
+    assert with_flight.failed == 0
 
 
 def test_a_slot_this_build_runs_no_rule_for_is_refused(trial, bound):
