@@ -71,22 +71,11 @@ pub(crate) fn record_search_floor_at_trial_start(trial: &Trial, resolved: &mut R
     );
 }
 
-/// Which registry entry carries each name a takeoff rule reads.
-///
-/// The threshold rule carries its threshold and its persistence span, which its entry
-/// publishes. The rest are operators with entries of their own: `comparison` and
-/// `short_run_handling` decide whether an unloaded plate reading negative counts as flight
-/// and whether a run too short to be a flight can win the comparison and disqualify the
-/// trial, and a threshold row lists neither.
+/// Which registry entry carries each name a takeoff rule reads, from the table a surface
+/// enumerates. A match here would be a second copy of it, free to disagree with the answer a
+/// chooser is given.
 fn operator_for(name: &str) -> Option<&'static str> {
-    match name {
-        "comparison" => Some(TAKEOFF_OP_RESIDUAL_COMPARISON),
-        "short_run_handling" => Some(TAKEOFF_OP_SHORT_RUN_HANDLING),
-        "selection" => Some(TAKEOFF_OP_CROSSING_SELECTION),
-        TAKEOFF_WEIGHING_EPOCH_END_SECONDS => Some(TAKEOFF_SEARCH_FLOOR_AT_WEIGHING_EPOCH_END),
-        TAKEOFF_SEARCH_FLOOR_SECONDS => Some(TAKEOFF_SEARCH_FLOOR_AT_TRIAL_START),
-        _ => None,
-    }
+    crate::binding::operator_for(crate::TAKEOFF_CONSTRUCT, name)
 }
 
 /// The threshold rule, then each operator composed onto it, as separate entries.

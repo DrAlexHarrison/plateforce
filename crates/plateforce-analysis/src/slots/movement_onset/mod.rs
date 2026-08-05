@@ -305,27 +305,11 @@ pub const ONSET_OPERATOR_IDS: &[&str] = &[
     SEARCH_UPPER_BOUND,
 ];
 
-/// Which registry entry carries each name an onset rule reads.
-///
-/// A threshold rule carries its own threshold and the convention its spread was taken
-/// under. Every other value is an operator the registry files as an entry in its own right,
-/// so recording one against the threshold rule puts a parameter on a row that does not have
-/// it, and a reader who looks the id up does not find the value that moved the number.
+/// Which registry entry carries each name an onset rule reads, from the table a surface
+/// enumerates. A match here would be a second copy of it, free to disagree with the answer a
+/// chooser is given.
 fn operator_for(name: &str) -> Option<&'static str> {
-    match name {
-        OFFSET_MILLISECONDS => Some(BACKWARD_OFFSET_FIXED),
-        "span_ms" => Some("onset.op.persistence"),
-        FLOOR_SECONDS => Some(SEARCH_FLOOR),
-        WEIGHING_EPOCH_END_SECONDS => Some(SEARCH_FLOOR_AT_WEIGHING_EPOCH_END),
-        "direction" => Some("onset.op.direction"),
-        "selection" => Some(CROSSING_SELECTION),
-        // The window searched for an excursion the other side of the band, which is the
-        // trigger the retreat fires on, and where the retreat stops.
-        INVERSE_LOOKBACK_SECONDS | TOLERANCE | RETREAT_CAP_SAMPLES => Some(BACKTRACK_TO_TOLERANCE),
-        // The landmark the search stops at, and where on this trace it landed.
-        "bound" | "search_bound_seconds" => Some(SEARCH_UPPER_BOUND),
-        _ => None,
-    }
+    crate::binding::operator_for(crate::ONSET_CONSTRUCT, name)
 }
 
 /// The threshold rule, then each operator composed onto it, as separate entries.

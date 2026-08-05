@@ -14,6 +14,8 @@
 //! Nothing here serialises. Each surface reaches for its own writer, and this crate stays
 //! free of both a JSON dependency and any knowledge of which surface asked.
 
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 
 use plateforce_core::{exit_code, Acquisition, RefusalCode};
@@ -92,6 +94,32 @@ pub struct MethodRecord {
     pub construct: &'static str,
     /// The registry row this id binds an operator on, where it binds one.
     pub composed_from: Option<&'static str>,
+    /// The names this rule declines without, sorted, and empty for a rule that runs on a
+    /// request stating nothing.
+    ///
+    /// Not every name the rule reads: the registry publishes those, entry by entry, and it is
+    /// their one home. This is the half the registry cannot answer, because a value it
+    /// publishes no default for is a value only the build knows is required before the rule
+    /// will run. A chooser reading it can build a request that is not refused.
+    pub requires: Vec<&'static str>,
+}
+
+/// One operator entry a rule composes, and the names a caller states to reach it.
+///
+/// On the wire because nothing else can carry it. The registry declares the entry and what it
+/// publishes; only the build knows which of its names a rule actually reads and which entry
+/// each reaches, so a chooser reading the registry alone cannot learn that stating `selection`
+/// on a takeoff rule reaches `takeoff.op.crossing_selection` rather than the onset one.
+///
+/// Keyed by the construct rather than by the rule. Which operators a run ends up recording
+/// depends on what the caller states, so a per-rule list would be a claim about one request
+/// and this is a claim about what may be stated.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct OperatorRecord {
+    pub construct: &'static str,
+    pub entry: &'static str,
+    /// Sorted, and more than one where two names reach one entry.
+    pub states: Vec<&'static str>,
 }
 
 /// One way this software can decline, and what a shell learns from it.
@@ -107,6 +135,9 @@ pub struct Capability {
     pub plateforce_version: &'static str,
     pub acquisition: AcquisitionBlock,
     pub methods: Vec<MethodRecord>,
+    /// The operator entries the rules above compose, which a caller never names and always
+    /// reaches through one of them.
+    pub operators: Vec<OperatorRecord>,
     pub operations: Vec<Operation>,
     pub output_formats: Vec<OutputFormat>,
     pub refusal_codes: Vec<RefusalRecord>,
@@ -121,14 +152,55 @@ pub fn capability(
 ) -> Capability {
     let mut methods: Vec<MethodRecord> = BINDINGS
         .iter()
-        .map(|binding| MethodRecord {
-            id: binding.id,
-            slot: binding.slot,
-            construct: binding.construct,
-            composed_from: binding.composed_from,
+        .map(|binding| {
+            // Both lists, because a rule can decline for want of a name and for want of a
+            // number, and the anthropometric jump-height rules need two or three at once. A
+            // chooser handed one of them meets a refusal naming the next.
+            let mut requires: Vec<&'static str> = crate::binding::required_options(binding.id)
+                .iter()
+                .map(|(name, _)| *name)
+                .chain(
+                    crate::binding::required_numbers(binding.id)
+                        .iter()
+                        .map(|(name, _)| *name),
+                )
+                .collect();
+            requires.sort();
+            requires.dedup();
+            MethodRecord {
+                id: binding.id,
+                slot: binding.slot,
+                construct: binding.construct,
+                composed_from: binding.composed_from,
+                requires,
+            }
         })
         .collect();
     methods.sort();
+
+    // Every construct a rule in this build fills, crossed with the operator entries its rules
+    // compose, so a construct that grows a rule composing one more entry publishes it without
+    // an edit here.
+    let mut by_entry: BTreeMap<(&'static str, &'static str), Vec<&'static str>> = BTreeMap::new();
+    for construct in crate::binding::executable_constructs() {
+        for routed in crate::binding::operator_names_for_construct(construct) {
+            by_entry
+                .entry((construct, routed.entry))
+                .or_default()
+                .push(routed.name);
+        }
+    }
+    let operators: Vec<OperatorRecord> = by_entry
+        .into_iter()
+        .map(|((construct, entry), mut states)| {
+            states.sort();
+            OperatorRecord {
+                construct,
+                entry,
+                states,
+            }
+        })
+        .collect();
 
     let mut operations = operations.to_vec();
     operations.sort();
@@ -160,6 +232,7 @@ pub fn capability(
             members: Acquisition::MEMBERS.to_vec(),
         },
         methods,
+        operators,
         operations,
         output_formats,
         refusal_codes,
