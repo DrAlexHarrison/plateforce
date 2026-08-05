@@ -45,15 +45,17 @@ analysed = pf.analyse_countermovement_jump(
 
 
 def tree_of(provenance):
-    """The two fields the comparison reads, walked to the bottom.
+    """The fields the comparison reads, walked to the bottom.
 
-    Parameter names alone, because the comparison asks which choices a surface says produced a
-    number rather than whether two surfaces agree on arithmetic, which the parity gate asks
-    over the whole document.
+    Names alone, because the comparison asks which choices a surface says produced a number
+    rather than whether two surfaces agree on arithmetic, which the parity gate asks over the
+    whole document. Numbers and named alternatives are kept apart, because a surface publishing
+    one as the other is a divergence a single list would hide.
     """
     return {
         "method_id": provenance.method_id,
-        "parameters": sorted(provenance.parameters_of(provenance.method_id)),
+        "parameters": sorted(provenance.bound_parameters),
+        "choices": sorted(provenance.enumerated_choices),
         "depends_on": [tree_of(below) for below in provenance.depends_on],
     }
 
