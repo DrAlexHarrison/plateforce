@@ -12,8 +12,8 @@ NULL
 #'   combination of them, which is the question a number resting on more than one rule asks:
 #'   the onset rule and the takeoff rule both move a jump height, and sweeping them one at a
 #'   time reports neither the widest disagreement nor the narrowest.
-#' @param method_ids Registry identifiers to sweep. When absent, every rule this build
-#'   runs for that slot, read off the binding table rather than listed here.
+#' @param method_ids Registry identifiers to sweep. When absent, every rule available for
+#'   that slot, read off the binding table rather than listed here.
 #' @param parameter A parameter name to sweep instead of the method.
 #' @param values Values for that parameter.
 #' @param maximum_combinations Cap on how many combinations run.

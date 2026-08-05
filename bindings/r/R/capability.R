@@ -3,8 +3,8 @@ NULL
 
 #' What this surface can be asked to do
 #'
-#' Every method this build runs, the operations this package dispatches, the container
-#' formats it can write, and every way it can decline with the exit status a shell reads.
+#' Every method available, the operations this package dispatches, the container formats it
+#' writes, and every way it can decline with the exit status a shell reads.
 #'
 #' The operations are the ones this package exports rather than a list forwarded from the
 #' engine.
