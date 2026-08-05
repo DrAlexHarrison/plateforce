@@ -412,6 +412,83 @@ check('with several intervals selected the record still names one window, and sa
   `${both.regions.length} selected, the request takes numbers over ` +
     `${both.requestedOptions?.phase}, the active one is ${both.regions[both.active]?.phase}`);
 
+// ---------------------------------------------------------------- the numbers beside it
+/* Peak force is taken over the window and jump height is not, so a path carrying both is the
+ * one that can tell a panel reading the record from a panel printing whatever it has. */
+await evaluate(`(async () => {
+  const picker = await import('./add-quantity.js');
+  picker.addToPath('peak_force');
+  return true;
+})()`);
+await settle("(async () => (await import('./state.js')).state.analysis.metrics.some((m) => m.key === 'peak_force_newtons'))()");
+
+const dragForNumbers = plot.left + (plot.right - plot.left) * 0.15;
+await dragAcross(dragForNumbers, dragForNumbers + (plot.right - plot.left) * 0.2, plot.middle);
+await settle("(async () => (await import('./state.js')).state.chart.regions.some((r) => r.stated))()");
+await pause(300);
+
+const numbers = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const host = document.getElementById('chart-selection-numbers');
+  const bound = state.selection[state.build.bindings.find((b) => b.id === 'window.stated.by_caller').construct];
+  return {
+    hidden: host.hidden,
+    shown: [...host.querySelectorAll('.chart-selection__figure')].map((node) => ({
+      label: node.querySelector('dt').textContent,
+      value: node.querySelector('dd').textContent,
+    })),
+    elsewhere: host.querySelector('.chart-selection__elsewhere')?.textContent ?? '',
+    boundRule: bound ? bound.methodId : null,
+    readsTheWindow: state.analysis.metrics
+      .filter((metric) => (metric.contributing_method_ids || []).includes('window.stated.by_caller')
+        && metric.computed_by !== 'window.stated.by_caller')
+      .map((metric) => metric.label),
+    restsElsewhere: state.analysis.metrics
+      .filter((metric) => !(metric.contributing_method_ids || []).includes('window.stated.by_caller'))
+      .map((metric) => metric.label),
+  };
+})()`);
+
+check('the panel beside the selection shows exactly the quantities the record says read the window',
+  !numbers.hidden
+    && numbers.shown.length > 0
+    && numbers.shown.map((row) => row.label).sort().join('|') === numbers.readsTheWindow.sort().join('|'),
+  `${numbers.shown.length} shown: ${numbers.shown.map((row) => row.label + ' ' + row.value).join(', ')}; ` +
+    `the record says ${numbers.readsTheWindow.length} read the window`);
+
+check('a quantity resting on a landmark outside the window is named as the trial’s rather than shown as the window’s',
+  numbers.restsElsewhere.length > 0
+    && numbers.elsewhere.includes('are not taken over this window')
+    && !numbers.shown.some((row) => numbers.restsElsewhere.includes(row.label)),
+  numbers.elsewhere || 'nothing was said about the quantities that do not read the window');
+
+/* The engine is asked on a trailing edge, not once per frame. Counted rather than reasoned
+ * about: the whole reason for the trailing edge is a measurement, so the claim it makes about
+ * the running page is measured too. */
+const asked = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const original = state.loadedTrial.analyse.bind(state.loadedTrial);
+  window.__analysisCalls = 0;
+  state.loadedTrial.analyse = (...given) => { window.__analysisCalls += 1; return original(...given); };
+  return true;
+})()`);
+/* Dispatched without waiting on a reply between them, so the moves arrive faster than the
+ * engine can answer. Sending them the way the drag above does puts a round trip between each
+ * pair, every one of them longer than the wait, and the count then comes back equal to the
+ * number of moves whatever the trailing edge does: a check that cannot fail. */
+const from = plot.left + (plot.right - plot.left) * 0.55;
+const moves = 24;
+await mouse('mousePressed', from, plot.middle);
+await Promise.all(Array.from({ length: moves }, (_, step) =>
+  mouse('mouseMoved', from + ((plot.right - 10 - from) * (step + 1)) / moves, plot.middle)));
+await mouse('mouseReleased', plot.right - 10, plot.middle);
+await pause(400);
+const calls = await evaluate('window.__analysisCalls');
+check('a drag asks the engine on a trailing edge rather than once a frame',
+  calls >= 1 && calls < moves / 2,
+  `${moves} pointer moves dispatched without waiting produced ${calls} ` +
+    `${calls === 1 ? 'analysis' : 'analyses'}, at a wait taken from the last one's own duration`);
+
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {
   console.log(`${result.passed ? 'pass' : 'FAIL'}  ${result.name}\n      ${result.read}`);

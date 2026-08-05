@@ -35,6 +35,9 @@ export const state = {
   loadedTrial: null,
   envelope: null,
   analysis: null,
+  /* What the last analysis took, in milliseconds. Read by anything that asks the engine
+   * repeatedly, so it is never asked again before it has had as long as its last answer took. */
+  analysisMilliseconds: null,
   chart: null,
   /* The folder the reader handed over, once they have handed one over: the files
    * themselves, the name endings they declared to be trials, and how every file in it is

@@ -2,7 +2,7 @@
 
 import { TraceChart, landmarkDefinitions } from './chart.js';
 import { $, state } from './state.js';
-import { element, setWindowTitle, showStage } from './format.js';
+import { element, formatNumber, setWindowTitle, showStage } from './format.js';
 import { windowLengthParameter } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
@@ -226,14 +226,42 @@ function releaseTheWindow() {
 }
 
 function selectionChanged(selection, event) {
-  // Mid-drag the span is not a selection yet, so it is drawn and reported and binds nothing.
-  if (event.dragging) return renderSelectionReadout(selection, event);
+  // The extent is drawn and reported on every frame of a drag, because it costs nothing: it is
+  // read off two indices. The numbers cost an analysis, so they follow on a trailing edge.
+  if (event.dragging) {
+    renderSelectionReadout(selection, event);
+    scheduleTheNumbers(event.dragging);
+    return;
+  }
 
+  window.clearTimeout(trailingEdge);
   if (selection.active) bindTheWindow(selection.active);
   else releaseTheWindow();
   renderSelectionReadout(selection, event);
   renderDecisions();
   runAnalysis();
+}
+
+let trailingEdge = null;
+
+/*
+ * The numbers for a window still being dragged, asked for once the pointer has paused.
+ *
+ * The wait is the last analysis's own duration rather than a constant, so the engine is never
+ * asked again before it has had as long as its last answer took. That is the whole of what the
+ * measurement settles: one analysis is 43 ms over 6,000 samples and 410 ms over 72,000, and the
+ * count of rules on the path barely moves it, so a rate written down here would be right for one
+ * recording length and wrong for every other.
+ */
+function scheduleTheNumbers(span) {
+  window.clearTimeout(trailingEdge);
+  const wait = Math.min(600, Math.max(60, Math.round(state.analysisMilliseconds ?? 100)));
+  trailingEdge = window.setTimeout(() => {
+    trailingEdge = null;
+    bindTheWindow({ ...span, stated: true });
+    renderDecisions();
+    runAnalysis();
+  }, wait);
 }
 
 /* What is selected, as the reader's own data: the extent both ways they work in, and where the
@@ -275,6 +303,62 @@ function renderSelectionReadout(selection, event) {
     host.append(element('span', 'chart-selection__origin', `${selection.regions.length} windows selected. Numbers are taken over this one.`));
   }
   updateSelectionControls(selection, event);
+}
+
+/* The rule the window is bound to right now, or nothing where the reader has no window. */
+function boundWindowRule() {
+  const construct = windowConstruct();
+  if (!construct || !state.path.includes(construct)) return null;
+  return state.selection[construct]?.methodId || null;
+}
+
+/*
+ * The numbers this window produced, and the ones that are not about it.
+ *
+ * A quantity is over the window when the record puts the window's rule in its chain, which the
+ * record already answers, so nothing here holds a list of which quantities those are and a rule
+ * that starts reading the window appears without an edit in this file.
+ *
+ * The rest are not blanked and not printed beside them. A quantity resting on a landmark this
+ * window does not bound is the trial's number rather than this window's, and a panel that showed
+ * a jump height beside a peak taken over a hand-drawn span would be claiming the drag moved both.
+ */
+export function renderSelectionNumbers() {
+  const host = $('chart-selection-numbers');
+  if (!host) return;
+  host.replaceChildren();
+  const bound = boundWindowRule();
+  const selected = state.chart?.selection().active;
+  host.hidden = !bound || !selected || !state.analysis;
+  if (host.hidden) return;
+
+  const over = [];
+  const elsewhere = [];
+  for (const metric of state.analysis.metrics) {
+    if (metric.computed_by === bound) continue;
+    const reads = (metric.contributing_method_ids || []).includes(bound);
+    (reads ? over : elsewhere).push(metric);
+  }
+
+  if (over.length) {
+    const figures = element('dl', 'chart-selection__figures');
+    for (const metric of over) {
+      const figure = element('div', 'chart-selection__figure');
+      figure.append(element('dt', null, metric.label));
+      const shown = formatNumber(metric.value, metric.unit);
+      figure.append(element('dd', null, shown == null ? 'no value' : `${shown} ${metric.unit_symbol}`));
+      figures.append(figure);
+    }
+    host.append(figures);
+  }
+
+  if (elsewhere.length) {
+    const named = elsewhere.slice(0, 3).map((metric) => metric.label.toLowerCase());
+    const rest = elsewhere.length - named.length;
+    host.append(element('p', 'chart-selection__elsewhere',
+      `${named.join(', ')}${rest > 0 ? ` and ${rest} more` : ''} are not taken over this window, ` +
+      'so they are the trial\'s numbers rather than this window\'s.'));
+  }
 }
 
 /* The row arrives with the first window and stays while a zoom it drove can still be stepped
