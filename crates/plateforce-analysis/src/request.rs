@@ -100,8 +100,10 @@ impl Claims<'_> {
     }
 }
 
-/// `Default` so a caller can build one with `..Default::default()`. The next field this
-/// struct gains would otherwise break every exhaustive literal in the workspace at once.
+/// `Default` is for the wire and for fixtures, where an absent field means the serde
+/// default. The four surface builders spell every field without a rest pattern, on
+/// purpose, so the next field this struct gains is a compile error at each surface rather
+/// than a value defaulting silently into somebody's record.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct WeighingChoice {
@@ -229,9 +231,10 @@ fn assumed() -> ParameterSource {
     ParameterSource::Assumed
 }
 
-/// So a caller can build one with `..Default::default()`, which is what `MethodChoice` and
-/// `WeighingChoice` already offer and for the same reason: the next field this struct gains
-/// would otherwise break every exhaustive literal in the workspace at once.
+/// For the wire and for fixtures, like `MethodChoice` and `WeighingChoice`. The surface
+/// builders do not use it: each spells every field, so a field added here breaks each
+/// surface at compile time instead of defaulting silently, the way `RegistryStamp`'s
+/// consumers destructure without a rest pattern.
 ///
 /// Gravity defaults to the same constant `serde` fills, rather than to zero. A request whose
 /// method ids are empty is refused by name, so nothing here resolves to a rule by accident.
