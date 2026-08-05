@@ -29,8 +29,10 @@ pf_spread(
 \item{quantity}{The engine's name for the quantity to sweep, for example
 `"jump_height_from_takeoff_meters"`.}
 
-\item{slot}{The slot whose alternatives are swept: `"weighing"`, `"onset"` or
-`"takeoff"`.}
+\item{slot}{One step whose alternatives are swept, or several. Several sweeps every
+combination of them, which is the question a number resting on more than one rule asks:
+the onset rule and the takeoff rule both move a jump height, and sweeping them one at a
+time reports neither the widest disagreement nor the narrowest.}
 
 \item{weighing}{Registry id of the rule that establishes system weight.}
 
@@ -81,4 +83,15 @@ sweep <- pf_spread(
 )
 sweep[["succeeded"]]
 sweep[["spread_absolute"]]
+
+# Several steps at once, over every combination of their rules.
+over_the_landmarks <- pf_spread(
+  standing,
+  quantity = "system_weight_newtons",
+  slot = c("weighing", "onset"),
+  weighing = "bwepoch.fixed_window",
+  onset = "onset.threshold.noise_relative",
+  takeoff = "takeoff.threshold.absolute_force"
+)
+over_the_landmarks[["combinations_run"]]
 }

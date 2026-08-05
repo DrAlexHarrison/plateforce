@@ -116,7 +116,8 @@ SURFACE_ONLY_CODES <- c(
   "provenance_dropped",
   "quantity_not_reported",
   "registry_not_found",
-  "slot_has_no_rules",
+  "slot_offers_no_alternative",
+  "sweep_axes_not_understood",
   "unknown_field"
 )
 
