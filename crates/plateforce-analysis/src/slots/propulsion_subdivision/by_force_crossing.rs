@@ -62,8 +62,11 @@ fn place(
         ID,
         super::by_time::KEY,
         super::by_time::PLACED,
-        (start, end),
-        system_weight_newtons,
+        boundaries::SearchedInterval {
+            start_index: start,
+            end_index: end,
+            reference_newtons: system_weight_newtons,
+        },
         index,
         bound,
     )

@@ -87,7 +87,19 @@ pub(crate) fn subdivision_outcome(
     }
 }
 
-/// The same, for a subdivision searched for as a crossing of a force reference.
+/// What a crossing subdivision searched: the interval it divides and the reference it
+/// compared each sample in that interval against.
+///
+/// The three travel together because the refusal needs all three, and a search that qualified
+/// nothing is only readable beside the interval and the reference that qualified nothing in it.
+pub(crate) struct SearchedInterval {
+    pub start_index: usize,
+    pub end_index: usize,
+    pub reference_newtons: f64,
+}
+
+/// The same as `subdivision_outcome`, for a subdivision searched for as a crossing of a force
+/// reference.
 ///
 /// The refusal for a search that qualified nothing carries the interval it read and the
 /// reference it compared against, and counts the samples it read rather than reporting none.
@@ -99,19 +111,22 @@ pub(crate) fn subdivision_crossing_outcome(
     method_id: &str,
     key: &'static str,
     name: &'static str,
-    interval: (usize, usize),
-    reference_newtons: f64,
+    searched: SearchedInterval,
     crossing: Option<BoundedCrossing>,
     bound: BoundValues,
 ) -> DerivedOutcome {
-    let (start_index, end_index) = interval;
+    let SearchedInterval {
+        start_index,
+        end_index,
+        reference_newtons,
+    } = searched;
     match crossing {
         Some(crossing) if crossing.is_true_crossing => subdivision_outcome(
             context,
             method_id,
             key,
             name,
-            interval,
+            (start_index, end_index),
             Some(crossing.index),
             bound,
         ),

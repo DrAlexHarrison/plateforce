@@ -1355,7 +1355,7 @@ dividing net vertical force by body mass and integrating from the start of the c
 """
 status = "accepted"
 confidence = "medium"
-debate = "single_position"
+debate = "genuine"
 
 [[method.parameter]]
 name = "search_signal"
@@ -1396,6 +1396,15 @@ source = "plateforce_inference"
 # found measures the interval between peak velocity and takeoff, which is trivially closable on the
 # 244-trial corpus.
 
+[[method.disagrees_with]]
+id = "phase.propulsion_end.takeoff"
+kind = "genuine"
+note = """
+The deceleration between peak centre of mass velocity and takeoff is inside the phase under one
+rule and outside it under the other, so every propulsion duration, mean force and mean power moves
+with the choice.
+"""
+
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = "small on jump height, potentially large on any per-phase mean or duration"
@@ -1404,6 +1413,45 @@ It only matters to users computing phase-resolved quantities, and a user wanting
 never see it. The two rules encode two defensible definitions, that propulsion ends when the athlete
 stops accelerating upward and that it ends when the athlete leaves the plate, and both appear in the
 literature without either acknowledging the other.
+"""
+
+[[method]]
+id = "phase.propulsion_end.takeoff"
+construct = "propulsion_phase_end"
+group = "G"
+title = "Propulsion ends at takeoff"
+rule = """
+The propulsion phase ends at takeoff, so it holds the whole push including the deceleration that
+follows peak centre of mass velocity. The instant is the one the bound takeoff rule placed, and the
+threshold deciding it belongs to that rule rather than to this one.
+"""
+status = "accepted"
+confidence = "high"
+debate = "genuine"
+
+[[method.citation]]
+key = "mcmahon2018"
+role = "proposes"
+reference = "McMahon, Suchomel, Lake and Comfort 2018, Strength Cond J 40(4):96-106, verbatim: the propulsion phase continues through to the instant of take-off, and peak centre of mass velocity is attained before rather than at take-off"
+doi = "10.1519/ssc.0000000000000375"
+obtained = true
+
+[[method.disagrees_with]]
+id = "phase.propulsion_end.peak_com_velocity"
+kind = "genuine"
+note = """
+Two published readings of where the push ends, and the same paper states the gap between them: peak
+centre of mass velocity is reached before takeoff, at the instant force descends through system
+weight.
+"""
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "small on jump height, potentially large on any per-phase mean or duration"
+rationale = """
+It only matters to users computing phase-resolved quantities, and a user wanting jump height should
+never see it. Where the phase ends decides whether a sub-phase rule that splits it at peak centre of
+mass velocity divides anything at all.
 """
 
 [[method]]

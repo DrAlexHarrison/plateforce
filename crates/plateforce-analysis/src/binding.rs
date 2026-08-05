@@ -545,6 +545,21 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::propulsion_phase_end::peak_com_velocity::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::peak_com_velocity::RULE),
     },
+    // Beside the rule it disagrees with rather than at the end of the array, because this
+    // position is what the two subdivisions read. Declared after them, a caller composing this
+    // boundary with a subdivision would meet the subdivision first and be told the propulsion
+    // end placed nothing, which is the one composition this entry exists to make work.
+    Binding {
+        id: crate::slots::propulsion_phase_end::takeoff::ID,
+        slot: crate::slots::propulsion_phase_end::CONSTRUCT,
+        construct: crate::slots::propulsion_phase_end::CONSTRUCT,
+        title: "Propulsion ends at takeoff",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::propulsion_phase_end::takeoff::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::propulsion_phase_end::takeoff::RULE),
+    },
     // Declared last of the phase rules: the two propulsion subdivisions read the boundaries
     // the propulsion rules placed, so the interval they split is already settled here.
     Binding {
