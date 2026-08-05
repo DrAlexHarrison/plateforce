@@ -206,6 +206,7 @@ pub fn spread_over(
     method_ids: Option<Vec<String>>,
     parameter: Option<String>,
     values: Option<Vec<f64>>,
+    options: Vec::new(),
     gravity_meters_per_second_squared: Option<f64>,
     body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
@@ -287,6 +288,7 @@ fn swept(
     method_ids: Option<Vec<String>>,
     parameter: Option<String>,
     values: Option<Vec<f64>>,
+    options: Vec::new(),
     gravity_meters_per_second_squared: Option<f64>,
     body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
@@ -375,6 +377,7 @@ pub fn spread_json(
     method_ids: Option<Vec<String>>,
     parameter: Option<String>,
     values: Option<Vec<f64>>,
+    options: Vec::new(),
     gravity_meters_per_second_squared: Option<f64>,
     body_mass_kilograms: Option<f64>,
     weighing_parameters: Option<BTreeMap<String, f64>>,
@@ -425,6 +428,7 @@ fn axes_of(
     method_ids: Option<Vec<String>>,
     parameter: Option<String>,
     values: Option<Vec<f64>>,
+    options: Vec::new(),
 ) -> PyResult<Vec<spread::Axis>> {
     let named = slots_named(slot)?;
     if named.len() > 1 && (parameter.is_some() || method_ids.is_some()) {
@@ -486,12 +490,14 @@ fn axis_of(
     method_ids: Option<Vec<String>>,
     parameter: Option<String>,
     values: Option<Vec<f64>>,
+    options: Vec::new(),
 ) -> PyResult<spread::Axis> {
     if parameter.is_some() {
         return Ok(spread::Axis {
             slot: slot.to_string(),
             parameter,
             values: values.unwrap_or_default(),
+            options: Vec::new(),
             method_ids: Vec::new(),
         });
     }
@@ -525,6 +531,7 @@ fn axis_of(
         slot: slot.to_string(),
         parameter: None,
         values: Vec::new(),
+        options: Vec::new(),
         method_ids: ids,
     })
 }

@@ -38,17 +38,34 @@ pub struct Args {
     pub slot: Vec<String>,
     #[arg(long = "vary", value_name = "ASSIGNMENT", help = VARY_HELP)]
     pub vary: Vec<String>,
+    #[arg(long = "vary-choice", value_name = "ASSIGNMENT", help = VARY_CHOICE_HELP)]
+    pub vary_choice: Vec<String>,
 }
 
 /// What `--vary` takes, in the grammar `--set` already takes, because a reader who wrote
 /// `--set onset.k=5` to bind a value writes `--vary onset.k=2,5` to sweep it.
 ///
 /// A separate flag from `--slot` because the two name different kinds of alternative: one
-/// varies which rule runs, the other varies a number inside the rule the run bound.
+/// varies which rule runs, the other varies a number inside the rule the run bound. Both can
+/// be written on one line, and that is the sweep the engine has always run and no surface
+/// could ask for: five onset rules by three values of `k` is `--slot onset --vary
+/// onset.k=2,5,10`.
 pub(crate) const VARY_SHAPE: &str = "<slot>.<name>=<value>,<value>";
 
 pub(crate) const VARY_HELP: &str =
-    "A value to sweep instead of the rule, written <slot>.<name>=<value>,<value>. `global.gravity_meters_per_second_squared` sweeps gravity";
+    "A value to sweep beside or instead of the rule, written <slot>.<name>=<value>,<value>. Repeatable, and `global.gravity_meters_per_second_squared` sweeps gravity";
+
+/// What `--vary-choice` takes. `--choose` binds a name a rule takes and this compares them,
+/// in the relation `--vary` has to `--set`.
+///
+/// A separate flag from `--vary` for the reason `--choose` is separate from `--set`: the kind
+/// is known from the line rather than from the rule the alternatives reach. Read off the
+/// values, `--vary weighing.duration=fast,slow` would arrive at a rule as two names, and
+/// every mistyped number in a numeric sweep with it.
+pub(crate) const VARY_CHOICE_SHAPE: &str = "<slot>.<name>=<name>,<name>";
+
+pub(crate) const VARY_CHOICE_HELP: &str =
+    "A name to sweep, written <slot>.<name>=<name>,<name>. Repeatable, and `registry show <method>` lists the names each rule takes";
 
 /// The step gravity is written against, which is a value of the run rather than of any rule.
 const GLOBAL_STEP: &str = "global";
@@ -79,7 +96,12 @@ pub fn run(
         );
     }
 
-    let axes = match axes_asked_for(&prepared.request, &args.slot, &args.vary) {
+    let axes = match axes_asked_for(
+        &prepared.request,
+        &args.slot,
+        &args.vary,
+        &args.vary_choice,
+    ) {
         Ok(axes) => axes,
         Err(declined) => return Outcome::declined(declined),
     };
@@ -136,10 +158,13 @@ pub fn axes_over_every_rule(request: &AnalysisRequest) -> Vec<Axis> {
 fn axes_over_every_step(request: &AnalysisRequest) -> Vec<Axis> {
     let landmarks = PATH.iter().map(|construct| slot_of(construct).to_string());
     // Keyed by construct on the request, and the sweep reaches a derived rule by that same
-    // word, so the construct is the slot for every one of them.
-    let derived = request.derived.keys().cloned();
+    // word, so the construct is the slot for every one of them. Conditioning is here for the
+    // same reason it is a step `--set` accepts: the phase runs on every run, and a rule that
+    // shapes the trace the landmark rules read is an alternative in the sense every other
+    // rule on this list is.
+    let bound = request.derived.keys().chain(request.conditioning.keys()).cloned();
     landmarks
-        .chain(derived)
+        .chain(bound)
         .map(|slot| Axis {
             method_ids: bindings_for(&slot)
                 .map(|binding| binding.id.to_string())
@@ -147,6 +172,7 @@ fn axes_over_every_step(request: &AnalysisRequest) -> Vec<Axis> {
             slot,
             parameter: None,
             values: Vec::new(),
+            options: Vec::new(),
         })
         .collect()
 }
@@ -197,65 +223,82 @@ fn answers_to(slot: &str, word: &str) -> bool {
     slot == word || plateforce_analysis::binding::construct_for_slot(slot) == Some(word)
 }
 
-/// What this run was asked to sweep: rules, or one value inside the rules it bound.
+/// What this run was asked to sweep: rules, values inside the rules it bound, or both at
+/// once.
 ///
 /// A sweep varies the choice a reader would otherwise make once. Which rule runs is one such
-/// choice and the number the rule reads is another, and until this flag the terminal could
-/// state only the first: `k` moves a jump height by more than some pairs of onset rules do,
-/// and a terminal user could not ask by how much. The notebook and R take `parameter` and
-/// `values` for it and the tab has the same knob.
+/// choice, the number the rule reads is another, and the name it reads is a third. `k` moves
+/// a jump height 0.01981 m across its six published values on subject 01 trial 1, against
+/// 0.01924 m across the five onset rules, so the three are alternatives in the same sense and
+/// a reader asking about a number resting on more than one of them asks about all of them at
+/// once. `--slot onset --vary onset.k=2,5,10` is that question.
 ///
-/// One kind at a time, which is the shape the other two surfaces take: they refuse a
-/// parameter beside several steps, because `parameter` names one step there and cannot say
-/// which. Stating both here would let this surface ask a question no other surface can, which
-/// is the same gap the other way round.
+/// Naming nothing sweeps every rule this run bound more than one of, which is the question a
+/// reader asks first.
 fn axes_asked_for(
     request: &AnalysisRequest,
     slots: &[String],
     varied: &[String],
+    chosen_among: &[String],
 ) -> Result<Vec<Axis>, Declined> {
-    if !slots.is_empty() && !varied.is_empty() {
-        return Err(Declined::line(
-            Fault::Request,
-            "--slot varies which rule runs and --vary varies a value inside one, so a sweep \
-             states one or the other"
-                .to_string(),
-        ));
+    if slots.is_empty() && varied.is_empty() && chosen_among.is_empty() {
+        return Ok(axes_over_every_rule(request));
     }
-    if varied.is_empty() {
-        return if slots.is_empty() {
-            Ok(axes_over_every_rule(request))
-        } else {
-            axes_over_named_steps(request, slots)
-                .map_err(|sentence| Declined::line(Fault::Request, sentence))
-        };
+
+    let mut axes = if slots.is_empty() {
+        Vec::new()
+    } else {
+        axes_over_named_steps(request, slots)
+            .map_err(|sentence| Declined::line(Fault::Request, sentence))?
+    };
+    for written in varied {
+        axes.push(axis_over_a_value(request, written)?);
     }
-    if varied.len() > 1 {
-        let named: Vec<&str> = varied
-            .iter()
-            .map(|written| written.split('=').next().unwrap_or(written))
-            .collect();
-        return Err(Declined::line(
-            Fault::Request,
-            format!(
-                "a sweep varies one value, and this run named {}",
-                named.join(" and ")
-            ),
-        ));
+    for written in chosen_among {
+        axes.push(axis_over_a_name(request, written)?);
     }
-    axis_over_a_value(request, &varied[0]).map(|axis| vec![axis])
+
+    // One step and one setting is one axis. Written twice it was two, and the sweep squared
+    // its own combinations, each combination binding the setting twice with the second
+    // binding winning, so the denominator every figure is reported over counts a set the
+    // caller never asked for. The other two surfaces refuse the repeat in these words.
+    for position in 0..axes.len() {
+        let named = |axis: &Axis| (axis.slot.clone(), axis.parameter.clone());
+        if axes[..position].iter().any(|held| named(held) == named(&axes[position])) {
+            let axis = &axes[position];
+            let word = match axis.parameter.as_deref() {
+                Some(parameter) => format!("{}.{parameter}", axis.slot),
+                None => axis.slot.clone(),
+            };
+            return Err(Declined::line(
+                Fault::Request,
+                format!("'{word}' is named twice, and one setting is one axis"),
+            ));
+        }
+    }
+    Ok(axes)
+}
+
+/// The steps a setting can be written against on this run.
+///
+/// The ones `--set` accepts, so a value that can be bound can be swept and neither flag
+/// reaches a step the other does not. `global` is here and not there because gravity belongs
+/// to the run rather than to a rule: it is bound by `--gravity` and swept by name.
+fn steps_a_setting_reaches(request: &AnalysisRequest) -> (Vec<String>, Vec<&'static str>) {
+    let derived: Vec<String> = request
+        .derived
+        .keys()
+        .chain(request.conditioning.keys())
+        .cloned()
+        .collect();
+    (derived, vec![GLOBAL_STEP])
 }
 
 /// One `--vary` read into the axis the engine sweeps a number along.
-///
-/// The steps a value can be written against are the ones `--set` accepts, so a value that can
-/// be bound can be swept and neither flag reaches a step the other does not. `global` is here
-/// and not there because gravity belongs to the run rather than to a rule: it is bound by
-/// `--gravity` and swept by name.
 fn axis_over_a_value(request: &AnalysisRequest, written: &str) -> Result<Axis, Declined> {
-    let derived: Vec<String> = request.derived.keys().cloned().collect();
-    let mut steps = crate::analyse::steps_of_this_run(&derived);
-    steps.push(GLOBAL_STEP);
+    let (bound, extra) = steps_a_setting_reaches(request);
+    let mut steps = crate::analyse::steps_of_this_run(&bound);
+    steps.extend(extra);
 
     let (slot, name, stated) =
         crate::analyse::assignment_of("--vary", VARY_SHAPE, written, &steps)?;
@@ -289,6 +332,51 @@ fn axis_over_a_value(request: &AnalysisRequest, written: &str) -> Result<Axis, D
         slot: slot.to_string(),
         parameter: Some(name.to_string()),
         values,
+        options: Vec::new(),
+        method_ids: Vec::new(),
+    })
+}
+
+/// One `--vary-choice` read into the axis the engine sweeps a name along.
+///
+/// Which names a rule takes is the rule's own to answer, so an unaccepted one is refused by
+/// the rule with the list it offers, exactly as `--choose` leaves it. What is checked here is
+/// what the line can say without reaching a rule at all: an empty alternative, and a name
+/// written twice.
+///
+/// Gravity is refused because it is a number the run carries and no rule reads, which is the
+/// one step `--vary` accepts and this does not.
+fn axis_over_a_name(request: &AnalysisRequest, written: &str) -> Result<Axis, Declined> {
+    let (bound, _) = steps_a_setting_reaches(request);
+    let steps = crate::analyse::steps_of_this_run(&bound);
+
+    let (slot, name, stated) =
+        crate::analyse::assignment_of("--vary-choice", VARY_CHOICE_SHAPE, written, &steps)?;
+    let qualified = format!("{slot}.{name}");
+
+    let mut options: Vec<String> = Vec::new();
+    for one in stated.split(',') {
+        let chosen = one.trim().to_string();
+        if chosen.is_empty() {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--vary-choice {qualified} names an empty alternative"),
+            ));
+        }
+        if options.contains(&chosen) {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--vary-choice {qualified} names {chosen} twice, and one name is one variant"),
+            ));
+        }
+        options.push(chosen);
+    }
+
+    Ok(Axis {
+        slot: slot.to_string(),
+        parameter: Some(name.to_string()),
+        values: Vec::new(),
+        options,
         method_ids: Vec::new(),
     })
 }

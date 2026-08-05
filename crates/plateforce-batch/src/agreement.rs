@@ -513,6 +513,7 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                 slot: request.axis.slot.clone(),
                 parameter: None,
                 values: Vec::new(),
+                options: Vec::new(),
                 method_ids: request.axis.method_ids.clone(),
             }],
             quantity_key: request.quantity.clone(),

@@ -79,6 +79,7 @@ fn swept() -> SpreadResponse {
             slot: "onset".to_string(),
             parameter: Some("k".to_string()),
             values: vec![2.0, 5.0, 8.0],
+            options: Vec::new(),
             method_ids: Vec::new(),
         }],
         quantity_key: "jump_height_from_takeoff_meters".into(),

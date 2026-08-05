@@ -615,6 +615,28 @@ impl Refusal {
         )
     }
 
+    /// A sweep axis stating two sets of alternatives at once.
+    ///
+    /// One axis is one dimension of the product, so two sets on it have no width between
+    /// them. Resolved by a precedence instead, the sweep would run the width of whichever
+    /// set the precedence picked and report every figure over a set the caller did not name.
+    ///
+    /// `kinds_stated` is the denominator the sentence quotes, and it tells this form apart
+    /// from a rule declining on a value it will not take.
+    pub fn sweep_axis_compares_more_than_one_kind(
+        axis: impl Into<String>,
+        kinds: Vec<String>,
+    ) -> Self {
+        Self::build(
+            RefusalCode::ValueNotAccepted,
+            "",
+            Some(axis.into()),
+            None,
+            BTreeMap::from([("kinds_stated".to_string(), kinds.len() as f64)]),
+            kinds,
+        )
+    }
+
     /// A sweep axis naming a step and nothing to compare along it.
     ///
     /// The same code as a required parameter nobody stated, because the fault is the same
@@ -897,6 +919,14 @@ fn sentence(
             "{} must be a finite number, got {}",
             parameter.unwrap_or("the parameter"),
             value.unwrap_or(f64::NAN)
+        ),
+        // A sweep axis over-stating what it compares, told apart from a rule declining on a
+        // value by the detail, the way the two forms above this one are.
+        RefusalCode::ValueNotAccepted if detail.contains_key("kinds_stated") => format!(
+            "'{}' was passed as a sweep axis comparing {} at once, and one axis compares one \
+             of them",
+            parameter.unwrap_or("that name"),
+            available.join(" and ")
         ),
         RefusalCode::ValueNotAccepted => {
             let takes = if available.is_empty() {

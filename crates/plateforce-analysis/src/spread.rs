@@ -11,9 +11,15 @@ use plateforce_core::{Refusal, Trial};
 
 use crate::AnalysisRequest;
 
-/// One dimension of the sweep. Either the bound method for a slot changes, or one of its
-/// parameters does.
-#[derive(Debug, Clone, Deserialize)]
+/// One dimension of the sweep: the rule bound to a slot changes, or one of the settings that
+/// rule reads does.
+///
+/// A setting is a number or a name, and both are choices in the same sense. The six published
+/// values of `onset.k` move a jump height 0.01981 m on subject 01 trial 1, against 0.01924 m
+/// for the five onset rules, so a value inside a rule moves the number as far as the choice
+/// of rule does. An enumerated value is a value, which is why `options` is here beside
+/// `values` rather than the axis being numeric.
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Axis {
     pub slot: String,
@@ -21,16 +27,40 @@ pub struct Axis {
     pub parameter: Option<String>,
     #[serde(default)]
     pub values: Vec<f64>,
+    /// Names the parameter takes, for a setting whose alternatives are enumerated rather
+    /// than numeric: which divisor a standard deviation uses, which end of a window a
+    /// landmark is read from.
+    #[serde(default)]
+    pub options: Vec<String>,
     #[serde(default)]
     pub method_ids: Vec<String>,
 }
 
+/// What one axis compares, in the order `materialise` reads them.
+const KINDS: [&str; 3] = ["rules", "numbers", "names"];
+
 impl Axis {
+    /// Which of the three sets this axis states, as the words the refusal quotes.
+    fn kinds_stated(&self) -> Vec<String> {
+        [
+            !self.method_ids.is_empty(),
+            !self.values.is_empty(),
+            !self.options.is_empty(),
+        ]
+        .iter()
+        .zip(KINDS)
+        .filter(|(stated, _)| **stated)
+        .map(|(_, kind)| kind.to_string())
+        .collect()
+    }
+
     fn len(&self) -> usize {
-        if self.method_ids.is_empty() {
-            self.values.len()
-        } else {
+        if !self.method_ids.is_empty() {
             self.method_ids.len()
+        } else if !self.options.is_empty() {
+            self.options.len()
+        } else {
+            self.values.len()
         }
     }
 }
@@ -107,6 +137,11 @@ pub struct AxisRecord {
     /// Rules compared along this axis, or 0 where the axis varied a value instead.
     pub rules_varied: usize,
     /// Values compared along this axis, with the parameter they were written against.
+    ///
+    /// Numbers and names alike, because an axis compares one or the other and the terminal's
+    /// own grammar calls both a value: `--choose weighing.centre=mean` writes one exactly as
+    /// `--set onset.k=5` writes the other. Which kind it was is on each variant's `settings`,
+    /// under the name the registry publishes.
     pub values_varied: usize,
     pub parameter: Option<String>,
 }
@@ -152,7 +187,11 @@ fn held_fixed(base: &AnalysisRequest, axes: &[Axis], computed_by: Option<&str>) 
             });
         }
     }
-    for (construct, choice) in &base.derived {
+    // Both maps, because a rule that conditions the signal the landmark rules read is a
+    // choice that stood still while the figure was taken, exactly as a derived rule is. Read
+    // off `derived` alone, a sweep run under a stated conditioning rule reported every axis
+    // it varied and said nothing about the rule that shaped the trace underneath them.
+    for (construct, choice) in base.derived.iter().chain(base.conditioning.iter()) {
         if !choice.method_id.is_empty() && !varied.contains(construct.as_str()) {
             held.push(HeldRule {
                 construct: construct.clone(),
@@ -248,6 +287,7 @@ fn ordered_by_the_binding_table(axes: &[Axis]) -> Vec<Axis> {
                     .then_with(|| left.cmp(right))
             });
             axis.values.sort_by(f64::total_cmp);
+            axis.options.sort();
             axis
         })
         .collect();
@@ -255,6 +295,7 @@ fn ordered_by_the_binding_table(axes: &[Axis]) -> Vec<Axis> {
         axis_order(left)
             .cmp(&axis_order(right))
             .then_with(|| values_order(left, right))
+            .then_with(|| left.options.cmp(&right.options))
     });
     ordered
 }
@@ -272,15 +313,28 @@ fn ordered_by_the_binding_table(axes: &[Axis]) -> Vec<Axis> {
 /// fault here: the step is one this request carries, and what to compare along it was never
 /// said.
 fn nothing_to_vary(axis: &Axis) -> Box<Refusal> {
-    let named = match axis.parameter.as_deref() {
+    Box::new(Refusal::sweep_axis_states_no_alternative(named_axis(axis)))
+}
+
+/// What a refusal calls one axis: the step alone where the rule varies, the step and the
+/// setting where a value does.
+fn named_axis(axis: &Axis) -> String {
+    match axis.parameter.as_deref() {
         Some(parameter) => format!("{}.{parameter}", axis.slot),
         None => axis.slot.clone(),
-    };
-    Box::new(Refusal::sweep_axis_states_no_alternative(named))
+    }
 }
 
 pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box<Refusal>> {
     let axes = ordered_by_the_binding_table(&request.axes);
+    // Both faults are in the width of one axis, and the over-stated one is checked first
+    // because an axis stating two sets has a width under either reading and would sweep.
+    if let Some(crowded) = axes.iter().find(|axis| axis.kinds_stated().len() > 1) {
+        return Err(Box::new(Refusal::sweep_axis_compares_more_than_one_kind(
+            named_axis(crowded),
+            crowded.kinds_stated(),
+        )));
+    }
     if let Some(empty) = axes.iter().find(|axis| axis.len() == 0) {
         return Err(nothing_to_vary(empty));
     }
@@ -388,7 +442,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                 slot: axis.slot.clone(),
                 construct: construct_named(&axis.slot),
                 rules_varied: axis.method_ids.len(),
-                values_varied: axis.values.len(),
+                values_varied: axis.values.len() + axis.options.len(),
                 parameter: axis.parameter.clone(),
             })
             .collect(),
@@ -465,6 +519,7 @@ fn unsweepable(base: &AnalysisRequest, slot: &str, parameter: Option<&str>) -> B
     };
     let mut offered: Vec<String> = LANDMARK_SLOTS.iter().map(|s| (*s).to_string()).collect();
     offered.extend(base.derived.keys().cloned());
+    offered.extend(base.conditioning.keys().cloned());
     offered.push(format!("global.{GRAVITY_FIELD}"));
     Box::new(Refusal::axis_not_in_this_request(axis, offered))
 }
@@ -502,7 +557,7 @@ fn materialise(
                     candidate.takeoff.manual_index = None;
                 }
                 "weighing" => candidate.weighing.method_id = method_id,
-                construct => match candidate.derived.get_mut(construct) {
+                construct => match rule_bound_for(&mut candidate, construct) {
                     Some(choice) => {
                         choice.method_id = method_id;
                         choice.manual_index = None;
@@ -516,6 +571,24 @@ fn materialise(
         let Some(parameter) = axis.parameter.as_ref() else {
             continue;
         };
+
+        if !axis.options.is_empty() {
+            let chosen = axis.options[position].clone();
+            settings.push((parameter.clone(), chosen.clone()));
+            // Gravity is a number the run carries and no rule reads, so it takes no name.
+            if matches!(axis.slot.as_str(), "" | "global") {
+                return Err(unsweepable(base, &axis.slot, Some(parameter)));
+            }
+            match options_bound_for(&mut candidate, &axis.slot) {
+                Some(options) => {
+                    options.insert(parameter.clone(), chosen);
+                }
+                None => return Err(unsweepable(base, &axis.slot, Some(parameter))),
+            }
+            release_dragged_marker(&mut candidate, &axis.slot);
+            continue;
+        }
+
         let value = axis.values[position];
         settings.push((parameter.clone(), format_value(value)));
 
@@ -541,7 +614,7 @@ fn materialise(
                 candidate.takeoff.parameters.insert(name.to_string(), value);
                 candidate.takeoff.manual_index = None;
             }
-            (construct, name) => match candidate.derived.get_mut(construct) {
+            (construct, name) => match rule_bound_for(&mut candidate, construct) {
                 Some(choice) => {
                     choice.parameters.insert(name.to_string(), value);
                     choice.manual_index = None;
@@ -552,6 +625,52 @@ fn materialise(
     }
 
     Ok((candidate, settings))
+}
+
+/// The choice a request carries for a construct it bound, wherever it carries it.
+///
+/// A construct is in one of the two maps or in neither, so the phase it runs in is not
+/// something a caller naming an axis has to know. Reached through `derived` alone, a sweep
+/// over a conditioning rule was refused as a name the request did not carry, on a request
+/// that carried it.
+fn rule_bound_for<'a>(
+    request: &'a mut AnalysisRequest,
+    construct: &str,
+) -> Option<&'a mut crate::MethodChoice> {
+    if request.derived.contains_key(construct) {
+        return request.derived.get_mut(construct);
+    }
+    request.conditioning.get_mut(construct)
+}
+
+/// Where a step's enumerated settings are written. `weighing` carries its own choice type,
+/// which is why this is not `rule_bound_for` with a field access on the end.
+fn options_bound_for<'a>(
+    request: &'a mut AnalysisRequest,
+    slot: &str,
+) -> Option<&'a mut std::collections::BTreeMap<String, String>> {
+    match slot {
+        "weighing" => Some(&mut request.weighing.options),
+        "onset" => Some(&mut request.onset.options),
+        "takeoff" => Some(&mut request.takeoff.options),
+        construct => rule_bound_for(request, construct).map(|choice| &mut choice.options),
+    }
+}
+
+/// A swept setting has to be able to move the answer, so any marker the user dragged on that
+/// step is released for the duration of the sweep. Weighing carries a start index rather than
+/// a marker and keeps it.
+fn release_dragged_marker(request: &mut AnalysisRequest, slot: &str) {
+    match slot {
+        "weighing" => {}
+        "onset" => request.onset.manual_index = None,
+        "takeoff" => request.takeoff.manual_index = None,
+        construct => {
+            if let Some(choice) = rule_bound_for(request, construct) {
+                choice.manual_index = None;
+            }
+        }
+    }
 }
 
 fn format_value(value: f64) -> String {
@@ -618,6 +737,7 @@ mod tests {
                     slot: "onset".into(),
                     parameter: Some("k".into()),
                     values: vec![2.0, 3.0, 5.0, 10.0],
+                    options: Vec::new(),
                     method_ids: Vec::new(),
                 }],
                 quantity_key: "time_to_takeoff_seconds".into(),
@@ -646,12 +766,14 @@ mod tests {
                         slot: "onset".into(),
                         parameter: Some("k".into()),
                         values: vec![2.0, 3.0, 5.0, 10.0],
+                        options: Vec::new(),
                         method_ids: Vec::new(),
                     },
                     Axis {
                         slot: "onset".into(),
                         parameter: Some("back_offset".into()),
                         values: vec![0.010, 0.030, 0.040, 0.050],
+                        options: Vec::new(),
                         method_ids: Vec::new(),
                     },
                 ],
@@ -679,6 +801,7 @@ mod tests {
                     slot: "onset".into(),
                     parameter: None,
                     values: Vec::new(),
+                    options: Vec::new(),
                     method_ids: vec![
                         "onset.threshold.noise_relative".into(),
                         "onset.threshold.relative_to_system_weight".into(),
@@ -707,6 +830,7 @@ mod tests {
                     slot: "onset".into(),
                     parameter: Some("k".into()),
                     values: (1..40).map(f64::from).collect(),
+                    options: Vec::new(),
                     method_ids: Vec::new(),
                 }],
                 quantity_key: "time_to_takeoff_seconds".into(),
@@ -729,6 +853,7 @@ mod tests {
                     slot: "onset".into(),
                     parameter: Some("k".into()),
                     values: vec![5.0, 100_000.0],
+                    options: Vec::new(),
                     method_ids: Vec::new(),
                 }],
                 quantity_key: "time_to_takeoff_seconds".into(),
@@ -757,6 +882,153 @@ mod tests {
         assert_eq!(reason.slot.as_deref(), Some("movement_onset"));
     }
 
+    /// A request binding the one construct whose alternatives are names rather than numbers,
+    /// so the sweeps below vary an enumerated setting on a rule that reads one.
+    fn base_over_an_epoch_impulse(convention: &str) -> AnalysisRequest {
+        let mut base = base();
+        base.derived.insert(
+            crate::slots::epoch_impulse::CONSTRUCT.to_string(),
+            MethodChoice {
+                method_id: crate::slots::epoch_impulse::epoch_from_onset::ID.to_string(),
+                options: BTreeMap::from([(
+                    crate::slots::epoch_impulse::CONVENTION_PARAMETER.to_string(),
+                    convention.to_string(),
+                )]),
+                ..Default::default()
+            },
+        );
+        base
+    }
+
+    fn axis_over_the_convention(options: Vec<String>) -> Axis {
+        Axis {
+            slot: crate::slots::epoch_impulse::CONSTRUCT.to_string(),
+            parameter: Some(crate::slots::epoch_impulse::CONVENTION_PARAMETER.to_string()),
+            values: Vec::new(),
+            options,
+            method_ids: Vec::new(),
+        }
+    }
+
+    /// An enumerated setting is a setting, and the axis carried numbers only.
+    ///
+    /// The convention an impulse is added up under is a name, and net against gross over one
+    /// epoch differ by the system weight across it, so the two names sit as far apart as two
+    /// rules do. Nothing on any surface could ask for that comparison.
+    #[test]
+    fn the_names_a_rule_takes_sweep_the_way_its_numbers_do() {
+        let response = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base_over_an_epoch_impulse(crate::slots::epoch_impulse::NET),
+                axes: vec![axis_over_the_convention(vec![
+                    crate::slots::epoch_impulse::NET.to_string(),
+                    crate::slots::epoch_impulse::GROSS.to_string(),
+                ])],
+                quantity_key: crate::slots::epoch_impulse::KEY.to_string(),
+                maximum_combinations: 512,
+            },
+        )
+        .expect("the convention is a name this rule takes");
+
+        println!(
+            "{} of {} succeeded, spread {:?}",
+            response.succeeded, response.combinations_run, response.spread_absolute
+        );
+        assert_eq!(response.combinations_run, 2);
+        assert_eq!(response.succeeded, 2);
+        assert!(
+            response.spread_absolute.is_some_and(|spread| spread > 0.0),
+            "the two conventions produced one number: {:?}",
+            response.spread_absolute
+        );
+
+        // The record names what was compared and what it was compared under, so a reader of
+        // the figure can see the set. An axis over names reports its alternatives where an
+        // axis over numbers reports its own, because the terminal's grammar calls both a
+        // value and a reader of this field is asking how many there were.
+        assert_eq!(response.axes_varied.len(), 1);
+        assert_eq!(response.axes_varied[0].values_varied, 2);
+        assert_eq!(response.axes_varied[0].rules_varied, 0);
+        assert_eq!(
+            response.axes_varied[0].parameter.as_deref(),
+            Some(crate::slots::epoch_impulse::CONVENTION_PARAMETER)
+        );
+        // The name each variant ran under, so the number carries the choice that produced it.
+        assert_eq!(
+            response
+                .variants
+                .iter()
+                .map(|variant| variant.settings.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                vec![("convention".to_string(), "gross".to_string())],
+                vec![("convention".to_string(), "net".to_string())],
+            ]
+        );
+    }
+
+    /// The names along an axis are a set of choices, and a caller who typed them in another
+    /// order was reporting the same sweep. The same property the values already hold.
+    #[test]
+    fn the_order_the_caller_typed_the_names_in_does_not_reach_the_document() {
+        let sweep = |options: Vec<String>| {
+            run(
+                &synthetic(),
+                &SpreadRequest {
+                    base: base_over_an_epoch_impulse(crate::slots::epoch_impulse::NET),
+                    axes: vec![axis_over_the_convention(options)],
+                    quantity_key: crate::slots::epoch_impulse::KEY.to_string(),
+                    maximum_combinations: 512,
+                },
+            )
+            .expect("the convention is a name this rule takes")
+        };
+        let one_way = sweep(vec!["net".to_string(), "gross".to_string()]);
+        let the_other = sweep(vec!["gross".to_string(), "net".to_string()]);
+        assert!(
+            one_way.succeeded > 1,
+            "no combination produced a value, so the documents agree about nothing in them"
+        );
+        assert_eq!(
+            serde_json::to_string(&one_way.variants).expect("variants serialise"),
+            serde_json::to_string(&the_other.variants).expect("variants serialise"),
+        );
+    }
+
+    /// An axis stating two sets of alternatives has no width between them, and a precedence
+    /// picking one would report every figure over a set the caller did not name.
+    #[test]
+    fn an_axis_comparing_two_kinds_at_once_is_refused_rather_than_settled_by_precedence() {
+        let mut crowded = axis_over_the_convention(vec!["net".to_string(), "gross".to_string()]);
+        crowded.values = vec![100.0, 200.0, 300.0];
+
+        let refusal = run(
+            &synthetic(),
+            &SpreadRequest {
+                base: base_over_an_epoch_impulse(crate::slots::epoch_impulse::NET),
+                axes: vec![crowded],
+                quantity_key: crate::slots::epoch_impulse::KEY.to_string(),
+                maximum_combinations: 512,
+            },
+        )
+        .expect_err("an axis comparing two kinds is refused");
+        println!("{refusal}");
+        assert_eq!(refusal.code, plateforce_core::RefusalCode::ValueNotAccepted);
+        assert_eq!(
+            refusal.parameter.as_deref(),
+            Some("epoch_impulse.convention")
+        );
+        assert_eq!(refusal.available, vec!["numbers", "names"]);
+        // The width is the point: read by a precedence this would have run three
+        // combinations or two, and reported its figure over whichever set won.
+        assert!(
+            refusal.message().contains("one axis compares one of them"),
+            "{}",
+            refusal.message()
+        );
+    }
+
     /// A set of one holds no disagreement, and the two ways a sweep reaches one both used to
     /// publish 0.0 for it.
     ///
@@ -773,6 +1045,7 @@ mod tests {
                         slot: "onset".into(),
                         parameter: Some("k".into()),
                         values,
+                        options: Vec::new(),
                         method_ids: Vec::new(),
                     }],
                     quantity_key: "time_to_takeoff_seconds".into(),
@@ -838,6 +1111,7 @@ mod tests {
             slot: slot.to_string(),
             parameter: None,
             values: Vec::new(),
+            options: Vec::new(),
             method_ids: crate::binding::bindings_for(slot)
                 .map(|binding| binding.id.to_string())
                 .collect(),
@@ -947,12 +1221,14 @@ mod tests {
             slot: "onset".into(),
             parameter: Some("k".into()),
             values: vec![2.0, 3.0, 5.0, 10.0],
+            options: Vec::new(),
             method_ids: Vec::new(),
         };
         let empty = || Axis {
             slot: "takeoff".into(),
             parameter: None,
             values: Vec::new(),
+            options: Vec::new(),
             method_ids: Vec::new(),
         };
         let sweep = |axes: Vec<Axis>| {
@@ -998,6 +1274,7 @@ mod tests {
             slot: "onset".into(),
             parameter: Some("k".into()),
             values: Vec::new(),
+            options: Vec::new(),
             method_ids: Vec::new(),
         }])
         .expect_err("a parameter named with no values is refused");
@@ -1017,6 +1294,7 @@ mod tests {
                         slot: "onset".into(),
                         parameter: Some("k".into()),
                         values,
+                        options: Vec::new(),
                         method_ids: Vec::new(),
                     }],
                     quantity_key: "time_to_takeoff_seconds".into(),
@@ -1060,6 +1338,7 @@ mod tests {
                         slot: "onset".into(),
                         parameter: Some("k".into()),
                         values: vec![100_000.0],
+                        options: Vec::new(),
                         method_ids: Vec::new(),
                     }],
                     quantity_key: quantity.to_string(),
@@ -1138,6 +1417,7 @@ mod a_slot_the_sweep_cannot_vary {
                 slot: slot.to_string(),
                 parameter: parameter.map(str::to_string),
                 values,
+                options: Vec::new(),
                 method_ids: Vec::new(),
             }],
             quantity_key: "jump_height_from_takeoff_meters".into(),
