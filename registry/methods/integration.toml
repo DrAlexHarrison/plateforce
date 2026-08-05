@@ -226,6 +226,9 @@ declared, the method should be unavailable rather than wrong. Every backward-int
 in-ground lab plates; portable plates may saturate on landing forces.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "integration.start.trial_start"
 construct = "takeoff_velocity"
@@ -371,6 +374,9 @@ A landing series and a jump series are anchored differently and the record has t
 which. Naming the jump's start on a series that began at touchdown would report an instant the
 integration did not use.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "integration.anchor.single_point"
