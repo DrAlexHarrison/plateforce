@@ -20,35 +20,17 @@ function currentAxes() {
   return axes;
 }
 
-const MOVEMENT_ONSET = 'movement_onset';
-
 const variesTheRule = (axis) => Boolean(axis.methodIds?.length);
 
-/*
- * What the panel varies before anyone has asked it to vary anything.
- *
- * Net impulse reliability runs from 0.984 to 0.479 across published rules for the start of
- * the movement on identical data, the widest published disagreement of the three constructs
- * a jump height passes through, so that is where the panel opens. Exported because it is
- * the one choice on this screen nobody makes explicitly, which is what a guard has to be
- * able to reach.
- *
- * There is no substitute construct. A panel that quietly opened on a different one would
- * report a spread over a setting the reader never chose, under a heading that says the
- * spread is what choosing costs them, and it would read exactly like a working panel.
- * Returning nothing is visible; substituting is not.
- */
+/* The opening population is every rule-varying construct on the quantity's path. */
 export function openingAxes(axes) {
-  const onTheConstruct = axes.filter((axis) => axis.construct === MOVEMENT_ONSET);
-  const chosen = onTheConstruct.find(variesTheRule) || onTheConstruct[0];
-  return chosen ? [chosen] : [];
+  return axes.filter(variesTheRule);
 }
 
 function openingSummary(axes) {
-  if (!axes.length) {
-    return 'Nothing is varying yet. Tick a setting below to see how far the number moves across its published values.';
-  }
-  return `Opening on ${axes.map((axis) => `${axis.label.toLowerCase()}, ${axis.display}`).join('; ')}.`;
+  if (!axes.length) return 'Choose at least one setting.';
+  const names = axes.map((axis) => axis.label.split(':')[0]);
+  return `Varying: ${names.join(', ')}.`;
 }
 
 export function renderSpreadControls() {
@@ -117,7 +99,9 @@ const SETTLE_MILLISECONDS = 120;
 let settling = null;
 
 export function scheduleSpread() {
-  showPreviousPositionAsPrevious();
+  const host = $('spread-result');
+  if (host.firstChild) showPreviousPositionAsPrevious();
+  else host.replaceChildren(element('p', 'panel__sub spread-pending', 'Calculating spread…'));
   clearTimeout(settling);
   settling = setTimeout(() => {
     settling = null;
@@ -135,8 +119,8 @@ function showPreviousPositionAsPrevious() {
   host.prepend(
     notice(
       'warning',
-      'These figures are for where the marker was',
-      'They were computed before you moved it, and they catch up when it comes to rest.',
+      'Updating spread',
+      'Values below use the previous marker position.',
     ),
   );
 }
@@ -147,7 +131,7 @@ export function runSpread() {
   const axes = currentAxes().filter((axis) => state.spread.axes.has(axis.id));
   if (!axes.length) {
     host.replaceChildren(
-      notice('warning', 'Nothing selected to vary', 'Tick at least one parameter above to see how far the number moves across its published values.'),
+      notice('warning', 'Nothing selected', 'Choose at least one setting to vary.'),
     );
     return;
   }
@@ -168,16 +152,18 @@ export function runSpread() {
     ),
   );
   if (answer.refusal) {
-    host.replaceChildren(notice('danger', 'The sweep could not run', answer.refusal.message));
+    state.spread.result = null;
+    host.replaceChildren(notice('danger', 'Spread unavailable', answer.refusal.message));
     return;
   }
   const result = answer.ok;
+  state.spread.result = result;
 
   host.replaceChildren();
   const label = state.analysis.metrics.find((m) => m.key === result.quantity_key)?.label || result.quantity_key;
 
   if (result.succeeded === 0) {
-    host.append(notice('danger', 'Every alternative failed on this trial', `${result.failed} of ${result.combinations_run} combinations found no crossing.`));
+    host.append(notice('danger', 'No combination produced a value', `${result.failed} of ${result.combinations_run} failed.`));
     return;
   }
 
@@ -188,17 +174,16 @@ export function runSpread() {
     element(
       'p',
       'spread-headline__text',
-      `${label} spans ${formatNumber(result.spread_absolute, result.unit)} ${result.unit_symbol} across ` +
-        `${result.succeeded} defensible alternatives on this one trial, which is ${percent == null ? 'an undefined fraction' : `${percent.toFixed(1)} percent`} of its own median. ` +
-        `Every one of those settings appears in the published literature.` +
-        (result.capped ? ` Showing ${result.combinations_run} of ${result.combinations_requested} combinations.` : '') +
-        (result.failed ? ` ${result.failed} combinations produced no value and are listed below.` : ''),
+      `${label}: ${formatNumber(result.spread_absolute, result.unit)} ${result.unit_symbol} across ` +
+        `${result.succeeded} of ${result.combinations_run} combinations.` +
+        (result.capped ? ` Capped from ${result.combinations_requested}.` : '') +
+        (result.failed ? ` ${result.failed} failed.` : ''),
     ),
   );
   host.append(headline);
   host.append(whatMoved(result));
   host.append(spreadAxisPlot(result));
-  host.append(spreadTable(result, label));
+  host.append(spreadTables(result, label));
 }
 
 /* Which choices this figure is a spread over, and which stood still.
@@ -214,19 +199,19 @@ function whatMoved(result) {
 
   const wrap = element('div', 'spread-scope');
   if (varied.length > 0) {
-    const names = varied.map((axis) => `${axis.construct} (${axis.rules_varied} rules)`).join(', ');
-    wrap.append(element('p', 'panel__sub', `Varied ${names}.`));
+    const names = varied.map((axis) => `${spokenConstruct(axis.construct)} (${axis.rules_varied} rules)`).join(', ');
+    wrap.append(element('p', 'panel__sub', `Varied: ${names}.`));
   }
-  for (const rule of held) {
-    wrap.append(
-      element(
-        'p',
-        'panel__sub',
-        `Held ${rule.construct} at ${rule.method_id}, so this spread is not over it.`,
-      ),
-    );
+  if (held.length > 0) {
+    const names = held.map((rule) => `${spokenConstruct(rule.construct)} at ${rule.method_id}`).join('; ');
+    wrap.append(element('p', 'panel__sub', `Fixed: ${names}.`));
   }
   return wrap;
+}
+
+function spokenConstruct(id) {
+  const entry = state.registry.constructs.find((construct) => construct.id === id);
+  return entry?.label || entry?.title || id;
 }
 
 function spreadAxisPlot(result) {
@@ -236,7 +221,6 @@ function spreadAxisPlot(result) {
   const span = high - low || 1;
   const position = (value) => `${(((value - low) / span) * 96 + 2).toFixed(2)}%`;
 
-  wrap.append(element('span', 'spread-axis__legend', 'each tick is one published alternative'));
   wrap.append(element('div', 'spread-axis__line'));
   const bar = element('div', 'spread-axis__span');
   bar.style.left = position(low);
@@ -253,7 +237,7 @@ function spreadAxisPlot(result) {
   if (result.baseline_value != null) {
     const tick = element('div', 'spread-tick spread-tick--baseline');
     tick.style.left = position(result.baseline_value);
-    tick.title = `your current setting: ${formatNumber(result.baseline_value, result.unit)} ${result.unit_symbol}`;
+    tick.title = `Current setting: ${formatNumber(result.baseline_value, result.unit)} ${result.unit_symbol}`;
     wrap.append(tick);
   }
 
@@ -274,8 +258,28 @@ function readableLabel(variant) {
     .join(', ');
 }
 
-function spreadTable(result, label) {
+function spreadTables(result, label) {
+  if (result.variants.length <= 12) return spreadTable(result, label, result.variants);
+
+  const valued = result.variants.filter((variant) => variant.value != null);
+  const low = valued.reduce((found, variant) => !found || variant.value < found.value ? variant : found, null);
+  const high = valued.reduce((found, variant) => !found || variant.value > found.value ? variant : found, null);
+  const endpoints = [...new Set([low, high].filter(Boolean))];
+
+  const wrap = element('div', 'spread-tables');
+  wrap.append(element('p', 'panel__sub spread-table-count', `${endpoints.length} shown of ${result.variants.length} combinations.`));
+  wrap.append(spreadTable(result, label, endpoints, 'spread-summary'));
+
+  const all = element('details', 'spread-all');
+  all.append(element('summary', null, `Show all ${result.variants.length} combinations`));
+  all.append(spreadTable(result, label, result.variants));
+  wrap.append(all);
+  return wrap;
+}
+
+function spreadTable(result, label, variants, className = '') {
   const scroll = element('div', 'table-scroll');
+  if (className) scroll.classList.add(className);
   const table = element('table', 'data');
   const head = element('thead');
   const headRow = element('tr');
@@ -286,7 +290,7 @@ function spreadTable(result, label) {
   table.append(head);
 
   const body = element('tbody');
-  const sorted = [...result.variants].sort((a, b) => {
+  const sorted = [...variants].sort((a, b) => {
     if (a.value == null) return 1;
     if (b.value == null) return -1;
     return a.value - b.value;

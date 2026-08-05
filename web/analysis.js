@@ -6,7 +6,7 @@ import { rankCandidates, initialParameters, namedValues, findMethod } from './re
 import { candidateFor, renderBuildInfo } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
 import { renderSpreadControls, scheduleSpread } from './spread.js';
-import { openDrawer, openAccount } from './drawer.js';
+import { openMetricRecord } from './drawer.js';
 import { captureJson, recordAttribution, renderChip } from './plate.js';
 
 /*
@@ -167,7 +167,7 @@ export function buildRequest() {
 
 export function runAnalysis() {
   if (!state.loadedTrial) return;
-  $('reset-markers').disabled = !Object.values(state.overrides).some((value) => value != null);
+  $('reset-markers').hidden = !Object.values(state.overrides).some((value) => value != null);
 
   /*
    * A decision nobody has made does not stop the number arriving. It changes what the
@@ -180,12 +180,12 @@ export function runAnalysis() {
 
   const unbound = state.slots.filter((slot) => !boundMethodId(slot.key));
   if (unbound.length) {
-    $('metric-grid').replaceChildren();
+    clearMetricGrids();
     $('analysis-warnings').replaceChildren(
       notice(
         'danger',
-        'This trial cannot be analysed yet',
-        `No rule this build runs is published for ${unbound.map((slot) => slot.title).join(' or ')}.`,
+        'Analysis unavailable',
+        `No published rule for ${unbound.map((slot) => slot.title).join(' or ')}.`,
       ),
     );
     return;
@@ -204,17 +204,17 @@ export function runAnalysis() {
       state.loadedTrial.analyse(JSON.stringify(buildRequest()), state.fileName, captureJson()),
     );
   } catch (raised) {
-    $('metric-grid').replaceChildren();
+    clearMetricGrids();
     $('analysis-warnings').replaceChildren(
-      notice('danger', 'The plate could not be read', String(raised?.message ?? raised)),
+      notice('danger', 'Plate data error', String(raised?.message ?? raised)),
     );
     return;
   }
   if (answer.refusal) {
     state.analysisRefusal = answer.refusal;
-    $('metric-grid').replaceChildren();
+    clearMetricGrids();
     $('analysis-warnings').replaceChildren(
-      notice('danger', 'The analysis could not run', refusalSentence(answer.refusal)),
+      notice('danger', 'Analysis declined', refusalSentence(answer.refusal)),
     );
     return;
   }
@@ -274,9 +274,15 @@ export function acceptRecommended() {
 
 const HEADLINE = new Set(['time_to_takeoff_seconds', 'jump_height_from_takeoff_meters']);
 
+function clearMetricGrids() {
+  $('headline-metric-grid').replaceChildren();
+  $('metric-grid').replaceChildren();
+}
+
 function renderMetrics() {
+  const headlineGrid = $('headline-metric-grid');
   const grid = $('metric-grid');
-  grid.replaceChildren();
+  clearMetricGrids();
 
   // Where each signal was said in full, so the cards it also qualifies point at it rather
   // than repeating it. A signal about seven absent values is one finding, and a reader who
@@ -303,13 +309,14 @@ function renderMetrics() {
       card.append(element('p', 'metric__value metric__value--absent', 'No value on this trial'));
     } else {
       const value = element('p', 'metric__value', formatted);
-      value.append(element('small', null, metric.unit_symbol));
+      const primary = element('span', 'metric__primary', formatted);
+      primary.append(element('small', null, metric.unit_symbol));
+      value.replaceChildren(primary);
       const secondary = secondaryDisplay(metric);
-      if (secondary) value.append(element('small', null, `= ${secondary}`));
+      if (secondary) value.append(element('small', 'metric__secondary', `= ${secondary}`));
       card.append(value);
     }
 
-    if (metric.note) card.append(element('p', 'metric__note', metric.note));
     if (restingOn.length) card.append(stillToBeChosen(restingOn));
     for (const signal of signalsQualifying(metric.key)) {
       const already = saidUnder.get(signal);
@@ -323,14 +330,13 @@ function renderMetrics() {
     // The rule that produced this number leads the rules that fed it. The record names the
     // two separately and the card was drawing only the second, so seven of eleven values
     // listed their inputs and not the rule that computed them.
-    const rules = provenanceRow([metric.computed_by, ...metric.contributing_method_ids].filter(Boolean));
+    const ruleIds = [metric.computed_by, ...metric.contributing_method_ids].filter(Boolean);
     // After the parts, the whole: the rules above are the pieces, and the account is the
     // assembly with every value each was bound to. A quantity the trial produced no number
     // for has none, because an account is written around a measurement.
     const account = state.analysis.descriptions?.[metric.key];
-    if (account) rules.append(accountControl(metric.label, account));
-    card.append(rules);
-    grid.append(card);
+    card.append(metricRecord(metric.label, account, ruleIds));
+    (HEADLINE.has(metric.key) ? headlineGrid : grid).append(card);
   }
 
   const host = $('analysis-warnings');
@@ -344,11 +350,11 @@ function renderMetrics() {
   // carries is dropped from the second: one fact, said once, by the rule that said it.
   const declined = new Set((state.analysis.refusals || []).map((refusal) => refusal.message));
   for (const refusal of state.analysis.refusals || []) {
-    host.append(notice('danger', 'A rule declined', refusalSentence(refusal)));
+    host.append(notice('danger', 'Declined', refusalSentence(refusal)));
   }
   for (const warning of state.analysis.warnings) {
     if (declined.has(warning)) continue;
-    host.append(notice('warning', 'The rule reported a problem', warning));
+    host.append(notice('warning', 'Warning', warning));
   }
 }
 
@@ -396,7 +402,7 @@ function signalSaidUnder(signal, said) {
   line.type = 'button';
   // The comparison is named where it is stated rather than a second time here. Repeating a
   // label this long turns the sixth of seven of these into six lines a reader scrolls past.
-  line.append(element('span', null, `The reason is stated under ${said.label}`));
+  line.append(element('span', null, `See ${said.label}`));
   line.addEventListener('click', () => {
     said.card.scrollIntoView({ block: 'center' });
   });
@@ -425,7 +431,7 @@ function renderSignal(signal) {
   );
 
   if (signal.remedy_construct) {
-    const choose = element('button', 'chip', 'Choose the rule');
+    const choose = element('button', 'chip', 'Choose method');
     choose.type = 'button';
     choose.addEventListener('click', () => {
       const select = document.querySelector(`#decision-list select[data-construct="${signal.remedy_construct}"]`);
@@ -442,23 +448,9 @@ function renderSignal(signal) {
  * choice is a different number, which is the thing the reader is being asked to see. */
 function stillToBeChosen(slots) {
   const line = element('p', 'metric__provisional');
-  line.append(element('strong', null, 'provisional'));
-  for (const slot of slots) {
-    const id = boundMethodId(slot.key);
-    const sentence = element('span');
-    sentence.append(document.createTextNode(`${slot.title} is still to be chosen. `));
-    sentence.append(element('code', null, id));
-    sentence.append(document.createTextNode(' produced this one.'));
-    line.append(sentence);
-  }
-  const choose = element('button', 'chip', slots.length > 1 ? 'Choose the rules' : 'Choose the rule');
-  choose.type = 'button';
-  choose.addEventListener('click', () => {
-    const select = document.querySelector(`#decision-list select[data-construct="${slots[0].construct}"]`);
-    select?.scrollIntoView({ block: 'center' });
-    select?.focus();
-  });
-  line.append(choose);
+  const count = slots.length;
+  line.textContent = `Provisional · ${count} method ${count === 1 ? 'choice' : 'choices'} open`;
+  line.title = slots.map((slot) => `${slot.title}: ${boundMethodId(slot.key)}`).join('; ');
   return line;
 }
 
@@ -482,12 +474,12 @@ export function methodTitle(id) {
  * rather than as silence, which is the failure this whole surface exists to stop.
  */
 const HOW_A_RULE_WAS_CHOSEN = {
-  stated: (rule) => `you chose ${rule}`,
-  recommended: (rule) => `you took ${rule} from the recommendation`,
-  assumed: (rule) => `nobody chose ${rule}`,
-  cited: (rule, preset) => `${preset ? `the ${preset} pipeline` : 'a published pipeline'} bound ${rule}`,
-  measured: (rule) => `${rule} was read off this trace`,
-  provisional: (rule) => `nobody has chosen ${rule}`,
+  stated: () => 'Chosen by you',
+  recommended: () => 'Recommended',
+  assumed: () => 'Default',
+  cited: (_rule, preset) => preset ? `${preset} pipeline` : 'Published pipeline',
+  measured: () => 'Measured here',
+  provisional: () => 'Not chosen',
 };
 
 /*
@@ -508,7 +500,7 @@ export function ruleSourceText(bound, rule = 'this rule') {
 export function ruleSourceLine(bound, rule) {
   const text = ruleSourceText(bound, rule);
   if (!text) return null;
-  const line = element('p', 'rule-source', text);
+  const line = element('span', 'rule-source', text);
   line.dataset.method = bound.method_id;
   return line;
 }
@@ -545,66 +537,15 @@ export function boundValueText(bound, separator = ' ') {
   );
 }
 
-function accountControl(label, account) {
-  const open = element('button', 'chip', 'How this number was produced');
-  open.type = 'button';
-  open.addEventListener('click', () => openAccount(label, account));
-  return open;
-}
+function metricRecord(label, account, methodIds) {
+  const ids = [...new Set(methodIds)];
+  const button = element('button', 'metric-record');
+  button.type = 'button';
+  button.append(element('span', 'metric-record__name provenance__name', 'Methods'));
 
-function provenanceRow(methodIds) {
-  const row = element('div', 'metric__provenance');
-  const seen = new Set();
-  for (const id of methodIds) {
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const bound = state.analysis.bound_methods.find((entry) => entry.method_id === id);
-    const method = findMethod(state.registry, id);
-    /*
-     * Whether the registry carries this rule, asked of the registry itself where the record
-     * holds no row for it.
-     *
-     * A rule that ran as another rule's named value never gets a row, and reading the missing
-     * row as the registry's silence told a reader that four entries the registry does carry
-     * were unfiled. The question asked here is the one the request already asks when it names
-     * the ids this build treats as backed, so the two cannot answer differently.
-     */
-    const backed = bound ? bound.registry_backed : Boolean(method) && state.build.registry_valid;
-
-    const item = element('button', 'provenance');
-    item.type = 'button';
-    if (!backed) item.classList.add('provenance--unbacked');
-
-    item.append(element('span', `status-dot status-dot--${method?.status || 'legacy'}`));
-    item.append(element('span', 'provenance__name', methodTitle(id)));
-
-    const badges = element('span', 'provenance__badges');
-    if (method?.failure) {
-      badges.append(element('span', 'tag tag--fails', `${(method.failure.rate * 100).toFixed(0)}% fail`));
-    }
-    if (bound?.manual_override) badges.append(element('span', 'tag tag--decide', 'dragged'));
-    const binding = state.build.bindings.find((entry) => entry.id === id);
-    if (!backed) {
-      badges.append(element('span', 'tag tag--advanced', binding?.composed_from ? 'composed' : 'unfiled'));
-    }
-    item.append(badges);
-
-    const parameters = boundValueText(bound).join(', ');
-    const unread = bound?.unread_parameters?.length
-      ? `not taken by this rule: ${bound.unread_parameters.join(', ')}`
-      : '';
-    const absence = binding?.composed_from
-      ? `composition of ${binding.composed_from}`
-      : 'no registry row carries this id';
-    // The record's word about this id, off its own row where it has one and off the rule that
-    // bound it where it does not. Beside the id rather than only in the panel this chip opens,
-    // so a reader running a pointer down the list meets it without opening eleven panels.
-    const claimed = bound ?? claimAboutABoundValue(id);
-    item.title = [id, ruleSourceText(claimed), parameters, unread, backed ? '' : absence]
-      .filter(Boolean)
-      .join(' | ');
-    item.addEventListener('click', () => openDrawer(method, id, claimed));
-    row.append(item);
-  }
-  return row;
+  const count = `${ids.length} ${ids.length === 1 ? 'rule' : 'rules'}`;
+  button.append(element('span', 'metric-record__count', count));
+  button.title = ids.join(' | ');
+  button.addEventListener('click', () => openMetricRecord(label, account, ids));
+  return button;
 }

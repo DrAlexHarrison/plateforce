@@ -8,14 +8,28 @@
  */
 
 const MARGIN = { left: 58, right: 14, top: 16, bottom: 44 };
-const MARKERS = [
-  { key: 'onset', label: 'Onset', className: 'marker--onset' },
-  { key: 'takeoff', label: 'Takeoff', className: 'marker--takeoff' },
-  { key: 'touchdown', label: 'Touchdown', className: 'marker--touchdown' },
-];
+
+/* The three landmark tracks mirror the response's three index fields. Their spoken labels
+ * still come from the loaded registry or decision model, so the trace and rail cannot drift. */
+export function landmarkDefinitions(registry, slots) {
+  const identity = [
+    ['onset', 'movement_onset', 'marker--onset'],
+    ['takeoff', 'takeoff', 'marker--takeoff'],
+    ['touchdown', 'landing', 'marker--touchdown'],
+  ];
+  return identity.map(([key, construct, className]) => {
+    const slot = slots.find((entry) => entry.key === key || entry.construct === construct);
+    const entry = registry.constructs.find((candidate) => candidate.id === construct);
+    return { key, className, label: slot?.title || entry?.label || entry?.title || construct };
+  });
+}
 
 function readColour(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function formatForce(value) {
+  return Math.abs(value) >= 100 ? value.toFixed(0) : value.toFixed(1);
 }
 
 function niceTicks(low, high, target) {
@@ -32,16 +46,21 @@ function niceTicks(low, high, target) {
 }
 
 export class TraceChart {
-  constructor({ container, canvas, overlay, onMarkerMove, onWindowChange }) {
+  constructor({ container, canvas, overlay, markers, onMarkerMove, onWindowChange, onViewChange }) {
     this.container = container;
     this.canvas = canvas;
     this.overlay = overlay;
     this.onMarkerMove = onMarkerMove;
     this.onWindowChange = onWindowChange;
+    this.onViewChange = onViewChange;
+    this.markerDefinitions = markers;
 
     this.envelope = null;
     this.analysis = null;
     this.sampleRateHz = 1;
+    this.totalSamples = 1;
+    this.viewStart = 0;
+    this.viewEnd = 0;
     this.plot = { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 };
 
     this.buildOverlay();
@@ -73,7 +92,7 @@ export class TraceChart {
       return { edge, element: handle };
     });
 
-    this.markers = MARKERS.map((definition) => {
+    this.markers = this.markerDefinitions.map((definition) => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = `marker ${definition.className}`;
@@ -87,19 +106,31 @@ export class TraceChart {
       this.overlay.append(element);
       return { ...definition, element, labelElement: label };
     });
+
+    this.crosshair = document.createElement('div');
+    this.crosshair.className = 'chart-crosshair';
+    this.crosshair.hidden = true;
+    this.crosshair.innerHTML =
+      '<i class="chart-crosshair__vertical"></i>' +
+      '<i class="chart-crosshair__horizontal"></i>' +
+      '<span class="chart-crosshair__label"></span>';
+    this.crosshairLabel = this.crosshair.querySelector('.chart-crosshair__label');
+    this.crosshairHorizontal = this.crosshair.querySelector('.chart-crosshair__horizontal');
+    this.overlay.append(this.crosshair);
+
+    this.container.addEventListener('pointermove', (event) => this.showCrosshair(event));
+    this.container.addEventListener('pointerleave', () => { this.crosshair.hidden = true; });
   }
 
   /* ---------------------------------------------------------------- geometry */
 
   indexToX(index) {
-    const count = this.envelope ? this.envelope.sample_count : 1;
-    return this.plot.left + (index / Math.max(1, count - 1)) * this.plot.width;
+    return this.plot.left + ((index - this.viewStart) / Math.max(1, this.viewEnd - this.viewStart)) * this.plot.width;
   }
 
   xToIndex(x) {
-    const count = this.envelope ? this.envelope.sample_count : 1;
     const ratio = (x - this.plot.left) / Math.max(1, this.plot.width);
-    return Math.round(Math.min(1, Math.max(0, ratio)) * (count - 1));
+    return Math.round(this.viewStart + Math.min(1, Math.max(0, ratio)) * (this.viewEnd - this.viewStart));
   }
 
   forceToY(force) {
@@ -110,6 +141,72 @@ export class TraceChart {
   pointerIndex(event) {
     const bounds = this.canvas.getBoundingClientRect();
     return this.xToIndex(event.clientX - bounds.left);
+  }
+
+  showCrosshair(event) {
+    if (!this.envelope || !this.analysis) return;
+    if (event.target instanceof Element && event.target.closest('.marker, .window-body, .window-handle')) {
+      this.crosshair.hidden = true;
+      return;
+    }
+    const bounds = this.canvas.getBoundingClientRect();
+    const pointerX = event.clientX - bounds.left;
+    if (pointerX < this.plot.left || pointerX > this.plot.right) {
+      this.crosshair.hidden = true;
+      return;
+    }
+
+    const index = this.xToIndex(pointerX);
+    const ratio = (index - this.viewStart) / Math.max(1, this.viewEnd - this.viewStart);
+    const bucket = Math.min(
+      this.envelope.lower.length - 1,
+      Math.max(0, Math.round(ratio * Math.max(0, this.envelope.lower.length - 1))),
+    );
+    const low = this.envelope.lower[bucket];
+    const high = this.envelope.upper[bucket];
+    if (!Number.isFinite(low) || !Number.isFinite(high)) {
+      this.crosshair.hidden = true;
+      return;
+    }
+
+    const nearest = this.markers
+      .map((marker) => ({ marker, index: this.analysis[`${marker.key}_index`] }))
+      .filter((entry) => entry.index != null)
+      .sort((left, right) => Math.abs(left.index - index) - Math.abs(right.index - index))[0];
+    const force = Math.abs(high - low) < 0.05
+      ? `${formatForce((low + high) / 2)} N`
+      : `${formatForce(low)} to ${formatForce(high)} N`;
+    this.crosshairLabel.textContent =
+      `${(index / this.sampleRateHz).toFixed(3)} s · ${force}` +
+      (nearest ? ` · ${nearest.marker.label}` : '');
+    this.crosshairLabel.style.maxWidth = `${this.plot.width}px`;
+
+    const x = this.indexToX(index);
+    const y = this.forceToY((low + high) / 2);
+    this.crosshair.style.left = `${x}px`;
+    this.crosshair.style.top = `${this.plot.top}px`;
+    this.crosshair.style.height = `${this.plot.height}px`;
+    this.crosshairHorizontal.style.top = `${Math.min(this.plot.height, Math.max(0, y - this.plot.top))}px`;
+    this.crosshairHorizontal.style.left = `${this.plot.left - x}px`;
+    this.crosshairHorizontal.style.width = `${this.plot.width}px`;
+    this.crosshair.hidden = false;
+    this.anchorLabel(this.crosshairLabel, x, 'chart-crosshair__label');
+  }
+
+  anchorLabel(label, x, baseClass) {
+    label.classList.remove(`${baseClass}--start`, `${baseClass}--end`);
+    const origin = baseClass === 'marker__label' ? '50%' : '0px';
+    label.style.left = origin;
+    const width = label.offsetWidth;
+    if (x - width / 2 < this.plot.left) {
+      label.classList.add(`${baseClass}--start`);
+      const offset = this.plot.left - x;
+      label.style.left = baseClass === 'marker__label' ? `calc(50% + ${offset}px)` : `${offset}px`;
+    } else if (x + width / 2 > this.plot.right) {
+      label.classList.add(`${baseClass}--end`);
+      const offset = this.plot.right - x;
+      label.style.left = baseClass === 'marker__label' ? `calc(50% + ${offset}px)` : `${offset}px`;
+    }
   }
 
   /* ---------------------------------------------------------------- dragging */
@@ -194,6 +291,48 @@ export class TraceChart {
     this.analysis = analysis;
   }
 
+  setRecording(sampleCount, sampleRateHz) {
+    this.totalSamples = Math.max(1, sampleCount);
+    this.sampleRateHz = sampleRateHz;
+    this.viewStart = 0;
+    this.viewEnd = this.totalSamples - 1;
+  }
+
+  visibleRange() {
+    return { start: this.viewStart, end: this.viewEnd };
+  }
+
+  setView(start, end) {
+    const fullSpan = Math.max(1, this.totalSamples - 1);
+    const minimumSpan = Math.min(fullSpan, Math.max(2, Math.round(this.sampleRateHz * 0.25)));
+    const span = Math.min(fullSpan, Math.max(minimumSpan, Math.round(end - start)));
+    const nextStart = Math.min(fullSpan - span, Math.max(0, Math.round(start)));
+    const changed = nextStart !== this.viewStart || nextStart + span !== this.viewEnd;
+    this.viewStart = nextStart;
+    this.viewEnd = nextStart + span;
+    if (changed) this.onViewChange?.(this.visibleRange());
+  }
+
+  zoom(factor) {
+    const centre = (this.viewStart + this.viewEnd) / 2;
+    const span = (this.viewEnd - this.viewStart) * factor;
+    this.setView(centre - span / 2, centre + span / 2);
+  }
+
+  pan(fraction) {
+    const span = this.viewEnd - this.viewStart;
+    const available = Math.max(0, this.totalSamples - 1 - span);
+    this.setView(available * Math.min(1, Math.max(0, fraction)), available * Math.min(1, Math.max(0, fraction)) + span);
+  }
+
+  fit() {
+    this.setView(0, this.totalSamples - 1);
+  }
+
+  isFit() {
+    return this.viewStart === 0 && this.viewEnd === this.totalSamples - 1;
+  }
+
   plotWidthPx() {
     return Math.max(120, Math.round(this.container.clientWidth - MARGIN.left - MARGIN.right));
   }
@@ -261,7 +400,7 @@ export class TraceChart {
     context.strokeStyle = colours.grid;
     context.fillStyle = colours.text;
     context.lineWidth = 1;
-    context.font = '11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    context.font = `${readColour('--text-xs')} ${readColour('--font-mono')}`;
 
     context.textAlign = 'right';
     context.textBaseline = 'middle';
@@ -276,8 +415,9 @@ export class TraceChart {
     }
     context.textAlign = 'center';
     context.textBaseline = 'top';
-    const durationSeconds = this.envelope.sample_count / this.sampleRateHz;
-    for (const seconds of niceTicks(0, durationSeconds, 8)) {
+    const startSeconds = this.viewStart / this.sampleRateHz;
+    const endSeconds = this.viewEnd / this.sampleRateHz;
+    for (const seconds of niceTicks(startSeconds, endSeconds, 8)) {
       const x = Math.round(this.indexToX(seconds * this.sampleRateHz)) + 0.5;
       if (x < this.plot.left - 1 || x > this.plot.right + 1) continue;
       context.fillText(seconds.toFixed(1), x, this.plot.bottom + 8);
@@ -386,17 +526,27 @@ export class TraceChart {
     const height = `${this.plot.height}px`;
 
     if (this.analysis) {
-      const left = this.indexToX(this.analysis.weighing_start_index);
-      const right = this.indexToX(this.analysis.weighing_end_index);
-      this.windowBody.style.cssText = `top:${top};height:${height};left:${left}px;width:${Math.max(2, right - left)}px`;
-      this.windowHandles[0].element.style.cssText = `top:${top};height:${height};left:${left}px`;
-      this.windowHandles[1].element.style.cssText = `top:${top};height:${height};left:${right}px`;
+      const start = this.analysis.weighing_start_index;
+      const end = this.analysis.weighing_end_index;
+      const visibleStart = Math.max(start, this.viewStart);
+      const visibleEnd = Math.min(end, this.viewEnd);
+      this.windowBody.hidden = visibleEnd <= visibleStart;
+      if (!this.windowBody.hidden) {
+        const left = this.indexToX(visibleStart);
+        const right = this.indexToX(visibleEnd);
+        this.windowBody.style.cssText = `top:${top};height:${height};left:${left}px;width:${Math.max(2, right - left)}px`;
+      }
+      for (const [index, value] of [start, end].entries()) {
+        const handle = this.windowHandles[index].element;
+        handle.hidden = value < this.viewStart || value > this.viewEnd;
+        if (!handle.hidden) handle.style.cssText = `top:${top};height:${height};left:${this.indexToX(value)}px`;
+      }
     }
 
     let labelRow = 0;
     for (const marker of this.markers) {
       const index = this.analysis ? this.analysis[`${marker.key}_index`] : null;
-      if (index == null) {
+      if (index == null || index < this.viewStart || index > this.viewEnd) {
         marker.element.hidden = true;
         continue;
       }
@@ -406,6 +556,7 @@ export class TraceChart {
       marker.element.style.left = `${this.indexToX(index)}px`;
       marker.element.dataset.index = String(index);
       marker.labelElement.style.top = `${labelRow * 20}px`;
+      this.anchorLabel(marker.labelElement, this.indexToX(index), 'marker__label');
       labelRow += 1;
 
       const seconds = index / this.sampleRateHz;

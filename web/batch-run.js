@@ -10,7 +10,13 @@
 import { batchJson } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
 import { element, showStage } from './format.js';
-import { renderBatch, renderProgress, WITH_PROVENANCE, WITHOUT_PROVENANCE } from './batch.js';
+import {
+  renderBatch,
+  renderProgress,
+  renderAnalysisProgress,
+  WITH_PROVENANCE,
+  WITHOUT_PROVENANCE,
+} from './batch.js';
 import { buildRequest } from './analysis.js';
 import { statedCapture, revisionNow } from './plate.js';
 
@@ -65,6 +71,10 @@ function currentRendering() {
   return $('batch-provenance').checked ? WITH_PROVENANCE : WITHOUT_PROVENANCE;
 }
 
+function showDeclined() {
+  return $('batch-declined').checked;
+}
+
 /* What the reader chose, stated before anything runs, against the denominator they handed
  * over. A file no declared ending names is listed by name with the ending that left it out. */
 export function declarationLine() {
@@ -117,6 +127,8 @@ export async function runFolder() {
   };
 
   try {
+    renderAnalysisProgress(host, named.length);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     state.run.envelope = batchJson(JSON.stringify(request));
   } catch (error) {
     const panel = element('section', 'panel panel--standalone');
@@ -137,11 +149,18 @@ export async function runFolder() {
  * run and the plate behind it may have moved since. */
 export function drawRun() {
   if (!state.run?.envelope) return;
-  renderBatch($('batch-result'), state.run.envelope, currentRendering(), revisionNow);
+  renderBatch(
+    $('batch-result'),
+    state.run.envelope,
+    currentRendering(),
+    revisionNow,
+    showDeclined(),
+  );
 }
 
 export function wireBatchControls() {
   $('batch-back').addEventListener('click', () => showStage('stage-workspace'));
   $('batch-provenance').addEventListener('change', drawRun);
+  $('batch-declined').addEventListener('change', drawRun);
   $('run-folder').addEventListener('click', runFolder);
 }

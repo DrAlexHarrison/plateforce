@@ -32,6 +32,12 @@ export function showStage(id) {
   for (const stage of document.querySelectorAll('.stage')) stage.hidden = stage.id !== id;
 }
 
+export function setWindowTitle(fileName = null) {
+  const title = fileName ? `${fileName} · plateforce` : 'plateforce';
+  document.title = title;
+  window.__TAURI_INTERNALS__?.invoke('plugin:window|set_title', { label: null, value: title }).catch(() => {});
+}
+
 /* The one reply shape the engine answers in, read once here. `{ok}` carries the result and
  * `{refusal}` carries the record: a code to branch on, the rule that declined, and what
  * could have been asked for instead. A refusal used to arrive as a thrown string, so the

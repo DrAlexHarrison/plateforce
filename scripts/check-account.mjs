@@ -145,7 +145,10 @@ await evaluate(`(() => {
   document.getElementById('columns-confirm').click();
 })()`);
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
-await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the results panel');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0",
+  'the results panel',
+);
 
 /*
  * Every card, walked in the order the analysis reported its quantities, opening whatever the
@@ -159,25 +162,25 @@ await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'th
 const painted = await evaluate(`(async () => {
   const { state } = await import('./state.js');
   const metrics = state.analysis.metrics;
-  const cards = [...document.querySelectorAll('#metric-grid .metric')];
-  const read = cards.map((card, index) => {
-    const metric = metrics[index];
+  const cards = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')];
+  const read = cards.map((card) => {
     const label = card.querySelector('.metric__label').textContent;
-    const control = [...card.querySelectorAll('.metric__provenance .chip')][0] ?? null;
+    const metric = metrics.find((candidate) => candidate.label === label);
+    const control = card.querySelector('.metric-record');
     const entry = {
       label,
       key: metric ? metric.key : null,
-      paired: Boolean(metric) && label === metric.label,
+      paired: Boolean(metric),
       valued: Boolean(card.querySelector('.metric__value')) && !card.querySelector('.metric__value--absent'),
       offered: Boolean(control),
       wording: control ? control.textContent.trim() : null,
+      count: control?.querySelector('.metric-record__count')?.textContent.trim() ?? null,
       written: metric ? state.analysis.descriptions[metric.key] ?? null : null,
       // Off the rendered row rather than off the record the row was drawn from, so the two
       // sides of the comparison below are two things a reader meets. Both read from the
       // record would agree by construction whatever the page drew. The id leads the title
       // the row carries, ahead of the values the rule was bound to.
-      rules: [...card.querySelectorAll('.metric__provenance .provenance')]
-        .map((rule) => rule.title.split(' | ')[0]),
+      rules: [],
       title: null,
       shown: null,
       blocks: 0,
@@ -187,6 +190,8 @@ const painted = await evaluate(`(async () => {
       entry.title = document.getElementById('drawer-title').textContent;
       entry.blocks = document.querySelectorAll('#drawer-body pre.account').length;
       entry.shown = document.querySelector('#drawer-body pre.account')?.textContent ?? null;
+      entry.rules = [...document.querySelectorAll('#drawer-body .method-list .provenance')]
+        .map((rule) => rule.title);
       document.querySelector('#method-drawer [data-close-drawer]').click();
     }
     return entry;
@@ -206,15 +211,21 @@ check('every card carries the quantity the analysis reported in that position',
 // Both halves against their own denominator. A value with no account is the state this
 // exists to forbid; an account under a card showing no number would assert a measurement
 // nobody made, which is the distinction `carried_no_number` was separated out to keep.
-check('every number on screen offers the account it gives of itself, and nothing else does',
-  valued.length > 0 && valued.every((card) => card.offered) && unvalued.every((card) => !card.offered),
+check('every result offers one method record, and only a reported number carries an account',
+  valued.length > 0
+    && cards.every((card) => card.offered)
+    && valued.every((card) => card.blocks === 1)
+    && unvalued.every((card) => card.blocks === 0),
   `${valued.filter((card) => card.offered).length} of ${valued.length} values offer one, ` +
-    `${unvalued.filter((card) => card.offered).length} of ${unvalued.length} cards showing no number offer one`);
+    `${unvalued.filter((card) => card.offered).length} of ${unvalued.length} absent values retain their rule record`);
 
 check('the panel opens on the number it was opened from, and on that one alone',
-  opened.length > 0 && opened.every((card) => card.title === card.label && card.blocks === 1),
+  opened.length > 0
+    && opened.every((card) => card.title === card.label)
+    && valued.every((card) => card.blocks === 1)
+    && unvalued.every((card) => card.blocks === 0),
   `${opened.filter((card) => card.title === card.label).length} of ${opened.length} titled with their own value, ` +
-    `${opened.filter((card) => card.blocks === 1).length} carrying one account`);
+    `${valued.filter((card) => card.blocks === 1).length} carrying one account`);
 
 const altered = opened.filter((card) => card.shown !== card.written);
 check('the account on screen is the one the engine wrote, character for character',
@@ -227,31 +238,37 @@ check('the account on screen is the one the engine wrote, character for characte
 // The account is the whole chain rather than the step that reported the number. A rule named
 // beside the value and absent from the account is a reader shown two records of one figure
 // that disagree about what produced it.
-const namedRules = opened.reduce((total, card) => total + card.rules.length, 0);
-const unnamed = opened.flatMap((card) =>
+const accounted = opened.filter((card) => card.valued);
+const namedRules = accounted.reduce((total, card) => total + card.rules.length, 0);
+const unnamed = accounted.flatMap((card) =>
   card.rules.filter((id) => !(card.shown ?? '').includes(id)).map((id) => `${card.key} ${id}`));
 check('the account names every rule the card names beside the number',
   namedRules > 0 && unnamed.length === 0,
-  `${namedRules - unnamed.length} of ${namedRules} rules across ${opened.length} accounts` +
+  `${namedRules - unnamed.length} of ${namedRules} rules across ${accounted.length} accounts` +
     (unnamed.length ? `, missing ${unnamed.slice(0, 3).join('; ')}` : ''));
 
 // The one label this rendering writes, held to the words the audience uses. The gate over
 // the markup cannot see it: it is built in a module and reaches the reader as a control.
 check('the control is worded in the reader’s words',
-  opened.length > 0 && opened.every((card) => card.wording === opened[0].wording) &&
-    !/\b(onset|threshold|epoch|filter|provenance|fingerprint)\b/i.test(opened[0].wording ?? ''),
-  `${opened.length} cards offering "${opened[0]?.wording ?? 'nothing'}"`);
+  opened.length > 0
+    && opened.every((card) => /^\d+ rules?$/.test(card.count ?? ''))
+    && opened.every((card) => !/\b(provenance|fingerprint|where this came from)\b/i.test(card.wording ?? '')),
+  `${opened.length} compact rule counts, first "${opened[0]?.wording ?? 'nothing'}"`);
 
 // The narrow viewport, with the panel open, where a block of preformatted text takes the
 // page sideways rather than scrolling inside its own frame.
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
 await new Promise((resolve) => setTimeout(resolve, 400));
 const narrow = await evaluate(`(() => {
-  const control = document.querySelector('#metric-grid .metric__provenance .chip');
+  const control = document.querySelector('#metric-grid .metric-record');
   if (!control) return { reached: false };
   const box = control.getBoundingClientRect();
   control.click();
+  const details = document.querySelector('#drawer-body .metric-account');
+  if (details) details.open = true;
   const account = document.querySelector('#drawer-body pre.account');
+  const panel = document.querySelector('.drawer__panel');
+  const rows = [...document.querySelectorAll('#drawer-body .method-list .provenance')];
   return {
     reached: Boolean(account),
     side: Math.round(Math.min(box.width, box.height)),
@@ -262,6 +279,8 @@ const narrow = await evaluate(`(() => {
     carriage: account ? getComputedStyle(account).overflowX : null,
     wider: account ? account.scrollWidth > account.clientWidth : null,
     size: account ? parseFloat(getComputedStyle(account).fontSize) : null,
+    panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : null,
+    rowsFit: rows.every((row) => row.scrollWidth <= row.clientWidth),
   };
 })()`);
 await send('Emulation.clearDeviceMetricsOverride');
@@ -270,9 +289,14 @@ check('at 390 px the control clears 44 px on its short side',
   narrow.reached && narrow.side >= 44,
   narrow.reached ? `${narrow.side} px` : 'no account to open at 390 px');
 check('at 390 px a line too long for the panel scrolls inside the account, not across the page',
-  narrow.reached && narrow.overflow <= 0 && ['auto', 'scroll'].includes(narrow.carriage),
   narrow.reached
-    ? `${narrow.overflow} px of horizontal overflow, the account carrying overflow-x ${narrow.carriage} and ` +
+    && narrow.overflow <= 0
+    && narrow.panelOverflow <= 0
+    && narrow.rowsFit
+    && ['auto', 'scroll'].includes(narrow.carriage),
+  narrow.reached
+    ? `${narrow.overflow} px page overflow, ${narrow.panelOverflow} px panel overflow, ` +
+      `${narrow.rowsFit ? 'method rows fit' : 'method rows escape'}, the account carrying overflow-x ${narrow.carriage} and ` +
       `${narrow.wider ? 'wider than' : 'inside'} its frame at ${narrow.size} px`
     : 'no account to open at 390 px');
 

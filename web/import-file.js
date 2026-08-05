@@ -2,7 +2,7 @@
 
 import { ForceFile } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
-import { element, showStage } from './format.js';
+import { element, setWindowTitle, showStage } from './format.js';
 import { renderColumnChooser, confirmColumns, loadDemonstration } from './import-columns.js';
 import { runAnalysis } from './analysis.js';
 import { endingOf, endingsChosen } from './batch-run.js';
@@ -36,9 +36,9 @@ export function wireGlobalControls() {
   });
 
   $('load-demo').addEventListener('click', (event) => { event.stopPropagation(); loadDemonstration(); });
-  $('columns-cancel').addEventListener('click', () => showStage('stage-empty'));
+  $('columns-cancel').addEventListener('click', () => { setWindowTitle(); showStage('stage-empty'); });
   $('columns-confirm').addEventListener('click', confirmColumns);
-  $('change-file').addEventListener('click', () => showStage('stage-empty'));
+  $('change-file').addEventListener('click', () => { setWindowTitle(); showStage('stage-empty'); });
   $('reset-markers').addEventListener('click', () => {
     state.overrides = { onset: null, takeoff: null, touchdown: null };
     runAnalysis();
@@ -100,6 +100,7 @@ async function readFile(file) {
     state.file?.free?.();
     state.file = ForceFile.parse(text);
     state.fileName = file.name;
+    setWindowTitle(file.name);
     renderColumnChooser(file.name, JSON.parse(state.file.summaryJson()));
     showStage('stage-columns');
   } catch (error) {

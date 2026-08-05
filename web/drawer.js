@@ -22,12 +22,64 @@ export function openAccounts(title, accounts) {
   fill(
     title,
     accounts.map(([quantity, account]) => {
-      const wrap = element('section');
-      wrap.append(element('h3', null, quantity));
-      wrap.append(accountBlock(account));
+      const wrap = element('details', 'metric-account');
+      wrap.append(element('summary', null, quantity), accountBlock(account));
       return wrap;
     }),
   );
+}
+
+/* One metric's account and every rule named in its record. */
+export function openMetricRecord(title, account, methodIds) {
+  const section = element('section');
+  section.append(element('h3', null, 'Methods'));
+  const list = element('div', 'method-list');
+  for (const id of [...new Set(methodIds)]) list.append(methodRecordRow(id));
+  section.append(list);
+  const nodes = [section];
+  if (account) {
+    const details = element('details', 'metric-account');
+    details.append(element('summary', null, 'Calculation account'), accountBlock(account));
+    nodes.push(details);
+  }
+  fill(title, nodes);
+}
+
+function recordFor(methodId) {
+  const direct = state.analysis?.bound_methods?.find((entry) => entry.method_id === methodId);
+  if (direct) return direct;
+  for (const row of state.analysis?.bound_methods || []) {
+    const pair = (row.bound_parameters || []).find(([, value]) => value === methodId);
+    if (pair) return { method_id: methodId, method_source: row.parameter_sources?.[pair[0]] };
+  }
+  return null;
+}
+
+function methodRecordRow(methodId) {
+  const method = findMethod(state.registry, methodId);
+  const bound = recordFor(methodId);
+  const binding = state.build.bindings.find((entry) => entry.id === methodId);
+  const backed = bound ? bound.registry_backed !== false : Boolean(method) && state.build.registry_valid;
+  const button = element('button', 'provenance');
+  button.type = 'button';
+  if (!backed) button.classList.add('provenance--unbacked');
+  button.append(element('span', `status-dot status-dot--${method?.status || 'legacy'}`));
+  button.append(element('span', 'provenance__name', method?.title || binding?.title || methodId));
+  const source = ruleSourceLine(bound);
+  if (source) button.append(source);
+
+  const badges = element('span', 'provenance__badges');
+  if (method?.failure) {
+    badges.append(element('span', 'tag tag--fails', `${(method.failure.rate * 100).toFixed(0)}% fail`));
+  }
+  if (bound?.manual_override) badges.append(element('span', 'tag tag--decide', 'dragged'));
+  if (!backed) {
+    badges.append(element('span', 'tag tag--advanced', binding?.composed_from ? 'composed' : 'unfiled'));
+  }
+  if (badges.childElementCount) button.append(badges);
+  button.title = methodId;
+  button.addEventListener('click', () => openDrawer(method, methodId, bound));
+  return button;
 }
 
 /* Each step's distance from the number is written in leading spaces, so the block keeps them
@@ -63,12 +115,12 @@ export function openDrawer(method, fallbackId, bound) {
       body.append(
         notice(
           'warning',
-          `A composition of ${binding.composed_from}`,
-          'A method plus bound parameters, so it carries that entry\'s citations rather than its own. The binding travels in the fingerprint.',
+          'Composition',
+          `Uses ${binding.composed_from} and its citations.`,
         ),
       );
       if (base) {
-        const open = element('button', 'button button--ghost button--small', 'Open the entry it composes');
+        const open = element('button', 'button button--ghost button--small', 'Open source entry');
         open.type = 'button';
         open.addEventListener('click', () => openDrawer(base));
         body.append(open);
@@ -78,7 +130,7 @@ export function openDrawer(method, fallbackId, bound) {
         notice(
           'warning',
           'Not a registry entry',
-          'No citation, no recorded bias and no failure rate under this id.',
+          'No citation, bias, or failure rate.',
         ),
       );
     }
@@ -119,7 +171,7 @@ export function openDrawer(method, fallbackId, bound) {
         notice(
           'danger',
           `${(method.failure.rate * 100).toFixed(1)} percent, ${method.failure.numerator} of ${method.failure.denominator}`,
-          `${method.failure.definition}. Corpus ${method.failure.corpus}. Detectability ${method.failure.detectability}, so a bias figure for this rule averages working with not working.`,
+          `${method.failure.definition}. Corpus: ${method.failure.corpus}. Detectability: ${method.failure.detectability}.`,
         ),
       ),
     );

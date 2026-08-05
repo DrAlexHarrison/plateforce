@@ -138,14 +138,18 @@ check('the first screen offers a file, a folder and a demonstration trial as pee
 
 await evaluate("document.getElementById('load-demo').click()");
 await settle("!document.getElementById('stage-workspace').hidden", 'the workspace');
-await settle("document.querySelectorAll('#metric-grid .metric').length > 0 || document.querySelector('#analysis-warnings button')", 'the first paint');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0"
+    + " || document.querySelector('#analysis-warnings button')",
+  'the first paint',
+);
 // The panel settles before it sweeps, so that it is not recomputing five alternatives on
 // every frame of a drag. It is a settling window rather than a gate: nothing about it is
 // conditioned on a decision.
 await settle("document.querySelectorAll('#spread-result table.data tbody tr').length > 0", 'the spread panel');
 
 const paint = await evaluate(`(() => {
-  const card = [...document.querySelectorAll('#metric-grid .metric')]
+  const card = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')]
     .find((c) => c.querySelector('.metric__label')?.textContent?.startsWith('Jump height'));
   return {
     wall: document.querySelector('#analysis-warnings button')?.textContent ?? null,
@@ -161,6 +165,74 @@ const paint = await evaluate(`(() => {
     })),
   };
 })()`);
+
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 1440, height: 900, deviceScaleFactor: 1, mobile: false,
+});
+await new Promise((resolve) => setTimeout(resolve, 200));
+const firstPaintShape = await evaluate(`(() => {
+  const cards = [...document.querySelectorAll('#stage-workspace .metric')];
+  const rect = (selector) => {
+    const node = document.querySelector(selector);
+    if (!node) return null;
+    const box = node.getBoundingClientRect();
+    return { top: box.top, left: box.left, right: box.right, bottom: box.bottom };
+  };
+  return {
+    headlineCards: document.querySelectorAll('#headline-metric-grid .metric').length,
+    remainingCards: document.querySelectorAll('#metric-grid .metric').length,
+    headlineCardsStillInWall: document.querySelectorAll('#metric-grid .metric--headline').length,
+    cards: cards.length,
+    methodRecords: cards.map((card) => card.querySelectorAll('.metric-record').length),
+    cardChoiceButtons: cards.flatMap((card) => [...card.querySelectorAll('.metric__provisional button')]
+      .filter((button) => /^Choose the rules?$/.test(button.textContent.trim()))
+      .map((button) => button.textContent.trim())),
+    verboseLines: [...document.querySelectorAll('#stage-workspace .panel__sub, #stage-workspace .chart-help')]
+      .map((node) => node.textContent.replace(/\\s+/g, ' ').trim())
+      .filter((text) => /Every (choice|number|dependent|defensible)|Each value carries|Where these numbers come from/.test(text)),
+    desktop: {
+      height: innerHeight,
+      trace: rect('.panel--trace'),
+      headlines: rect('.panel--headlines'),
+      decisions: rect('.panel--decisions'),
+      spread: rect('.panel--spread'),
+      metrics: rect('.panel--metrics'),
+    },
+  };
+})()`);
+await send('Emulation.clearDeviceMetricsOverride');
+
+check('the two headline values have their own region above the metric catalogue',
+  firstPaintShape.headlineCards === 2 && firstPaintShape.remainingCards > 0
+    && firstPaintShape.headlineCardsStillInWall === 0,
+  `${firstPaintShape.headlineCards} headline cards, ${firstPaintShape.remainingCards} remaining, ` +
+    `${firstPaintShape.headlineCardsStillInWall} headline cards still in the wall`);
+
+check('each metric carries one compact method record and no repeated decision button',
+  firstPaintShape.cards > 0
+    && firstPaintShape.methodRecords.every((count) => count === 1)
+    && firstPaintShape.cardChoiceButtons.length === 0,
+  `${firstPaintShape.methodRecords.join(', ')} method-record controls across ${firstPaintShape.cards} cards; ` +
+    `${firstPaintShape.cardChoiceButtons.length} repeated decision buttons`);
+
+check('the workspace copy states data and actions without narrating the interface',
+  firstPaintShape.verboseLines.length === 0,
+  firstPaintShape.verboseLines.join(' | ') || 'no explanatory narration');
+
+const desktop = firstPaintShape.desktop;
+const desktopRegions = [desktop.trace, desktop.headlines, desktop.decisions, desktop.spread, desktop.metrics];
+check('at desktop width the decisions stay beside the trace and the spread precedes the metric catalogue',
+  desktopRegions.every(Boolean)
+    && desktop.decisions.left >= desktop.trace.right
+    && desktop.decisions.top <= desktop.headlines.bottom
+    && desktop.trace.top < desktop.headlines.top
+    && desktop.headlines.top < desktop.spread.top
+    && desktop.spread.top < desktop.metrics.top
+    && desktop.spread.top - desktop.trace.top < desktop.height * 2,
+  desktopRegions.every(Boolean)
+    ? `trace ${desktop.trace.top.toFixed(0)}, headlines ${desktop.headlines.top.toFixed(0)}, ` +
+      `decisions ${desktop.decisions.top.toFixed(0)}, spread ${desktop.spread.top.toFixed(0)}, metrics ${desktop.metrics.top.toFixed(0)}`
+    : 'one or more workspace regions are missing');
 
 check('a jump height is on screen with no decision made',
   paint.wall === null && paint.jumpHeight != null,
@@ -223,12 +295,14 @@ check('the spread panel is populated on that same first paint',
 // they are read after resolving one if the run stopped for one.
 const resolveAnyWall = async () => {
   const wall = await evaluate(`(() => {
-    const button = [...document.querySelectorAll('#analysis-warnings button')]
-      .find((b) => b.textContent.startsWith('Take the recommended'));
+    const button = document.getElementById('accept-recommended');
     if (button) button.click();
     return Boolean(button);
   })()`);
-  if (wall) await settle("document.querySelectorAll('#metric-grid .metric').length > 0", 'the metric grid');
+  if (wall) await settle(
+    "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0",
+    'the metric grids',
+  );
   await settle("document.querySelectorAll('#spread-result table.data tbody tr').length > 0", 'the spread panel');
 };
 await resolveAnyWall();
@@ -292,14 +366,17 @@ check('every rule the registry entitles to a place on screen has one',
 const alternatives = await evaluate(`(() => {
   const row = document.querySelector('#decision-list .ran-beside__row--surface-on-demand');
   if (!row) return { reached: false, why: 'no rule on screen under this verdict' };
-  const button = [...row.querySelectorAll('button')].pop();
-  if (!button) return { reached: false, why: 'the row names no interaction' };
-  button.click();
+  row.click();
   const drawer = document.getElementById('method-drawer');
   const named = [...document.querySelectorAll('#drawer-body li')]
     .map((item) => item.textContent.trim())
     .filter((text) => /^[a-z_]+(\\.[a-z_0-9]+)+/.test(text));
-  return { reached: true, open: drawer && !drawer.hidden, label: button.textContent.trim(), named };
+  return {
+    reached: true,
+    open: drawer && !drawer.hidden,
+    label: row.querySelector('.ran-beside__action')?.textContent.trim() ?? row.textContent.trim(),
+    named,
+  };
 })()`);
 check('and its alternatives are one interaction away, named by id',
   alternatives.reached && alternatives.open && alternatives.named.length > 0,
@@ -313,8 +390,10 @@ check('the setting the panel opened on is named on screen',
   paint.opening.length > 0 && ticked.length > 0,
   paint.opening || 'nothing named');
 
-check('the panel opens varying the rule bound to the movement onset construct',
-  ticked.length === 1 && ticked[0].construct === 'movement_onset',
+check('the panel opens varying every rule-bearing construct on the path',
+  ticked.length === 3
+    && ['system_weight', 'movement_onset', 'takeoff'].every((construct) =>
+      ticked.some((axis) => axis.construct === construct)),
   ticked.map((axis) => `${axis.construct || 'no construct'}: ${axis.label}`).join('; ') || 'nothing ticked');
 
 // The sweep ran is not the claim. The claim is that the setting it swept reaches the
@@ -413,6 +492,107 @@ for (const theme of ['light', 'dark']) {
 }
 await evaluate("document.documentElement.dataset.theme = 'auto'");
 
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
+});
+await new Promise((resolve) => setTimeout(resolve, 300));
+const chartInspection = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const chart = state.chart;
+  const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const markerLabels = chart.markers.map((marker) => marker.labelElement.textContent.trim());
+  const legendLabels = [...document.querySelectorAll('#chart-legend > span')]
+    .slice(-chart.markers.length)
+    .map((row) => row.textContent.trim());
+
+  chart.setAnalysis({ ...state.analysis, onset_index: 0, touchdown_index: state.info.sample_count - 1 });
+  chart.schedule();
+  await frame();
+  const chartBox = document.getElementById('chart').getBoundingClientRect();
+  const edgeLabels = chart.markers
+    .filter((marker) => ['onset', 'touchdown'].includes(marker.key))
+    .map((marker) => {
+      const box = marker.labelElement.getBoundingClientRect();
+      return {
+        key: marker.key,
+        left: box.left - chartBox.left,
+        right: box.right - chartBox.left,
+        unclipped: marker.labelElement.scrollWidth <= marker.labelElement.clientWidth,
+      };
+    });
+  chart.setAnalysis(state.analysis);
+  chart.schedule();
+  await frame();
+
+  const canvas = document.getElementById('chart-canvas');
+  const bounds = canvas.getBoundingClientRect();
+  document.getElementById('chart').dispatchEvent(new PointerEvent('pointermove', {
+    bubbles: true,
+    clientX: bounds.left + chart.plot.left + chart.plot.width * 0.05,
+    clientY: bounds.top + chart.plot.top + chart.plot.height / 2,
+  }));
+  const readout = document.querySelector('.chart-crosshair__label');
+  const readoutBox = readout.getBoundingClientRect();
+
+  const full = chart.visibleRange();
+  chart.zoom(0.5);
+  await frame();
+  const zoomed = chart.visibleRange();
+  const windowEnvelope = {
+    start: state.envelope.start_index,
+    end: state.envelope.end_index,
+    buckets: state.envelope.lower.length,
+  };
+  chart.fit();
+  await frame();
+
+  return {
+    markerLabels,
+    legendLabels,
+    edgeLabels,
+    plotLeft: chart.plot.left,
+    plotRight: chart.plot.right,
+    crosshair: {
+      visible: !document.querySelector('.chart-crosshair').hidden,
+      text: readout.textContent.trim(),
+      left: readoutBox.left - chartBox.left,
+      right: readoutBox.right - chartBox.left,
+    },
+    full,
+    zoomed,
+    windowEnvelope,
+    plotBuckets: chart.plotWidthPx(),
+  };
+})()`);
+await send('Emulation.clearDeviceMetricsOverride');
+
+check('the legend and marker pills use the same registry names',
+  JSON.stringify(chartInspection.markerLabels) === JSON.stringify(chartInspection.legendLabels),
+  `markers ${chartInspection.markerLabels.join(', ')}; legend ${chartInspection.legendLabels.join(', ')}`);
+check('marker labels stay inside the plot at both edges',
+  chartInspection.edgeLabels.length === 2 && chartInspection.edgeLabels.every((label) =>
+    label.unclipped && label.left >= chartInspection.plotLeft - 1 && label.right <= chartInspection.plotRight + 1),
+  chartInspection.edgeLabels.map((label) =>
+    `${label.key} ${label.left.toFixed(0)}–${label.right.toFixed(0)} px, unclipped ${label.unclipped}`).join('; '));
+check('the trace crosshair reads time, force and the nearest landmark',
+  chartInspection.crosshair.visible
+    && /\d+\.\d{3} s · .+ N · .+/.test(chartInspection.crosshair.text)
+    && chartInspection.crosshair.left >= chartInspection.plotLeft - 1
+    && chartInspection.crosshair.right <= chartInspection.plotRight + 1,
+  chartInspection.crosshair.text
+    ? `${chartInspection.crosshair.text}; ${chartInspection.crosshair.left.toFixed(0)}–${chartInspection.crosshair.right.toFixed(0)} px in ${chartInspection.plotLeft.toFixed(0)}–${chartInspection.plotRight.toFixed(0)}`
+    : 'no crosshair readout');
+check('zooming requests a width-bounded envelope for the visible sample window',
+  chartInspection.zoomed.end - chartInspection.zoomed.start < chartInspection.full.end - chartInspection.full.start
+    && chartInspection.windowEnvelope.start === chartInspection.zoomed.start
+    && chartInspection.windowEnvelope.end === chartInspection.zoomed.end
+    && chartInspection.windowEnvelope.buckets <= chartInspection.plotBuckets,
+  `full ${chartInspection.full.start}–${chartInspection.full.end}, zoomed ` +
+    `${chartInspection.zoomed.start}–${chartInspection.zoomed.end}, envelope ` +
+    `${chartInspection.windowEnvelope.start}–${chartInspection.windowEnvelope.end} in ` +
+    `${chartInspection.windowEnvelope.buckets} buckets`);
+
 // The narrow viewport, where a layout that merely reflows on a desktop breaks. Four
 // mechanical floors, each read off the rendered box rather than off the stylesheet.
 await send('Emulation.setDeviceMetricsOverride', {
@@ -452,6 +632,16 @@ const narrow = await evaluate(`(() => {
       .filter((node) => !node.textContent.trim() && !node.getAttribute('aria-label') && !node.getAttribute('title') && !node.labels?.length)
       .map(names),
     counted: boxes.length,
+    readingOrder: [
+      '.panel--trace', '.panel--headlines', '.panel--decisions', '.panel--spread', '.panel--metrics',
+    ].map((selector) => document.querySelector(selector)?.getBoundingClientRect().top ?? null),
+    workspaceTop: document.getElementById('stage-workspace')?.getBoundingClientRect().top ?? null,
+    spreadTop: document.querySelector('.panel--spread')?.getBoundingClientRect().top ?? null,
+    viewportHeight: innerHeight,
+    decisionRows: [...document.querySelectorAll('#decision-list > .decision')].map((row) => ({
+      title: row.querySelector('.decision__title')?.textContent ?? 'untitled',
+      height: Math.round(row.getBoundingClientRect().height),
+    })),
   };
 })()`);
 await send('Emulation.clearDeviceMetricsOverride');
@@ -466,6 +656,13 @@ check('at 390 px no text renders under 12 px',
 check('every control carries a name a screen reader can read',
   narrow.unlabelled.length === 0,
   narrow.unlabelled.join(', ') || `${narrow.counted} controls checked`);
+check('at 390 px the workspace follows the ruled reading order and reaches spread within two screens',
+  narrow.readingOrder.every(Number.isFinite)
+    && narrow.readingOrder.every((top, index) => index === 0 || top > narrow.readingOrder[index - 1])
+    && narrow.spreadTop - narrow.workspaceTop < narrow.viewportHeight * 2,
+  `${narrow.readingOrder.map((top) => top == null ? 'missing' : Math.round(top)).join(' < ')}, ` +
+    `spread ${narrow.spreadTop == null || narrow.workspaceTop == null ? 'missing' : Math.round(narrow.spreadTop - narrow.workspaceTop)} px from workspace start; ` +
+    narrow.decisionRows.map((row) => `${row.title} ${row.height}px`).join(', '));
 
 // Where each bound value came from. The severest defect this build can carry is a
 // fingerprint claiming the reader chose a value they were never shown, so the record is
@@ -596,11 +793,11 @@ const remedy = await evaluate(`(async () => {
   // A signal states its paragraph once and carries a reference on every other value it
   // qualifies, so a card meets it either way. Counting only the paragraph would read the
   // second height as unqualified when the reader can reach the reason from it in one click.
-  const cards = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
+  const cards = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')].filter((card) =>
     card.querySelector('.metric__signal, .metric__signal-elsewhere'));
-  const stating = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
+  const stating = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')].filter((card) =>
     card.querySelector('.metric__signal'));
-  const referring = [...document.querySelectorAll('#metric-grid .metric')].filter((card) =>
+  const referring = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')].filter((card) =>
     card.querySelector('.metric__signal-elsewhere'));
   return {
     fromTheEngine: (state.analysis.signals ?? []).length,
@@ -728,13 +925,14 @@ for (const { rule, dragLate, answerTheDecisions } of PAINTED_BY) {
   // provisional while either does.
   if (answerTheDecisions) {
     const answered = await evaluate(`(() => {
-      const button = [...document.querySelectorAll('#decision-list button')]
-        .find((b) => b.textContent.startsWith('Take the recommended'));
+      const button = document.getElementById('accept-recommended');
       if (button) button.click();
       return Boolean(button);
     })()`);
     if (!answered) throw new Error('no act on the page answers the open decisions, so the resolved state cannot be painted');
-    await settle("document.querySelectorAll('#metric-grid .metric:not(.metric--provisional)').length > 0",
+    await settle(
+      "document.querySelectorAll('#headline-metric-grid .metric:not(.metric--provisional), "
+        + "#metric-grid .metric:not(.metric--provisional)').length > 0",
       'a card that rests on no unanswered decision');
   }
   const painted = await readPaintedStates();
@@ -782,7 +980,7 @@ for (const construct of offered) {
     (await import('./add-quantity.js')).addToPath(${JSON.stringify(construct)});
     const read = {
       refusal: state.analysisRefusal ? state.analysisRefusal.message : null,
-      metrics: document.querySelectorAll('#metric-grid .metric').length,
+      metrics: document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length,
     };
     state.path = state.path.filter((entry) => entry !== ${JSON.stringify(construct)});
     state.slots = buildDecisionModel(state.registry, state.build, state.path);
@@ -800,6 +998,71 @@ check('every quantity the picker offers is one the engine will take',
     : refused.length
       ? `${offered.length} offered, ${refused.length} refused: ${refused.join(' | ')}`
       : `${offered.length} offered, every one analysed`);
+
+// An untrimmed recording takes the real import route. The chart controls are absent on the
+// five-second demonstration, so exercising only that trial cannot prove the viewport exists.
+await evaluate(`(async () => {
+  const samples = Array.from({ length: 72000 }, (_, index) => {
+    if (index < 4100) return 600;
+    if (index < 4300) return 600 - (index - 4100) * 1.5;
+    if (index < 5000) return 300 + (index - 4300) * 1.6;
+    if (index < 5700) return 0;
+    if (index < 5900) return 1400 - (index - 5700) * 4;
+    return 600;
+  });
+  const transfer = new DataTransfer();
+  transfer.items.add(new File([samples.join('\\n')], 'long-trial.txt', { type: 'text/plain' }));
+  document.getElementById('dropzone').dispatchEvent(
+    new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }),
+  );
+})()`);
+await settle("!document.getElementById('stage-columns').hidden", 'the long recording column stage');
+await evaluate(`(() => {
+  const rate = document.getElementById('sample-rate');
+  rate.value = '1200';
+  rate.dispatchEvent(new Event('input'));
+  document.getElementById('columns-confirm').click();
+})()`);
+await settle("!document.getElementById('stage-workspace').hidden", 'the long recording workspace');
+await settle("!document.getElementById('chart-nav').hidden", 'the long recording viewport controls');
+
+const longRecording = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  const full = state.chart.visibleRange();
+  document.getElementById('chart-zoom-in').click();
+  await frame();
+  const zoomed = state.chart.visibleRange();
+  const pan = document.getElementById('chart-pan');
+  pan.value = '750';
+  pan.dispatchEvent(new Event('input'));
+  await frame();
+  const moved = state.chart.visibleRange();
+  return {
+    duration: state.info.duration_seconds,
+    controlsVisible: !document.getElementById('chart-nav').hidden,
+    panEnabled: !pan.disabled,
+    label: document.getElementById('chart-window-label').textContent,
+    full,
+    zoomed,
+    moved,
+    envelope: [state.envelope.start_index, state.envelope.end_index, state.envelope.lower.length],
+    plotBuckets: state.chart.plotWidthPx(),
+  };
+})()`);
+check('a 60 second recording exposes a zoomable, pannable, width-bounded viewport',
+  Math.abs(longRecording.duration - 60) < 1e-6
+    && longRecording.controlsVisible
+    && longRecording.panEnabled
+    && longRecording.zoomed.end - longRecording.zoomed.start < longRecording.full.end - longRecording.full.start
+    && longRecording.moved.start > longRecording.zoomed.start
+    && longRecording.envelope[0] === longRecording.moved.start
+    && longRecording.envelope[1] === longRecording.moved.end
+    && longRecording.envelope[2] <= longRecording.plotBuckets,
+  `${longRecording.duration} s, full ${longRecording.full.start}–${longRecording.full.end}, ` +
+    `zoomed ${longRecording.zoomed.start}–${longRecording.zoomed.end}, panned ` +
+    `${longRecording.moved.start}–${longRecording.moved.end}, ${longRecording.label}, ` +
+    `${longRecording.envelope[2]} envelope buckets`);
 
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 

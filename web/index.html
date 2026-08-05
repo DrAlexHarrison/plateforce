@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>plateforce</title>
-<meta name="description" content="Force-plate kinetic analysis with a method registry. Runs entirely in your browser; your data is never uploaded.">
+<meta name="description" content="Local force-plate analysis with a method registry.">
 <link rel="stylesheet" href="./styles.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a6a6f'/%3E%3Cpath d='M4 22 L11 22 L14 9 L18 26 L21 17 L28 17' fill='none' stroke='white' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 </head>
@@ -20,7 +20,7 @@
     </svg>
     <div>
       <h1>plateforce</h1>
-      <p class="app-header__tagline">Force-plate kinetics, with the method attached to every number</p>
+      <p class="app-header__tagline">Force-plate analysis</p>
     </div>
   </div>
 
@@ -38,7 +38,7 @@
         <path d="M8 1.5 2.5 3.6v4.1c0 3.2 2.3 6 5.5 6.8 3.2-.8 5.5-3.6 5.5-6.8V3.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/>
         <path d="M5.6 8.1 7.3 9.8l3.2-3.4" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span>Files are read in your browser and are not uploaded.</span>
+      <span>Your files stay on this device.</span>
     </p>
     <button type="button" class="button button--ghost button--icon" id="theme-toggle" aria-label="Switch colour theme">
       <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.2 9.6A5.8 5.8 0 0 1 6.4 2.8 5.8 5.8 0 1 0 13.2 9.6z" fill="none" stroke-width="1.4" stroke-linejoin="round"/></svg>
@@ -63,7 +63,6 @@
   <section class="stage" id="stage-loading">
     <div class="loading">
       <div class="loading__bar" aria-hidden="true"><span></span></div>
-      <p>Loading plateforce.</p>
     </div>
   </section>
 
@@ -73,9 +72,8 @@
       <h2>plateforce could not start</h2>
       <p id="fatal-message"></p>
       <p class="empty__hint">
-        plateforce has to be served over http rather than opened from the filesystem. From the
-        repository root run <code>python3 -m http.server -d web 8000</code> and open
-        <code>http://localhost:8000</code>.
+        Serve <code>web/</code> over HTTP: <code>python3 -m http.server -d web 8000</code>.
+        Open <code>http://localhost:8000</code>.
       </p>
     </div>
   </section>
@@ -89,7 +87,7 @@
           <path d="M6 25v4a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3v-4" fill="none" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <h2>Drop a force trace or a folder of them here</h2>
-        <p>Tab or comma separated text from any plate.</p>
+        <p>Tab- or comma-separated force data.</p>
         <div class="dropzone__actions">
           <button type="button" class="button button--primary" id="choose-file">Choose a file</button>
           <button type="button" class="button button--ghost" id="choose-folder">Choose a folder</button>
@@ -99,11 +97,6 @@
         <input type="file" id="folder-input" webkitdirectory directory hidden>
       </div>
 
-      <ul class="empty__points">
-        <li><strong>No upload, no account, no server.</strong> Force traces are re-identifiable, and reading the file in the browser keeps it there.</li>
-        <li><strong>Every number names its method.</strong> Citation, known bias and failure rate travel with the value.</li>
-        <li><strong>Drag a marker and watch the number move.</strong> Time to takeoff, jump height and every dependent metric recompute as it moves.</li>
-      </ul>
     </div>
   </section>
 
@@ -121,7 +114,7 @@
         <div class="field">
           <label for="sample-rate">How many samples per second?</label>
           <div class="field__input-group">
-            <input type="number" id="sample-rate" min="1" step="1" value="1200" inputmode="decimal">
+            <input type="number" id="sample-rate" min="1" step="1" inputmode="decimal">
             <span class="field__suffix">Hz</span>
           </div>
           <p class="field__hint" id="sample-rate-hint"></p>
@@ -133,7 +126,6 @@
             <option value="zero" data-number="0">0 means missing</option>
             <option value="negative_one" data-number="-1">-1 means missing</option>
           </select>
-          <p class="field__hint">Three sentinel rows in 244 moved a published correlation by 0.16.</p>
         </div>
       </div>
 
@@ -169,88 +161,93 @@
   <!-- Loaded -->
   <section class="stage workspace" id="stage-workspace" hidden>
 
-    <div class="workspace__main">
-
-      <section class="panel panel--trace" aria-labelledby="trace-heading">
-        <div class="panel__head">
-          <div>
-            <h2 id="trace-heading">Vertical ground reaction force</h2>
-            <p class="panel__sub" id="trial-summary"></p>
-          </div>
-          <div class="panel__head-actions">
-            <button type="button" class="button button--primary button--small" id="run-folder" hidden></button>
-            <button type="button" class="button button--ghost button--small" id="reset-markers" disabled>Release dragged markers</button>
-            <button type="button" class="button button--ghost button--small" id="change-file">New file</button>
-          </div>
+    <section class="panel panel--trace workspace__trace" aria-labelledby="trace-heading">
+      <div class="panel__head">
+        <div>
+          <h2 id="trace-heading">Vertical ground reaction force</h2>
+          <p class="panel__sub" id="trial-summary"></p>
         </div>
-
-        <div class="chart" id="chart">
-          <canvas id="chart-canvas"></canvas>
-          <div class="chart__overlay" id="chart-overlay"></div>
+        <div class="panel__head-actions">
+          <button type="button" class="button button--primary button--small" id="run-folder" hidden></button>
+          <button type="button" class="button button--ghost button--small" id="reset-markers" hidden>Release dragged markers</button>
+          <button type="button" class="button button--ghost button--small" id="change-file">New file</button>
         </div>
+      </div>
 
-        <div class="chart-legend" id="chart-legend"></div>
+      <div class="chart" id="chart">
+        <canvas id="chart-canvas"></canvas>
+        <div class="chart__overlay" id="chart-overlay"></div>
+      </div>
 
-        <p class="chart-help">
-          Drag any marker, or focus one and use the arrow keys. Every dependent number below
-          recomputes as it moves.
-        </p>
-      </section>
-
-      <section class="panel" aria-labelledby="metrics-heading">
-        <div class="panel__head">
-          <h2 id="metrics-heading">Results</h2>
-          <p class="panel__sub">Each value carries the methods that produced it.</p>
+      <div class="chart-nav" id="chart-nav" hidden>
+        <div class="chart-nav__actions">
+          <button type="button" class="button button--ghost button--small" id="chart-zoom-in">Zoom in</button>
+          <button type="button" class="button button--ghost button--small" id="chart-zoom-out">Zoom out</button>
+          <button type="button" class="button button--ghost button--small" id="chart-fit">Fit</button>
         </div>
-        <div class="metric-grid" id="metric-grid"></div>
-        <div id="analysis-warnings"></div>
-      </section>
+        <label class="chart-nav__range" for="chart-pan">
+          <span id="chart-window-label"></span>
+          <input type="range" id="chart-pan" min="0" max="1000" value="0">
+        </label>
+      </div>
 
-      <section class="panel" aria-labelledby="spread-heading">
-        <div class="panel__head">
-          <div>
-            <h2 id="spread-heading">How much does the method choice move this number?</h2>
-            <p class="panel__sub">Every defensible alternative the registry publishes, run over this trial.</p>
-          </div>
-        </div>
+      <div class="chart-legend" id="chart-legend"></div>
+      <p class="chart-help">Drag a marker to recompute.</p>
+    </section>
 
-        <div class="spread-controls" id="spread-controls-wrap">
-          <div class="field field--inline">
-            <label for="spread-quantity">Quantity</label>
-            <select id="spread-quantity"></select>
-          </div>
-          <fieldset class="spread-axes">
-            <legend>Vary</legend>
-            <p class="spread-axes__opening" id="spread-opening"></p>
-            <div id="spread-axis-list"></div>
-          </fieldset>
-        </div>
+    <section class="panel panel--headlines workspace__headlines" aria-labelledby="headline-metrics-heading">
+      <div class="panel__head">
+        <h2 id="headline-metrics-heading">Results</h2>
+      </div>
+      <div class="metric-grid metric-grid--headlines" id="headline-metric-grid"></div>
+      <div id="analysis-warnings"></div>
+    </section>
 
-        <div id="spread-result"></div>
-      </section>
+    <aside class="panel panel--rail panel--decisions workspace__decisions" aria-labelledby="decisions-heading">
+      <div class="panel__head">
+        <h2 id="decisions-heading">Method decisions</h2>
+        <p class="panel__sub" id="decisions-sub"></p>
+      </div>
+      <div id="decision-list"></div>
 
-    </div>
-
-    <aside class="workspace__rail" aria-labelledby="decisions-heading">
-      <section class="panel panel--rail">
-        <div class="panel__head">
-          <h2 id="decisions-heading">Method decisions</h2>
-          <p class="panel__sub" id="decisions-sub"></p>
-        </div>
-        <div id="decision-list"></div>
-
-        <div class="add-quantity" id="add-quantity" hidden>
-          <label for="add-quantity-search">Add a quantity</label>
-          <input type="search" id="add-quantity-search" autocomplete="off" placeholder="Search by name">
-          <ul class="add-quantity__list" id="add-quantity-list"></ul>
-        </div>
-      </section>
-
-      <section class="panel panel--rail">
-        <div class="panel__head"><h2>Where these numbers come from</h2></div>
-        <dl class="kv" id="build-info"></dl>
-      </section>
+      <div class="add-quantity" id="add-quantity" hidden>
+        <label for="add-quantity-search">Add a quantity</label>
+        <input type="search" id="add-quantity-search" autocomplete="off" placeholder="Search by name">
+        <ul class="add-quantity__list" id="add-quantity-list"></ul>
+      </div>
     </aside>
+
+    <section class="panel panel--spread workspace__spread" aria-labelledby="spread-heading">
+      <div class="panel__head">
+        <h2 id="spread-heading">How much does the method choice move this number?</h2>
+      </div>
+
+      <div class="spread-controls" id="spread-controls-wrap">
+        <div class="field field--inline">
+          <label for="spread-quantity">Quantity</label>
+          <select id="spread-quantity"></select>
+        </div>
+        <fieldset class="spread-axes">
+          <legend>Vary</legend>
+          <p class="spread-axes__opening" id="spread-opening"></p>
+          <div id="spread-axis-list"></div>
+        </fieldset>
+      </div>
+
+      <div id="spread-result"></div>
+    </section>
+
+    <section class="panel panel--metrics workspace__metrics" aria-labelledby="metrics-heading">
+      <div class="panel__head">
+        <h2 id="metrics-heading">More results</h2>
+      </div>
+      <div class="metric-grid" id="metric-grid"></div>
+    </section>
+
+    <section class="panel panel--rail panel--build workspace__build" aria-labelledby="build-heading">
+      <div class="panel__head"><h2 id="build-heading">Analysis record</h2></div>
+      <dl class="kv" id="build-info"></dl>
+    </section>
 
   </section>
 
@@ -259,7 +256,11 @@
       <button type="button" class="button button--ghost button--small" id="batch-back">Back to the trace</button>
       <label class="batch-controls__toggle">
         <input type="checkbox" id="batch-provenance" checked>
-        Show the record behind each row
+        Show method record
+      </label>
+      <label class="batch-controls__toggle">
+        <input type="checkbox" id="batch-declined" checked>
+        Show declined
       </label>
     </div>
     <p class="panel__sub batch-declaration" id="batch-declaration"></p>
@@ -292,7 +293,7 @@
       <section>
         <h3>Record a plate</h3>
         <div class="field">
-          <label for="plate-name">What to call this plate</label>
+          <label for="plate-name">Plate name</label>
           <input type="text" id="plate-name" autocomplete="off">
         </div>
         <div class="panel__foot">
@@ -319,8 +320,7 @@
 
 <footer class="app-footer">
   <p>
-    plateforce runs in your browser. Apache-2.0.
-    <a href="https://github.com/DrAlexHarrison/plateforce">Source and registry</a>.
+    Apache-2.0 · <a href="https://github.com/DrAlexHarrison/plateforce">Source and registry</a>
   </p>
 </footer>
 
