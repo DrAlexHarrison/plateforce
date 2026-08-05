@@ -403,9 +403,12 @@ fn run_compare(
     };
 
     let result = compare(set, &compare_request);
-    // The request that ran, pin included, rather than one rebuilt from the arguments: a digest
-    // over a second construction identifies that construction rather than the run.
-    let request_digest = plateforce_batch::fingerprint::request_digest(
+    // The request the sweep varied, pin included, taken off the request that ran rather than
+    // one rebuilt from the arguments: a digest over a second construction identifies that
+    // construction. It is the base and not the run, because the axis is not in it, so two
+    // comparisons over one folder that swept different rules answer alike here. The axis
+    // reaches the record through construct, method_ids and held_fixed beside it.
+    let base_request_digest = plateforce_batch::fingerprint::request_digest(
         &compare_request.analysis.analysis,
         compare_request.analysis.registry_version.as_deref(),
     );
@@ -413,12 +416,12 @@ fn run_compare(
     // `analyse` builds them. The pin is the caller's word and the declared revision is the
     // registry's, and this surface published the second under the first's name once already.
     let stamp = crate::analyse::registry_stamp(registry, args.registry_version.clone());
-    if let Err(error) = result.write_csv(out_dir, &stamp, &request_digest) {
+    if let Err(error) = result.write_csv(out_dir, &stamp, &base_request_digest) {
         return Outcome::declined_line(Fault::Request, error.to_string());
     }
 
     let document = match format {
-        Format::Json => result.to_json(&stamp, &request_digest),
+        Format::Json => result.to_json(&stamp, &base_request_digest),
         _ => result.coverage(),
     };
     let mut outcome = Outcome::complete(document);
