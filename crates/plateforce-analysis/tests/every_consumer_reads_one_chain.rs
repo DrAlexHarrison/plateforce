@@ -101,14 +101,64 @@ fn repository() -> PathBuf {
         .expect("the crate sits inside the repository")
 }
 
-fn source(path: &str) -> String {
+/// The file as it sits on disk, test modules included.
+fn raw_source(path: &str) -> String {
     let full = repository().join(path);
     std::fs::read_to_string(&full).unwrap_or_else(|error| {
+        panic!(
+            "{} is named as a proof site and did not read: {error}",
+            full.display()
+        )
+    })
+}
+
+fn source(path: &str) -> String {
+    let full = repository().join(path);
+    let text = std::fs::read_to_string(&full).unwrap_or_else(|error| {
         panic!(
             "{} is named as a consumer and did not read: {error}",
             full.display()
         )
-    })
+    });
+    without_test_modules(&text)
+}
+
+/// The consumer as it ships, with its `#[cfg(test)]` modules dropped.
+///
+/// A guard that scans raw file text cannot tell a fixture from a shipped derivation, and one
+/// that cannot is a verdict that is true for a reason that is false. `plateforce-batch` builds
+/// a `ProvenanceChain` by hand inside a test that proves the folder run reads the chain step it
+/// stands on rather than the row beside it, which is the opposite of the offence this looks for.
+/// Excluding the file would have been an allow-list; excluding the shape is the check.
+fn without_test_modules(text: &str) -> String {
+    let mut kept = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("#[cfg(test)]") {
+        kept.push_str(&rest[..at]);
+        let after = &rest[at..];
+        let Some(open) = after.find('{') else { break };
+        let mut depth = 0usize;
+        let mut end = None;
+        for (offset, byte) in after[open..].bytes().enumerate() {
+            match byte {
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = Some(open + offset + 1);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        match end {
+            Some(close) => rest = &after[close..],
+            None => return kept,
+        }
+    }
+    kept.push_str(rest);
+    kept
 }
 
 /// Every consumer reaches the derivation by name.
@@ -157,13 +207,20 @@ fn no_consumer_builds_a_chain_of_its_own() {
 }
 
 /// The control on the guard above, which is the one that can pass by looking at nothing.
+///
+/// Read raw, including test modules, because this asks a different question from the guard.
+/// The guard asks whether shipped code derives a chain. This asks whether the pattern it looks
+/// for is spelled the way anything spells it, which a typo would break silently. Reading this
+/// one stripped would demand a shipped use of every constructor: `ProvenanceChain::leaf` has
+/// none anywhere in the repository, and dropping it from the guard to make the control pass
+/// would narrow what the guard can catch in order to make it easier to satisfy.
 #[test]
 fn the_patterns_a_second_derivation_would_match_still_match_a_first_one() {
     let mut checked = 0usize;
     for consumer in CONSUMERS {
         for (construction, proven_in) in consumer.builds_none_of {
             assert!(
-                source(proven_in).contains(construction),
+                raw_source(proven_in).contains(construction),
                 "{construction} matches nothing in {proven_in}, so it would match nothing in \
                  {} either and this guard would read as clean",
                 consumer.path

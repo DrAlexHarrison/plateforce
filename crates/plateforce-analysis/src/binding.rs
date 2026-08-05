@@ -700,6 +700,31 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::rate_of_force_development::epoch_overlapping::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::rate_of_force_development::epoch_overlapping::RULE),
     },
+    // Newtons, beside the rules that report newtons per second. Its own construct, because a
+    // rate rule reporting it too would cost every caller reaching for one of the other eight
+    // rate rules a quantity, silently.
+    Binding {
+        id: crate::slots::force_at_epoch::at_epoch_from_onset::ID,
+        slot: crate::slots::force_at_epoch::CONSTRUCT,
+        construct: crate::slots::force_at_epoch::CONSTRUCT,
+        title: "The force reached a stated time after onset",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::force_at_epoch::at_epoch_from_onset::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::force_at_epoch::at_epoch_from_onset::RULE),
+    },
+    Binding {
+        id: crate::slots::rate_of_force_development::epoch_sequential::ID,
+        slot: crate::slots::rate_of_force_development::CONSTRUCT,
+        construct: crate::slots::rate_of_force_development::CONSTRUCT,
+        title: "The rate over one of the windows laid end to end from onset",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::rate_of_force_development::epoch_sequential::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::rate_of_force_development::epoch_sequential::RULE),
+    },
     Binding {
         id: crate::slots::rate_of_force_development::peak_sliding_window::ID,
         slot: crate::slots::rate_of_force_development::CONSTRUCT,
@@ -1360,14 +1385,16 @@ pub fn required_options(method_id: &str) -> &'static [(&'static str, &'static st
         crate::slots::rate_of_force_development::between_force_levels::ID => {
             crate::slots::rate_of_force_development::between_force_levels::REQUIRED_OPTIONS
         }
-        // What power is, which the two rate rules state without a phase, and the four rules
-        // that read a number off a power series over an interval, which state all three.
+        // What power is, which the rule forming the series and the peak-to-peak rate state
+        // without a phase.
         crate::slots::mechanical_power::force_x_velocity::ID
-        | crate::slots::rate_of_power_development::phase_anchored::ID
         | crate::slots::rate_of_power_development::peak_to_peak_anchored::ID => {
             crate::slots::rate_of_power_development::REQUIRED_OPTIONS
         }
-        crate::slots::power_peak::instantaneous::ID
+        // The five rules that read a number off a power series over an interval, which state
+        // all three.
+        crate::slots::rate_of_power_development::phase_anchored::ID
+        | crate::slots::power_peak::instantaneous::ID
         | crate::slots::power_mean::phase_mean::ID
         | crate::slots::mechanical_work::integral_power_dt::ID
         | crate::slots::mechanical_work::integral_force_ds::ID => {
@@ -1415,6 +1442,9 @@ pub fn required_numbers(method_id: &str) -> &'static [(&'static str, f64)] {
         }
         crate::slots::rate_of_force_development::between_force_levels::ID => {
             crate::slots::rate_of_force_development::between_force_levels::REQUIRED_NUMBERS
+        }
+        crate::slots::rate_of_force_development::epoch_sequential::ID => {
+            crate::slots::rate_of_force_development::epoch_sequential::REQUIRED_NUMBERS
         }
         crate::slots::normalisation_basis::percent_of_peak_force::ID => {
             crate::slots::normalisation_basis::percent_of_peak_force::REQUIRED_NUMBERS

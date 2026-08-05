@@ -67,6 +67,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -586,6 +593,15 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
           "requires": [],
           "slot": "rate_of_force_development"
@@ -631,6 +647,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -1017,6 +1034,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -1536,6 +1560,15 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
           "requires": [],
           "slot": "rate_of_force_development"
@@ -1581,6 +1614,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -1971,6 +2005,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -2490,6 +2531,15 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
           "requires": [],
           "slot": "rate_of_force_development"
@@ -2535,6 +2585,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"
@@ -2923,6 +2974,13 @@
         },
         {
           "composed_from": null,
+          "construct": "force_at_epoch",
+          "id": "force.at_epoch_from_onset",
+          "requires": [],
+          "slot": "force_at_epoch"
+        },
+        {
+          "composed_from": null,
           "construct": "peak_force",
           "id": "force.peak.estimator",
           "requires": [],
@@ -3442,6 +3500,15 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "requires": [
+            "window_index"
+          ],
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
           "requires": [],
           "slot": "rate_of_force_development"
@@ -3487,6 +3554,7 @@
           "id": "rpd.phase_anchored",
           "requires": [
             "force_term",
+            "phase",
             "sign_convention"
           ],
           "slot": "rate_of_power_development"

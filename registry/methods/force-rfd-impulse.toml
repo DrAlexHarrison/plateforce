@@ -204,6 +204,50 @@ them differently in the interface and in the export.
 boundary = "protocol"
 
 [[method]]
+id = "force.at_epoch_from_onset"
+construct = "force_at_epoch"
+group = "H"
+title = "Force reached at a stated elapsed time from onset"
+rule = """
+With onset fixed by a declared method, report the force the trace has reached a stated time later.
+The same source states this beside the mean rate over the interval, and the two are one quantity in
+two units only under a net convention: under a gross one the force at onset does not cancel, so the
+force reached and the rate travelled are two numbers. Reported against the same convention the
+caller's weighing rule established, so a reader comparing it against a rate over the same interval
+is comparing numbers taken the same way.
+"""
+status = "accepted"
+confidence = "high"
+debate = "single_position"
+
+[[method.parameter]]
+name = "epoch_ms"
+unit = "milliseconds"
+published_values = [30.0, 50.0, 90.0, 100.0, 150.0, 200.0, 250.0]
+default = 200.0
+default_source = "maffiuletti2016"
+required = true
+notes = "The same elapsed times the rate over the interval is quantified at, so the two can be read against each other."
+
+[[method.citation]]
+key = "aagaard2002"
+role = "proposes"
+reference = "Aagaard et al. 2002, J Appl Physiol, originating usage, not obtained"
+doi = "10.1152/japplphysiol.00283.2002"
+obtained = false
+
+[[method.citation]]
+key = "maffiuletti2016"
+role = "evaluates"
+reference = "Maffiuletti et al. 2016, ingested at full quality"
+doi = "10.1007/s00421-016-3346-6"
+obtained = true
+
+[method.gui]
+surfacing = "surface_on_demand"
+sensitivity = "carries the whole of the onset bias at short elapsed times, as the rate over the same interval does"
+
+[[method]]
 id = "rfd.epoch_from_onset.overlapping"
 construct = "rate_of_force_development"
 group = "H"
@@ -288,7 +332,13 @@ id = "rfd.epoch_from_onset.sequential"
 construct = "rate_of_force_development"
 group = "H"
 title = "Rate over consecutive non-overlapping windows"
-rule = "Rate is the force difference across consecutive non-overlapping windows divided by the window width."
+rule = """
+Windows of one width are laid end to end from onset, none overlapping, and the rate over a stated
+window is its force difference divided by the window width. One reading is one window; the sequence
+the scheme is named for is the same rule read at each window in turn. A trailing span shorter than
+the width is not a window, because a rate taken over a shorter interval is not comparable with the
+ones beside it.
+"""
 status = "accepted"
 confidence = "medium"
 debate = "genuine"
@@ -300,6 +350,18 @@ published_values = [50.0]
 default = 50.0
 default_source = "maffiuletti2016"
 required = true
+
+[[method.parameter]]
+name = "window_index"
+unit = "count"
+published_values = [1.0, 2.0, 3.0, 4.0]
+required = true
+notes = """
+Which window, counted from one at onset, as the source's figure numbers them. Stated rather than
+defaulted: the first window at a given width is arithmetically the overlapping scheme at that
+epoch, so a rule defaulting to it would report the entry it disagrees with under this entry's name.
+The scheme's own argument for itself is about the windows past the first.
+"""
 
 [[method.citation]]
 key = "folland2014"
@@ -1040,6 +1102,39 @@ rule = "Rate of power development is computed from the start of a declared phase
 status = "accepted"
 confidence = "high"
 debate = "single_position"
+
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+Which phase the rate is anchored at the start of. The rule says a declared phase and none is
+defaulted: the value moves the number, and no source here names the interval it means, so a phase
+chosen without the caller would carry a citation onto an interval it never took this rate across.
+
+The same four intervals the other rules reading a number off a power series take, in the same words,
+because a reader drawing a peak power and the rate that reached it against each other is entitled to
+have the two mean one thing by the phase they name.
+
+Peak power inside the phase is what the rate runs to, so a phase whose peak sits at its first sample
+leaves no line to draw and the rule says so rather than reporting a rate over no interval.
+"""
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
 
 [[method.citation]]
 key = "vald_glossary"

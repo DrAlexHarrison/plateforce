@@ -416,7 +416,7 @@ mod tests {
       ],
       "choices": [],
       "registry_version": "2026-07-25",
-      "registry_digest": "content-954d0066402b47e7",
+      "registry_digest": "content-5184e61927291f3c",
       "acquisition_complete": false,
       "depends_on": [
         {
@@ -427,7 +427,7 @@ mod tests {
             { "name": "sd_convention", "value": "sample", "source": "assumed" }
           ],
           "registry_version": "2026-07-25",
-          "registry_digest": "content-954d0066402b47e7",
+          "registry_digest": "content-5184e61927291f3c",
           "acquisition_complete": false,
           "depends_on": []
         }
