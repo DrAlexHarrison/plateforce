@@ -831,7 +831,12 @@ pub struct CompareRunRow {
     /// caller cited.
     pub registry_declared_version: Option<String>,
     pub registry_digest: Option<String>,
-    pub request_digest: String,
+    /// The request the sweep varied, before it was varied: every rule and value this run held
+    /// still, plus the pin. Not the identity of what ran, which is this request crossed with
+    /// the axis, and two comparisons over one folder that swept different rules carry one
+    /// value here. What separates them is `construct`, `method_ids`, `held_fixed` and
+    /// `run_fingerprint`, which take the axis in.
+    pub base_request_digest: String,
     pub quantity: String,
     /// The step the sweep varied. A record that named the rules but not the step they filled
     /// says which rules ran and not what they were compared as.
@@ -891,7 +896,7 @@ impl BatchCompareResult {
     pub fn run_row(
         &self,
         registry: &plateforce_core::provenance::RegistryStamp,
-        request_digest: &str,
+        base_request_digest: &str,
     ) -> CompareRunRow {
         let distinct: std::collections::BTreeSet<&str> = self
             .paired
@@ -913,7 +918,7 @@ impl BatchCompareResult {
             registry_version,
             registry_declared_version,
             registry_digest,
-            request_digest: request_digest.to_string(),
+            base_request_digest: base_request_digest.to_string(),
             quantity: self.quantity.clone(),
             slot: self.slot.clone(),
             construct: self.construct.clone(),
@@ -950,11 +955,11 @@ impl BatchCompareResult {
     pub fn to_json(
         &self,
         registry: &plateforce_core::provenance::RegistryStamp,
-        request_digest: &str,
+        base_request_digest: &str,
     ) -> String {
         serde_json::json!({
             "ok": {
-                "run": self.run_row(registry, request_digest),
+                "run": self.run_row(registry, base_request_digest),
                 "paired": self.paired,
                 "provenance": self.provenance,
                 "refusals": self.refusals,
@@ -973,7 +978,7 @@ impl BatchCompareResult {
         &self,
         directory: &std::path::Path,
         registry: &plateforce_core::provenance::RegistryStamp,
-        request_digest: &str,
+        base_request_digest: &str,
     ) -> Result<Vec<std::path::PathBuf>, crate::WriteRefusal> {
         std::fs::create_dir_all(directory).map_err(|source| crate::WriteRefusal::Io {
             path: directory.display().to_string(),
@@ -988,7 +993,7 @@ impl BatchCompareResult {
             Ok(path)
         };
 
-        let record = serde_json::to_string_pretty(&self.run_row(registry, request_digest))
+        let record = serde_json::to_string_pretty(&self.run_row(registry, base_request_digest))
             .unwrap_or_default();
         Ok(vec![
             write("compare-run.json", record)?,

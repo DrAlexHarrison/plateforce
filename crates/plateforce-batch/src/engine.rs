@@ -17,7 +17,7 @@ use plateforce_core::{Capture, ProvenanceChain, Refusal, RefusalCode};
 use plateforce_registry::Registry;
 use serde::Serialize;
 
-use crate::decisions::{unresolved, UnresolvedDecision};
+use crate::decisions::{unresolved, UnresolvedDecision, UnresolvedValue};
 use crate::exclusions::{GateRegistry, PopulationExclusion, ValidityGate};
 use crate::fingerprint::{provenance_id, request_digest, run_fingerprint};
 use crate::identity::{TrialSet, UnidentifiedFile};
@@ -42,6 +42,16 @@ pub struct BatchRequest {
     /// file, and a run that states nothing reports every trial as incomplete rather than as
     /// matching.
     pub capture: Option<Capture>,
+    /// The athlete's mass per subject, where a folder holds more than one athlete. Keyed by
+    /// the subject a declared pattern pulled out of each file name.
+    ///
+    /// Empty is the correct state of a folder holding one athlete, whose mass sits on the
+    /// analysis request beside the gravity. The plate and the acquisition block are stated
+    /// once for the folder because they describe the recording; a mass describes the person,
+    /// and this set already spans subjects everywhere else it is read. `Session::group` takes
+    /// every reliability figure over the subject a pattern named, so a squad session was
+    /// already a folder this software understood, in every field but this one.
+    pub body_mass_kilograms_by_subject: BTreeMap<String, f64>,
 }
 
 impl BatchRequest {
@@ -52,7 +62,18 @@ impl BatchRequest {
             resolved_decisions: BTreeSet::new(),
             gates: GateRegistry::default(),
             capture: None,
+            body_mass_kilograms_by_subject: BTreeMap::new(),
         }
+    }
+
+    /// State a mass per subject, for a folder holding more than one athlete.
+    ///
+    /// A folder that states these leaves the analysis request's own mass unset, so no trial
+    /// runs under a mass belonging to somebody else and no record claims one.
+    pub fn massing(mut self, by_subject: BTreeMap<String, f64>) -> Self {
+        self.analysis.body_mass_kilograms = None;
+        self.body_mass_kilograms_by_subject = by_subject;
+        self
     }
 
     /// State what the capture was, so results from it can be told apart from results whose
@@ -100,6 +121,11 @@ pub struct RunRefusal {
     pub code: RefusalCode,
     pub message: String,
     pub unresolved: Vec<UnresolvedDecision>,
+    /// Values a bound rule requires that the literature publishes several ways and nobody
+    /// named. A construct with no rule is the list above; a rule whose number is still open
+    /// is this one, and both refuse the run.
+    #[serde(default)]
+    pub unresolved_values: Vec<UnresolvedValue>,
 }
 
 /// What the run walked, stated against the denominator each count is taken over.
@@ -211,6 +237,147 @@ fn path_constructs() -> [&'static str; 3] {
     [WEIGHING_CONSTRUCT, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]
 }
 
+/// Each construct on the path with the rule it holds and the values the request stated
+/// against it, which is what deciding whether a number is still open takes.
+///
+/// The three landmark steps, which is the set the single trial asks the same question of. A
+/// construct computed from the landmarks is a separate question and neither surface asks it,
+/// so asking it here would put the two back out of step.
+fn values_on_the_path(request: &BatchRequest) -> Vec<(&'static str, &str, &BTreeMap<String, f64>)> {
+    let analysis = &request.analysis;
+    vec![
+        (
+            WEIGHING_CONSTRUCT,
+            analysis.weighing.method_id.as_str(),
+            &analysis.weighing.parameters,
+        ),
+        (
+            ONSET_CONSTRUCT,
+            analysis.onset.method_id.as_str(),
+            &analysis.onset.parameters,
+        ),
+        (
+            TAKEOFF_CONSTRUCT,
+            analysis.takeoff.method_id.as_str(),
+            &analysis.takeoff.parameters,
+        ),
+    ]
+}
+
+/// How many values on this path the literature publishes more than one way, which is the
+/// denominator the open count is taken over.
+fn published_more_than_one_way(registry: &Registry, request: &BatchRequest) -> usize {
+    crate::decisions::values_forcing_a_choice(registry, &values_on_the_path(request))
+}
+
+/// Every subject the folder holds, which a declared pattern named and a file stem did not.
+fn subjects_present(set: &TrialSet) -> BTreeSet<&str> {
+    set.iter()
+        .filter_map(|(_, entry)| entry.subject.as_ref())
+        .map(|key| key.subject.as_str())
+        .collect()
+}
+
+/// Whether the masses stated per subject and the subjects the folder holds are the same set.
+///
+/// Both directions refuse, because both are silent otherwise. A mass written against a name
+/// the folder does not hold applies to nothing, and a subject the map does not cover runs at
+/// no mass at all while the record beside it lists a mass for every other athlete, which reads
+/// as coverage. Refused once for the folder rather than once per trial.
+fn masses_cover_the_folder(set: &TrialSet, request: &BatchRequest) -> Result<(), RunRefusal> {
+    if request.body_mass_kilograms_by_subject.is_empty() {
+        return Ok(());
+    }
+    let present = subjects_present(set);
+    let named: BTreeSet<&str> = request
+        .body_mass_kilograms_by_subject
+        .keys()
+        .map(String::as_str)
+        .collect();
+    let refused = |code: RefusalCode, message: String| RunRefusal {
+        code,
+        message,
+        unresolved: Vec::new(),
+        unresolved_values: Vec::new(),
+    };
+
+    let unknown: Vec<&str> = named.difference(&present).copied().collect();
+    if !unknown.is_empty() {
+        return Err(refused(
+            RefusalCode::ValueNotAccepted,
+            format!(
+                "{} of {} masses name an athlete not in this folder: {}\n  {}",
+                unknown.len(),
+                named.len(),
+                unknown.join(", "),
+                if present.is_empty() {
+                    "it names no athlete, so --pattern gives it one".to_string()
+                } else {
+                    format!(
+                        "it holds {}",
+                        present.iter().copied().collect::<Vec<&str>>().join(", ")
+                    )
+                }
+            ),
+        ));
+    }
+    let uncovered: Vec<&str> = present.difference(&named).copied().collect();
+    if !uncovered.is_empty() {
+        return Err(refused(
+            RefusalCode::RequiredParameterUnstated,
+            format!(
+                "{} of {} subjects in this folder have no mass: {}",
+                uncovered.len(),
+                present.len(),
+                uncovered.join(", ")
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// Each subject's mass as the record carries it.
+///
+/// The row is built by asking a request bound to that one mass what globals it holds, so the
+/// unit, the symbol and the claim about who chose it come from the one place that answers
+/// that question rather than from a second set of literals here.
+fn mass_rows(request: &BatchRequest) -> BTreeMap<String, crate::relations::BoundGlobalRow> {
+    request
+        .body_mass_kilograms_by_subject
+        .iter()
+        .filter_map(|(subject, kilograms)| {
+            let mut one = request.analysis.clone();
+            one.body_mass_kilograms = Some(*kilograms);
+            one.bound_globals()
+                .iter()
+                .find(|bound| bound.name == plateforce_analysis::BODY_MASS_GLOBAL)
+                .map(|bound| (subject.clone(), crate::relations::BoundGlobalRow::of(bound)))
+        })
+        .collect()
+}
+
+/// The request one trial runs under.
+///
+/// The folder's own, unless the caller stated a mass per subject, in which case this trial's
+/// athlete's mass reaches its analysis and nobody else's does. Borrowed where the folder holds
+/// one athlete, so the common run clones nothing.
+fn analysis_for<'a>(
+    entry: &crate::identity::TrialEntry,
+    request: &'a BatchRequest,
+) -> std::borrow::Cow<'a, AnalysisRequest> {
+    if request.body_mass_kilograms_by_subject.is_empty() {
+        return std::borrow::Cow::Borrowed(&request.analysis);
+    }
+    let mut own = request.analysis.clone();
+    own.body_mass_kilograms = entry.subject.as_ref().and_then(|key| {
+        request
+            .body_mass_kilograms_by_subject
+            .get(&key.subject)
+            .copied()
+    });
+    std::borrow::Cow::Owned(own)
+}
+
 /// Run one analysis over every trial in the set.
 ///
 /// The registry arrives as a loaded object rather than as a digest string, because the digest
@@ -230,6 +397,7 @@ pub fn analyse(
                 code: refusal.code,
                 message: refusal.message().to_string(),
                 unresolved: Vec::new(),
+                unresolved_values: Vec::new(),
             });
         }
     }
@@ -248,8 +416,32 @@ pub fn analyse(
                 named.join("; ")
             ),
             unresolved: open,
+            unresolved_values: Vec::new(),
         });
     }
+
+    // Naming the rule does not always close the choice. A rule requiring a number the
+    // literature publishes several ways leaves the number open, and a folder multiplies that
+    // by the trial count into a spreadsheet nobody re-reads the provenance of. The terminal
+    // has refused this since it shipped and the folder ran it at whichever value the code
+    // held, recording that nobody was asked, which is one request answered two ways.
+    let values = crate::decisions::unresolved_values(registry, &values_on_the_path(request));
+    if !values.is_empty() {
+        let named: Vec<String> = values.iter().map(UnresolvedValue::message).collect();
+        return Err(RunRefusal {
+            code: RefusalCode::DecisionNotMade,
+            message: format!(
+                "{} of {} values on this path are published more than one way and were not named: {}",
+                values.len(),
+                published_more_than_one_way(registry, request),
+                named.join("; ")
+            ),
+            unresolved: Vec::new(),
+            unresolved_values: values,
+        });
+    }
+
+    masses_cover_the_folder(set, request)?;
 
     // What every record this run produces says about the registry behind it, and whether the
     // plate's settings were recorded. Both are facts about the run rather than about a trial,
@@ -318,7 +510,8 @@ pub fn analyse(
             }
         };
 
-        let response = match plateforce_analysis::run(&trial, &request.analysis) {
+        let analysis = analysis_for(entry, request);
+        let response = match plateforce_analysis::run(&trial, &analysis) {
             Ok(response) => response,
             // The code is the one the engine decided it was declining under.
             Err(declined) => {
@@ -475,7 +668,11 @@ pub fn analyse(
         // A run always read a registry, so the row states the digest rather than admitting
         // absence. The stamp admits it because a record can be written without one.
         registry_digest: registry.content_digest.clone(),
-        request_digest: request_digest(&request.analysis, request.registry_version.as_deref()),
+        request_digest: request_digest(
+            &request.analysis,
+            request.registry_version.as_deref(),
+            &request.body_mass_kilograms_by_subject,
+        ),
         // Read off the request the folder ran under, so the row names the same values every
         // trial's analysis was handed rather than a second account of them.
         bound_globals: request
@@ -484,6 +681,10 @@ pub fn analyse(
             .iter()
             .map(crate::relations::BoundGlobalRow::of)
             .collect(),
+        // Written through the same row type and the same claim about who chose the value, so
+        // one athlete's mass and a squad's are one record in two shapes rather than two
+        // records. Empty on a folder holding one athlete, whose mass is above.
+        body_mass_kilograms_by_subject: mass_rows(request),
         files_found: coverage.files_found,
         files_without_declared_suffix: coverage.files_without_declared_suffix,
         files_unidentified: coverage.files_unidentified,
@@ -671,6 +872,10 @@ fn provenance_rows(
 }
 
 /// One step of a chain and everything above it, each carrying the depth it sits at.
+///
+/// The rule row beside the step travels with it and decides nothing. It is consulted for one
+/// thing, the spelling of a number the step and the row already agree on, and `rows_for_chain_step`
+/// holds it to that agreement.
 fn rows_for_step(
     chain: &ProvenanceChain,
     response: &AnalysisResponse,
@@ -690,71 +895,69 @@ fn rows_for_step(
 
 /// One step of a chain as rows: what the step says produced the number, at the depth it sits.
 ///
-/// The names are the step's own rather than the rule row's beside it. The two agree wherever a
-/// rule recorded every value it read, and the derivation carries one a rule cannot: the gravity
-/// belongs to the analysis and no registry entry declares it, so no rule may record it. Reading
-/// the rule row instead put that value on a notebook and an R session and left it off this
-/// relation, which is one number with two accounts.
+/// Every name, every value and every source is the step's own. A rule's row can add nothing
+/// here and can take nothing away, which is the property this relation needs: the tree is what
+/// four surfaces publish, and a folder run reading a list beside it would be a fifth account.
+/// The derivation already carries values no rule may record, the analysis gravity among them,
+/// because no registry entry declares it.
 ///
-/// The text is the rule's own wherever the rule wrote one. Rules spell a measured second at
-/// four places and a stated one as it was typed, so re-rendering here would rewrite every value
-/// in the relation. What no rule wrote is spelled the way every record spells a number.
+/// The row supplies the rule's own spelling of a number, and only where the row holds the
+/// number this step is standing on. Rules spell a measured second at four places and a stated
+/// one as it was typed, so rendering every value here would rewrite the relation; taking a
+/// spelling off a row holding some other number would print a value this step never carried.
 ///
 /// A rule the response named and left no row for still opens the chain, and a step that read
 /// nothing still gets a row: dropping either would put the rules above it under nothing.
+///
+/// Row order is not decided here. `analyse` sorts the whole relation by provenance id,
+/// quantity, depth, method id and parameter before writing it, and `provenance_id` sorts its
+/// own input before digesting, so an order imposed at this depth reaches neither the file nor
+/// the identity.
 fn rows_for_chain_step(
     quantity: &str,
     chain: &ProvenanceChain,
     recorded: Option<&BoundMethod>,
     depth: usize,
 ) -> Vec<ProvenanceRow> {
-    let text_the_rule_wrote = |name: &str| {
-        recorded.and_then(|bound| {
-            bound
-                .bound_parameters
-                .iter()
-                .find(|(held, _)| held == name)
-                .map(|(_, text)| text.clone())
-        })
-    };
-    // The rule's own order, so a relation reads as the rule recorded it and a name only the
-    // step carries follows the ones that were read.
-    let position = |name: &str| {
+    let spelling = |name: &str, value: f64| {
         recorded
+            .filter(|bound| bound.numeric_values.get(name) == Some(&value))
             .and_then(|bound| {
                 bound
                     .bound_parameters
                     .iter()
-                    .position(|(held, _)| held == name)
+                    .find(|(held, _)| held == name)
+                    .map(|(_, text)| text.clone())
             })
-            .unwrap_or(usize::MAX)
     };
 
-    let mut named: Vec<(usize, String, String, ParameterSource)> = chain
+    let mut named: Vec<(String, String, ParameterSource)> = chain
         .provenance
         .parameters
         .iter()
         .map(|record| {
-            let text = text_the_rule_wrote(&record.name)
+            let text = spelling(&record.name, record.value)
                 .unwrap_or_else(|| plateforce_analysis::parameter_value_text(record.value));
-            (
-                position(&record.name),
-                record.name.clone(),
-                text,
-                record.source,
-            )
+            (record.name.clone(), text, record.source)
         })
-        .chain(chain.provenance.choices.iter().map(|record| {
-            let text = text_the_rule_wrote(&record.name).unwrap_or_else(|| record.value.clone());
-            (
-                position(&record.name),
-                record.name.clone(),
-                text,
-                record.source,
-            )
-        }))
+        .chain(
+            chain
+                .provenance
+                .choices
+                .iter()
+                .map(|record| (record.name.clone(), record.value.clone(), record.source)),
+        )
         .collect();
-    named.sort_by_key(|(position, _, _, _)| *position);
+    // A choice the chain carries beside the step rather than on it. The two hold one set today
+    // and the type allows them to differ, so a name reaching only the chain lands here rather
+    // than on an account a notebook and an R session publish and this relation does not. Its
+    // source is the weakest claim, which is what a record with no recorded source takes
+    // everywhere else: nobody wrote down who chose it, so nobody is said to have.
+    for (name, value) in &chain.enumerated_choices {
+        if !named.iter().any(|(held, _, _)| held == name) {
+            named.push((name.clone(), value.clone(), ParameterSource::Assumed));
+        }
+    }
 
     if named.is_empty() {
         return vec![ProvenanceRow {
@@ -769,7 +972,7 @@ fn rows_for_chain_step(
     }
     named
         .into_iter()
-        .map(|(_, parameter, value, source)| ProvenanceRow {
+        .map(|(parameter, value, source)| ProvenanceRow {
             provenance_id: String::new(),
             quantity: quantity.to_string(),
             depth,
@@ -781,4 +984,160 @@ fn rows_for_chain_step(
             source: source.wire_name().to_string(),
         })
         .collect()
+}
+
+/// What the folder run publishes for one step of a chain, against the rule row beside it.
+///
+/// Every case here is a way the step and the row can differ. They do not differ on the
+/// committed corpus, which is why this is built rather than read off a run: a guard taken
+/// over data where the two agree cannot tell a surface that reads the tree from one that
+/// reads the list, and that is the state this relation was in.
+#[cfg(test)]
+mod rows_come_from_the_chain_step {
+    use super::*;
+    use plateforce_core::provenance::{ChoiceRecord, ParameterRecord};
+    use plateforce_core::Provenance;
+
+    const RULE: &str = "onset.threshold.noise_relative";
+    const QUANTITY: &str = "jump_height_from_takeoff_meters";
+
+    fn step(parameters: Vec<ParameterRecord>, choices: Vec<ChoiceRecord>) -> ProvenanceChain {
+        ProvenanceChain::leaf(Provenance {
+            parameters,
+            choices,
+            ..Provenance::of(RULE)
+        })
+    }
+
+    fn number(name: &str, value: f64) -> ParameterRecord {
+        ParameterRecord {
+            name: name.to_string(),
+            value,
+            source: ParameterSource::Stated,
+        }
+    }
+
+    fn choice(name: &str, value: &str) -> ChoiceRecord {
+        ChoiceRecord {
+            name: name.to_string(),
+            value: value.to_string(),
+            source: ParameterSource::Stated,
+        }
+    }
+
+    /// A row for the same rule, holding whatever the caller of this helper says it holds.
+    fn row(bound: &[(&str, &str)], numbers: &[(&str, f64)]) -> BoundMethod {
+        BoundMethod {
+            method_id: RULE.to_string(),
+            bound_parameters: bound
+                .iter()
+                .map(|(name, text)| ((*name).to_string(), (*text).to_string()))
+                .collect(),
+            parameter_sources: BTreeMap::new(),
+            unread_parameters: Vec::new(),
+            registry_backed: true,
+            manual_override: false,
+            preset: None,
+            method_source: ParameterSource::Stated,
+            numeric_values: numbers
+                .iter()
+                .map(|(name, value)| ((*name).to_string(), *value))
+                .collect(),
+        }
+    }
+
+    fn published(chain: &ProvenanceChain, recorded: Option<&BoundMethod>) -> Vec<(String, String)> {
+        rows_for_chain_step(QUANTITY, chain, recorded, 0)
+            .into_iter()
+            .map(|written| (written.parameter, written.value))
+            .collect()
+    }
+
+    /// The case the whole entry is about: the chain carries a value the rule may not record,
+    /// because no registry entry declares it. The analysis gravity is the live one.
+    #[test]
+    fn a_value_only_the_step_carries_reaches_the_relation() {
+        let chain = step(
+            vec![
+                number("k", 5.0),
+                number("gravity_meters_per_second_squared", 9.80665),
+            ],
+            Vec::new(),
+        );
+        let written = published(&chain, Some(&row(&[("k", "5")], &[("k", 5.0)])));
+
+        println!("published: {written:?}");
+        assert!(
+            written.contains(&(
+                "gravity_meters_per_second_squared".to_string(),
+                "9.80665".to_string()
+            )),
+            "the folder run dropped a value the chain carried: {written:?}"
+        );
+    }
+
+    /// The rule spells the number, and only while it is the same number. A row holding some
+    /// other value under the name cannot rewrite what the step stood on.
+    #[test]
+    fn the_rules_spelling_is_taken_only_where_it_is_the_same_number() {
+        let chain = step(vec![number("k", 5.0)], Vec::new());
+
+        let agreeing = published(&chain, Some(&row(&[("k", "5.0")], &[("k", 5.0)])));
+        println!("row holds 5.0: {agreeing:?}");
+        assert_eq!(
+            agreeing,
+            vec![("k".to_string(), "5.0".to_string())],
+            "the rule's own spelling of its own number was not published"
+        );
+
+        let disagreeing = published(&chain, Some(&row(&[("k", "3")], &[("k", 3.0)])));
+        println!("row holds 3: {disagreeing:?}");
+        assert_eq!(
+            disagreeing,
+            vec![("k".to_string(), "5".to_string())],
+            "a number off the rule's row displaced the one the step ran at"
+        );
+    }
+
+    /// A choice recorded beside the step rather than on it. `ProvenanceChain::choosing` puts
+    /// one there, and the account a reader is shown and the Python package both publish it.
+    #[test]
+    fn a_choice_carried_beside_the_step_reaches_the_relation() {
+        let chain = step(vec![number("k", 5.0)], Vec::new())
+            .choosing(vec![("dispersion".to_string(), "sample".to_string())]);
+        let written = published(&chain, Some(&row(&[("k", "5")], &[("k", 5.0)])));
+
+        println!("published: {written:?}");
+        assert!(
+            written.contains(&("dispersion".to_string(), "sample".to_string())),
+            "a choice the chain carried reached three surfaces and not this one: {written:?}"
+        );
+    }
+
+    /// The other side of it, so the merge above cannot be met by writing every name twice.
+    #[test]
+    fn a_choice_the_step_already_records_is_written_once() {
+        let chain = step(Vec::new(), vec![choice("sd_convention", "sample")])
+            .choosing(vec![("sd_convention".to_string(), "sample".to_string())]);
+        let written = published(&chain, None);
+
+        println!("published: {written:?}");
+        assert_eq!(
+            written.len(),
+            1,
+            "one choice was published twice: {written:?}"
+        );
+        assert_eq!(written[0].1, "sample");
+    }
+
+    /// A step that read nothing still gets a row, or the rules above it would sit under
+    /// nothing.
+    #[test]
+    fn a_step_that_read_nothing_still_names_its_rule() {
+        let written = rows_for_chain_step(QUANTITY, &step(Vec::new(), Vec::new()), None, 2);
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].method_id, RULE);
+        assert_eq!(written[0].depth, 2);
+        assert!(written[0].parameter.is_empty());
+    }
 }

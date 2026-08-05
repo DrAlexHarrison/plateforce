@@ -4,7 +4,7 @@
 //! read as a stronger claim than it is: this identifies records and detects change, and it is
 //! not a cryptographic commitment.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::{AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_core::reporting::Fingerprint;
@@ -43,7 +43,16 @@ pub fn provenance_id(rows: &[ProvenanceRow]) -> String {
 ///
 /// Destructured without a rest pattern on purpose: a field added to any of these three
 /// request types stops this compiling rather than silently leaving the digest blind to it.
-pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>) -> String {
+///
+/// `body_mass_kilograms_by_subject` arrives separately because it belongs to the folder rather
+/// than to the analysis: one request is run per trial under the mass of that trial's athlete,
+/// so the masses are part of what the run pinned and no single `AnalysisRequest` holds them
+/// all. A digest blind to it would call two squad sessions at two sets of masses one request.
+pub fn request_digest(
+    request: &AnalysisRequest,
+    registry_version: Option<&str>,
+    body_mass_kilograms_by_subject: &BTreeMap<String, f64>,
+) -> String {
     let AnalysisRequest {
         weighing,
         onset,
@@ -113,6 +122,9 @@ pub fn request_digest(request: &AnalysisRequest, registry_version: Option<&str>)
             .map(|(construct, choice)| (construct.clone(), method_choice(choice)))
             .collect::<serde_json::Map<String, Value>>(),
         "body_mass_kilograms": body_mass_kilograms,
+        // Ordered already, because the map is a `BTreeMap`: two runs stating one squad's
+        // masses in two orders are one request.
+        "body_mass_kilograms_by_subject": body_mass_kilograms_by_subject,
         "registry_version": registry_version,
     });
     digest("request", &body)
@@ -270,6 +282,7 @@ mod tests {
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
             bound_globals: Vec::new(),
+            body_mass_kilograms_by_subject: BTreeMap::new(),
             files_found: 6,
             files_without_declared_suffix: 0,
             files_unidentified: 0,
