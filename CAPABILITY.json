@@ -227,6 +227,12 @@
         },
         {
           "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.takeoff",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.peak_grf",
           "slot": "propulsion_phase_start"
@@ -687,6 +693,12 @@
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.takeoff",
           "slot": "propulsion_phase_end"
         },
         {
@@ -1159,6 +1171,12 @@
         },
         {
           "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.takeoff",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
           "construct": "propulsion_phase_start",
           "id": "phase.propulsion_start.peak_grf",
           "slot": "propulsion_phase_start"
@@ -1621,6 +1639,12 @@
           "composed_from": null,
           "construct": "propulsion_phase_end",
           "id": "phase.propulsion_end.peak_com_velocity",
+          "slot": "propulsion_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_end",
+          "id": "phase.propulsion_end.takeoff",
           "slot": "propulsion_phase_end"
         },
         {
