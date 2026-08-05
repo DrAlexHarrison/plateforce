@@ -113,6 +113,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_index.rpem",
+          "id": "index.rpem.riosgallardo",
+          "requires": [
+            "velocity_term"
+          ],
+          "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
           "requires": [],
@@ -474,6 +483,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_ratio",
+          "id": "ratio.ft_over_ttt.cmj",
+          "requires": [
+            "vendor_name"
+          ],
+          "slot": "reactive_strength_ratio"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "requires": [],
@@ -559,6 +577,13 @@
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
+          "id": "rsimod.jh_ft_over_ttt",
+          "requires": [],
+          "slot": "reactive_strength_index"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
           "requires": [],
           "slot": "reactive_strength_index"
@@ -611,6 +636,13 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "time_to_stabilisation",
+          "id": "tts.band_and_dwell.hawkin",
+          "requires": [],
+          "slot": "time_to_stabilisation"
         },
         {
           "composed_from": null,
@@ -975,6 +1007,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_index.rpem",
+          "id": "index.rpem.riosgallardo",
+          "requires": [
+            "velocity_term"
+          ],
+          "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
           "requires": [],
@@ -1336,6 +1377,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_ratio",
+          "id": "ratio.ft_over_ttt.cmj",
+          "requires": [
+            "vendor_name"
+          ],
+          "slot": "reactive_strength_ratio"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "requires": [],
@@ -1421,6 +1471,13 @@
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
+          "id": "rsimod.jh_ft_over_ttt",
+          "requires": [],
+          "slot": "reactive_strength_index"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
           "requires": [],
           "slot": "reactive_strength_index"
@@ -1473,6 +1530,13 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "time_to_stabilisation",
+          "id": "tts.band_and_dwell.hawkin",
+          "requires": [],
+          "slot": "time_to_stabilisation"
         },
         {
           "composed_from": null,
@@ -1841,6 +1905,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_index.rpem",
+          "id": "index.rpem.riosgallardo",
+          "requires": [
+            "velocity_term"
+          ],
+          "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
           "requires": [],
@@ -2202,6 +2275,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_ratio",
+          "id": "ratio.ft_over_ttt.cmj",
+          "requires": [
+            "vendor_name"
+          ],
+          "slot": "reactive_strength_ratio"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "requires": [],
@@ -2287,6 +2369,13 @@
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
+          "id": "rsimod.jh_ft_over_ttt",
+          "requires": [],
+          "slot": "reactive_strength_index"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
           "requires": [],
           "slot": "reactive_strength_index"
@@ -2339,6 +2428,13 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "time_to_stabilisation",
+          "id": "tts.band_and_dwell.hawkin",
+          "requires": [],
+          "slot": "time_to_stabilisation"
         },
         {
           "composed_from": null,
@@ -2705,6 +2801,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_index.rpem",
+          "id": "index.rpem.riosgallardo",
+          "requires": [
+            "velocity_term"
+          ],
+          "slot": "reactive_strength_index.rpem"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
           "requires": [],
@@ -3066,6 +3171,15 @@
         },
         {
           "composed_from": null,
+          "construct": "reactive_strength_ratio",
+          "id": "ratio.ft_over_ttt.cmj",
+          "requires": [
+            "vendor_name"
+          ],
+          "slot": "reactive_strength_ratio"
+        },
+        {
+          "composed_from": null,
           "construct": "rate_of_force_development",
           "id": "rfd.at_fraction_of_peak_force",
           "requires": [],
@@ -3151,6 +3265,13 @@
         {
           "composed_from": null,
           "construct": "reactive_strength_index",
+          "id": "rsimod.jh_ft_over_ttt",
+          "requires": [],
+          "slot": "reactive_strength_index"
+        },
+        {
+          "composed_from": null,
+          "construct": "reactive_strength_index",
           "id": "rsimod.jh_tov_over_ttt",
           "requires": [],
           "slot": "reactive_strength_index"
@@ -3203,6 +3324,13 @@
           "id": "time_to_takeoff.onset_to_takeoff",
           "requires": [],
           "slot": "time_to_takeoff"
+        },
+        {
+          "composed_from": null,
+          "construct": "time_to_stabilisation",
+          "id": "tts.band_and_dwell.hawkin",
+          "requires": [],
+          "slot": "time_to_stabilisation"
         },
         {
           "composed_from": null,
