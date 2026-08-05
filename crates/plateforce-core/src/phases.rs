@@ -618,6 +618,58 @@ pub fn landing_end_by_zero_com_velocity(
     }
 }
 
+/// The stretch of a lift where the bar slows down, as two local extrema of ascent velocity.
+///
+/// The region runs from the first local maximum of ascent velocity to the local minimum
+/// after it, after which velocity increases again. All three parts are searched for: a trace
+/// whose velocity never turns back up has no such minimum, and a lifter who exhibits no
+/// sticking point at all is a reported case rather than an error.
+///
+/// The whole quantity is two extrema of a differentiated signal, which is why it is sensitive
+/// to whatever cutoff conditioned the trace. On a squat the velocity falls by about 0.03 m/s
+/// against 0.22 m/s on a bench press, and 0.03 m/s is at or below the noise floor of a
+/// plate-integrated velocity, so the one lift a plate could see this on is the one where it
+/// is hardest to see.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StickingRegion {
+    /// The first local maximum of ascent velocity.
+    pub start_index: usize,
+    /// The local minimum after it, where the bar is slowest inside the region.
+    pub end_index: usize,
+}
+
+/// The first local maximum of ascent velocity, and the local minimum that follows it.
+///
+/// `None` where the search interval holds no local maximum, or holds one with no subsequent
+/// minimum that velocity rises again from. The second case is the deadlift, where the second
+/// peak is lower than the first so the velocity-increases-again clause never fires, and it is
+/// an answer about the lift rather than a failure of the search.
+pub fn sticking_region_by_velocity_minimum(
+    velocity_meters_per_second: &[f64],
+    ascent_start_index: usize,
+    ascent_end_index: usize,
+) -> Option<StickingRegion> {
+    let last = ascent_end_index.min(velocity_meters_per_second.len().saturating_sub(1));
+    if ascent_start_index + 2 > last {
+        return None;
+    }
+    let rising = |index: usize| {
+        velocity_meters_per_second[index] > velocity_meters_per_second[index - 1]
+    };
+    let falling = |index: usize| {
+        velocity_meters_per_second[index] < velocity_meters_per_second[index - 1]
+    };
+
+    let start = (ascent_start_index + 1..last).find(|&index| rising(index) && !rising(index + 1))?;
+    // The minimum has to be one velocity rises again from, which is the clause that separates
+    // a sticking region from the final deceleration at the end of the lift.
+    let end = (start + 1..last).find(|&index| falling(index) && !falling(index + 1))?;
+    Some(StickingRegion {
+        start_index: start,
+        end_index: end,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

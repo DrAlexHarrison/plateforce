@@ -11,6 +11,8 @@
 //! and each rule here declares its own quantity keys. A reader comparing two results sees the
 //! keys change.
 
+pub mod downward_upward;
+pub mod squat_jump_distinct;
 pub mod time_epochs;
 pub mod unloading_yielding_split;
 pub mod unweighting_single;

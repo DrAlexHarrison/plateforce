@@ -215,19 +215,36 @@ id = "lifting_phase_start"
 title = "The instant the positive lifting phase begins on a loaded lift"
 label = "Start of the lift"
 unit = "seconds"
+rules_answer = "one_question"
+notes = """
+One rule reads the velocity sign change off the trace and the other is placed by eye, because
+its source states no algorithmic rule. They report the same instant under the same name, so
+the choice between them moves the value rather than deciding which quantities exist.
+"""
 
 [[construct]]
 id = "lifting_phase_end"
 title = "The instant the positive lifting phase ends on a loaded lift"
 label = "End of the lift"
 unit = "seconds"
-notes = "Two rules differ by the braking sub-phase, whose duration is load dependent, and by 24 percent on mean force."
+rules_answer = "one_question"
+notes = """
+Three rules and one instant. The first two differ by the braking sub-phase, whose duration is
+load dependent, and by 24 percent on mean force. The third places the boundary far later,
+where contact ends rather than where acceleration ceases.
+"""
 
 [[construct]]
 id = "landing_phase_end"
 title = "The instant the landing phase ends"
 label = "End of the landing"
 unit = "seconds"
+rules_answer = "one_question"
+notes = """
+Both rules name the instant the landing ended and neither reports a quantity the other does
+not, so the choice moves the value. What separates them is the instrument: one is computable
+from a force plate alone and the other is not.
+"""
 
 [[construct]]
 id = "landing_subdivision"
@@ -259,6 +276,13 @@ id = "sticking_region"
 title = "The interval of reduced bar velocity during a maximal lift"
 label = "Where the bar slows down"
 unit = "seconds"
+rules_answer = "their_own_questions"
+notes = """
+Two definitions and one word, and the authors wrote a paper about the difference. One is an
+interval between two velocity extrema and reports two instants; the other is the single point
+at which a maximal attempt failed. The choice settles which quantities exist rather than
+moving a value, and the second is not computable from a successful repetition.
+"""
 
 [[construct]]
 id = "peak_force"
