@@ -726,12 +726,15 @@ export class TraceChart {
       const left = this.indexToX(Math.max(span.startIndex, this.viewStart));
       const right = this.indexToX(Math.min(span.endIndex, this.viewEnd));
       if (right < this.plot.left || left > this.plot.right) continue;
+      // Heavier than the weighing window it can sit beside. That window is a rule's standing
+      // answer and this is what the reader just did, so on a trace already carrying a band at
+      // one tenth ink the selection has to be the thing the eye finds first.
       context.fillStyle = colours.text;
-      context.globalAlpha = 0.08;
+      context.globalAlpha = 0.16;
       context.fillRect(left, this.plot.top, Math.max(1, right - left), this.plot.height);
-      context.globalAlpha = 0.7;
-      context.strokeStyle = colours.border;
-      context.lineWidth = 1;
+      context.globalAlpha = 0.9;
+      context.strokeStyle = colours.text;
+      context.lineWidth = 1.5;
       for (const x of [left, right]) {
         context.beginPath();
         context.moveTo(Math.round(x) + 0.5, this.plot.top);
@@ -838,7 +841,12 @@ export class TraceChart {
       const right = this.indexToX(Math.min(region.endIndex, this.viewEnd));
       element.hidden = right < this.plot.left || left > this.plot.right;
       if (element.hidden) continue;
-      element.style.cssText = `top:${top};height:${height};left:${left}px;width:${Math.max(2, right - left)}px`;
+      // The band on the canvas is the width of the span and says what it is. This is the thing
+      // a finger has to hit, so it widens to a touch target around the same centre rather than
+      // making the drawing lie: a third of a second at this plot width is 17 px.
+      const width = Math.max(44, right - left);
+      const centred = (left + right) / 2 - width / 2;
+      element.style.cssText = `top:${top};height:${height};left:${centred}px;width:${width}px`;
       element.setAttribute('aria-label', this.selectionSentence(region, position));
       element.setAttribute('aria-pressed', String(position === this.activeRegion));
     }

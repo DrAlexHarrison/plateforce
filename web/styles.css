@@ -485,9 +485,9 @@ input:invalid { border-color: var(--danger); }
   position: absolute;
   inset: 0 0 auto 0;
   height: 2px;
-  background: var(--border-strong);
+  background: var(--text-tertiary);
 }
-.selection-region--active::before { height: 4px; background: var(--text-secondary); }
+.selection-region--active::before { height: 4px; background: var(--text); }
 .selection-region:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
 
 .chart-selection {
