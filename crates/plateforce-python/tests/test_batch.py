@@ -36,6 +36,8 @@ def run(folder, registry_path, **extra):
         registry=registry_path,
         weighing="bwepoch.fixed_window",
         onset="onset.threshold.noise_relative",
+        # k is published four ways, so an unnamed value is a choice the engine refuses to make.
+        onset_parameters={"k": 5.0},
         takeoff="takeoff.threshold.absolute_force",
         sentinel=None,
         delimiter="\t",

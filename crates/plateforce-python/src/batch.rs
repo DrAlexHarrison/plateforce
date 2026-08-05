@@ -337,7 +337,7 @@ fn conditioning_choices(
 /// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
 /// reading a vendor's missing marker as a force.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -352,6 +352,12 @@ pub fn batch(
     trial_file_suffixes: Option<Vec<String>>,
     pattern: Option<&str>,
     resolved: Option<Vec<String>>,
+    weighing_parameters: Option<std::collections::BTreeMap<String, f64>>,
+    onset_parameters: Option<std::collections::BTreeMap<String, f64>>,
+    takeoff_parameters: Option<std::collections::BTreeMap<String, f64>>,
+    weighing_options: Option<std::collections::BTreeMap<String, String>>,
+    onset_options: Option<std::collections::BTreeMap<String, String>>,
+    takeoff_options: Option<std::collections::BTreeMap<String, String>>,
     derived: Option<std::collections::BTreeMap<String, String>>,
     derived_parameters: Option<
         std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
@@ -430,14 +436,20 @@ pub fn batch(
     let analysis = plateforce_analysis::AnalysisRequest {
         weighing: plateforce_analysis::WeighingChoice {
             method_id: weighing.to_string(),
+            parameters: weighing_parameters.unwrap_or_default(),
+            options: weighing_options.unwrap_or_default(),
             ..Default::default()
         },
         onset: plateforce_analysis::MethodChoice {
             method_id: onset.to_string(),
+            parameters: onset_parameters.unwrap_or_default(),
+            options: onset_options.unwrap_or_default(),
             ..Default::default()
         },
         takeoff: plateforce_analysis::MethodChoice {
             method_id: takeoff.to_string(),
+            parameters: takeoff_parameters.unwrap_or_default(),
+            options: takeoff_options.unwrap_or_default(),
             ..Default::default()
         },
         touchdown_index: None,
