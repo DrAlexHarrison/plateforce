@@ -296,11 +296,12 @@ function renderGravityField() {
  * not already saying it: nobody has stated one, or what is typed was not accepted. A box
  * holding a number the results were not computed against is a confident wrong number. */
 function renderGravityHint() {
-  const bound = state.analysis?.bound_globals?.find((global) => global.name === GRAVITY_AXIS.parameter);
+  const boundGlobal = (state.analysis?.bound_globals || [])
+    .find((candidate) => candidate.name === GRAVITY_AXIS.parameter);
   const typed = $('gravity').value.trim();
-  const fieldSaysIt = bound != null && typed !== '' && Number(typed) === bound.value;
+  const fieldSaysIt = boundGlobal != null && typed !== '' && Number(typed) === boundGlobal.value;
   $('gravity-hint').textContent =
-    bound && !fieldSaysIt ? `Results use ${bound.value} ${bound.unit_symbol}.` : '';
+    boundGlobal && !fieldSaysIt ? `Results use ${boundGlobal.value} ${boundGlobal.unit_symbol}.` : '';
 }
 
 /* An empty field is the reader declining to state one. A value outside the range the input

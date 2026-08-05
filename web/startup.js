@@ -52,11 +52,11 @@ function renderRegistryBanner() {
  * whole reason the field is offered is that they are not.
  */
 function globalRows() {
-  return (state.analysis?.bound_globals || []).map((global) => [
+  return (state.analysis?.bound_globals || []).map((boundGlobal) => [
     // The record spells a name with its unit on the end, and the row already carries the unit
     // beside the value.
-    readableName(global.name, global.unit),
-    `${global.value} ${global.unit_symbol}, ${global.source}`,
+    readableName(boundGlobal.name, boundGlobal.unit),
+    `${boundGlobal.value} ${boundGlobal.unit_symbol}, ${boundGlobal.source}`,
   ]);
 }
 
