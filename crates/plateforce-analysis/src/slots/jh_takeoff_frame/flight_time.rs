@@ -51,7 +51,7 @@ fn compute(
     let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let gravity = resolved.number_or_chosen(
         GRAVITY_PARAMETER,
-        context.chosen_gravity(),
+        context.chosen_gravity_behind(super::FLIGHT_TIME_KEY),
         GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED,
     );
 

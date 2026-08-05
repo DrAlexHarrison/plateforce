@@ -32,12 +32,15 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
 /// `global.gravity_meters_per_second_squared` as an axis and the browser's own axis is
 /// `global:gravity`, so a reader meeting this row has met its name before.
 ///
-/// Twelve rules read the analysis gravity and none of them records it, because none of their
-/// registry entries declares such a parameter and a rule may not record a parameter its entry
-/// does not carry. The value moves five of eleven numbers: measured on subject 01's first
-/// trial at 9.80665 against 9.75, both jump heights, modified reactive strength, system mass
-/// and takeoff velocity move, and the six that do not are the two instants, the two spans,
-/// system weight and the net impulse.
+/// The rules that read the analysis gravity record it on no row of their own, because none of
+/// their registry entries declares such a parameter and a rule may not record a parameter its
+/// entry does not carry. Each one records it against the number it moved instead, and the chain
+/// behind that number is where a reader meets it.
+///
+/// How many rules read it and how many numbers it moves are both queries, and both figures
+/// written here went stale inside one merge round:
+/// `every_number_the_analysis_gravity_moves_carries_it_in_its_chain` prints the second with its
+/// denominator every time it runs.
 #[derive(Debug, Clone, Serialize)]
 pub struct BoundGlobal {
     pub name: &'static str,
@@ -204,6 +207,16 @@ pub struct Metric {
     pub unit_symbol: String,
     /// The landmark rules whose answers this number rests on.
     pub contributing_method_ids: Vec<String>,
+    /// The values belonging to the analysis rather than to any registry entry that this
+    /// number rests on, recorded by the rule at the point it read each one.
+    ///
+    /// Skipped over the wire because it is not a second account of anything: `chain_of` reads
+    /// it to put the value on the root of this number's chain, and the chain is what every
+    /// surface publishes. A quantity's list used to live in `chain.rs`, where it was a claim
+    /// somebody kept up to date, and it was a key short of the build the day it was measured
+    /// against every construct rather than against the spine's eleven quantities.
+    #[serde(skip)]
+    pub rests_on_globals: Vec<&'static str>,
     /// The registry entry for the arithmetic that turned those landmarks into this number,
     /// which is a different question from which landmarks fed it.
     ///
@@ -219,17 +232,36 @@ pub struct Metric {
     pub note: Option<String>,
 }
 
+/// What one number rests on: the rules whose answers fed it, and the analysis-level values
+/// that moved it.
+///
+/// One argument rather than two, on the model of `Claims`: a caller reaching for the rules
+/// cannot reach them without the values, so a metric built at a new call site cannot record
+/// half of what produced its number. The half that used to go missing is the values, because
+/// they lived in a list somewhere else entirely.
+#[derive(Debug, Clone, Default)]
+pub struct RestsOn {
+    pub methods: Vec<String>,
+    pub globals: Vec<&'static str>,
+}
+
+impl RestsOn {
+    /// A number resting on rules and on no analysis-level value. Written out at the call site
+    /// rather than defaulted, so the claim is made rather than left unfilled.
+    pub fn rules(methods: Vec<String>) -> Self {
+        Self {
+            methods,
+            globals: Vec::new(),
+        }
+    }
+}
+
 impl Metric {
     /// A reported number, taking its key, label, unit and computed-by from the one
     /// declaration rather than from a literal at the call site.
-    pub fn declared(
-        key: &str,
-        value: Option<f64>,
-        contributing_method_ids: Vec<String>,
-        note: Option<String>,
-    ) -> Self {
+    pub fn declared(key: &str, value: Option<f64>, rests_on: RestsOn, note: Option<String>) -> Self {
         let declared = quantity(key).unwrap_or_else(|| panic!("{key} is not a declared quantity"));
-        Self::from_declaration(declared, value, contributing_method_ids, note)
+        Self::from_declaration(declared, value, rests_on, note)
     }
 
     /// A number reported by one rule, taking its name and unit from the shared declaration
@@ -241,7 +273,7 @@ impl Metric {
     pub fn from_declaration(
         declared: &Quantity,
         value: Option<f64>,
-        contributing_method_ids: Vec<String>,
+        rests_on: RestsOn,
         note: Option<String>,
     ) -> Self {
         let shared =
@@ -258,7 +290,8 @@ impl Metric {
             carried_no_number,
             unit: shared.unit.to_string(),
             unit_symbol: unit_symbol(shared.unit).to_string(),
-            contributing_method_ids,
+            contributing_method_ids: rests_on.methods,
+            rests_on_globals: rests_on.globals,
             computed_by: declared.computed_by.map(str::to_string),
             note,
         }

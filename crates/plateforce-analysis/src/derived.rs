@@ -47,6 +47,11 @@ pub struct PlacedSample {
     pub index: Option<usize>,
     pub placed_by: Vec<String>,
     pub rests_on: Vec<&'static str>,
+    /// Values belonging to the analysis rather than to any registry entry that moved this
+    /// sample. A rule that places a boundary off a velocity series read the gravity that
+    /// scaled it, and a number reading the boundary rests on that gravity without naming it
+    /// itself, exactly as it rests on the rules in `rests_on` without naming those.
+    pub globals: Vec<&'static str>,
     /// Where this node's entries sit in the order the result records its rules, which is the
     /// order `bound_methods` lists them in. Held on the node because a closure returns a set
     /// and a reader needs one order, and reusing the record's own order means a chain and the
@@ -66,19 +71,7 @@ pub fn rules_behind(
     placed: &BTreeMap<&'static str, PlacedSample>,
     names: &[&'static str],
 ) -> Vec<String> {
-    let mut reached: BTreeSet<&'static str> = BTreeSet::new();
-    let mut pending: Vec<&'static str> = names.to_vec();
-    while let Some(name) = pending.pop() {
-        if !reached.insert(name) {
-            continue;
-        }
-        if let Some(node) = placed.get(name) {
-            pending.extend(node.rests_on.iter().copied());
-        }
-    }
-
-    let mut nodes: Vec<&PlacedSample> =
-        reached.iter().filter_map(|name| placed.get(name)).collect();
+    let mut nodes: Vec<&PlacedSample> = nodes_behind(placed, names);
     nodes.sort_by_key(|node| node.order);
 
     let mut ids: Vec<String> = Vec::new();
@@ -90,6 +83,43 @@ pub fn rules_behind(
         }
     }
     ids
+}
+
+/// The analysis-level values behind every named sample, and behind the samples those rest on.
+///
+/// The same closure `rules_behind` walks, over the other thing a node carries. A rule that
+/// placed a boundary off a velocity series read a gravity, and a number reading that boundary
+/// rests on the gravity through the sample rather than by reading one itself, so the two facts
+/// travel together or the record names one and not the other.
+pub fn globals_behind(
+    placed: &BTreeMap<&'static str, PlacedSample>,
+    names: &[&'static str],
+) -> BTreeSet<&'static str> {
+    nodes_behind(placed, names)
+        .into_iter()
+        .flat_map(|node| node.globals.iter().copied())
+        .collect()
+}
+
+/// Every node behind the named samples, closed transitively and reached once each.
+///
+/// Written once because the two walks above ask the same question of the graph and differ
+/// only in what they read off the nodes they reach.
+fn nodes_behind<'a>(
+    placed: &'a BTreeMap<&'static str, PlacedSample>,
+    names: &[&'static str],
+) -> Vec<&'a PlacedSample> {
+    let mut reached: BTreeSet<&'static str> = BTreeSet::new();
+    let mut pending: Vec<&'static str> = names.to_vec();
+    while let Some(name) = pending.pop() {
+        if !reached.insert(name) {
+            continue;
+        }
+        if let Some(node) = placed.get(name) {
+            pending.extend(node.rests_on.iter().copied());
+        }
+    }
+    reached.iter().filter_map(|name| placed.get(name)).collect()
 }
 
 /// The landing the caller placed, written onto the row of every rule that read it.
@@ -142,12 +172,19 @@ pub struct DerivedContext<'a> {
     onset_index: Option<usize>,
     takeoff_index: Option<usize>,
     touchdown_index: Option<usize>,
-    pub gravity_meters_per_second_squared: f64,
+    /// The gravity this analysis is bound to.
+    ///
+    /// Private, and reached through the accessors below, for the reason the landmark indices
+    /// above are: reading it is what puts it into the chain behind the number that read it.
+    /// A field a rule could read in silence is a number that cannot say what moved it, and
+    /// the whole of what the record used to say about gravity was a hand-written list of the
+    /// keys somebody believed were affected.
+    gravity_meters_per_second_squared: f64,
     /// What the request claims about the number above. Carried because a rule whose entry
     /// publishes its own gravity has to tell a value somebody chose for this analysis, which
     /// it must honour, from the constant the request type fills in for everybody, which no
     /// entry declares.
-    pub gravity_source: ParameterSource,
+    gravity_source: ParameterSource,
     /// The athlete's mass, which is not the weighed system mass: system weight includes the
     /// bar and bodyweight does not. `None` when the caller stated none, and a rule that
     /// divides by it declines rather than dividing by the other one.
@@ -171,6 +208,22 @@ pub struct DerivedContext<'a> {
     /// the arithmetic rather than rules that place a landmark, so `read` cannot reach them,
     /// and two of them give different velocities from one recording.
     rested_on: RefCell<BTreeMap<&'static str, Vec<String>>>,
+    /// Values belonging to the analysis rather than to any registry entry, against the key of
+    /// the number that rests on each.
+    ///
+    /// Per quantity rather than per rule, because one rule can report a number that moves with
+    /// a global beside one that does not.
+    /// `impulse.net_vertical.as_performance_determinant` is the case: the net impulse is
+    /// integrated over the interval and does not move with gravity, and the takeoff velocity
+    /// is read off the integrated series and does. A record on the rule's row would give the
+    /// net impulse a dependence it has not got.
+    globals_rested_on: RefCell<BTreeMap<&'static str, BTreeSet<&'static str>>>,
+    /// The same values, read by a rule that places a sample rather than reporting a number.
+    ///
+    /// A boundary rule has no quantity key to record against, and the numbers it moves are
+    /// other rules'. The pipeline writes this onto every sample the rule placed, so the
+    /// dependence travels the graph rather than being restated by each later rule.
+    globals_read: RefCell<BTreeSet<&'static str>>,
 }
 
 impl<'a> DerivedContext<'a> {
@@ -201,6 +254,8 @@ impl<'a> DerivedContext<'a> {
             requested,
             read: RefCell::new(BTreeSet::new()),
             rested_on: RefCell::new(BTreeMap::new()),
+            globals_rested_on: RefCell::new(BTreeMap::new()),
+            globals_read: RefCell::new(BTreeSet::new()),
         }
     }
 
@@ -303,9 +358,74 @@ impl<'a> DerivedContext<'a> {
     /// `Assumed` is the only claim that means nobody acted. A provisional value is one somebody
     /// put there to look at, and `taints_the_record` already stops a result resting on one from
     /// leaving the building, so it runs and says what it is.
-    pub fn chosen_gravity(&self) -> Option<(f64, ParameterSource)> {
+    ///
+    /// Recorded against the quantity whether or not the value survives: a rule that consulted
+    /// the analysis gravity and then ran its entry's own published one still resolved which of
+    /// the two to use by looking, and `jumpheight.takeoff.flight_time` is the rule where the
+    /// answer decides the number.
+    pub fn chosen_gravity_behind(
+        &self,
+        quantity_key: &'static str,
+    ) -> Option<(f64, ParameterSource)> {
+        self.record_global(crate::request::GRAVITY_GLOBAL, Some(quantity_key));
         (self.gravity_source != ParameterSource::Assumed)
             .then_some((self.gravity_meters_per_second_squared, self.gravity_source))
+    }
+
+    /// The gravity this analysis is bound to, recorded as a value the named number rests on.
+    ///
+    /// The ask is the record. A rule reaches this exactly as it reaches a sample another rule
+    /// placed, so what a number rests on is derived from what its rule asked for rather than
+    /// from a list somebody kept beside the rules. The list this replaced was measured against
+    /// the eleven quantities one request reported and was a key short of the population this
+    /// build computes when it was last widened.
+    ///
+    /// `None` is a rule that reports no number of its own: a phase boundary read off a
+    /// velocity series moves with the gravity that scaled it, and the numbers that move are
+    /// other rules'. The record then travels with the samples this rule placed, so the
+    /// dependence closes over the graph the way the rules behind a sample already do. A rule
+    /// that reports nothing and places nothing moves nothing, and records nothing anywhere.
+    pub fn gravity_behind(&self, quantity_key: Option<&'static str>) -> f64 {
+        self.record_global(crate::request::GRAVITY_GLOBAL, quantity_key);
+        self.gravity_meters_per_second_squared
+    }
+
+    /// One home for both spellings of the ask, so a rule that places a sample and a rule that
+    /// reports a number record the same fact the same way.
+    fn record_global(&self, name: &'static str, quantity_key: Option<&'static str>) {
+        self.globals_read.borrow_mut().insert(name);
+        if let Some(key) = quantity_key {
+            self.globals_rested_on
+                .borrow_mut()
+                .entry(key)
+                .or_default()
+                .insert(name);
+        }
+    }
+
+    /// The analysis-level values this rule declared one of its numbers rests on.
+    pub fn globals_behind(&self, quantity_key: &str) -> BTreeSet<&'static str> {
+        self.globals_rested_on
+            .borrow()
+            .get(quantity_key)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// The analysis-level values this rule read at all, which the pipeline writes onto every
+    /// sample it placed.
+    pub fn globals_read(&self) -> Vec<&'static str> {
+        self.globals_read.borrow().iter().copied().collect()
+    }
+
+    /// The analysis-level values behind every sample this rule read, and behind the samples
+    /// those rest on.
+    ///
+    /// The counterpart of `rules_read`, over the same closure. A rule that reads a phase
+    /// boundary another rule placed off a velocity series rests on the gravity that scaled
+    /// that series, and it never read a gravity itself.
+    pub fn globals_behind_the_samples_read(&self) -> BTreeSet<&'static str> {
+        globals_behind(self.placed, &self.names_read())
     }
 
     /// A sample an earlier rule placed, or nothing when no rule placed one under that name.
@@ -415,6 +535,7 @@ mod tests {
                     index: Some(0),
                     placed_by: vec!["window_end.takeoff.detected".to_string()],
                     rests_on: Vec::new(),
+                    globals: Vec::new(),
                     order: 4,
                 },
             ),
@@ -424,6 +545,7 @@ mod tests {
                     index: Some(900),
                     placed_by: vec!["window_end.takeoff.detected".to_string()],
                     rests_on: Vec::new(),
+                    globals: Vec::new(),
                     order: 4,
                 },
             ),
@@ -433,6 +555,7 @@ mod tests {
                     index: Some(400),
                     placed_by: vec!["phase.braking_start.zero_net_force".to_string()],
                     rests_on: Vec::new(),
+                    globals: Vec::new(),
                     order: 5,
                 },
             ),
@@ -486,6 +609,7 @@ mod tests {
                     index: Some(600),
                     placed_by: vec!["bwepoch.fixed_window".to_string()],
                     rests_on: Vec::new(),
+                    globals: Vec::new(),
                     order: 0,
                 },
             ),
@@ -495,6 +619,7 @@ mod tests {
                     index: Some(100),
                     placed_by: vec!["onset.threshold.last_within_band".to_string()],
                     rests_on: vec![WEIGHING_EPOCH, TAKEOFF],
+                    globals: Vec::new(),
                     order: 1,
                 },
             ),
@@ -504,6 +629,7 @@ mod tests {
                     index: Some(900),
                     placed_by: vec!["takeoff.threshold.absolute_force".to_string()],
                     rests_on: vec![WEIGHING_EPOCH],
+                    globals: Vec::new(),
                     order: 2,
                 },
             ),
@@ -513,6 +639,7 @@ mod tests {
                     index: Some(1100),
                     placed_by: Vec::new(),
                     rests_on: vec![TAKEOFF],
+                    globals: Vec::new(),
                     order: 3,
                 },
             ),

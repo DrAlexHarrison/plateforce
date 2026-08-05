@@ -200,6 +200,7 @@ pub fn run(
             index: Some(epoch.end_index),
             placed_by: vec![request.weighing.method_id.clone()],
             rests_on: Vec::new(),
+            globals: Vec::new(),
             order: 0,
         },
     );
@@ -215,6 +216,7 @@ pub fn run(
                     &request.onset.method_id,
                 ),
             },
+            globals: Vec::new(),
             order: 1,
         },
     );
@@ -230,6 +232,7 @@ pub fn run(
                     &request.takeoff.method_id,
                 ),
             },
+            globals: Vec::new(),
             order: 2,
         },
     );
@@ -246,6 +249,7 @@ pub fn run(
                 true => Vec::new(),
                 false => vec![crate::derived::TAKEOFF],
             },
+            globals: Vec::new(),
             order: 3,
         },
     );
@@ -254,10 +258,18 @@ pub fn run(
     // measured on the series those rules produced and none of them can be reproduced without
     // knowing which series that was. It is the one thing every rule reads, so it is stated
     // rather than asked for.
+    //
+    // The analysis-level values come off the same nodes, so a number the spine reports
+    // directly and a number a rule reported answer "what moved this" the same way.
     let chain_over = |names: &[&'static str]| {
         let mut chain = conditioned.ids.clone();
         chain.extend(crate::derived::rules_behind(&placed, names));
-        chain
+        crate::response::RestsOn {
+            methods: chain,
+            globals: crate::derived::globals_behind(&placed, names)
+                .into_iter()
+                .collect(),
+        }
     };
 
     // A quantity the request bound a rule for is reported by that rule, so the keys it bound
@@ -382,7 +394,14 @@ pub fn run(
         Metric::declared(
             "system_mass_kilograms",
             Some(epoch.system_mass_kilograms(gravity)),
-            chain_over(&[crate::derived::WEIGHING_EPOCH]),
+            // The one number no rule produces: the spine divides here, so the record of what
+            // it divided by is written here too. Every other number reaching the analysis
+            // gravity reaches it through a rule, and the rule records it at the point it asks.
+            {
+                let mut rests_on = chain_over(&[crate::derived::WEIGHING_EPOCH]);
+                rests_on.globals.push(crate::request::GRAVITY_GLOBAL);
+                rests_on
+            },
             Some("System weight over the gravity this analysis was bound to.".into()),
         ),
         Metric::declared(
@@ -546,15 +565,25 @@ fn expect_landmarks_read(
 /// those rules produced and cannot be reproduced without knowing which series that was. That
 /// is the one thing stated rather than asked for, because it is the one thing every rule
 /// reads.
+/// The analysis-level values are two sets joined: the ones this rule read for this number,
+/// and the ones behind every sample it read, which is the same transitive closure the rules
+/// walk. A boundary rule reads the gravity and reports no number of its own, so a number
+/// measured across that boundary reaches the gravity only through the sample.
 fn chain_behind(
     context: &DerivedContext,
     quantity_key: &str,
     conditioning_ids: &[String],
-) -> Vec<String> {
+) -> crate::response::RestsOn {
     let mut chain = conditioning_ids.to_vec();
     chain.extend(context.rules_read());
     chain.extend(context.entries_behind(quantity_key));
-    chain
+
+    let mut globals = context.globals_behind(quantity_key);
+    globals.extend(context.globals_behind_the_samples_read());
+    crate::response::RestsOn {
+        methods: chain,
+        globals: globals.into_iter().collect(),
+    }
 }
 
 /// One number a rule the spine ran for itself produced, carrying the chain that rule's own
@@ -562,7 +591,7 @@ fn chain_behind(
 struct SpineQuantity {
     key: &'static str,
     value: Option<f64>,
-    chain: Vec<String>,
+    rests_on: crate::response::RestsOn,
 }
 
 /// One quantity among what a spine-run rule produced, and the chain behind it.
@@ -574,12 +603,17 @@ fn number_and_chain(
     produced: &[SpineQuantity],
     key: &str,
     conditioning_ids: &[String],
-) -> (Option<f64>, Vec<String>) {
+) -> (Option<f64>, crate::response::RestsOn) {
     produced
         .iter()
         .find(|quantity| quantity.key == key)
-        .map(|quantity| (quantity.value, quantity.chain.clone()))
-        .unwrap_or_else(|| (None, conditioning_ids.to_vec()))
+        .map(|quantity| (quantity.value, quantity.rests_on.clone()))
+        .unwrap_or_else(|| {
+            (
+                None,
+                crate::response::RestsOn::rules(conditioning_ids.to_vec()),
+            )
+        })
 }
 
 /// A quantity the spine reports whose arithmetic is a registry entry, produced by running that
@@ -679,7 +713,7 @@ fn run_spine_default(
                 .iter()
                 .find(|(key, _)| *key == declared.key)
                 .and_then(|(_, value)| *value),
-            chain: chain_behind(&context, declared.key, conditioning_ids),
+            rests_on: chain_behind(&context, declared.key, conditioning_ids),
         })
         .collect()
 }
@@ -792,7 +826,12 @@ fn run_derived_phase(
         // What this rule read travels with what it placed, so a later rule reading the sample
         // reaches the rules behind it without naming any of them itself. A sample carrying
         // only the rule that placed it would stop the chain one construct short.
+        //
+        // The analysis values it read travel the same way and for the same reason: a boundary
+        // placed off a velocity series moves with the gravity that scaled it, so every number
+        // measured across that boundary moves with it and says so without reading one itself.
         let read_by_the_placing_rule = context.names_read();
+        let globals_the_placing_rule_read = context.globals_read();
         for (name, index) in outcome.placed {
             placed.insert(
                 name,
@@ -800,6 +839,7 @@ fn run_derived_phase(
                     index: Some(index),
                     placed_by: vec![binding.id.to_string()],
                     rests_on: read_by_the_placing_rule.clone(),
+                    globals: globals_the_placing_rule_read.clone(),
                     order: next_order,
                 },
             );

@@ -69,7 +69,7 @@ fn compute(
         context.trial,
         context.epoch(),
         &landmarks,
-        context.gravity_meters_per_second_squared,
+        context.gravity_behind(Some(super::VELOCITY_KEY)),
     );
 
     DerivedOutcome {

@@ -52,7 +52,7 @@ fn compute(
     context.rests_on(super::KEY, &spec.method_ids());
     centre_of_mass::record_choices(&mut resolved, landmarks.onset_index);
 
-    let gravity = context.gravity_meters_per_second_squared;
+    let gravity = context.gravity_behind(Some(super::KEY));
     let velocity =
         takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     let height_meters = jump_height_from_takeoff_velocity(velocity, gravity);

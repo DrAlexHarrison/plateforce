@@ -99,7 +99,7 @@ fn compute(
         );
     };
 
-    let gravity = context.gravity_meters_per_second_squared;
+    let gravity = context.gravity_behind(Some(super::KEY));
     let heel_rise = heel_rise_constant_meters(
         malleolus_to_toe_meters,
         sole_thickness,

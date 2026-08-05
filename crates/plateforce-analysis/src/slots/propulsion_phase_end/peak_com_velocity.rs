@@ -73,7 +73,7 @@ fn place(
                 context.trial,
                 context.epoch(),
                 onset,
-                context.gravity_meters_per_second_squared,
+                context.gravity_behind(None),
                 &mut resolved,
             );
             let index = propulsion_end_by_velocity_maximum(&velocity, onset, takeoff);

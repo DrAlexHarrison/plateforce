@@ -35,7 +35,7 @@ fn compute(
             context.unavailable(ID, &[ONSET_CONSTRUCT]),
         );
     };
-    let series = super::power_series(context, &mut resolved, ID, onset);
+    let series = super::power_series(context, &mut resolved, ID, onset, Some(super::KEY));
     let bound = resolved.finish();
 
     let series = match series {

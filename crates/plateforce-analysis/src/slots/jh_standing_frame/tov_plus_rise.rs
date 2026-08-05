@@ -38,7 +38,7 @@ fn compute(
             context.unavailable(ID, &[ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT]),
         );
     };
-    let gravity = context.gravity_meters_per_second_squared;
+    let gravity = context.gravity_behind(Some(super::KEY));
     let displacement = centre_of_mass::displacement(
         context.trial,
         context.epoch(),

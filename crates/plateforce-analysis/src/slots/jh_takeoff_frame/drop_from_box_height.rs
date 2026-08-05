@@ -62,7 +62,7 @@ fn compute(
     centre_of_mass::record_choices(&mut resolved, landmarks.onset_index);
     let bound = resolved.finish();
 
-    let gravity = context.gravity_meters_per_second_squared;
+    let gravity = context.gravity_behind(Some(super::KEY));
     let change_from_rest =
         takeoff_velocity_meters_per_second(context.trial, context.epoch(), &landmarks, gravity);
     let arrival = drop_touchdown_velocity_meters_per_second(box_height_meters, gravity);
