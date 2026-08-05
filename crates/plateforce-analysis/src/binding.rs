@@ -309,6 +309,33 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::flight_time::takeoff_to_touchdown::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::flight_time::takeoff_to_touchdown::RULE),
     },
+    // The two landing rules, declared before the heights because a drop-jump height integrates
+    // from the sample one of them places. They are two claims about the same instant and the
+    // registry calls the disagreement genuine: tying the rising edge to the threshold that
+    // placed takeoff makes a threshold error compound across the flight phase, and flight-time
+    // height goes as the square of flight time.
+    Binding {
+        id: crate::slots::landing::tied_to_takeoff::ID,
+        slot: crate::slots::landing::CONSTRUCT,
+        construct: crate::slots::landing::CONSTRUCT,
+        title: "First return above the threshold that placed takeoff",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::landing::tied_to_takeoff::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::landing::tied_to_takeoff::RULE),
+    },
+    Binding {
+        id: crate::slots::landing::absolute_force::ID,
+        slot: crate::slots::landing::CONSTRUCT,
+        construct: crate::slots::landing::CONSTRUCT,
+        title: "First sustained run above a threshold stated for the rising edge",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::landing::absolute_force::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::landing::absolute_force::RULE),
+    },
     Binding {
         id: crate::slots::net_impulse::as_performance_determinant::ID,
         slot: crate::slots::net_impulse::CONSTRUCT,

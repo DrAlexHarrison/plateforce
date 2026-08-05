@@ -37,7 +37,7 @@ pub enum IntegrationDirection {
     Backward,
 }
 
-/// Where the integral starts, `integration.start.*`. Both entries carry
+/// Where the integral starts, `integration.start.*`. The first two entries carry
 /// `surfacing = force_a_decision`, and they disagree on real recordings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntegrationStart {
@@ -48,6 +48,11 @@ pub enum IntegrationStart {
     /// The interval from detected onset, status `recommended`. Carries the index the bound
     /// onset rule placed, because this module cannot find onset and must not guess it.
     DetectedOnset { index: usize },
+    /// The interval from the sample the bound landing rule placed. Carries that index for
+    /// the same reason as the one above, and it is a third instant rather than a spelling of
+    /// either: the entry's own rationale is that naming the jump's start on a series that
+    /// began at the return to the plate reports an instant the integration did not use.
+    DetectedTouchdown { index: usize },
 }
 
 /// A centre-of-mass height at takeoff, indexed by body height, which
@@ -133,6 +138,9 @@ impl IntegrationSpec {
             match self.start {
                 IntegrationStart::TrialStart => "integration.start.trial_start",
                 IntegrationStart::DetectedOnset { .. } => "integration.start.detected_onset",
+                IntegrationStart::DetectedTouchdown { .. } => {
+                    "integration.start.detected_touchdown"
+                }
             },
             match &self.anchor {
                 IntegrationAnchor::SinglePoint { .. } => "integration.anchor.single_point",
@@ -237,6 +245,7 @@ pub fn centre_of_mass_velocity_meters_per_second(
     let first_integrated_index = match spec.start {
         IntegrationStart::TrialStart => 0,
         IntegrationStart::DetectedOnset { index } => index.min(acceleration.len()),
+        IntegrationStart::DetectedTouchdown { index } => index.min(acceleration.len()),
     };
 
     let integrated = match spec.direction {
@@ -314,6 +323,7 @@ pub fn centre_of_mass_displacement_meters(
     let first_integrated_index = match spec.start {
         IntegrationStart::TrialStart => 0,
         IntegrationStart::DetectedOnset { index } => index.min(samples.len()),
+        IntegrationStart::DetectedTouchdown { index } => index.min(samples.len()),
     };
     let integrated = match spec.direction {
         IntegrationDirection::Forward => integrate_forward(

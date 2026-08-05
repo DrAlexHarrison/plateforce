@@ -18,6 +18,7 @@ pub mod calibration;
 pub mod cutoff;
 pub mod exponential_rise;
 pub mod gravity;
+pub mod landing;
 pub mod method_ids;
 pub mod normalisation;
 pub mod onset;
@@ -43,6 +44,10 @@ pub mod warp;
 pub mod waveform;
 
 pub use acquisition::{Acquisition, Capture, MemberFault, PlateProfileAttribution};
+pub use landing::{
+    arrival_velocity_from_final_standing_period_meters_per_second, final_period_samples,
+    landing_first_sustained_run,
+};
 pub use provenance::ProvenanceChain;
 pub use read::{read_delimited_column, read_trial_from_path, ColumnReadReport, ReadError};
 pub use refusal::{exit_code, Refusal, RefusalCode};
