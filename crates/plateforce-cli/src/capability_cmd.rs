@@ -36,10 +36,11 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
             // does it on every run and the manifest says so.
             Operation::Spread,
         ]),
-        // Both entry points, because batch has two: one loops the analysis and returns
-        // results, the other loops the sweep and returns paired variants. A surface reaching
-        // only the first would claim one operation where the software has two.
-        "batch" => Some(&[Operation::Batch, Operation::Compare]),
+        // All three entry points, because batch has three: one loops the analysis and returns
+        // results, one loops the sweep and returns paired variants, and one reduces an
+        // athlete's trials to a single number under a named registry rule. A surface reaching
+        // only the first would claim one operation where the software has three.
+        "batch" => Some(&[Operation::Batch, Operation::Compare, Operation::Aggregate]),
         "capability" => Some(&[Operation::Capability]),
         "reach" => Some(&[Operation::Reach]),
         "registry" => Some(&[

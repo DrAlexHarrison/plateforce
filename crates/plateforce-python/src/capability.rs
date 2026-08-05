@@ -21,8 +21,15 @@ fn operations_named(entry_point: &str) -> Option<&'static [Operation]> {
         "spread" => Some(&[Operation::Spread]),
         "capability_json" => Some(&[Operation::Capability]),
         // A run over a folder reads every trial in it, so it parses force files as well as
-        // looping the analysis.
-        "batch" => Some(&[Operation::Batch, Operation::ParseForceFile]),
+        // looping the analysis, and it reduces an athlete's trials where the caller names the
+        // rule. It did not reduce until it took `aggregate`, and `BatchRun.aggregates`
+        // answered every such call with an empty list, which a caller cannot tell from a run
+        // with nothing to reduce.
+        "batch" => Some(&[
+            Operation::Batch,
+            Operation::ParseForceFile,
+            Operation::Aggregate,
+        ]),
         // One class answers all three: it reports the census, hands back every entry, and
         // refuses to exist for a registry that fails its own validator.
         "Registry" => Some(&[

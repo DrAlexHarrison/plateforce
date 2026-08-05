@@ -33,6 +33,15 @@ pub const SCHEMA: &str = "plateforce.capability/1";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Operation {
+    /// Batch's third entry point, which reduces an athlete's trials to one number under a
+    /// named registry rule.
+    ///
+    /// Separate from `Batch` by the same argument that separates `Compare`: it is reached by
+    /// its own request, it binds a registry entry publishing three incompatible rules, and it
+    /// refuses rather than taking a mean. A surface that loops the analysis and cannot reduce
+    /// does a different thing from one that can, and without a value here the manifest reports
+    /// the two as identical. One surface reduces today, so this is the value that says so.
+    Aggregate,
     Analyse,
     Batch,
     Capability,

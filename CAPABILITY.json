@@ -5822,6 +5822,7 @@
         }
       ],
       "operations": [
+        "aggregate",
         "analyse",
         "batch",
         "capability",
@@ -8941,6 +8942,7 @@
         }
       ],
       "operations": [
+        "aggregate",
         "analyse",
         "batch",
         "capability",

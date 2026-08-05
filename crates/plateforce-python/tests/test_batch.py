@@ -230,3 +230,66 @@ def test_a_folder_run_is_refused_an_edge_the_conditioning_rule_does_not_take(
         if row["values"].get("jump_height_from_takeoff_meters") is not None
     ]
     assert answered == []
+
+
+def test_a_folder_run_reduces_an_athletes_trials_under_a_named_published_rule(
+    trial_folder, registry_path
+):
+    """This surface exposed `aggregates` before it could produce one, so every call it could
+    make returned an empty list, and a caller cannot tell that from a run with nothing to
+    reduce. The control is the first assertion: the same folder without a rule still returns
+    empty, so the second is about the reduction rather than about the fixture."""
+    unreduced = run(trial_folder, registry_path)
+    assert unreduced.aggregates == []
+
+    reduced = run(
+        trial_folder,
+        registry_path,
+        pattern="AT{subject}_{trial}",
+        aggregate="mean_of_best_two",
+        aggregate_n=2,
+        aggregate_quantity=["jump_height_from_takeoff_meters"],
+    )
+    assert reduced.aggregates, "the run bound a published rule and reduced nothing"
+
+    # The bound rule travels with the value. A reduction recording no method would be a mean
+    # wearing a citation it never earned, which is the defect this whole product exists for.
+    for row in reduced.aggregates:
+        assert row["method_id"] == "trial.aggregation"
+        assert row["quantity"] == "jump_height_from_takeoff_meters"
+        # Best of five and best of three are different numbers, so the count travels too.
+        assert row["n"] == 2
+
+
+def test_a_reduction_naming_no_published_rule_is_refused_rather_than_averaged(
+    trial_folder, registry_path
+):
+    """`trial.aggregation` publishes three incompatible rules and none of them is the
+    arithmetic mean, so the arithmetic mean is not the near-enough answer to a rule this
+    registry does not carry."""
+    with pytest.raises(ValueError) as refused:
+        run(
+            trial_folder,
+            registry_path,
+            pattern="AT{subject}_{trial}",
+            aggregate="arithmetic_mean",
+            aggregate_n=2,
+        )
+    # The refusal repeats the word the caller wrote. A caller cannot correct a word the
+    # refusal does not name.
+    assert "arithmetic_mean" in str(refused.value)
+
+
+def test_a_reduction_that_names_a_rule_and_no_count_is_refused_by_name(
+    trial_folder, registry_path
+):
+    """The count is not defaultable: best of five and best of three are different numbers, so
+    a rule bound without one would reduce under a count nobody chose."""
+    with pytest.raises(ValueError) as refused:
+        run(
+            trial_folder,
+            registry_path,
+            pattern="AT{subject}_{trial}",
+            aggregate="mean_of_best_two",
+        )
+    assert refused.value is not None

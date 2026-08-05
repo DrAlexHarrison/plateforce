@@ -64,6 +64,7 @@ them written into a document is stale the first time somebody adds one.
 
 <!-- checked-against-capability: operations -->
 ```
+aggregate
 analyse
 batch
 capability
@@ -79,9 +80,15 @@ version
 
 `analyse` is one trace. `batch` is a folder, one row per trial, with the tables and the record
 written to `--out-dir`. `compare` is the same folder under several rules for one quantity, one
-row per trial per rule. `spread` sweeps a quantity over every rule on its path, which is the
-command that shows how far the method choice moves the number. `reach` reports which constructs
-this build can compute and what stands in the way of the rest.
+row per trial per rule. `aggregate` reduces an athlete's trials to one number under a named
+registry rule. `spread` sweeps a quantity over every rule on its path, which is the command that
+shows how far the method choice moves the number. `reach` reports which constructs this build can
+compute and what stands in the way of the rest.
+
+**The list above is the terminal's, and the surfaces differ.** Each reports only what it can
+actually do, so an operation missing from one surface's array is missing from that surface. Read
+the array from the surface you are driving rather than from this page, and if you need an
+operation it does not report, drive one that does.
 
 ## What every answer contains
 

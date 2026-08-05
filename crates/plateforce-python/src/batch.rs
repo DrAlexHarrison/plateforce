@@ -7,9 +7,10 @@
 use std::path::PathBuf;
 
 use plateforce_batch::{
-    analyse, BatchRequest as CoreBatchRequest, SourceFormat, TrialIdentity as CoreTrialIdentity,
-    TrialSet,
+    analyse, with_aggregates, AggregationRequest, BatchRequest as CoreBatchRequest, GroupKind,
+    SourceFormat, TrialIdentity as CoreTrialIdentity, TrialSet,
 };
+use plateforce_core::DispersionEstimator;
 use plateforce_registry::Registry;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -336,8 +337,17 @@ fn conditioning_choices(
 /// `sentinel` is the value this export writes where a sample is missing, or `None` to state
 /// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
 /// reading a vendor's missing marker as a force.
+///
+/// `aggregate` names the published rule that reduces an athlete's trials to one number.
+/// `trial.aggregation` publishes three and none of them is the arithmetic mean of a session, so
+/// naming none leaves the run unreduced and naming one the registry does not publish is refused
+/// by name. `aggregate_n` is the trial count the rule was asked for and travels with the value
+/// everywhere it is reported, because best of five and best of three are different numbers.
+/// `aggregate_by` reduces over subject, session or run. `aggregate_quantity` scopes which
+/// quantities are reduced, defaulting to every quantity the run computed, which is a scope
+/// rather than a method choice because each row names what it reduced.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None, aggregate = None, aggregate_n = None, aggregate_by = "subject", aggregate_quantity = None, aggregate_dispersion = "sample"))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -374,6 +384,11 @@ pub fn batch(
     >,
     gravity_meters_per_second_squared: Option<f64>,
     body_mass_kilograms: Option<f64>,
+    aggregate: Option<String>,
+    aggregate_n: Option<usize>,
+    aggregate_by: &str,
+    aggregate_quantity: Option<Vec<String>>,
+    aggregate_dispersion: &str,
 ) -> PyResult<BatchResult> {
     let body_mass_kilograms = Python::attach(|python| {
         crate::analysis::stated_body_mass(body_mass_kilograms)
@@ -490,9 +505,72 @@ pub fn batch(
     let borrowed: Vec<&str> = declared.iter().map(String::as_str).collect();
     let request = CoreBatchRequest::new(analysis).resolving(&borrowed);
 
-    analyse(&set, &request, &loaded)
+    let result = analyse(&set, &request, &loaded)
+        .map_err(|refusal| PyValueError::new_err(refusal.message))?;
+
+    // Naming no rule leaves the run unreduced, which is what `aggregates` reported on every
+    // call this surface could make before it could reduce at all. Naming one binds
+    // `trial.aggregation`, which publishes three incompatible rules and refuses rather than
+    // taking a mean, so the refusals below are the feature and not the edge case.
+    if aggregate.is_none() && aggregate_n.is_none() && aggregate_quantity.is_none() {
+        return Ok(BatchResult { inner: result });
+    }
+
+    let group_kind = match aggregate_by {
+        "subject" => GroupKind::Subject,
+        "session" => GroupKind::Session,
+        "run" => GroupKind::Run,
+        other => {
+            return Err(PyValueError::new_err(format!(
+                "a reduction is taken over subject, session or run, and this one named {other}"
+            )))
+        }
+    };
+
+    // Read through core's own words rather than matched here, so a third estimator arrives on
+    // this argument without an edit and cannot arrive under a second spelling.
+    let dispersion = DispersionEstimator::from_published_str(aggregate_dispersion).ok_or_else(
+        || {
+            PyValueError::new_err(format!(
+                "the standard deviation beside a reduced value is one of {}, and this run named {aggregate_dispersion}",
+                DispersionEstimator::PUBLISHED.join(", "),
+            ))
+        },
+    )?;
+
+    // Every quantity the run computed, where nobody named one. A scope rather than a method
+    // choice, and each row names the quantity it reduced, so nothing is reduced unseen.
+    let quantities = match aggregate_quantity {
+        None => result.quantities.clone(),
+        Some(named) => {
+            let absent: Vec<&str> = named
+                .iter()
+                .filter(|key| !result.quantities.contains(key))
+                .map(String::as_str)
+                .collect();
+            if !absent.is_empty() {
+                return Err(PyValueError::new_err(format!(
+                    "this run computed {}, and a reduction was asked for {}",
+                    result.quantities.join(", "),
+                    absent.join(", ")
+                )));
+            }
+            named
+        }
+    };
+
+    let reduction = AggregationRequest::declared(
+        aggregate.as_deref(),
+        aggregate_n,
+        group_kind,
+        quantities,
+        dispersion,
+    )
+    .map_err(|refusal| PyValueError::new_err(refusal.message()))?;
+
+    with_aggregates(result, &set, &reduction)
         .map(|inner| BatchResult { inner })
-        .map_err(|refusal| PyValueError::new_err(refusal.message))
+        .map_err(|refusal| PyValueError::new_err(refusal.message()))
 }
 
 /// One dictionary per row, from a value the caller already serialised.
