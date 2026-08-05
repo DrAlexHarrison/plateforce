@@ -10,6 +10,8 @@
 //! retypes, so a rule that reads this window names the rule that placed it.
 
 pub mod fixed_duration_isometric;
+pub mod force_dropoff_from_running_max;
+pub mod positive_impulse;
 pub mod takeoff_detected;
 
 use crate::binding::Binding;

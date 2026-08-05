@@ -251,6 +251,35 @@ pub const BINDINGS: &[Binding] = &[
         quantities: crate::slots::analysis_window::fixed_duration_isometric::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::analysis_window::fixed_duration_isometric::RULE),
     },
+    // Beside their two siblings rather than at the end of the array, for the reason the
+    // comment above gives: every peak below reads the window, and a window rule declared
+    // after its readers places nothing they can see. A caller choosing either of these two
+    // would get a peak over no window at all, which is the silent default this build exists
+    // to refuse rather than a rule that declined.
+    Binding {
+        id: crate::slots::analysis_window::force_dropoff_from_running_max::ID,
+        slot: crate::slots::analysis_window::CONSTRUCT,
+        construct: crate::slots::analysis_window::CONSTRUCT,
+        title: "The window ends where a smoothed force falls below its running maximum",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::analysis_window::force_dropoff_from_running_max::QUANTITIES,
+        dispatch: Dispatch::Derived(
+            crate::slots::analysis_window::force_dropoff_from_running_max::RULE,
+        ),
+    },
+    Binding {
+        id: crate::slots::analysis_window::positive_impulse::ID,
+        slot: crate::slots::analysis_window::CONSTRUCT,
+        construct: crate::slots::analysis_window::CONSTRUCT,
+        title: "The interval over which vertical force exceeds system weight",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::analysis_window::positive_impulse::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::analysis_window::positive_impulse::RULE),
+    },
     Binding {
         id: crate::slots::peak_force::gross::ID,
         slot: crate::slots::peak_force::CONSTRUCT,
@@ -931,6 +960,31 @@ pub const BINDINGS: &[Binding] = &[
         note: "",
         quantities: crate::slots::normalisation_basis::denominator::QUANTITIES,
         dispatch: Dispatch::Derived(crate::slots::normalisation_basis::denominator::RULE),
+    },
+    // The landing rules, last because every one of them reads past takeoff and the two below
+    // read what the landing rules placed. The subdivision reads the landing end, so it is
+    // declared after it.
+    Binding {
+        id: crate::slots::landing_phase_end::zero_com_velocity::ID,
+        slot: crate::slots::landing_phase_end::CONSTRUCT,
+        construct: crate::slots::landing_phase_end::CONSTRUCT,
+        title: "Landing ends when reconstructed centre of mass velocity reaches zero",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::landing_phase_end::zero_com_velocity::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::landing_phase_end::zero_com_velocity::RULE),
+    },
+    Binding {
+        id: crate::slots::landing_subdivision::impact_stabilising::ID,
+        slot: crate::slots::landing_subdivision::CONSTRUCT,
+        construct: crate::slots::landing_subdivision::CONSTRUCT,
+        title: "Split landing into impact and stabilising",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::landing_subdivision::impact_stabilising::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::landing_subdivision::impact_stabilising::RULE),
     },
 ];
 
