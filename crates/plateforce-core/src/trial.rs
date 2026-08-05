@@ -135,6 +135,7 @@ impl WeighingEpoch {
         reject_at_or_below_newtons: Option<f64>,
         accumulation: VarianceAccumulation,
         dispersion: DispersionEstimator,
+        centre: CentralTendency,
     ) -> Result<(Self, WeighingWindowSearch), TrialError> {
         let searchable = &trial.force()[..search_end_index.min(trial.len())];
         let found = lowest_variance_window(
@@ -152,11 +153,19 @@ impl WeighingEpoch {
         let deviation = mean_and_standard_deviation(window, dispersion)
             .map(|(_, deviation)| deviation)
             .unwrap_or(f64::NAN);
+        // The search ranks windows by variance either way; the centre selects only what the
+        // chosen window reports as system weight, which is the choice the registry entry
+        // declares. The tie fields stay the search's own means, because they describe the
+        // ranking rather than the reported weight.
+        let centre_newtons = match centre {
+            CentralTendency::Mean => found.mean_newtons,
+            CentralTendency::Median => median(window).unwrap_or(found.mean_newtons),
+        };
         Ok((
             Self {
                 start_index: found.start_index,
                 end_index: found.start_index + window_samples,
-                system_weight_newtons: found.mean_newtons,
+                system_weight_newtons: centre_newtons,
                 standard_deviation_newtons: deviation,
                 tied_window_count: found.tied_window_count,
                 tied_weight_low_newtons: found.tied_weight_low_newtons,

@@ -268,6 +268,8 @@ pub fn analyse(
         Some(bindings.lowest_variance_floor_newtons),
         bindings.variance_accumulation,
         bindings.dispersion,
+        // The tools these bindings reproduce take the window mean; none offers a centre.
+        CentralTendency::Mean,
     )
     .map_err(|_| TrialRejection::NoTakeoff)?;
 
