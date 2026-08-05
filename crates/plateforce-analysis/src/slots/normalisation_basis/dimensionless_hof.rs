@@ -55,13 +55,13 @@ fn compute(
     let peak = super::measured(context, ID, power_peak::CONSTRUCT, power_peak::KEY);
     let bound = resolved.finish();
 
-    let ((leg_length_meters, mass), (peak_watts, produced_by)) = match (leg_length_meters, mass, peak)
-    {
-        (Ok(length), Ok(mass), Ok(peak)) => ((length, mass), peak),
-        (Err(refusal), _, _) | (_, Err(refusal), _) | (_, _, Err(refusal)) => {
-            return DerivedOutcome::declined(bound, refusal)
-        }
-    };
+    let ((leg_length_meters, mass), (peak_watts, produced_by)) =
+        match (leg_length_meters, mass, peak) {
+            (Ok(length), Ok(mass), Ok(peak)) => ((length, mass), peak),
+            (Err(refusal), _, _) | (_, Err(refusal), _) | (_, _, Err(refusal)) => {
+                return DerivedOutcome::declined(bound, refusal)
+            }
+        };
     let Some(divisor) = plateforce_core::normalisation::dimensionless_power_divisor(
         mass,
         context.gravity_meters_per_second_squared,

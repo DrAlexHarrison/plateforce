@@ -54,12 +54,7 @@ fn compute(
     let epoch = context.epoch();
     let system_weight_newtons = epoch.system_weight_newtons;
     let onset = context.onset_index();
-    let peak = super::measured(
-        context,
-        ID,
-        net_peak_force::CONSTRUCT,
-        net_peak_force::KEY,
-    );
+    let peak = super::measured(context, ID, net_peak_force::CONSTRUCT, net_peak_force::KEY);
     let bound = resolved.finish();
 
     let (seconds, (net_peak_newtons, produced_by)) = match (seconds, peak) {

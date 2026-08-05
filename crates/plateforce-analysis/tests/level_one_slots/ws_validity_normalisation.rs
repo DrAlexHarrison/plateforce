@@ -169,8 +169,14 @@ fn the_criterion_a_caller_states_is_the_one_that_admits_the_trial() {
             .on(&trial);
         let excursion = number(&response, "pretension_excursion_newtons")
             .expect("the gate read the stretch before the effort");
-        let by_ceiling = number(&response, "trial_validity_pretension_admitted_at_the_absolute_ceiling");
-        let inside_band = number(&response, "trial_validity_pretension_admitted_inside_the_percentage_band");
+        let by_ceiling = number(
+            &response,
+            "trial_validity_pretension_admitted_at_the_absolute_ceiling",
+        );
+        let inside_band = number(
+            &response,
+            "trial_validity_pretension_admitted_inside_the_percentage_band",
+        );
         let verdict = number(&response, "trial_validity_pretension_admitted");
         println!(
             "{criterion}: excursion {excursion:.4} N, by ceiling {by_ceiling:?}, inside band \
@@ -288,7 +294,9 @@ fn a_gate_that_cannot_reach_its_input_declines_rather_than_admitting() {
 
     // And the same gate, handed its boundaries, produces. Without this the assertion above
     // would pass for a rule that declines on every recording.
-    let reached = Asked::new().rule(VALIDITY_CONSTRUCT, TRANSIENT_RULE).on(&trial);
+    let reached = Asked::new()
+        .rule(VALIDITY_CONSTRUCT, TRANSIENT_RULE)
+        .on(&trial);
     assert_eq!(declined(&reached, TRANSIENT_RULE), None);
     assert!(number(&reached, "braking_transient_peak_count").is_some());
 }
@@ -311,9 +319,7 @@ fn a_per_kilogram_number_names_the_peak_it_divided_and_the_mass_it_divided_by() 
 
     let peak = number(&response, PEAK_FORCE_KEY).expect("the peak-force rule ran");
     let per_kilogram = number(&response, RATIO_KEY).expect("the ratio rule ran");
-    println!(
-        "{peak:.4} N over {SUBJECT_MASS_KILOGRAMS} kg is {per_kilogram:.4} N/kg"
-    );
+    println!("{peak:.4} N over {SUBJECT_MASS_KILOGRAMS} kg is {per_kilogram:.4} N/kg");
     assert!(
         (per_kilogram - peak / SUBJECT_MASS_KILOGRAMS).abs() < 1e-9,
         "the reported ratio is not the reported peak over the stated mass"
@@ -408,7 +414,8 @@ fn early_force_is_a_share_of_the_net_peak_the_analysis_reported() {
             .on(&trial);
         let net_peak = number(&response, "net_peak_force_newtons").expect("the net peak ran");
         let early = number(&response, "early_net_force_newtons").expect("the rule ran");
-        let share = number(&response, "early_net_force_share_of_peak_percent").expect("the rule ran");
+        let share =
+            number(&response, "early_net_force_share_of_peak_percent").expect("the rule ran");
         println!("{seconds} s after onset: {early:9.4} N, {share:8.4} percent of {net_peak:.4} N");
         assert!((early / net_peak * 100.0 - share).abs() < 1e-9);
         let chain = response
@@ -457,14 +464,18 @@ fn the_window_a_caller_states_decides_which_candidates_survive() {
         let read = number(&response, "flight_candidates_read_count").expect("the gate ran");
         let rejected = number(&response, "flight_candidates_rejected_count").expect("the gate ran");
         let accepted = number(&response, "accepted_flight_seconds");
-        let admitted = number(&response, "trial_validity_flight_window_admitted").expect("the gate ran");
+        let admitted =
+            number(&response, "trial_validity_flight_window_admitted").expect("the gate ran");
         println!(
             "{lower} to {upper} s: {rejected:.0} of {read:.0} candidates rejected, accepted \
              {accepted:?}, admitted {admitted}"
         );
         verdicts.push((admitted, rejected, accepted));
     }
-    assert_eq!(verdicts[0].0, 1.0, "the published window rejected this jump");
+    assert_eq!(
+        verdicts[0].0, 1.0,
+        "the published window rejected this jump"
+    );
     assert_eq!(
         verdicts[1].0, 0.0,
         "a floor above this flight time still admitted it, so lower_seconds reached no comparison"
@@ -511,7 +522,10 @@ fn every_gate_answers_or_says_what_it_could_not_reach_across_the_committed_trial
         (TRANSIENT_RULE, &[]),
         (
             FLIGHT_WINDOW_RULE,
-            &[("selection", "first_qualifying"), ("flight_threshold_n", "10")],
+            &[
+                ("selection", "first_qualifying"),
+                ("flight_threshold_n", "10"),
+            ],
         ),
     ];
 
@@ -543,7 +557,10 @@ fn every_gate_answers_or_says_what_it_could_not_reach_across_the_committed_trial
         }
         println!("{row}");
     }
-    println!("{answered} of {attempted} gate readings answered across {} trials", COMMITTED_TRIALS.len());
+    println!(
+        "{answered} of {attempted} gate readings answered across {} trials",
+        COMMITTED_TRIALS.len()
+    );
     assert_eq!(
         answered, attempted,
         "a gate reached no answer on a trial it was handed every boundary for"
@@ -567,13 +584,13 @@ fn the_transient_peak_count_is_a_property_of_the_signal_as_it_arrives() {
     let mut counted = Vec::new();
     for name in COMMITTED_TRIALS {
         let trial = committed_trial(name);
-        let response = Asked::new().rule(VALIDITY_CONSTRUCT, TRANSIENT_RULE).on(&trial);
+        let response = Asked::new()
+            .rule(VALIDITY_CONSTRUCT, TRANSIENT_RULE)
+            .on(&trial);
         let count = number(&response, "braking_transient_peak_count").expect("the gate ran");
         let greatest = number(&response, "braking_greatest_force_newtons").expect("the gate ran");
         let admitted = number(&response, "trial_validity_transient_peaks_admitted");
-        println!(
-            "{name:18} {count:6.0} peaks, greatest {greatest:9.4} N, admitted {admitted:?}"
-        );
+        println!("{name:18} {count:6.0} peaks, greatest {greatest:9.4} N, admitted {admitted:?}");
         counted.push(count);
     }
     let lowest = counted.iter().copied().fold(f64::INFINITY, f64::min);

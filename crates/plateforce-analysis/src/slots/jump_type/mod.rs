@@ -71,7 +71,9 @@ pub(crate) fn reported(finding: JumpTypeFinding, bound: BoundValues) -> DerivedO
         values: vec![
             (
                 KEY,
-                Some(f64::from(u8::from(finding.jump_type == JumpType::Countermovement))),
+                Some(f64::from(u8::from(
+                    finding.jump_type == JumpType::Countermovement,
+                ))),
             ),
             (UNWEIGHTING_KEY, Some(finding.unweighting_newtons)),
             (THRESHOLD_KEY, Some(finding.threshold_newtons)),

@@ -1111,12 +1111,26 @@ fn text_body(
     let mut said: Vec<usize> = Vec::new();
     for (position, metric) in response.metrics.iter().enumerate() {
         match (metric.value, metric.carried_no_number) {
+            // A quantity whose unit has words rather than a magnitude reads as the word. The
+            // number is what every surface carrying data holds, and `1.0000 boolean` is what
+            // drawing it here without asking would look like.
             (Some(value), _) => {
-                let _ = writeln!(
-                    document,
-                    "  {:<widest$}  {:>12.4} {}",
-                    metric.label, value, metric.unit_symbol
-                );
+                match plateforce_analysis::response::reads_as_words(&metric.unit, value) {
+                    Some(word) => {
+                        let _ = writeln!(
+                            document,
+                            "  {:<widest$}  {:>12} {}",
+                            metric.label, word, metric.unit_symbol
+                        );
+                    }
+                    None => {
+                        let _ = writeln!(
+                            document,
+                            "  {:<widest$}  {:>12.4} {}",
+                            metric.label, value, metric.unit_symbol
+                        );
+                    }
+                }
             }
             // The arithmetic ran and produced a value that is not a number, which is a
             // different state from a rule that found nothing, and it is what a gap in the

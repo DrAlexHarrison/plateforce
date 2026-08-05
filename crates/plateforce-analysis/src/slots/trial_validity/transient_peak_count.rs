@@ -83,7 +83,7 @@ fn compute(
     };
     // A negative ceiling would fire on a period with no peak at all, which is the rule
     // rejecting every trial rather than the caller choosing a strict one.
-    if !(max_peaks >= 0.0) {
+    if !max_peaks.is_finite() || max_peaks < 0.0 {
         return DerivedOutcome::declined(
             bound,
             crate::resolution::RuleRefusal::Refused(Box::new(

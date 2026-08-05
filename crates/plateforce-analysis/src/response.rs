@@ -21,7 +21,28 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
         "meters_per_second" => "m/s",
         "meters_per_second_squared" => "m/s2",
         "newton_seconds" => "N.s",
+        "newtons_per_kilogram" => "N/kg",
+        "kilograms_to_the_exponent" => "kg^e",
+        "newtons_per_kilogram_to_the_exponent" => "N/kg^e",
+        "watts" => "W",
+        "percent" => "%",
+        // A count, a yes-or-no and a ratio are read from the label and the number. There is no
+        // symbol to draw beside them and the registry's own word for the unit is not one.
+        "count" | "boolean" | "dimensionless" => "",
         other => other,
+    }
+}
+
+/// The word a number reads as, where its unit has words rather than a magnitude.
+///
+/// One home, because a yes-or-no is stored as one and zero on every surface that carries data
+/// and read as a word only where a person is reading it. Two renderers deciding this
+/// separately would let one of them draw `1.0000 boolean`.
+pub fn reads_as_words(unit: &str, value: f64) -> Option<&'static str> {
+    match unit {
+        "boolean" if value >= 0.5 => Some("yes"),
+        "boolean" => Some("no"),
+        _ => None,
     }
 }
 
@@ -345,4 +366,42 @@ pub struct AnalysisResponse {
     /// It crosses the wire as the typed record rather than as the sentence beside it, so a
     /// surface branches on the record instead of parsing the sentence back apart.
     pub refusals: Vec<DeclinedRule>,
+}
+
+#[cfg(test)]
+mod unit_reading_tests {
+    use super::*;
+
+    /// A unit the registry spells out is drawn as a symbol or as nothing, never as the
+    /// spelling. A reader met `1.0000 boolean` on the terminal the day the first yes-or-no
+    /// quantity landed, and every unit this build reports is checked here rather than the
+    /// ones that already had symbols.
+    #[test]
+    fn every_unit_this_build_reports_is_drawn_as_a_symbol_or_as_nothing() {
+        let mut spelled_out = Vec::new();
+        for quantity in QUANTITIES.iter() {
+            let symbol = unit_symbol(quantity.unit);
+            if symbol == quantity.unit && quantity.unit.contains('_') {
+                spelled_out.push(format!("{} is drawn as {}", quantity.key, quantity.unit));
+            }
+        }
+        assert!(
+            spelled_out.is_empty(),
+            "{} of {} reported quantities draw the registry's spelling where a symbol belongs:\
+             \n  {}",
+            spelled_out.len(),
+            QUANTITIES.len(),
+            spelled_out.join("\n  ")
+        );
+    }
+
+    /// A yes-or-no reads as a word above the halfway mark and as the other word below it, and
+    /// nothing else reads as a word at all.
+    #[test]
+    fn a_yes_or_no_reads_as_a_word_and_a_magnitude_does_not() {
+        assert_eq!(reads_as_words("boolean", 1.0), Some("yes"));
+        assert_eq!(reads_as_words("boolean", 0.0), Some("no"));
+        assert_eq!(reads_as_words("newtons", 1.0), None);
+        assert_eq!(reads_as_words("count", 1.0), None);
+    }
 }

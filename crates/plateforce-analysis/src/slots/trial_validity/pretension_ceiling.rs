@@ -38,14 +38,13 @@ pub const BAND_PARAMETER: &str = "band_pct_bodyweight";
 pub const BAND_DEFAULT_PERCENT: f64 = 10.0;
 
 /// The one name this rule cannot run without.
-pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(
-    CRITERION_PARAMETER,
-    "absolute_newtons_above_bodyweight",
-)];
+pub const REQUIRED_OPTIONS: &[(&str, &str)] =
+    &[(CRITERION_PARAMETER, "absolute_newtons_above_bodyweight")];
 
 pub const EXCURSION_KEY: &str = "pretension_excursion_newtons";
 pub const ABSOLUTE_VERDICT_KEY: &str = "trial_validity_pretension_admitted_at_the_absolute_ceiling";
-pub const PERCENT_VERDICT_KEY: &str = "trial_validity_pretension_admitted_inside_the_percentage_band";
+pub const PERCENT_VERDICT_KEY: &str =
+    "trial_validity_pretension_admitted_inside_the_percentage_band";
 pub const KEY: &str = "trial_validity_pretension_admitted";
 
 pub const QUANTITIES: &[Quantity] = &[
@@ -150,10 +149,7 @@ fn compute(
     DerivedOutcome {
         values: vec![
             (EXCURSION_KEY, Some(departure_newtons)),
-            (
-                ABSOLUTE_VERDICT_KEY,
-                super::admitted(against_ceiling.fired),
-            ),
+            (ABSOLUTE_VERDICT_KEY, super::admitted(against_ceiling.fired)),
             (PERCENT_VERDICT_KEY, super::admitted(inside_band.fired)),
             (KEY, super::admitted(deciding.fired)),
         ],
