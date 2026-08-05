@@ -228,10 +228,11 @@ impl Spread {
 /// rule and the choice of takeoff rule both move a jump height, and sweeping them one at a
 /// time reports neither the widest disagreement nor the narrowest.
 ///
-/// Naming neither `method_ids` nor `parameter` sweeps every rule this build runs for the
-/// slot, read off the binding table rather than from a list written here. Naming `parameter`
-/// and `values` sweeps that parameter instead, holding the rule, and both describe one slot
-/// so both are refused beside several.
+/// Naming neither `method_ids` nor `vary` sweeps every rule bound for the slot, read off
+/// the binding table rather than from a list written here. `vary` maps a `slot.parameter`
+/// name to the values to sweep, holding the rule, the same axis the terminal spells
+/// `--vary onset.k=2,5,10`. Each axis describes one slot, so both arguments are refused
+/// beside several.
 ///
 /// The three rule arguments and `preset` are the ones `analyse_countermovement_jump` takes,
 /// under the same names, because the sweep varies the request that call sends.

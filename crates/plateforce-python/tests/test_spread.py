@@ -161,12 +161,10 @@ def test_the_denominator_holds_the_combinations_that_produced_nothing(trial, bou
     swept = pf.spread(
         trial,
         quantity=QUANTITY,
-        slot="takeoff",
         weighing_epoch=epoch,
         onset=onset,
         takeoff=takeoff,
-        parameter="threshold_n",
-        values=[20.0, 0.0],
+        vary={"takeoff.threshold_n": [20.0, 0.0]},
     )
     assert swept.failed > 0, "nothing failed, so every claim below is about arithmetic"
     assert swept.succeeded > 0, "nothing succeeded, so the failure is the sweep and not the value"
@@ -194,12 +192,10 @@ def test_a_sweep_that_computed_nothing_reports_its_denominator_and_no_width(
     swept = pf.spread(
         pf.Trial(force_the_athlete_never_leaves, sample_rate_hz=SAMPLE_RATE_HZ),
         quantity=QUANTITY,
-        slot="onset",
         weighing_epoch=epoch,
         onset=onset,
         takeoff=takeoff,
-        parameter="k",
-        values=[1.0, 5.0, 10.0],
+        vary={"onset.k": [1.0, 5.0, 10.0]},
     )
     assert swept.succeeded == 0
     assert swept.failed == 3
@@ -218,12 +214,10 @@ def test_a_sweep_that_computed_nothing_reports_its_denominator_and_no_width(
     with_flight = pf.spread(
         trial,
         quantity=QUANTITY,
-        slot="onset",
         weighing_epoch=epoch,
         onset=onset,
         takeoff=takeoff,
-        parameter="k",
-        values=[1.0, 5.0, 10.0],
+        vary={"onset.k": [1.0, 5.0, 10.0]},
     )
     assert with_flight.succeeded == 3
     assert with_flight.failed == 0
