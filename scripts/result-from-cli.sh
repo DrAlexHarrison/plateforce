@@ -68,6 +68,14 @@ for slot in ("weighing", "onset", "takeoff"):
     argv += [f"--{slot}", asked[slot]["method_id"]]
     for name, value in sorted(asked[slot]["parameters"].items()):
         argv += ["--set", f"{slot}.{name}={value}"]
+# A rule for something computed from the landmarks reaches this surface by construct rather
+# than through a flag of its own, and its values reach it under the construct's own name.
+for construct, choice in sorted(asked.get("derived", {}).items()):
+    argv += ["--derive", f"{construct}={choice['method_id']}"]
+    for name, value in sorted(choice.get("parameters", {}).items()):
+        argv += ["--set", f"{construct}.{name}={value}"]
+    for name, value in sorted(choice.get("options", {}).items()):
+        argv += ["--choose", f"{construct}.{name}={value}"]
 if capture is not None:
     plate = capture.get("plate")
     if plate is not None:

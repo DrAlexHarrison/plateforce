@@ -83,6 +83,36 @@ for (const key of ['weighing', 'onset', 'takeoff']) {
   state.selection[key] = selection;
 }
 
+// Rules computed from the landmarks, reached the way the picker reaches them: the construct
+// goes on the path, the model is rebuilt around it, and the rule is chosen off the rail. A
+// selection written straight into the map would skip the ranking the page does and could bind
+// a rule the page never offers.
+const asked_derived = asked.derived ?? {};
+if (Object.keys(asked_derived).length) {
+  state.path.push(...Object.keys(asked_derived));
+  state.slots = buildDecisionModel(state.registry, state.build, state.path);
+  for (const [construct, wanted] of Object.entries(asked_derived)) {
+    const slot = state.slots.find((entry) => entry.key === construct);
+    const candidate = slot && candidateFor(construct, wanted.method_id);
+    if (!candidate) {
+      console.error(`the page offers no rule ${wanted.method_id} for ${construct}`);
+      process.exit(1);
+    }
+    const selection = selectionFromChosenRule(candidate, slot.forcesDecision);
+    selection.methodStated = true;
+    for (const [name, value] of Object.entries(wanted.parameters ?? {})) {
+      selection.values[name] = value;
+      recordStated(selection, name);
+    }
+    for (const [name, value] of Object.entries(wanted.options ?? {})) {
+      selection.options[name] = value;
+      recordStated(selection, name);
+    }
+    selection.unresolved = [];
+    state.selection[construct] = selection;
+  }
+}
+
 // What the reader answered about the plate, through the two acts the page keeps apart: a
 // saved plate picked in the drawer, and members typed over it on this capture. The capture
 // the engine is handed is then the page's own `captureJson`, for the reason the request is

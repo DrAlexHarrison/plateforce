@@ -10,6 +10,7 @@
     "onset_index",
     "plate_profile",
     "refusals",
+    "regions",
     "registry_version",
     "samples_carrying_no_number",
     "signals",
@@ -650,6 +651,7 @@
       }
     },
     "refusals": [],
+    "regions": [],
     "registry_version": null,
     "samples_carrying_no_number": 0,
     "signals": [],

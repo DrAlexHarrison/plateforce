@@ -32,9 +32,16 @@
 # request file names the slots, which is how Python, R and the browser are asked; the terminal
 # is passed none and reads them off the rules the request bound, so the answer's `axes_varied`
 # is what holds the two accounts together.
+#
+# The `phases` row is the one that puts a value in `regions` and in the window a peak is taken
+# over. Every row above it places no phase boundary, so all four surfaces agree that the list is
+# empty, and a field compared only against emptiness is a field this gate cannot see. It also
+# binds the analysis window to a named phase, so the peak the four surfaces compare is a peak
+# over an interval two other rules placed rather than over the whole recording.
 quiet	tests/golden/result-parity-request.json	tests/golden/result-parity.json	browser,cli,python,r
 sentinel	tests/golden/result-parity-request-sentinel.json	=quiet	browser,cli,python,r
 interrupted	tests/golden/result-parity-request-interrupted.json	tests/golden/result-parity-interrupted.json	browser,cli,python,r
 inverted	tests/golden/result-parity-request-inverted.json	tests/golden/result-parity-inverted.json	browser,cli,python,r
 plate	tests/golden/result-parity-request-plate.json	tests/golden/result-parity-plate.json	browser,cli,python,r
 sweep	tests/golden/result-parity-request-sweep.json	tests/golden/result-parity-sweep.json	browser,cli,python,r
+phases	tests/golden/result-parity-request-phases.json	tests/golden/result-parity-phases.json	browser,cli,python,r

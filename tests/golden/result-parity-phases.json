@@ -396,6 +396,80 @@
         },
         "registry_backed": true,
         "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_id": "phase.braking_start.min_force",
+        "method_source": "stated",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "integration_anchor",
+            "integration.anchor.single_point"
+          ],
+          [
+            "integration_direction",
+            "integration.direction.forward"
+          ],
+          [
+            "integration_rule",
+            "integration.rule.trapezoid"
+          ],
+          [
+            "integration_start",
+            "integration.start.detected_onset"
+          ]
+        ],
+        "manual_override": false,
+        "method_id": "phase.propulsion_start.zero_velocity",
+        "method_source": "stated",
+        "parameter_sources": {
+          "integration_anchor": "assumed",
+          "integration_direction": "assumed",
+          "integration_rule": "assumed",
+          "integration_start": "assumed"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_id": "phase.propulsion_end.takeoff",
+        "method_source": "stated",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [
+          [
+            "phase",
+            "braking_start_to_propulsion_start"
+          ]
+        ],
+        "manual_override": false,
+        "method_id": "window.from_named_phase",
+        "method_source": "stated",
+        "parameter_sources": {
+          "phase": "stated"
+        },
+        "registry_backed": true,
+        "unread_parameters": []
+      },
+      {
+        "bound_parameters": [],
+        "manual_override": false,
+        "method_id": "force.peak.gross",
+        "method_source": "stated",
+        "parameter_sources": {},
+        "registry_backed": true,
+        "unread_parameters": []
       }
     ],
     "levels": {
@@ -639,11 +713,195 @@
         "unit": "meters_per_second",
         "unit_symbol": "m/s",
         "value": 0.5337174348070588
+      },
+      {
+        "carried_no_number": false,
+        "computed_by": "phase.braking_start.min_force",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "braking_phase_start_seconds",
+        "label": "Start of braking",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": 3.5825
+      },
+      {
+        "carried_no_number": false,
+        "computed_by": "phase.propulsion_start.zero_velocity",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "propulsion_phase_start_seconds",
+        "label": "Start of propulsion",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": 3.9333333333333336
+      },
+      {
+        "carried_no_number": false,
+        "computed_by": "phase.propulsion_end.takeoff",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end"
+        ],
+        "key": "propulsion_phase_end_seconds",
+        "label": "End of propulsion",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": 4.178333333333334
+      },
+      {
+        "carried_no_number": false,
+        "computed_by": "window.from_named_phase",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end",
+          "phase.braking_start.min_force",
+          "phase.propulsion_start.zero_velocity"
+        ],
+        "key": "analysis_window_start_seconds",
+        "label": "Analysis window, start",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": 3.5825
+      },
+      {
+        "carried_no_number": false,
+        "computed_by": "window.from_named_phase",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end",
+          "phase.braking_start.min_force",
+          "phase.propulsion_start.zero_velocity"
+        ],
+        "key": "analysis_window_end_seconds",
+        "label": "Analysis window, end",
+        "note": null,
+        "unit": "seconds",
+        "unit_symbol": "s",
+        "value": 3.9333333333333336
+      },
+      {
+        "carried_no_number": false,
+        "computed_by": "force.peak.gross",
+        "contributing_method_ids": [
+          "filter.none",
+          "bwepoch.fixed_window",
+          "onset.threshold.noise_relative",
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "takeoff.threshold.absolute_force",
+          "takeoff.op.crossing_selection",
+          "takeoff.op.residual_comparison",
+          "takeoff.op.search_floor_at_weighing_epoch_end",
+          "phase.braking_start.min_force",
+          "phase.propulsion_start.zero_velocity",
+          "window.from_named_phase"
+        ],
+        "key": "peak_force_newtons",
+        "label": "Peak force",
+        "note": null,
+        "unit": "newtons",
+        "unit_symbol": "N",
+        "value": 1130.9519
       }
     ],
     "onset_index": 4091,
     "refusals": [],
-    "regions": [],
+    "regions": [
+      {
+        "end_index": 4299,
+        "end_seconds": 3.5825,
+        "phase": "onset_to_braking_start",
+        "placed_by": [
+          "onset.threshold.noise_relative",
+          "onset.op.backward_offset_fixed",
+          "onset.op.crossing_selection",
+          "onset.op.direction",
+          "onset.op.persistence",
+          "onset.op.search_floor_at_weighing_epoch_end",
+          "phase.braking_start.min_force"
+        ],
+        "start_index": 4091,
+        "start_seconds": 3.4091666666666667
+      },
+      {
+        "end_index": 4720,
+        "end_seconds": 3.9333333333333336,
+        "phase": "braking_start_to_propulsion_start",
+        "placed_by": [
+          "phase.braking_start.min_force",
+          "phase.propulsion_start.zero_velocity"
+        ],
+        "start_index": 4299,
+        "start_seconds": 3.5825
+      },
+      {
+        "end_index": 5014,
+        "end_seconds": 4.178333333333334,
+        "phase": "propulsion_start_to_propulsion_end",
+        "placed_by": [
+          "phase.propulsion_start.zero_velocity",
+          "phase.propulsion_end.takeoff"
+        ],
+        "start_index": 4720,
+        "start_seconds": 3.9333333333333336
+      }
+    ],
     "registry_version": null,
     "samples_carrying_no_number": 0,
     "signals": [],

@@ -57,6 +57,7 @@ trial <- plateforce::pf_read_force_file(
 # wrote its own request would send a document nobody sends, and the comparison would be
 # measuring that document instead of the product's.
 bound <- list(
+  derived = asked$derived,
   weighing = asked$weighing$method_id,
   onset = asked$onset$method_id,
   takeoff = asked$takeoff$method_id,

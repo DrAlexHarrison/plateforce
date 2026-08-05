@@ -79,6 +79,19 @@ bound = {
     for slot in ("weighing", "onset", "takeoff")
 }
 
+# Rules computed from the landmarks, keyed by the construct each fills. The values travel into
+# the binding rather than beside it, because binding is where this surface checks that a rule
+# whose entry publishes no default for a required name has been given one.
+asked_derived = asked.get("derived", {})
+derived = {}
+if asked_derived:
+    derived["derived"] = {
+        construct: registry.method(choice["method_id"]).bind(
+            **choice.get("parameters", {}), **choice.get("options", {})
+        )
+        for construct, choice in asked_derived.items()
+    }
+
 # A request carrying a `sweep` block asks how far the number moves, and one without it asks
 # what the analysis reports. The terminal's arm and the browser's make the same test in the
 # same words.
@@ -90,6 +103,7 @@ if sweep is None:
             weighing_epoch=bound["weighing"],
             onset=bound["onset"],
             takeoff=bound["takeoff"],
+            **derived,
         )
     )
 else:

@@ -9,6 +9,7 @@
     "metrics",
     "onset_index",
     "refusals",
+    "regions",
     "registry_version",
     "samples_carrying_no_number",
     "signals",
@@ -445,6 +446,7 @@
     ],
     "onset_index": 4252,
     "refusals": [],
+    "regions": [],
     "registry_version": null,
     "samples_carrying_no_number": 0,
     "signals": [

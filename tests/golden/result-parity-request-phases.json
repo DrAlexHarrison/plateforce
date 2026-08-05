@@ -1,0 +1,45 @@
+{
+  "delimiter": "\t",
+  "derived": {
+    "analysis_window": {
+      "method_id": "window.from_named_phase",
+      "options": {
+        "phase": "braking_start_to_propulsion_start"
+      }
+    },
+    "braking_phase_start": {
+      "method_id": "phase.braking_start.min_force"
+    },
+    "peak_force": {
+      "method_id": "force.peak.gross"
+    },
+    "propulsion_phase_end": {
+      "method_id": "phase.propulsion_end.takeoff"
+    },
+    "propulsion_phase_start": {
+      "method_id": "phase.propulsion_start.zero_velocity"
+    }
+  },
+  "force_column": 0,
+  "onset": {
+    "method_id": "onset.threshold.noise_relative",
+    "parameters": {
+      "k": 5.0
+    }
+  },
+  "sample_rate_hz": 1200,
+  "sentinel_convention": "none",
+  "takeoff": {
+    "method_id": "takeoff.threshold.absolute_force",
+    "parameters": {
+      "threshold_n": 20.0
+    }
+  },
+  "trial": "crates/plateforce-conformance/fixtures/subject01_trial1.force.txt",
+  "weighing": {
+    "method_id": "bwepoch.fixed_window",
+    "parameters": {
+      "duration": 1.0
+    }
+  }
+}
