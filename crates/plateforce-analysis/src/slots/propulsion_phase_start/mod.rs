@@ -6,6 +6,7 @@
 //! an acknowledged pragmatic offset against jitter, and the peak-force form is a legacy rule
 //! whose instant has no mechanical reason to be the transition.
 
+pub mod accel_above_neg_g;
 pub mod peak_grf;
 pub mod velocity_threshold;
 pub mod zero_velocity;

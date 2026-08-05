@@ -850,6 +850,9 @@ surfacing = "surface_on_demand"
 sensitivity = "total for landing metrics"
 rationale = "Offered only when motion capture is present."
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "phase.model.squat_jump_distinct"
 construct = "phase_model"
@@ -934,6 +937,9 @@ Not a competing threshold but a demonstration that the quantity every threshold 
 two quantities. The documentation and the fingerprint must say which event the selected onset rule
 targets.
 """
+
+[method.reach]
+boundary = "equipment"
 
 [[method]]
 id = "vocab.downward_upward"
@@ -1073,6 +1079,9 @@ lasts 108 to 115 ms and is defined by a knee flexion of only 7 to 12 degrees, a 
 event inside a large force signal.
 """
 
+[method.reach]
+boundary = "equipment"
+
 [[method]]
 id = "sticking.region.velocity_minimum"
 construct = "sticking_region"
@@ -1150,6 +1159,9 @@ Do not compute. It is not computable from a successful repetition, which is a ha
 software claiming to report it. If a user asks for a sticking point, report the kinematic region
 under its own name and state that this definition requires a failed maximal attempt.
 """
+
+[method.reach]
+boundary = "protocol"
 
 [[method]]
 id = "window_end.fixed_duration.isometric"

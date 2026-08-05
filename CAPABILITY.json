@@ -291,6 +291,54 @@
         },
         {
           "composed_from": null,
+          "construct": "landing_phase_end",
+          "id": "phase.landing_end.zero_com_velocity",
+          "slot": "landing_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing_subdivision",
+          "id": "phase.landing_subdivision.impact_stabilising",
+          "slot": "landing_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.absolute_force_zero.frost2008",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.net_force_zero",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.peak_displacement.lake2012_PD",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.velocity_zero_crossing",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.visual_inspection.dead_start",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.squat_jump_distinct",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
           "requires": [],
@@ -353,6 +401,18 @@
           "id": "phase.propulsion_subdivision.by_time",
           "requires": [],
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsive.accel_above_neg_g",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "phase.window.positive_impulse.net_force_positive",
+          "slot": "analysis_window"
         },
         {
           "composed_from": null,
@@ -495,6 +555,12 @@
         },
         {
           "composed_from": null,
+          "construct": "sticking_region",
+          "id": "sticking.region.velocity_minimum",
+          "slot": "sticking_region"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "requires": [],
@@ -537,9 +603,21 @@
         },
         {
           "composed_from": null,
+          "construct": "phase_model",
+          "id": "vocab.downward_upward",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
           "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.force_dropoff_from_running_max",
           "slot": "analysis_window"
         },
         {
@@ -1062,6 +1140,54 @@
         },
         {
           "composed_from": null,
+          "construct": "landing_phase_end",
+          "id": "phase.landing_end.zero_com_velocity",
+          "slot": "landing_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing_subdivision",
+          "id": "phase.landing_subdivision.impact_stabilising",
+          "slot": "landing_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.absolute_force_zero.frost2008",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.net_force_zero",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.peak_displacement.lake2012_PD",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.velocity_zero_crossing",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.visual_inspection.dead_start",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.squat_jump_distinct",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
           "requires": [],
@@ -1124,6 +1250,18 @@
           "id": "phase.propulsion_subdivision.by_time",
           "requires": [],
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsive.accel_above_neg_g",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "phase.window.positive_impulse.net_force_positive",
+          "slot": "analysis_window"
         },
         {
           "composed_from": null,
@@ -1266,6 +1404,12 @@
         },
         {
           "composed_from": null,
+          "construct": "sticking_region",
+          "id": "sticking.region.velocity_minimum",
+          "slot": "sticking_region"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "requires": [],
@@ -1308,9 +1452,21 @@
         },
         {
           "composed_from": null,
+          "construct": "phase_model",
+          "id": "vocab.downward_upward",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
           "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.force_dropoff_from_running_max",
           "slot": "analysis_window"
         },
         {
@@ -1837,6 +1993,54 @@
         },
         {
           "composed_from": null,
+          "construct": "landing_phase_end",
+          "id": "phase.landing_end.zero_com_velocity",
+          "slot": "landing_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing_subdivision",
+          "id": "phase.landing_subdivision.impact_stabilising",
+          "slot": "landing_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.absolute_force_zero.frost2008",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.net_force_zero",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.peak_displacement.lake2012_PD",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.velocity_zero_crossing",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.visual_inspection.dead_start",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.squat_jump_distinct",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
           "requires": [],
@@ -1899,6 +2103,18 @@
           "id": "phase.propulsion_subdivision.by_time",
           "requires": [],
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsive.accel_above_neg_g",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "phase.window.positive_impulse.net_force_positive",
+          "slot": "analysis_window"
         },
         {
           "composed_from": null,
@@ -2041,6 +2257,12 @@
         },
         {
           "composed_from": null,
+          "construct": "sticking_region",
+          "id": "sticking.region.velocity_minimum",
+          "slot": "sticking_region"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "requires": [],
@@ -2083,9 +2305,21 @@
         },
         {
           "composed_from": null,
+          "construct": "phase_model",
+          "id": "vocab.downward_upward",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
           "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.force_dropoff_from_running_max",
           "slot": "analysis_window"
         },
         {
@@ -2610,6 +2844,54 @@
         },
         {
           "composed_from": null,
+          "construct": "landing_phase_end",
+          "id": "phase.landing_end.zero_com_velocity",
+          "slot": "landing_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing_subdivision",
+          "id": "phase.landing_subdivision.impact_stabilising",
+          "slot": "landing_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.absolute_force_zero.frost2008",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.net_force_zero",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_end",
+          "id": "phase.lift.end.peak_displacement.lake2012_PD",
+          "slot": "lifting_phase_end"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.velocity_zero_crossing",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "lifting_phase_start",
+          "id": "phase.lift.start.visual_inspection.dead_start",
+          "slot": "lifting_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "phase_model",
+          "id": "phase.model.squat_jump_distinct",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "phase_model",
           "id": "phase.model.unloading_yielding_split.harry2020",
           "requires": [],
@@ -2672,6 +2954,18 @@
           "id": "phase.propulsion_subdivision.by_time",
           "requires": [],
           "slot": "propulsion_subdivision"
+        },
+        {
+          "composed_from": null,
+          "construct": "propulsion_phase_start",
+          "id": "phase.propulsive.accel_above_neg_g",
+          "slot": "propulsion_phase_start"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "phase.window.positive_impulse.net_force_positive",
+          "slot": "analysis_window"
         },
         {
           "composed_from": null,
@@ -2814,6 +3108,12 @@
         },
         {
           "composed_from": null,
+          "construct": "sticking_region",
+          "id": "sticking.region.velocity_minimum",
+          "slot": "sticking_region"
+        },
+        {
+          "composed_from": null,
           "construct": "takeoff",
           "id": "takeoff.threshold.absolute_force",
           "requires": [],
@@ -2856,9 +3156,21 @@
         },
         {
           "composed_from": null,
+          "construct": "phase_model",
+          "id": "vocab.downward_upward",
+          "slot": "phase_model"
+        },
+        {
+          "composed_from": null,
           "construct": "analysis_window",
           "id": "window_end.fixed_duration.isometric",
           "requires": [],
+          "slot": "analysis_window"
+        },
+        {
+          "composed_from": null,
+          "construct": "analysis_window",
+          "id": "window_end.force_dropoff_from_running_max",
           "slot": "analysis_window"
         },
         {
