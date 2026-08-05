@@ -82,14 +82,11 @@ fn recorded(response: &AnalysisResponse) -> Vec<Recorded> {
         .bound_methods
         .iter()
         .flat_map(|bound| {
-            bound
-                .bound_parameters
-                .iter()
-                .map(|(name, value)| Recorded {
-                    entry: bound.method_id.clone(),
-                    name: name.clone(),
-                    value: value.clone(),
-                })
+            bound.bound_parameters.iter().map(|(name, value)| Recorded {
+                entry: bound.method_id.clone(),
+                name: name.clone(),
+                value: value.clone(),
+            })
         })
         .collect()
 }
@@ -116,8 +113,11 @@ fn findable(registry: &Registry, ids: &BTreeSet<&str>, item: &Recorded) -> Optio
 fn every_value_the_record_places_on_an_entry_is_findable_on_that_entry() {
     let registry = registry();
     let ids: BTreeSet<&str> = registry.methods.keys().map(String::as_str).collect();
-    let response = run(&a_jump_that_lands(), &a_request_whose_onset_bounds_its_search())
-        .expect("the request places every landmark");
+    let response = run(
+        &a_jump_that_lands(),
+        &a_request_whose_onset_bounds_its_search(),
+    )
+    .expect("the request places every landmark");
     let items = recorded(&response);
 
     // A sweep over nothing passes every assertion below it. The denominator is the guard on
@@ -132,14 +132,13 @@ fn every_value_the_record_places_on_an_entry_is_findable_on_that_entry() {
     // Control for reading 1: an entry that declares no parameter at all must not be able to
     // satisfy the check by that route. Both other routes have to be reachable too, or a green
     // here says only that the first route works.
-    let by_route: BTreeMap<&str, usize> =
-        items
-            .iter()
-            .filter_map(|item| findable(&registry, &ids, item))
-            .fold(BTreeMap::new(), |mut counts, route| {
-                *counts.entry(route).or_default() += 1;
-                counts
-            });
+    let by_route: BTreeMap<&str, usize> = items
+        .iter()
+        .filter_map(|item| findable(&registry, &ids, item))
+        .fold(BTreeMap::new(), |mut counts, route| {
+            *counts.entry(route).or_default() += 1;
+            counts
+        });
     assert!(
         by_route.len() >= 3,
         "only {} of the three routes to findable were exercised: {by_route:?}",
@@ -169,8 +168,11 @@ fn every_value_the_record_places_on_an_entry_is_findable_on_that_entry() {
 /// rule that composed it.
 #[test]
 fn the_two_instants_read_off_the_trace_are_recorded_on_the_entries_that_own_them() {
-    let response = run(&a_jump_that_lands(), &a_request_whose_onset_bounds_its_search())
-        .expect("the request places every landmark");
+    let response = run(
+        &a_jump_that_lands(),
+        &a_request_whose_onset_bounds_its_search(),
+    )
+    .expect("the request places every landmark");
     let items = recorded(&response);
     for (entry, name) in [
         ("onset.op.search_upper_bound", "search_bound_seconds"),
