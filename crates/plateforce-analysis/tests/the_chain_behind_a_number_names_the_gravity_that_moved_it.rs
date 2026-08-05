@@ -52,7 +52,27 @@ fn a_jump_that_lands() -> Trial {
     Trial::new(force, SAMPLE_RATE_HZ).unwrap()
 }
 
+/// The spine, and one rule for every other construct this build offers.
+///
+/// Read off the binding table rather than written here. A rule added under a new construct
+/// reports its quantities into this measurement without an edit, which is the difference
+/// between a guard over the eleven quantities the spine runs and one over what this build can
+/// compute. A rule that declines for want of a value nobody stated reports nothing, leaves no
+/// number to move, and costs this nothing.
+///
+/// The first rule filed under each construct, because `derived_bindings` yields them in
+/// declaration order and the choice between two rules for one construct is not what this
+/// measures.
 fn base() -> AnalysisRequest {
+    let mut derived: BTreeMap<String, MethodChoice> = BTreeMap::new();
+    for binding in plateforce_analysis::binding::derived_bindings() {
+        derived
+            .entry(binding.construct.to_string())
+            .or_insert_with(|| MethodChoice {
+                method_id: binding.id.to_string(),
+                ..Default::default()
+            });
+    }
     AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
@@ -67,6 +87,7 @@ fn base() -> AnalysisRequest {
             method_id: "takeoff.threshold.absolute_force".into(),
             ..Default::default()
         },
+        derived,
         ..Default::default()
     }
 }

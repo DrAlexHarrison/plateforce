@@ -149,9 +149,13 @@ fn unbound_step(
 ///
 /// Held to a measurement in both directions rather than trusted:
 /// `every_number_the_analysis_gravity_moves_carries_it_in_its_chain` moves the gravity, reads
-/// which numbers followed, and requires that set and this list to be the same set.
+/// which numbers followed, and requires that set and this list to be the same set. That guard
+/// runs one rule for every construct this build offers rather than the spine's alone, which is
+/// what found the sixth entry below: it moves with gravity, it was on no surface's list, and two
+/// analyses at two gravities gave it one fingerprint.
 const QUANTITIES_RESTING_ON_THE_ANALYSIS_GRAVITY: &[&str] = &[
     "jump_height_from_flight_time_meters",
+    "jump_height_from_standing_meters",
     "jump_height_from_takeoff_meters",
     "reactive_strength_index_modified",
     "system_mass_kilograms",
