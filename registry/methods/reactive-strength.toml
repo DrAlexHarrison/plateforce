@@ -386,7 +386,7 @@ boundary = "protocol"
 
 [[method]]
 id = "index.rpem.riosgallardo"
-construct = "reactive_strength_index"
+construct = "reactive_strength_index.rpem"
 group = "K"
 title = "Jump height over a push-off time derived from distance and velocity"
 rule = """
@@ -397,6 +397,43 @@ status = "accepted"
 confidence = "medium"
 debate = "single_position"
 
+[[method.parameter]]
+name = "velocity_term"
+unit = "enumeration"
+required = true
+notes = """
+Which velocity divides the push-off distance, which the source states nowhere and which moves the
+number by a factor of two across the three a force plate can supply. No default: the source used one
+of them and the other two are equally available from a plate, so a reader gets the choice rather than
+this software's reading of a column heading.
+"""
+
+[[method.parameter.value]]
+key = "mean_from_takeoff_velocity"
+notes = """
+Half the takeoff velocity, which is the mean of a velocity rising linearly from rest and the value
+the source's own analysis ran on. Its code reads a Velocity column out of a vendor export and never
+says what the column holds; across the 2857 rows of that export carrying a positive height, push-off
+distance and velocity, the column is the takeoff velocity the height implies divided by two, at a
+median ratio of 0.5000 and a standard deviation of 0.0012. Under that reading the derived time is the
+push-off duration a uniform acceleration implies rather than the interval the plate recorded.
+"""
+
+[[method.parameter.value]]
+key = "mean_over_push_off"
+notes = """
+The distance divided by the interval the plate recorded it over. The derived time is then the
+measured push-off duration exactly, so the two agree only to the extent that the acceleration really
+was uniform.
+"""
+
+[[method.parameter.value]]
+key = "takeoff"
+notes = """
+The instantaneous velocity at takeoff, which is what the bare word invites and which halves the time
+and doubles the index against the source's own value.
+"""
+
 [[method.citation]]
 key = "riosgallardo"
 role = "proposes"
@@ -405,11 +442,15 @@ obtained = true
 
 [method.gui]
 surfacing = "surface_on_demand"
+sensitivity = "a factor of two across the three velocity terms, and a factor of ten against the source's own units"
 rationale = """
 Marked unvalidated, in an extended-metrics section. A new quantity rather than a
 variant: substituting push-off distance over velocity for ground contact time makes it computable for
 a countermovement jump, where there is no contact time in the drop-jump sense. Recorded because it is
-invisible to English-language search.
+invisible to English-language search. Its own construct for the same reason it is a new quantity: a
+reader picking it in the index's slot would get a number three times the size under that heading.
+The source reports it in centimetres per millisecond and this construct is metres per second, so a
+figure read off the source's tables is a tenth of the figure computed here for the same jump.
 """
 
 [[method]]
