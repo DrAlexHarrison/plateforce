@@ -1036,7 +1036,7 @@ mod rows_come_from_the_chain_step {
             parameter_sources: BTreeMap::new(),
             unread_parameters: Vec::new(),
             registry_backed: true,
-            manual_override: false,
+            placed_by_hand_at_sample: None,
             preset: None,
             method_source: ParameterSource::Stated,
             numeric_values: numbers

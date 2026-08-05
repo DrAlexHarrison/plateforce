@@ -10,38 +10,17 @@
 #
 # Format: <verdict> <file>:<NAME>, one per line, then the ruling.
 #
-#   drives   the membership picks the population the check runs over. Not an exemption: a name
-#            leaving the list narrows what is checked and the check still runs on the rest.
-#   excuses  a membership here lets something past a check. The ruling says what it records and
-#            whether anything turns red when the record goes stale.
-#
-# Ruled 2026-08-05 by `ws-guards-cannot-fail`, reading all fifteen. 4 of 15 excuse; 11 drive.
+#   drives      membership picks the population the check runs over.
+#   exemption   membership omits something that can never belong to that population for the
+#               stated reason.
+#   excuses     membership permits a coverage hole. This verdict keeps queue entry 39 open.
 
-excuses crates/plateforce-cli/tests/digests_in_prose.rs:FILES_THAT_QUOTE_A_DIGEST
-    Records a decision, and pinned in both directions, which is the shape to copy. A file
-    outside it quoting a digest fails `no_committed_file_quotes_a_digest_from_outside_the_list`,
-    and a file inside it that stops quoting one fails the guard's own emptiness assertion, whose
-    message is that it would otherwise be watching a file with nothing to watch.
-
-excuses crates/plateforce-serve/build.rs:NOT_PART_OF_THE_INTERFACE
+exemption crates/plateforce-serve/build.rs:NOT_PART_OF_THE_INTERFACE
     Records a decision: repository documentation sits beside the interface without being part of
     it, and serving it would put a build instruction on a port opened to analyse a trial. One
     entry, and the name reaches the binary so a caller subtracts a stated exclusion from a
-    directory listing rather than counting to a number. Nothing fails if `README.md` leaves
-    `web/`, so the exemption can outlive the file.
-
-excuses scripts/check-web-reads-live-fields.py:OBJECT_METHODS
-    Records a fact about the language rather than a gap in the software: `hasOwnProperty` is
-    reached on the record as an object and is not a field serde puts on the wire. Nothing fails
-    if the browser stops calling it.
-
-excuses scripts/result_parity.py:SURFACES_NOT_ASKED
-    Six surface and request pairs held out of the parity register, each with a written reason
-    and the entry point that discharges it. Its own docstring says an entry that stopped being
-    either is a row waiting to be widened, and nothing measures whether one has: a reason that
-    stops being true reads exactly like one that never was. One row is already stale and is
-    filed as its own queue entry, which says the register claims R cannot sweep several slots
-    and R can. The one on this page that is a coverage hole rather than a decision.
+    directory listing rather than counting to a number. The build holds the exclusions it finds
+    equal to this set, so the exemption cannot outlive `web/README.md`.
 
 drives crates/plateforce-cli/tests/the_single_trial_run_records_the_plate.rs:EVERY_MEMBER
     The acquisition members the test states as its input, written out rather than read from the
@@ -74,6 +53,11 @@ drives scripts/reach-from-recut.py:BOUNDARY_OF_CLASS
 
 drives scripts/result-from-python.py:SENTINELS
     How this surface spells each missing-sample convention the registry publishes.
+
+drives scripts/result_parity.py:SURFACES_NOT_ASKED
+    The exact population of surfaces a request kind cannot be put to. The register is empty
+    rather than absent, and `coverage_faults` fails both when a request omits an unrecorded
+    surface and when a recorded surface starts answering. Membership selects that population.
 
 drives scripts/verify-committed-tree.py:OPENS_ITS_DIRECTORY
     Which Rust file names hold their child modules beside them rather than under them. A fact

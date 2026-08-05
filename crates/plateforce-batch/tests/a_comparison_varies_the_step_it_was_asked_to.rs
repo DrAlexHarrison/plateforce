@@ -319,10 +319,10 @@ fn an_onset_comparison_still_varies_onset_and_names_it() {
 
 /// A comparison that leaves the machine carries what produced it, not a pointer to it.
 ///
-/// The two digests identify a run; they do not describe one. A reader holding this file and
-/// nothing else has to be able to say which registry revision was cited, what the plate was,
-/// and at what rate the traces were read, because none of it is recoverable from the numbers
-/// and the recordings say none of it either.
+/// The registry and base-request digests identify those two inputs, and `run_fingerprint`
+/// identifies the completed run. A reader holding this file and nothing else has to be able to
+/// say which registry revision was cited, what the plate was, and at what rate the traces were
+/// read, because none of it is recoverable from the numbers or the identifiers.
 ///
 /// Read back through the type rather than as text, so a field the writer stopped emitting is a
 /// failure here rather than a key nobody notices is gone.
@@ -349,9 +349,21 @@ fn a_comparison_carries_the_registry_and_the_plate_it_ran_under() {
     result
         .write_csv(&out, &a_registry_stamp(), "content-request")
         .expect("the directory takes them");
+    let text = std::fs::read_to_string(out.join("compare-run.json")).unwrap();
+    let wire: serde_json::Value = serde_json::from_str(&text).expect("the record is JSON");
+    assert_eq!(
+        wire.get("base_request_digest")
+            .and_then(|value| value.as_str()),
+        Some("content-request"),
+        "the comparison wire does not name the digest of its base request"
+    );
+    assert!(
+        wire.get("request_digest").is_none(),
+        "the comparison wire still names its base request as the identity of what ran"
+    );
     let record: plateforce_batch::agreement::CompareRunRow =
-        serde_json::from_str(&std::fs::read_to_string(out.join("compare-run.json")).unwrap())
-            .expect("the record reads back as the type that wrote it");
+        serde_json::from_str(&text).expect("the record reads back as the type that wrote it");
+    assert_eq!(record.base_request_digest, "content-request");
 
     // The caller's word and the registry's own, each under its own name. This pair has been
     // published transposed before, telling every reader the operator cited a revision no
@@ -379,6 +391,10 @@ fn a_comparison_carries_the_registry_and_the_plate_it_ran_under() {
         .run_fingerprint
         .clone()
         .expect("a filled block publishes a fingerprint");
+    assert_ne!(
+        published, record.base_request_digest,
+        "the run fingerprint and base request digest identify different things"
+    );
     let mut under_another_floor = record.clone();
     under_another_floor.acquisition = a_recorded_plate("rubber_matting");
     under_another_floor.run_fingerprint = None;

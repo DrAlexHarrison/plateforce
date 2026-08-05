@@ -49,10 +49,6 @@ READERS = {
     'BuildInfo': r'\bbuild(?:\?)?\.(\w+)',
 }
 
-# Names reached on the record as an object rather than as a declared field.
-OBJECT_METHODS = {'hasOwnProperty'}
-
-
 def serialised_fields(path: str, struct: str) -> set:
     """The field names a struct puts on the wire, dropping the ones serde is told to skip.
 
@@ -68,14 +64,19 @@ def serialised_fields(path: str, struct: str) -> set:
     body = source[opening.end():source.index('\n}\n', opening.end())]
 
     fields, skip_next, renamed = set(), False, None
+    attribute = ''
     for line in body.splitlines():
         stripped = line.strip()
-        if stripped.startswith('#['):
-            if re.search(r'serde\([^)]*\bskip\b\s*[,)]', stripped):
+        if attribute or stripped.startswith('#['):
+            attribute = f'{attribute} {stripped}'.strip()
+            if attribute.count('[') != attribute.count(']'):
+                continue
+            if re.search(r'serde\([^)]*\bskip\b\s*[,)]', attribute):
                 skip_next = True
-            rename = re.search(r'serde\([^)]*rename\s*=\s*"([^"]+)"', stripped)
+            rename = re.search(r'serde\([^)]*rename\s*=\s*"([^"]+)"', attribute)
             if rename:
                 renamed = rename.group(1)
+            attribute = ''
             continue
         declared = re.match(r'(?:pub )?(\w+):', stripped)
         if not declared:
@@ -99,8 +100,6 @@ def main() -> int:
         for source_path in sorted(glob.glob('web/*.js')):
             source = open(source_path).read()
             for read in re.findall(READERS[struct], source):
-                if read in OBJECT_METHODS:
-                    continue
                 checked += 1
                 if read not in declared:
                     unknown.append(
