@@ -17,6 +17,17 @@ use plateforce_registry::Registry;
 use crate::exit::{fault_for, Declined, Fault, Outcome};
 use crate::out::Format;
 
+/// The athlete's mass, which is not the weighed system mass: system weight includes any bar
+/// and bodyweight does not.
+///
+/// One spelling covers one athlete and a squad, because a reader stating either is doing one
+/// thing. `{subject}` is the field `--pattern` pulls out of each file name.
+const MASS_HELP: &str = "The athlete's mass in kilograms, written <KG> for a folder of one athlete or <SUBJECT>=<KG> per athlete. Repeatable in the second form";
+
+/// What a mass keyed by subject looks like, used by the help and by the refusals, so a flag
+/// cannot describe a shape its parser does not take.
+const MASS_SHAPE: &str = "<SUBJECT>=<KG>";
+
 /// Which of the two questions this run is asking.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 #[value(rename_all = "snake_case")]
@@ -92,14 +103,13 @@ pub struct Args {
     /// standard gravity runs and the record says nobody was asked
     #[arg(long, value_name = "M/S2")]
     pub gravity: Option<f64>,
-    /// The athlete's mass, which is not the weighed system mass: system weight includes any
-    /// bar and bodyweight does not. One mass covers every trial in the folder
     #[arg(
         long = "body-mass-kg",
         value_name = "KG",
-        allow_negative_numbers = true
+        allow_negative_numbers = true,
+        help = MASS_HELP
     )]
-    pub body_mass_kg: Option<f64>,
+    pub body_mass_kg: Vec<String>,
     /// Cite this registry revision in the record. Unstated, the record names no pinned
     /// revision and reports the one the registry declares for itself
     #[arg(long, value_name = "REVISION")]
@@ -204,8 +214,8 @@ pub fn run(
         Ok(conditioning) => conditioning,
         Err(declined) => return Outcome::declined(declined),
     };
-    let body_mass_kilograms = match crate::analyse::stated_body_mass(args.body_mass_kg) {
-        Ok(mass) => mass,
+    let (body_mass_kilograms, body_mass_by_subject) = match stated_masses(&args.body_mass_kg) {
+        Ok(masses) => masses,
         Err(declined) => return Outcome::declined(declined),
     };
     let mut built = request_for(
@@ -238,10 +248,16 @@ pub fn run(
     };
 
     let resolved: Vec<&str> = chosen.keys().map(String::as_str).collect();
-    let request = BatchRequest::new(built)
+    let mut request = BatchRequest::new(built)
         .resolving(&resolved)
         .pinned_to(args.registry_version.clone())
         .describing(capture);
+    // A folder holding several athletes runs each trial under its own athlete's mass. The
+    // engine refuses a name the folder does not hold and a subject the masses do not cover,
+    // so a typo applies to nothing loudly rather than quietly.
+    if !body_mass_by_subject.is_empty() {
+        request = request.massing(body_mass_by_subject);
+    }
 
     match args.mode {
         Mode::Analyse => run_analyse(out_dir, args, &set, &request, &registry, format, renderer),
@@ -325,6 +341,76 @@ fn request_for(
             })
             .collect(),
     }
+}
+
+/// What this folder was told about the athletes' masses: one mass, or one per subject.
+///
+/// Mixing the two is refused rather than resolved. A bare mass beside a keyed one leaves it
+/// unsaid which trials the bare one covers, and every answer to that is a rule this software
+/// would be inventing on the reader's behalf.
+///
+/// Each value goes through the check one trial's mass goes through, so a mass at or below zero
+/// is refused by the name the record reports it under rather than dividing into an infinity
+/// three surfaces downstream.
+fn stated_masses(
+    assignments: &[String],
+) -> Result<(Option<f64>, std::collections::BTreeMap<String, f64>), Declined> {
+    let mut one_athlete: Vec<&str> = Vec::new();
+    let mut by_subject: std::collections::BTreeMap<String, f64> = std::collections::BTreeMap::new();
+    for written in assignments {
+        let Some((subject, kilograms)) = written.split_once('=') else {
+            one_athlete.push(written);
+            continue;
+        };
+        if subject.trim().is_empty() {
+            return Err(Declined::line(
+                Fault::Request,
+                format!("--body-mass-kg takes {MASS_SHAPE}\n  it was given '{written}'"),
+            ));
+        }
+        let value = crate::analyse::stated_body_mass(Some(parsed(written, kilograms)?))?;
+        if by_subject
+            .insert(subject.trim().to_string(), value.unwrap_or_default())
+            .is_some()
+        {
+            return Err(Declined::line(
+                Fault::Request,
+                format!(
+                    "--body-mass-kg names {} twice, and a subject has one mass",
+                    subject.trim()
+                ),
+            ));
+        }
+    }
+
+    match (one_athlete.as_slice(), by_subject.is_empty()) {
+        ([], _) => Ok((None, by_subject)),
+        ([only], true) => Ok((crate::analyse::stated_body_mass(Some(parsed(only, only)?))?, by_subject)),
+        ([_, ..], true) => Err(Declined::line(
+            Fault::Request,
+            format!(
+                "--body-mass-kg was given {} masses for one folder\n  a folder of several athletes states {MASS_SHAPE} per athlete",
+                one_athlete.len()
+            ),
+        )),
+        ([_, ..], false) => Err(Declined::line(
+            Fault::Request,
+            "--body-mass-kg states a mass by athlete and one for the folder".to_string(),
+        )),
+    }
+}
+
+/// A mass as a number, refused by the line the caller wrote where it is not one.
+///
+/// The value goes on its own line, so a long one cannot push the sentence past the eighty
+/// columns every common terminal reaches.
+fn parsed(written: &str, number: &str) -> Result<f64, Declined> {
+    number.trim().parse().map_err(|_| {
+        Declined::line(
+            Fault::Request,
+            format!("--body-mass-kg takes a mass in kilograms\n  it was given '{written}'"),
+        )
+    })
 }
 
 /// A comparison that cannot be set up, in the shape the caller's other refusals arrive in.
@@ -411,6 +497,7 @@ fn run_compare(
     let base_request_digest = plateforce_batch::fingerprint::request_digest(
         &compare_request.analysis.analysis,
         compare_request.analysis.registry_version.as_deref(),
+        &compare_request.analysis.body_mass_kilograms_by_subject,
     );
     // Which registry produced these numbers, as the three facts a reader asks for, built where
     // `analyse` builds them. The pin is the caller's word and the declared revision is the

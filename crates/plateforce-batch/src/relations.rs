@@ -332,6 +332,15 @@ pub struct RunRow {
     /// under, and `request_digest` answers only whether the two were the same.
     #[serde(default)]
     pub bound_globals: Vec<BoundGlobalRow>,
+    /// The athlete's mass per subject, where the folder held more than one athlete, keyed by
+    /// the subject a declared pattern named. Absent on a folder holding one, whose mass is a
+    /// row in `bound_globals` above with every other value the whole run was bound to.
+    ///
+    /// Two homes for one value would be the defect this record exists to stop, so it is one
+    /// or the other and never both: a run stating masses per subject leaves the analysis
+    /// request's own mass unset, and `bound_globals` carries no mass row at all.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub body_mass_kilograms_by_subject: BTreeMap<String, BoundGlobalRow>,
     /// Names carrying a declared trial suffix. The denominator the file counts are over.
     pub files_found: usize,
     /// Names the run met carrying none of them. Outside `files_found` rather than inside it,
@@ -570,6 +579,7 @@ mod tests {
             registry_digest: "content-0".to_string(),
             request_digest: "content-1".to_string(),
             bound_globals: Vec::new(),
+            body_mass_kilograms_by_subject: BTreeMap::new(),
             files_found: 6,
             files_without_declared_suffix: 0,
             files_unidentified: 0,

@@ -42,6 +42,16 @@ pub struct BatchRequest {
     /// file, and a run that states nothing reports every trial as incomplete rather than as
     /// matching.
     pub capture: Option<Capture>,
+    /// The athlete's mass per subject, where a folder holds more than one athlete. Keyed by
+    /// the subject a declared pattern pulled out of each file name.
+    ///
+    /// Empty is the correct state of a folder holding one athlete, whose mass sits on the
+    /// analysis request beside the gravity. The plate and the acquisition block are stated
+    /// once for the folder because they describe the recording; a mass describes the person,
+    /// and this set already spans subjects everywhere else it is read. `Session::group` takes
+    /// every reliability figure over the subject a pattern named, so a squad session was
+    /// already a folder this software understood, in every field but this one.
+    pub body_mass_kilograms_by_subject: BTreeMap<String, f64>,
 }
 
 impl BatchRequest {
@@ -52,7 +62,18 @@ impl BatchRequest {
             resolved_decisions: BTreeSet::new(),
             gates: GateRegistry::default(),
             capture: None,
+            body_mass_kilograms_by_subject: BTreeMap::new(),
         }
+    }
+
+    /// State a mass per subject, for a folder holding more than one athlete.
+    ///
+    /// A folder that states these leaves the analysis request's own mass unset, so no trial
+    /// runs under a mass belonging to somebody else and no record claims one.
+    pub fn massing(mut self, by_subject: BTreeMap<String, f64>) -> Self {
+        self.analysis.body_mass_kilograms = None;
+        self.body_mass_kilograms_by_subject = by_subject;
+        self
     }
 
     /// State what the capture was, so results from it can be told apart from results whose
@@ -249,6 +270,114 @@ fn published_more_than_one_way(registry: &Registry, request: &BatchRequest) -> u
     crate::decisions::values_forcing_a_choice(registry, &values_on_the_path(request))
 }
 
+/// Every subject the folder holds, which a declared pattern named and a file stem did not.
+fn subjects_present(set: &TrialSet) -> BTreeSet<&str> {
+    set.iter()
+        .filter_map(|(_, entry)| entry.subject.as_ref())
+        .map(|key| key.subject.as_str())
+        .collect()
+}
+
+/// Whether the masses stated per subject and the subjects the folder holds are the same set.
+///
+/// Both directions refuse, because both are silent otherwise. A mass written against a name
+/// the folder does not hold applies to nothing, and a subject the map does not cover runs at
+/// no mass at all while the record beside it lists a mass for every other athlete, which reads
+/// as coverage. Refused once for the folder rather than once per trial.
+fn masses_cover_the_folder(set: &TrialSet, request: &BatchRequest) -> Result<(), RunRefusal> {
+    if request.body_mass_kilograms_by_subject.is_empty() {
+        return Ok(());
+    }
+    let present = subjects_present(set);
+    let named: BTreeSet<&str> = request
+        .body_mass_kilograms_by_subject
+        .keys()
+        .map(String::as_str)
+        .collect();
+    let refused = |code: RefusalCode, message: String| RunRefusal {
+        code,
+        message,
+        unresolved: Vec::new(),
+        unresolved_values: Vec::new(),
+    };
+
+    let unknown: Vec<&str> = named.difference(&present).copied().collect();
+    if !unknown.is_empty() {
+        return Err(refused(
+            RefusalCode::ValueNotAccepted,
+            format!(
+                "{} of {} masses name an athlete not in this folder: {}\n  {}",
+                unknown.len(),
+                named.len(),
+                unknown.join(", "),
+                if present.is_empty() {
+                    "it names no athlete, so --pattern gives it one".to_string()
+                } else {
+                    format!(
+                        "it holds {}",
+                        present.iter().copied().collect::<Vec<&str>>().join(", ")
+                    )
+                }
+            ),
+        ));
+    }
+    let uncovered: Vec<&str> = present.difference(&named).copied().collect();
+    if !uncovered.is_empty() {
+        return Err(refused(
+            RefusalCode::RequiredParameterUnstated,
+            format!(
+                "{} of {} subjects in this folder have no mass: {}",
+                uncovered.len(),
+                present.len(),
+                uncovered.join(", ")
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// Each subject's mass as the record carries it.
+///
+/// The row is built by asking a request bound to that one mass what globals it holds, so the
+/// unit, the symbol and the claim about who chose it come from the one place that answers
+/// that question rather than from a second set of literals here.
+fn mass_rows(request: &BatchRequest) -> BTreeMap<String, crate::relations::BoundGlobalRow> {
+    request
+        .body_mass_kilograms_by_subject
+        .iter()
+        .filter_map(|(subject, kilograms)| {
+            let mut one = request.analysis.clone();
+            one.body_mass_kilograms = Some(*kilograms);
+            one.bound_globals()
+                .iter()
+                .find(|bound| bound.name == plateforce_analysis::BODY_MASS_GLOBAL)
+                .map(|bound| (subject.clone(), crate::relations::BoundGlobalRow::of(bound)))
+        })
+        .collect()
+}
+
+/// The request one trial runs under.
+///
+/// The folder's own, unless the caller stated a mass per subject, in which case this trial's
+/// athlete's mass reaches its analysis and nobody else's does. Borrowed where the folder holds
+/// one athlete, so the common run clones nothing.
+fn analysis_for<'a>(
+    entry: &crate::identity::TrialEntry,
+    request: &'a BatchRequest,
+) -> std::borrow::Cow<'a, AnalysisRequest> {
+    if request.body_mass_kilograms_by_subject.is_empty() {
+        return std::borrow::Cow::Borrowed(&request.analysis);
+    }
+    let mut own = request.analysis.clone();
+    own.body_mass_kilograms = entry.subject.as_ref().and_then(|key| {
+        request
+            .body_mass_kilograms_by_subject
+            .get(&key.subject)
+            .copied()
+    });
+    std::borrow::Cow::Owned(own)
+}
+
 /// Run one analysis over every trial in the set.
 ///
 /// The registry arrives as a loaded object rather than as a digest string, because the digest
@@ -311,6 +440,8 @@ pub fn analyse(
             unresolved_values: values,
         });
     }
+
+    masses_cover_the_folder(set, request)?;
 
     // What every record this run produces says about the registry behind it, and whether the
     // plate's settings were recorded. Both are facts about the run rather than about a trial,
@@ -379,7 +510,8 @@ pub fn analyse(
             }
         };
 
-        let response = match plateforce_analysis::run(&trial, &request.analysis) {
+        let analysis = analysis_for(entry, request);
+        let response = match plateforce_analysis::run(&trial, &analysis) {
             Ok(response) => response,
             // The code is the one the engine decided it was declining under.
             Err(declined) => {
@@ -536,7 +668,11 @@ pub fn analyse(
         // A run always read a registry, so the row states the digest rather than admitting
         // absence. The stamp admits it because a record can be written without one.
         registry_digest: registry.content_digest.clone(),
-        request_digest: request_digest(&request.analysis, request.registry_version.as_deref()),
+        request_digest: request_digest(
+            &request.analysis,
+            request.registry_version.as_deref(),
+            &request.body_mass_kilograms_by_subject,
+        ),
         // Read off the request the folder ran under, so the row names the same values every
         // trial's analysis was handed rather than a second account of them.
         bound_globals: request
@@ -545,6 +681,10 @@ pub fn analyse(
             .iter()
             .map(crate::relations::BoundGlobalRow::of)
             .collect(),
+        // Written through the same row type and the same claim about who chose the value, so
+        // one athlete's mass and a squad's are one record in two shapes rather than two
+        // records. Empty on a folder holding one athlete, whose mass is above.
+        body_mass_kilograms_by_subject: mass_rows(request),
         files_found: coverage.files_found,
         files_without_declared_suffix: coverage.files_without_declared_suffix,
         files_unidentified: coverage.files_unidentified,
