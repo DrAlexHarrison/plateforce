@@ -690,6 +690,44 @@ pub fn spread_json(handle: &TrialHandle, request_json: &str) -> String {
         Ok(request) => request,
         Err(refusal) => return refuse::<SpreadDocument>(*refusal),
     };
+    swept(handle, request)
+}
+
+/// One sweep whose unvaried combination is a named published pipeline.
+///
+/// The pipeline is laid onto the base request here, on the compiled side, exactly as
+/// `analyse_under_preset_json` lays it onto an analysis, and for the same reason: R writes
+/// requests and does not read them. Until this the notebook could sweep around a published
+/// pipeline and R could not, which is one surface able to ask a question the other cannot.
+pub fn spread_under_preset_json(
+    handle: &TrialHandle,
+    root: &str,
+    preset_id: &str,
+    request_json: &str,
+) -> String {
+    let registry = match Registry::load(root) {
+        Ok(registry) => registry,
+        Err(error) => {
+            return refuse::<SpreadDocument>(Refusal::of("registry_invalid", error.to_string()))
+        }
+    };
+    let mut request: SweepRequest = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(refusal) => return refuse::<SpreadDocument>(*refusal),
+    };
+    let refused = match plateforce_analysis::request::preset_named(&registry, preset_id) {
+        Err(refusal) => Some(refusal),
+        Ok(preset) => request.sweep.base.adopt(preset).err(),
+    };
+    if let Some(refusal) = refused {
+        return refuse::<SpreadDocument>(Refusal::from(*refusal));
+    }
+    swept(handle, request)
+}
+
+/// One home for running a sweep and shaping its answer, so the two entry points above cannot
+/// answer the same request differently.
+fn swept(handle: &TrialHandle, request: SweepRequest) -> String {
     if let Err(refusal) = checked_body_mass(&request.sweep.base) {
         return refuse::<SpreadDocument>(*refusal);
     }

@@ -609,19 +609,21 @@ class NotAsked(NamedTuple):
 
 
 SURFACES_NOT_ASKED = {
-    SWEPT: {
-        "r": NotAsked(
-            "a `pf_spread` that takes several slots, which Python's `slot` already does and "
-            "refuses beside `parameter` and `method_ids` for the same reason",
-            "`pf_spread` builds one axis per call, so the sweep the terminal computes over "
-            "three landmark constructs cannot be written as one R call. R sweeps one slot and "
-            "answers a narrower question than the record this request is held to",
-        ),
-        # The browser was here, asked of nothing because it reported the same 75 combinations
-        # in the order it ranks rules for a reader. `spread::run` now orders `variants` by the
-        # binding table whatever order the caller listed the rules in, so one record holds the
-        # tab and the terminal together and the tab is on the sweep row.
-    },
+    # Every surface is asked the sweep, and this register is kept empty rather than left out:
+    # `coverage_faults` reads it by kind, and a surface that stops being able to answer a kind
+    # of request has to land somewhere a reader of this file looks.
+    #
+    # The browser was here, asked of nothing because it reported the same 75 combinations in
+    # the order it ranks rules for a reader. `spread::run` now orders `variants` by the
+    # binding table whatever order the caller listed the rules in, so one record holds the tab
+    # and the terminal together.
+    #
+    # R was here, on a reason that had stopped being true: the entry said `pf_spread` builds
+    # one axis per call, and `axes_of` maps over every name in `slot`. A register declaring a
+    # gap that is closed is the same defect as a stale queue entry, one level closer to the
+    # gate, and it kept a surface off a row it could answer. The R arm sweeps through
+    # `spread_request_of`, the same builder `pf_spread` writes its request with.
+    SWEPT: {},
 }
 
 
@@ -722,11 +724,9 @@ ANALYSED_SURFACES_THAT_DIFFER = {
     "spread": Divergence(
         frozenset({"cli"}),
         None,
-        "the sweep request, which holds the terminal, the tab and Python to one committed "
-        "record over all 21 fields of a swept document, and names in SURFACES_NOT_ASKED what "
-        "stands between that record and the surface still outside it. What is left here is "
-        "the nesting: the terminal reports the headline sweep inside the analysed document "
-        "and nobody else does",
+        "the sweep request, which holds all four surfaces to one committed record over every "
+        "field of a swept document. What is left here is the nesting: the terminal reports "
+        "the headline sweep inside the analysed document and nobody else does",
         "how far a number moves across a slot's defensible alternatives. The terminal sweeps "
         "with the analysis; the tab sweeps on its own schedule through a second entry point, "
         "and Python and R expose the sweep as a call of its own",

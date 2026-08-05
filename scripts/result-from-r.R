@@ -9,15 +9,6 @@ asked <- plateforce:::decode(paste(
   collapse = "\n"
 ))
 
-# A request carrying a `sweep` block asks how far the number moves across several slots at
-# once, and `pf_spread` takes one slot per call. Answering it with the analysis below would
-# put an analysed document where a swept one is expected, so this says which question it
-# cannot be asked instead. `SURFACES_NOT_ASKED` in scripts/result_parity.py names the work.
-if (!is.null(asked$sweep)) {
-  stop("pf_spread sweeps one slot per call and this request names ",
-       length(asked$sweep$slots), call. = FALSE)
-}
-
 # What the plate was, as far as this surface can state it. An R session holds no store of
 # saved plates, so it types the answers the request states and lays the ones stated on the
 # capture over the ones the plate holds, which is what the two surfaces reading a saved plate
@@ -47,14 +38,37 @@ trial <- plateforce::pf_read_force_file(
   acquisition = acquisition
 )
 
+# A request carrying a `sweep` block asks how far the number moves across the slots it names,
+# and one without it asks what the analysis reports. The terminal's arm, the notebook's and
+# the browser's make the same test in the same words.
+#
 # The builder a user's own call goes through, rather than one assembled here. An arm that
 # wrote its own request would send a document nobody sends, and the comparison would be
 # measuring that document instead of the product's.
-cat(plateforce:::rust_analyse_json(trial@handle, plateforce:::analysis_request_of(
+bound <- list(
   weighing = asked$weighing$method_id,
   onset = asked$onset$method_id,
   takeoff = asked$takeoff$method_id,
   weighing_parameters = asked$weighing$parameters,
   onset_parameters = asked$onset$parameters,
   takeoff_parameters = asked$takeoff$parameters
-)))
+)
+
+if (is.null(asked$sweep)) {
+  cat(plateforce:::rust_analyse_json(
+    trial@handle,
+    do.call(plateforce:::analysis_request_of, bound)
+  ))
+} else {
+  cat(plateforce:::rust_spread_json(trial@handle, do.call(
+    plateforce:::spread_request_of,
+    c(
+      list(
+        quantity = asked$sweep$quantity_key,
+        slot = unlist(asked$sweep$slots),
+        maximum_combinations = asked$sweep$maximum_combinations
+      ),
+      bound
+    )
+  )))
+}

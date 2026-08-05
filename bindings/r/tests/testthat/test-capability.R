@@ -164,7 +164,12 @@ test_that("a refusal about how this surface is being used is declared as such", 
 
   for (condition in list(
     raised(pf_trial(rep(700L, 12), sample_rate_hz = 12)),
-    raised(pf_spread(quiet_trial(), quantity = "system_weight_newtons", slot = "interlimb_asymmetry",
+    # A word the binding table holds no rule for, so the refusal is this surface's own rather
+    # than the engine's. Written as `landing` it stopped being one: two rules were bound to
+    # that construct, R built the axis, and the engine refused it as an axis the request does
+    # not carry. A name is a moving target here and a name the table cannot hold is not.
+    raised(pf_spread(quiet_trial(), quantity = "system_weight_newtons",
+                     slot = "not_a_step_this_build_runs",
                      weighing = "bwepoch.fixed_window",
                      onset = "onset.threshold.noise_relative",
                      takeoff = "takeoff.threshold.absolute_force"))

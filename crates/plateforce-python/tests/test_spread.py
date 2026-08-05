@@ -137,8 +137,8 @@ def test_a_variant_carries_what_it_bound(trial, bound):
         assert variant.failure_reason is None
 
 
-def test_sweeping_a_parameter_holds_the_rule(trial, bound):
-    swept = sweep(trial, bound, "onset", parameter="k", values=[1.0, 5.0, 10.0])
+def test_sweeping_a_setting_holds_the_rule(trial, bound):
+    swept = sweep(trial, bound, None, vary={"onset.k": [1.0, 5.0, 10.0]})
     assert swept.combinations_run == 3
     assert {v.settings["k"] for v in swept.variants} == {"1", "5", "10"}
     assert all(v.method_ids[1] == RULES["onset"][0] for v in swept.variants)
@@ -282,10 +282,118 @@ def test_a_step_named_twice_is_one_axis_rather_than_a_sweep_squared(trial, bound
     assert both.combinations_run == 25
 
 
-def test_a_parameter_and_several_slots_are_refused_together(trial, bound):
-    """Each describes one slot, so the pair states a sweep nobody can mean."""
-    with pytest.raises(pf.MethodError):
-        sweep(trial, bound, LANDMARK_SLOTS, parameter="k", values=[1.0, 5.0])
+def test_the_rules_and_a_setting_inside_them_vary_on_one_call(trial, bound):
+    """The engine sweeps a mixed set of axes and no surface could state one.
+
+    `k` moves a jump height as far as the choice of onset rule does, so a reader holding a
+    figure that rests on both is asking one question, and asking them separately reports
+    neither the widest disagreement nor the narrowest. The terminal writes the same request as
+    `--slot onset --vary onset.k=2,5,10`."""
+    over_the_rules = sweep(trial, bound, "onset")
+    over_a_value = sweep(trial, bound, None, vary={"onset.k": [1.0, 5.0, 10.0]})
+    over_both = sweep(trial, bound, "onset", vary={"onset.k": [1.0, 5.0, 10.0]})
+
+    assert over_the_rules.combinations_run > 1 and over_a_value.combinations_run > 1
+    assert (
+        over_both.combinations_run
+        == over_the_rules.combinations_run * over_a_value.combinations_run
+    )
+    # The record names both, so a reader of the figure can see the whole set it came from.
+    assert len(over_both.variants) == over_both.combinations_run
+    assert over_both.spread_absolute >= max(
+        over_the_rules.spread_absolute, over_a_value.spread_absolute
+    )
+
+
+def test_a_setting_named_twice_is_one_axis(trial, bound):
+    with pytest.raises(pf.MethodError) as raised:
+        sweep(trial, bound, None, vary={"onset.k": [5.0, 5.0]})
+    assert str(raised.value) == "onset.k names 5 twice, and one value is one variant"
+
+
+def test_a_list_of_method_ids_describes_one_step(trial, bound, shipped_registry):
+    """As a list the ids cannot say which step each belongs to. Keyed by step they can, so
+    named rules on two steps is one call."""
+    with pytest.raises(pf.MethodError) as raised:
+        sweep(trial, bound, LANDMARK_SLOTS, method_ids=["onset.threshold.noise_relative"])
+    assert "describes one step" in str(raised.value)
+
+    # Two ids per step, taken from the sweep that compares every rule the build runs for it,
+    # so the pair is read off this build rather than written here.
+    onset_rules = [v.settings["onset"] for v in sweep(trial, bound, "onset").variants][:2]
+    takeoff_rules = [v.settings["takeoff"] for v in sweep(trial, bound, "takeoff").variants][:2]
+    keyed = sweep(
+        trial,
+        bound,
+        None,
+        method_ids={"onset": onset_rules, "takeoff": takeoff_rules},
+    )
+    assert keyed.combinations_run == 4
+    assert len(keyed.axes_varied) == 2
+
+
+def test_a_name_a_rule_takes_is_swept_the_way_its_numbers_are(trial, bound, shipped_registry):
+    """An enumerated setting is a setting. Net against gross impulse over one epoch differ by
+    the system weight across it, and no surface could compare the two names."""
+    swept = pf.spread(
+        trial,
+        quantity="epoch_impulse_newton_seconds",
+        vary={"epoch_impulse.convention": ["net", "gross"]},
+        weighing_epoch=bound["weighing"],
+        onset=bound["onset"],
+        takeoff=bound["takeoff"],
+        derived={"epoch_impulse": shipped_registry.method("impulse.epoch_from_onset").bind()},
+        derived_options={"epoch_impulse": {"convention": "net"}},
+    )
+    assert swept.combinations_run == 2
+    assert swept.succeeded == 2
+    assert swept.spread_absolute > 0, "the names did not reach the rule"
+    assert [v.settings["convention"] for v in swept.variants] == ["gross", "net"]
+
+    # Numbers and names on one axis have no width between them, so the pair is refused.
+    with pytest.raises(pf.PlateforceError):
+        pf.spread(
+            trial,
+            quantity="epoch_impulse_newton_seconds",
+            vary={"epoch_impulse.convention": ["net", 5.0]},
+            weighing_epoch=bound["weighing"],
+            onset=bound["onset"],
+            takeoff=bound["takeoff"],
+        )
+
+
+def test_the_sweep_states_every_argument_the_analysis_states(trial, bound, shipped_registry):
+    """A sweep varies the request an analysis sends, so the two take one argument set.
+
+    Thirteen of the analysis arguments reached the builder as `None` written thirteen times,
+    and a notebook could sweep around no derived construct, no conditioning rule, no placed
+    landmark and no name a rule reads. The assertion is that each of them reaches the request:
+    a derived rule the sweep held is on `held_fixed`, which is the record of what stood still.
+    """
+    swept = pf.spread(
+        trial,
+        quantity=QUANTITY,
+        slot="onset",
+        weighing_epoch=bound["weighing"],
+        onset=bound["onset"],
+        takeoff=bound["takeoff"],
+        derived={"epoch_impulse": shipped_registry.method("impulse.epoch_from_onset").bind()},
+        derived_options={"epoch_impulse": {"convention": "net"}},
+        derived_parameters={"epoch_impulse": {"epoch_ms": 150.0}},
+    )
+    assert swept.succeeded, "the sweep produced no combination, so it proves nothing"
+
+    # The control: the same call without the derived rule does not carry it, so the assertion
+    # below is about the argument reaching the request rather than about a rule that runs
+    # whether or not anybody named one.
+    without = sweep(trial, bound, "onset")
+    assert "epoch_impulse" not in _held(without)
+    assert "epoch_impulse" in _held(swept)
+
+
+def _held(swept):
+    """Which constructs a sweep says stood still, read off its own record."""
+    return set(swept.held_fixed)
 
 
 def test_naming_no_slot_is_refused(trial, bound):

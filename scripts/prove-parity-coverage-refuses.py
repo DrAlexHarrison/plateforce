@@ -639,6 +639,23 @@ def every_surface_a_sweep_reaches():
     return ",".join(sorted(reached))
 
 
+def a_surface_held_out():
+    """One surface for a case that needs a request asked of fewer than all of them.
+
+    Read out of `SURFACES_NOT_ASKED` while that register had an entry, and four cases below
+    went quiet the moment it emptied: R gained the sweep and stopped being named there, so the
+    surface a case held out became no surface at all and the population it built was the
+    passing one. A case proves the gate refuses a shape, so the shape is built here rather
+    than borrowed from whatever the live register happens to hold.
+    """
+    return sorted(gate.surfaces_named_in_manifest())[-1]
+
+
+def every_surface_but_the_one_held_out():
+    held_out = a_surface_held_out()
+    return ",".join(sorted(gate.surfaces_named_in_manifest() - {held_out}))
+
+
 def every_request_the_register_rests_on():
     """Every request a reach entry says puts a field on a wire, derived rather than written out.
 
@@ -739,15 +756,28 @@ def a_population_on_disk(directory, rows, requests=None, baselines=None):
     return gate.requests_named_in_manifest()
 
 
-def manifest_faults_when(name, rows, expected, requests=None, baselines=None, writing=False):
+def manifest_faults_when(
+    name, rows, expected, requests=None, baselines=None, writing=False, not_asked=None
+):
+    """Apply one change to a passing population and require a fault that names `expected`.
+
+    `not_asked` installs a register entry for the duration, for the two cases whose subject is
+    an entry that has stopped being true. Restored afterwards, because every case after it
+    would otherwise be measured against a register this one wrote.
+    """
     was = (gate.ROOT, gate.GOLDEN, gate.REQUEST_MANIFEST)
+    register = gate.SURFACES_NOT_ASKED.setdefault(gate.SWEPT, {})
+    register_was = dict(register)
     try:
+        register.update(not_asked or {})
         with tempfile.TemporaryDirectory() as directory:
             parsed = a_population_on_disk(directory, rows, requests, baselines)
             print(f"applied {name}", flush=True)
             faults = gate.request_manifest_faults(parsed, writing=writing)
     finally:
         gate.ROOT, gate.GOLDEN, gate.REQUEST_MANIFEST = was
+        register.clear()
+        register.update(register_was)
 
     hit = [fault for fault in faults if expected in fault]
     if not hit:
@@ -895,7 +925,7 @@ MANIFEST_CASES = [
         dict(
             rows=population_where(
                 QUIET,
-                row_named(QUIET).replace(every_surface(), every_surface_a_sweep_reaches()),
+                row_named(QUIET).replace(every_surface(), every_surface_but_the_one_held_out()),
             ),
             expected="nothing here says why",
         ),
@@ -904,19 +934,25 @@ MANIFEST_CASES = [
         "a listed surface no request asks at all",
         dict(
             rows=[
-                row.replace(every_surface(), every_surface_a_sweep_reaches())
+                row.replace(every_surface(), every_surface_but_the_one_held_out())
                 for row in A_POPULATION_THAT_PASSES
             ],
             expected="and no request asks it",
         ),
     ),
     (
+        # The entry that has stopped being true, which is what R's was: it declared a surface
+        # unable to state a sweep while `pf_spread` built one axis per name in `slot`. The
+        # entry is installed by the case rather than read out of the live register, so the
+        # register emptying does not take the proof with it.
         "a surface recorded as unable to answer a sweep, answering one",
         dict(
-            rows=population_where(
-                SWEEP,
-                row_named(SWEEP).replace(every_surface_a_sweep_reaches(), every_surface()),
-            ),
+            rows=A_POPULATION_THAT_PASSES,
+            not_asked={
+                a_surface_held_out(): gate.NotAsked(
+                    "the work this entry waits on", "a reason that has stopped being true"
+                )
+            },
             expected="so the entry is out of date and the surface answers for real",
         ),
     ),
@@ -929,6 +965,11 @@ MANIFEST_CASES = [
             rows=ANALYSED_ROWS,
             requests=ANALYSED_REQUESTS,
             baselines=ANALYSED_BASELINES,
+            not_asked={
+                a_surface_held_out(): gate.NotAsked(
+                    "the work this entry waits on", "a reason nothing in this population tests"
+                )
+            },
             expected="reads as coverage and covers nothing",
         ),
     ),

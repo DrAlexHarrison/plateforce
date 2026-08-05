@@ -2,3 +2,6 @@ variants 5
 failed 0
 spread_absolute_meters 0.019239414533092636
 furthest_from_median_meters 0.018962344647127594
+method_ids onset.threshold.noise_relative,onset.threshold.relative_to_system_weight,onset.threshold.absolute_force,onset.threshold.last_within_band,onset.threshold.adaptive_trailing_window
+values_meters 0.41051766027242942,0.39152136964691875,0.39152136964691875,0.41048371429404634,0.41076078418001138
+registry_declared_version 2026-07-25

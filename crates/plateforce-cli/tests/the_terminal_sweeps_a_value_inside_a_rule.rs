@@ -16,6 +16,10 @@ const QUANTITY: &str = "jump_height_from_takeoff_meters";
 const PUBLISHED_K: &str = "2,2.5,3,4,5,8";
 
 fn run(before_subcommand: &[&str], extra: &[&str]) -> Output {
+    run_for(QUANTITY, before_subcommand, extra)
+}
+
+fn run_for(quantity: &str, before_subcommand: &[&str], extra: &[&str]) -> Output {
     let mut arguments: Vec<&str> = vec!["--registry", "../../registry"];
     arguments.extend_from_slice(before_subcommand);
     arguments.extend_from_slice(&[
@@ -40,7 +44,7 @@ fn run(before_subcommand: &[&str], extra: &[&str]) -> Output {
         "--set",
         "takeoff.threshold_n=20",
         "--quantity",
-        QUANTITY,
+        quantity,
     ]);
     arguments.extend(extra.iter().copied());
     std::process::Command::new(env!("CARGO_BIN_EXE_plateforce"))
@@ -52,7 +56,11 @@ fn run(before_subcommand: &[&str], extra: &[&str]) -> Output {
 }
 
 fn record(extra: &[&str]) -> serde_json::Value {
-    let output = run(&["--format", "json"], extra);
+    record_for(QUANTITY, extra)
+}
+
+fn record_for(quantity: &str, extra: &[&str]) -> serde_json::Value {
+    let output = run_for(quantity, &["--format", "json"], extra);
     assert_eq!(
         output.status.code(),
         Some(0),
@@ -205,6 +213,117 @@ fn gravity_is_a_value_this_surface_can_sweep() {
     assert!(swept["spread_absolute"].as_f64().expect("a spread") > 0.0);
 }
 
+/// The rules and a value inside them on one line, which is the sweep the engine has always
+/// run and no surface could ask for.
+///
+/// `k` moves this number as far as the choice of onset rule does, so a reader holding a
+/// figure that rests on both is asking one question rather than two, and asking them
+/// separately reports neither the widest disagreement nor the narrowest.
+#[test]
+fn the_rules_and_a_value_inside_them_vary_on_one_line() {
+    let over_the_rules = record(&["--slot", "onset"]);
+    let over_a_value = record(&["--vary", &format!("onset.k={PUBLISHED_K}")]);
+    let over_both = record(&["--slot", "onset", "--vary", &format!("onset.k={PUBLISHED_K}")]);
+
+    let width = |swept: &serde_json::Value| swept["combinations_run"].as_u64().expect("a count");
+    println!(
+        "  {} rules, {} values, {} combinations together",
+        width(&over_the_rules),
+        width(&over_a_value),
+        width(&over_both)
+    );
+    assert!(width(&over_the_rules) > 1 && width(&over_a_value) > 1);
+    assert_eq!(width(&over_both), width(&over_the_rules) * width(&over_a_value));
+
+    // The record names both axes, so a reader of the figure can see the whole set it came
+    // from rather than the half a one-axis sweep would have shown them.
+    let varied: Vec<(u64, u64)> = over_both["axes_varied"]
+        .as_array()
+        .expect("the axes are on the record")
+        .iter()
+        .map(|axis| {
+            (
+                axis["rules_varied"].as_u64().unwrap_or_default(),
+                axis["values_varied"].as_u64().unwrap_or_default(),
+            )
+        })
+        .collect();
+    assert_eq!(varied.len(), 2);
+    assert!(varied.contains(&(width(&over_the_rules), 0)));
+    assert!(varied.contains(&(0, width(&over_a_value))));
+
+    // The widest disagreement is at least the wider of the two, or asking both together
+    // reported less than asking one of them.
+    let spread = |swept: &serde_json::Value| swept["spread_absolute"].as_f64().expect("a spread");
+    assert!(
+        spread(&over_both) >= spread(&over_the_rules).max(spread(&over_a_value)),
+        "{} is narrower than one of {} and {}",
+        spread(&over_both),
+        spread(&over_the_rules),
+        spread(&over_a_value)
+    );
+}
+
+/// A name a rule takes is a choice in the sense a number is, and no surface could compare
+/// two of them.
+///
+/// The convention an impulse is added up under is a name: net subtracts the system weight
+/// across the epoch and gross does not, so the two are the width of that weight apart on
+/// every trial. `--choose` binds one of them, and `--vary-choice` is to `--choose` what
+/// `--vary` is to `--set`.
+#[test]
+fn a_name_a_rule_takes_is_swept_the_way_its_numbers_are() {
+    const IMPULSE: &str = "epoch_impulse_newton_seconds";
+    let bound: &[&str] = &[
+        "--derive",
+        "epoch_impulse=impulse.epoch_from_onset",
+        "--choose",
+        "epoch_impulse.convention=net",
+    ];
+
+    let mut asked = bound.to_vec();
+    asked.extend(["--vary-choice", "epoch_impulse.convention=net,gross"]);
+    let swept = record_for(IMPULSE, &asked);
+    println!(
+        "  {} of {} combinations, {} to {} N.s",
+        swept["succeeded"], swept["combinations_run"], swept["minimum"], swept["maximum"]
+    );
+
+    assert_eq!(swept["combinations_run"].as_u64(), Some(2));
+    assert_eq!(swept["succeeded"].as_u64(), Some(2));
+    assert!(
+        swept["spread_absolute"].as_f64().expect("a spread") > 0.0,
+        "the two conventions produced one number, so the names did not reach the rule"
+    );
+
+    // The record names the setting that moved, and each variant names the name it ran under,
+    // so the number carries the choice that produced it rather than a count of choices.
+    let axes = swept["axes_varied"].as_array().expect("axes");
+    assert_eq!(axes.len(), 1);
+    assert_eq!(axes[0]["parameter"].as_str(), Some("convention"));
+    assert_eq!(axes[0]["values_varied"].as_u64(), Some(2));
+    let named: Vec<&str> = swept["variants"]
+        .as_array()
+        .expect("variants")
+        .iter()
+        .map(|variant| variant["label"].as_str().expect("a label"))
+        .collect();
+    assert_eq!(named, ["convention gross", "convention net"]);
+
+    // A number is not a name. `--vary` on the same setting reaches the rule as a number and
+    // the line is refused before it gets there, which is why the two flags are two.
+    let mut mistyped = bound.to_vec();
+    mistyped.extend(["--vary", "epoch_impulse.convention=net,gross"]);
+    let output = run_for(IMPULSE, &[], &mistyped);
+    let said = String::from_utf8_lossy(&output.stderr).into_owned();
+    println!("  --vary on a name -> {}: {}", output.status, said.trim());
+    assert_eq!(output.status.code(), Some(64), "{said}");
+    assert!(
+        said.contains("which is not a number"),
+        "the numeric flag accepted a name: {said}"
+    );
+}
+
 /// Every way of writing a line this flag cannot act on, refused by name.
 ///
 /// A run that varied nothing and reported a spread of zero is the failure this whole command
@@ -213,12 +332,8 @@ fn gravity_is_a_value_this_surface_can_sweep() {
 fn a_line_this_flag_cannot_act_on_is_refused_by_name() {
     for (extra, expected) in [
         (
-            vec!["--vary", "onset.k=2,5", "--slot", "onset"],
-            "--slot varies which rule runs and --vary varies a value inside one",
-        ),
-        (
-            vec!["--vary", "onset.k=2,5", "--vary", "weighing.duration=1,2"],
-            "a sweep varies one value, and this run named onset.k and weighing.duration",
+            vec!["--vary", "onset.k=2,5", "--vary", "onset.k=3,4"],
+            "'onset.k' is named twice, and one setting is one axis",
         ),
         (
             vec!["--vary", "onset.k=2,2"],
