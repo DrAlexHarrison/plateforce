@@ -267,15 +267,24 @@ pub(crate) fn model_outcome(
                 ]),
             ))),
         ),
-        PhaseModelOutcome::NothingToPlace => DerivedOutcome {
-            values: quantities
-                .iter()
-                .map(|quantity| (quantity.key, None))
-                .collect(),
-            placed: Vec::new(),
+        // Declining rather than publishing a value against every key, which is what a model
+        // that met no crossing beside it already does. The keys reach a reader either way: the
+        // pipeline lists every quantity the row declares whether the rule produced one or not,
+        // so the blank cells stay and the reason arrives beside them. Published silently, five
+        // nulls were a reader's whole answer on a recording the model could not read.
+        PhaseModelOutcome::SearchFoundNothing { searched } => DerivedOutcome::declined(
             bound,
-            refusal: None,
-        },
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::model_placed_nothing(
+                method_id, searched,
+            ))),
+        ),
+        PhaseModelOutcome::NothingToPlace => DerivedOutcome::declined(
+            bound,
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::model_placed_nothing(
+                method_id,
+                "interval to search between the landmarks it reads",
+            ))),
+        ),
     }
 }
 

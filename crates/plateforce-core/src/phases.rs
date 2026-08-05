@@ -357,9 +357,29 @@ pub enum PhaseModelOutcome {
         anchor_index: usize,
         returned_index: usize,
     },
-    /// A search this model composes found nothing at all on this recording.
+    /// A search this model composes read the recording and found nothing, named by what it
+    /// was looking for.
+    ///
+    /// Named rather than bare. Six searches across the two models below reach here, and a
+    /// reader handed only "the model placed nothing" cannot tell an athlete who never
+    /// unweighted from one whose force never came back up through system weight, which are
+    /// different recordings calling for different repairs.
+    SearchFoundNothing { searched: &'static str },
+    /// The model did not search: the landmarks it was handed describe no interval to search
+    /// in.
     NothingToPlace,
 }
+
+/// What each search inside a phase model looks for, in the words a refusal names it by.
+///
+/// Here rather than at the return sites so the two models spell a shared search one way, and
+/// so a reader meets the same phrase whichever model declined.
+pub const DEPARTURE_BELOW_SYSTEM_WEIGHT: &str = "departure below system weight";
+pub const RETURN_THROUGH_SYSTEM_WEIGHT: &str = "return up through system weight";
+pub const DEPARTURE_BELOW_THE_UNLOADING_LEVEL: &str = "departure below the unloading level";
+pub const MINIMUM_OF_FORCE: &str = "minimum of force before the propulsive peak";
+pub const MINIMUM_OF_VELOCITY: &str = "minimum of centre of mass velocity";
+pub const CROSSING_TO_POSITIVE_VELOCITY: &str = "crossing to positive centre of mass velocity";
 
 /// The single unweighting phase: from the departure below system weight to the return
 /// through it.
@@ -380,7 +400,9 @@ pub fn phase_model_unweighting_single(
         .iter()
         .position(|&force| force < system_weight_newtons)
     else {
-        return PhaseModelOutcome::NothingToPlace;
+        return PhaseModelOutcome::SearchFoundNothing {
+            searched: DEPARTURE_BELOW_SYSTEM_WEIGHT,
+        };
     };
     let start = onset_index + departure;
     let Some(end) = force_reference_crossing(
@@ -390,7 +412,9 @@ pub fn phase_model_unweighting_single(
         peak_index,
         CrossingDirection::Rising,
     ) else {
-        return PhaseModelOutcome::NothingToPlace;
+        return PhaseModelOutcome::SearchFoundNothing {
+            searched: RETURN_THROUGH_SYSTEM_WEIGHT,
+        };
     };
     if !end.is_true_crossing {
         return PhaseModelOutcome::BoundaryNotCrossed {
@@ -427,38 +451,43 @@ pub fn phase_model_unloading_yielding_split(
     }
     let unloading_level_newtons =
         system_weight_newtons * (1.0 - unloading_drop_percent_of_system_weight / 100.0);
-    let placed = vertical_ground_reaction_force_newtons[search_start_index..takeoff_index]
+    // Four searches in sequence rather than one chain of `and_then`, so the one that came back
+    // empty is the one the refusal names. Chained, all four collapsed to a single empty option
+    // and a reader was told the model placed nothing without being told which search stopped it.
+    let Some(departure) = vertical_ground_reaction_force_newtons
+        [search_start_index..takeoff_index]
         .iter()
         .position(|&force| force < unloading_level_newtons)
-        .map(|departure| search_start_index + departure)
-        // Bounded at the propulsive peak rather than at takeoff, where force is still
-        // collapsing toward zero and the minimum is the sample before takeoff.
-        .and_then(|unloading_start| {
-            braking_start_by_force_minimum(
-                vertical_ground_reaction_force_newtons,
-                unloading_start,
-                peak_index,
-            )
-            .map(|force_minimum| (unloading_start, force_minimum))
-        })
-        .and_then(|(unloading_start, force_minimum)| {
-            braking_start_by_velocity_minimum(velocity, force_minimum, takeoff_index)
-                .map(|velocity_minimum| (unloading_start, force_minimum, velocity_minimum))
-        })
-        .and_then(|(unloading_start, force_minimum, velocity_minimum)| {
-            velocity_threshold_crossing(velocity, velocity_minimum, takeoff_index, 0.0).map(
-                |positive_velocity| {
-                    (
-                        unloading_start,
-                        force_minimum,
-                        velocity_minimum,
-                        positive_velocity,
-                    )
-                },
-            )
-        });
-    let Some((unloading_start, force_minimum, velocity_minimum, positive_velocity)) = placed else {
-        return PhaseModelOutcome::NothingToPlace;
+    else {
+        return PhaseModelOutcome::SearchFoundNothing {
+            searched: DEPARTURE_BELOW_THE_UNLOADING_LEVEL,
+        };
+    };
+    let unloading_start = search_start_index + departure;
+    // Bounded at the propulsive peak rather than at takeoff, where force is still collapsing
+    // toward zero and the minimum is the sample before takeoff.
+    let Some(force_minimum) = braking_start_by_force_minimum(
+        vertical_ground_reaction_force_newtons,
+        unloading_start,
+        peak_index,
+    ) else {
+        return PhaseModelOutcome::SearchFoundNothing {
+            searched: MINIMUM_OF_FORCE,
+        };
+    };
+    let Some(velocity_minimum) =
+        braking_start_by_velocity_minimum(velocity, force_minimum, takeoff_index)
+    else {
+        return PhaseModelOutcome::SearchFoundNothing {
+            searched: MINIMUM_OF_VELOCITY,
+        };
+    };
+    let Some(positive_velocity) =
+        velocity_threshold_crossing(velocity, velocity_minimum, takeoff_index, 0.0)
+    else {
+        return PhaseModelOutcome::SearchFoundNothing {
+            searched: CROSSING_TO_POSITIVE_VELOCITY,
+        };
     };
     if !positive_velocity.is_true_crossing {
         return PhaseModelOutcome::BoundaryNotCrossed {
