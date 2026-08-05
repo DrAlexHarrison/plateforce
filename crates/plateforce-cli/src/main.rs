@@ -180,7 +180,9 @@ fn main() -> ExitCode {
             invocation.format,
             &renderer,
         ),
-        Command::Capability(args) => capability_cmd::run(args, invocation.format),
+        Command::Capability(args) => {
+            capability_cmd::run(args, invocation.format, registry_directory.as_deref())
+        }
         Command::Version => version_cmd::run(invocation.format),
     };
 

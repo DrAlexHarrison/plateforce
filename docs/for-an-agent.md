@@ -20,23 +20,41 @@ digest. When you report a number to whoever asked you, carry that with it.
 plateforce capability --format json
 ```
 
-One call. It returns the schema name and version, the operations this build dispatches, every
-rule it can run with the slot and construct each fills, the operator entries those rules compose
-and the names you state to reach them, the acquisition block's members, the container formats
-this surface writes, and every refusal code with its exit code.
+One call, and it is the whole picture. It returns the schema name and version, the operations this
+build dispatches, every rule it can run with the slot and construct each fills, the operator
+entries those rules compose and the names you state to reach them, the acquisition block's
+members, the container formats this surface writes, and every refusal code with its exit code.
 
-**What it does not yet carry is the values you may state on each rule.** For those, ask the
-registry per entry:
+**And every value you may state, on each rule and on each operator entry.** A `parameters` array
+sits on each, and each entry carries `states`, the exact token you write, so you never have to
+build the string yourself:
+
+```json
+{"states": "onset.k", "name": "k", "unit": "standard_deviations",
+ "published_values": [2.0, 2.5, 3.0, 4.0, 5.0, 8.0],
+ "named_values": [], "default": 5.0, "default_key": null, "required": true}
+```
+
+`published_values` is what the literature states, so more than one is a choice you have to make
+rather than a range you may pick from. `named_values` carries the keys where the options are
+names. `required` with no default is the shape that refuses until you state it.
+
+Write it with `--set <states>=<value>`, which for the record above is `--set onset.k=5.0`.
+
+That cost is measured and held to a ceiling by `crates/plateforce-cli/tests/discovery-calls.txt`,
+which reads 1 for 107 rules. It read 108 until the manifest carried this.
+
+The registry remains the one home for everything else about a rule, its title, its prose, its
+citations, its disagreements and the notes on each parameter, and per-entry lookup is still how
+you read those:
 
 ```
 plateforce registry show <method_id> --format json
 ```
 
-That returns the parameters with their units, their published values, their defaults and whether
-the rule refuses without them. Learning the full picture therefore costs one call plus one per
-rule. That cost is measured and held to a ceiling by
-`crates/plateforce-cli/tests/discovery-calls.txt`; when the manifest carries parameters the number
-becomes 1 and this paragraph changes with it.
+`--registry <dir>` reaches `capability` as it reaches every other command, and the values reported
+are the ones that registry publishes. Point them at different directories and they will tell you
+different things, correctly.
 
 **Read the registry rather than this page for anything about a specific rule.** Adding a method
 here is a data edit, so the set of rules changes without the software changing, and a list of

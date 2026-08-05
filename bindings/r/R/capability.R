@@ -9,11 +9,15 @@ NULL
 #' The operations are the ones this package exports rather than a list forwarded from the
 #' engine.
 #'
+#' @param registry Path to a registry directory, or NULL to describe the registry this
+#'   package ships. Every rule's published values are read from it, so a manifest and an
+#'   `analyse()` call resolving different registries would report values the other would
+#'   refuse. Resolved through the same `registry_root()` both use.
 #' @return A single JSON string with sorted keys and no spacing, so a comparison against
 #'   another surface is a plain diff.
 #' @export
 #' @examples
 #' substr(capability_json(), 1, 40)
-capability_json <- function() {
-  rust_capability_json()
+capability_json <- function(registry = NULL) {
+  rust_capability_json(registry_root(registry))
 }

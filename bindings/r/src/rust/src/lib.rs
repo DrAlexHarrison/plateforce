@@ -1058,7 +1058,19 @@ pub fn double_probe_json(count: usize) -> String {
 ///
 /// `output_formats` is empty because this surface writes no file. A surface that claimed a
 /// container it cannot write would pass a comparison and fail a user.
-pub fn capability_json() -> String {
+///
+/// `root` names the registry the manifest describes, because the manifest reports what a caller
+/// may state on each rule and that is a fact about a registry rather than about this package.
+/// The R wrapper resolves it through `registry_root()`, the same function `analyse()` and
+/// `registry()` resolve theirs through, so naming nothing here reads the registry the package
+/// ships and the three cannot describe different registries in one session.
+pub fn capability_json(root: String) -> String {
+    let registry = match plateforce_registry::Registry::load(&root) {
+        Ok(registry) => registry,
+        Err(error) => {
+            return refuse::<serde_json::Value>(Refusal::of("registry_invalid", error.to_string()))
+        }
+    };
     let operations = [
         Operation::Analyse,
         Operation::Capability,
@@ -1076,6 +1088,7 @@ pub fn capability_json() -> String {
         &operations,
         &formats,
         AcquisitionIntake::StatedByCaller,
+        &registry,
     )) {
         Ok(value) => canonical(&value),
         Err(error) => {

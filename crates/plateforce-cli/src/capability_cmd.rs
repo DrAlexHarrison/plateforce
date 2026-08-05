@@ -6,12 +6,16 @@
 //! once inside the shared crate would agree with itself whatever any surface could actually
 //! do, and would have caught nothing.
 
+use std::path::Path;
+
 use clap::ValueEnum;
 use plateforce_analysis::capability::{
     capability, AcquisitionIntake, Capability, Operation, OutputFormat,
 };
+use plateforce_core::Refusal;
+use plateforce_registry::Registry;
 
-use crate::exit::{Fault, Outcome};
+use crate::exit::{Declined, Fault, Outcome};
 use crate::out::Format;
 
 #[derive(Debug, clap::Args)]
@@ -113,19 +117,34 @@ pub fn commands_taking_the_acquisition_block() -> Vec<String> {
         .collect()
 }
 
-pub fn manifest() -> Capability {
+pub fn manifest(registry: &Registry) -> Capability {
     let intake = if commands_taking_the_acquisition_block().is_empty() {
         AcquisitionIntake::AbsentFromThisSurface
     } else {
         AcquisitionIntake::StatedByCaller
     };
-    capability(&every_operation(), &every_output_format(), intake)
+    capability(&every_operation(), &every_output_format(), intake, registry)
 }
 
-pub fn run(_args: &Args, _format: Format) -> Outcome {
+/// The manifest describes the registry this run reads, so `--registry` reaches it like every
+/// other command.
+///
+/// It did not before the manifest carried what a caller may state, when the answer was the same
+/// whatever registry was named. It is not any more: a caller pointed at their own registry and
+/// handed this build's published values would be told a rule accepts numbers their entries never
+/// mention, which is the wrong-registry answer wearing a correct shape.
+pub fn run(_args: &Args, _format: Format, registry_directory: Option<&Path>) -> Outcome {
+    let registry = match crate::registry_source::load(registry_directory) {
+        Ok(registry) => registry,
+        Err(error) => {
+            return Outcome::declined(Declined::recorded(Refusal::registry_invalid(format!(
+                "{error}"
+            ))))
+        }
+    };
     // A manifest read by a person is the same document read by a diff, so `--format text`
     // renders what `--format json` renders rather than a second thing to keep true.
-    match serde_json::to_value(manifest()) {
+    match serde_json::to_value(manifest(&registry)) {
         Ok(value) => Outcome::complete(crate::registry_cmd::canonical(&value)),
         Err(error) => Outcome::declined_line(Fault::Internal, format!("{error}")),
     }
@@ -168,6 +187,7 @@ mod tests {
             "the walk found {taking:?}, so its verdict is about the walk rather than the tree"
         );
         assert!(taking.contains(&"batch".to_string()), "{taking:?}");
-        assert!(manifest().acquisition.stated_by_caller);
+        let registry = crate::registry_source::load(None).expect("this build carries a registry");
+        assert!(manifest(&registry).acquisition.stated_by_caller);
     }
 }

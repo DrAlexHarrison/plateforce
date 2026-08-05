@@ -4,7 +4,13 @@
 \alias{capability_json}
 \title{What this surface can be asked to do}
 \usage{
-capability_json()
+capability_json(registry = NULL)
+}
+\arguments{
+\item{registry}{Path to a registry directory, or NULL to describe the registry this
+package ships. Every rule's published values are read from it, so a manifest and an
+\code{analyse()} call resolving different registries would report values the other would
+refuse. Resolved through the same \code{registry_root()} both use.}
 }
 \value{
 A single JSON string with sorted keys and no spacing, so a comparison against

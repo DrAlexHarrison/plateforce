@@ -157,10 +157,36 @@ const ACQUISITION_INTAKE: AcquisitionIntake = AcquisitionIntake::StatedByCaller;
 ///
 /// The bytes are the shape a comparison reads: sorted keys and no spacing, so a difference
 /// against another surface is a plain diff.
+/// `registry` names the registry the manifest describes. Passing none describes the registry
+/// this wheel carries, which is what every call that names no directory analyses against, so
+/// the values reported are the values such a call will be held to.
+///
+/// Optional rather than required, because a caller who has not loaded a registry still has one:
+/// the compiled-in copy is a registry with a digest and a declared version, not an absence. A
+/// required argument here would also have broken every existing call to report a fact that has
+/// a correct default.
 #[pyfunction]
-pub fn capability_json(python: Python<'_>) -> PyResult<String> {
+#[pyo3(signature = (registry = None))]
+pub fn capability_json(
+    python: Python<'_>,
+    registry: Option<PyRef<'_, crate::registry::Registry>>,
+) -> PyResult<String> {
     let (operations, _) = operations_and_unmapped(python)?;
-    let manifest = capability(&operations, &every_output_format(), ACQUISITION_INTAKE);
+    let carried;
+    let entries = match &registry {
+        Some(named) => named.entries(),
+        None => {
+            carried = crate::registry::registry_this_build_carries()
+                .map_err(|error| crate::errors::TrialError::new_err(error.to_string()))?;
+            &carried
+        }
+    };
+    let manifest = capability(
+        &operations,
+        &every_output_format(),
+        ACQUISITION_INTAKE,
+        entries,
+    );
     let value = serde_json::to_value(manifest)
         .map_err(|error| crate::errors::TrialError::new_err(error.to_string()))?;
     serde_json::to_string(&sorted(&serde_json::json!({ "ok": value })))

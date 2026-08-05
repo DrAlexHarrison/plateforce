@@ -23,7 +23,7 @@ include!(concat!(env!("OUT_DIR"), "/embedded_registry.rs"));
 /// The registry this wheel carries, assembled through the call the directory loader makes.
 ///
 /// Strict in the same places: a set of files that loader refuses is refused here.
-fn registry_this_build_carries() -> Result<CoreRegistry, CoreRegistryError> {
+pub(crate) fn registry_this_build_carries() -> Result<CoreRegistry, CoreRegistryError> {
     let assembled =
         assemble(EMBEDDED_REGISTRY_FILES.iter().copied()).map_err(|error| match error {
             AssemblyError::Parse { path, source } => CoreRegistryError::Parse {
@@ -1041,6 +1041,12 @@ pub struct Registry {
 }
 
 impl Registry {
+    /// The entries themselves, for the manifest, which reports what a caller may state on
+    /// each rule and reads it from here rather than keeping a copy.
+    pub(crate) fn entries(&self) -> &CoreRegistry {
+        &self.inner
+    }
+
     /// What every entry handed out of this registry stamps on the results it produces.
     fn identity(&self) -> RegistryIdentity {
         RegistryIdentity {

@@ -19,6 +19,7 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 
 use plateforce_core::{exit_code, Acquisition, RefusalCode};
+use plateforce_registry::Registry;
 
 use crate::binding::BINDINGS;
 
@@ -86,8 +87,38 @@ pub struct AcquisitionBlock {
     pub members: Vec<&'static str>,
 }
 
+/// One value a caller may state, read from the registry entry that publishes it.
+///
+/// A projection rather than a second home. Every field here is copied off the `Registry` the
+/// caller passed in, so the registry remains the one place a rule's text lives and this is the
+/// same bytes reshaped for a reader who asked one question instead of a hundred and eight.
+///
+/// `states` is the token a caller writes, not the bare name, and that is the whole point of
+/// carrying this. An agent holding `name: "k"` still has to work out that the flag wants
+/// `onset.k`, and the one thing a manifest for a program must never do is leave the caller to
+/// derive the string it is about to be refused for mis-spelling.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ParameterRecord {
+    /// `<slot>.<name>`, the token `--set` takes and every surface's request map is keyed by.
+    pub states: String,
+    /// The name the registry entry gives it, which is what a reader looks up.
+    pub name: String,
+    pub unit: Option<String>,
+    /// Every number the literature states for it, which is how a caller learns that a rule
+    /// published at six values is a choice rather than a setting.
+    pub published_values: Vec<f64>,
+    /// The keys of a parameter whose options are names rather than numbers, sorted.
+    pub named_values: Vec<String>,
+    pub default: Option<f64>,
+    pub default_key: Option<String>,
+    /// Whether the rule can produce a result without a value for it. Required with no default
+    /// is the shape that refuses a request by name, and it is the one an agent has to read
+    /// before it builds a call rather than after.
+    pub required: bool,
+}
+
 /// One rule every surface can run, and where it sits.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MethodRecord {
     pub id: &'static str,
     pub slot: &'static str,
@@ -97,11 +128,19 @@ pub struct MethodRecord {
     /// The names this rule declines without, sorted, and empty for a rule that runs on a
     /// request stating nothing.
     ///
-    /// Not every name the rule reads: the registry publishes those, entry by entry, and it is
-    /// their one home. This is the half the registry cannot answer, because a value it
-    /// publishes no default for is a value only the build knows is required before the rule
-    /// will run. A chooser reading it can build a request that is not refused.
+    /// A different fact from `parameters` below, and the two answer different questions. This
+    /// is the half only the build knows: a value the registry publishes no default for is a
+    /// value the rule will not run without, and no reader of the registry alone can tell that
+    /// from a value it simply does not mention. A chooser reading it can build a request that
+    /// is not refused.
     pub requires: Vec<&'static str>,
+    /// Every value a caller may state on this rule, read from its registry entry.
+    ///
+    /// Empty for a rule whose entry publishes none, which is a statement that there is nothing
+    /// to state rather than an absence of information. A rule this build runs whose id names no
+    /// registry entry would report empty too, so `every_rule_this_build_runs_resolves_in_the_registry`
+    /// holds that case at zero rather than leaving the two indistinguishable on the wire.
+    pub parameters: Vec<ParameterRecord>,
 }
 
 /// One operator entry a rule composes, and the names a caller states to reach it.
@@ -114,12 +153,19 @@ pub struct MethodRecord {
 /// Keyed by the construct rather than by the rule. Which operators a run ends up recording
 /// depends on what the caller states, so a per-rule list would be a claim about one request
 /// and this is a claim about what may be stated.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OperatorRecord {
     pub construct: &'static str,
     pub entry: &'static str,
     /// Sorted, and more than one where two names reach one entry.
     pub states: Vec<&'static str>,
+    /// What the names above accept, read from the operator's own registry entry.
+    ///
+    /// The names alone say a caller may state `selection` on a takeoff rule; these say it takes
+    /// `first` or `longest_run` and that it is required with no default. Which of those two runs
+    /// moves takeoff 843 ms on 155 of 244 trials, so a caller told the name and not the values
+    /// has been handed the more dangerous half of the fact.
+    pub parameters: Vec<ParameterRecord>,
 }
 
 /// One way this software can decline, and what a shell learns from it.
@@ -129,7 +175,7 @@ pub struct RefusalRecord {
     pub exit_code: i32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Capability {
     pub schema: &'static str,
     pub plateforce_version: &'static str,
@@ -143,12 +189,68 @@ pub struct Capability {
     pub refusal_codes: Vec<RefusalRecord>,
 }
 
+/// Every value a registry entry publishes, as the tokens a caller of `slot` writes.
+///
+/// Empty for an id the registry does not carry. That case is a defect rather than a shape,
+/// and it is held at zero by a test rather than reported here, because a manifest is read by
+/// programs and a row saying "this rule may be unknown to the registry" is not something a
+/// caller can act on.
+fn parameters_of(registry: &Registry, id: &str, slot: &str) -> Vec<ParameterRecord> {
+    let Some(entry) = registry.methods.get(id) else {
+        return Vec::new();
+    };
+    let mut published: Vec<ParameterRecord> = entry
+        .parameters
+        .iter()
+        .map(|parameter| {
+            let mut named_values: Vec<String> = parameter
+                .named_values
+                .iter()
+                .map(|value| value.key.clone())
+                .collect();
+            named_values.sort();
+            ParameterRecord {
+                states: format!("{slot}.{}", parameter.name),
+                name: parameter.name.clone(),
+                unit: parameter.unit.clone(),
+                published_values: parameter.published_values.clone(),
+                named_values,
+                default: parameter.default,
+                default_key: parameter.default_key.clone(),
+                required: parameter.required,
+            }
+        })
+        .collect();
+    published.sort_by(|left, right| left.name.cmp(&right.name));
+    published
+}
+
+/// The slot a caller writes to reach a construct, read off the bindings rather than written
+/// down twice.
+///
+/// An operator is keyed by construct, and the token `--set` takes is keyed by slot, so the two
+/// have to be joined somewhere. Here rather than in each surface, so four surfaces cannot
+/// disagree about the spelling of one flag.
+fn slot_for_construct(construct: &str) -> Option<&'static str> {
+    BINDINGS
+        .iter()
+        .find(|binding| binding.construct == construct)
+        .map(|binding| binding.slot)
+}
+
 /// Sorted throughout, so two surfaces that can do the same things emit the same bytes and a
 /// comparison is a plain diff.
+///
+/// The registry is passed in rather than reached for, because it is the one home for what a
+/// rule accepts and a surface that read its own copy would be a second one. Every surface has
+/// one already: the terminal loads the directory it was pointed at or the copy it carries, the
+/// browser loads the copy compiled into the bundle, and the two language bindings take a root
+/// from their caller.
 pub fn capability(
     operations: &[Operation],
     output_formats: &[OutputFormat],
     acquisition_intake: AcquisitionIntake,
+    registry: &Registry,
 ) -> Capability {
     let mut methods: Vec<MethodRecord> = BINDINGS
         .iter()
@@ -173,10 +275,23 @@ pub fn capability(
                 construct: binding.construct,
                 composed_from: binding.composed_from,
                 requires,
+                // The entry a redirected rule records under, because a redirect exists
+                // precisely where the registry carries no row of the rule's own name, and
+                // reading its own id would report that it takes nothing. Two rules are
+                // redirected today and both are compositions whose parameters live on the
+                // rule they compose.
+                parameters: parameters_of(
+                    registry,
+                    binding.records_under.unwrap_or(binding.id),
+                    binding.slot,
+                ),
             }
         })
         .collect();
-    methods.sort();
+    // By id, which is what the derived order was before a published value made the record
+    // hold an `f64` and took `Ord` off it. The test below holds the order rather than the
+    // derive, so the two cannot drift.
+    methods.sort_by(|left, right| left.id.cmp(right.id));
 
     // Every construct a rule in this build fills, crossed with the operator entries its rules
     // compose, so a construct that grows a rule composing one more entry publishes it without
@@ -194,10 +309,12 @@ pub fn capability(
         .into_iter()
         .map(|((construct, entry), mut states)| {
             states.sort();
+            let slot = slot_for_construct(construct).unwrap_or(construct);
             OperatorRecord {
                 construct,
                 entry,
                 states,
+                parameters: parameters_of(registry, entry, slot),
             }
         })
         .collect();
@@ -261,6 +378,24 @@ fn spelling(code: RefusalCode) -> String {
 mod tests {
     use super::*;
 
+    /// The registry this repository carries, read from disk rather than assembled here.
+    ///
+    /// The manifest's parameter half is a projection of these bytes, so a test against an
+    /// invented registry would prove the projection runs and nothing about what it says.
+    fn the_registry() -> Registry {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../registry");
+        Registry::load(&root).expect("the registry this repository carries")
+    }
+
+    fn manifest_over_the_registry(registry: &Registry) -> Capability {
+        capability(
+            &[Operation::Capability],
+            &[OutputFormat::Json],
+            AcquisitionIntake::StatedByCaller,
+            registry,
+        )
+    }
+
     /// Every member the acquisition block declares, written out here rather than read from
     /// `Acquisition::MEMBERS`.
     ///
@@ -277,13 +412,9 @@ mod tests {
 
     #[test]
     fn the_manifest_names_every_member_of_the_acquisition_block() {
-        let published = capability(
-            &[Operation::Capability],
-            &[OutputFormat::Json],
-            AcquisitionIntake::StatedByCaller,
-        )
-        .acquisition
-        .members;
+        let published = manifest_over_the_registry(&the_registry())
+            .acquisition
+            .members;
 
         let unpublished: Vec<&&str> = MEMBERS_A_READER_IS_TOLD_TO_FIND
             .iter()
@@ -331,8 +462,15 @@ mod tests {
     /// The field a surface passes moves, and the field it does not pass does not.
     #[test]
     fn a_surface_answers_for_its_own_intake_and_never_for_the_members() {
-        let taking = capability(&[], &[], AcquisitionIntake::StatedByCaller).acquisition;
-        let without = capability(&[], &[], AcquisitionIntake::AbsentFromThisSurface).acquisition;
+        let registry = the_registry();
+        let taking = capability(&[], &[], AcquisitionIntake::StatedByCaller, &registry).acquisition;
+        let without = capability(
+            &[],
+            &[],
+            AcquisitionIntake::AbsentFromThisSurface,
+            &registry,
+        )
+        .acquisition;
         assert!(taking.stated_by_caller);
         assert!(!without.stated_by_caller);
         assert_eq!(taking.members, without.members);
@@ -340,11 +478,7 @@ mod tests {
 
     #[test]
     fn the_manifest_carries_one_record_per_binding() {
-        let manifest = capability(
-            &[Operation::Capability],
-            &[OutputFormat::Json],
-            AcquisitionIntake::StatedByCaller,
-        );
+        let manifest = manifest_over_the_registry(&the_registry());
         println!(
             "methods in the manifest: {} of {} bindings",
             manifest.methods.len(),
@@ -365,8 +499,118 @@ mod tests {
             &[Operation::Analyse, Operation::Analyse, Operation::Batch],
             &[OutputFormat::Json, OutputFormat::Json],
             AcquisitionIntake::StatedByCaller,
+            &the_registry(),
         );
         assert_eq!(manifest.operations.len(), 2);
         assert_eq!(manifest.output_formats.len(), 1);
+    }
+
+    /// A rule this build runs whose entry cannot be found reports an empty parameter list,
+    /// which on the wire is indistinguishable from a rule that takes nothing.
+    ///
+    /// So the case is held at zero here rather than described in the field's documentation, and
+    /// it found two the first time it ran: `onset.threshold.last_within_band` and
+    /// `takeoff.threshold.longest_run` are redirected, meaning the registry deliberately carries
+    /// no row of their own name, so reading their own id reported that they take nothing while
+    /// each is a composition whose parameters sit on the rule it composes.
+    ///
+    /// The control is the second assertion: rules that really do carry parameters are counted, so
+    /// a registry that failed to load and returned nothing for everything cannot pass this by
+    /// agreeing with itself.
+    #[test]
+    fn every_rule_this_build_runs_resolves_in_the_registry() {
+        let registry = the_registry();
+        let unresolved: Vec<&str> = BINDINGS
+            .iter()
+            .filter(|binding| {
+                !registry
+                    .methods
+                    .contains_key(binding.records_under.unwrap_or(binding.id))
+            })
+            .map(|binding| binding.id)
+            .collect();
+        assert!(
+            unresolved.is_empty(),
+            "{} of {} rules this build runs reach no registry entry, so each reports an empty \
+             parameter list that reads as a rule taking nothing: {unresolved:?}",
+            unresolved.len(),
+            BINDINGS.len(),
+        );
+
+        // The redirected rules specifically, because they are the ones the first version of
+        // this test read as unresolved and they are the ones a later edit would break again.
+        let redirected: Vec<&str> = BINDINGS
+            .iter()
+            .filter(|binding| binding.records_under.is_some())
+            .map(|binding| binding.id)
+            .collect();
+        assert!(
+            !redirected.is_empty(),
+            "no rule is redirected, so the branch that follows a redirect is asserting nothing",
+        );
+
+        let manifest = manifest_over_the_registry(&registry);
+        let carrying = manifest
+            .methods
+            .iter()
+            .filter(|record| !record.parameters.is_empty())
+            .count();
+        assert!(
+            carrying > 0,
+            "no rule in the manifest carries a parameter, so this test would pass against a \
+             registry that loaded nothing at all",
+        );
+        let redirected_carrying = manifest
+            .methods
+            .iter()
+            .filter(|record| redirected.contains(&record.id) && !record.parameters.is_empty())
+            .count();
+        assert_eq!(
+            redirected_carrying,
+            redirected.len(),
+            "{} of {} redirected rules report no parameter, so the redirect is not being \
+             followed and those rows say a rule takes nothing when it takes what it composes",
+            redirected.len() - redirected_carrying,
+            redirected.len(),
+        );
+
+        println!(
+            "rules reaching a registry entry: {} of {}, of which {} publish a value a caller \
+             may state; {} of those reach it through a redirect",
+            BINDINGS.len(),
+            BINDINGS.len(),
+            carrying,
+            redirected.len(),
+        );
+    }
+
+    /// The token a caller writes is on the wire, rather than a name they have to qualify.
+    ///
+    /// Taken over the rule the acceptance fixture states, because a manifest that spelled the
+    /// token differently from the flag would send an agent to a refusal while reading as a
+    /// complete answer.
+    #[test]
+    fn a_parameter_carries_the_token_a_caller_writes_rather_than_its_bare_name() {
+        let manifest = manifest_over_the_registry(&the_registry());
+        let record = manifest
+            .methods
+            .iter()
+            .find(|record| record.id == "onset.threshold.noise_relative")
+            .expect("a rule the acceptance fixture states a value on");
+        let k = record
+            .parameters
+            .iter()
+            .find(|parameter| parameter.name == "k")
+            .expect("the rule publishes the value that fixture states");
+        assert_eq!(
+            k.states, "onset.k",
+            "the manifest spells the token differently from the flag that takes it",
+        );
+        assert!(
+            k.published_values.len() > 1,
+            "the registry publishes this rule at several values and the manifest reports {:?}, \
+             so a caller reading it cannot see that stating one is a choice",
+            k.published_values,
+        );
     }
 }

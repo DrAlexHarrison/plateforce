@@ -127,8 +127,8 @@ pub fn pf_analyse_json(handle: Robj, root: &str, request_json: &str) -> String {
 }
 
 #[extendr]
-pub fn pf_capability_json() -> String {
-    crate::capability_json()
+pub fn pf_capability_json(root: &str) -> String {
+    crate::capability_json(root.to_string())
 }
 
 #[extendr]

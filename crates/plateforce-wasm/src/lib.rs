@@ -239,10 +239,14 @@ pub fn capability_json() -> Result<String, JsError> {
         .flatten()
         .copied()
         .collect();
+    // The registry compiled into this bundle, which is the one this tab analyses against, so
+    // the values the manifest reports are the values a call from the tab will be held to.
+    let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
     replied(&capability(
         &operations,
         &[OutputFormat::Json],
         ACQUISITION_INTAKE,
+        &loaded.registry,
     ))
 }
 
