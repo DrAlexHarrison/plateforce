@@ -176,7 +176,12 @@ fn operations_named(export: &str) -> Option<&'static [Operation]> {
         "adoptPreset" => Some(&[Operation::Analyse]),
         "spread" => Some(&[Operation::Spread]),
         "parse" => Some(&[Operation::ParseForceFile]),
-        "batchJson" | "batchCoverage" => Some(&[Operation::Batch]),
+        // `batchJson` reduces where the request names a rule, so the tab claims the operation
+        // it performs. `batchCoverage` calls it and returns only the run block, so it walks the
+        // folder without reporting a reduction, and claiming one would be a capability nobody
+        // can reach through that name.
+        "batchJson" => Some(&[Operation::Batch, Operation::Aggregate]),
+        "batchCoverage" => Some(&[Operation::Batch]),
         "capabilityJson" => Some(&[Operation::Capability]),
         // One call answers all three: it returns the census, every entry in full, and
         // whether the registry it was compiled against passes its own validator.
@@ -278,7 +283,7 @@ struct StatedPlate {
 
 impl StatedCapture {
     /// The block this run carries, and the saved plate behind it.
-    pub(crate) fn resolved(self) -> Result<plateforce_core::Capture, JsError> {
+    pub(crate) fn resolved(self) -> Result<plateforce_core::Capture, String> {
         let stated = block_of(&self.acquisition)?;
         let Some(plate) = self.plate else {
             return Ok(plateforce_core::Capture::stated(stated));
@@ -296,13 +301,19 @@ impl StatedCapture {
     }
 }
 
+/// The sentence rather than the exception, so this runs off a wasm target too.
+///
+/// `JsError` cannot be constructed on a non-wasm build and panics if a native caller reaches
+/// one, which is why the browser surface had no test that ran anywhere but a browser. The
+/// entry points wrap the sentence; everything below them returns it.
 fn block_of(
     members: &std::collections::BTreeMap<String, String>,
-) -> Result<plateforce_core::Acquisition, JsError> {
+) -> Result<plateforce_core::Acquisition, String> {
     let mut block = plateforce_core::Acquisition::default();
     for (member, written) in members {
-        block.set_member(member, written).map_err(|fault| {
-            JsError::new(&match fault {
+        block
+            .set_member(member, written)
+            .map_err(|fault| match fault {
                 plateforce_core::MemberFault::Unknown => format!(
                     "{member} names nothing the acquisition block holds, which has {}",
                     plateforce_core::Acquisition::MEMBERS.join(", ")
@@ -310,8 +321,7 @@ fn block_of(
                 plateforce_core::MemberFault::NotANumber => {
                     format!("{member} was given '{written}', which is not a number")
                 }
-            })
-        })?;
+            })?;
     }
     Ok(block)
 }
@@ -627,7 +637,7 @@ pub(crate) fn stated_capture(
             "what the tab said about the plate did not parse: {error}"
         ))
     })?;
-    stated.resolved()
+    stated.resolved().map_err(|message| JsError::new(&message))
 }
 
 fn describe(
