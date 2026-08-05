@@ -312,8 +312,8 @@ impl AgreementRefusal {
 /// for every crate that names one. This crate offering a caller a word that surface spells
 /// differently would be two vocabularies for one fact.
 pub const UNIT_OF_ANALYSIS_VALUES: [(UnitOfAnalysis, &str); 2] = [
-    (UnitOfAnalysis::Trial, "trial"),
-    (UnitOfAnalysis::Subject, "subject"),
+    (UnitOfAnalysis::EVERY[0], UnitOfAnalysis::PUBLISHED[0]),
+    (UnitOfAnalysis::EVERY[1], UnitOfAnalysis::PUBLISHED[1]),
 ];
 pub const DISPERSION_VALUES: [(DispersionEstimator, &str); 2] = [
     (
@@ -344,6 +344,22 @@ fn value_of<T: Copy>(values: &[(T, &'static str)], written: &str) -> Option<T> {
 pub enum UnitOfAnalysis {
     Trial,
     Subject,
+}
+
+impl UnitOfAnalysis {
+    /// Every word this choice publishes, in the same order as `EVERY`.
+    pub const PUBLISHED: [&'static str; 2] = ["trial", "subject"];
+
+    /// The published word for this value.
+    pub fn as_published_str(self) -> &'static str {
+        match self {
+            UnitOfAnalysis::Trial => Self::PUBLISHED[0],
+            UnitOfAnalysis::Subject => Self::PUBLISHED[1],
+        }
+    }
+
+    /// Every value this choice takes.
+    pub const EVERY: [Self; 2] = [UnitOfAnalysis::Trial, UnitOfAnalysis::Subject];
 }
 
 /// What a limits-of-agreement request must state.
