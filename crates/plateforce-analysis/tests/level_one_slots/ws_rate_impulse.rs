@@ -78,7 +78,8 @@ fn rate_rules() -> Vec<Asked> {
         )
         .stating("reference_basis", "absolute"),
         Asked::rate("rfd.phase_endpoint_secant.harry", &[]).stating("phase", PROPULSION_PHASE),
-        Asked::rate("rfd.mean_force_over_duration.lapuente", &[]).stating("phase", PROPULSION_PHASE),
+        Asked::rate("rfd.mean_force_over_duration.lapuente", &[])
+            .stating("phase", PROPULSION_PHASE),
         Asked::rate("rfd.exponential_model.padulles", &[]),
     ]
 }
