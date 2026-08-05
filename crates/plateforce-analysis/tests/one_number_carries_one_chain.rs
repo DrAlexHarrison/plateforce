@@ -15,6 +15,8 @@ use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::reporting::fingerprint;
 use plateforce_core::{Acquisition, ProvenanceChain, Trial};
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 
 /// A countermovement jump that leaves the plate and lands back on it, so every landmark is
@@ -34,7 +36,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn request_with_onset_k(k: f64) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -50,7 +52,7 @@ fn request_with_onset_k(k: f64) -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn stamp() -> RegistryStamp {

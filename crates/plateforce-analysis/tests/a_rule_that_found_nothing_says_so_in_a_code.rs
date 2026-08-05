@@ -9,6 +9,8 @@ use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
 use plateforce_core::{RefusalCode, Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use std::collections::BTreeMap;
 
+mod common;
+
 /// A standing epoch, a countermovement, a flight and a landing, at a rate the corpus uses.
 fn a_jump() -> Trial {
     let sample_rate_hz = 1200.0_f64;
@@ -31,7 +33,7 @@ fn a_jump() -> Trial {
 }
 
 fn request_asking_for(threshold_newtons: f64) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -50,7 +52,7 @@ fn request_asking_for(threshold_newtons: f64) -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    })
 }
 
 #[test]

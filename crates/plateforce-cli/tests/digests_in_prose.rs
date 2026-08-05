@@ -215,9 +215,11 @@ fn every_digest_in_the_parity_plate_record_is_the_one_its_members_hash_to() {
     // Read off the record as well as scanned for, because the scan finds a shape and this
     // names the field. A revision that moved out of `plate_profile` into some other key would
     // still be found by the scan and would no longer be the thing this guard is about.
+    // The profile lives on the result itself since plate_profile became a field the request
+    // decides rather than a declared divergence.
     let record: serde_json::Value = serde_json::from_str(&text).expect("the record parses");
     assert_eq!(
-        record["carried_by_some"]["plate_profile"]["revision"].as_str(),
+        record["result"]["plate_profile"]["revision"].as_str(),
         Some(hashed.as_str()),
         "the record's plate revision is not what this build hashes those members to"
     );

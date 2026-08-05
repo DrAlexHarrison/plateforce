@@ -24,6 +24,8 @@ use plateforce_analysis::document::refusal_from_rule;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{RefusalCode, Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED as GRAVITY};
 
+mod common;
+
 const RATE_HZ: f64 = 1000.0;
 const MASS_KILOGRAMS: f64 = 70.0;
 
@@ -99,7 +101,7 @@ fn standing_period_start(trial: &Trial) -> usize {
 /// takeoff rule that considers every sample rather than flooring at the weighing window, which
 /// on this protocol sits at the end of the file.
 fn base(trial: &Trial) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: Some(standing_period_start(trial)),
@@ -115,7 +117,7 @@ fn base(trial: &Trial) -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn asking(
@@ -143,7 +145,8 @@ fn asking(
             ..Default::default()
         },
     );
-    request
+    // Again, because the two slots above arrived after the read in `base`.
+    common::prepared(request)
 }
 
 fn height_in(response: &AnalysisResponse) -> Option<f64> {

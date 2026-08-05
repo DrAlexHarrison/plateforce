@@ -28,6 +28,11 @@ use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 use plateforce_wasm::registry_embed;
 
+mod common;
+
+/// Carries no declarations, on purpose. `request_naming` reads the registry onto it, and the
+/// one test below that states the mechanism itself needs the request the software never
+/// prepared.
 fn base_request() -> AnalysisRequest {
     AnalysisRequest {
         weighing: WeighingChoice {
@@ -89,7 +94,10 @@ fn request_naming(binding: &Binding, options: BTreeMap<String, String>) -> Analy
                 });
         }
     }
-    request
+    // After every slot is written, because a choice put there afterwards carries no
+    // declarations and refuses by name rather than falling back to what the registry
+    // publishes.
+    common::prepared(request)
 }
 
 fn conditioning_constructs() -> Vec<&'static str> {
@@ -218,6 +226,80 @@ fn reachable_entry_ids() -> Vec<String> {
         .map(|binding| binding.id.to_string())
         .chain(composed_operator_ids().into_iter().map(str::to_string))
         .collect()
+}
+
+/// The mechanism the comparisons below rest on, stated rather than inferred from agreement.
+///
+/// A comparison can see a disagreement only while something holds a second copy of the value to
+/// disagree with. For a name there is no second copy: the entry's declaration reaches the rule on
+/// the request the software prepared, and a rule handed no declarations has nowhere to read one
+/// from. So the property is asserted in both directions here, and a literal returning to a rule
+/// body turns the first half red by answering where it has to refuse.
+#[test]
+fn a_declared_name_reaches_a_rule_from_the_registry_and_from_nowhere_else() {
+    const WEIGHING_RULE: &str = "bwepoch.fixed_window";
+    let loaded = registry_embed::load().expect("a registry file did not parse");
+    let entry = loaded
+        .registry
+        .methods
+        .get(WEIGHING_RULE)
+        .expect("the registry carries the rule the disagreement was found on");
+    let declared: Vec<(&str, &str)> = entry
+        .parameters
+        .iter()
+        .filter_map(|parameter| {
+            parameter
+                .default_key
+                .as_deref()
+                .map(|key| (parameter.name.as_str(), key))
+        })
+        .collect();
+    assert!(
+        !declared.is_empty(),
+        "{WEIGHING_RULE} declares no name, so this states nothing"
+    );
+
+    let trial = synthetic_countermovement_jump();
+
+    let refusal = run(&trial, &base_request())
+        .expect_err("a request carrying no declarations has no value for a name nobody stated");
+    assert_eq!(
+        refusal.code,
+        plateforce_core::RefusalCode::RequiredParameterUnstated
+    );
+    assert_eq!(refusal.method_id, WEIGHING_RULE);
+    assert!(
+        declared
+            .iter()
+            .any(|(name, _)| refusal.parameter.as_deref() == Some(*name)),
+        "the rule declined over {:?} rather than over one of the names its entry declares: \
+         {declared:?}",
+        refusal.parameter
+    );
+
+    let response = run(&trial, &common::prepared(base_request()))
+        .expect("the same request carrying the registry's declarations runs");
+    let bound = response
+        .bound_methods
+        .iter()
+        .find(|bound| bound.method_id == WEIGHING_RULE)
+        .expect("the weighing rule is on the record");
+    for (name, key) in &declared {
+        let (_, shown) = bound
+            .bound_parameters
+            .iter()
+            .find(|(recorded, _)| recorded.as_str() == *name)
+            .unwrap_or_else(|| panic!("{WEIGHING_RULE} recorded nothing for {name}"));
+        assert_eq!(
+            shown.as_str(),
+            *key,
+            "{WEIGHING_RULE} declares {name} = {key} and the run bound {shown}"
+        );
+        assert!(
+            bound.assumed_parameters().contains(&(*name).to_string()),
+            "{name} came back as a value somebody chose, and nobody stated it"
+        );
+    }
 }
 
 #[test]

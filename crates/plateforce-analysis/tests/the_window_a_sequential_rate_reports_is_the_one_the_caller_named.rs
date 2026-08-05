@@ -20,6 +20,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 const WINDOW_MILLISECONDS: f64 = 50.0;
 
@@ -38,8 +40,12 @@ fn subject01_trial1() -> Trial {
 }
 
 /// One request, with the construct under test bound to one rule and its values stated.
+///
+/// Prepared against the registry, so `a_sequential_rate_with_no_window_named_refuses_by_that_name`
+/// reaches a rule refusing over `window_index`, which the registry declares no default for,
+/// rather than over a name it does declare one for.
 fn asking(construct: &str, method_id: &str, values: &[(&str, f64)]) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -66,7 +72,7 @@ fn asking(construct: &str, method_id: &str, values: &[(&str, f64)]) -> AnalysisR
             },
         )]),
         ..Default::default()
-    }
+    })
 }
 
 fn number(response: &AnalysisResponse, key: &str) -> Option<f64> {

@@ -14,7 +14,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use plateforce_analysis::document::refusal_from_rule;
-use plateforce_analysis::{run, AnalysisRequest, MethodChoice, WeighingChoice};
+use plateforce_analysis::{run, AnalysisRequest, DeclaredDefaults, MethodChoice, WeighingChoice};
 use plateforce_analysis::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT};
 use plateforce_core::provenance::ParameterSource;
 use plateforce_core::{RefusalCode, Trial};
@@ -84,8 +84,14 @@ fn stating(construct: &str, method_id: &str, name: Option<(&str, &str)>) -> Anal
         }
         other => panic!("this sweep reaches the three spine constructs, not {other}"),
     }
+    request.declared_from(std::sync::Arc::clone(&DECLARED));
     request
 }
+
+/// Read once. `stating` is called several hundred times across the sweep below, and the
+/// declarations are the same registry's on every one of them.
+static DECLARED: std::sync::LazyLock<std::sync::Arc<DeclaredDefaults>> =
+    std::sync::LazyLock::new(|| std::sync::Arc::new(DeclaredDefaults::of(&registry())));
 
 /// Which rules the sweep binds: every spine binding this build carries.
 fn spine_rules() -> Vec<(&'static str, &'static str)> {

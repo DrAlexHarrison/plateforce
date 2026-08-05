@@ -9,6 +9,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{RefusalCode, Trial};
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 /// Twice the takeoff velocity over gravity, in samples. The flight this trace spends off the
 /// plate is the flight the impulse it recorded pays for, so the two routes to the takeoff
@@ -50,7 +52,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn base() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -65,7 +67,7 @@ fn base() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn naming(pairs: &[(&str, &str)]) -> AnalysisRequest {
@@ -79,7 +81,9 @@ fn naming(pairs: &[(&str, &str)]) -> AnalysisRequest {
             },
         );
     }
-    request
+    // After the slots are named, not before: a choice inserted into a prepared request carries
+    // its own empty declared table and would reach a rule reading nothing.
+    common::prepared(request)
 }
 
 fn value(response: &AnalysisResponse, key: &str) -> Option<f64> {
@@ -551,6 +555,8 @@ fn no_rule_this_build_runs_reports_a_key_a_second_time() {
                 ..Default::default()
             });
 
+        // After both slots are named, for the reason `naming` fills after its own inserts.
+        let request = common::prepared(request);
         let response = run(&trial, &request).expect("the request is well formed");
         let mut seen: Vec<&str> = Vec::new();
         for metric in &response.metrics {

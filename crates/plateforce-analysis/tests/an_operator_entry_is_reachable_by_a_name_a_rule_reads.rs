@@ -108,7 +108,7 @@ fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
         {
             for onset_id in rules_for(plateforce_analysis::binding::ONSET_CONSTRUCT) {
                 for takeoff_id in rules_for(plateforce_analysis::binding::TAKEOFF_CONSTRUCT) {
-                    let request = AnalysisRequest {
+                    let mut request = AnalysisRequest {
                         weighing: WeighingChoice {
                             method_id: "bwepoch.fixed_window".into(),
                             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -144,6 +144,7 @@ fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
                         },
                         ..Default::default()
                     };
+                    request.reading(&registry);
                     // A combination the build refuses carries no bound methods, which is a
                     // reading this sweep does not get rather than a failure. The floor below
                     // is what keeps a sweep where every combination refused from passing.

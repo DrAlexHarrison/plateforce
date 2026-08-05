@@ -23,6 +23,8 @@ use plateforce_registry::schema::Parameter;
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 use plateforce_wasm::registry_embed;
 
+mod common;
+
 /// The demonstration jump with a brief brush against the plate's floor during the
 /// countermovement, before the athlete actually leaves.
 ///
@@ -470,7 +472,10 @@ fn request_stating(
             request.derived.insert(construct.to_string(), choice);
         }
     }
-    request
+    // After every slot is written, because a choice put there afterwards carries no
+    // declarations and refuses by name rather than falling back to what the registry
+    // publishes.
+    common::prepared(request)
 }
 
 /// Everything the interface puts in front of a user, and nothing that restates the request.
@@ -705,7 +710,7 @@ fn a_name_the_rule_does_not_read_is_reported_rather_than_dropped_in_silence() {
         .takeoff
         .parameters
         .insert("threshold_newtons".to_string(), 30.0);
-    let response = run(&trial, &request).unwrap();
+    let response = run(&trial, &common::prepared(request)).unwrap();
     let takeoff = response
         .bound_methods
         .iter()

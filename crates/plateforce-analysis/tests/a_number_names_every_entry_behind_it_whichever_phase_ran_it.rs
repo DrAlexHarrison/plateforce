@@ -12,6 +12,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 const INTEGRATION_IDS: [&str; 4] = [
     "integration.rule.trapezoid",
     "integration.direction.forward",
@@ -38,7 +40,7 @@ fn a_countermovement_jump() -> Trial {
 }
 
 fn request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -53,7 +55,7 @@ fn request() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 /// The same analysis with the caller naming the rule for itself, which is the arrival the
@@ -67,7 +69,8 @@ fn request_naming_the_rule() -> AnalysisRequest {
             ..Default::default()
         },
     );
-    named
+    // Again, because the slot naming the rule arrived after the read above.
+    common::prepared(named)
 }
 
 fn chain(response: &AnalysisResponse, key: &str) -> Vec<String> {

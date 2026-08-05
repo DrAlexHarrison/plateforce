@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice};
 
-use crate::common::{committed_trial, default_request};
+use crate::common::{committed_trial, default_request, prepared};
 
 const POWER_CONSTRUCT: &str = "mechanical_power";
 const POWER_RULE: &str = "power.instantaneous.force_x_velocity";
@@ -80,7 +80,9 @@ fn asking(construct: &str, method_id: &str, options: &[(&str, &str)]) -> Analysi
             ..Default::default()
         },
     );
-    request
+    // After the slots are named, not before: a choice inserted into a prepared request carries
+    // its own empty declared table and would reach a rule reading nothing.
+    prepared(request)
 }
 
 /// The three names a rule that reads a power series over an interval cannot run without.

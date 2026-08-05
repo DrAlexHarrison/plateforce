@@ -16,6 +16,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{read_trial_from_path, Refusal, RefusalCode, Trial};
 
+mod common;
+
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/fixtures/subject01_trial1.force.txt"
@@ -65,7 +67,7 @@ fn request(
     start_index: usize,
     window_seconds: f64,
 ) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: weighing_id.into(),
             start_index: Some(start_index),
@@ -83,7 +85,7 @@ fn request(
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn placed(trial: &Trial, start_index: usize, window_seconds: f64) -> AnalysisResponse {

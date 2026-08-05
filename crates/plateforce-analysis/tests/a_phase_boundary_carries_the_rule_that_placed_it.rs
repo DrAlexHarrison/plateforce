@@ -12,6 +12,8 @@ use plateforce_analysis::slots::phase_model::CONSTRUCT as PHASE_MODEL;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 /// A countermovement jump with a landing: quiet stance, an unweighting dip, a braking rise
 /// through system weight, a propulsive peak, flight, and a landing larger than anything in
 /// the jump.
@@ -29,7 +31,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn base() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -44,7 +46,7 @@ fn base() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 /// A request naming one rule per construct, with no parameters stated.
@@ -59,7 +61,8 @@ fn naming(pairs: &[(&str, &str)]) -> AnalysisRequest {
             },
         );
     }
-    request
+    // Again, because the slots above arrived after the read in `base`.
+    common::prepared(request)
 }
 
 fn with_option(
@@ -878,6 +881,9 @@ fn a_phase_model_and_a_propulsion_split_are_two_answers_one_analysis_can_carry()
         request.derived.keys().collect::<Vec<_>>()
     );
 
+    // The declared block is not on the wire, so a request that arrived as JSON reads the
+    // registry here, which is what the surface receiving it does.
+    let request = common::prepared(request);
     let response = run(&trial, &request).expect("both rules run on one analysis");
     let ran: Vec<&str> = response
         .bound_methods

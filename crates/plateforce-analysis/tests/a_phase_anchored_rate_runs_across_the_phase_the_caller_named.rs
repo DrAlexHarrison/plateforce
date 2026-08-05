@@ -19,6 +19,8 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::Trial;
 
+mod common;
+
 const RATE_KEY: &str = "rate_of_force_development_newtons_per_second";
 const SECANT: &str = "rfd.phase_endpoint_secant.harry";
 const OVER_DURATION: &str = "rfd.mean_force_over_duration.lapuente";
@@ -116,7 +118,7 @@ fn asking_with_propulsion_ending_at(
             ..Default::default()
         },
     );
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -132,7 +134,7 @@ fn asking_with_propulsion_ending_at(
         },
         derived,
         ..Default::default()
-    }
+    })
 }
 
 fn across(method_id: &str, phase: &str) -> AnalysisResponse {

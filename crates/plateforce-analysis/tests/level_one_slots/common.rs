@@ -1,8 +1,9 @@
 //! What every module here reads: the registry on disk, and trials the rules can run on.
 
 use std::collections::BTreeMap;
+use std::sync::{Arc, LazyLock};
 
-use plateforce_analysis::{AnalysisRequest, MethodChoice, WeighingChoice};
+use plateforce_analysis::{AnalysisRequest, DeclaredDefaults, MethodChoice, WeighingChoice};
 use plateforce_core::{read_trial_from_path, Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_registry::{assemble, read_sources, Registry, Source};
 
@@ -43,10 +44,28 @@ pub fn committed_trial(name: &str) -> Trial {
     trial
 }
 
+/// What every surface does before running: the rules read the registry's declared defaults
+/// rather than copies of them. A hand-built request that skips this reads nothing and refuses,
+/// which is the mechanism working, not a fixture to paper over: a test asserting that refusal
+/// must NOT call this.
+///
+/// Called after a request's slots are named, because a choice inserted into a filled request
+/// carries its own empty table and would reach a rule reading nothing.
+///
+/// The registry is read once and kept, which is the surface `declared_from` exists for. This
+/// target runs several hundred requests over six trials, and each of them would otherwise
+/// reassemble the twenty-five files on disk.
+pub fn prepared(mut request: AnalysisRequest) -> AnalysisRequest {
+    static DECLARED: LazyLock<Arc<DeclaredDefaults>> =
+        LazyLock::new(|| Arc::new(DeclaredDefaults::of(&registry())));
+    request.declared_from(Arc::clone(&DECLARED));
+    request
+}
+
 /// A request naming one rule per shipped slot, so a measurement over the corpus runs the
 /// rules the software runs rather than a set assembled for the measurement.
 pub fn default_request() -> AnalysisRequest {
-    AnalysisRequest {
+    prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: None,
@@ -66,5 +85,5 @@ pub fn default_request() -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    })
 }

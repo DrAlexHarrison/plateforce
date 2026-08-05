@@ -15,6 +15,8 @@ use plateforce_core::series::{
 };
 use plateforce_core::{takeoff_velocity_integration_spec, Landmarks, Trial};
 
+mod common;
+
 const INTEGRATION_IDS: [&str; 4] = [
     "integration.rule.trapezoid",
     "integration.direction.forward",
@@ -35,7 +37,7 @@ fn a_jump_after_drifting_stance() -> Trial {
 }
 
 fn request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -50,7 +52,7 @@ fn request() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn chain(response: &AnalysisResponse, key: &str) -> Vec<String> {

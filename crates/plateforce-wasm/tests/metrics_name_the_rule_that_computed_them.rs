@@ -17,8 +17,10 @@ use plateforce_core::STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED;
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 use plateforce_wasm::registry_embed;
 
+mod common;
+
 fn request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: None,
@@ -38,7 +40,7 @@ fn request() -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: Vec::new(),
         ..Default::default()
-    }
+    })
 }
 
 #[test]

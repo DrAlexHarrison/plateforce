@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice};
 
-use crate::common::{committed_trial, default_request, COMMITTED_TRIALS};
+use crate::common::{committed_trial, default_request, prepared, COMMITTED_TRIALS};
 
 /// The construct and key every rate rule answers under.
 const RATE_CONSTRUCT: &str = "rate_of_force_development";
@@ -129,7 +129,9 @@ fn asking(
             ..Default::default()
         },
     );
-    request
+    // After the slots are named, not before: a choice inserted into a prepared request carries
+    // its own empty declared table and would reach a rule reading nothing.
+    prepared(request)
 }
 
 fn value(response: &AnalysisResponse, key: &str) -> Option<f64> {
@@ -367,6 +369,7 @@ fn the_fitted_rule_reports_the_models_own_rate_and_how_far_the_model_is_from_the
             ..Default::default()
         },
     );
+    let isometric = prepared(isometric);
 
     let trace = a_trace_that_is_an_exponential_rise();
     let response = run(&trace, &isometric).expect("the analysis ran");

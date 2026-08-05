@@ -630,3 +630,20 @@ pub fn preset_named<'a>(registry: &'a Registry, id: &str) -> Result<&'a Preset, 
         ))
     })
 }
+
+/// What every surface does before running, for a request one of this crate's own tests built
+/// by hand.
+///
+/// One home for the three test modules that build requests, rather than a loader in each, and
+/// read once: the declarations are the same registry's on every request, and the sweeps call
+/// this several hundred times.
+#[cfg(test)]
+pub(crate) fn prepared(mut request: AnalysisRequest) -> AnalysisRequest {
+    static DECLARED: std::sync::LazyLock<Arc<DeclaredDefaults>> = std::sync::LazyLock::new(|| {
+        let registry = Registry::load(concat!(env!("CARGO_MANIFEST_DIR"), "/../../registry"))
+            .expect("the committed registry loads");
+        Arc::new(DeclaredDefaults::of(&registry))
+    });
+    request.declared_from(Arc::clone(&DECLARED));
+    request
+}

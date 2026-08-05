@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice};
 
-use crate::common::{committed_trial, default_request, COMMITTED_TRIALS};
+use crate::common::{committed_trial, default_request, prepared, COMMITTED_TRIALS};
 
 const VALIDITY_CONSTRUCT: &str = "trial_validity";
 const PRETENSION_RULE: &str = "trial.gate.pretension_ceiling";
@@ -130,8 +130,10 @@ impl Asked {
         self
     }
 
+    /// Filled here rather than in `new`, because every builder above this one names another
+    /// slot, and a choice inserted into a filled request carries its own empty declared table.
     fn on(&self, trial: &plateforce_core::Trial) -> AnalysisResponse {
-        run(trial, &self.request).expect("the request is well formed")
+        run(trial, &prepared(self.request.clone())).expect("the request is well formed")
     }
 }
 

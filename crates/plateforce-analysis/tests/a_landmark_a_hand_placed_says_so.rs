@@ -23,6 +23,8 @@ use plateforce_analysis::chain::chain_of;
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::reporting::fingerprint;
+
+mod common;
 use plateforce_core::{Acquisition, Trial};
 
 const SAMPLE_RATE_HZ: f64 = 1200.0;
@@ -48,7 +50,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn request(onset_at: Option<usize>, takeoff_at: Option<usize>) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -65,7 +67,7 @@ fn request(onset_at: Option<usize>, takeoff_at: Option<usize>) -> AnalysisReques
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn stamp() -> RegistryStamp {

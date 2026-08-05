@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use plateforce_analysis::{run, MethodChoice, BINDINGS};
 use plateforce_core::provenance::ParameterSource;
 
-use crate::common::{committed_trial, default_request, COMMITTED_TRIALS};
+use crate::common::{committed_trial, default_request, prepared, COMMITTED_TRIALS};
 
 const CONDITIONING_ID: &str = "filter.none";
 const CONSTRUCT: &str = "conditioned_force_signal";
@@ -27,7 +27,9 @@ fn stating(name: &str, value: &str) -> plateforce_analysis::AnalysisRequest {
             ..Default::default()
         },
     );
-    request
+    // After the slot is named, not before: a choice inserted into a prepared request carries
+    // its own empty declared table and would reach a rule reading nothing.
+    prepared(request)
 }
 
 /// Every metric names the rule that conditioned the signal it was measured on, on a request
@@ -239,6 +241,7 @@ fn holding_a_place_for_values_without_naming_a_rule_records_the_run_unchanged() 
     unnamed
         .conditioning
         .insert(CONSTRUCT.to_string(), MethodChoice::default());
+    let unnamed = prepared(unnamed);
 
     let record = |request| {
         let response = run(&trial, &request).expect("the request runs");
@@ -265,6 +268,7 @@ fn naming_the_conditioning_rule_credits_the_caller_and_changes_nothing_else() {
             ..Default::default()
         },
     );
+    let named = prepared(named);
 
     let rows = |request| {
         run(&trial, &request)

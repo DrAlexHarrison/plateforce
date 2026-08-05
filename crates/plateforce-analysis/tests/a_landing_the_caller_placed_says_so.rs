@@ -18,6 +18,8 @@ use plateforce_core::provenance::{ParameterSource, RegistryStamp};
 use plateforce_core::reporting::fingerprint;
 use plateforce_core::{Acquisition, Trial};
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 const FLIGHT: &str = "flight_time_seconds";
 const FLIGHT_HEIGHT: &str = "jump_height_from_flight_time_meters";
@@ -41,7 +43,7 @@ fn a_jump_that_lands() -> Trial {
 }
 
 fn request(stated_landing: Option<usize>) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -57,7 +59,7 @@ fn request(stated_landing: Option<usize>) -> AnalysisRequest {
         },
         touchdown_index: stated_landing,
         ..Default::default()
-    }
+    })
 }
 
 fn stamp() -> RegistryStamp {

@@ -21,6 +21,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
 use plateforce_core::{read_trial_from_path, Trial};
 
+mod common;
+
 const INTERRUPTED: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/damaged/subject01_trial1_interrupted.force.txt"
@@ -52,7 +54,7 @@ fn trial(path: &str) -> Trial {
 /// The request the committed parity population asks of this recording, so this guard and the
 /// cross-surface gate are asking one question.
 fn request() -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 1.0)]),
@@ -69,7 +71,7 @@ fn request() -> AnalysisRequest {
             ..Default::default()
         },
         ..Default::default()
-    }
+    })
 }
 
 fn analysed(path: &str) -> AnalysisResponse {

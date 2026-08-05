@@ -23,6 +23,8 @@ use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, 
 use plateforce_core::{Trial, STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED};
 use plateforce_registry::Registry;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 
 /// An operator this build composes without being asked, so it is bound on the bare request
@@ -52,7 +54,7 @@ fn trial() -> Trial {
 }
 
 fn request_backed_by(ids: Vec<String>) -> AnalysisRequest {
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             start_index: None,
@@ -72,7 +74,7 @@ fn request_backed_by(ids: Vec<String>) -> AnalysisRequest {
         gravity_meters_per_second_squared: STANDARD_GRAVITY_METERS_PER_SECOND_SQUARED,
         registry_backed_ids: ids,
         ..Default::default()
-    }
+    })
 }
 
 /// What the run said about one id, and `None` when the run never bound it. The difference

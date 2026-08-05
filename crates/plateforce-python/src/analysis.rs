@@ -1482,7 +1482,11 @@ mod tests {
         for (rule, expected) in [
             (
                 WEIGHING_RULE,
-                vec![("accumulation", "two_pass"), ("dispersion", "sample")],
+                vec![
+                    ("accumulation", "two_pass"),
+                    ("centre", "mean"),
+                    ("dispersion", "sample"),
+                ],
             ),
             (
                 "takeoff.op.short_run_handling",

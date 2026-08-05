@@ -17,6 +17,8 @@ use plateforce_analysis::{
 };
 use plateforce_core::{read_trial_from_path, Trial};
 
+mod common;
+
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../plateforce-conformance/fixtures/subject01_trial1.force.txt"
@@ -85,6 +87,7 @@ fn analyse_under(trial: &Trial, takeoff_id: &str, weighing_seconds: f64) -> Anal
         },
         ..Default::default()
     };
+    let request = common::prepared(request);
     run(trial, &request).unwrap_or_else(|refusal| panic!("{takeoff_id} did not run: {refusal}"))
 }
 
@@ -390,6 +393,7 @@ fn the_lowest_variance_rule_says_how_many_windows_it_ruled_out() {
         },
         ..Default::default()
     };
+    let request = common::prepared(request);
     let response = run(&trial, &request).expect("the searching weighing rule runs");
 
     let rejected = recorded(

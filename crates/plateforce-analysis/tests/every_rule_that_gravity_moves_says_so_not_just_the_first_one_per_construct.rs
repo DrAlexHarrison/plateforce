@@ -30,6 +30,8 @@ use plateforce_analysis::{
 use plateforce_core::provenance::{ParameterSource, RegistryStamp};
 use plateforce_core::Trial;
 
+mod common;
+
 const SAMPLE_RATE_HZ: f64 = 1200.0;
 
 /// Wider than the two constants the tools argue over, because this is asking whether a rule's
@@ -75,7 +77,7 @@ fn naming(under_test: &plateforce_analysis::Binding, gravity: f64) -> AnalysisRe
             ..Default::default()
         },
     );
-    AnalysisRequest {
+    common::prepared(AnalysisRequest {
         weighing: WeighingChoice {
             method_id: "bwepoch.fixed_window".into(),
             parameters: BTreeMap::from([("duration".to_string(), 0.8)]),
@@ -93,7 +95,7 @@ fn naming(under_test: &plateforce_analysis::Binding, gravity: f64) -> AnalysisRe
         gravity_meters_per_second_squared: gravity,
         gravity_source: ParameterSource::Stated,
         ..Default::default()
-    }
+    })
 }
 
 fn stamp() -> RegistryStamp {

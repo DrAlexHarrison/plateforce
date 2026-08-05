@@ -123,7 +123,7 @@ mod tests {
                 },
             );
         }
-        request
+        crate::request::prepared(request)
     }
 
     #[test]

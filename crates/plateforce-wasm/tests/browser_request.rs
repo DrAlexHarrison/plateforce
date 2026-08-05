@@ -8,6 +8,8 @@
 use plateforce_analysis::{run, AnalysisRequest};
 use plateforce_wasm::demo::synthetic_countermovement_jump;
 
+mod common;
+
 /// The recommended opening selection, with each rule's parameters under the names the
 /// registry publishes for it.
 const RECOMMENDED: &str = r#"{
@@ -63,8 +65,10 @@ const WINDOW_PLACED_BY_HAND: &str = r#"{
 fn every_value_the_interface_posts_is_read_by_the_rule_it_was_posted_for() {
     let trial = synthetic_countermovement_jump();
     for payload in [RECOMMENDED, WINDOW_PLACED_BY_HAND] {
-        let request: AnalysisRequest =
+        let posted: AnalysisRequest =
             serde_json::from_str(payload).expect("the interface's request no longer parses");
+        // What `analyse` does with the text the tab posts, before the rules see it.
+        let request = common::prepared(posted);
         let response = run(&trial, &request).expect("the interface's request no longer runs");
         for method in &response.bound_methods {
             assert!(
