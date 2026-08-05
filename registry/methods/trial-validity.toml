@@ -327,9 +327,16 @@ required = true
 notes = "One shipped window is a jump-height acceptance window of roughly 5 to 100 cm, which silently discards a genuine 4 cm hop and a 105 cm elite jump."
 
 [[method.parameter]]
+name = "flight_threshold_n"
+unit = "newtons"
+required = true
+notes = "The force below which the plate counts as unloaded, which is what makes a stretch of the recording a candidate. None of the three implementations states one and none documents the choice, so it is stated per analysis rather than filled in."
+
+[[method.parameter]]
 name = "selection"
 unit = "enumeration"
-notes = "first_qualifying or longest_qualifying_batch."
+required = true
+notes = "first_qualifying or longest_qualifying_batch. The two coincide on a recording holding one candidate and separate on any recording holding more, which is every untrimmed one."
 
 
 [[method.parameter.value]]
@@ -443,6 +450,15 @@ confidence = "medium"
 debate = "genuine"
 
 [[method.parameter]]
+name = "threshold_n"
+unit = "newtons"
+published_values = [250.0]
+default = 250.0
+default_source = "sams_shiny"
+required = true
+notes = "The threshold this rule reproduces at the anchor mass, which is the incumbent constant. Published here because a rule that reads a number and does not publish it leaves the number in the code."
+
+[[method.parameter]]
 name = "anchor_mass_kg"
 unit = "kilograms"
 published_values = [87.5]
@@ -472,6 +488,12 @@ position.
 key = "plateforce_derivation"
 role = "proposes"
 reference = "Derived in this registry; no publication proposes it, nothing has been measured with it, and it has not been run against the validation corpus"
+obtained = true
+
+[[method.citation]]
+key = "sams_shiny"
+role = "uses"
+reference = "Sams' R application, whose disclosed-arbitrary 250 N this rule reproduces exactly at the anchor mass"
 obtained = true
 
 [[method.citation]]

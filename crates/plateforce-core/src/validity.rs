@@ -82,6 +82,19 @@ pub enum PretensionCriterion {
     PercentOfBodyweight,
 }
 
+/// The largest distance force stood from the baseline over a stretch, in newtons.
+///
+/// One home, because the gate compares it against a criterion stated two ways and a caller
+/// reporting the departure beside the verdict needs the same number the comparison used.
+/// Computing it twice would let the report and the verdict disagree by a rounding.
+pub fn baseline_departure_newtons(force: &[f64], baseline_newtons: f64) -> Option<f64> {
+    let departure = force
+        .iter()
+        .map(|sample| (sample - baseline_newtons).abs())
+        .fold(f64::NEG_INFINITY, f64::max);
+    departure.is_finite().then_some(departure)
+}
+
 /// Force departing the baseline before the effort begins.
 ///
 /// The two criteria are not two strictnesses of one rule. A fixed newton ceiling is a
@@ -93,13 +106,7 @@ pub fn pretension_ceiling(
     criterion: PretensionCriterion,
     ceiling: f64,
 ) -> Option<GateFinding> {
-    let departure = force_before_effort
-        .iter()
-        .map(|sample| (sample - baseline_newtons).abs())
-        .fold(f64::NEG_INFINITY, f64::max);
-    if !departure.is_finite() {
-        return None;
-    }
+    let departure = baseline_departure_newtons(force_before_effort, baseline_newtons)?;
     let (observed, criterion_value, unit) = match criterion {
         PretensionCriterion::AbsoluteNewtonsAboveBodyweight => (departure, ceiling, "newtons"),
         PretensionCriterion::PercentOfBodyweight => (
@@ -137,6 +144,57 @@ pub fn countermovement_contamination(
         criterion: threshold,
         unit: "newtons",
         population: Counted::of(usize::from(dip < threshold), 1)?,
+    })
+}
+
+/// Transient peaks in a period, and the greatest force there.
+///
+/// The greatest force travels because the rule it belongs to says that a period with no
+/// transient peak at all falls back to it. Reported whether or not the fallback was taken,
+/// so a reader can see what the fallback would have given.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TransientPeakReport {
+    pub peak_indices: Vec<usize>,
+    pub greatest_force_newtons: f64,
+    pub finding: GateFinding,
+}
+
+/// Local maxima of the force trace over a period, counted against a ceiling.
+///
+/// A local maximum is a sample force rose into and did not rise out of, which is the sign
+/// change of the derivative the rule names. Nothing here smooths first: the count is a
+/// property of the signal as it arrives, and the rule this serves offers a lower filter
+/// cutoff as one of its two remedies, so a count taken on a pre-smoothed signal would have
+/// applied that remedy before the reader chose it.
+pub fn transient_peak_count(
+    force: &[f64],
+    start: usize,
+    end: usize,
+    max_peaks: usize,
+) -> Option<TransientPeakReport> {
+    let period = force.get(start..end)?;
+    if period.len() < 3 {
+        return None;
+    }
+    let peak_indices: Vec<usize> = (1..period.len() - 1)
+        .filter(|index| period[*index] > period[index - 1] && period[index + 1] <= period[*index])
+        .map(|index| start + index)
+        .collect();
+    let greatest_force_newtons = period.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if !greatest_force_newtons.is_finite() {
+        return None;
+    }
+    let fired = peak_indices.len() > max_peaks;
+    Some(TransientPeakReport {
+        peak_indices: peak_indices.clone(),
+        greatest_force_newtons,
+        finding: GateFinding {
+            fired,
+            observed: peak_indices.len() as f64,
+            criterion: max_peaks as f64,
+            unit: "count",
+            population: Counted::of(usize::from(fired), 1)?,
+        },
     })
 }
 
@@ -375,6 +433,56 @@ mod tests {
                 .unwrap();
         assert_eq!(report.candidates.len(), 2);
         assert!((report.candidates[0].duration_seconds - 0.05).abs() < 1e-12);
+    }
+
+    /// A monotone descent and rise has no interior local maximum, and the ripple laid on
+    /// top of it has one per cycle. Nothing is smoothed first, so the count is a property
+    /// of the signal as it arrives.
+    #[test]
+    fn a_ripple_on_a_smooth_period_is_what_the_count_finds() {
+        let smooth: Vec<f64> = (0..200)
+            .map(|index| 700.0 - 200.0 * (index as f64 / 200.0))
+            .collect();
+        let rippled: Vec<f64> = smooth
+            .iter()
+            .enumerate()
+            .map(|(index, value)| value + if index % 10 < 5 { 3.0 } else { 0.0 })
+            .collect();
+
+        let clean = transient_peak_count(&smooth, 0, smooth.len(), 3).unwrap();
+        let noisy = transient_peak_count(&rippled, 0, rippled.len(), 3).unwrap();
+        assert_eq!(clean.peak_indices.len(), 0, "{clean:?}");
+        assert!(!clean.finding.fired);
+        assert!(noisy.peak_indices.len() > 3, "{}", noisy.peak_indices.len());
+        assert!(noisy.finding.fired);
+        assert!((clean.greatest_force_newtons - 700.0).abs() < 1e-9);
+    }
+
+    /// The greatest force is reported whether or not the fallback was taken, because a
+    /// reader deciding between the two remedies needs to see what the fallback gives.
+    #[test]
+    fn the_greatest_force_travels_with_a_period_that_has_no_transient_peak() {
+        let period = vec![600.0, 500.0, 400.0, 450.0, 900.0];
+        let report = transient_peak_count(&period, 0, period.len(), 0).unwrap();
+        assert_eq!(report.peak_indices.len(), 0);
+        assert!(!report.finding.fired);
+        assert!((report.greatest_force_newtons - 900.0).abs() < 1e-9);
+    }
+
+    /// The departure the gate compares and the departure a caller reports are one number.
+    #[test]
+    fn the_reported_departure_is_the_one_the_gate_compared() {
+        let trace = vec![700.0, 820.0, 640.0];
+        let departure = baseline_departure_newtons(&trace, 700.0).unwrap();
+        let finding = pretension_ceiling(
+            &trace,
+            700.0,
+            PretensionCriterion::AbsoluteNewtonsAboveBodyweight,
+            100.0,
+        )
+        .unwrap();
+        assert!((departure - 120.0).abs() < 1e-9);
+        assert!((finding.observed - departure).abs() < 1e-12);
     }
 
     #[test]
