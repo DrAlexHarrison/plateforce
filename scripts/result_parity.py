@@ -672,27 +672,14 @@ ANALYSED_SURFACES_THAT_DIFFER = {
             "each other instead"
         ),
     ),
-    "acquisition": Divergence(
-        frozenset({"cli", "browser"}),
-        True,
-        "nothing outstanding; the two surfaces that assemble `ResultDocument` agree",
-        "what the plate and its settings were, carried whole by the two surfaces that assemble "
-        "`ResultDocument`. Python and R take the block on the trial they are handed and report "
-        "`acquisition_complete`, which is compared on all four",
-    ),
-    "plate_profile": Divergence(
-        frozenset({"cli", "browser"}),
-        True,
-        "a notebook and an R session that can be handed a saved plate rather than its "
-        "members. Both are handed a block somebody else filled, so they carry the answers "
-        "and cannot say which saved plate the answers were typed into",
-        "the saved plate the acquisition block was filled from, carried by the two surfaces "
-        "that read one. Absent rather than null where no plate was stated, because a run "
-        "with none behind it has nothing to attribute, so the field is on the wire only on "
-        "the request that states a plate. Python and R type the same members and produce the "
-        "same numbers with `acquisition_complete` true, and name no plate",
-        filled_by=frozenset({"plate"}),
-    ),
+    # `acquisition` and `plate_profile` were here, carried by cli and browser. Discharged by
+    # wsrp/r-python-parity: the saved-plate store moved from the terminal into
+    # `plateforce_core::plate_store`, which the wheel and the R package link, so both surfaces
+    # can be handed a plate by name rather than a block somebody else filled. Both documents
+    # now carry the block whole and the attribution beside it, so the two are compared rather
+    # than recorded. `plate_profile` stays absent rather than null on a request that names no
+    # plate, which is what `NEVER_ON_THE_WIRE` and the request manifest's `plate` row hold it
+    # to on all four.
     # `descriptions` was here, carried by r alone, with nothing to agree about. Discharged by
     # ws/descriptions-everywhere: `descriptions_of` moved beside `chains_of`, the document
     # fills the block rather than accepting it, and the two surfaces that were passing an
@@ -815,13 +802,51 @@ class NeverOnTheWire(NamedTuple):
 # `plate_profile` was the analysed register's one entry, and its discharge was a request whose
 # acquisition block is filled from a saved plate. The `plate` request is that request: it saves
 # a plate from the members it states, analyses under it with one member written over the top,
-# and the field is on the terminal's and the tab's answers with a name, a revision and the
-# member it displaced. The field is now a declared divergence, whose `filled_by` says it is on
-# the wire on that request and on no other.
+# and the field is on every surface's answer with a name, a revision and the member it
+# displaced. It is compared now, on that request, and named in `FILLED_BY_REQUEST` below.
 #
 # Keyed by the kind of question, because the two documents declare different fields.
 NEVER_ON_THE_WIRE = {
     ANALYSED: {},
+    SWEPT: {},
+}
+
+
+class FilledByRequest(NamedTuple):
+    """One field every surface publishes on some requests and none publishes on the rest.
+
+    The third state a field can be in, and the registers above cannot express it. A divergence
+    is a field some surfaces carry and others drop on one request, and `NEVER_ON_THE_WIRE` is a
+    field no request fills at all. This is a field the request decides: every surface agrees
+    about it where the question asks for it, and every surface leaves it out where the question
+    does not, so it is compared on one request and absent from the others without being a gap
+    on any of them.
+
+    `plate_profile` is the shape and the reason this exists. A run told about no saved plate
+    has nothing to attribute, `serde` leaves the key out, and a register that could only say
+    "uneven" or "never" would have to call one of the two states a defect.
+
+    Checked in four directions on every run, so the entry cannot outlive what it describes: a
+    name the document does not declare, a request named here that leaves the field off every
+    wire, a request not named here whose answers carry it, and a field that reaches some
+    surfaces and not all of them on a request that fills it, which the divergence register
+    catches because nothing here excuses it.
+    """
+
+    filled_by: frozenset
+    reason: str
+
+
+FILLED_BY_REQUEST = {
+    ANALYSED: {
+        "plate_profile": FilledByRequest(
+            frozenset({"plate"}),
+            "the saved plate the acquisition block was filled from. Every surface reads the "
+            "one store now, so the name, the revision and the members a caller wrote over the "
+            "top are on all four answers to the request that states a plate, and on nobody's "
+            "answer to a request that states none",
+        ),
+    },
     SWEPT: {},
 }
 
@@ -1071,11 +1096,11 @@ def coverage_faults(answers, fields, kind, asked, request):
                 f"it{here}: {declared.reason}"
             )
 
-    faults += undeclared_reach_faults(everywhere, somewhere, differ, kind)
+    faults += undeclared_reach_faults(everywhere, somewhere, differ, kind, request)
     return faults
 
 
-def undeclared_reach_faults(everywhere, somewhere, differ, kind):
+def undeclared_reach_faults(everywhere, somewhere, differ, kind, request):
     """Every field the document declares is accounted for, and the account is against the
     document rather than against what happened to arrive.
 
@@ -1088,6 +1113,14 @@ def undeclared_reach_faults(everywhere, somewhere, differ, kind):
     document = DOCUMENT_OF_KIND[kind]
     declared = keys_a_document_declares(document)
     never = NEVER_ON_THE_WIRE[kind]
+    by_request = FILLED_BY_REQUEST[kind]
+    # Fields this request does not ask for. Excused here and nowhere else: on a request that
+    # does ask, the field falls through to the same checks every other field meets.
+    elsewhere = {
+        field
+        for field, filled in by_request.items()
+        if request not in filled.filled_by
+    }
 
     # The control, and it is what makes the parse above evidence rather than a hope. A read that
     # found the wrong struct, or stopped early, or matched nothing, reports a universe the
@@ -1099,13 +1132,33 @@ def undeclared_reach_faults(everywhere, somewhere, differ, kind):
             f"{len(declared)} fields this coverage is measured against are not the document's"
         )
 
-    for field in sorted(declared - everywhere - set(differ) - set(never)):
+    for field in sorted(declared - everywhere - set(differ) - set(never) - elsewhere):
         faults.append(
             f"{document} declares {field} and no answer to this request carries it, and nothing "
             "here says why. A field the whole population leaves empty is dropped from every "
             "wire, so it is compared by nobody and missing from nobody. Add a request that "
             "fills it, or name it in NEVER_ON_THE_WIRE with the request that would"
         )
+
+    for field, filled in sorted(by_request.items()):
+        if field not in declared:
+            faults.append(
+                f"{field} is named as filled by {sorted(filled.filled_by)} and {document} "
+                f"declares no such field, which reads as coverage and covers nothing: "
+                f"{filled.reason}"
+            )
+        elif request in filled.filled_by and field not in somewhere:
+            faults.append(
+                f"{field} is recorded as on the wire on the {request} request and no surface "
+                f"publishes it, so the request stopped filling it and the comparison this "
+                f"entry claims is a sentence nothing measures: {filled.reason}"
+            )
+        elif request not in filled.filled_by and field in somewhere:
+            faults.append(
+                f"{field} is recorded as on the wire on {sorted(filled.filled_by)} alone and "
+                f"the {request} request puts it on one, so the entry is out of date and this "
+                f"request compares it too: {filled.reason}"
+            )
 
     for field, absent in sorted(never.items()):
         if field not in declared:

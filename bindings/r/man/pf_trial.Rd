@@ -8,7 +8,9 @@ pf_trial(
   force_newtons,
   sample_rate_hz = NULL,
   sentinel_convention = "none",
-  acquisition = NULL
+  acquisition = NULL,
+  plate = NULL,
+  plates_folder = NULL
 )
 }
 \arguments{
@@ -26,6 +28,13 @@ number are counted separately, whatever convention is declared.}
 \item{acquisition}{What the plate and its settings were, from [pf_acquisition()]. A
 block missing any member makes every result from this trial carry
 `acquisition_complete = FALSE`.}
+
+\item{plate}{A saved plate to fill the block from: a name this machine holds, or the list
+[pf_plate()] returns. A member in `acquisition` beside it is the answer that runs, and
+the result records what it replaced.}
+
+\item{plates_folder}{Where to look for `plate`, when it is a name. Absent reads the folder
+`plateforce plate save` writes to.}
 }
 \value{
 A `trial`.

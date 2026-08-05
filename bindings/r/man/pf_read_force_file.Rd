@@ -10,7 +10,9 @@ pf_read_force_file(
   delimiter = NULL,
   force_column = NULL,
   sentinel_convention = "none",
-  acquisition = NULL
+  acquisition = NULL,
+  plate = NULL,
+  plates_folder = NULL
 )
 }
 \arguments{
@@ -27,6 +29,13 @@ force.}
 or `"negative_one"`.}
 
 \item{acquisition}{What the plate and its settings were, from [pf_acquisition()].}
+
+\item{plate}{A saved plate to fill the block from: a name this machine holds, or the list
+[pf_plate()] returns. A member in `acquisition` beside it is the answer that runs, and
+the result records what it replaced.}
+
+\item{plates_folder}{Where to look for `plate`, when it is a name. Absent reads the folder
+`plateforce plate save` writes to.}
 }
 \value{
 A `trial` whose `@read_report` names the delimiter, the column, the rows read,
