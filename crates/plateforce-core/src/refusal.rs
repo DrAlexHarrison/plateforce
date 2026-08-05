@@ -474,6 +474,32 @@ impl Refusal {
         )
     }
 
+    /// A rule that divides an interval in two, whose answer fell on one of that interval's own
+    /// ends.
+    ///
+    /// The same code as a search that qualified nothing, because to a caller they are one
+    /// answer: this rule places no split here. The three instants are the evidence, and they
+    /// are in seconds because every other number a reader compares them against is.
+    pub fn subdivision_outside_its_interval(
+        method_id: impl Into<String>,
+        split_seconds: f64,
+        interval_start_seconds: f64,
+        interval_end_seconds: f64,
+    ) -> Self {
+        Self::build(
+            RefusalCode::NoCrossing,
+            method_id,
+            None,
+            None,
+            BTreeMap::from([
+                ("split_seconds".to_string(), split_seconds),
+                ("interval_start_seconds".to_string(), interval_start_seconds),
+                ("interval_end_seconds".to_string(), interval_end_seconds),
+            ]),
+            Vec::new(),
+        )
+    }
+
     pub fn method_not_implemented(
         method_id: impl Into<String>,
         slot: impl Into<String>,
@@ -790,6 +816,17 @@ fn sentence(
         _ => method_id.to_string(),
     };
     match code {
+        // A split on one of its interval's own ends, which is a different report from a
+        // search that qualified nothing: the rule answered, and the answer names no interior
+        // instant. Told apart from the other forms of this code by the detail.
+        RefusalCode::NoCrossing if detail.contains_key("split_seconds") => format!(
+            "{subject} placed its split at {} s, which is an end of the {} s to {} s interval \
+             it divides, so one of the two sub-phases holds the whole interval and the other \
+             holds none of it",
+            named("split_seconds"),
+            named("interval_start_seconds"),
+            named("interval_end_seconds")
+        ),
         // A bounded search that finds nothing has no candidates to count, so the two forms
         // under this code are told apart by the detail.
         RefusalCode::NoCrossing if detail.contains_key("candidates_read") => {

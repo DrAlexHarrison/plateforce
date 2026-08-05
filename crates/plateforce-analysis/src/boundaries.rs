@@ -48,31 +48,90 @@ pub(crate) fn placed_outcome(
     }
 }
 
-/// The same, for a search over a trace that may carry no such crossing at all.
+/// A rule that divides an interval in two, as the instant it placed inside that interval or
+/// the refusal that says it placed none.
 ///
-/// A recording where force steps to flight without descending through system weight has no
-/// falling crossing, and that is a fact about the recording rather than an empty cell. It
-/// reaches a reader as a refusal under the code for a search that found nothing, so it is as
-/// visible as a number.
-pub(crate) fn crossing_or_refusal(
+/// A split equal to either end divides the interval into all of it and none of it, so a
+/// sub-phase metric taken against it is the whole phase or nothing while its key still reads
+/// as a split. `is_true_crossing` cannot catch that: the comparison behind it is against the
+/// search anchor, and a split at the interval's far end sits past the anchor.
+///
+/// The bound is read here rather than by each rule, so a split placed by a share of the
+/// duration and a split placed by a crossing are held to one definition of inside.
+pub(crate) fn subdivision_outcome(
     context: &DerivedContext,
     method_id: &str,
     key: &'static str,
     name: &'static str,
+    interval: (usize, usize),
+    index: Option<usize>,
+    bound: BoundValues,
+) -> DerivedOutcome {
+    let (start_index, end_index) = interval;
+    match index {
+        Some(index) if index > start_index && index < end_index => {
+            placed_outcome(context, key, name, Some(index), bound)
+        }
+        Some(index) => DerivedOutcome::declined(
+            bound,
+            RuleRefusal::Refused(Box::new(
+                plateforce_core::Refusal::subdivision_outside_its_interval(
+                    method_id,
+                    context.trial.time_at(index),
+                    context.trial.time_at(start_index),
+                    context.trial.time_at(end_index),
+                ),
+            )),
+        ),
+        None => placed_outcome(context, key, name, None, bound),
+    }
+}
+
+/// The same, for a subdivision searched for as a crossing of a force reference.
+///
+/// The refusal for a search that qualified nothing carries the interval it read and the
+/// reference it compared against, and counts the samples it read rather than reporting none.
+/// A rule handed an interval that never descends to the reference has read every sample in it
+/// and found no candidate, which is a fact about the interval those bounds enclose. Reporting
+/// zero candidates would read as an empty recording.
+pub(crate) fn subdivision_crossing_outcome(
+    context: &DerivedContext,
+    method_id: &str,
+    key: &'static str,
+    name: &'static str,
+    interval: (usize, usize),
+    reference_newtons: f64,
     crossing: Option<BoundedCrossing>,
     bound: BoundValues,
 ) -> DerivedOutcome {
+    let (start_index, end_index) = interval;
     match crossing {
-        Some(crossing) if crossing.is_true_crossing => {
-            placed_outcome(context, key, name, Some(crossing.index), bound)
-        }
+        Some(crossing) if crossing.is_true_crossing => subdivision_outcome(
+            context,
+            method_id,
+            key,
+            name,
+            interval,
+            Some(crossing.index),
+            bound,
+        ),
         Some(fallback) => declined_at_a_fallback(context, method_id, bound, fallback),
         None => DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::nothing_qualified(
                 method_id,
-                0,
-                BTreeMap::new(),
+                (end_index + 1).saturating_sub(start_index),
+                BTreeMap::from([
+                    (
+                        "interval_start_seconds".to_string(),
+                        context.trial.time_at(start_index),
+                    ),
+                    (
+                        "interval_end_seconds".to_string(),
+                        context.trial.time_at(end_index),
+                    ),
+                    ("reference_newtons".to_string(), reference_newtons),
+                ]),
             ))),
         ),
     }

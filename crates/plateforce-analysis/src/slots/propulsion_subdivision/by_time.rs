@@ -61,7 +61,9 @@ fn place(
     };
 
     let index = propulsion_subdivision_by_time(start, end, split_percent_of_duration);
-    boundaries::placed_outcome(context, KEY, PLACED, index, bound)
+    // A stated share is a caller's number, and 0 or 100 of it names an end of the interval
+    // rather than a split of it. Held to the same definition of inside as the crossing rule.
+    boundaries::subdivision_outcome(context, ID, KEY, PLACED, (start, end), index, bound)
 }
 
 /// The instant the sub-phase metrics are bounded by.
