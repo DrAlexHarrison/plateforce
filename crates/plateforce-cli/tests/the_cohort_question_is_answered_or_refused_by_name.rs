@@ -257,13 +257,24 @@ fn every_call_on_the_way_to_the_answer_is_answered_or_names_what_it_lacks() {
     // 3. One number per athlete, which every clause of the question is stated over. The
     //    registry publishes `trial.aggregation` with three incompatible rules, so which one
     //    runs is a method choice and not a mean.
+    //    The evidence is the bound registry id rather than a number, because a reduction that
+    //    ran and recorded no method would be a mean wearing a citation it never earned.
     let step = Step {
         fragment: "athletes, rather than trials",
         asked_for: "aggregate",
-        evidence: "aggregates.csv",
+        evidence: "\"method_id\":\"trial.aggregation\"",
     };
     let mut line = over_the_cohort(&trials_named, &run_named);
-    line.extend(["--aggregate", "mean_of_best_two", "--aggregate-n", "2"]);
+    line.extend([
+        "--aggregate",
+        "mean_of_best_two",
+        "--aggregate-n",
+        "2",
+        "--aggregate-quantity",
+        "jump_height_from_takeoff_meters",
+        "--format",
+        "json",
+    ]);
     let output = plateforce(&line);
     verdicts.push(record(&step, &output));
 

@@ -9,9 +9,10 @@ use std::path::PathBuf;
 
 use plateforce_batch::agreement::BatchCompareRequest;
 use plateforce_batch::{
-    analyse, compare, BatchRequest, Rendering, SourceFormat, TrialIdentity, TrialSet,
+    analyse, compare, with_aggregates, AggregationRequest, BatchRequest, GroupKind, Rendering,
+    SourceFormat, TrialIdentity, TrialSet,
 };
-use plateforce_core::Refusal;
+use plateforce_core::{DispersionEstimator, Refusal};
 use plateforce_registry::Registry;
 
 use crate::exit::{fault_for, Declined, Fault, Outcome};
@@ -99,6 +100,32 @@ pub struct Args {
         default_value = "jump_height_from_takeoff_meters"
     )]
     pub quantity: String,
+    /// The published rule that reduces an athlete's trials to one number. There is no such
+    /// thing as the mean here: `trial.aggregation` publishes three incompatible rules and none
+    /// of them is the arithmetic mean of a subject's trials
+    #[arg(long = "aggregate", value_name = "RULE")]
+    pub aggregate: Option<String>,
+    /// How many trials the rule was asked for, which travels with the value everywhere. Best
+    /// of five and best of three are two requests of one rule and not one request
+    #[arg(long = "aggregate-n", value_name = "N")]
+    pub aggregate_n: Option<usize>,
+    /// Which trials one reduction is taken over. A session is one athlete on one occasion, so
+    /// grouping by subject pools that athlete's occasions and grouping by session keeps them
+    /// apart
+    #[arg(long = "aggregate-by", value_name = "GROUP", default_value = "subject")]
+    pub aggregate_by: String,
+    /// A quantity to reduce, repeatable. Unstated, every quantity the run computed is reduced
+    /// and each row names its own
+    #[arg(long = "aggregate-quantity", value_name = "KEY")]
+    pub aggregate_quantity: Vec<String>,
+    /// Which standard deviation sits beside each reduced value. Recorded as assumed where
+    /// nobody states it, because no published rule for this reduction names one
+    #[arg(
+        long = "aggregate-dispersion",
+        value_name = "ESTIMATOR",
+        default_value = "sample"
+    )]
+    pub aggregate_dispersion: String,
     /// Gravity where the plate stands, which applies to every trial in the folder. Unstated,
     /// standard gravity runs and the record says nobody was asked
     #[arg(long, value_name = "M/S2")]
@@ -121,6 +148,25 @@ pub struct Args {
     /// Hide the fingerprint column in the printed table. The record is written either way
     #[arg(long)]
     pub without_provenance: bool,
+}
+
+impl Args {
+    /// Whether this run asked for its trials to be reduced to one number per group.
+    ///
+    /// One home, read by the run that performs the reduction and by the run that cannot, so the
+    /// two cannot come to disagree about what counts as asking. They did: `--mode compare`
+    /// beside `--aggregate` returned a comparison, wrote no reduction, exited 0 and said
+    /// nothing, which is the silent-default failure this product exists against, arriving in
+    /// the flag that had just been added to prevent one.
+    ///
+    /// `--aggregate-by` and `--aggregate-dispersion` are not read here. Both carry a default,
+    /// so both are always set, and a run that never mentioned a reduction would read as having
+    /// asked for one.
+    fn asked_for_a_reduction(&self) -> bool {
+        self.aggregate.is_some()
+            || self.aggregate_n.is_some()
+            || !self.aggregate_quantity.is_empty()
+    }
 }
 
 pub fn run(
@@ -443,6 +489,14 @@ fn run_analyse(
         Err(refusal) => return declined_run(refusal, registry, &request.analysis, renderer),
     };
 
+    // The reduction runs after the trials and before anything is written, so a request that
+    // names a rule the group cannot satisfy refuses instead of leaving a folder of tables
+    // beside a reduction that never happened.
+    let result = match reduced_per_group(args, set, result) {
+        Ok(result) => result,
+        Err(declined) => return Outcome::declined(declined),
+    };
+
     if let Err(error) = result.write_csv(out_dir) {
         return Outcome::declined_line(Fault::Request, error.to_string());
     }
@@ -465,6 +519,92 @@ fn run_analyse(
     outcome
 }
 
+/// The reduction a run asked for, joined onto its result, or the refusal that says why not.
+///
+/// Nothing here reduces anything. `plateforce_batch::with_aggregates` does it, bound to
+/// `trial.aggregation`, and this is the door: the engine has carried the three published rules,
+/// their refusals and their provenance since the batch engine landed, and no surface reached
+/// them, so a construct publishing three incompatible rules could be read in the registry and
+/// run by nobody.
+///
+/// A run naming no rule reduces nothing and says nothing, which is the correct state of a run
+/// that asked no question about athletes.
+fn reduced_per_group(
+    args: &Args,
+    set: &TrialSet,
+    result: plateforce_batch::BatchResult,
+) -> Result<plateforce_batch::BatchResult, Declined> {
+    if !args.asked_for_a_reduction() {
+        return Ok(result);
+    }
+
+    let group_kind = match args.aggregate_by.as_str() {
+        "subject" => GroupKind::Subject,
+        "session" => GroupKind::Session,
+        "run" => GroupKind::Run,
+        other => {
+            return Err(Declined::line(
+                Fault::Request,
+                format!(
+                    "a reduction is taken over subject, session or run, and this one named {other}"
+                ),
+            ))
+        }
+    };
+
+    // Read through core's own words rather than matched here, so a third estimator arrives on
+    // this flag without an edit and cannot arrive under a second spelling.
+    let dispersion = match DispersionEstimator::from_published_str(&args.aggregate_dispersion) {
+        Some(estimator) => estimator,
+        None => {
+            return Err(Declined::line(
+                Fault::Request,
+                format!(
+                "the standard deviation beside a reduced value is one of {}, and this run named {}",
+                DispersionEstimator::PUBLISHED.join(", "),
+                args.aggregate_dispersion
+            ),
+            ))
+        }
+    };
+
+    // Every quantity the run computed, where nobody named one. A scope rather than a method
+    // choice, and each row names the quantity it reduced, so nothing is reduced unseen.
+    let quantities = if args.aggregate_quantity.is_empty() {
+        result.quantities.clone()
+    } else {
+        let absent: Vec<&String> = args
+            .aggregate_quantity
+            .iter()
+            .filter(|key| !result.quantities.contains(key))
+            .collect();
+        if !absent.is_empty() {
+            let named: Vec<&str> = absent.iter().map(|key| key.as_str()).collect();
+            return Err(Declined::line(
+                Fault::Request,
+                format!(
+                    "this run computed {}, and a reduction was asked for {}",
+                    result.quantities.join(", "),
+                    named.join(", ")
+                ),
+            ));
+        }
+        args.aggregate_quantity.clone()
+    };
+
+    let request = AggregationRequest::declared(
+        args.aggregate.as_deref(),
+        args.aggregate_n,
+        group_kind,
+        quantities,
+        dispersion,
+    )
+    .map_err(|refusal| Declined::line(Fault::Request, refusal.message()))?;
+
+    with_aggregates(result, set, &request)
+        .map_err(|refusal| Declined::line(Fault::Request, refusal.message()))
+}
+
 fn run_compare(
     out_dir: &std::path::Path,
     args: &Args,
@@ -477,6 +617,16 @@ fn run_compare(
         return Outcome::declined_line(
             Fault::Request,
             "a comparison runs two or more rules over one recording, and this one named one, so --against takes the rule to compare the bound one against".to_string(),
+        );
+    }
+
+    // A comparison returns one row per trial per rule, so an athlete's trials do not sit in one
+    // column for a rule to reduce. Refused by name rather than ignored: this run silently
+    // dropped the reduction and exited 0 on the day the flag was added.
+    if args.asked_for_a_reduction() {
+        return Outcome::declined_line(
+            Fault::Request,
+            "a comparison returns one row per trial per rule, so an athlete's trials are not in one column for trial.aggregation to reduce, and --mode analyse is the run that takes --aggregate".to_string(),
         );
     }
 

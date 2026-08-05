@@ -48,6 +48,10 @@ impl AggregationRule {
         }
     }
 
+    /// Naming nothing and naming something unpublished are two different mistakes, and a
+    /// refusal that reads "the request named none" to a caller who wrote `arithmetic_mean`
+    /// tells them nothing about the word they used. Caught 2026-08-05, the first time a surface
+    /// could reach this rule at all.
     pub fn parse(name: &str) -> Result<Self, AggregationRefusal> {
         match name {
             "best_of_n_by_peak_force" => Ok(AggregationRule::BestOfNByPeakForce),
@@ -55,7 +59,10 @@ impl AggregationRule {
                 Ok(AggregationRule::MeanOfBestThreeOfAtLeastFive)
             }
             "mean_of_best_two" => Ok(AggregationRule::MeanOfBestTwo),
-            _ => Err(AggregationRefusal::RuleNotStated),
+            "" => Err(AggregationRefusal::RuleNotStated),
+            named => Err(AggregationRefusal::RuleNotPublished {
+                named: named.to_string(),
+            }),
         }
     }
 
@@ -102,6 +109,11 @@ impl AggregationRule {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum AggregationRefusal {
     RuleNotStated,
+    /// A word the caller wrote that no published rule answers to. It is quoted back, because a
+    /// caller cannot correct a word the refusal does not repeat.
+    RuleNotPublished {
+        named: String,
+    },
     CountNotStated,
     /// The rule ranks on a quantity the analysis did not produce.
     QuantityAbsent {
@@ -132,6 +144,12 @@ impl AggregationRefusal {
         match self {
             AggregationRefusal::RuleNotStated => format!(
                 "{TRIAL_AGGREGATION} takes one of {}, and the request named none",
+                AggregationRule::PUBLISHED.join(", ")
+            ),
+            AggregationRefusal::RuleNotPublished { named } => format!(
+                "{TRIAL_AGGREGATION} takes one of {}, and the request named {named}. There is no \
+                 mean of a subject's trials here: none of the three is one, so a reduction that \
+                 took a plain mean would attach a citation to a rule nobody published",
                 AggregationRule::PUBLISHED.join(", ")
             ),
             AggregationRefusal::CountNotStated => format!(
