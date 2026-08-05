@@ -429,6 +429,61 @@ fn early_force_is_a_share_of_the_net_peak_the_analysis_reported() {
     );
 }
 
+/// The window a caller states is the window the candidates are judged against, and a rejected
+/// candidate is counted rather than dropped.
+///
+/// The entry exists because three shipped tools apply a window and none reports what it threw
+/// away, so the bounds reaching the verdict is the whole of it. Read at three windows on one
+/// recording: one that admits the flight this analysis found, one whose floor sits above it,
+/// and one whose ceiling sits below it. Without this a rule that read neither bound would
+/// answer on every trial and pass every other guard in this file.
+#[test]
+fn the_window_a_caller_states_decides_which_candidates_survive() {
+    let trial = committed_trial("subject01_trial1");
+    let mut verdicts = Vec::new();
+    for (lower, upper) in [("0.1", "2.0"), ("0.9", "2.0"), ("0.01", "0.05")] {
+        let response = Asked::new()
+            .stating(
+                VALIDITY_CONSTRUCT,
+                FLIGHT_WINDOW_RULE,
+                &[
+                    ("selection", "first_qualifying"),
+                    ("flight_threshold_n", "10"),
+                    ("lower_seconds", lower),
+                    ("upper_seconds", upper),
+                ],
+            )
+            .on(&trial);
+        let read = number(&response, "flight_candidates_read_count").expect("the gate ran");
+        let rejected = number(&response, "flight_candidates_rejected_count").expect("the gate ran");
+        let accepted = number(&response, "accepted_flight_seconds");
+        let admitted = number(&response, "trial_validity_flight_window_admitted").expect("the gate ran");
+        println!(
+            "{lower} to {upper} s: {rejected:.0} of {read:.0} candidates rejected, accepted \
+             {accepted:?}, admitted {admitted}"
+        );
+        verdicts.push((admitted, rejected, accepted));
+    }
+    assert_eq!(verdicts[0].0, 1.0, "the published window rejected this jump");
+    assert_eq!(
+        verdicts[1].0, 0.0,
+        "a floor above this flight time still admitted it, so lower_seconds reached no comparison"
+    );
+    assert_eq!(
+        verdicts[2].0, 0.0,
+        "a ceiling below this flight time still admitted it, so upper_seconds reached no comparison"
+    );
+    assert!(
+        verdicts[1].1 > verdicts[0].1 && verdicts[2].1 > verdicts[0].1,
+        "a window that admitted nothing counted no more rejections than one that admitted the \
+         jump: {verdicts:?}"
+    );
+    assert!(
+        verdicts[0].2.is_some() && verdicts[1].2.is_none(),
+        "a window that qualified no candidate still reported a duration"
+    );
+}
+
 /// What the four gates say about the six committed trials, with their denominators.
 ///
 /// Printed rather than asserted trial by trial, because the numbers are a property of the
