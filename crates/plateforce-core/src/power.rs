@@ -280,6 +280,77 @@ pub fn peak_power_from_height_lewis_watts(
     Some(4.9f64.sqrt() * system_mass_kilograms * jump_height_meters.sqrt() * 9.81)
 }
 
+/// One population's regression on jump height and mass, as the registry publishes it.
+///
+/// The height coefficient carries its own unit because one of the ten published sets states a
+/// height in metres and nine state it in centimetres, so a set read under the wrong unit is
+/// wrong by a factor of a hundred. Carrying the unit beside the number is what makes that
+/// unreachable rather than warned about.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HeightRegressionCoefficients {
+    pub jump_height_coefficient: f64,
+    /// `watts_per_centimetre` or `watts_per_metre`, as the registry spells it.
+    pub jump_height_unit: &'static str,
+    pub body_mass_coefficient: f64,
+    pub intercept_watts: f64,
+}
+
+pub const WATTS_PER_CENTIMETRE: &str = "watts_per_centimetre";
+pub const WATTS_PER_METRE: &str = "watts_per_metre";
+
+/// Peak power from a population-calibrated regression on jump height and mass.
+///
+/// `None` for a unit this function does not know, rather than a height silently read in
+/// metres against a coefficient calibrated per centimetre, which is the factor of a hundred
+/// the registry warns about and the only way this arithmetic can be wrong.
+pub fn peak_power_from_height_regression_watts(
+    jump_height_meters: f64,
+    system_mass_kilograms: f64,
+    coefficients: &HeightRegressionCoefficients,
+) -> Option<f64> {
+    if !jump_height_meters.is_finite() || system_mass_kilograms <= 0.0 {
+        return None;
+    }
+    let height = match coefficients.jump_height_unit {
+        WATTS_PER_CENTIMETRE => jump_height_meters * 100.0,
+        WATTS_PER_METRE => jump_height_meters,
+        _ => return None,
+    };
+    let watts = coefficients.jump_height_coefficient * height
+        + coefficients.body_mass_coefficient * system_mass_kilograms
+        + coefficients.intercept_watts;
+    watts.is_finite().then_some(watts)
+}
+
+/// Work as one force value multiplied by one displacement value, the vendor construction.
+///
+/// Registered because the majority of a generation of results were produced with it, not
+/// because it is a second quadrature route. A single product equals the integral only where
+/// force is constant through the displacement, which it emphatically is not during a jump, so
+/// the peak taken per cycle biases the number high by an amount that depends on the shape of
+/// the force-displacement curve rather than by a constant.
+pub fn work_from_single_force_displacement_product_joules(
+    vertical_ground_reaction_force_newtons: &[f64],
+    displacement_meters: &[f64],
+    phase: &DeclaredPhase,
+) -> Result<f64, PowerError> {
+    phase.checked_against(vertical_ground_reaction_force_newtons.len())?;
+    if displacement_meters.len() != vertical_ground_reaction_force_newtons.len() {
+        return Err(PowerError::SeriesLengthMismatch {
+            force_samples: vertical_ground_reaction_force_newtons.len(),
+            velocity_samples: displacement_meters.len(),
+        });
+    }
+    let peak_force_newtons = vertical_ground_reaction_force_newtons
+        [phase.first_index..=phase.last_index]
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let rise_meters =
+        displacement_meters[phase.last_index] - displacement_meters[phase.first_index];
+    Ok(peak_force_newtons * rise_meters)
+}
+
 /// A rate of power development, with the two instants the line was drawn between.
 ///
 /// The instants travel with the number because two rules under this construct anchor
@@ -764,6 +835,120 @@ mod tests {
         assert!(matches!(
             rate_of_power_development_peak_to_peak(&series, 0, 3, 0.001).unwrap_err(),
             PowerError::PhaseTooShort { .. }
+        ));
+    }
+
+    /// A set stating its height coefficient per metre and a set stating it per centimetre
+    /// give answers of the same order on one jump.
+    ///
+    /// The registry's own warning is that a set read under the wrong unit is wrong by a factor
+    /// of a hundred, and that is the only way this arithmetic can fail: every term is a
+    /// multiplication a reader could check by hand. So the unit is carried beside the
+    /// coefficient and read here, rather than applied by whoever calls this.
+    #[test]
+    fn a_regression_set_is_read_under_the_height_unit_it_states() {
+        let per_centimetre = HeightRegressionCoefficients {
+            jump_height_coefficient: 61.9,
+            jump_height_unit: WATTS_PER_CENTIMETRE,
+            body_mass_coefficient: 36.0,
+            intercept_watts: -1822.0,
+        };
+        // Shetty's line, which is the one set of the ten stating a height in metres. Its
+        // height coefficient is very nearly a hundred times a per-centimetre one, which is
+        // what makes the two readings indistinguishable by size.
+        let per_metre = HeightRegressionCoefficients {
+            jump_height_coefficient: 1925.72,
+            jump_height_unit: WATTS_PER_METRE,
+            body_mass_coefficient: 14.74,
+            intercept_watts: -666.3,
+        };
+        let height_meters = 0.44;
+        let mass = 59.88;
+        let centimetre_set =
+            peak_power_from_height_regression_watts(height_meters, mass, &per_centimetre).unwrap();
+        let metre_set =
+            peak_power_from_height_regression_watts(height_meters, mass, &per_metre).unwrap();
+        assert!(
+            (metre_set / centimetre_set - 1.0).abs() < 1.0,
+            "{metre_set} W against {centimetre_set} W, which is the factor of a hundred the \
+             unit exists to prevent"
+        );
+
+        // Read under the wrong unit the same coefficients answer a hundred times apart, so
+        // the guard above is measuring the unit rather than the coefficients happening to be
+        // close.
+        let mislabelled = HeightRegressionCoefficients {
+            jump_height_unit: WATTS_PER_CENTIMETRE,
+            ..per_metre
+        };
+        let wrong =
+            peak_power_from_height_regression_watts(height_meters, mass, &mislabelled).unwrap();
+        assert!(
+            wrong / metre_set > 50.0,
+            "reading the per-metre set per centimetre moved it from {metre_set} to {wrong}"
+        );
+
+        // A unit nothing knows is nothing rather than a height read under a guess.
+        let unknown = HeightRegressionCoefficients {
+            jump_height_unit: "watts_per_furlong",
+            ..per_centimetre
+        };
+        assert!(peak_power_from_height_regression_watts(height_meters, mass, &unknown).is_none());
+        assert!(
+            peak_power_from_height_regression_watts(height_meters, 0.0, &per_centimetre).is_none()
+        );
+    }
+
+    /// The vendor product is the peak force through the phase's rise, and it is not the
+    /// integral.
+    ///
+    /// Where force is constant the two agree exactly, which is the identity the construction
+    /// rests on. Where it is not, the product takes the peak against every sample and comes
+    /// out high, and the size of that is a property of the curve rather than a constant.
+    #[test]
+    fn the_single_product_equals_the_integral_only_where_force_is_constant() {
+        let constant = vec![1000.0; 501];
+        let displacement: Vec<f64> = (0..=500).map(|sample| sample as f64 * 0.001).collect();
+        let phase = declared(0, 500);
+        let product =
+            work_from_single_force_displacement_product_joules(&constant, &displacement, &phase)
+                .unwrap();
+        // A thousand newtons through half a metre is five hundred joules, known without
+        // consulting the implementation.
+        assert!((product - 500.0).abs() < 1e-9, "came back {product}");
+
+        // A force that rises linearly through the same displacement does half that work, and
+        // the product takes the peak against all of it, so it reads double the truth.
+        let rising: Vec<f64> = (0..=500).map(|sample| sample as f64 * 2.0).collect();
+        let over_a_ramp =
+            work_from_single_force_displacement_product_joules(&rising, &displacement, &phase)
+                .unwrap();
+        assert!(
+            (over_a_ramp - 500.0).abs() < 1e-9,
+            "the peak of the ramp is 1000 N through 0.5 m: {over_a_ramp}"
+        );
+        let truth = 500.0f64 * 0.5; // the mean of the ramp through the same rise
+        assert!(
+            over_a_ramp / truth > 1.9,
+            "the product came to {over_a_ramp} J against the {truth} J the integral gives, \
+             which is not the bias the registry records"
+        );
+
+        // A phase the trace does not hold, and a displacement of a different length, are both
+        // named rather than truncated.
+        assert!(work_from_single_force_displacement_product_joules(
+            &constant,
+            &displacement,
+            &declared(0, 900)
+        )
+        .is_err());
+        assert!(matches!(
+            work_from_single_force_displacement_product_joules(
+                &constant,
+                &displacement[..100],
+                &phase
+            ),
+            Err(PowerError::SeriesLengthMismatch { .. })
         ));
     }
 
