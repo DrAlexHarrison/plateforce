@@ -22,7 +22,7 @@ use crate::out::Format;
 ///
 /// One spelling covers one athlete and a squad, because a reader stating either is doing one
 /// thing. `{subject}` is the field `--pattern` pulls out of each file name.
-const MASS_HELP: &str = "The athlete's mass in kilograms, written <KG> for a folder of one athlete or <SUBJECT>=<KG> per athlete. Repeatable in the second form";
+const MASS_HELP: &str = "The athlete's mass, which is not the weighed system mass: system weight includes any bar and bodyweight does not. Written <KG> for a folder of one athlete, or <SUBJECT>=<KG> per athlete, repeatable";
 
 /// What a mass keyed by subject looks like, used by the help and by the refusals, so a flag
 /// cannot describe a shape its parser does not take.
