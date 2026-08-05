@@ -810,13 +810,6 @@ select { cursor: pointer; }
 .tag--provisional { color: var(--text-secondary); background: var(--surface-sunken); border: 1px dashed var(--border-strong); }
 .tag--fails { color: var(--danger); background: var(--danger-quiet); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); }
 
-.undecided--clamped {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .undecided {
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
