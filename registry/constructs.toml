@@ -301,13 +301,40 @@ unit = "watts_per_second"
 
 [[construct]]
 id = "mechanical_power"
-title = "Rate of doing mechanical work"
+title = "Rate of doing mechanical work, at each instant"
 label = "Power"
 unit = "watts"
+rules_answer = "one_question"
+notes = """
+How power is formed at every sample, which is what the four modalities filed here disagree about:
+a plate integrates a measured force once to get velocity, a transducer differentiates a measured
+displacement twice to get force, and a differentiated term dominates the noise in the product. What
+is read off the series afterwards is a different question and sits under the two constructs below.
+"""
+
+[[construct]]
+id = "mechanical_power.peak"
+title = "The largest instantaneous power reached over a declared interval"
+label = "Peak power"
+unit = "watts"
+rules_answer = "one_question"
 notes = """
 Whether this determines jump performance at all has been argued in print, by name, with rebuttals,
 for fifty years. The dispute is not about a threshold, it is about whether the quantity is the right
-quantity.
+quantity. Separate from the mean below because the two differ by more than any rule for either of
+them moves it, so filing them together would assert that they are the same quantity.
+"""
+
+[[construct]]
+id = "mechanical_power.mean"
+title = "Power averaged across a declared interval"
+label = "Mean power"
+unit = "watts"
+rules_answer = "one_question"
+notes = """
+A mean without its interval is not interpretable, so the interval travels with the number. It
+degrades gracefully with sampling rate where the peak does not, and one optimal-load lineage chose
+it for that reason, which changes the reported optimal load.
 """
 
 [[construct]]
@@ -315,6 +342,7 @@ id = "mechanical_work"
 title = "Mechanical work done over a declared interval"
 label = "Work"
 unit = "joules"
+rules_answer = "one_question"
 
 [[construct]]
 id = "mechanical_object"

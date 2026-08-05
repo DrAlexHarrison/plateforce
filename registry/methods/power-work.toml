@@ -100,7 +100,7 @@ was differentiated dominates the noise.
 
 [[method]]
 id = "power.peak.instantaneous"
-construct = "mechanical_power"
+construct = "mechanical_power.peak"
 group = "I"
 title = "Maximum instantaneous power over a declared phase"
 rule = "Peak power is the maximum of the instantaneous power series over a declared phase."
@@ -114,8 +114,26 @@ unit = "enumeration"
 required = true
 notes = """
 Load-bearing and usually omitted: peak over propulsion, over the whole movement, or over the whole
-trace including landing give different answers.
+trace including landing give different answers. Each value names a pair of boundaries other
+constructs place, so the rules that placed them travel in the chain behind the number and two
+results under this entry can be told apart by which phase rules produced their interval.
 """
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
 
 [[method.citation]]
 key = "ruddock2016"
@@ -161,7 +179,7 @@ two noisy signals, and may not be comparable across sampling rates even within a
 
 [[method]]
 id = "power.mean.phase"
-construct = "mechanical_power"
+construct = "mechanical_power.mean"
 group = "I"
 title = "Mean power across a declared phase"
 rule = """
@@ -174,6 +192,32 @@ quadrature error and are not competing methods.
 status = "accepted"
 confidence = "high"
 debate = "single_position"
+
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+The interval the average is taken across, which the rule text names and which decides the number as
+completely as the power series does. The four values are the ones other constructs place boundaries
+for, so the chain behind a mean names the phase rules that bounded it.
+"""
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
 
 [[method.citation]]
 key = "cormie2008"
@@ -357,7 +401,7 @@ boundary = "both"
 
 [[method]]
 id = "power.phase_energy.garhammer1993"
-construct = "mechanical_power"
+construct = "mechanical_power.mean"
 group = "I"
 title = "Phase power from the barbell's potential plus kinetic energy change"
 rule = """
@@ -417,6 +461,32 @@ status = "accepted"
 confidence = "high"
 debate = "single_position"
 
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+The interval integrated across. A work value without one is not a quantity, and the four values are
+the boundaries other constructs place, so the chain behind the number names the phase rules that
+bounded it.
+"""
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
+
 [[method.citation]]
 key = "chronojump_r"
 role = "uses"
@@ -458,6 +528,28 @@ status = "accepted"
 confidence = "high"
 debate = "single_position"
 
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = "The interval integrated across, named as the entry beside this one names it."
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
+
 [[method.citation]]
 key = "linthorne2001"
 role = "proposes"
@@ -490,6 +582,32 @@ determine work for the cycle, taking one peak value per cycle.
 status = "deprecated"
 confidence = "high"
 debate = "vendor_or_legacy"
+
+[[method.parameter]]
+name = "phase"
+unit = "enumeration"
+required = true
+notes = """
+The cycle the single product is taken over. The manual says one value per cycle and does not say
+which stretch a cycle is, so the interval is named here on the same four boundaries the two
+integral routes are named on, and the number reports what it was taken across.
+"""
+
+[[method.parameter.value]]
+key = "braking"
+label = "Braking, from the start of braking to the start of the push"
+
+[[method.parameter.value]]
+key = "propulsion"
+label = "The push, from its start to its end"
+
+[[method.parameter.value]]
+key = "movement"
+label = "The whole movement, from the start of the jump to takeoff"
+
+[[method.parameter.value]]
+key = "analysis_window"
+label = "The stretch the analysis window rule placed"
 
 [[method.citation]]
 key = "amti_accupower_manual"
@@ -527,7 +645,7 @@ is a correct rectangle-rule integral and is not deprecated.
 
 [[method]]
 id = "power.peak_from_height.lewis"
-construct = "mechanical_power"
+construct = "mechanical_power.peak"
 group = "I"
 title = "Dimensional estimate of peak power from jump height and mass"
 rule = "Peak power is estimated dimensionally from jump height and the sum of body and external mass."
@@ -567,7 +685,7 @@ the constant.
 
 [[method]]
 id = "power.peak_from_height.regression"
-construct = "mechanical_power"
+construct = "mechanical_power.peak"
 group = "I"
 title = "Peak power from a population-calibrated regression on height and mass"
 rule = "Peak power is estimated from a linear regression on jump height and body mass with coefficients calibrated on a stated population."
@@ -582,22 +700,11 @@ required = true
 notes = """
 Ten coefficient sets, differing in their calibration sample rather than in what they claim power is.
 Each is unbiased only on its own calibration sample and biased by an unknown amount off it, which is
-why the population is required rather than defaulted. Peak power in watts, jump height and mass as
-each line states them:
+why the population is required rather than defaulted.
 
-  harman1991                  61.9 * height_cm  + 36.0 * mass_kg - 1822
-  sayers1999_squat_jump       60.7 * height_cm  + 45.3 * mass_kg - 2055
-  sayers1999_countermovement  51.9 * height_cm  + 48.9 * mass_kg - 2007
-  shetty2002                1925.72 * height_m  + 14.74 * mass_kg - 666.3
-  canavan2004                 65.1 * height_cm  + 25.8 * mass_kg - 1413.1
-  lara2006_male_sport_science 62.5 * height_cm  + 50.3 * mass_kg - 2184.7
-  lara2006_female_elite_volleyball  83.1 * height_cm + 42.0 * mass_kg - 2488
-  lara2006_female_medium_volleyball 53.6 * height_cm + 67.5 * mass_kg - 2624.1
-  lara2006_female_sport_science     56.7 * height_cm + 47.2 * mass_kg - 1772.6
-  lara2006_female_university        68.2 * height_cm + 40.8 * mass_kg - 1731.1
-
-Read the height unit off the line. Shetty's height term is per metre and every other set's is per
-centimetre, so a set read under the wrong unit is wrong by a factor of a hundred.
+The height coefficient carries its own unit on every set. Shetty's height term is per metre and
+every other set's is per centimetre, so a set read under the wrong unit is wrong by a factor of a
+hundred, and the unit is data here rather than a sentence a reader has to obey.
 
 The mass term in the implementation these were read from is body mass plus any external load, and
 the papers themselves were not obtained, so what each set was calibrated on rests on the
@@ -607,6 +714,167 @@ Two further sets sit in the same implementation and are not among the ten. Lewis
 functional form, mass times the square root of height, and carries its own entry. Bahamonde is
 disabled there, with the maintainer's note that its two height terms could not be disambiguated.
 """
+
+[[method.parameter.value]]
+key = "harman1991"
+label = "Harman 1991"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 61.9
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 36.0
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -1822.0
+unit = "watts"
+
+[[method.parameter.value]]
+key = "sayers1999_squat_jump"
+label = "Sayers 1999, squat jump"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 60.7
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 45.3
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -2055.0
+unit = "watts"
+
+[[method.parameter.value]]
+key = "sayers1999_countermovement"
+label = "Sayers 1999, countermovement jump"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 51.9
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 48.9
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -2007.0
+unit = "watts"
+
+[[method.parameter.value]]
+key = "shetty2002"
+label = "Shetty 2002"
+notes = "The one set whose height term is per metre."
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 1925.72
+unit = "watts_per_metre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 14.74
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -666.3
+unit = "watts"
+
+[[method.parameter.value]]
+key = "canavan2004"
+label = "Canavan 2004"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 65.1
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 25.8
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -1413.1
+unit = "watts"
+
+[[method.parameter.value]]
+key = "lara2006_male_sport_science"
+label = "Lara 2006, male sport science students"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 62.5
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 50.3
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -2184.7
+unit = "watts"
+
+[[method.parameter.value]]
+key = "lara2006_female_elite_volleyball"
+label = "Lara 2006, female elite volleyball"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 83.1
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 42.0
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -2488.0
+unit = "watts"
+
+[[method.parameter.value]]
+key = "lara2006_female_medium_volleyball"
+label = "Lara 2006, female medium-level volleyball"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 53.6
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 67.5
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -2624.1
+unit = "watts"
+
+[[method.parameter.value]]
+key = "lara2006_female_sport_science"
+label = "Lara 2006, female sport science students"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 56.7
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 47.2
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -1772.6
+unit = "watts"
+
+[[method.parameter.value]]
+key = "lara2006_female_university"
+label = "Lara 2006, female university students"
+[[method.parameter.value.number]]
+name = "jump_height_coefficient"
+value = 68.2
+unit = "watts_per_centimetre"
+[[method.parameter.value.number]]
+name = "body_mass_coefficient"
+value = 40.8
+unit = "watts_per_kilogram"
+[[method.parameter.value.number]]
+name = "intercept"
+value = -1731.1
+unit = "watts"
 
 [[method.citation]]
 key = "chronojump_constants"
@@ -628,7 +896,7 @@ between sets is a feature for the registry, because it is directly demonstrable.
 
 [[method]]
 id = "power.dropjump_energy_quotient.padulles"
-construct = "mechanical_power"
+construct = "mechanical_power.mean"
 group = "I"
 title = "Drop and rebound potential energy divided by contact time"
 rule = "Power is the potential energy of the drop plus the potential energy of the rebound, divided by ground contact time."
@@ -667,7 +935,7 @@ boundary = "protocol"
 
 [[method]]
 id = "power.dropjump_bosco_ratio"
-construct = "mechanical_power"
+construct = "mechanical_power.mean"
 group = "I"
 title = "Drop-jump power as a constant times a ratio of times"
 rule = "Power is a bare constant multiplied by the ratio of total time to contact time."
@@ -700,12 +968,15 @@ per unit mass. It circulated for years with no locatable source: the maintainer 
 recorded that the publication could not be found.
 """
 
+# Filed as a movement until 2026-08-04, which pointed an operator at a drop jump they could record.
+# Recording one would not unblock it: the rule is a bare constant multiplied by a ratio of times and
+# no publication states the constant, which the maintainer who shipped it wrote down.
 [method.reach]
-boundary = "protocol"
+boundary = "source"
 
 [[method]]
 id = "power.repeated_jump.bosco1983"
-construct = "mechanical_power"
+construct = "mechanical_power.mean"
 group = "I"
 title = "Repeated-jump power from total flight time, total duration and jump count"
 rule = """
