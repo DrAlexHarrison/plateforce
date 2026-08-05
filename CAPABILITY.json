@@ -95,6 +95,12 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.mcmahon_correction_factor",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -158,6 +164,18 @@
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
           "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.absolute_force",
+          "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.tied_to_takeoff",
+          "slot": "landing"
         },
         {
           "composed_from": null,
@@ -565,6 +583,12 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.mcmahon_correction_factor",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -628,6 +652,18 @@
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
           "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.absolute_force",
+          "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.tied_to_takeoff",
+          "slot": "landing"
         },
         {
           "composed_from": null,
@@ -1039,6 +1075,12 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.mcmahon_correction_factor",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -1102,6 +1144,18 @@
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
           "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.absolute_force",
+          "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.tied_to_takeoff",
+          "slot": "landing"
         },
         {
           "composed_from": null,
@@ -1511,6 +1565,12 @@
         },
         {
           "composed_from": null,
+          "construct": "jump_height.takeoff_frame",
+          "id": "jumpheight.dj.mcmahon_correction_factor",
+          "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.undeclared",
           "id": "jumpheight.flight_phase_displacement.vald_impdis",
           "slot": "jump_height.undeclared"
@@ -1574,6 +1634,18 @@
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.takeoff.work_energy",
           "slot": "jump_height.takeoff_frame"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.absolute_force",
+          "slot": "landing"
+        },
+        {
+          "composed_from": null,
+          "construct": "landing",
+          "id": "landing.threshold.tied_to_takeoff",
+          "slot": "landing"
         },
         {
           "composed_from": null,

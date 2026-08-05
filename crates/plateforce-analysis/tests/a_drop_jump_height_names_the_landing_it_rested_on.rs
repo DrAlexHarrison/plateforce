@@ -274,13 +274,11 @@ fn a_landing_after_takeoff_is_refused_rather_than_integrated_backwards() {
         None,
         "no height is reported when the integration has no interval to run over"
     );
+    // A search this recording gave nothing to, not a value the caller mis-stated: nobody typed
+    // the landing, a rule placed it, and the recording is what holds no arrival before takeoff.
     let refusal = refusal_naming(&response, MCMAHON).expect("the rule said why");
-    assert_eq!(refusal.code, RefusalCode::ValueNotAccepted);
-    assert!(
-        refusal.message().contains("before the takeoff"),
-        "{}",
-        refusal.message()
-    );
+    assert_eq!(refusal.code, RefusalCode::NoCrossing);
+    assert_eq!(refusal.parameter.as_deref(), Some("landing"));
 }
 
 /// The body weight and the velocity reference are one window in the source, and it is the

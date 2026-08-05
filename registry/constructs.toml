@@ -112,6 +112,12 @@ id = "landing"
 title = "The instant the first foot returns to the plate"
 label = "Landing"
 unit = "seconds"
+rules_answer = "one_question"
+notes = """
+Both rules place one instant and disagree about which sample it is. Tying the rising edge to the
+threshold that placed takeoff makes a threshold error compound across the flight phase, and
+flight-time jump height goes as the square of flight time.
+"""
 
 [[construct]]
 id = "flight_time"

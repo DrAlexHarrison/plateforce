@@ -79,22 +79,21 @@ fn compute(
 
     // The integration runs from the arrival to takeoff, so an arrival at or after takeoff
     // leaves it nothing to run over. That is what a landing rule reports on a recording with
-    // no drop in it: the return to the plate after the jump is the only landing there is. The
-    // refusal names the instant rather than the rule, because either landing rule can produce
-    // it and what is wrong is the recording, not the choice.
+    // no drop in it: the return to the plate after the jump is the only landing there is.
+    //
+    // Reported as a search that found nothing rather than as a value that was not accepted,
+    // because nobody stated the landing: a rule placed it, and what is wrong is that this
+    // recording holds no arrival before takeoff. A code naming a value would send a reader to
+    // change one they never typed.
     let epoch = context.epoch();
     if arrival_index >= takeoff_index {
         return DerivedOutcome::declined(
             resolved.finish(),
-            RuleRefusal::Refused(Box::new(Refusal::value_not_accepted(
+            RuleRefusal::Refused(Box::new(Refusal::no_crossing(
                 ID,
                 landing::PLACED,
                 context.trial.time_at(arrival_index),
-                vec![format!(
-                    "an arrival on the plate before the takeoff at {:.4} s, which a drop jump \
-                     has and a jump begun from standing does not",
-                    context.trial.time_at(takeoff_index)
-                )],
+                context.trial.time_at(takeoff_index),
             ))),
         );
     }
