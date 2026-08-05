@@ -449,6 +449,9 @@ method silently degrades if the athlete walks off. The residual drift it correct
 useful data-quality readout.
 """
 
+[method.reach]
+boundary = "protocol"
+
 [[method]]
 id = "integration.anchor.per_jump_midflight.kistler"
 construct = "takeoff_velocity"

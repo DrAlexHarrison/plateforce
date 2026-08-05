@@ -113,6 +113,27 @@
         },
         {
           "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
           "requires": [],
@@ -881,6 +902,27 @@
             "convention"
           ],
           "slot": "epoch_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
         },
         {
           "composed_from": null,
@@ -1659,6 +1701,27 @@
         },
         {
           "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
           "construct": "jump_height.takeoff_frame",
           "id": "jumpheight.dj.box_height_as_drop_height",
           "requires": [],
@@ -2429,6 +2492,27 @@
             "convention"
           ],
           "slot": "epoch_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.rectangle",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.simpson",
+          "requires": [],
+          "slot": "net_impulse"
+        },
+        {
+          "composed_from": null,
+          "construct": "net_impulse",
+          "id": "integration.rule.trapezoid",
+          "requires": [],
+          "slot": "net_impulse"
         },
         {
           "composed_from": null,
