@@ -121,12 +121,14 @@ fn validate(registry: &Registry, directory: Option<&Path>, format: Format) -> Ou
 fn show(registry: &Registry, id: &str, format: Format, renderer: &Renderer) -> Outcome {
     if let Some(method) = registry.methods.get(id) {
         return match format {
+            Format::Markdown => crate::out::markdown_wants_a_result("registry show"),
             Format::Json => Outcome::complete(canonical(&json!({ "method": method }))),
             Format::Text => Outcome::complete(show_method(method, renderer)),
         };
     }
     if let Some(protocol) = registry.protocols.get(id) {
         return match format {
+            Format::Markdown => crate::out::markdown_wants_a_result("registry show"),
             Format::Json => Outcome::complete(canonical(&json!({ "protocol": protocol }))),
             Format::Text => Outcome::complete(show_protocol(protocol, renderer)),
         };

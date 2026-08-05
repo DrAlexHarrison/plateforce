@@ -9,6 +9,7 @@ use crate::registry_cmd::canonical;
 pub fn run(format: Format) -> Outcome {
     let version = env!("CARGO_PKG_VERSION");
     match format {
+        Format::Markdown => crate::out::markdown_wants_a_result("version"),
         Format::Json => Outcome::complete(canonical(&json!({ "plateforce_version": version }))),
         Format::Text => Outcome::complete(format!("plateforce {version}")),
     }

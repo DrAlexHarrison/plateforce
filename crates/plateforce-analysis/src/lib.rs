@@ -27,6 +27,7 @@ pub mod chain;
 pub mod conditioning;
 pub mod derived;
 pub mod document;
+pub mod markdown;
 pub mod method_set;
 pub mod pipeline;
 pub mod quality;

@@ -28,6 +28,19 @@ fn passing(colour: Colour) -> anstream::ColorChoice {
 pub enum Format {
     Text,
     Json,
+    /// The same bytes the browser's copy buttons put on the clipboard, because a reader piping
+    /// a result into a model from a script wants what a reader pressing a button gets.
+    Markdown,
+}
+
+/// Markdown is the shape a result takes when it is pasted where somebody is talking, so a
+/// command that reports something else refuses it by name. Printing text to an operator who
+/// asked for Markdown would be the silent substitution this build refuses everywhere else.
+pub fn markdown_wants_a_result(command: &str) -> crate::exit::Outcome {
+    crate::exit::Outcome::declined(crate::exit::Declined::line(
+        Fault::Request,
+        format!("--format markdown reports an analysed trial, and `{command}` reports something else. `plateforce analyse --format markdown` is the one that takes it"),
+    ))
 }
 
 /// Puts the document where the operator asked for it.

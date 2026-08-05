@@ -1011,6 +1011,10 @@ fn render(
     );
 
     let document = match format {
+        // The same bytes the browser's copy buttons put on the clipboard, from the one home
+        // that renders them, so a script piping a result into a model and a reader pressing a
+        // button hand over the same thing.
+        Format::Markdown => plateforce_analysis::markdown::result(&reported),
         Format::Json => match serde_json::to_value(&reported) {
             Ok(value) => canonical(&value),
             Err(error) => {

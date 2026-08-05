@@ -10,6 +10,9 @@ import { runAnalysis, recordStated, withSources } from './analysis.js';
 import { endingOf } from './batch-run.js';
 import { renderPicker, putOnThePath, removeFromPath } from './add-quantity.js';
 import { findMethod } from './registry.js';
+import { copyButton } from './copy.js';
+import { buildRequest } from './analysis.js';
+import { captureJson } from './plate.js';
 
 /*
  * The two rules a span selected on the trace binds, named by their registry ids the way the
@@ -330,7 +333,10 @@ export function renderSelectionNumbers() {
   const bound = boundWindowRule();
   const selected = state.chart?.selection().active;
   host.hidden = !bound || !selected || !state.analysis;
-  if (host.hidden) return;
+  if (host.hidden) {
+    $('selection-copy').replaceChildren();
+    return;
+  }
 
   const over = [];
   const elsewhere = [];
@@ -351,6 +357,14 @@ export function renderSelectionNumbers() {
     }
     host.append(figures);
   }
+
+  // What a reader copies from beside a selection is what that selection produced. The block
+  // names the window's own rule and the values behind it, so a paste says which span the peak
+  // was taken over rather than handing a model a number and no interval.
+  $('selection-copy').replaceChildren(
+    copyButton('Copy this window', () =>
+      state.loadedTrial.markdown(JSON.stringify(buildRequest()), state.fileName, captureJson(), bound)),
+  );
 
   if (elsewhere.length) {
     const named = elsewhere.slice(0, 3).map((metric) => metric.label.toLowerCase());

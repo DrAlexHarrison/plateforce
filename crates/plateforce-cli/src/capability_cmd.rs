@@ -84,7 +84,7 @@ pub fn every_output_format() -> Vec<OutputFormat> {
     let mut written: Vec<OutputFormat> = Format::value_variants()
         .iter()
         .map(|format| match format {
-            Format::Text => OutputFormat::Text,
+            Format::Text | Format::Markdown => OutputFormat::Text,
             Format::Json => OutputFormat::Json,
         })
         .collect();

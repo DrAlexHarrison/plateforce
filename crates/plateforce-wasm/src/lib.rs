@@ -186,6 +186,9 @@ fn operations_named(export: &str) -> Option<&'static [Operation]> {
             Operation::RegistryValidate,
         ]),
         "buildInfoJson" => Some(&[Operation::Version, Operation::RegistryValidate]),
+        // The same operations `analyse` asserts over, because it runs the same analysis and
+        // differs only in how the answer is written down.
+        "markdown" => operations_named("analyse"),
         // Loading a trial, drawing it, and describing what was loaded. None is
         // a computation this manifest asserts over.
         "fromForceFile" | "demonstration" | "infoJson" | "envelopeJson" | "windowEnvelopeJson"
@@ -207,6 +210,7 @@ const EXPORTS: &[&str] = &[
     "envelopeJson",
     "fromForceFile",
     "infoJson",
+    "markdown",
     "parse",
     "registryJson",
     "spread",
@@ -518,6 +522,59 @@ impl LoadedTrial {
                 None,
             )),
             Err(refusal) => refused(&refusal),
+        }
+    }
+
+    /// One result as Markdown, for pasting where a reader is already talking.
+    ///
+    /// The bytes come from the same renderer the terminal's `--format markdown` calls, so a
+    /// reader who pressed a button and a reader who piped a script hand over the same block. It
+    /// runs the analysis again rather than taking the document the tab is holding: the document
+    /// crosses the wire as JSON and reading it back would mean a second parser for a shape this
+    /// crate already has, which is a second home for what a result is.
+    ///
+    /// `over` names a window rule, and given one the block carries only the quantities whose
+    /// chain reaches it: what a reader copies from beside a selection is what that selection
+    /// produced, never the trial's other numbers under a window's heading.
+    #[wasm_bindgen(js_name = markdown)]
+    pub fn markdown(
+        &self,
+        request_json: &str,
+        trial_name: Option<String>,
+        capture_json: Option<String>,
+        over: Option<String>,
+    ) -> Result<String, JsError> {
+        let mut request: AnalysisRequest =
+            serde_json::from_str(request_json).map_err(|e| JsError::new(&e.to_string()))?;
+        let capture = stated_capture(capture_json.as_deref())?;
+        let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
+        request.reading(&loaded.registry);
+        match plateforce_analysis::run(&self.trial, &request) {
+            Ok(response) => {
+                let reported = document::ResultDocument::of(
+                    version(),
+                    document::TrialSource {
+                        name: trial_name.unwrap_or_default(),
+                        rows_read: self.info.sample_count,
+                        samples_matching_the_convention: self.info.samples_matching_the_convention,
+                    },
+                    &plateforce_core::provenance::RegistryStamp::unpinned(
+                        loaded.registry.declared_version.clone(),
+                        Some(loaded.digest.clone()),
+                    ),
+                    &capture,
+                    &response,
+                    None,
+                );
+                Ok(match over {
+                    Some(rule) => plateforce_analysis::markdown::window(&reported, &rule),
+                    None => plateforce_analysis::markdown::result(&reported),
+                })
+            }
+            // As prose rather than as the record's envelope. What a reader pastes after a run
+            // that produced nothing is what the software has to say about that trial, and the
+            // JSON a surface branches on is not that.
+            Err(refusal) => Ok(plateforce_analysis::markdown::refusal(&refusal)),
         }
     }
 

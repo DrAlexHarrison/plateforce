@@ -271,7 +271,11 @@ fn deliver(
                 Format::Json => {
                     eprintln!("{}", registry_cmd::canonical_refusal(&refusal.record()))
                 }
-                Format::Text => eprintln!("plateforce: {}", refusal.terminal()),
+                // A refusal is not a result, so it reaches a reader as the sentence rather
+                // than as a Markdown block with nothing in it.
+                Format::Text | Format::Markdown => {
+                    eprintln!("plateforce: {}", refusal.terminal())
+                }
             }
         }
     }

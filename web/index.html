@@ -198,6 +198,7 @@
           <button type="button" class="button button--ghost button--small" id="selection-undo-zoom" disabled>Undo zoom</button>
           <button type="button" class="button button--ghost button--small" id="selection-reset-zoom" disabled>Reset zoom</button>
           <button type="button" class="button button--ghost button--small" id="selection-clear" disabled>Clear selection</button>
+          <span id="selection-copy"></span>
         </div>
         <div class="chart-selection__numbers" id="chart-selection-numbers"></div>
       </div>
@@ -209,6 +210,7 @@
     <section class="panel panel--headlines workspace__headlines" aria-labelledby="headline-metrics-heading">
       <div class="panel__head">
         <h2 id="headline-metrics-heading">Results</h2>
+        <div class="panel__head-actions" id="result-actions"></div>
       </div>
       <div class="metric-grid metric-grid--headlines" id="headline-metric-grid"></div>
       <div id="analysis-warnings"></div>

@@ -14,6 +14,7 @@ import { captureJson, recordAttribution, renderChip } from './plate.js';
 // only by the ones a drag started: a rule changed on the rail moves them too, and a panel still
 // showing the previous run's figures is the confident wrong number this software exists to stop.
 import { renderSelectionNumbers } from './workspace.js';
+import { copyButton } from './copy.js';
 
 /*
  * The rule a slot is running under right now.
@@ -243,6 +244,26 @@ export function runAnalysis() {
   scheduleSpread();
   renderDecisions();
   renderSelectionNumbers();
+  offerTheResultAsMarkdown();
+}
+
+/*
+ * The result, in the shape it has to be in when it lands in a chat box.
+ *
+ * The block is the engine's, asked for at the press rather than held here, and it carries the
+ * rules and the values behind every number because a paste that carried the numbers alone would
+ * be this project's founding defect with a clipboard attached: a reader hands a model a jump
+ * height and the model cannot know which of ten published rules produced it.
+ *
+ * Offered only where a result exists, because there is nothing to copy before one does.
+ */
+function offerTheResultAsMarkdown() {
+  const host = $('result-actions');
+  if (!host) return;
+  host.replaceChildren(
+    copyButton('Copy as Markdown', () =>
+      state.loadedTrial.markdown(JSON.stringify(buildRequest()), state.fileName, captureJson(), undefined)),
+  );
 }
 
 export function notice(kind, title, body) {

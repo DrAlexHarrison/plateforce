@@ -69,6 +69,7 @@ fn save(
         .unwrap_or_default();
 
     Ok(match format {
+        Format::Markdown => return Ok(crate::out::markdown_wants_a_result("plate")),
         Format::Json => Outcome::complete(canonical(&json!({
             "plate": saved.name,
             "path": filed_at(&saved),
@@ -118,6 +119,7 @@ fn list(plates_directory: Option<&Path>, format: Format) -> Result<Outcome, crat
     }
 
     Ok(match format {
+        Format::Markdown => return Ok(crate::out::markdown_wants_a_result("plate")),
         Format::Json => Outcome::complete(canonical(&json!({
             "plates": saved
                 .iter()
@@ -158,6 +160,7 @@ fn show(
 ) -> Result<Outcome, crate::exit::Declined> {
     let saved = plate_source::read(name, plates_directory)?;
     Ok(match format {
+        Format::Markdown => return Ok(crate::out::markdown_wants_a_result("plate")),
         Format::Json => Outcome::complete(canonical(&json!({
             "plate": saved.name,
             "path": filed_at(&saved),
@@ -190,6 +193,7 @@ fn forget(
 ) -> Result<Outcome, crate::exit::Declined> {
     let path = plate_source::forget(name, plates_directory)?;
     Ok(match format {
+        Format::Markdown => return Ok(crate::out::markdown_wants_a_result("plate")),
         Format::Json => Outcome::complete(canonical(&json!({
             "plate": name,
             "path": path.display().to_string(),

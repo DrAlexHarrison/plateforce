@@ -116,6 +116,7 @@ pub fn run(registry_directory: Option<&Path>, format: Format, renderer: &Rendere
         .count();
 
     match format {
+        Format::Markdown => crate::out::markdown_wants_a_result("reach"),
         Format::Json => Outcome::complete(canonical(&json!({
             "construct_count": rows.len(),
             "reachable_count": reachable,

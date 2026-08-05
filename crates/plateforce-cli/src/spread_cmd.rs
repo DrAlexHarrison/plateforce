@@ -117,6 +117,7 @@ pub fn run(
                 response,
             );
             let document = match format {
+                Format::Markdown => return crate::out::markdown_wants_a_result("spread"),
                 Format::Json => match serde_json::to_value(&reported) {
                     Ok(value) => canonical(&value),
                     Err(error) => {

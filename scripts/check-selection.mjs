@@ -462,6 +462,54 @@ check('a quantity resting on a landmark outside the window is named as the trial
     && !numbers.shown.some((row) => numbers.restsElsewhere.includes(row.label)),
   numbers.elsewhere || 'nothing was said about the quantities that do not read the window');
 
+// ---------------------------------------------------------------- the clipboard
+/* A block that pastes numbers without the methods that produced them is this project's founding
+ * defect with a clipboard attached, so what the buttons produce is read rather than assumed. */
+const blocks = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const bound = state.selection[state.build.bindings.find((b) => b.id === 'window.stated.by_caller').construct];
+  const request = JSON.stringify(analysis.buildRequest());
+  const whole = state.loadedTrial.markdown(request, state.fileName, null, undefined);
+  const window = state.loadedTrial.markdown(request, state.fileName, null, bound.methodId);
+  return {
+    whole, window,
+    buttons: [
+      document.querySelector('#result-actions button')?.textContent ?? null,
+      document.querySelector('#selection-copy button')?.textContent ?? null,
+    ],
+    boundRule: bound.methodId,
+    opening: String(whole).slice(0, 220),
+    windowRows: window.split('\\n').filter((line) => line.startsWith('| ') && !line.startsWith('| Quantity') && !line.startsWith('|---')).length,
+    wholeRows: whole.split('\\n').filter((line) => line.startsWith('| ') && !line.startsWith('| Quantity') && !line.startsWith('|---')).length,
+  };
+})()`);
+
+check('both places a result is shown offer it as Markdown',
+  blocks.buttons.every((label) => typeof label === 'string' && label.toLowerCase().includes('copy')),
+  blocks.buttons.map((label) => label ?? 'no button').join(' | '));
+
+const carries = (text) => [
+  ['the registry digest', /registry digest content-[0-9a-f]+/.test(text)],
+  ['the registry revision', /registry revision \S+/.test(text)],
+  ['the acquisition state', /acquisition (complete|incomplete)/.test(text)],
+  ['a rule id', /\n[a-z0-9_]+\.[a-z0-9_.]+/.test(text)],
+  ['a value with its source', /\n {2}\S+ = .+ \((stated|assumed|recommended|cited|measured|provisional)\)/.test(text)],
+].filter(([, held]) => !held).map(([what]) => what);
+
+check('the whole-result block carries the methods, the values with their sources, the digest and the acquisition state',
+  carries(blocks.whole).length === 0,
+  carries(blocks.whole).length ? `missing ${carries(blocks.whole).join(', ')}; the block opens ${blocks.opening}` :
+    `${blocks.wholeRows} quantities, and the fenced block carries all five`);
+
+check('the window block carries the same provenance and only the numbers taken over that window',
+  carries(blocks.window).length === 0
+    && blocks.windowRows > 0 && blocks.windowRows < blocks.wholeRows
+    && blocks.window.includes(blocks.boundRule),
+  `${blocks.windowRows} quantities against ${blocks.wholeRows} in the whole result, ` +
+    `naming ${blocks.boundRule}` +
+    (carries(blocks.window).length ? ` | missing ${carries(blocks.window).join(', ')}` : ''));
+
 /* The engine is asked on a trailing edge, not once per frame. Counted rather than reasoned
  * about: the whole reason for the trailing edge is a measurement, so the claim it makes about
  * the running page is measured too. */
