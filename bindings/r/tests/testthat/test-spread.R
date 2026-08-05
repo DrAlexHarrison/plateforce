@@ -26,7 +26,7 @@ test_that("a slot this build runs no rule for is refused with the ones it does",
     pf_spread(
       quiet_trial(),
       quantity = "system_weight_newtons",
-      slot = "landing",
+      slot = "interlimb_asymmetry",
       weighing = "bwepoch.fixed_window",
       onset = "onset.threshold.noise_relative",
       takeoff = "takeoff.threshold.absolute_force"
@@ -35,10 +35,10 @@ test_that("a slot this build runs no rule for is refused with the ones it does",
   )
 
   expect_s3_class(condition, "plateforce_slot_offers_no_alternative")
-  expect_identical(condition[["slot"]], "landing")
+  expect_identical(condition[["slot"]], "interlimb_asymmetry")
   expect_identical(
     conditionMessage(condition),
-    "this analysis runs no rule for landing, so there is nothing to sweep"
+    "this analysis runs no rule for interlimb_asymmetry, so there is nothing to sweep"
   )
 })
 
