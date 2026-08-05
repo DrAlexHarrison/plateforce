@@ -210,6 +210,31 @@ default = 5.0
 default_source = "chavda2020"
 required = true
 
+[[method.parameter]]
+name = "dispersion"
+unit = "enumeration"
+default_key = "sample"
+default_source = "plateforce_derivation"
+notes = """
+The source states the threshold as mean less k standard deviations over the baseline window and
+never names the divisor. The rule reads this choice, so the entry declares it rather than leaving
+the rule reading a name no surface can discover.
+"""
+
+[[method.parameter.value]]
+key = "population"
+label = "Divide the sum of squares by the sample count"
+
+[[method.parameter.value]]
+key = "sample"
+label = "Divide the sum of squares by one less than the sample count"
+
+[[method.citation]]
+key = "plateforce_derivation"
+role = "proposes"
+reference = "Derived in this registry. Chavda 2020 states the threshold as mean less k standard deviations and names no divisor; the sample divisor is the one this software binds wherever a spread is taken"
+obtained = true
+
 [[method.citation]]
 key = "chavda2020"
 role = "proposes"
