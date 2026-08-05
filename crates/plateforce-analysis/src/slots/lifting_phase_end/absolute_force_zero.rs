@@ -54,14 +54,22 @@ fn place(
         return DerivedOutcome::declined(bound, context.unavailable(ID, &[ONSET_CONSTRUCT]));
     };
 
-    // Searched to the sample takeoff was placed at rather than to the one before it. The
-    // whole claim of this rule is that it fires where contact ends, so excluding that sample
-    // would exclude the instant the rule exists to find.
+    // Searched past takeoff, to the landing if a rule placed one and to the end of the
+    // recording otherwise. Absolute force never reaches zero while the athlete is on the
+    // plate: it reaches the plate's floor, and the takeoff rule declares contact over at a
+    // threshold above zero. So the instant this rule names lies after takeoff by
+    // construction, which is the registry's own account of it, that absolute force reaching
+    // zero means the athlete has left the ground rather than that acceleration has ceased.
+    // Bounded at takeoff the rule found nothing on the one committed trial that lands, and
+    // reporting that as no boundary would have hidden a rule looking in the wrong place.
+    let far_bound = crate::slots::landing::placed(context)
+        .or_else(|| context.touchdown_index())
+        .unwrap_or_else(|| context.trial.len().saturating_sub(1));
     let crossing = force_reference_crossing(
         context.trial.force(),
         ABSOLUTE_ZERO_NEWTONS,
         start,
-        takeoff + 1,
+        far_bound.max(takeoff + 1),
         CrossingDirection::Falling,
     );
     boundaries::crossing_outcome(context, ID, super::KEY, super::PLACED, crossing, bound)
