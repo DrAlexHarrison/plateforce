@@ -324,7 +324,7 @@ pub(crate) enum Phase {
 /// publishing it cannot drift apart.
 pub(crate) const PHASE_PARAMETER: &str = "phase";
 
-pub(crate) const PHASE_VALUES: &[(&'static str, Phase)] = &[
+pub(crate) const PHASE_VALUES: &[(&str, Phase)] = &[
     ("onset_to_braking_start", Phase::OnsetToBrakingStart),
     (
         "braking_start_to_propulsion_start",
