@@ -105,8 +105,24 @@ fn findable(registry: &Registry, ids: &BTreeSet<&str>, item: &Recorded) -> Optio
     let prose = [entry.rule.as_str(), entry.title.as_str()]
         .into_iter()
         .chain(entry.parameters.iter().filter_map(|p| p.notes.as_deref()))
-        .any(|text| text.contains(&item.name));
+        .any(|text| names_the_word(text, &item.name));
     prose.then_some("named in the entry's own text")
+}
+
+/// Whether prose names this value, as a whole word.
+///
+/// `contains` would do for the two names this reaches today, which are long and distinctive.
+/// It would also let a name like `k` pass against any sentence with a `k` in it, which is a
+/// route to findable that finds nothing, and the day that name appears here is the day nobody
+/// is looking.
+fn names_the_word(text: &str, name: &str) -> bool {
+    text.match_indices(name).any(|(at, _)| {
+        let before = text[..at].chars().next_back();
+        let after = text[at + name.len()..].chars().next();
+        let outside =
+            |character: Option<char>| character.is_none_or(|c| !c.is_alphanumeric() && c != '_');
+        outside(before) && outside(after)
+    })
 }
 
 #[test]
