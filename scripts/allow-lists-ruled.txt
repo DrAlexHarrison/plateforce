@@ -1,0 +1,83 @@
+# Every list a gate consults to skip, negate or excuse, ruled once and read in review.
+#
+# An allow-list that only ever grows is a coverage list that can never fail: adding a name makes
+# a gate greener, and nothing goes red when the name stops being needed. This file is the answer
+# to that in the shape the failure calls for. `scripts/allow-lists.py --check` compares the set
+# below against the set the census finds and fails in both directions, so a list appearing is a
+# name nobody has ruled on and a name here the census no longer finds is a ruling that outlived
+# its list. A file that only grew would pass in both of those cases, which is the thing it exists
+# to prevent.
+#
+# Format: <verdict> <file>:<NAME>, one per line, then the ruling.
+#
+#   drives   the membership picks the population the check runs over. Not an exemption: a name
+#            leaving the list narrows what is checked and the check still runs on the rest.
+#   excuses  a membership here lets something past a check. The ruling says what it records and
+#            whether anything turns red when the record goes stale.
+#
+# Ruled 2026-08-05 by `ws-guards-cannot-fail`, reading all fifteen. 4 of 15 excuse; 11 drive.
+
+excuses crates/plateforce-cli/tests/digests_in_prose.rs:FILES_THAT_QUOTE_A_DIGEST
+    Records a decision, and pinned in both directions, which is the shape to copy. A file
+    outside it quoting a digest fails `no_committed_file_quotes_a_digest_from_outside_the_list`,
+    and a file inside it that stops quoting one fails the guard's own emptiness assertion, whose
+    message is that it would otherwise be watching a file with nothing to watch.
+
+excuses crates/plateforce-serve/build.rs:NOT_PART_OF_THE_INTERFACE
+    Records a decision: repository documentation sits beside the interface without being part of
+    it, and serving it would put a build instruction on a port opened to analyse a trial. One
+    entry, and the name reaches the binary so a caller subtracts a stated exclusion from a
+    directory listing rather than counting to a number. Nothing fails if `README.md` leaves
+    `web/`, so the exemption can outlive the file.
+
+excuses scripts/check-web-reads-live-fields.py:OBJECT_METHODS
+    Records a fact about the language rather than a gap in the software: `hasOwnProperty` is
+    reached on the record as an object and is not a field serde puts on the wire. Nothing fails
+    if the browser stops calling it.
+
+excuses scripts/result_parity.py:SURFACES_NOT_ASKED
+    Six surface and request pairs held out of the parity register, each with a written reason
+    and the entry point that discharges it. Its own docstring says an entry that stopped being
+    either is a row waiting to be widened, and nothing measures whether one has: a reason that
+    stops being true reads exactly like one that never was. One row is already stale and is
+    filed as its own queue entry, which says the register claims R cannot sweep several slots
+    and R can. The one on this page that is a coverage hole rather than a decision.
+
+drives crates/plateforce-cli/tests/the_single_trial_run_records_the_plate.rs:EVERY_MEMBER
+    The acquisition members the test states as its input, written out rather than read from the
+    constant the parser validates against so the test cannot agree with itself.
+
+drives scripts/capability_manifest.py:PER_SURFACE_KEYS
+    Which manifest keys are per-surface answers rather than facts about the shared engine. Both
+    halves are compared, so a key in neither is a malformed manifest rather than a pass.
+
+drives scripts/check-minute.mjs:OWED
+    The two surfacing verdicts that owe a rule a place in the rail. Membership selects the
+    population the check runs over.
+
+drives scripts/check-refusal-vocabulary.py:SOURCES
+    The map of where each surface raises a refusal code, per language. Widening it widens what
+    the gate reads, which is what its ceiling file says a rise has to be.
+
+drives scripts/entry-ownership.py:ENTRY_ARRAYS
+    The three arrays a registry file can hold. The walk runs over them.
+
+drives scripts/prove-parity-coverage-refuses.py:AN_AGREEING_VALUE
+    One agreeing value per field the gate asserts. A field with no entry stops the script rather
+    than being stood in for, which is the opposite of an exemption.
+
+drives scripts/prove-parity-coverage-refuses.py:A_POPULATION_THAT_PASSES
+    The control population the coverage register is proved against.
+
+drives scripts/reach-from-recut.py:BOUNDARY_OF_CLASS
+    How the classification spells each boundary against how the field does. A spelling map.
+
+drives scripts/result-from-python.py:SENTINELS
+    How this surface spells each missing-sample convention the registry publishes.
+
+drives scripts/verify-committed-tree.py:OPENS_ITS_DIRECTORY
+    Which Rust file names hold their child modules beside them rather than under them. A fact
+    about the language the walk runs on.
+
+drives scripts/verify-committed-tree.py:DIRECTORIES_OF_CRATE_ROOTS
+    Which directories Cargo discovers a target per file in. A fact about Cargo.
