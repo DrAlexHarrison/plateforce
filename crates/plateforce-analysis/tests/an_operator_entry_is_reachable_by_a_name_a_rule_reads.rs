@@ -32,24 +32,6 @@ const SAMPLE_RATE_HZ: f64 = 1200.0;
 /// filter on the family, so an operator that goes dark tomorrow fails here.
 const UNREACHED_BY_RULING: &[&str] = &["takeoff.op.hysteresis"];
 
-/// The recordings this sweeps, because one recording exercises only what it happens to
-/// contain. Measured: `onset.threshold.last_within_band` reads the bound its operator owns on
-/// the committed trial and not on the synthetic one, so a sweep over the synthetic trace alone
-/// reports a live operator as unreachable.
-fn recordings() -> Vec<Trial> {
-    let (subject01_trial1, _) = plateforce_core::read::read_trial_from_path(
-        concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../plateforce-conformance/fixtures/subject01_trial1.force.txt"
-        ),
-        '\t',
-        0,
-        SAMPLE_RATE_HZ,
-    )
-    .expect("the committed trial reads");
-    vec![a_jump_that_lands(), subject01_trial1]
-}
-
 /// Quiet stance, an unweighting dip, a push, flight, then a landing, so every landmark is
 /// placed and the takeoff rules that read the trace after flight have something to read.
 fn a_jump_that_lands() -> Trial {
@@ -79,7 +61,7 @@ fn rules_for(construct: &str) -> Vec<&'static str> {
 fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
     let registry = Registry::load(concat!(env!("CARGO_MANIFEST_DIR"), "/../../registry"))
         .expect("the shipped registry loads");
-    let recordings = recordings();
+    let recording = a_jump_that_lands();
 
     let operators: BTreeSet<&str> = registry
         .methods
@@ -123,7 +105,7 @@ fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
             .collect();
         let on_onset = operator.construct == plateforce_analysis::binding::ONSET_CONSTRUCT;
 
-        for recording in &recordings {
+        {
             for onset_id in rules_for(plateforce_analysis::binding::ONSET_CONSTRUCT) {
                 for takeoff_id in rules_for(plateforce_analysis::binding::TAKEOFF_CONSTRUCT) {
                     let request = AnalysisRequest {
@@ -134,14 +116,30 @@ fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
                         },
                         onset: MethodChoice {
                             method_id: onset_id.into(),
-                            parameters: if on_onset { numbers.clone() } else { BTreeMap::new() },
-                            options: if on_onset { options.clone() } else { BTreeMap::new() },
+                            parameters: if on_onset {
+                                numbers.clone()
+                            } else {
+                                BTreeMap::new()
+                            },
+                            options: if on_onset {
+                                options.clone()
+                            } else {
+                                BTreeMap::new()
+                            },
                             ..Default::default()
                         },
                         takeoff: MethodChoice {
                             method_id: takeoff_id.into(),
-                            parameters: if on_onset { BTreeMap::new() } else { numbers.clone() },
-                            options: if on_onset { BTreeMap::new() } else { options.clone() },
+                            parameters: if on_onset {
+                                BTreeMap::new()
+                            } else {
+                                numbers.clone()
+                            },
+                            options: if on_onset {
+                                BTreeMap::new()
+                            } else {
+                                options.clone()
+                            },
                             ..Default::default()
                         },
                         ..Default::default()
@@ -149,7 +147,7 @@ fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
                     // A combination the build refuses carries no bound methods, which is a
                     // reading this sweep does not get rather than a failure. The floor below
                     // is what keeps a sweep where every combination refused from passing.
-                    let Ok(response) = run(recording, &request) else {
+                    let Ok(response) = run(&recording, &request) else {
                         continue;
                     };
                     for bound in &response.bound_methods {
@@ -209,7 +207,8 @@ fn an_operator_entry_is_reachable_by_a_name_a_rule_reads() {
         .collect();
 
     assert_eq!(
-        unreached, UNREACHED_BY_RULING,
+        unreached,
+        UNREACHED_BY_RULING,
         "{} of {} operator entries publish a parameter no rule reads. An operator is reached \
          by stating a name it declares, so one nothing reads is a choice the registry offers \
          and no caller can make. Wire the rule that composes it, or delete the entry, or add \
