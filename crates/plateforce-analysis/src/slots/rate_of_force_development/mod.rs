@@ -22,6 +22,7 @@ pub mod at_fraction_of_peak;
 pub mod average_to_peak;
 pub mod between_force_levels;
 pub mod epoch_overlapping;
+pub mod epoch_sequential;
 pub mod exponential_model;
 pub mod mean_force_over_duration;
 pub mod peak_sliding_window;

@@ -672,6 +672,17 @@ pub const BINDINGS: &[Binding] = &[
         dispatch: Dispatch::Derived(crate::slots::rate_of_force_development::epoch_overlapping::RULE),
     },
     Binding {
+        id: crate::slots::rate_of_force_development::epoch_sequential::ID,
+        slot: crate::slots::rate_of_force_development::CONSTRUCT,
+        construct: crate::slots::rate_of_force_development::CONSTRUCT,
+        title: "The rate over one of the windows laid end to end from onset",
+        composed_from: None,
+        records_under: None,
+        note: "",
+        quantities: crate::slots::rate_of_force_development::epoch_sequential::QUANTITIES,
+        dispatch: Dispatch::Derived(crate::slots::rate_of_force_development::epoch_sequential::RULE),
+    },
+    Binding {
         id: crate::slots::rate_of_force_development::peak_sliding_window::ID,
         slot: crate::slots::rate_of_force_development::CONSTRUCT,
         construct: crate::slots::rate_of_force_development::CONSTRUCT,
@@ -1005,6 +1016,9 @@ pub fn required_numbers(method_id: &str) -> &'static [(&'static str, f64)] {
         }
         crate::slots::rate_of_force_development::between_force_levels::ID => {
             crate::slots::rate_of_force_development::between_force_levels::REQUIRED_NUMBERS
+        }
+        crate::slots::rate_of_force_development::epoch_sequential::ID => {
+            crate::slots::rate_of_force_development::epoch_sequential::REQUIRED_NUMBERS
         }
         _ => &[],
     }

@@ -896,6 +896,12 @@
         {
           "composed_from": null,
           "construct": "rate_of_force_development",
+          "id": "rfd.epoch_from_onset.sequential",
+          "slot": "rate_of_force_development"
+        },
+        {
+          "composed_from": null,
+          "construct": "rate_of_force_development",
           "id": "rfd.exponential_model.padulles",
           "slot": "rate_of_force_development"
         },
