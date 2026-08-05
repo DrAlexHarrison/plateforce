@@ -366,9 +366,18 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
     let median = values.get(values.len() / 2).copied();
     let minimum = values.first().copied();
     let maximum = values.last().copied();
-    let spread_absolute = match (minimum, maximum) {
-        (Some(low), Some(high)) => Some(high - low),
-        _ => None,
+    // A spread is the distance between two numbers, so a set holding one holds no spread.
+    // Taken over a single combination it read 0.0, which on the figure this product leads
+    // with says every published alternative agreed, and one number nobody compared cannot
+    // say that. The set decides it rather than the request: a sweep whose other combinations
+    // all declined reaches the same single number and reported the same 0.0 with the
+    // failures counted in its denominator.
+    //
+    // The minimum, the maximum and the median stay, because one number has all three, the
+    // way a sweep that produced no number at all publishes none of them.
+    let spread_absolute = match values.as_slice() {
+        [] | [_] => None,
+        [low, .., high] => Some(high - low),
     };
 
     Ok(SpreadResponse {
@@ -746,6 +755,80 @@ mod tests {
         assert_eq!(reason.parameter.as_deref(), Some("k"));
         assert_eq!(reason.value, Some(100_000.0));
         assert_eq!(reason.slot.as_deref(), Some("movement_onset"));
+    }
+
+    /// A set of one holds no disagreement, and the two ways a sweep reaches one both used to
+    /// publish 0.0 for it.
+    ///
+    /// The control is the same axis with four values, which has to carry a spread, or a run
+    /// that computed nothing at all would satisfy every assertion below.
+    #[test]
+    fn a_spread_is_withheld_where_one_number_is_all_the_sweep_produced() {
+        let sweep = |values: Vec<f64>| {
+            run(
+                &synthetic(),
+                &SpreadRequest {
+                    base: base(),
+                    axes: vec![Axis {
+                        slot: "onset".into(),
+                        parameter: Some("k".into()),
+                        values,
+                        method_ids: Vec::new(),
+                    }],
+                    quantity_key: "time_to_takeoff_seconds".into(),
+                    maximum_combinations: 512,
+                },
+            )
+            .expect("k is a parameter this rule publishes")
+        };
+
+        let several = sweep(vec![2.0, 3.0, 5.0, 10.0]);
+        assert_eq!(several.succeeded, 4);
+        assert!(
+            several.spread_absolute.is_some_and(|spread| spread > 0.0),
+            "the axis this test compares against moved nothing"
+        );
+        assert!(several.spread_percent_of_median.is_some());
+
+        let one = sweep(vec![5.0]);
+        assert_eq!(one.combinations_run, 1);
+        assert_eq!(one.succeeded, 1);
+        // The minimum is still a number one combination produced, which is what separates
+        // this from a sweep that produced nothing.
+        assert!(one.minimum.is_some() && one.median.is_some());
+        println!(
+            "one combination: spread {:?}, percent {:?}",
+            one.spread_absolute, one.spread_percent_of_median
+        );
+        assert!(
+            matches!(
+                one,
+                SpreadResponse {
+                    spread_absolute: None,
+                    spread_percent_of_median: None,
+                    ..
+                }
+            ),
+            "one combination published a spread over itself"
+        );
+
+        // The same set of one reached the other way. Held to the requested width rather than
+        // to what was produced, this run would publish 0.0 over a denominator of three.
+        let mostly_declined = sweep(vec![5.0, 100_000.0, 200_000.0]);
+        assert_eq!(mostly_declined.combinations_run, 3);
+        assert_eq!(mostly_declined.succeeded, 1);
+        assert_eq!(mostly_declined.failed, 2);
+        assert!(
+            matches!(
+                mostly_declined,
+                SpreadResponse {
+                    spread_absolute: None,
+                    spread_percent_of_median: None,
+                    ..
+                }
+            ),
+            "two combinations declined and the third was published as agreeing with itself"
+        );
     }
 
     /// Every rule this build runs for one construct, as one axis, in the order the caller's
