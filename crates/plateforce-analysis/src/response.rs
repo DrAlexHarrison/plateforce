@@ -25,6 +25,8 @@ pub fn unit_symbol(unit: &'static str) -> &'static str {
         "kilograms_to_the_exponent" => "kg^e",
         "newtons_per_kilogram_to_the_exponent" => "N/kg^e",
         "watts" => "W",
+        "newtons_per_second" => "N/s",
+        "watts_per_second" => "W/s",
         "percent" => "%",
         // A count, a yes-or-no and a ratio are read from the label and the number. There is no
         // symbol to draw beside them and the registry's own word for the unit is not one.
