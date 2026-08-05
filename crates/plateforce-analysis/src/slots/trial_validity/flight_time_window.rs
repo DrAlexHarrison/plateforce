@@ -46,9 +46,9 @@ pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(SELECTION_PARAMETER, "first_qua
 pub const REQUIRED_NUMBERS: &[(&str, f64)] = &[(THRESHOLD_PARAMETER, 10.0)];
 
 pub const DURATION_KEY: &str = "accepted_flight_seconds";
-pub const CANDIDATE_KEY: &str = "flight_candidates_read";
-pub const REJECTED_KEY: &str = "flight_candidates_rejected";
-pub const KEY: &str = "trial_admitted_by_the_flight_window";
+pub const CANDIDATE_KEY: &str = "flight_candidates_read_count";
+pub const REJECTED_KEY: &str = "flight_candidates_rejected_count";
+pub const KEY: &str = "trial_validity_flight_window_admitted";
 
 pub const QUANTITIES: &[Quantity] = &[
     Quantity {

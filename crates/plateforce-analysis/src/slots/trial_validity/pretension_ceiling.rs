@@ -44,9 +44,9 @@ pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(
 )];
 
 pub const EXCURSION_KEY: &str = "pretension_excursion_newtons";
-pub const ABSOLUTE_VERDICT_KEY: &str = "pretension_admitted_at_the_absolute_ceiling";
-pub const PERCENT_VERDICT_KEY: &str = "pretension_admitted_inside_the_percentage_band";
-pub const KEY: &str = "trial_admitted_by_the_pretension_gate";
+pub const ABSOLUTE_VERDICT_KEY: &str = "trial_validity_pretension_admitted_at_the_absolute_ceiling";
+pub const PERCENT_VERDICT_KEY: &str = "trial_validity_pretension_admitted_inside_the_percentage_band";
+pub const KEY: &str = "trial_validity_pretension_admitted";
 
 pub const QUANTITIES: &[Quantity] = &[
     Quantity {

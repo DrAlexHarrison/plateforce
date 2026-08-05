@@ -24,9 +24,9 @@ pub const MAX_PEAKS_PARAMETER: &str = "max_peaks";
 pub const MAX_PEAKS_DEFAULT: f64 = 3.0;
 
 pub const COUNT_KEY: &str = "braking_transient_peak_count";
-pub const CEILING_KEY: &str = "braking_transient_peak_ceiling";
+pub const CEILING_KEY: &str = "braking_transient_peak_ceiling_count";
 pub const GREATEST_KEY: &str = "braking_greatest_force_newtons";
-pub const KEY: &str = "trial_admitted_by_the_transient_peak_gate";
+pub const KEY: &str = "trial_validity_transient_peaks_admitted";
 
 pub const QUANTITIES: &[Quantity] = &[
     Quantity {

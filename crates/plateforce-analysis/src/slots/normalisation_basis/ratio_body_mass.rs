@@ -49,9 +49,7 @@ fn compute(
         (Ok(mass), Ok(peak)) => ((mass, peak), ()),
         (Err(refusal), _) | (_, Err(refusal)) => return DerivedOutcome::declined(bound, refusal),
     };
-    if let Some(entry) = produced_by {
-        context.rests_on(KEY, &[entry.as_str()]);
-    }
+    super::rests_on(context, KEY, &produced_by);
     let Some(scaled) =
         plateforce_core::normalisation::scaled_by_body_mass(peak_newtons, mass, EXPONENT)
     else {

@@ -25,7 +25,7 @@ pub const TIME_PARAMETER: &str = "time_after_onset_seconds";
 pub const REQUIRED_NUMBERS: &[(&str, f64)] = &[(TIME_PARAMETER, 0.1)];
 
 pub const FORCE_KEY: &str = "early_net_force_newtons";
-pub const KEY: &str = "early_net_force_percent_of_peak";
+pub const KEY: &str = "early_net_force_share_of_peak_percent";
 
 pub const QUANTITIES: &[Quantity] = &[
     Quantity {
@@ -94,10 +94,8 @@ fn compute(
         );
     };
     let early_net_newtons = context.trial.force()[index] - system_weight_newtons;
-    if let Some(entry) = produced_by {
-        context.rests_on(KEY, &[entry.as_str()]);
-        context.rests_on(FORCE_KEY, &[entry.as_str()]);
-    }
+    super::rests_on(context, KEY, &produced_by);
+    super::rests_on(context, FORCE_KEY, &produced_by);
     DerivedOutcome {
         values: vec![
             (FORCE_KEY, Some(early_net_newtons)),

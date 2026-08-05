@@ -62,11 +62,27 @@ pub(crate) fn measured(
     method_id: &str,
     construct: &'static str,
     key: &str,
-) -> Result<(f64, Option<String>), RuleRefusal> {
+) -> Result<(f64, Vec<String>), RuleRefusal> {
     match context.measured(key) {
-        Some(found) => Ok((found.value, found.computed_by.clone())),
+        Some(found) => {
+            let mut behind = found.rests_on.clone();
+            if let Some(entry) = &found.computed_by {
+                if !behind.contains(entry) {
+                    behind.push(entry.clone());
+                }
+            }
+            Ok((found.value, behind))
+        }
         None => Err(context.unavailable(method_id, &[construct])),
     }
+}
+
+/// Everything the number this rule divided already rested on, written onto the number it
+/// produced. Deduplicated by `rests_on`, and the chain the pipeline assembles drops whatever
+/// this rule read for itself, so no entry is named twice.
+pub(crate) fn rests_on(context: &DerivedContext, key: &'static str, behind: &[String]) {
+    let named: Vec<&str> = behind.iter().map(String::as_str).collect();
+    context.rests_on(key, &named);
 }
 
 /// A stated mass no scaling can be built on, named back to the caller with the value they

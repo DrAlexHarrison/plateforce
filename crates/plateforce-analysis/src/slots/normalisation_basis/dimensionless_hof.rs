@@ -79,9 +79,8 @@ fn compute(
             )),
         );
     };
-    if let Some(entry) = produced_by {
-        context.rests_on(KEY, &[entry.as_str()]);
-    }
+    super::rests_on(context, KEY, &produced_by);
+    super::rests_on(context, DIVISOR_KEY, &produced_by);
     DerivedOutcome {
         values: vec![
             (DIVISOR_KEY, Some(divisor)),

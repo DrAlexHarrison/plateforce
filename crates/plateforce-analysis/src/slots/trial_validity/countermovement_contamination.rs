@@ -24,7 +24,7 @@ pub const DEVIATIONS_DEFAULT: f64 = 5.0;
 
 pub const DIP_KEY: &str = "countermovement_dip_newtons";
 pub const THRESHOLD_KEY: &str = "countermovement_threshold_newtons";
-pub const KEY: &str = "trial_admitted_by_the_countermovement_gate";
+pub const KEY: &str = "trial_validity_countermovement_admitted";
 
 pub const QUANTITIES: &[Quantity] = &[
     Quantity {

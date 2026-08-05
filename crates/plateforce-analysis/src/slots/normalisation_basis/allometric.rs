@@ -39,7 +39,7 @@ pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(PROVENANCE_PARAMETER, "assumed"
 pub const REQUIRED_GLOBALS: &[(&str, f64)] = &[(BODY_MASS_GLOBAL, 52.0)];
 
 pub const DIVISOR_KEY: &str = "allometric_divisor_kilograms_to_the_exponent";
-pub const KEY: &str = "peak_force_allometric";
+pub const KEY: &str = "peak_force_allometric_newtons_per_kilogram_to_the_exponent";
 
 pub const QUANTITIES: &[Quantity] = &[
     Quantity {
@@ -95,9 +95,8 @@ fn compute(
     ) else {
         return DerivedOutcome::declined(bound, super::mass_not_accepted(ID, mass));
     };
-    if let Some(entry) = produced_by {
-        context.rests_on(KEY, &[entry.as_str()]);
-    }
+    super::rests_on(context, KEY, &produced_by);
+    super::rests_on(context, DIVISOR_KEY, &produced_by);
     DerivedOutcome {
         values: vec![(DIVISOR_KEY, Some(divisor)), (KEY, Some(scaled))],
         placed: Vec::new(),

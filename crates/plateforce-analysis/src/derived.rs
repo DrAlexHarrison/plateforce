@@ -136,6 +136,10 @@ pub fn record_stated_touchdown(
 pub struct Measured {
     pub value: f64,
     pub computed_by: Option<String>,
+    /// Every entry already behind that number. A rule that divides it rests on all of them,
+    /// and a chain naming only the last step would stop where the onset backtrack showed a
+    /// chain must not: one construct short of the choice that moved the number.
+    pub rests_on: Vec<String>,
 }
 
 /// What every rule computed from the landmarks is handed.

@@ -35,7 +35,7 @@ const RATIO_RULE: &str = "norm.ratio_bodymass";
 const ALLOMETRIC_RULE: &str = "norm.allometric";
 const PERCENT_OF_PEAK_RULE: &str = "norm.pct_peak_force";
 const RATIO_KEY: &str = "peak_force_per_body_mass_newtons_per_kilogram";
-const ALLOMETRIC_KEY: &str = "peak_force_allometric";
+const ALLOMETRIC_KEY: &str = "peak_force_allometric_newtons_per_kilogram_to_the_exponent";
 const ALLOMETRIC_DIVISOR_KEY: &str = "allometric_divisor_kilograms_to_the_exponent";
 
 const PEAK_FORCE_CONSTRUCT: &str = "peak_force";
@@ -169,9 +169,9 @@ fn the_criterion_a_caller_states_is_the_one_that_admits_the_trial() {
             .on(&trial);
         let excursion = number(&response, "pretension_excursion_newtons")
             .expect("the gate read the stretch before the effort");
-        let by_ceiling = number(&response, "pretension_admitted_at_the_absolute_ceiling");
-        let inside_band = number(&response, "pretension_admitted_inside_the_percentage_band");
-        let verdict = number(&response, "trial_admitted_by_the_pretension_gate");
+        let by_ceiling = number(&response, "trial_validity_pretension_admitted_at_the_absolute_ceiling");
+        let inside_band = number(&response, "trial_validity_pretension_admitted_inside_the_percentage_band");
+        let verdict = number(&response, "trial_validity_pretension_admitted");
         println!(
             "{criterion}: excursion {excursion:.4} N, by ceiling {by_ceiling:?}, inside band \
              {inside_band:?}, admitted {verdict:?}"
@@ -276,7 +276,7 @@ fn a_gate_that_cannot_reach_its_input_declines_rather_than_admitting() {
         "the refusal did not name what it could not reach: {refusal}"
     );
     for key in [
-        "trial_admitted_by_the_transient_peak_gate",
+        "trial_validity_transient_peaks_admitted",
         "braking_transient_peak_count",
     ] {
         assert_eq!(
@@ -408,11 +408,11 @@ fn early_force_is_a_share_of_the_net_peak_the_analysis_reported() {
             .on(&trial);
         let net_peak = number(&response, "net_peak_force_newtons").expect("the net peak ran");
         let early = number(&response, "early_net_force_newtons").expect("the rule ran");
-        let share = number(&response, "early_net_force_percent_of_peak").expect("the rule ran");
+        let share = number(&response, "early_net_force_share_of_peak_percent").expect("the rule ran");
         println!("{seconds} s after onset: {early:9.4} N, {share:8.4} percent of {net_peak:.4} N");
         assert!((early / net_peak * 100.0 - share).abs() < 1e-9);
         let chain = response
-            .metric("early_net_force_percent_of_peak")
+            .metric("early_net_force_share_of_peak_percent")
             .expect("the metric is present")
             .contributing_method_ids
             .clone();
@@ -439,13 +439,13 @@ fn early_force_is_a_share_of_the_net_peak_the_analysis_reported() {
 #[test]
 fn every_gate_answers_or_says_what_it_could_not_reach_across_the_committed_trials() {
     let gates: &[(&str, &str)] = &[
-        (PRETENSION_RULE, "trial_admitted_by_the_pretension_gate"),
+        (PRETENSION_RULE, "trial_validity_pretension_admitted"),
         (
             CONTAMINATION_RULE,
-            "trial_admitted_by_the_countermovement_gate",
+            "trial_validity_countermovement_admitted",
         ),
-        (TRANSIENT_RULE, "trial_admitted_by_the_transient_peak_gate"),
-        (FLIGHT_WINDOW_RULE, "trial_admitted_by_the_flight_window"),
+        (TRANSIENT_RULE, "trial_validity_transient_peaks_admitted"),
+        (FLIGHT_WINDOW_RULE, "trial_validity_flight_window_admitted"),
     ];
     let stated: &[(&str, &[(&str, &str)])] = &[
         (
@@ -515,7 +515,7 @@ fn the_transient_peak_count_is_a_property_of_the_signal_as_it_arrives() {
         let response = Asked::new().rule(VALIDITY_CONSTRUCT, TRANSIENT_RULE).on(&trial);
         let count = number(&response, "braking_transient_peak_count").expect("the gate ran");
         let greatest = number(&response, "braking_greatest_force_newtons").expect("the gate ran");
-        let admitted = number(&response, "trial_admitted_by_the_transient_peak_gate");
+        let admitted = number(&response, "trial_validity_transient_peaks_admitted");
         println!(
             "{name:18} {count:6.0} peaks, greatest {greatest:9.4} N, admitted {admitted:?}"
         );

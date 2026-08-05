@@ -551,9 +551,20 @@ fn chain_behind(
     quantity_key: &str,
     conditioning_ids: &[String],
 ) -> Vec<String> {
-    let mut chain = conditioning_ids.to_vec();
-    chain.extend(context.rules_read());
-    chain.extend(context.entries_behind(quantity_key));
+    let mut chain: Vec<String> = Vec::new();
+    // Deduplicated across the three groups, not only inside each. A number that divides
+    // another number rests on everything that number rested on, so the second group and the
+    // third overlap by exactly the rules the first one already named.
+    for id in conditioning_ids
+        .iter()
+        .cloned()
+        .chain(context.rules_read())
+        .chain(context.entries_behind(quantity_key))
+    {
+        if !chain.contains(&id) {
+            chain.push(id);
+        }
+    }
     chain
 }
 
@@ -765,6 +776,7 @@ fn run_derived_phase(
                         crate::derived::Measured {
                             value,
                             computed_by: metric.computed_by.clone(),
+                            rests_on: metric.contributing_method_ids.clone(),
                         },
                     )
                 })
