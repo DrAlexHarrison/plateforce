@@ -19,6 +19,7 @@ pub mod ankle_angle_corrected;
 pub mod drop_from_box_height;
 pub mod flight_time;
 pub mod impulse_momentum;
+pub mod mcmahon_correction_factor;
 pub mod peak_velocity;
 pub mod work_energy;
 

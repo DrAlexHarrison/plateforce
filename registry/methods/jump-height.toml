@@ -508,9 +508,9 @@ construct = "jump_height.standing_frame"
 group = "F"
 title = "Flight-time height plus an anthropometrically scaled heel-rise constant"
 rule = """
-Add to the flight-time height a constant standing in for the heel rise, computed as 0.88 times foot
-length plus sole thickness minus ankle height. The 0.88 is the sine of the measured takeoff foot
-angle, reported as 61.4 +/- 4.8 degrees, written as a decimal in the source.
+Add to the flight-time height a constant standing in for the heel rise, computed as the sine of the
+takeoff foot angle times the malleolus-to-toe distance, plus sole thickness, minus ankle height. The
+sine is 0.88, from a measured takeoff foot angle of 61.4 +/- 4.8 degrees.
 """
 status = "accepted"
 confidence = "high"
@@ -525,12 +525,58 @@ default_source = "wade2020"
 required = true
 notes = "A single-cohort mean with a 4.8 degree standard deviation, treated by the rule as fixed."
 
+[[method.parameter]]
+name = "malleolus_to_toe_length_m"
+unit = "meters"
+required = false
+notes = """
+What the sine multiplies, and the reason this entry's rule does not read as its source prints it.
+The printed formula says 0.88 times Foot Length; the same paper's text at lines 155 to 157 defines
+the length as the distance from the medial malleolus to the toes during standing, written as foot
+length "for simplicity". The two are not close. On a 0.26 m foot the printed reading gives 0.179 m
+of heel lift and the defined reading 0.133 m, against the 10 to 12 cm the paper calls the expected
+range at line 246. Scaled from foot length where it was not measured directly.
+"""
+
+[[method.parameter]]
+name = "foot_length_m"
+unit = "meters"
+required = true
+notes = "Measured on the athlete, in the footwear they jump in."
+
+[[method.parameter]]
+name = "malleolus_fraction_of_foot_length"
+unit = "fraction"
+published_values = [0.787]
+default = 0.787
+default_source = "tilley2001"
+required = false
+notes = "The scaling from foot length to the malleolus-to-toe distance the source's text defines."
+
+[[method.parameter]]
+name = "sole_thickness_m"
+unit = "meters"
+required = true
+notes = "Zero for a barefoot jump, which is a measurement rather than an absence."
+
+[[method.parameter]]
+name = "ankle_height_m"
+unit = "meters"
+required = true
+notes = "Ground to lateral malleolus in quiet standing, which the constant subtracts."
+
 [[method.citation]]
 key = "wade2020"
 role = "proposes"
 reference = "Wade, Lichtwark and Farris 2020, Scand J Med Sci Sports, formula and derivation at lines 153-163"
 doi = "10.1111/sms.13556"
 obtained = true
+
+[[method.citation]]
+key = "tilley2001"
+role = "proposes"
+reference = "Tilley 2001, tiptoe to lateral malleolus at 78.7 percent of foot length, read through Goncalves 2024 rather than first-hand"
+obtained = false
 
 [[method.bias]]
 magnitude = 0.011
@@ -556,11 +602,6 @@ that it is not. The published evidence cuts both ways and neither is resolved.
 surfacing = "surface_on_demand"
 rationale = "For contact-mat and phone workflows. It fixes the heel rise but not inconsistent landing technique."
 
-[method.reach]
-boundary = "undetermined"
-query = """
-a recording carrying foot length, sole thickness and ankle height beside the trace, which decides whether the heel-rise constant is a measurement nobody took or an input the request has no field for
-"""
 
 [[method]]
 id = "jumpheight.standing.jump_and_reach"
@@ -783,10 +824,7 @@ costume of a measurement and must be dropped before any comparison.
 """
 
 [method.reach]
-boundary = "undetermined"
-query = """
-whether the plate recorded the two horizontal channels beside the vertical one, which decides whether a resultant takeoff velocity is a reading away or an instrument away
-"""
+boundary = "equipment"
 
 [[method]]
 id = "jumpheight.flight_phase_displacement.vald_impdis"
@@ -1034,6 +1072,15 @@ status = "deprecated"
 confidence = "high"
 debate = "vendor_or_legacy"
 
+[[method.parameter]]
+name = "box_height_m"
+unit = "meters"
+required = true
+notes = """
+The drop height this rule substitutes for a measured arrival. No default and no published value:
+there is no representative box, and one study assumed a single box height for all 24 subjects.
+"""
+
 [[method.citation]]
 key = "eythorsdottir2024"
 role = "evaluates"
@@ -1151,6 +1198,40 @@ published_values = [0.787]
 default = 0.787
 default_source = "tilley2001"
 required = false
+
+[[method.parameter]]
+name = "ankle_height_fraction_of_stature"
+unit = "fraction"
+published_values = [0.039]
+default = 0.039
+default_source = "winter2009"
+required = false
+notes = """
+The third fraction the published length equation uses. Without it the rule holds a constant no
+entry declares, and the segment comes to 0.1196 of stature against the source's 0.126.
+"""
+
+[[method.parameter]]
+name = "stature_m"
+unit = "meters"
+required = true
+notes = "The ankle-to-toe segment is estimated from stature where it was not measured directly."
+
+[[method.parameter]]
+name = "ankle_to_toe_length_m"
+unit = "meters"
+required = false
+notes = "Measured directly, which the source prefers over the estimate from stature."
+
+[[method.parameter]]
+name = "ankle_angle_at_takeoff_degrees"
+unit = "degrees"
+required = true
+
+[[method.parameter]]
+name = "ankle_angle_at_landing_degrees"
+unit = "degrees"
+required = true
 
 [[method.citation]]
 key = "goncalves2024"
