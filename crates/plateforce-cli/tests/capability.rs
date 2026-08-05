@@ -118,7 +118,7 @@ fn a_surface_answers_for_the_arrays_and_no_others() {
 /// nothing, because no id containing `.op.` appeared anywhere in the document.
 #[test]
 fn every_operator_entry_this_build_composes_is_published_with_the_names_that_reach_it() {
-    let published = committed();
+    let published = reported();
     let rows = published["operators"]
         .as_array()
         .expect("the surface publishes the operators its rules compose");
@@ -410,7 +410,7 @@ fn a_name_a_rule_declines_without_is_a_name_the_engine_declines_without() {
     const NAME: &str = "convention";
     const QUANTITY: &str = "epoch_impulse_newton_seconds";
 
-    let requires: Vec<String> = committed()["methods"]
+    let requires: Vec<String> = reported()["methods"]
         .as_array()
         .expect("the surface publishes its rules")
         .iter()
