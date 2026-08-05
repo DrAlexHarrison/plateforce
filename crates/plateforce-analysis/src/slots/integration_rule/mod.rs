@@ -10,6 +10,7 @@ use plateforce_core::{
 };
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
+use crate::centre_of_mass;
 use crate::derived::{DerivedContext, DerivedOutcome};
 use crate::request::MethodChoice;
 use crate::resolution::Resolution;
@@ -23,7 +24,7 @@ fn compute(
     method_id: &'static str,
     quadrature: QuadratureRule,
 ) -> DerivedOutcome {
-    let resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
+    let mut resolved = Resolution::over(&choice.parameters, &choice.options, choice.claims());
     let Some(landmarks) = context.landmarks() else {
         return DerivedOutcome::declined(
             resolved.finish(),
@@ -33,6 +34,7 @@ fn compute(
 
     let mut spec = plateforce_core::takeoff_velocity_integration_spec(&landmarks);
     spec.quadrature = quadrature;
+    centre_of_mass::record_operators(&mut resolved, &spec);
     context.rests_on(net_impulse::KEY, &spec.method_ids());
     context.rests_on(net_impulse::VELOCITY_KEY, &spec.method_ids());
 
@@ -163,6 +165,32 @@ mod tests {
                 .expect("the rule reports takeoff velocity");
             assert_eq!(impulse.computed_by.as_deref(), Some(*id));
             assert_eq!(velocity.computed_by.as_deref(), Some(*id));
+            let bound = response
+                .bound_methods
+                .iter()
+                .find(|bound| bound.method_id == *id)
+                .expect("the selected quadrature is on the record");
+            let choices: BTreeMap<String, String> =
+                bound.enumerated_choices().into_iter().collect();
+            let expected_choices = BTreeMap::from([
+                (
+                    "integration_direction".to_string(),
+                    "integration.direction.forward".to_string(),
+                ),
+                (
+                    "integration_start".to_string(),
+                    "integration.start.detected_onset".to_string(),
+                ),
+                (
+                    "integration_anchor".to_string(),
+                    "integration.anchor.single_point".to_string(),
+                ),
+            ]);
+            assert_eq!(choices, expected_choices);
+            assert!(expected_choices.keys().all(|name| {
+                bound.parameter_sources.get(name)
+                    == Some(&plateforce_core::provenance::ParameterSource::Assumed)
+            }));
             for expected in [
                 *id,
                 "integration.direction.forward",

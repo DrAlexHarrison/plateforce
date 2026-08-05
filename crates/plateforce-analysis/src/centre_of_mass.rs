@@ -35,13 +35,15 @@ pub(crate) fn spec_anchored_at(onset_index: usize) -> IntegrationSpec {
 
 /// The four ids the spec names, written into the record of what the rule read.
 fn record(resolved: &mut Resolution, spec: &IntegrationSpec) {
-    let [quadrature, direction, start, anchor] = spec.method_ids();
-    for (name, id) in [
-        (QUADRATURE, quadrature),
-        (DIRECTION, direction),
-        (START, start),
-        (ANCHOR, anchor),
-    ] {
+    let [quadrature, _, _, _] = spec.method_ids();
+    resolved.record(QUADRATURE, quadrature.to_string(), ParameterSource::Assumed);
+    record_operators(resolved, spec);
+}
+
+/// The direction, start, and anchor composed onto a quadrature rule.
+pub(crate) fn record_operators(resolved: &mut Resolution, spec: &IntegrationSpec) {
+    let [_, direction, start, anchor] = spec.method_ids();
+    for (name, id) in [(DIRECTION, direction), (START, start), (ANCHOR, anchor)] {
         resolved.record(name, id.to_string(), ParameterSource::Assumed);
     }
 }
