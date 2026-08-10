@@ -1,7 +1,7 @@
 # Exact declaration<TAB>count<TAB>reason. New or duplicated pixel geometry must be explained.
 height: 1px	1	Crosshair hairline.
-height: 2px	1	Spread-axis hairline.
-height: 4px	1	Loading progress track.
+height: 2px	2	Spread-axis hairline and the selection-region top edge.
+height: 4px	2	Loading progress track and the active selection-region top edge.
 height: 7px	1	Method-status dot.
 height: 10px	1	Spread range band.
 height: 14px	1	Plate icon.
