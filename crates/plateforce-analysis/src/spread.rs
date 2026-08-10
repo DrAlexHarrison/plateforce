@@ -92,6 +92,57 @@ pub struct Variant {
     /// either way.
     #[serde(default)]
     pub failure_reason: Option<Refusal>,
+    /// What the software knows about this variant's own result, read while its response is
+    /// in hand. A variant carries the one swept quantity and a signal compares two, so
+    /// nothing outside this loop could recover it.
+    #[serde(default)]
+    pub signals: Vec<crate::quality::QualitySignal>,
+}
+
+/// One population of variants summarised. Computed by one function over both populations
+/// rather than by two functions, so the counted figures and the whole-sweep figures cannot
+/// drift.
+#[derive(Debug, Clone, Serialize)]
+pub struct Headline {
+    pub counted: usize,
+    pub minimum: Option<f64>,
+    pub maximum: Option<f64>,
+    pub median: Option<f64>,
+    pub spread_absolute: Option<f64>,
+    pub spread_percent_of_median: Option<f64>,
+}
+
+fn summarise(values: &mut Vec<f64>) -> Headline {
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let median = values.get(values.len() / 2).copied();
+    let minimum = values.first().copied();
+    let maximum = values.last().copied();
+    // A spread is the distance between two numbers, so a set holding one holds no spread.
+    // Taken over a single combination it read 0.0, which on the figure this product leads
+    // with says every published alternative agreed, and one number nobody compared cannot
+    // say that. The set decides it rather than the request: a sweep whose other combinations
+    // all declined reaches the same single number and reported the same 0.0 with the
+    // failures counted in its denominator.
+    //
+    // The minimum, the maximum and the median stay, because one number has all three, the
+    // way a sweep that produced no number at all publishes none of them.
+    let spread_absolute = match values.as_slice() {
+        [] | [_] => None,
+        [low, .., high] => Some(high - low),
+    };
+    Headline {
+        counted: values.len(),
+        minimum,
+        maximum,
+        median,
+        spread_absolute,
+        spread_percent_of_median: match (spread_absolute, median) {
+            (Some(spread), Some(mid)) if mid.abs() > f64::EPSILON => {
+                Some(100.0 * spread / mid.abs())
+            }
+            _ => None,
+        },
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -123,6 +174,14 @@ pub struct SpreadResponse {
     /// The headline figure. On the 244-trial corpus this reads 38.9 percent for time to
     /// takeoff, which is the whole argument for the registry in one number.
     pub spread_percent_of_median: Option<f64>,
+    /// The same summary over the variants whose own signals do not fire. A rule that
+    /// disagrees with itself contributes the size of its own defect to the whole-sweep
+    /// figures, so a panel answering how much the method choice moves a number reads both
+    /// and states both counts.
+    pub over_rules_without_signals: Headline,
+    /// How many valued variants the summary above set aside, so the two populations always
+    /// reconcile against `succeeded`.
+    pub excluded_by_a_signal: usize,
     pub baseline_value: Option<f64>,
     pub variants: Vec<Variant>,
 }
@@ -399,6 +458,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                         .is_none()
                         .then(|| declined_for(&response, &request.quantity_key))
                         .flatten(),
+                    signals: crate::quality::signals(&response),
                 });
             }
             Err(refusal) => variants.push(Variant {
@@ -411,28 +471,21 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
                 value: None,
                 method_ids,
                 failure_reason: Some(*refusal),
+                signals: Vec::new(),
             }),
         }
     }
 
     let mut values: Vec<f64> = variants.iter().filter_map(|v| v.value).collect();
-    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let median = values.get(values.len() / 2).copied();
-    let minimum = values.first().copied();
-    let maximum = values.last().copied();
-    // A spread is the distance between two numbers, so a set holding one holds no spread.
-    // Taken over a single combination it read 0.0, which on the figure this product leads
-    // with says every published alternative agreed, and one number nobody compared cannot
-    // say that. The set decides it rather than the request: a sweep whose other combinations
-    // all declined reaches the same single number and reported the same 0.0 with the
-    // failures counted in its denominator.
-    //
-    // The minimum, the maximum and the median stay, because one number has all three, the
-    // way a sweep that produced no number at all publishes none of them.
-    let spread_absolute = match values.as_slice() {
-        [] | [_] => None,
-        [low, .., high] => Some(high - low),
-    };
+    let whole = summarise(&mut values);
+
+    let mut without_signals: Vec<f64> = variants
+        .iter()
+        .filter(|variant| !crate::quality::distrusted(&variant.signals))
+        .filter_map(|variant| variant.value)
+        .collect();
+    let over_rules_without_signals = summarise(&mut without_signals);
+    let excluded_by_a_signal = whole.counted - over_rules_without_signals.counted;
 
     Ok(SpreadResponse {
         quantity_key: request.quantity_key.clone(),
@@ -452,18 +505,15 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
         combinations_requested,
         combinations_run,
         capped,
-        succeeded: values.len(),
-        failed: variants.len() - values.len(),
-        minimum,
-        maximum,
-        median,
-        spread_absolute,
-        spread_percent_of_median: match (spread_absolute, median) {
-            (Some(spread), Some(mid)) if mid.abs() > f64::EPSILON => {
-                Some(100.0 * spread / mid.abs())
-            }
-            _ => None,
-        },
+        succeeded: whole.counted,
+        failed: variants.len() - whole.counted,
+        minimum: whole.minimum,
+        maximum: whole.maximum,
+        median: whole.median,
+        spread_absolute: whole.spread_absolute,
+        spread_percent_of_median: whole.spread_percent_of_median,
+        over_rules_without_signals,
+        excluded_by_a_signal,
         baseline_value: baseline,
         variants,
     })
@@ -692,6 +742,27 @@ mod tests {
         force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
         force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
         force.extend(std::iter::repeat_n(0.0, 600));
+        force.extend(std::iter::repeat_n(1400.0, 240));
+        Trial::new(force, 1200.0).unwrap()
+    }
+
+    /// The gradual jump above, with its flight sized to its own impulse so the two height
+    /// routes agree when the start of the jump is placed correctly.
+    ///
+    /// The unweighting descends over 360 samples rather than stepping, so an onset threshold
+    /// swept across that ramp genuinely moves the landmark: a small threshold catches the
+    /// start of the descent and a large one catches it 0.28 s late, missing real negative
+    /// impulse. The late variant then reads roughly triple the flight route's height while
+    /// the correct one sits within a percent, which is what a sweep needs before it can
+    /// report two populations rather than one.
+    pub(super) fn jump_whose_two_routes_agree() -> Trial {
+        let mut force = vec![600.0; 1200];
+        for (index, sample) in force.iter_mut().enumerate() {
+            *sample += ((index % 17) as f64 - 8.0) * 0.4;
+        }
+        force.extend((0..360).map(|index| 600.0 - 300.0 * (index as f64 / 360.0)));
+        force.extend((0..360).map(|index| 300.0 + 1200.0 * (index as f64 / 360.0)));
+        force.extend(std::iter::repeat_n(0.0, 180));
         force.extend(std::iter::repeat_n(1400.0, 240));
         Trial::new(force, 1200.0).unwrap()
     }
@@ -1553,5 +1624,64 @@ mod a_slot_the_sweep_cannot_vary {
         assert_eq!(response.succeeded, 3);
         assert!(response.spread_absolute.is_some_and(|spread| spread > 0.0));
         let _ = BTreeMap::<String, f64>::new();
+    }
+
+    /// A sweep reports what the method choice moves and, separately, what it moves among
+    /// the rules that do not disagree with themselves. A rule that gets takeoff wrong
+    /// contributes the size of its own defect to the first figure and nothing to the second.
+    #[test]
+    fn a_variant_whose_own_routes_disagree_is_counted_and_also_set_aside() {
+        let mut request = sweep_over("onset", Some("threshold_n"), vec![20.0, 280.0]);
+        request.base.onset.method_id = "onset.threshold.absolute_force".into();
+        let trial = super::tests::jump_whose_two_routes_agree();
+        let response = run(&trial, &request).expect("the onset axis sweeps");
+
+        for variant in &response.variants {
+            println!(
+                "{} value {:?} signals {}",
+                variant.label,
+                variant.value,
+                variant.signals.len()
+            );
+        }
+        println!(
+            "whole spread {:?} over {}, without signals {:?} over {}, set aside {}",
+            response.spread_absolute,
+            response.succeeded,
+            response.over_rules_without_signals.spread_absolute,
+            response.over_rules_without_signals.counted,
+            response.excluded_by_a_signal
+        );
+
+        let signalling: Vec<&Variant> = response
+            .variants
+            .iter()
+            .filter(|variant| crate::quality::distrusted(&variant.signals))
+            .collect();
+        assert_eq!(
+            signalling.len(),
+            1,
+            "the start placed 0.28 s late is the one that disagrees with itself"
+        );
+        assert!(signalling[0].label.contains("280"));
+
+        assert_eq!(response.excluded_by_a_signal, 1);
+        assert_eq!(response.over_rules_without_signals.counted, 1);
+        assert_eq!(
+            response.succeeded,
+            response.over_rules_without_signals.counted + response.excluded_by_a_signal,
+            "the two populations reconcile against the sweep's own denominator"
+        );
+        // The whole-sweep figures keep the meaning every surface already reads them under:
+        // the defective variant contributes the size of its own defect to the spread.
+        assert!(
+            response.spread_absolute.is_some_and(|spread| spread > 0.01),
+            "the late start moves the height by over a centimetre, read {:?}",
+            response.spread_absolute
+        );
+        // A clean population of one holds all three order statistics and no spread, the
+        // same way the whole sweep reports a single combination.
+        assert!(response.over_rules_without_signals.median.is_some());
+        assert_eq!(response.over_rules_without_signals.spread_absolute, None);
     }
 }
