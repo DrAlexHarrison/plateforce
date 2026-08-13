@@ -61,7 +61,9 @@ jobs:
           mkdir -p dist
           find gathered -type f \
             \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.dmg' \
-               -o -name '*-setup.exe' -o -name 'plateforce-*-linux-static' \) \
+               -o -name '*-setup.exe' -o -name 'plateforce-*-linux-static' \
+               -o -name 'plateforce-universal-macos' \
+               -o -name 'plateforce-x86_64-windows.exe' \) \
             -exec cp {} dist/ \;
           # An artefact is zipped in transit and comes back without its executable bit, so
           # the programs below arrive whole and refuse to run. Restoring the bit is not the
@@ -83,6 +85,16 @@ jobs:
       # at which that table reaches somebody who has to rely on it.
       - name: The licence table is what cargo resolved
         run: python3 scripts/write-dependency-licences.py --check
+
+      # Same character as the check above, and the same moment. The entry tells a reader to
+      # record the version, the registry revision and the registry digest beside any number
+      # they publish, so a digest the changelog asserts and the build does not report is a
+      # reader following a pointer to a rule set that never existed. Builds the binary itself
+      # rather than reading whatever an earlier step left behind.
+      - name: The identifiers the changelog prints are the ones this build reports
+        run: |
+          cargo build -q -p plateforce-cli
+          python3 scripts/check-changelog-identifiers.py
 
       - name: Which registry produced these numbers
         id: registry

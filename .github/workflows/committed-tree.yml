@@ -86,3 +86,22 @@ jobs:
       # the crate, the workflow and the line to add, and exited 1.
       - name: Ask the manifests what each workflow depends on
         run: python3 scripts/check-workflow-crate-paths.py
+
+  # Both read the documents against the registry and neither needs a toolchain, so they share
+  # a runner. A document is the one surface with no test behind it: nothing fails when a page
+  # goes stale, and a reader who follows a wrong one has no way to tell.
+  the_documents_describe_the_tree:
+    name: the documents describe the registry the tree carries
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # A count written into prose is right on the day it is typed and wrong the first time a
+      # rule lands, and nothing about the page says which of the two a reader is holding.
+      - name: No page states a count the registry owns
+        run: python3 scripts/check-docs-state-no-rule-counts.py
+
+      # The contract page is what a reader writes a registry file against, so a key it spells
+      # wrong is not a documentation defect, it is a file that will not load.
+      - name: Every key and table the registry uses is shown in the schema
+        run: python3 scripts/check-schema-doc-covers-registry.py

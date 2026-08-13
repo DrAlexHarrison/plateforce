@@ -10,6 +10,7 @@ on:
       - 'crates/plateforce-registry/**'
       - 'crates/plateforce-analysis/**'
       - 'registry/**'
+      - 'scripts/check-r-help-renders-its-markup.py'
       - '.github/workflows/r-package.yml'
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - 'crates/plateforce-registry/**'
       - 'crates/plateforce-analysis/**'
       - 'registry/**'
+      - 'scripts/check-r-help-renders-its-markup.py'
       - '.github/workflows/r-package.yml'
   workflow_dispatch:
 
@@ -126,6 +128,19 @@ jobs:
       # both live here, because this is the job that installs the toolchain they measure.
       - name: The floor is a measurement
         run: bash bindings/r/tools/check-floor.sh
+
+  # Reads the rendered man/ pages, which are committed, so it needs neither R nor a toolchain
+  # and runs once rather than three times across the matrix. Roxygen turns a cross-reference
+  # into a link and a code span into markup; a page that carries the source spelling instead
+  # renders as literal brackets to whoever types `?pf_analyse`, and R CMD check passes it.
+  help_pages:
+    name: Every help page renders its own markup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ask every page whether its cross-references and code spans render
+        run: python3 scripts/check-r-help-renders-its-markup.py
 
   lint:
     name: The R crate's own formatting and lints

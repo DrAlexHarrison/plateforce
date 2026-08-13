@@ -15,10 +15,20 @@ on:
     paths:
       - "web/**"
       - "src-tauri/**"
+      # The dependency closure of plateforce-cli, which is the package
+      # scripts/build-serve-binaries.sh builds, rather than plateforce-serve alone. A change
+      # to any of these moves what the static binaries compute, and until now four of the
+      # five could land without this workflow running at all.
+      - "crates/plateforce-cli/**"
       - "crates/plateforce-serve/**"
+      - "crates/plateforce-analysis/**"
+      - "crates/plateforce-batch/**"
+      - "crates/plateforce-core/**"
+      - "crates/plateforce-registry/**"
       - "scripts/build-web.sh"
       - "scripts/build-serve-binaries.sh"
       - "scripts/verify-glibc-floor.sh"
+      - "scripts/verify-release-artefacts.sh"
       - ".github/workflows/desktop-linux.yml"
 
 permissions:
@@ -198,6 +208,16 @@ jobs:
 
       - name: Build both architectures
         run: bash scripts/build-serve-binaries.sh
+
+      # The binaries embed the browser build rather than shipping it beside them, and
+      # plateforce-serve embeds an empty set when web/pkg is absent so that a fresh clone can
+      # still be built. One built in the wrong order therefore answers every command except
+      # `serve`, which declines. Read out of the file rather than by running it, so the same
+      # step works for a binary this runner could not execute.
+      - name: The binaries carry the browser build
+        run: |
+          bash scripts/verify-release-artefacts.sh --cli-payload-only \
+            dist/plateforce-x86_64-linux-static dist/plateforce-aarch64-linux-static
 
       - uses: actions/upload-artifact@v4
         with:

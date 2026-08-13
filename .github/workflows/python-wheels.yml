@@ -1,11 +1,17 @@
 name: python wheels
 
 # Builds the source distribution and one abi3 wheel per platform, then installs each into
-# a clean environment and runs the test suite against it. Nothing here publishes.
+# a clean environment and runs the test suite against it. A tag, and only a tag, then
+# publishes what those jobs proved.
 
 on:
   push:
     branches: [main]
+    # The tag is what publishes, so this workflow has to run on one. Path filters are not
+    # evaluated for tag pushes, so a `v*` tag runs the whole route whatever it touched, and a
+    # push to main goes on being filtered by the list below. Both refs are named because a
+    # trigger that names only one does not run for the other.
+    tags: ["v*"]
     # Every input this workflow reads, including the gates themselves. A push that edits
     # only the gate has to meet it.
     #
@@ -18,10 +24,13 @@ on:
     # without building a wheel or running one Python test. Pull requests were always covered,
     # because the pull_request trigger below carries no paths filter. Pushes were not.
     #
-    # The same query over the other two gates came back empty, which is what makes it worth
-    # trusting: the R binding vendors analysis, core and registry and not batch, and
-    # r-package.yml lists exactly those three; plateforce-serve depends on no workspace crate
-    # and src-tauri names none, so desktop-linux.yml's list is complete.
+    # The same query over r-package.yml came back empty: the R binding vendors analysis, core
+    # and registry and not batch, and that workflow lists exactly those three. The reading of
+    # desktop-linux.yml recorded here was wrong, and is corrected rather than deleted because
+    # the mistake is the instructive part. plateforce-serve does depend on no workspace crate,
+    # but that workflow builds plateforce-cli, whose closure is five, so four crates could
+    # move the static binaries without it running. Naming the root by what a workflow is about
+    # rather than by what it builds is how a closure comes out empty and a row asserts nothing.
     paths:
       - "crates/plateforce-analysis/**"
       - "crates/plateforce-batch/**"
@@ -210,3 +219,60 @@ jobs:
       # about, in our own release.
       - name: The registry in the wheel is the registry in this tree
         run: /tmp/clean/bin/python scripts/smoke-installed-wheel.py registry
+
+  # The one job here that publishes, and the header above this file says nothing here does,
+  # which was true until this job existed. `pip install plateforce` is a route CHANGELOG.md
+  # and the guides tell a reader to take, so a release that builds the wheel and does not
+  # publish it points them at a route that is not there.
+  #
+  # needs both proving jobs rather than `wheels`: `verify` is what says one abi3 wheel arrived
+  # for every declared platform, and `install` is what says the thing installs into a clean
+  # environment and carries this tree's registry. Publishing on `wheels` alone would upload a
+  # set that a dropped matrix leg had quietly shortened.
+  publish:
+    name: publish to PyPI
+    # A tag, and nothing else. Every job above runs on a push to main and on a dispatch, so
+    # the whole route can be rehearsed without uploading anything, which is the same property
+    # `draft` gives the release workflow.
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [verify, install]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # twine rather than an action, for the reason desktop-linux.yml installs the Tauri CLI
+      # rather than taking one: the version that uploads a release is then this file's choice
+      # and not a moving branch ref in somebody else's repository.
+      - name: Install twine
+        run: python3 -m pip install --upgrade twine
+
+      - name: What is about to be uploaded
+        run: ls -la dist/
+
+      # Reads the metadata inside each distribution and refuses one PyPI would reject, before
+      # any of them is uploaded. A partial upload is the awkward state here, because the first
+      # file to land takes the version and a second attempt cannot replace it.
+      - name: The distributions are well formed
+        run: python3 -m twine check dist/*
+
+      # No --skip-existing. On a first publish it would turn "this name belongs to somebody
+      # else" into a silent pass, and that is the one failure worth stopping for. A retry
+      # after a partial upload is a person running twine with --skip-existing by hand.
+      - name: Upload
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python3 -m twine upload --non-interactive dist/*

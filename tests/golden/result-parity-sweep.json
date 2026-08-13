@@ -6,11 +6,13 @@
     "capped",
     "combinations_requested",
     "combinations_run",
+    "excluded_by_a_signal",
     "failed",
     "held_fixed",
     "maximum",
     "median",
     "minimum",
+    "over_rules_without_signals",
     "quantity_key",
     "registry_version",
     "spread_absolute",
@@ -48,6 +50,7 @@
     "capped": false,
     "combinations_requested": 75,
     "combinations_run": 75,
+    "excluded_by_a_signal": 0,
     "failed": 0,
     "held_fixed": [
       {
@@ -58,6 +61,14 @@
     "maximum": 0.41585389631873065,
     "median": 0.41048371429404634,
     "minimum": 0.38478774469482696,
+    "over_rules_without_signals": {
+      "counted": 75,
+      "maximum": 0.41585389631873065,
+      "median": 0.41048371429404634,
+      "minimum": 0.38478774469482696,
+      "spread_absolute": 0.031066151623903693,
+      "spread_percent_of_median": 7.568181280305248
+    },
     "quantity_key": "jump_height_from_takeoff_meters",
     "registry_version": null,
     "spread_absolute": 0.031066151623903693,
@@ -88,6 +99,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -112,6 +124,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41488925685631
       },
       {
@@ -136,6 +149,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -159,6 +173,25 @@
             "takeoff",
             "takeoff.threshold.absolute_force"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -184,6 +217,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41519972742849104
       },
       {
@@ -207,6 +241,25 @@
             "takeoff",
             "takeoff.threshold.absolute_force"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -232,6 +285,25 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
+        ],
         "value": 0.39152136964691875
       },
       {
@@ -256,6 +328,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41537010976588606
       },
       {
@@ -279,6 +352,25 @@
             "takeoff",
             "takeoff.threshold.absolute_force"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -304,6 +396,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -328,6 +421,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41487895334994523
       },
       {
@@ -352,6 +446,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -376,6 +471,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -400,6 +496,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.41585389631873065
       },
       {
@@ -424,6 +521,7 @@
             "takeoff.threshold.absolute_force"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -448,6 +546,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -472,6 +571,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41488925685631
       },
       {
@@ -496,6 +596,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -519,6 +620,25 @@
             "takeoff",
             "takeoff.threshold.longest_run"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -544,6 +664,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41519972742849104
       },
       {
@@ -567,6 +688,25 @@
             "takeoff",
             "takeoff.threshold.longest_run"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -592,6 +732,25 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
+        ],
         "value": 0.39152136964691875
       },
       {
@@ -616,6 +775,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41537010976588606
       },
       {
@@ -639,6 +799,25 @@
             "takeoff",
             "takeoff.threshold.longest_run"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -664,6 +843,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -688,6 +868,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41487895334994523
       },
       {
@@ -712,6 +893,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -736,6 +918,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -760,6 +943,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.41585389631873065
       },
       {
@@ -784,6 +968,7 @@
             "takeoff.threshold.longest_run"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -808,6 +993,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -832,6 +1018,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41488925685631
       },
       {
@@ -856,6 +1043,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -879,6 +1067,25 @@
             "takeoff",
             "takeoff.threshold.descending_crossing"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -904,6 +1111,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41519972742849104
       },
       {
@@ -927,6 +1135,25 @@
             "takeoff",
             "takeoff.threshold.descending_crossing"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -952,6 +1179,25 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
+        ],
         "value": 0.39152136964691875
       },
       {
@@ -976,6 +1222,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41537010976588606
       },
       {
@@ -999,6 +1246,25 @@
             "takeoff",
             "takeoff.threshold.descending_crossing"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -1024,6 +1290,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -1048,6 +1315,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41487895334994523
       },
       {
@@ -1072,6 +1340,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -1096,6 +1365,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -1120,6 +1390,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.41585389631873065
       },
       {
@@ -1144,6 +1415,7 @@
             "takeoff.threshold.descending_crossing"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -1168,6 +1440,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.40362191510223533
       },
       {
@@ -1192,6 +1465,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.40795702356510194
       },
       {
@@ -1216,6 +1490,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.40362191510223533
       },
       {
@@ -1239,6 +1514,25 @@
             "takeoff",
             "takeoff.threshold.flight_noise_k_sd"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.38478774469482696
       },
@@ -1264,6 +1558,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.4082648899285437
       },
       {
@@ -1287,6 +1582,25 @@
             "takeoff",
             "takeoff.threshold.flight_noise_k_sd"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.38478774469482696
       },
@@ -1312,6 +1626,25 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
+        ],
         "value": 0.38478774469482696
       },
       {
@@ -1336,6 +1669,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.4084338435227793
       },
       {
@@ -1359,6 +1693,25 @@
             "takeoff",
             "takeoff.threshold.flight_noise_k_sd"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.38478774469482696
       },
@@ -1384,6 +1737,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.403588255444095
       },
       {
@@ -1408,6 +1762,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.40794680650063947
       },
       {
@@ -1432,6 +1787,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.403588255444095
       },
       {
@@ -1456,6 +1812,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.40386298870644843
       },
       {
@@ -1480,6 +1837,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.4089135748741126
       },
       {
@@ -1504,6 +1862,7 @@
             "takeoff.threshold.flight_noise_k_sd"
           ]
         ],
+        "signals": [],
         "value": 0.40386298870644843
       },
       {
@@ -1528,6 +1887,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -1552,6 +1912,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41488925685631
       },
       {
@@ -1576,6 +1937,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.4105176602724294
       },
       {
@@ -1599,6 +1961,25 @@
             "takeoff",
             "takeoff.threshold.landing_shape"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -1624,6 +2005,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41519972742849104
       },
       {
@@ -1647,6 +2029,25 @@
             "takeoff",
             "takeoff.threshold.landing_shape"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -1672,6 +2073,25 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
+        ],
         "value": 0.39152136964691875
       },
       {
@@ -1696,6 +2116,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41537010976588606
       },
       {
@@ -1719,6 +2140,25 @@
             "takeoff",
             "takeoff.threshold.landing_shape"
           ]
+        ],
+        "signals": [
+          {
+            "label": "Movement onset, against the instant this rule's search begins",
+            "qualifies": [
+              "onset_time_seconds",
+              "time_to_takeoff_seconds",
+              "takeoff_velocity_meters_per_second",
+              "net_impulse_newton_seconds",
+              "jump_height_from_takeoff_meters",
+              "reactive_strength_index_modified"
+            ],
+            "remedy": "This rule begins searching where the weighing window ends, at 1.0000 s, and the trace was already outside its threshold there, so the onset it reports is the start of its own search rather than a departure it found in the recording. Time to takeoff, the impulse and everything drawn from them run from that instant. Compare the other published rules for the start of the jump, or move the weighing window, and watch this time change.",
+            "remedy_construct": "movement_onset",
+            "status": "at_search_floor",
+            "threshold": 0.0,
+            "unit": "seconds",
+            "value": 1.0
+          }
         ],
         "value": 0.39152136964691875
       },
@@ -1744,6 +2184,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -1768,6 +2209,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41487895334994523
       },
       {
@@ -1792,6 +2234,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41048371429404634
       },
       {
@@ -1816,6 +2259,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       },
       {
@@ -1840,6 +2284,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.41585389631873065
       },
       {
@@ -1864,6 +2309,7 @@
             "takeoff.threshold.landing_shape"
           ]
         ],
+        "signals": [],
         "value": 0.4107607841800114
       }
     ]

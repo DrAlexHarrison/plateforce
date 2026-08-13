@@ -28,6 +28,7 @@ on:
       - 'registry/**'
       - 'scripts/build-web.sh'
       - 'scripts/check-batch.mjs'
+      - 'scripts/check-export.mjs'
       - 'scripts/check-account.mjs'
       - 'scripts/check-grammar.mjs'
       - 'scripts/check-web-names-no-construct.py'
@@ -50,6 +51,7 @@ on:
       - 'registry/**'
       - 'scripts/build-web.sh'
       - 'scripts/check-batch.mjs'
+      - 'scripts/check-export.mjs'
       - 'scripts/check-account.mjs'
       - 'scripts/check-grammar.mjs'
       - 'scripts/check-web-names-no-construct.py'
@@ -145,6 +147,14 @@ jobs:
       # has no path to is an answer it cannot give.
       - name: A folder through the browser equals the same folder through the terminal
         run: node scripts/check-batch.mjs web 8751
+
+      # The step above compares what each surface computes. This compares what a reader
+      # carries away: the file the download control actually produces, read back with an
+      # independent zip reader and compared relation by relation against a --out-dir run of
+      # the terminal under the same stated rules. A number that agrees in memory and diverges
+      # on the way out of the tab is a disagreement no other step here can see.
+      - name: What the browser hands a reader equals what the terminal writes
+        run: node scripts/check-export.mjs web 8761
 
       - name: Every account the terminal writes is one the tab shows, and reads the same
         run: node scripts/check-account.mjs web 8755

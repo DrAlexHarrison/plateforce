@@ -60,11 +60,29 @@ jobs:
         shell: bash
         run: bash scripts/verify-release-artefacts.sh --bundle-wasm-only
 
+      # The command line program, which the installer does not contain: tauri.conf.json
+      # declares no externalBin and the executable it installs is plateforce-desktop, so
+      # without this a reader at a PowerShell prompt has nothing to run and no route that does
+      # not need a compiler.
+      #
+      # After the bundle build, because that build's beforeBuildCommand is what put web/pkg on
+      # disk, and plateforce-cli embeds web/ at compile time.
+      - name: The command line program
+        shell: bash
+        run: |
+          test -f web/pkg/plateforce_wasm_bg.wasm
+          cargo build --release -p plateforce-cli
+
       - name: Gather the artefacts
         shell: bash
         run: |
           mkdir -p dist
           cp src-tauri/target/release/bundle/nsis/*-setup.exe dist/
+          cp target/release/plateforce.exe dist/plateforce-x86_64-windows.exe
+
+      - name: It carries the browser build
+        shell: bash
+        run: bash scripts/verify-release-artefacts.sh --cli-payload-only dist/plateforce-x86_64-windows.exe
 
       # The step above this one reads the loose executable the build produced. This extracts
       # the installer and asks the program inside it, which is a different question: it is
@@ -77,7 +95,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows
-          path: dist/*-setup.exe
+          path: |
+            dist/*-setup.exe
+            dist/plateforce-x86_64-windows.exe
           if-no-files-found: error
 
   store-package:

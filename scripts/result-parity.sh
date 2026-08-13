@@ -70,13 +70,10 @@ for request_row in "${request_rows[@]}"; do
     answer="$answers/$request_name.$surface.json"
     complaint="$answers/$request_name.$surface.err"
 
-    # The exit status is recorded and carried rather than acted on here. A terminal meeting a
-    # recording that lacks what a rule looks for writes the partial result and exits 65,
-    # `Fault::Recording` in crates/plateforce-cli/src/exit.rs, with nothing on the other
-    # stream. Read as a failure to compute, that ended the whole run before any surface was
-    # compared, and printed five lines of an empty file as the reason. A surface has answered
-    # when it produced a document; whether it also reported a deficient recording is a fact
-    # about the recording, and it belongs beside the comparison rather than in front of it.
+    # The exit status is recorded and carried rather than acted on here. A surface has
+    # answered when it produced a document; whether it also reported a deficient recording is
+    # a fact about the recording, and it belongs beside the comparison rather than in front of
+    # it. The terminal now says the same thing with its status, which this no longer relies on.
     set +o errexit
     ( cd "$root" && eval "$command" ) > "$answer" 2> "$complaint"
     status=$?

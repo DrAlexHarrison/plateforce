@@ -204,6 +204,12 @@ check_declared_set() {
 
   # Declared here and counted against, never inferred from what turned up. The MSIX is
   # absent on purpose: it goes to the Store rather than to a release page.
+  #
+  # The desktop bundles carry no command line program: `src-tauri/tauri.conf.json` declares
+  # no `externalBin`, and the executable inside them is `plateforce-desktop`. So the last two
+  # are what a reader at a terminal on macOS or Windows has. The Linux pair says `-static`
+  # because musl makes that a claim about the file; neither of the others is static and
+  # neither carries the word.
   local declared=(
     "plateforce_${version}_amd64.AppImage"
     "plateforce_${version}_amd64.deb"
@@ -212,6 +218,8 @@ check_declared_set() {
     "plateforce_${version}_x64-setup.exe"
     "plateforce-x86_64-linux-static"
     "plateforce-aarch64-linux-static"
+    "plateforce-universal-macos"
+    "plateforce-x86_64-windows.exe"
   )
 
   local present=0 missing=()
@@ -230,12 +238,60 @@ check_declared_set() {
   fi
 }
 
+# The browser build a command line binary carries, read out of the file rather than by
+# running one. `plateforce-serve`'s build script embeds an empty set when `web/pkg` is absent,
+# by design, so a binary built in the wrong order serves nothing; `serve` declines and says so,
+# and every other command answers perfectly, which is why neither check above can see it.
+#
+# Uncompressed, because that crate embeds the directory as bytes. The desktop shell puts the
+# same module through tauri's own asset table, which compresses it, and is asked with
+# `--capability` instead.
+#
+# Belongs to the job that built the binaries, where `web/pkg` is on disk, for the same reason
+# `--bundle-wasm-only` does.
+check_cli_payload() {
+  if [ ! -f "$THE_MODULE" ]; then
+    echo "no browser build in the tree to compare against; run scripts/build-web.sh release" >&2
+    exit 1
+  fi
+  python3 - "$THE_MODULE" "$@" <<'READS_EACH_BINARY'
+import pathlib
+import sys
+
+module = pathlib.Path(sys.argv[1]).read_bytes()
+without = []
+for name in sys.argv[2:]:
+    binary = pathlib.Path(name)
+    if not binary.is_file():
+        print(f"{name} is not a file, so nothing was read from it", file=sys.stderr)
+        without.append(name)
+        continue
+    at = binary.read_bytes().find(module)
+    if at < 0:
+        print(f"{name} carries no copy of {sys.argv[1]}", file=sys.stderr)
+        without.append(name)
+    else:
+        print(f"{name} carries this tree's browser build, at offset {at}")
+if without:
+    sys.exit(1)
+READS_EACH_BINARY
+}
+
 case "${1:-}" in
   --bundle-wasm-only)
     check_bundle_payload
     ;;
+  --cli-payload-only)
+    shift
+    if [ "$#" -eq 0 ]; then
+      echo "usage: $0 --cli-payload-only <binary> [<binary>...]" >&2
+      exit 2
+    fi
+    check_cli_payload "$@"
+    ;;
   "")
-    echo "usage: $0 <dist directory> | --bundle-wasm-only" >&2
+    echo "usage: $0 <dist directory> | --bundle-wasm-only" \
+      "| --cli-payload-only <binary>..." >&2
     exit 2
     ;;
   *)

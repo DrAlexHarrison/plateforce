@@ -33,7 +33,11 @@ ROOT = Path(__file__).resolve().parent.parent
 ROOTS = {
     "python-wheels.yml": "crates/plateforce-python/Cargo.toml",
     "r-package.yml": "bindings/r/src/rust/Cargo.toml",
-    "desktop-linux.yml": "crates/plateforce-serve/Cargo.toml",
+    # plateforce-cli, because that is the package scripts/build-serve-binaries.sh builds and
+    # the static binaries are what this workflow ships. Named as plateforce-serve until now,
+    # which depends on no workspace member, so the row's closure was empty and it reported
+    # that it was asserting nothing while five crates went uncovered.
+    "desktop-linux.yml": "crates/plateforce-cli/Cargo.toml",
 }
 
 DEP_LINE = re.compile(r"^\s*(plateforce-[a-z0-9-]+)\s*=", re.MULTILINE)
@@ -75,36 +79,56 @@ def closure(manifest: Path, members: dict[str, Path]) -> set[str]:
     return seen
 
 
-def push_paths(workflow: Path) -> list[str] | None:
-    """The `paths:` list under `push:`, or None when the trigger declares none.
+def trigger_paths(workflow: Path, trigger: str) -> list[str] | None | bool:
+    """The `paths:` list under one trigger: False when the workflow has no such trigger,
+    None when it has one that declares no paths, the list otherwise.
 
-    Parsed by structure rather than by a search for the word, because `pull_request:` carries
-    its own `paths:` in several of these files and matching the wrong one would read a
+    Parsed by structure rather than by a search for the word, because several of these files
+    carry a `paths:` under more than one trigger and matching the wrong one would read a
     covered workflow as uncovered, or the reverse.
     """
     lines = workflow.read_text(encoding="utf-8").splitlines()
-    in_push = False
+    inside = False
     in_paths = False
     collected: list[str] = []
     for line in lines:
-        if re.match(r"^\s{0,4}push:\s*$", line):
-            in_push, in_paths = True, False
+        if re.match(rf"^\s{{0,4}}{trigger}:\s*$", line):
+            inside, in_paths = True, False
             continue
-        # Any other trigger at the same indent ends the push block.
-        if in_push and re.match(r"^\s{0,4}[a-z_]+:\s*$", line) and not line.strip().startswith(("paths", "branches")):
+        # Any other trigger at the same indent ends the block.
+        if inside and re.match(r"^\s{0,4}[a-z_]+:\s*$", line) and not line.strip().startswith(("paths", "branches")):
             break
-        if in_push and re.match(r"^\s+paths:\s*$", line):
+        if inside and re.match(r"^\s+paths:\s*$", line):
             in_paths = True
             continue
         if in_paths:
+            # A comment or a blank line inside the list is not the end of it. Treating one as
+            # the end truncates the filter and reports covered crates as uncovered, which is
+            # loud rather than silent and is still wrong.
+            if not line.strip() or line.strip().startswith("#"):
+                continue
             item = re.match(r"^\s+-\s+[\"']?([^\"'\s]+)[\"']?\s*$", line)
             if item:
                 collected.append(item.group(1))
-            elif line.strip():
+            else:
                 in_paths = False
-    if not in_push:
-        return []          # no push trigger at all, nothing to under-cover
+    if not inside:
+        return False
     return collected or None
+
+
+def filtering_trigger(workflow: Path) -> tuple[str, list[str] | None]:
+    """Which trigger's filter decides whether this workflow runs, and what it holds.
+
+    `push` where there is one. `desktop-linux.yml` has none and runs on `pull_request`, and
+    reading its absent push filter as an empty list reported every crate in the closure as
+    uncovered, which is the opposite of the exemption the absent trigger deserves.
+    """
+    for trigger in ("push", "pull_request"):
+        found = trigger_paths(workflow, trigger)
+        if found is not False:
+            return trigger, found
+    return "none", None
 
 
 def covered(crate: str, patterns: list[str], members: dict[str, Path]) -> bool:
@@ -128,10 +152,10 @@ def main() -> int:
         if not workflow.exists():
             failures.append(f"{name}: declared here but absent from .github/workflows/")
             continue
-        patterns = push_paths(workflow)
+        trigger, patterns = filtering_trigger(workflow)
         needed = sorted(closure(ROOT / manifest_path, members))
         if patterns is None:
-            print(f"{name:24s} push carries no paths filter, so every crate change runs it")
+            print(f"{name:24s} {trigger} carries no paths filter, so every crate change runs it")
             checked += 1
             continue
         checked += 1
@@ -150,7 +174,7 @@ def main() -> int:
             directory = members[crate].relative_to(ROOT).as_posix()
             failures.append(
                 f"{name}: {crate} is in the dependency closure of {manifest_path} and no "
-                f"push path covers it. Add \"{directory}/**\"."
+                f"{trigger} path covers it. Add \"{directory}/**\"."
             )
 
     if checked != len(ROOTS):

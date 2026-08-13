@@ -52,43 +52,54 @@ jobs:
       # the signing step would report a problem that has nothing to do with their change.
       # Which path ran is logged, so a release that quietly went out unsigned is visible.
       #
-      # All three inputs are read, not just the identity: a certificate without an identity
-      # signs as whatever the certificate happens to be, and an identity without a
-      # certificate reaches Tauri as an instruction to import one that is not there, which
-      # surfaces as `security import: failed to import keychain certificate` and reads like
-      # a broken certificate rather than a missing one.
+      # All six inputs are read rather than the three the build step names. A certificate
+      # without an identity signs as whatever the certificate happens to be, and an identity
+      # without a certificate reaches Tauri as an instruction to import one that is not
+      # there, which surfaces as `security import: failed to import keychain certificate`
+      # and reads like a broken certificate rather than a missing one. The other three are
+      # the notarisation step's, and a run that reaches it without them has already built
+      # both architectures and signed them, then spends five attempts and roughly twenty
+      # minutes on a submission that cannot authenticate.
       - name: Decide whether this run can sign
         id: signing
         env:
           IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          API_KEY_CONTENTS: ${{ secrets.APPLE_API_KEY_CONTENTS }}
+          API_KEY: ${{ secrets.APPLE_API_KEY }}
+          API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           MUST_BE_SIGNED: ${{ inputs.must_be_signed }}
         run: |
           absent=""
-          [ -n "$IDENTITY" ] || absent="$absent APPLE_SIGNING_IDENTITY"
-          [ -n "$CERTIFICATE" ] || absent="$absent APPLE_CERTIFICATE"
-          [ -n "$CERTIFICATE_PASSWORD" ] || absent="$absent APPLE_CERTIFICATE_PASSWORD"
-          case "$absent" in
-            "")
-              echo "able=yes" >> "$GITHUB_OUTPUT"
-              echo "signing: Developer ID, notarisation to follow"
-              ;;
-            " APPLE_SIGNING_IDENTITY APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD")
-              if [ "$MUST_BE_SIGNED" = true ]; then
-                echo "signing: declined. This artefact reaches a reader, who is told it" >&2
-                echo "opens with no warning, and no signing credentials are set." >&2
-                exit 1
-              fi
-              echo "able=no" >> "$GITHUB_OUTPUT"
-              echo "signing: ad-hoc, notarisation skipped"
-              ;;
-            *)
-              echo "signing: declined, the credentials are incomplete." >&2
-              echo "absent:$absent" >&2
+          present=0
+          # Actions materialises an absent secret as an empty string rather than leaving the
+          # variable unset, so emptiness is what separates the two.
+          note() {
+            if [ -n "$2" ]; then present=$((present + 1)); else absent="$absent $1"; fi
+          }
+          note APPLE_SIGNING_IDENTITY "$IDENTITY"
+          note APPLE_CERTIFICATE "$CERTIFICATE"
+          note APPLE_CERTIFICATE_PASSWORD "$CERTIFICATE_PASSWORD"
+          note APPLE_API_KEY_CONTENTS "$API_KEY_CONTENTS"
+          note APPLE_API_KEY "$API_KEY"
+          note APPLE_API_ISSUER "$API_ISSUER"
+          if [ "$present" -eq 6 ]; then
+            echo "able=yes" >> "$GITHUB_OUTPUT"
+            echo "signing: Developer ID, notarisation to follow"
+          elif [ "$present" -eq 0 ]; then
+            if [ "$MUST_BE_SIGNED" = true ]; then
+              echo "signing: declined. This artefact reaches a reader, who is told it" >&2
+              echo "opens with no warning, and no signing credentials are set." >&2
               exit 1
-              ;;
-          esac
+            fi
+            echo "able=no" >> "$GITHUB_OUTPUT"
+            echo "signing: ad-hoc, notarisation skipped"
+          else
+            echo "signing: declined, the credentials are incomplete." >&2
+            echo "absent:$absent" >&2
+            exit 1
+          fi
 
       - uses: actions/checkout@v4
 
@@ -166,6 +177,42 @@ jobs:
       - name: The module inside the bundle is the one this tree builds
         run: bash scripts/verify-release-artefacts.sh --bundle-wasm-only
 
+      # The command line program, which the application does not contain: tauri.conf.json
+      # declares no externalBin and the executable inside the app is plateforce-desktop, so
+      # without this a reader at a terminal on macOS has nothing to run and no route that
+      # does not need a compiler.
+      #
+      # After the bundle build rather than before it, because that build's beforeBuildCommand
+      # is what put web/pkg on disk, and plateforce-cli embeds web/ at compile time.
+      - name: The command line program, both architectures in one file
+        run: |
+          test -f web/pkg/plateforce_wasm_bg.wasm
+          cargo build --release -p plateforce-cli --target aarch64-apple-darwin
+          cargo build --release -p plateforce-cli --target x86_64-apple-darwin
+          mkdir -p dist
+          lipo -create -output dist/plateforce-universal-macos \
+            target/aarch64-apple-darwin/release/plateforce \
+            target/x86_64-apple-darwin/release/plateforce
+          lipo -info dist/plateforce-universal-macos
+
+      - name: It carries the browser build
+        run: bash scripts/verify-release-artefacts.sh --cli-payload-only dist/plateforce-universal-macos
+
+      # Signed, not notarised, and the difference decides what a reader has to do. Gatekeeper
+      # reads the quarantine attribute, which the downloading application sets: a browser sets
+      # it and curl does not. So a signed and un-notarised binary fetched with curl runs with
+      # no prompt, and the same file downloaded in a browser is refused until the reader clears
+      # the attribute. Notarisation applies to an archive or a bundle rather than to a loose
+      # executable, so it is a separate submission from the one the dmg makes above.
+      - name: Sign it with the same identity as the application
+        if: steps.signing.outputs.able == 'yes'
+        env:
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --timestamp --options runtime \
+            --sign "$IDENTITY" dist/plateforce-universal-macos
+          codesign --verify --verbose dist/plateforce-universal-macos
+
       - name: Notarise, and staple the ticket into the file
         if: steps.signing.outputs.able == 'yes'
         env:
@@ -220,7 +267,9 @@ jobs:
         if: always() && steps.signing.outcome == 'success'
         with:
           name: desktop-macos
-          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          path: |
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            dist/plateforce-universal-macos
           if-no-files-found: error
 
       - name: Remove the App Store Connect key

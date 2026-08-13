@@ -158,6 +158,56 @@ jobs:
       - name: Run the commands and read every byte they write
         run: ./scripts/check-cli-output-is-ascii.sh
 
+  # An example that does not execute is worse than no example: a reader who cannot get the
+  # printed line to work cannot tell whether they mistyped it or whether a flag was renamed
+  # under it. The lines are read out of the help the binary prints rather than out of the
+  # source that writes it, so an example added anywhere is an example this runs.
+  help_examples:
+    name: every command line the help shows runs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: help-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      # Exit 1 is a line that does not run. Exit 3 is the check finding too few lines to be
+      # measuring anything, or no example producing a result, which are both the check
+      # being unable to look rather than finding nothing.
+      - name: Run every example across every help page
+        run: ./scripts/check-help-examples-run.sh
+
+  # A page that exists and a page `man` renders are different claims, and so are a completion
+  # script that parses and one that completes. Both weaker claims are held by `cargo test`;
+  # this asks the programs the files were written for.
+  generated_help_artefacts:
+    name: man and the shells accept what this build writes for them
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The runner image carries man-db with the pages stripped and no zsh. Without both
+      # installed the check skips the legs that need them and reports on bash alone, which
+      # is a narrower run reading exactly like a full one.
+      - name: Install the programs that read these files
+        run: sudo apt-get update && sudo apt-get install -y man-db zsh
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: artefacts-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Put the pages to man and the completions to their shells
+        run: ./scripts/check-generated-help-artefacts.sh
+
   # A surface that can raise a refusal code its own manifest does not publish hands a caller
   # a class to catch that the manifest says does not exist. The count is held to a ceiling
   # that only falls, so a code closed cannot quietly be replaced by a new one.
