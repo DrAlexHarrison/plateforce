@@ -42,7 +42,13 @@ names. `required` with no default is the shape that refuses until you state it.
 Write it with `--set <states>=<value>`, which for the record above is `--set onset.k=5.0`.
 
 That cost is measured and held to a ceiling by `crates/plateforce-cli/tests/discovery-calls.txt`,
-which reads 1 for 107 rules. It read 108 until the manifest carried this.
+which carries the call count and the rule count it was measured over. One call covers the whole
+population; it took one per rule until the manifest carried the values.
+
+The same population in the shape a person reads, every rule grouped under the exact text that
+states it, is `plateforce methods`, and `plateforce methods --slot onset` narrows it to one step.
+It answers out of the manifest's `methods` array, so it tells you nothing the call above does not,
+and it is what to put in front of whoever asked you when they want to choose rather than be told.
 
 The registry remains the one home for everything else about a rule, its title, its prose, its
 citations, its disagreements and the notes on each parameter, and per-entry lookup is still how
@@ -108,14 +114,35 @@ refused and how many a gate excluded. **Never report a count from this tool with
 denominator beside it**, because the denominator is the part that tells anyone whether the number
 means anything.
 
-`results.csv` and `results.parquet` are one table in two containers, with the same columns in the
-same order: `trial_id`, `subject`, `source_path`, `provenance_id`, `refusal_code`, then one column
-per quantity. **Group by `subject` rather than parsing `trial_id` yourself.** The run resolved the
+The containers a surface writes are its own, and the manifest publishes them:
+
+<!-- checked-against-capability: output_formats -->
+```
+csv
+json
+text
+```
+
+**Read that array from the surface you are driving rather than from this page**, for the reason the
+operations array is read that way: they differ, and a container one surface writes is not one
+another writes.
+
+`results.csv` carries `trial_id`, `subject`, `source_path`, `provenance_id`, `refusal_code`, then
+one column per quantity. **Group by `subject` rather than parsing `trial_id` yourself.** The run resolved the
 athlete from the pattern you declared, and re-deriving it is this software's identity rule
 reimplemented by you and free to disagree with it. It is empty when the run declared no pattern,
 which means there is no grouping to do, not that the athlete is unnamed. **A trial that produced
 no numbers keeps its subject**, so an athlete's denominator includes the trials that refused;
 count those rows rather than dropping them, and `refusal_code` says why each one is there.
+
+**`refusal_code` on a trial row is trial-level and is empty on a trial that produced numbers.**
+A quantity that declined inside a trial that otherwise succeeded is not there: it is a row in
+`refusals.csv`, and in `refusals` in the JSON, naming the quantity, the rule and the reason.
+The two are counted separately and never added, because one counts trials and the other counts
+quantities. A folder of trials trimmed before the athlete lands is the ordinary case, and it
+reads as every trial row carrying an empty `refusal_code` with a quantity-level refusal for
+each landmark that had nothing to work on. How many of those there are depends on the rules
+you bound, so read the relation rather than expecting a number.
 
 `provenance_id` is the join back to `provenance.csv`, which carries one row per method per
 parameter with `source` reading `stated`, `assumed` or `measured`. That join is how a value in the
@@ -128,11 +155,28 @@ on the row, so grouping, splitting and relating need no join. `account` is that 
 account of itself in prose. The join through `provenance_id` is still how you reach every
 parameter the rule bound.
 
-Same columns in `descriptions.parquet`, with `value` a float rather than text.
+`refusals.csv`, `warnings.csv`, `exclusions.csv` and `signals.csv` sit beside them: every quantity
+that declined with the rule and the reason, what the run wants looked at, anything a gate removed
+and under which rule, and the landmarks per trial.
 
 **If you filter or concatenate these tables, carry `run.json` with them.** It holds the registry
 digest, the request digest and the run fingerprint. A table separated from its record is a set of
 numbers whose method nobody can recover, which is the failure this tool exists to prevent.
+
+## What the status tells you, and what it does not
+
+**A zero status means a result reached you. It does not mean every quantity has a number.**
+A trial trimmed before the athlete lands supports no flight time, which is most real
+collections, and the quantities resting on it decline by name inside the result rather than
+ending the run.
+
+So the completeness question is answered from the result, never from the status: `refusals`
+in the document for one trial, `refusals.csv` for a folder. Both carry the quantity, the rule
+and the reason. Empty means every quantity you asked for has a value.
+
+A non-zero status means no result was produced: 64 the request asked for something not on
+offer, 65 the recording did not hold what a rule looks for, 66 the file could not be read,
+78 the registry does not load.
 
 ## What every refusal means
 

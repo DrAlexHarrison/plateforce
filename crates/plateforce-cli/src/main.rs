@@ -8,7 +8,10 @@ mod analyse;
 mod batch;
 mod capability_cmd;
 mod decisions;
+mod examples;
 mod exit;
+mod manual;
+mod methods_cmd;
 mod out;
 mod plate_cmd;
 mod plate_source;
@@ -30,11 +33,52 @@ use exit::{code_for, stream_for, Outcome};
 use out::Format;
 use render::{Colour, Renderer};
 
+/// What `--help` says above the options, where `-h` shows the line alone.
+///
+/// The second paragraph is the reason the flags below take the shape they do, and a reader who
+/// skips it meets the same fact as a refusal on their first run instead.
+///
+/// Wrapped here rather than by clap, which lays a long description out as it was written. The
+/// width is the one `render.rs` falls back to when there is no terminal to ask.
+const WHAT_THIS_IS: &str = "\
+Force-plate analysis where every number carries the rule that produced it.
+
+Published methods for one jump metric disagree by more than a training effect
+does, so which rule produced a number decides the number. Every value here
+travels with its rule, the values that rule was given, and where each of those
+came from.
+
+The rules are data rather than code, so the names the method flags take move when
+the registry moves. `plateforce methods` prints them, under the words that reach them.";
+
+/// What `capability --help` says, where the one-line about is what `-h` shows.
+///
+/// The second paragraph states the shape a caller gets rather than leaving them to find it:
+/// this command answers in JSON whichever format was asked for, because the document is
+/// compared byte for byte across surfaces and two renderings of it would be two documents.
+const WHAT_CAPABILITY_IS: &str = "\
+Report every operation, rule, value and refusal code, as one JSON document.
+
+This is the call to make before writing anything against this software, because it describes
+the copy in front of you rather than one somebody wrote about. It carries every operation
+this surface dispatches, every rule it runs with the slot each fills, every value each rule
+takes with the exact text that states it, the acquisition block's members, the containers
+this surface writes, and every refusal code with its exit code.
+
+It answers in JSON whichever format is asked for, so the same document reaches a reader and
+a diff.
+
+To read the rules rather than parse them, `plateforce methods` prints every rule under the
+words that reach it, and `plateforce registry show <METHOD>` prints one in full.";
+
 #[derive(Parser)]
 #[command(
     name = "plateforce",
     version,
-    about = "Force-plate analysis with a method registry",
+    about = "Force-plate analysis where every number carries the rule that produced it",
+    long_about = WHAT_THIS_IS,
+    after_help = examples::TOP_SHORT,
+    after_long_help = examples::TOP_LONG,
     disable_help_subcommand = false
 )]
 struct Invocation {
@@ -60,20 +104,52 @@ struct Invocation {
 #[derive(Subcommand)]
 enum Command {
     /// Compute every number one trace supports, with the rule behind each
+    #[command(
+        after_help = examples::ANALYSE_SHORT,
+        after_long_help = examples::ANALYSE_LONG
+    )]
     Analyse(analyse::Args),
     /// Run every trial in a folder under one request
+    #[command(after_help = examples::BATCH_SHORT, after_long_help = examples::BATCH_LONG)]
     Batch(batch::Args),
-    /// Report what this build can do, for comparison against every other surface
+    /// Report every operation, rule, value and refusal code, as one JSON document
+    #[command(
+        long_about = WHAT_CAPABILITY_IS,
+        after_help = examples::CAPABILITY_SHORT,
+        after_long_help = examples::CAPABILITY_LONG
+    )]
     Capability(capability_cmd::Args),
+    /// Write the completion script a shell reads to finish these commands and their values
+    #[command(
+        after_help = examples::COMPLETIONS_SHORT,
+        after_long_help = examples::COMPLETIONS_LONG
+    )]
+    Completions(manual::CompletionsArgs),
+    /// Write one manual page per command, where this machine's `man` reads them
+    #[command(after_help = examples::MAN_SHORT, after_long_help = examples::MAN_LONG)]
+    Man(manual::ManArgs),
+    /// Name every rule, under the words that reach them
+    #[command(after_help = examples::METHODS_SHORT, after_long_help = examples::METHODS_LONG)]
+    Methods(methods_cmd::Args),
     /// Record a plate's settings once, and read back the ones this machine holds
-    #[command(subcommand)]
+    #[command(
+        subcommand,
+        after_help = examples::PLATE_SHORT,
+        after_long_help = examples::PLATE_LONG
+    )]
     Plate(plate_cmd::Command),
     /// Report what this registry reaches, per construct, and what stands in the way of the rest
+    #[command(after_help = examples::REACH_SHORT, after_long_help = examples::REACH_LONG)]
     Reach,
     /// Read the registry
-    #[command(subcommand)]
+    #[command(
+        subcommand,
+        after_help = examples::REGISTRY_SHORT,
+        after_long_help = examples::REGISTRY_LONG
+    )]
     Registry(registry_cmd::Command),
-    /// Sweep a quantity over every rule this build runs for each step on its path
+    /// Sweep a quantity over every rule on each step of its path
+    #[command(after_help = examples::SPREAD_SHORT, after_long_help = examples::SPREAD_LONG)]
     Spread(spread_cmd::Args),
     /// Serve the browser interface to this machine
     // Help is answered by the server, which owns the options, so this level does not
@@ -89,6 +165,7 @@ enum Command {
         options: Vec<String>,
     },
     /// Print the version
+    #[command(after_help = examples::VERSION_SHORT)]
     Version,
 }
 
@@ -151,6 +228,16 @@ fn main() -> ExitCode {
             plate_cmd::run(command, plates_directory.as_deref(), invocation.format)
         }
         Command::Reach => reach::run(registry_directory.as_deref(), invocation.format, &renderer),
+        Command::Methods(args) => methods_cmd::run(
+            args,
+            registry_directory.as_deref(),
+            invocation.format,
+            &renderer,
+        ),
+        // Both write a document for a program that is not this one, `man` and a shell, so
+        // neither reads the registry and neither takes a result's containers.
+        Command::Man(args) => manual::write_manual(args, invocation.format),
+        Command::Completions(args) => manual::write_completions(args, invocation.format),
         // The server holds the process rather than handing back a document, and it reads its
         // own options, so the one parser for them stays in the crate that acts on them.
         Command::Serve { options } => {
@@ -227,11 +314,13 @@ fn report_parse_failure(error: clap::Error) -> ExitCode {
             let _ = error.print();
             return ExitCode::SUCCESS;
         }
-        // A bare invocation is a reader asking what this program does.
+        // A bare invocation is a reader asking what this program does, and an answer goes to
+        // the stream an answer goes to: clap sends this kind to stderr, where `plateforce |
+        // less` and `plateforce > what-is-this.txt` both lose it.
         ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand | ErrorKind::MissingSubcommand
             if std::env::args_os().len() <= 1 =>
         {
-            let _ = error.print();
+            let _ = Invocation::command().print_help();
             return ExitCode::SUCCESS;
         }
         _ => {}

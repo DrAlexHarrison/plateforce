@@ -14,7 +14,10 @@ path = "src/main.rs"
 
 [dependencies]
 plateforce-analysis = { workspace = true }
-plateforce-batch = { workspace = true, features = ["parquet"] }
+# Without the parquet feature, because this surface writes CSV and JSON and its own manifest
+# publishes those two. Taking it named the columnar dependency and wrote nothing with it. The
+# Python package turns the feature on for itself, which is where a columnar file is reached.
+plateforce-batch = { workspace = true }
 plateforce-core = { workspace = true }
 plateforce-registry = { workspace = true }
 plateforce-serve = { workspace = true }
@@ -27,6 +30,8 @@ serde_json = { workspace = true }
 # A saved plate is written in the format the registry is written in, so the one file a lab
 # edits by hand reads the way every other file in this project reads.
 toml = { workspace = true }
+clap_mangen = "0.3"
+clap_complete = "4.6"
 
 # The build script assembles the registry with the registry crate's own walk, so a set of
 # files the directory loader refuses fails this build rather than reaching a machine that

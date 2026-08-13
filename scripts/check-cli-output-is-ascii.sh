@@ -60,8 +60,20 @@ runs=(
     "show|registry show takeoff.threshold.absolute_force"
     "analyse|analyse $trial"
     "reach|reach"
+    "methods|methods"
+    "methods-slot|methods --slot onset"
+    "help|--help"
+    "help-analyse|analyse --help"
+    # A completion script is written to the terminal too, and the shells differ in what they
+    # quote, so each is read rather than one standing for all five.
+    "completions-bash|completions bash"
+    "completions-zsh|completions zsh"
+    "completions-fish|completions fish"
+    "completions-powershell|completions powershell"
+    "completions-elvish|completions elvish"
     "refuse-unknown-id|registry show no.such.entry.exists"
     "refuse-missing-file|analyse /nonexistent/trace.txt"
+    "refuse-unknown-slot|methods --slot no.such.step"
 )
 
 # A byte floor per run. A command that prints nothing is trivially ASCII, so without this
@@ -69,7 +81,11 @@ runs=(
 # large enough that an error message alone cannot satisfy it for the document runs.
 declare -A floor=(
     [version]=5 [capability]=200 [census]=40 [validate]=10 [show]=100
-    [analyse]=200 [reach]=1000 [refuse-unknown-id]=10 [refuse-missing-file]=10
+    [analyse]=200 [reach]=1000 [methods]=2000 [methods-slot]=200
+    [help]=500 [help-analyse]=1000
+    [completions-bash]=2000 [completions-zsh]=2000 [completions-fish]=2000
+    [completions-powershell]=2000 [completions-elvish]=2000
+    [refuse-unknown-id]=10 [refuse-missing-file]=10 [refuse-unknown-slot]=10
 )
 
 work="$(mktemp -d)"
