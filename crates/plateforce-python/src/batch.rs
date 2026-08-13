@@ -411,7 +411,7 @@ pub fn batch(
     })?;
 
     let format = SourceFormat {
-        delimiter,
+        delimiter: delimiter.into(),
         force_column_index,
         sample_rate_hz,
         trial_file_suffixes: suffixes,
