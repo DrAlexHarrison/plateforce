@@ -75,6 +75,14 @@ jobs:
           PLATEFORCE_SKIP_TIMING: '1'
         run: bash bindings/r/tools/framework-seam.sh
 
+      # The engine builds with `--offline`, because the archive a reader installs from carries
+      # its dependencies and reaches no network. A git checkout carries no such copy, so the
+      # build resolves nothing and names the first crate it wanted rather than the cause. This
+      # is the step the archive's own preparation runs.
+      - name: Vendor the engine's dependencies, which the offline build reads
+        shell: bash
+        run: bash bindings/r/tools/vendor.sh
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: bindings/r

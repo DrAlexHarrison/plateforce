@@ -115,6 +115,13 @@ jobs:
       - name: Copy the engine and the registry into the package
         run: bash bindings/r/tools/sync-engine.sh
 
+      # The package builds its engine with `--offline`, because the archive a reader installs
+      # from carries its dependencies and reaches no network. A git checkout carries no such
+      # copy, so the same build resolves nothing and fails naming the first crate it wanted.
+      # This is the step the archive's own preparation runs.
+      - name: Vendor the engine's dependencies, which the offline build reads
+        run: bash bindings/r/tools/vendor.sh
+
       - name: Install the R package, so its row can answer
         run: R CMD INSTALL bindings/r
 
