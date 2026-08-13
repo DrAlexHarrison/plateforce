@@ -95,6 +95,10 @@
   --track-onset: #d76e33;
   --track-takeoff: #c967ac;
   --track-touchdown: #4492e7;
+  /* The three tracks are lightened for a dark chart, so the label sitting on one takes the
+     dark ink rather than the light: white on the lightened set reads at 3.2 to 3.5 against a
+     4.5 floor, and the dark ink reads at 5.4 to 5.8. */
+  --marker-contrast: #0d1216;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -125,6 +129,7 @@
     --track-onset: #d76e33;
     --track-takeoff: #c967ac;
     --track-touchdown: #4492e7;
+    --marker-contrast: #0d1216;
   }
 }
 
@@ -803,13 +808,19 @@ input:invalid { border-color: var(--danger); }
 .decision { border-top: 1px solid var(--border); padding: var(--space-3) 0; }
 .decision:first-child { border-top: 0; padding-top: 0; }
 .decision__head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: var(--space-2); }
-.decision__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); font-weight: 600; }
+/* The row's quantity wraps rather than clipping. The tag and the claim beside it take the
+   width a long one needs, and a quantity named halfway is the quantity unnamed. */
+.decision__title { min-width: 0; font-size: var(--text-sm); font-weight: 600; }
 .decision__meta { font-size: var(--text-xs); color: var(--text-tertiary); }
 .decision__control, .decision__params { margin-top: var(--space-2); width: 100%; }
 .decision__control { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
 .decision__control select { width: 100%; min-width: 0; }
 .decision__inspect { align-self: stretch; border-radius: var(--radius); }
 .decision__params { display: grid; gap: var(--space-2); }
+/* The rule an empty control is running. It wraps rather than clipping, because a rule named
+   halfway is the rule unnamed, and it sits under the control the way an answer sits under
+   the question it answers. */
+.decision__running { display: block; margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text); }
 .decision--provisional { border-left: 3px solid var(--border-strong); padding-left: var(--space-3); }
 /* A row carrying what ran rather than a question. It holds no control, so its title sits at
    the weight of a heading over a list instead of the weight of a label over a choice. */

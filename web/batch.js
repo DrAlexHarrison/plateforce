@@ -3,7 +3,8 @@
  * One stage in the shipped sequence rather than a second application, and one render
  * function rather than two front doors: the rendering is an argument. */
 
-import { element, formatNumber, secondaryDisplay } from './format.js';
+import { counted, element, formatNumber, secondaryDisplay, showStage } from './format.js';
+import { constructLabel } from './registry.js';
 import { openAccounts } from './drawer.js';
 
 export const WITH_PROVENANCE = 'with-provenance';
@@ -39,17 +40,46 @@ function cellFor(row, column, units) {
 function coverageLine(run) {
   if (!run) return '';
   const present = run.files_found + run.files_without_declared_suffix;
-  return `${run.files_found} trial files of ${present}` +
+  return `${counted(run.files_found, 'trial file')} of ${present}` +
     (run.files_without_declared_suffix ? ` · ${run.files_without_declared_suffix} excluded by suffix` : '') +
     (run.trials_excluded ? ` · ${run.trials_excluded} excluded by a rule` : '');
 }
 
+/* Both counts carry the denominator they were taken over, because the run counts two
+ * populations and the reader meets them eight lines apart. */
 function resultSummary(result) {
   const run = result.run;
   if (!run) return '';
   const records = new Set((result.results ?? []).map((row) => row.provenance_id).filter(Boolean)).size;
-  return `${run.computed_count} of ${run.trial_count} analysed · ${run.refusal_count} declined` +
-    (records ? ` · ${records} method ${records === 1 ? 'record' : 'records'}` : '');
+  return `${run.computed_count} of ${counted(run.trial_count, 'trial')} analysed · ` +
+    `${run.refusal_count} of ${run.trial_count} trials declined` +
+    (records ? ` · ${counted(records, 'method record')}` : '');
+}
+
+/*
+ * The other population the run counts, and the denominator that keeps it from reading as the
+ * first one.
+ *
+ * A rule that declines one quantity inside a trial that produced numbers is not a trial that
+ * declined. Both were called declined, at the same size, eight lines apart, so a run reading
+ * "0 declined" over a list of six declines read as a broken count, on a product whose whole
+ * proposition is that the record can be trusted.
+ */
+function declinedQuantities(result) {
+  const rows = result.results ?? [];
+  const quantities = result.quantities ?? [];
+  const declined = result.refusals ?? [];
+  const trials = new Set(declined.map((refusal) => refusal.trial_id)).size;
+  return `${declined.length} of ${counted(quantities.length * rows.length, 'quantity', 'quantities')} ` +
+    `declined, on ${trials} of ${counted(rows.length, 'trial')}`;
+}
+
+/* What the table holds, because most of it is past the right edge on any screen the run is read
+ * on, and a reader who cannot see that a jump height is in there reads the table as if it is
+ * not. */
+function tableShape(result, rendering) {
+  return `${counted(columnsFor(result, rendering).length, 'column')}. Scroll the table sideways ` +
+    'to read the ones past the edge.';
 }
 
 /*
@@ -189,18 +219,36 @@ function refusedRun(refusal) {
 
   for (const open of refusal.unresolved ?? []) {
     const list = element('dl', 'summary');
-    list.append(element('dt', null, open.construct));
-    list.append(
-      element(
-        'dd',
-        null,
-        `${open.published_alternatives.length} published rules, of which ` +
-          `${open.forcing_entries.length} force the choice`,
-      ),
+    // The quantity in the field's own words, taken off the record rather than looked up a
+    // second time here, so the heading and the sentence above it cannot come to name the same
+    // quantity two different ways.
+    list.append(element('dt', null, open.title || constructLabel(open.construct)));
+    const detail = element(
+      'dd',
+      null,
+      `${open.published_alternatives.length} published rules, of which ` +
+        `${open.forcing_entries.length} force the choice`,
     );
+    detail.append(openTheChoice(open.construct));
+    list.append(detail);
     panel.append(list);
   }
   return panel;
+}
+
+/* The choice the run is waiting on, opened where it is made. Naming what is missing and
+ * leaving the reader to go and find it is a stop with directions rather than a way on. */
+function openTheChoice(construct) {
+  const go = element('button', 'chip', 'Choose method');
+  go.type = 'button';
+  go.dataset.construct = construct;
+  go.addEventListener('click', () => {
+    showStage('stage-workspace');
+    const select = document.querySelector(`#decision-list select[data-construct="${construct}"]`);
+    select?.scrollIntoView({ block: 'center' });
+    select?.focus();
+  });
+  return go;
 }
 
 /*
@@ -239,13 +287,18 @@ export function renderBatch(
   const plate = plateLine(result.run, revisionNow);
   if (plate) panel.append(element('p', 'panel__sub', plate));
   panel.append(table(result, rendering));
+  panel.append(element('p', 'panel__sub', tableShape(result, rendering)));
 
   const reduced = summary(result);
   if (reduced) panel.append(reduced);
 
   const declined = refusals(result);
   if (declined && showDeclined) {
-    panel.append(element('h3', 'panel__lead', 'Declined trials'));
+    // Quantities rather than trials, said in the heading rather than left to the columns: a
+    // trial that produced numbers and declined one landmark is in this list and is not a
+    // declined trial, and the count above is over trials.
+    panel.append(element('h3', 'panel__lead', 'Quantities that declined'));
+    panel.append(element('p', 'panel__sub', declinedQuantities(result)));
     panel.append(declined);
   }
   container.append(panel);
@@ -268,7 +321,7 @@ export function renderProgress(container, filesChosen, trialCount, trialsRead) {
     element(
       'p',
       'panel__sub',
-      `${trialsRead} of ${trialCount} trials loaded · ${filesChosen} files chosen`,
+      `${trialsRead} of ${counted(trialCount, 'trial')} loaded · ${counted(filesChosen, 'file')} chosen`,
     ),
   );
   container.append(panel);
@@ -278,6 +331,6 @@ export function renderAnalysisProgress(container, trialCount) {
   container.replaceChildren();
   const panel = element('section', 'panel panel--standalone');
   panel.append(element('h2', null, 'Analysing batch'));
-  panel.append(element('p', 'panel__sub', `${trialCount} trials`));
+  panel.append(element('p', 'panel__sub', counted(trialCount, 'trial')));
   container.append(panel);
 }

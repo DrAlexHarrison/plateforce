@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """No construct the registry declares is written down where a reader meets it.
 
-Two scans, because a construct id reaches a reader by two routes and each is invisible to
-the other's method.
+Two scans here, and a third that this file cannot run. A construct id reaches a reader by
+three routes and each is invisible to the others' method.
 
 The rail is built from the rules the build declares it can run and labelled from the
 registry's own entries, so a construct id appearing as a literal in one of the modules that
@@ -14,6 +14,15 @@ arrive while the page is running, so a construct id inside one is on screen whil
 scan passes and says so. That is how one shipped: a reader adding jump height from the picker
 met "Not comparable with standing_frame without a declared correction" under the row's title,
 with 337 literals checked and clean.
+
+The third route is a sentence composed in Rust that crosses as JSON while the page is running
+and is rendered verbatim. It is written in no module and in no registry field, so both scans
+below pass clean while the id is on screen. That is how one shipped: the panel a folder run
+opens when its choices are still to be made printed `system_weight` and `movement_onset` at
+the reader, two clicks from a rail calling the same two quantities "Standing still, before the
+jump" and "Start of the jump". It needs a running page, so it is asked in
+`scripts/check-batch.mjs`, under "a run held open for a choice spells no construct the registry
+declares".
 
 The chart is not scanned. It draws the three landmark tracks the response carries index
 fields for, and those field names are the engine's, not the registry's.

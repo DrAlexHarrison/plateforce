@@ -2,7 +2,7 @@
 
 import { TraceChart, landmarkDefinitions } from './chart.js';
 import { $, state } from './state.js';
-import { element, formatNumber, setWindowTitle, showStage } from './format.js';
+import { counted, element, formatNumber, setWindowTitle, showStage, typesetUnit } from './format.js';
 import { windowLengthParameter } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
@@ -111,7 +111,11 @@ function offerTheRun() {
     ? state.run.files.filter((file) => state.run.endings.has(endingOf(file.name))).length
     : 0;
   action.hidden = !state.run;
-  if (state.run) action.textContent = `Run all ${named} trials in this folder`;
+  if (state.run) {
+    action.textContent = named === 1
+      ? 'Run the one trial in this folder'
+      : `Run all ${named} trials in this folder`;
+  }
 }
 
 /*
@@ -291,7 +295,7 @@ function renderSelectionReadout(selection, event) {
   const from = (span.startIndex / rate).toFixed(4);
   const to = (span.endIndex / rate).toFixed(4);
   const samples = span.endIndex - span.startIndex + 1;
-  host.append(element('span', 'chart-selection__span', `${from} to ${to} s, ${samples.toLocaleString()} samples`));
+  host.append(element('span', 'chart-selection__span', `${from} to ${to} s, ${counted(samples, 'sample')}`));
 
   if (event.dragging) {
     host.append(element('span', 'chart-selection__origin', 'Release to select this window.'));
@@ -352,7 +356,7 @@ export function renderSelectionNumbers() {
       const figure = element('div', 'chart-selection__figure');
       figure.append(element('dt', null, metric.label));
       const shown = formatNumber(metric.value, metric.unit);
-      figure.append(element('dd', null, shown == null ? 'no value' : `${shown} ${metric.unit_symbol}`));
+      figure.append(element('dd', null, shown == null ? 'no value' : `${shown} ${typesetUnit(metric.unit_symbol)}`));
       figures.append(figure);
     }
     host.append(figures);

@@ -133,8 +133,10 @@ function renderSlot(slot) {
   }
   wrap.append(control);
 
-  const source = ruleSourceNode(slot, selection);
+  const source = ruleSourceNode(slot);
   if (source) head.append(source);
+  const running = runningRuleNode(slot, selection);
+  if (running) wrap.append(running);
 
   if (candidate) {
     const settings = element('div', 'decision__settings-body');
@@ -175,14 +177,35 @@ function renderSlot(slot) {
  * first-ranked rule already selected, so the dropdown shows a rule as chosen that nobody
  * picked, and the entry's `recommended` status renders in the same option text and reads like
  * an endorsement the reader acted on. The record is the only place the act itself is written.
- *
- * A row whose control names no rule names it here instead, because the sentence would
- * otherwise point at nothing on the one row where the reader has least idea what ran.
  */
-function ruleSourceNode(slot, selection) {
+function ruleSourceNode(slot) {
   const running = boundMethodId(slot.key);
   const bound = running ? boundRecordFor(running) : null;
-  return bound ? ruleSourceLine(bound, selection.methodId ? 'this rule' : methodTitle(running)) : null;
+  return bound ? ruleSourceLine(bound) : null;
+}
+
+/*
+ * The rule the row is running, spelt out where nothing else on the row spells it.
+ *
+ * A row awaiting a decision draws its control empty, so that a rule nobody picked is never
+ * drawn as picked. The claim beside the title then reads "Default" over a control reading
+ * "Choose a method": a record that a rule was defaulted, on the one row where the reader has
+ * least idea which rule that was, and the numbers under it rest on that rule.
+ *
+ * Named once per row rather than once per mention. A rule the registry says to surface
+ * already gets a row of its own below, and repeating its title here would put the same
+ * sentence on the row twice. Read off what ran, so no id is named in this file.
+ */
+function runningRuleNode(slot, selection) {
+  if (selection.methodId) return null;
+  const running = boundMethodId(slot.key);
+  if (!running) return null;
+  for (const { bound } of ranUnasked((entry) => entry.construct === slot.construct)) {
+    if (bound.method_id === running) return null;
+  }
+  const line = element('span', 'decision__running', methodTitle(running));
+  line.dataset.method = running;
+  return line;
 }
 
 /* Which slots the reader has opened, so a choice made inside one does not shut the panel it

@@ -9,7 +9,7 @@
 
 import { batchJson } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
-import { element, showStage } from './format.js';
+import { counted, element, showStage } from './format.js';
 import {
   renderBatch,
   renderProgress,
@@ -19,6 +19,7 @@ import {
 } from './batch.js';
 import { buildRequest } from './analysis.js';
 import { statedCapture, revisionNow } from './plate.js';
+import { wireBatchExport, refreshBatchExport } from './export.js';
 
 /*
  * What a file name ends with, from its first full stop.
@@ -79,14 +80,16 @@ function showDeclined() {
  * over. A file no declared ending names is listed by name with the ending that left it out. */
 export function declarationLine() {
   const { named, passedOver } = partitionByDeclaredEndings(state.run.files, state.run.endings);
-  const line = `${state.run.files.length} files chosen, ${named.length} named as trials by ${[...state.run.endings].join(' and ')}`;
+  const line = `${counted(state.run.files.length, 'file')} chosen, ` +
+    `${counted(named.length, 'named as a trial', `named as trials`)} by ${[...state.run.endings].join(' and ')}`;
   if (passedOver.length === 0) return line;
   const listed = passedOver
     .slice(0, 4)
     .map((file) => `${file.name} (${endingOf(file.name) || 'no full stop in the name'})`)
     .join(', ');
   const rest = passedOver.length > 4 ? `, and ${passedOver.length - 4} more` : '';
-  return `${line}. ${passedOver.length} left out because no declared ending names them: ${listed}${rest}`;
+  const names = passedOver.length === 1 ? 'names it' : 'names them';
+  return `${line}. ${passedOver.length} left out because no declared ending ${names}: ${listed}${rest}`;
 }
 
 /*
@@ -97,16 +100,23 @@ export function declarationLine() {
  */
 export async function runFolder() {
   const host = $('batch-result');
-  const { named } = partitionByDeclaredEndings(state.run.files, state.run.endings);
+  const { named, passedOver } = partitionByDeclaredEndings(state.run.files, state.run.endings);
   showStage('stage-batch');
   $('batch-declaration').textContent = declarationLine();
 
+  // The run on screen has produced nothing yet, so there is nothing to save: a control still
+  // offering the previous run would pair its file with this run's declaration.
+  state.run.envelope = null;
+  refreshBatchExport();
   const files = [];
   renderProgress(host, state.run.files.length, named.length, 0);
   for (const file of named) {
     files.push({ name: file.name, text: await file.text() });
     renderProgress(host, state.run.files.length, named.length, files.length);
   }
+  // The passed-over files go by name with no bytes read, so the run's own record counts
+  // the declaration's narrowing instead of reporting the survivors as the whole folder.
+  for (const file of passedOver) files.push({ name: file.name, text: '' });
 
   // Stated once for the run rather than per file, because a folder is one plate's recordings
   // and a trace of forces carries nothing about the plate that wrote it.
@@ -148,6 +158,7 @@ export async function runFolder() {
  * `revisionNow` travels rather than a revision, because the table is redrawn long after the
  * run and the plate behind it may have moved since. */
 export function drawRun() {
+  refreshBatchExport();
   if (!state.run?.envelope) return;
   renderBatch(
     $('batch-result'),
@@ -159,6 +170,7 @@ export function drawRun() {
 }
 
 export function wireBatchControls() {
+  wireBatchExport();
   $('batch-back').addEventListener('click', () => showStage('stage-workspace'));
   $('batch-provenance').addEventListener('change', drawRun);
   $('batch-declined').addEventListener('change', drawRun);

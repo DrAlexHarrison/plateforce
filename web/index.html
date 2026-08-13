@@ -126,6 +126,7 @@
             <option value="zero" data-number="0">0 means missing</option>
             <option value="negative_one" data-number="-1">-1 means missing</option>
           </select>
+          <p class="field__hint" id="sentinel-hint"></p>
         </div>
       </div>
 
@@ -271,6 +272,7 @@
         <input type="checkbox" id="batch-provenance" checked>
         Show method record
       </label>
+      <button type="button" class="button button--ghost button--small" id="batch-download" hidden>Download results (CSV)</button>
       <label class="batch-controls__toggle">
         <input type="checkbox" id="batch-declined" checked>
         Show declined

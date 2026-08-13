@@ -3,8 +3,8 @@
 
 import { LoadedTrial } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
-import { element, showStage } from './format.js';
-import { reportInline, openFirstDeclaredTrial } from './import-file.js';
+import { counted, element, showStage } from './format.js';
+import { reportInline, clearInlineReport, openFirstDeclaredTrial } from './import-file.js';
 import { enterWorkspace } from './workspace.js';
 import { endingsChosen, declarationLine } from './batch-run.js';
 
@@ -33,14 +33,60 @@ function sparkline(values) {
   return svg;
 }
 
+/*
+ * How the values sit in the file, in words rather than in the engine's token for them.
+ *
+ * The engine names the separator it detected, and the name is a token: "whitespace separated"
+ * is not a phrase somebody opening their first force export can act on, and a file holding one
+ * column is separated by nothing at all, so naming a separator for it describes something that
+ * is not there. A token this has no words for prints as itself, which is where it started.
+ */
+const SEPARATOR_WORDS = {
+  tab: 'separated by tabs',
+  comma: 'separated by commas',
+  semicolon: 'separated by semicolons',
+  whitespace: 'separated by spaces',
+};
+
+function layoutOf(summary) {
+  if (summary.column_count === 1) return 'one value per row';
+  return SEPARATOR_WORDS[summary.delimiter] ?? `separated by ${summary.delimiter}`;
+}
+
+/*
+ * Why the rate has to be typed, in terms of the reader's own file.
+ *
+ * Two states, and one sentence covering both is only true of one of them. A file whose columns
+ * carry no clock has to be told so. A file with a column that reads as a clock whose steps are
+ * not all the same length has to be told that instead: saying "no time column" to somebody
+ * looking at a column headed Time is the sentence that makes a reader stop believing the rest
+ * of the screen.
+ *
+ * Which of the two is the record's own field. A column merely climbing is not the question,
+ * and reading it that way told a reader whose force channel happens to ramp that its steps
+ * were uneven, while the record beside it said that column is evenly spaced.
+ */
+function whyNoRate(summary) {
+  const uneven = summary.columns[summary.uneven_time_like_column];
+  if (!uneven) return 'No column in this file runs as a clock. Enter the rate the plate recorded at.';
+  const name = uneven.header || `Column ${uneven.index + 1}`;
+  return `The steps in ${name} are not all the same length, so the rate cannot be read from ` +
+    'them. Enter the rate the plate recorded at.';
+}
+
 export function renderColumnChooser(fileName, summary) {
   state.columnSummary = summary;
   state.chosenColumn = summary.suggested_force_column ?? 0;
 
   $('columns-lead').textContent =
-    `${fileName}: ${summary.row_count.toLocaleString()} rows, ${summary.column_count} columns, ${summary.delimiter} separated` +
-    (summary.skipped_leading_lines ? `, ${summary.skipped_leading_lines} header lines skipped` : '') +
-    (summary.ragged_rows_dropped ? `, ${summary.ragged_rows_dropped} ragged rows dropped` : '') +
+    `${fileName}: ${counted(summary.row_count, 'row')}, ` +
+    `${counted(summary.column_count, 'column')}, ${layoutOf(summary)}` +
+    (summary.skipped_leading_lines
+      ? `, ${counted(summary.skipped_leading_lines, 'header line')} skipped`
+      : '') +
+    (summary.ragged_rows_dropped
+      ? `, ${counted(summary.ragged_rows_dropped, 'ragged row')} dropped`
+      : '') +
     '.';
 
   const grid = $('column-grid');
@@ -61,13 +107,14 @@ export function renderColumnChooser(fileName, summary) {
         'span',
         'column-card__stats',
         `${column.minimum.toFixed(1)} to ${column.maximum.toFixed(1)}, SD ${column.standard_deviation.toFixed(1)}` +
-          (column.exact_zero_count ? `, ${column.exact_zero_count} exact zeros` : ''),
+          (column.exact_zero_count ? `, ${counted(column.exact_zero_count, 'exact zero')}` : ''),
       ),
     );
     card.addEventListener('click', () => {
       state.chosenColumn = column.index;
       for (const node of grid.children) node.setAttribute('aria-checked', 'false');
       card.setAttribute('aria-checked', 'true');
+      describeTheZeros(summary);
     });
     grid.append(card);
   });
@@ -79,12 +126,30 @@ export function renderColumnChooser(fileName, summary) {
   const derived = summary.suggested_sample_rate_hz;
   rate.value = derived ? String(Number(derived.toFixed(4))) : '';
   rate.placeholder = 'state the rate';
-  $('sample-rate-hint').textContent = derived
-    ? summary.sample_rate_source
-    : 'No time column. Enter the acquisition rate.';
+  $('sample-rate-hint').textContent = derived ? summary.sample_rate_source : whyNoRate(summary);
   rate.oninput = updateColumnsReady;
+  describeTheZeros(summary);
   renderRunDeclaration(summary);
   updateColumnsReady();
+}
+
+/*
+ * The one fact on this screen that decides the missing-value answer, said where that answer is
+ * given.
+ *
+ * A vendor export writing 0 for a sample it never took is indistinguishable from an athlete in
+ * the air, and the count that tells them apart was sitting in a card three fields away from the
+ * question it settles. It states the count and stops: which of the two a zero is here is the
+ * reader's to say, and a line leaning either way would be answering for them.
+ */
+function describeTheZeros(summary) {
+  const hint = $('sentinel-hint');
+  if (!hint) return;
+  const column = summary.columns[state.chosenColumn];
+  const name = column?.header || 'This column';
+  hint.textContent = column?.exact_zero_count
+    ? `${name} holds ${counted(column.exact_zero_count, 'exact zero')}.`
+    : '';
 }
 
 /*
@@ -119,19 +184,23 @@ function renderRunDeclaration(summary) {
       updateColumnsReady();
     };
     row.append(tick);
-    row.append(element('span', null, `${ending || 'no full stop in the name'}, ${count} files`));
+    row.append(element('span', null,
+      `${ending || 'no full stop in the name'}, ${counted(count, 'file')}`));
     list.append(row);
   }
 
   const separator = $('run-delimiter');
   // The reader's own file reports which of these it reads as, and the option values are
   // spelled the way the reader reports it, so the opening selection needs no second table.
-  separator.value = summary.column_count === 1 ? 'single' : summary.delimiter;
+  // A separator none of the options carries selects nothing at all, and a select with no
+  // selection draws as an empty box rather than as the question it is asking.
+  const detected = summary.column_count === 1 ? 'single' : summary.delimiter;
+  separator.value = [...separator.options].some((option) => option.value === detected) ? detected : '';
   separator.onchange = updateColumnsReady;
   $('run-delimiter-hint').textContent =
     summary.column_count === 1
       ? 'One value per row.'
-      : `Detected ${summary.delimiter} across ${summary.column_count} columns.`;
+      : `This file reads as ${counted(summary.column_count, 'column')}, ${layoutOf(summary)}.`;
   $('run-count').textContent = declarationLine();
 }
 
@@ -154,8 +223,12 @@ export function confirmColumns() {
     state.run.sentinel = sentinel.dataset.number == null ? null : Number(sentinel.dataset.number);
   }
   try {
+    // Bound before the trial it replaces is released, for the reason `readFile` parses before
+    // it releases: a column or a rate this file will not take leaves the handle on the state
+    // pointing at nothing, and the next trial the reader confirms is refused for it.
+    const loaded = LoadedTrial.fromForceFile(state.file, state.chosenColumn, rate, $('sentinel').value);
     state.loadedTrial?.free?.();
-    state.loadedTrial = LoadedTrial.fromForceFile(state.file, state.chosenColumn, rate, $('sentinel').value);
+    state.loadedTrial = loaded;
     enterWorkspace();
   } catch (error) {
     reportInline(String(error.message || error));
@@ -165,9 +238,11 @@ export function confirmColumns() {
 
 export function loadDemonstration() {
   state.loadedTrial?.free?.();
+  clearInlineReport();
   state.loadedTrial = LoadedTrial.demonstration();
   // The trace the interface opens with is a recording rather than a file the reader chose,
   // and a result computed from it says so rather than reporting whatever was opened before.
   state.fileName = 'demonstration';
+  state.trialText = null;
   enterWorkspace();
 }

@@ -288,6 +288,102 @@ check('the spread panel is populated on that same first paint',
   paint.spreadRows.length > 1,
   `headline ${paint.spreadHeadline ?? 'absent'}, ${paint.spreadRows.length} rows`);
 
+/*
+ * The rule a row is running, on the row, where the row's own control names none.
+ *
+ * A row awaiting a decision draws its control empty, so a rule nobody picked is never drawn
+ * as picked, and the claim beside the title reads "Default". With the rule itself named
+ * nowhere on the row, that is a record that a rule was defaulted and no way to read which
+ * rule, in the panel this software exists to put there. Read off what is on screen: the
+ * options inside a closed select are in the document and not in front of anybody.
+ */
+const provisionalRows = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const { boundMethodId, methodTitle } = await import('./analysis.js');
+  return state.provisional.map((slot) => {
+    const row = [...document.querySelectorAll('#decision-list .decision')]
+      .find((node) => node.querySelector('select[data-construct="' + slot.construct + '"]'));
+    const running = boundMethodId(slot.key);
+    const shown = row
+      ? [...row.querySelectorAll('.decision__running, .ran-beside__title')].map((node) => node.textContent)
+      : [];
+    return { slot: slot.title, title: methodTitle(running), shown };
+  });
+})()`);
+const naming = provisionalRows.filter((row) => row.shown.includes(row.title));
+check('every rule a row is running under no decision is named on that row',
+  provisionalRows.length > 0 && naming.length === provisionalRows.length,
+  `${naming.length} of ${provisionalRows.length} rows awaiting a decision name the rule they ran` +
+    (provisionalRows.length
+      ? `, first: ${provisionalRows[0].slot} ran ${provisionalRows[0].title}`
+      : ', no row was awaiting one'));
+
+const spreadCells = await evaluate(`(() => {
+  return [...document.querySelectorAll('#spread-result table.data tbody tr')]
+    .filter((row) => row.children.length === 3)
+    .map((row) => ({
+      settings: row.children[0].textContent.trim(),
+      title: row.children[0].getAttribute('title') ?? '',
+      clipped: row.children[0].scrollWidth > row.children[0].clientWidth + 1,
+      value: row.children[1].textContent.trim(),
+      difference: row.children[2].textContent.trim(),
+    }));
+})()`);
+
+/* What is left when the number is taken off the front of a cell. A difference reported in no
+ * unit is a distance a reader has to guess the units of, beside a value that states them. */
+const unitOf = (text) => text.replace(/^[+-]?[\d.]+\s*/, '');
+const differences = spreadCells.filter((cell) => cell.difference !== '--');
+const carryingTheUnit = differences.filter(
+  (cell) => unitOf(cell.value) !== '' && unitOf(cell.difference) === unitOf(cell.value),
+);
+check('a difference in the spread table is stated in the unit of the value beside it',
+  differences.length > 0 && carryingTheUnit.length === differences.length,
+  `${carryingTheUnit.length} of ${differences.length} differences` +
+    (differences.length ? `, first: ${differences[0].value} against ${differences[0].difference}` : ''));
+
+// The rules behind each swept number are the reason the row is there, and the column holding
+// them is narrow enough to cut a set of three off mid-phrase.
+const whole = spreadCells.filter((cell) => cell.title === cell.settings);
+check('every cell naming the rules behind a swept number carries the whole of them',
+  spreadCells.length > 0 && whole.length === spreadCells.length,
+  `${whole.length} of ${spreadCells.length} cells, ${spreadCells.filter((cell) => cell.clipped).length} ` +
+    'of them too narrow to show it');
+
+/*
+ * A landmark's name against the track it is printed on, in both themes.
+ *
+ * Asked of both because the tracks are a different set in each: the dark set is lightened for
+ * a dark chart, and the ink that reads on the light set is the ink that disappears on the
+ * lightened one. A check that read only the theme the machine running it happens to prefer
+ * would pass on the half that is right and never see the other.
+ */
+const markerInk = await evaluate(`(() => {
+  const channel = (value) => { const v = value / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const luminance = (colour) => { const [r, g, b] = colour.map(channel); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const parse = (text) => (text.match(/[\\d.]+/g) || []).slice(0, 3).map(Number);
+  const root = document.documentElement;
+  const was = root.dataset.theme;
+  const read = [];
+  for (const theme of ['light', 'dark']) {
+    root.dataset.theme = theme;
+    for (const node of document.querySelectorAll('.marker__label')) {
+      const style = getComputedStyle(node);
+      const [ink, ground] = [luminance(parse(style.color)), luminance(parse(style.backgroundColor))];
+      const [high, low] = [ink, ground].sort((a, b) => b - a);
+      read.push({ theme, label: node.textContent.trim(), ratio: Number(((high + 0.05) / (low + 0.05)).toFixed(2)) });
+    }
+  }
+  root.dataset.theme = was;
+  return read;
+})()`);
+const dim = markerInk.filter((mark) => mark.ratio < 4.5);
+check('every landmark name reads against the track it is printed on, in both themes',
+  markerInk.length > 0 && dim.length === 0,
+  `${markerInk.length} labels across two themes, lowest ` +
+    `${markerInk.length ? Math.min(...markerInk.map((mark) => mark.ratio)) : 'none'}` +
+    (dim.length ? `, under 4.5: ${dim.map((mark) => `${mark.theme} ${mark.label} ${mark.ratio}`).join(', ')}` : ''));
+
 // The sweep checks below are about which setting the panel varies and whether varying it
 // reaches the engine. They are independent of whether a decision has been resolved, so
 // they are read after resolving one if the run stopped for one.
@@ -1061,6 +1157,149 @@ check('a 60 second recording exposes a zoomable, pannable, width-bounded viewpor
     `zoomed ${longRecording.zoomed.start}–${longRecording.zoomed.end}, panned ` +
     `${longRecording.moved.start}–${longRecording.moved.end}, ${longRecording.label}, ` +
     `${longRecording.envelope[2]} envelope buckets`);
+
+/*
+ * What a file that could not be read costs the files after it.
+ *
+ * The report names one file, so left standing after a file that read it stands over a screen
+ * where nothing has failed. The heavier half is whether there is a file after it at all: the
+ * reader who meets this is the one already recovering, and a tab that answers their next file
+ * with a failure about the last one has no way on but a reload.
+ */
+await evaluate("document.getElementById('change-file').click()");
+await settle("!document.getElementById('stage-empty').hidden", 'the drop zone again');
+await evaluate(`(() => {
+  const transfer = new DataTransfer();
+  transfer.items.add(new File(['a line of prose with no numbers in it\\n'], 'notes.txt', { type: 'text/plain' }));
+  document.getElementById('dropzone').dispatchEvent(
+    new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }),
+  );
+})()`);
+await settle("Boolean(document.querySelector('#dropzone .notice'))", 'the report on the file that failed');
+const reported = await evaluate(
+  "document.querySelector('#dropzone .notice').innerText.replace(/\\s+/g, ' ').trim()",
+);
+await evaluate(`(() => {
+  const samples = Array.from({ length: 6000 }, (_, index) => {
+    if (index < 3400) return 600;
+    if (index < 3600) return 600 - (index - 3400) * 1.5;
+    if (index < 4200) return 300 + (index - 3600) * 1.6;
+    return 0;
+  });
+  const transfer = new DataTransfer();
+  transfer.items.add(new File([samples.join('\\n')], 'recovered.txt', { type: 'text/plain' }));
+  document.getElementById('dropzone').dispatchEvent(
+    new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }),
+  );
+})()`);
+// Read rather than settled for, because a tab that cannot open the next file stays on the
+// drop zone forever and a settle would end this run instead of reporting the state it found.
+const recovered = await (async () => {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const stage = await evaluate("document.getElementById('stage-columns').hidden ? null : 'columns'");
+    if (stage) return true;
+    await new Promise((resolve) => setTimeout(resolve, 125));
+  }
+  return false;
+})();
+const afterwards = await evaluate(`(() => ({
+  notice: document.querySelector('#dropzone .notice')?.innerText.replace(/\\s+/g, ' ').trim() ?? null,
+  lead: document.getElementById('columns-lead').textContent,
+}))()`);
+/*
+ * A count and the noun it counts, agreeing, on the first screen a reader meets.
+ *
+ * A single-column force export is the ordinary case in this field, so "1 columns" is not an
+ * edge somebody has to be unlucky to reach: it is the opening sentence, and the same shape was
+ * being written a fifth different way in a fifth place. The control is the file itself, which
+ * carries one column and one header line and one exact zero in its time channel, so a screen
+ * that could not show the defect cannot pass this quietly.
+ */
+const agreement = await evaluate(`(() => ({
+  said: document.getElementById('stage-columns').innerText,
+  sentinelHint: document.getElementById('sentinel-hint')?.textContent ?? null,
+}))()`);
+// Not preceded by a digit, a minus or a point, so the sentinel option "-1 means missing" and
+// any count ending in 1 are not read as a count of one.
+const disagreeing = [...agreement.said.matchAll(/(?<![-\d.])1 ([a-z]{3,}s)\b/g)].map((match) => match[1]);
+check('every count on the column screen agrees with the noun it counts',
+  agreement.said.includes('1 column') && disagreeing.length === 0,
+  `${agreement.said.split('\n')[1] ?? agreement.said.slice(0, 90)}` +
+    (disagreeing.length ? `, disagreeing: 1 ${disagreeing.join(', 1 ')}` : ''));
+
+// The count that tells a sample nobody took from an athlete in the air, said where the reader
+// answers for it rather than three fields away in a card.
+check('the missing-value question names the zeros in the column the reader chose',
+  agreement.sentinelHint !== null
+    && /^\S.* holds [\d,]+ exact zeros?\.$/.test(agreement.sentinelHint),
+  agreement.sentinelHint ?? 'the question said nothing about the reader’s own column');
+
+/*
+ * What the rate field says when the rate could not be read, over all three files it is said of.
+ *
+ * Two sentences, and the third file is the one that tells them apart. A file whose columns
+ * carry no clock has to be told so. A file with a column that reads as a clock whose steps are
+ * uneven has to be told that instead, because "no time column" beside a column headed Time is
+ * what stops a reader believing the rest of the screen. And a **force channel that only ever
+ * rises** is neither: it satisfies every column-climbs test and the record says its steps are
+ * evenly spaced, so a surface reading the wrong field tells that reader their steps are uneven
+ * while the record beside it says the opposite. Without that third file this check passes on
+ * either field and proves nothing about which one the page reads.
+ */
+const noRate = await evaluate(`(async () => {
+  const said = {};
+  const rows = Array.from({ length: 3000 }, (_, index) => (index < 1500 ? 600 : 200));
+  const climbing = rows.map((force, index) => {
+    const seconds = index < 1000 ? index * 0.001 : 1 + (index - 1000) * 0.004;
+    return seconds.toFixed(6) + ',' + force;
+  });
+  const drop = (name, text) => new Promise((resolve) => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([text], name, { type: 'text/plain' }));
+    document.getElementById('dropzone').dispatchEvent(
+      new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+    setTimeout(resolve, 700);
+  });
+  const read = async (name, text) => {
+    await drop(name, text);
+    said[name] = {
+      hint: document.getElementById('sample-rate-hint').textContent,
+      headers: [...document.querySelectorAll('#column-grid .column-card')]
+        .map((card) => card.querySelector('.column-card__name span')?.textContent ?? ''),
+      rate: document.getElementById('sample-rate').value,
+    };
+    document.getElementById('columns-cancel').click();
+  };
+  await read('no-clock.txt', rows.join('\\n'));
+  await read('a-clock-with-a-gap.csv', 'Time,Fz\\n' + climbing.join('\\n'));
+  await read('a-force-channel-that-only-rises.txt',
+    rows.map((_, index) => (600 + index * 0.35).toFixed(4)).join('\\n'));
+  return said;
+})()`);
+const withoutAClock = noRate['no-clock.txt'];
+const withAClock = noRate['a-clock-with-a-gap.csv'];
+const rising = noRate['a-force-channel-that-only-rises.txt'];
+const noClockHere = 'No column in this file runs as a clock. Enter the rate the plate recorded at.';
+check('a file with no rate in it is told why in terms of its own columns',
+  withoutAClock.hint === noClockHere
+    && withAClock.headers.includes('Time')
+    && withAClock.hint === 'The steps in Time are not all the same length, so the rate cannot be '
+      + 'read from them. Enter the rate the plate recorded at.'
+    // The record calls this column evenly spaced, so the sentence about uneven steps is not
+    // only the wrong one here, it is the opposite of what the record says.
+    && rising.hint === noClockHere
+    // No state offers a number, because a plausible rate in a sentence is typed into the box
+    // beside it.
+    && withoutAClock.rate === '' && withAClock.rate === '' && rising.rate === '',
+  `without a clock: "${withoutAClock.hint}"; with one headed ` +
+    `${withAClock.headers.join(' and ')}: "${withAClock.hint}"; ` +
+    `with a force channel that only rises: "${rising.hint}"`);
+
+check('a file that could not be read costs the reader nothing but that file',
+  reported.length > 0 && recovered && afterwards.notice === null,
+  `reported "${reported.slice(0, 62)}", the next file ` +
+    `${recovered ? `opened as ${afterwards.lead.slice(0, 44)}` : 'never opened'}, report ` +
+    `${afterwards.notice === null ? 'gone' : `still shown: ${afterwards.notice.slice(0, 62)}`}`);
 
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 

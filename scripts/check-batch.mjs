@@ -186,6 +186,83 @@ check('the folder is offered from the trial it was declared on',
   !offered.hidden && offered.label === `Run all ${trialNames.length} trials in this folder`,
   offered.label);
 
+/*
+ * The run started before the choices it needs are settled.
+ *
+ * The engine holds it open and the reader meets a panel naming what is missing. Everything
+ * below this point runs on a settled path, so that panel is on nobody's way and it is the one
+ * screen of the folder route where a first-time reader can be left with nothing to press.
+ * Asked here, before the decisions, rather than never.
+ */
+await evaluate("document.getElementById('run-folder').click()");
+await settle("Boolean(document.querySelector('#batch-result dt'))", 'the run held open for a choice');
+
+const heldOpen = await evaluate(`(async () => {
+  const { constructLabel } = await import('./registry.js');
+  const openings = [...document.querySelectorAll('#batch-result button[data-construct]')]
+    .map((node) => node.dataset.construct);
+  return {
+    terms: [...document.querySelectorAll('#batch-result dt')].map((node) => node.textContent),
+    openings,
+    spoken: openings.map((construct) => constructLabel(construct)),
+    // The rail carries a row for each, so the control has somewhere to send the reader.
+    onTheRail: openings.filter((construct) =>
+      document.querySelector('#decision-list select[data-construct="' + construct + '"]')).length,
+  };
+})()`);
+check('a run held open for a choice names the quantity in the words the rail names it by',
+  heldOpen.terms.length > 0
+    && heldOpen.spoken.length === heldOpen.terms.length
+    && heldOpen.spoken.every((word, index) => word === heldOpen.terms[index])
+    // A construct's id is the registry's spelling of it, and no label the field uses carries one.
+    && heldOpen.terms.every((term) => !term.includes('_')),
+  `${heldOpen.terms.length} open choices named ${heldOpen.terms.join('; ')}, ` +
+    `${heldOpen.openings.length} of them offered, ${heldOpen.onTheRail} reachable on the rail`);
+
+/*
+ * The third route a construct id reaches a reader by, which no static scan can see.
+ *
+ * `check-web-names-no-construct.py` scans the interface modules and the registry's own prose.
+ * This one is neither: the sentence is composed in Rust, crosses as JSON while the page is
+ * running, and is rendered verbatim. A module scan passes clean while the id is on screen.
+ *
+ * Only spellings no English sentence produces are looked for, which is the same discipline the
+ * static scan applies: `takeoff` and `landing` are construct ids and are also ordinary words,
+ * and a pattern matching those reports the panel's own prose as a leak.
+ */
+const constructIds = [...(await readFile('registry/constructs.toml', 'utf8')).matchAll(/^id = "([^"]+)"/gm)]
+  .map((match) => match[1]);
+const identifierForms = [...new Set(constructIds.flatMap((id) => [id, id.split('.').pop()]))]
+  .filter((token) => token.includes('_') || token.includes('.'));
+const heldOpenText = await evaluate("document.getElementById('batch-result').innerText");
+const spelt = identifierForms.filter((token) =>
+  new RegExp(`(?<![\\w.])${token.replace(/\./g, '\\.')}(?![\\w.])`).test(heldOpenText));
+check('a run held open for a choice spells no construct the registry declares',
+  constructIds.length >= 40 && identifierForms.length >= 40 && heldOpenText.length > 0
+    && spelt.length === 0,
+  `${identifierForms.length} identifier forms from ${constructIds.length} declared constructs, ` +
+    `against ${heldOpenText.length} characters on screen` +
+    (spelt.length ? `, spelt: ${spelt.join(', ')}` : ''));
+
+const wayOut = await evaluate(`(() => {
+  const go = document.querySelector('#batch-result button[data-construct]');
+  if (!go) return { pressed: false };
+  const construct = go.dataset.construct;
+  go.click();
+  return {
+    pressed: true,
+    construct,
+    onTheTrace: !document.getElementById('stage-workspace').hidden,
+    focused: document.activeElement?.dataset?.construct ?? document.activeElement?.tagName ?? null,
+  };
+})()`);
+check('a run held open for a choice opens that choice where it is made',
+  wayOut.pressed && wayOut.onTheTrace && wayOut.focused === wayOut.construct,
+  wayOut.pressed
+    ? `${wayOut.construct}: ${wayOut.onTheTrace ? 'back on the trace' : 'still on the run'}, ` +
+      `focus on ${wayOut.focused}`
+    : 'the run named no open choice to press');
+
 // A run under rules nobody chose is held open by the engine, so the decisions are made
 // before the run rather than the refusal being read as the browser's own failure.
 await evaluate(`(() => {
@@ -308,16 +385,15 @@ const request = await evaluate(`(async () => {
 })()`);
 
 const outDir = await mkdtemp(join(tmpdir(), 'plateforce-check-batch-'));
-// A run over this folder ends 65, EX_DATAERR, and the document it prints is complete. Most
-// of these recordings end while the athlete is still off the plate, so no touchdown is in
-// the record to find and the rules resting on flight time decline by name. That is the
+// A run over this folder ends 0 and the document it prints is complete. Most of these
+// recordings end while the athlete is still off the plate, so no touchdown is in the record
+// to find and the rules resting on flight time decline by name inside the result. That is the
 // folder rather than a fault: the same trials are absent from the browser's table for the
 // same reason, which is what this check compares.
 //
-// So the answer is read at 0 and at 65 and at nothing else. Any other code is the terminal
-// failing to produce a document at all, and it is raised carrying its code rather than
-// swallowed, because a check that accepted every code would pass on a build that cannot run.
-const RECORDING_DECLINED = 65;
+// So the answer is read at 0 and at nothing else. Any other code is the terminal failing to
+// produce a document at all, and it is raised carrying its code rather than swallowed,
+// because a check that accepted every code would pass on a build that cannot run.
 const terminal = JSON.parse(runBatch());
 
 function runBatch() {
@@ -336,9 +412,8 @@ function runBatch() {
       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' } },
     );
   } catch (failure) {
-    if (failure.status === RECORDING_DECLINED && failure.stdout) return failure.stdout;
     throw new Error(
-      `the terminal batch ended ${failure.status}, and this check reads 0 or ${RECORDING_DECLINED}: ` +
+      `the terminal batch ended ${failure.status}, and this check reads 0: ` +
         (failure.stderr || failure.message),
     );
   }
@@ -457,8 +532,44 @@ check('at 390 px a trial’s record scrolls each account inside its own frame, n
 check('the run states its coverage against the denominator it was taken over',
   table.declaration.includes(`${everyFixture.length} files chosen, ${trialNames.length} named as trials`)
     && table.declaration.includes(`${strays} left out`)
-    && new RegExp(`${trialNames.length} of ${trialNames.length} analysed · \\d+ declined`).test(table.summary),
+    && new RegExp(
+      `${trialNames.length} of ${trialNames.length} trials analysed · \\d+ of ${trialNames.length} trials declined`,
+    ).test(table.summary),
   `${table.summary}; ${table.declaration}`);
+
+/*
+ * The two populations a run counts, told apart.
+ *
+ * A rule that declines one quantity inside a trial that produced numbers is not a trial that
+ * declined, and both were called declined, at the same size, eight lines apart. A run reading
+ * "0 declined" over a list of six declines reads as a broken count, on a product whose whole
+ * proposition is that the record can be trusted. Each count carries the denominator it was
+ * taken over, and neither noun is the other's.
+ */
+const populations = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const ok = JSON.parse(state.run.envelope).ok;
+  const rows = (ok.results ?? []).length;
+  return {
+    trials: rows,
+    trialsDeclined: ok.run.refusal_count,
+    quantitiesDeclined: (ok.refusals ?? []).length,
+    asked: (ok.quantities ?? []).length * rows,
+    summary: document.querySelector('#batch-result .batch-summary')?.textContent ?? '',
+    headings: [...document.querySelectorAll('#batch-result h3')].map((node) => node.textContent),
+    said: document.getElementById('batch-result').innerText,
+  };
+})()`);
+check('a declined trial and a declined quantity are two counts, each carrying its denominator',
+  populations.quantitiesDeclined > 0
+    && populations.summary.includes(`${populations.trialsDeclined} of ${populations.trials} trials declined`)
+    && populations.said.includes(
+      `${populations.quantitiesDeclined} of ${populations.asked.toLocaleString()} quantities declined`,
+    )
+    && !populations.headings.includes('Declined trials'),
+  `${populations.trialsDeclined} of ${populations.trials} trials declined and ` +
+    `${populations.quantitiesDeclined} of ${populations.asked} quantities declined, ` +
+    `under ${populations.headings.join(' / ') || 'no heading'}`);
 
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {

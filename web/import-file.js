@@ -6,6 +6,7 @@ import { element, setWindowTitle, showStage } from './format.js';
 import { renderColumnChooser, confirmColumns, loadDemonstration } from './import-columns.js';
 import { runAnalysis } from './analysis.js';
 import { endingOf, endingsChosen } from './batch-run.js';
+import { focusableWithin, hidePanel } from './drawer.js';
 
 export function wireGlobalControls() {
   const dropzone = $('dropzone');
@@ -55,11 +56,27 @@ export function wireGlobalControls() {
   // Closed through the panel the control sits in rather than by name, so a second drawer is
   // closed by its own scrim instead of by the first one's.
   for (const node of document.querySelectorAll('[data-close-drawer]')) {
-    node.addEventListener('click', () => { node.closest('.drawer').hidden = true; });
+    node.addEventListener('click', () => hidePanel(node.closest('.drawer')));
   }
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    for (const drawer of document.querySelectorAll('.drawer')) drawer.hidden = true;
+    for (const drawer of document.querySelectorAll('.drawer')) {
+      if (!drawer.hidden) hidePanel(drawer);
+    }
+  });
+
+  // A panel declaring itself modal keeps the tab key, so the reader cannot walk out of the
+  // front of it into the page it is covering while the scrim is still there.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    const drawer = [...document.querySelectorAll('.drawer')].find((node) => !node.hidden);
+    if (!drawer) return;
+    const inside = focusableWithin(drawer);
+    if (!inside.length) return;
+    const edge = event.shiftKey ? inside[0] : inside[inside.length - 1];
+    if (document.activeElement !== edge && drawer.contains(document.activeElement)) return;
+    event.preventDefault();
+    (event.shiftKey ? inside[inside.length - 1] : inside[0]).focus();
   });
 }
 
@@ -97,10 +114,19 @@ export async function openFirstDeclaredTrial() {
 async function readFile(file) {
   try {
     const text = await file.text();
+    // Parsed before the file it replaces is released, so a file that will not parse leaves
+    // the tab holding a handle it can still release. Released first, the handle stayed on the
+    // state pointing at nothing, and the next file the reader dropped, and every file after
+    // it, came back as unreadable with the engine's words for a freed pointer.
+    const parsed = ForceFile.parse(text);
     state.file?.free?.();
-    state.file = ForceFile.parse(text);
+    state.file = parsed;
     state.fileName = file.name;
+    // The bytes the reader handed over, kept so one trial can leave through the same door a
+    // folder leaves through rather than through a second one written for it.
+    state.trialText = text;
     setWindowTitle(file.name);
+    clearInlineReport();
     renderColumnChooser(file.name, JSON.parse(state.file.summaryJson()));
     showStage('stage-columns');
   } catch (error) {
@@ -117,4 +143,11 @@ export function reportInline(message) {
     zone.append(notice);
   }
   notice.replaceChildren(element('strong', null, 'Could not read that file'), element('p', null, message));
+}
+
+/* The report is about the file that failed, so it goes when a file is read. It used to
+ * outlive the file it named, and a reader who dropped a second file and came back to this
+ * screen met a failure that was no longer true of anything they were holding. */
+export function clearInlineReport() {
+  $('dropzone').querySelector('.notice')?.remove();
 }

@@ -32,6 +32,10 @@ export const state = {
    * it. The module is handed text and never a file, so a name it is not given is a name it
    * cannot report. */
   fileName: null,
+  /* The bytes of that trace as they arrived, so one trial can run through the batch engine
+   * and leave as the same table set a folder run writes. Null for the demonstration trial,
+   * which arrived as no file. */
+  trialText: null,
   loadedTrial: null,
   envelope: null,
   analysis: null,

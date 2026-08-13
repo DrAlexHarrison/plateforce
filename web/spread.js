@@ -2,8 +2,8 @@
  * registry publishes. */
 
 import { $, state } from './state.js';
-import { element, formatNumber, reply } from './format.js';
-import { availableAxes, GRAVITY_AXIS } from './registry.js';
+import { counted, element, formatNumber, reply, typesetUnit } from './format.js';
+import { availableAxes, constructLabel, GRAVITY_AXIS } from './registry.js';
 import { candidateFor } from './startup.js';
 import { notice, buildRequest, methodTitle } from './analysis.js';
 
@@ -173,15 +173,15 @@ export function runSpread() {
   // A sweep that produced one number carries no spread, so the sentence is the count alone.
   // Written through the figure unconditionally it read "jump height: null m across 1 of 1".
   const moved = formatNumber(result.spread_absolute, result.unit);
-  const counted =
-    `${result.succeeded} of ${result.combinations_run} combinations.` +
+  const countLine =
+    `${result.succeeded} of ${counted(result.combinations_run, 'combination')}.` +
     (result.capped ? ` Capped from ${result.combinations_requested}.` : '') +
     (result.failed ? ` ${result.failed} failed.` : '');
   headline.append(
     element(
       'p',
       'spread-headline__text',
-      moved == null ? `${label}: ${counted}` : `${label}: ${moved} ${result.unit_symbol} across ${counted}`,
+      moved == null ? `${label}: ${countLine}` : `${label}: ${moved} ${typesetUnit(result.unit_symbol)} across ${countLine}`,
     ),
   );
   host.append(headline);
@@ -203,19 +203,14 @@ function whatMoved(result) {
 
   const wrap = element('div', 'spread-scope');
   if (varied.length > 0) {
-    const names = varied.map((axis) => `${spokenConstruct(axis.construct)} (${axis.rules_varied} rules)`).join(', ');
+    const names = varied.map((axis) => `${constructLabel(axis.construct)} (${axis.rules_varied} rules)`).join(', ');
     wrap.append(element('p', 'panel__sub', `Varied: ${names}.`));
   }
   if (held.length > 0) {
-    const names = held.map((rule) => `${spokenConstruct(rule.construct)} at ${rule.method_id}`).join('; ');
+    const names = held.map((rule) => `${constructLabel(rule.construct)} at ${rule.method_id}`).join('; ');
     wrap.append(element('p', 'panel__sub', `Fixed: ${names}.`));
   }
   return wrap;
-}
-
-function spokenConstruct(id) {
-  const entry = state.registry.constructs.find((construct) => construct.id === id);
-  return entry?.label || entry?.title || id;
 }
 
 function spreadAxisPlot(result) {
@@ -235,19 +230,19 @@ function spreadAxisPlot(result) {
     if (variant.value == null) continue;
     const tick = element('div', 'spread-tick');
     tick.style.left = position(variant.value);
-    tick.title = `${readableLabel(variant)}: ${formatNumber(variant.value, result.unit)} ${result.unit_symbol}`;
+    tick.title = `${readableLabel(variant)}: ${formatNumber(variant.value, result.unit)} ${typesetUnit(result.unit_symbol)}`;
     wrap.append(tick);
   }
   if (result.baseline_value != null) {
     const tick = element('div', 'spread-tick spread-tick--baseline');
     tick.style.left = position(result.baseline_value);
-    tick.title = `Current setting: ${formatNumber(result.baseline_value, result.unit)} ${result.unit_symbol}`;
+    tick.title = `Current setting: ${formatNumber(result.baseline_value, result.unit)} ${typesetUnit(result.unit_symbol)}`;
     wrap.append(tick);
   }
 
-  const lowLabel = element('span', 'spread-bound', `${formatNumber(low, result.unit)} ${result.unit_symbol}`);
+  const lowLabel = element('span', 'spread-bound', `${formatNumber(low, result.unit)} ${typesetUnit(result.unit_symbol)}`);
   lowLabel.style.left = '2%';
-  const highLabel = element('span', 'spread-bound spread-bound--max', `${formatNumber(high, result.unit)} ${result.unit_symbol}`);
+  const highLabel = element('span', 'spread-bound spread-bound--max', `${formatNumber(high, result.unit)} ${typesetUnit(result.unit_symbol)}`);
   highLabel.style.left = '98%';
   wrap.append(lowLabel, highLabel);
   return wrap;
@@ -304,15 +299,23 @@ function spreadTable(result, label, variants, className = '') {
     const row = element('tr');
     if (variant.value === result.minimum) row.dataset.extreme = 'low';
     if (variant.value === result.maximum) row.dataset.extreme = 'high';
-    row.append(element('td', null, readableLabel(variant)));
+    // The rules behind the number are the reason the row is here, and the column they sit in
+    // is narrow enough to clip a set of three, so the cell carries them whole as well.
+    const settings = element('td', null, readableLabel(variant));
+    settings.title = readableLabel(variant);
+    row.append(settings);
     if (variant.value == null) {
       const cell = element('td', 'failed', variant.failure_reason?.message || 'no value');
       cell.colSpan = 2;
       row.append(cell);
     } else {
-      row.append(element('td', 'numeric', `${formatNumber(variant.value, result.unit)} ${result.unit_symbol}`));
+      row.append(element('td', 'numeric', `${formatNumber(variant.value, result.unit)} ${typesetUnit(result.unit_symbol)}`));
       const delta = result.baseline_value == null ? null : variant.value - result.baseline_value;
-      row.append(element('td', 'numeric', delta == null ? '--' : `${delta >= 0 ? '+' : ''}${formatNumber(delta, result.unit)}`));
+      // The difference is a quantity in the same unit as the value beside it, and it read as a
+      // bare number under a heading that names no unit.
+      row.append(element('td', 'numeric', delta == null
+        ? '--'
+        : `${delta >= 0 ? '+' : ''}${formatNumber(delta, result.unit)} ${typesetUnit(result.unit_symbol)}`));
     }
     body.append(row);
   }

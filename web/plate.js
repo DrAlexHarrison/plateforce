@@ -11,10 +11,11 @@
 
 import { capabilityJson } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
-import { element, reply } from './format.js';
+import { element, reply, typesetUnit } from './format.js';
 import { runAnalysis } from './analysis.js';
 import { drawRun } from './batch-run.js';
 import { GRAVITY_AXIS, publishedGravityValues } from './registry.js';
+import { showPanel } from './drawer.js';
 
 /* Saved plates live on this machine and are never sent anywhere, for the reason the trace is
  * never sent anywhere. The key carries its own version so a shape written by an older build
@@ -301,7 +302,7 @@ function renderGravityHint() {
   const typed = $('gravity').value.trim();
   const fieldSaysIt = boundGlobal != null && typed !== '' && Number(typed) === boundGlobal.value;
   $('gravity-hint').textContent =
-    boundGlobal && !fieldSaysIt ? `Results use ${boundGlobal.value} ${boundGlobal.unit_symbol}.` : '';
+    boundGlobal && !fieldSaysIt ? `Results use ${boundGlobal.value} ${typesetUnit(boundGlobal.unit_symbol)}.` : '';
 }
 
 /* An empty field is the reader declining to state one. A value outside the range the input
@@ -340,7 +341,7 @@ export function startPlate() {
   $('plate-save').disabled = !state.plate.picked;
   $('plate-chip').addEventListener('click', () => {
     renderPlatePanel();
-    $('plate-drawer').hidden = false;
+    showPanel($('plate-drawer'));
   });
   $('plate-save').addEventListener('click', save);
   $('plate-forget').addEventListener('click', forget);

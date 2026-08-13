@@ -2,7 +2,7 @@
 
 import init, { buildInfoJson, registryJson } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
-import { element, showStage } from './format.js';
+import { element, showStage, typesetUnit } from './format.js';
 import { buildDecisionModel, preferredCandidate, initialParameters } from './registry.js';
 import { wireGlobalControls } from './import-file.js';
 import { wireBatchControls } from './batch-run.js';
@@ -56,7 +56,7 @@ function globalRows() {
     // The record spells a name with its unit on the end, and the row already carries the unit
     // beside the value.
     readableName(boundGlobal.name, boundGlobal.unit),
-    `${boundGlobal.value} ${boundGlobal.unit_symbol}, ${boundGlobal.source}`,
+    `${boundGlobal.value} ${typesetUnit(boundGlobal.unit_symbol)}, ${boundGlobal.source}`,
   ]);
 }
 

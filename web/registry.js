@@ -101,7 +101,7 @@ function rowFor(registry, documented, runnable, identity) {
     constructEntry: entry,
     /* The field's spoken words for this quantity, which is what the terminal prints beside
      * each construct it lists. */
-    title: entry?.label || entry?.title || identity.construct,
+    title: constructLabel(identity.construct),
     /* What the registry says about the quantity itself, shown where the entry bound to the
      * row says nothing about what the choice costs. */
     notes: entry?.notes || '',
@@ -254,4 +254,12 @@ export const GRAVITY_AXIS = {
 
 export function findMethod(registry, id) {
   return registry.methods.find((method) => method.id === id) || null;
+}
+
+/* The field's words for a construct, which is what every panel calls it. One home, so a
+ * construct is not named two ways on one screen and no panel falls back to the id where the
+ * registry publishes a label. */
+export function constructLabel(id) {
+  const entry = (loaded?.constructs || []).find((construct) => construct.id === id);
+  return entry?.label || entry?.title || id;
 }

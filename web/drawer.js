@@ -91,7 +91,34 @@ function accountBlock(account) {
 function fill(title, nodes) {
   $('drawer-title').textContent = title;
   $('drawer-body').replaceChildren(...nodes);
-  $('method-drawer').hidden = false;
+  showPanel($('method-drawer'));
+}
+
+/* The control the panel was opened from, so closing puts the reader back on it. */
+let openedFrom = null;
+
+/*
+ * A panel that covers the screen takes the keyboard with it.
+ *
+ * These panels declare themselves modal, so a reader working from the keyboard belongs
+ * inside one while it is open. Focus left behind the scrim walks the page the panel is
+ * covering, on the drawer a reader opens to read what a rule is.
+ */
+export function showPanel(drawer) {
+  openedFrom = document.activeElement;
+  drawer.hidden = false;
+  focusableWithin(drawer)[0]?.focus();
+}
+
+export function hidePanel(drawer) {
+  drawer.hidden = true;
+  openedFrom?.focus?.();
+  openedFrom = null;
+}
+
+export function focusableWithin(node) {
+  return [...node.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter((entry) => !entry.disabled && entry.offsetParent !== null);
 }
 
 export function openDrawer(method, fallbackId, bound) {
@@ -134,7 +161,7 @@ export function openDrawer(method, fallbackId, bound) {
         ),
       );
     }
-    drawer.hidden = false;
+    showPanel(drawer);
     return;
   }
 
@@ -249,5 +276,5 @@ export function openDrawer(method, fallbackId, bound) {
     body.append(section('Disagrees with', list));
   }
 
-  drawer.hidden = false;
+  showPanel(drawer);
 }

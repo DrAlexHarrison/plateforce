@@ -1,7 +1,7 @@
 /* One round trip into WebAssembly, and the numbers it hands back with their provenance. */
 
 import { $, state } from './state.js';
-import { element, formatNumber, reply, secondaryDisplay } from './format.js';
+import { element, formatNumber, reply, secondaryDisplay, typesetUnit } from './format.js';
 import { rankCandidates, initialParameters, namedValues, findMethod } from './registry.js';
 import { candidateFor, renderBuildInfo } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
@@ -15,6 +15,7 @@ import { captureJson, recordAttribution, renderChip } from './plate.js';
 // showing the previous run's figures is the confident wrong number this software exists to stop.
 import { renderSelectionNumbers } from './workspace.js';
 import { copyButton } from './copy.js';
+import { trialDownloadButton } from './export.js';
 
 /*
  * The rule a slot is running under right now.
@@ -244,26 +245,30 @@ export function runAnalysis() {
   scheduleSpread();
   renderDecisions();
   renderSelectionNumbers();
-  offerTheResultAsMarkdown();
+  offerTheResult();
 }
 
 /*
- * The result, in the shape it has to be in when it lands in a chat box.
+ * The result, in the shapes it has to be in when it leaves the tab.
  *
  * The block is the engine's, asked for at the press rather than held here, and it carries the
  * rules and the values behind every number because a paste that carried the numbers alone would
  * be this project's founding defect with a clipboard attached: a reader hands a model a jump
- * height and the model cannot know which of ten published rules produced it.
+ * height and the model cannot know which of ten published rules produced it. The download is
+ * the same table set a folder run writes, so one trial at a time and a folder at once end in
+ * the same file.
  *
- * Offered only where a result exists, because there is nothing to copy before one does.
+ * Offered only where a result exists, because there is nothing to carry out before one does.
  */
-function offerTheResultAsMarkdown() {
+function offerTheResult() {
   const host = $('result-actions');
   if (!host) return;
   host.replaceChildren(
     copyButton('Copy as Markdown', () =>
       state.loadedTrial.markdown(JSON.stringify(buildRequest()), state.fileName, captureJson(), undefined)),
   );
+  const download = trialDownloadButton();
+  if (download) host.append(download);
 }
 
 export function notice(kind, title, body) {
@@ -344,7 +349,7 @@ function renderMetrics() {
     } else {
       const value = element('p', 'metric__value', formatted);
       const primary = element('span', 'metric__primary', formatted);
-      primary.append(element('small', null, metric.unit_symbol));
+      primary.append(element('small', null, typesetUnit(metric.unit_symbol)));
       value.replaceChildren(primary);
       const secondary = secondaryDisplay(metric);
       if (secondary) value.append(element('small', 'metric__secondary', `= ${secondary}`));
@@ -421,7 +426,7 @@ function signalsQualifying(metricKey) {
 function figureAgainstThreshold(signal) {
   let places = 1;
   while (places < 4 && signal.value.toFixed(places) === signal.threshold.toFixed(places)) places += 1;
-  return `${signal.value.toFixed(places)} ${signal.unit} against ${signal.threshold.toFixed(places)} ${signal.unit}`;
+  return `${signal.value.toFixed(places)} ${typesetUnit(signal.unit)} against ${signal.threshold.toFixed(places)} ${typesetUnit(signal.unit)}`;
 }
 
 /*
