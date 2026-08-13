@@ -35,7 +35,8 @@ use std::process::Command;
 ///
 /// The tree scan below is held equal to this set. A file appearing fails as an unreviewed
 /// example, and a file leaving fails as a stale population member.
-const REGISTRY_DIGEST_FILES: [&str; 2] = [
+const REGISTRY_DIGEST_FILES: [&str; 3] = [
+    "CHANGELOG.md",
     "crates/plateforce-core/src/provenance.rs",
     "crates/plateforce-python/README.md",
 ];
