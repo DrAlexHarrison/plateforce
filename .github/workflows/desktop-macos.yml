@@ -204,14 +204,34 @@ jobs:
       # no prompt, and the same file downloaded in a browser is refused until the reader clears
       # the attribute. Notarisation applies to an archive or a bundle rather than to a loose
       # executable, so it is a separate submission from the one the dmg makes above.
+      # The bundler imports the certificate into a keychain of its own and takes it away again,
+      # so by here the identity that signed the application is gone and codesign reports it as
+      # absent from the keychain rather than as a signing failure. This step keeps its own.
       - name: Sign it with the same identity as the application
         if: steps.signing.outputs.able == 'yes'
         env:
           IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          codesign --force --timestamp --options runtime \
+          keychain="$RUNNER_TEMP/plateforce-signing.keychain-db"
+          password="$(uuidgen)"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$keychain" \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/certificate.p12"
+          # Without the partition list codesign prompts for keychain access, which on a runner
+          # is an eleven minute wait and then a timeout rather than a refusal.
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+
+          codesign --force --timestamp --options runtime --keychain "$keychain" \
             --sign "$IDENTITY" dist/plateforce-universal-macos
           codesign --verify --verbose dist/plateforce-universal-macos
+          security delete-keychain "$keychain"
 
       - name: Notarise, and staple the ticket into the file
         if: steps.signing.outputs.able == 'yes'
