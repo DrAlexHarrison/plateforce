@@ -39,9 +39,7 @@ onset.k
 takeoff.threshold_n
 weighing.duration
 
-# Filenames and two hostnames.
-headline_audit.py
-trial.csv
-install.md
+# Two hostnames. A file name is excluded by its ending in the script itself, which asserts
+# that no published id carries one of those endings.
 dralexharrison.github.io
 github.com

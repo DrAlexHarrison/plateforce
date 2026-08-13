@@ -24,7 +24,13 @@ for file in "${readmes[@]}" "$allowlist"; do
     fi
 done
 
-tokens="$(grep -rhoE "\b[a-z][a-z_0-9]*(\.[a-z][a-z_0-9]*)+\b" "${readmes[@]}" | sort -u)"
+# A file name is dotted the same way an id is, so `docs/for-an-agent.md` reaches the reader of
+# this pattern as `agent.md`. The last segment tells them apart, and the assertion below proves
+# the exclusion cannot reach a published id rather than trusting that it does not.
+file_endings='md|json|csv|toml|txt|rs|py|js|sh|html|zip|png|pdf|yml|yaml|lock'
+
+tokens="$(grep -rhoE "\b[a-z][a-z_0-9]*(\.[a-z][a-z_0-9]*)+\b" "${readmes[@]}" \
+    | grep -vE "\.($file_endings)\$" | sort -u)"
 permitted="$(grep -vE '^\s*(#|$)' "$allowlist" | sort -u)"
 
 # An id that does not resolve and a lookup that cannot run report the same way, so an
@@ -33,6 +39,20 @@ permitted="$(grep -vE '^\s*(#|$)' "$allowlist" | sort -u)"
 if ! cargo run -q -p plateforce-cli -- registry show bwepoch.fixed_window >/dev/null 2>&1; then
     echo "plateforce: registry show cannot resolve bwepoch.fixed_window, so the lookup is" >&2
     echo "            unavailable and no README claim can be checked against it" >&2
+    exit 70
+fi
+
+published="$(cargo run -q -p plateforce-cli -- methods --format nonsense 2>/dev/null \
+    | grep -oE '"[a-z][a-z_0-9]*(\.[a-z][a-z_0-9]*)+"' | tr -d '"' | sort -u)"
+if [ "$(printf '%s\n' "$published" | grep -c .)" -lt 40 ]; then
+    echo "plateforce: read $(printf '%s\n' "$published" | grep -c .) published ids, too few for" >&2
+    echo "            the exclusion below to have been tested against anything" >&2
+    exit 70
+fi
+swallowed="$(printf '%s\n' "$published" | grep -E "\.($file_endings)\$" || true)"
+if [ -n "$swallowed" ]; then
+    echo "plateforce: the file-ending exclusion would hide these published ids:" >&2
+    printf '  %s\n' $swallowed >&2
     exit 70
 fi
 
