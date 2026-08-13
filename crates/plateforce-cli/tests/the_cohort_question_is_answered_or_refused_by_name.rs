@@ -270,6 +270,8 @@ fn every_call_on_the_way_to_the_answer_is_answered_or_names_what_it_lacks() {
         "mean_of_best_two",
         "--aggregate-n",
         "2",
+        "--aggregate-ranked-by",
+        "reactive_strength_index",
         "--aggregate-quantity",
         "jump_height_from_takeoff_meters",
         "--format",

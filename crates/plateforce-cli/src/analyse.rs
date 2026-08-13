@@ -764,7 +764,7 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
         return Err(Outcome::declined_line(
             Fault::Request,
             format!(
-                "{} carries no sample rate, so --sample-rate-hz names it. Reading a 1200 Hz recording as 1000 Hz scales every velocity, displacement and impulse by a fifth",
+                "{} carries no sample rate, so --sample-rate-hz names it. Reading a 1200 Hz recording as 1000 Hz puts velocity and impulse out by a fifth, and height and displacement, which go with the square of the rate, out by nearly half",
                 args.trial.display()
             ),
         ));

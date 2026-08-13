@@ -93,6 +93,8 @@ fn a_reduction_carries_the_registry_id_it_was_bound_to() {
         "mean_of_best_two",
         "--aggregate-n",
         "2",
+        "--aggregate-ranked-by",
+        "reactive_strength_index",
         "--aggregate-quantity",
         "jump_height_from_takeoff_meters",
     ]);
@@ -129,6 +131,159 @@ fn a_reduction_carries_the_registry_id_it_was_bound_to() {
         rows.iter().all(|row| row.split(',').nth(5) == Some("2")),
         "every row records the two trials it reduced: {table}"
     );
+
+    std::fs::remove_dir_all(&trials).ok();
+    std::fs::remove_dir_all(&written).ok();
+}
+
+/// A mean of the best trials has no best trial until the request names the construct that
+/// orders them. No files containing reduced numbers are written under an unstated choice.
+#[test]
+fn a_mean_of_the_best_trials_without_a_ranking_criterion_is_refused() {
+    let trials = cohort("ranking-unstated");
+    let written = out_dir("ranking-unstated");
+    let named = trials.display().to_string();
+    let target = written.display().to_string();
+    let mut line = folder_run(&named, &target);
+    line.extend([
+        "--aggregate",
+        "mean_of_best_two",
+        "--aggregate-n",
+        "2",
+        "--aggregate-quantity",
+        "jump_height_from_takeoff_meters",
+    ]);
+    let output = plateforce(&line);
+    let told = said(&output);
+    println!("{told}");
+
+    assert!(
+        !output.status.success(),
+        "a run chose best trials without a criterion: {told}"
+    );
+    assert!(
+        told.contains("ranked_by"),
+        "the refusal does not name the choice that is still open: {told}"
+    );
+    assert!(
+        !written.join("aggregates.csv").exists(),
+        "reduced numbers were written after the reduction was refused"
+    );
+
+    std::fs::remove_dir_all(&trials).ok();
+    std::fs::remove_dir_all(&written).ok();
+}
+
+/// The ranking criterion stated on the command line reaches the method record under the
+/// registry parameter's own name.
+#[test]
+fn a_stated_ranking_criterion_is_recorded_with_the_reduction() {
+    let trials = cohort("ranking-recorded");
+    let written = out_dir("ranking-recorded");
+    let named = trials.display().to_string();
+    let target = written.display().to_string();
+    let mut line = folder_run(&named, &target);
+    line.extend([
+        "--aggregate",
+        "mean_of_best_two",
+        "--aggregate-n",
+        "2",
+        "--aggregate-ranked-by",
+        "reactive_strength_index",
+        "--aggregate-quantity",
+        "jump_height_from_takeoff_meters",
+    ]);
+    let output = plateforce(&line);
+    assert!(output.status.success(), "{}", said(&output));
+
+    let provenance =
+        std::fs::read_to_string(written.join("provenance.csv")).expect("a method record");
+    let ranking: Vec<&str> = provenance
+        .lines()
+        .skip(1)
+        .filter(|row| row.split(',').nth(4) == Some("ranked_by"))
+        .collect();
+    assert_eq!(
+        ranking.len(),
+        1,
+        "one reduction chain records one ranking criterion:\n{provenance}"
+    );
+    assert_eq!(
+        ranking[0].split(',').nth(5),
+        Some("reactive_strength_index")
+    );
+
+    std::fs::remove_dir_all(&trials).ok();
+    std::fs::remove_dir_all(&written).ok();
+}
+
+/// The closing help paragraph names exactly the relations an aggregated run writes. Reading
+/// the paragraph after its own opening keeps a file named elsewhere on the page from passing.
+#[test]
+fn batch_help_names_all_nine_files_an_aggregated_run_writes() {
+    let help = plateforce(&["batch", "--help"]);
+    assert!(help.status.success(), "{}", said(&help));
+    let page = String::from_utf8(help.stdout).expect("the help is UTF-8");
+    let closing = page
+        .split_once("--out-dir holds ")
+        .map(|(_, paragraph)| paragraph)
+        .unwrap_or_else(|| panic!("the help carries no closing output paragraph:\n{page}"));
+    let mut named: Vec<String> = closing
+        .split_whitespace()
+        .map(|word| {
+            word.trim_matches(|character: char| {
+                !character.is_ascii_alphanumeric() && character != '.' && character != '_'
+            })
+        })
+        .filter(|word| word.ends_with(".csv") || word.ends_with(".json"))
+        .map(str::to_string)
+        .collect();
+    named.sort();
+    named.dedup();
+
+    let trials = cohort("help-files");
+    let written = out_dir("help-files");
+    let trials_named = trials.display().to_string();
+    let target = written.display().to_string();
+    let mut line = folder_run(&trials_named, &target);
+    line.extend([
+        "--aggregate",
+        "mean_of_best_two",
+        "--aggregate-n",
+        "2",
+        "--aggregate-ranked-by",
+        "reactive_strength_index",
+        "--aggregate-quantity",
+        "jump_height_from_takeoff_meters",
+    ]);
+    let output = plateforce(&line);
+    assert!(output.status.success(), "{}", said(&output));
+    let mut actual: Vec<String> = std::fs::read_dir(&written)
+        .expect("the output directory can be read")
+        .map(|entry| {
+            entry
+                .expect("an output entry can be read")
+                .file_name()
+                .to_string_lossy()
+                .to_string()
+        })
+        .collect();
+    actual.sort();
+
+    assert_eq!(
+        actual.len(),
+        9,
+        "the aggregated run wrote {} files",
+        actual.len()
+    );
+    assert_eq!(
+        named.len(),
+        9,
+        "the closing paragraph names {} of {} written files: {named:?}",
+        named.len(),
+        actual.len()
+    );
+    assert_eq!(named, actual, "the help and the run name different files");
 
     std::fs::remove_dir_all(&trials).ok();
     std::fs::remove_dir_all(&written).ok();

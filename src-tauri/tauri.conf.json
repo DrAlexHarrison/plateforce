@@ -37,7 +37,8 @@
     "longDescription": "Reads a force trace, computes the variables the field reports, and records which published method produced each one.",
     "linux": {
       "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
+        "desktopTemplate": "plateforce.desktop"
       }
     },
     "macOS": {

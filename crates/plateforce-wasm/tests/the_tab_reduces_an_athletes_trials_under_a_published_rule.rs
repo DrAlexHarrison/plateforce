@@ -35,21 +35,26 @@ const ANALYSIS: &str = r#"{
   },
   "touchdown_index": null,
   "gravity_meters_per_second_squared": 9.80665,
-  "registry_backed_ids": ["bwepoch.fixed_window", "onset.threshold.noise_relative", "takeoff.threshold.absolute_force"]
+  "registry_backed_ids": ["bwepoch.fixed_window", "onset.threshold.noise_relative", "takeoff.threshold.absolute_force", "window_end.takeoff.detected", "force.peak.net"],
+  "derived": {
+    "analysis_window": { "method_id": "window_end.takeoff.detected" },
+    "net_peak_force": { "method_id": "force.peak.net" }
+  }
 }"#;
 
 /// Three trials of one athlete, generated arithmetic, named so a declared pattern yields a
-/// subject. Nothing here is athlete data.
+/// subject. Each carries a different force scale, so the ranking criterion orders them
+/// without a tie. Nothing here is athlete data.
 fn dropped_files() -> String {
     let trial = plateforce_wasm::demo::synthetic_countermovement_jump();
-    let samples: Vec<String> = trial
-        .force()
-        .iter()
-        .map(|force| format!("{force:.6}"))
-        .collect();
-    let text = samples.join("\n");
     (1..=3)
         .map(|ordinal| {
+            let text = trial
+                .force()
+                .iter()
+                .map(|force| format!("{:.6}", force * (1.0 + ordinal as f64 / 100.0)))
+                .collect::<Vec<String>>()
+                .join("\n");
             format!(
                 r#"{{"name":"AT01_{ordinal}.txt","text":{}}}"#,
                 serde_json::to_string(&text).expect("a JSON string")
@@ -119,7 +124,7 @@ fn a_tab_that_names_a_published_rule_reduces_and_records_which() {
 
     let reduced = envelope(
         &batch_document(&request(
-            r#", "aggregate": { "rule": "mean_of_best_two", "n": 2 }"#,
+            r#", "aggregate": { "rule": "mean_of_best_two", "n": 2, "ranked_by": "net_peak_force" }"#,
         ))
         .expect("the run returns an envelope"),
     );
@@ -173,7 +178,7 @@ fn a_tab_naming_an_unpublished_rule_is_refused_rather_than_given_a_mean() {
 #[test]
 fn a_tab_naming_a_count_the_rule_cannot_run_under_is_refused() {
     let refused = batch_document(&request(
-        r#", "aggregate": { "rule": "mean_of_best_two", "n": 1 }"#,
+        r#", "aggregate": { "rule": "mean_of_best_two", "n": 1, "ranked_by": "net_peak_force" }"#,
     ));
     let message =
         refused.expect_err("the tab reduced two trials' worth of rule over a count of one");

@@ -18,6 +18,7 @@ fn run(name: &str) -> (std::path::PathBuf, TrialSet, plateforce_batch::BatchResu
     let plan = AggregationRequest::declared(
         Some("mean_of_best_two"),
         Some(2),
+        Some("reactive_strength_index"),
         GroupKind::Subject,
         vec![HEIGHT.to_string()],
         DispersionEstimator::Sample,

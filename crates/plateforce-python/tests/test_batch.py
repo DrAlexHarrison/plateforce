@@ -248,6 +248,7 @@ def test_a_folder_run_reduces_an_athletes_trials_under_a_named_published_rule(
         pattern="AT{subject}_{trial}",
         aggregate="mean_of_best_two",
         aggregate_n=2,
+        aggregate_ranked_by="reactive_strength_index",
         aggregate_quantity=["jump_height_from_takeoff_meters"],
     )
     assert reduced.aggregates, "the run bound a published rule and reduced nothing"
@@ -291,5 +292,6 @@ def test_a_reduction_that_names_a_rule_and_no_count_is_refused_by_name(
             registry_path,
             pattern="AT{subject}_{trial}",
             aggregate="mean_of_best_two",
+            aggregate_ranked_by="reactive_strength_index",
         )
     assert refused.value is not None

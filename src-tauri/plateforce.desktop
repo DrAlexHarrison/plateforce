@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name={{name}}
+Comment={{comment}}
+Exec={{exec}}
+Icon={{icon}}
+Terminal=false
+# Without this the running window is grouped under a generic square rather than under the
+# application's own icon, because the toolkit reports a class the launcher cannot match.
+StartupWMClass={{exec}}
+# Both are XDG main categories. A desktop shows a submenu only when something is filed under
+# it, so naming one category leaves the program reachable only from a menu the machine may
+# not draw. A laboratory tool belongs under either.
+Categories=Science;Education;
+Keywords=force plate;jump;kinetics;biomechanics;countermovement;

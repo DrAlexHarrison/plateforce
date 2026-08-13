@@ -69,6 +69,7 @@ fn mean_of_best_three() -> AggregationRequest {
     AggregationRequest {
         rule: AggregationRule::MeanOfBestThreeOfAtLeastFive,
         n: 3,
+        ranked_by: "reactive_strength_index".to_string(),
         group_kind: GroupKind::Subject,
         quantities: vec![QUANTITY.to_string()],
         dispersion: DispersionEstimator::Sample,

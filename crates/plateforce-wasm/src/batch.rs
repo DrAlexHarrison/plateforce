@@ -56,6 +56,10 @@ struct BrowserAggregation {
     /// The trial count the rule was asked for. It travels with the value everywhere it is
     /// reported, because best of five and best of three are different numbers.
     n: usize,
+    /// The registry construct whose value orders the trials. Optional because the peak-force
+    /// rule carries its own criterion; a mean rule with this absent is refused.
+    #[serde(default)]
+    ranked_by: Option<String>,
     /// subject, session or run.
     #[serde(default = "subject_grouping")]
     by: String,
@@ -166,11 +170,12 @@ pub fn batch_document(request_json: &str) -> Result<String, String> {
     let reduction = AggregationRequest::declared(
         Some(asked.rule.as_str()),
         Some(asked.n),
+        asked.ranked_by.as_deref(),
         group_kind,
         quantities,
         dispersion,
     )
-    .map_err(|refusal| refusal.message().to_string())?;
+    .map_err(|refusal| refusal.against(&result).message().to_string())?;
 
     let reduced = with_aggregates(result, &set, &reduction)
         .map_err(|refusal| refusal.message().to_string())?;

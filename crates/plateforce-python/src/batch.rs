@@ -343,11 +343,13 @@ fn conditioning_choices(
 /// naming none leaves the run unreduced and naming one the registry does not publish is refused
 /// by name. `aggregate_n` is the trial count the rule was asked for and travels with the value
 /// everywhere it is reported, because best of five and best of three are different numbers.
+/// `aggregate_ranked_by` names the registry construct whose value orders the trials. A rule
+/// whose name does not carry its own criterion refuses when this is absent.
 /// `aggregate_by` reduces over subject, session or run. `aggregate_quantity` scopes which
 /// quantities are reduced, defaulting to every quantity the run computed, which is a scope
 /// rather than a method choice because each row names what it reduced.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None, aggregate = None, aggregate_n = None, aggregate_by = "subject", aggregate_quantity = None, aggregate_dispersion = "sample"))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None, aggregate = None, aggregate_n = None, aggregate_ranked_by = None, aggregate_by = "subject", aggregate_quantity = None, aggregate_dispersion = "sample"))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -386,6 +388,7 @@ pub fn batch(
     body_mass_kilograms: Option<f64>,
     aggregate: Option<String>,
     aggregate_n: Option<usize>,
+    aggregate_ranked_by: Option<String>,
     aggregate_by: &str,
     aggregate_quantity: Option<Vec<String>>,
     aggregate_dispersion: &str,
@@ -512,7 +515,11 @@ pub fn batch(
     // call this surface could make before it could reduce at all. Naming one binds
     // `trial.aggregation`, which publishes three incompatible rules and refuses rather than
     // taking a mean, so the refusals below are the feature and not the edge case.
-    if aggregate.is_none() && aggregate_n.is_none() && aggregate_quantity.is_none() {
+    if aggregate.is_none()
+        && aggregate_n.is_none()
+        && aggregate_ranked_by.is_none()
+        && aggregate_quantity.is_none()
+    {
         return Ok(BatchResult { inner: result });
     }
 
@@ -562,11 +569,12 @@ pub fn batch(
     let reduction = AggregationRequest::declared(
         aggregate.as_deref(),
         aggregate_n,
+        aggregate_ranked_by.as_deref(),
         group_kind,
         quantities,
         dispersion,
     )
-    .map_err(|refusal| PyValueError::new_err(refusal.message()))?;
+    .map_err(|refusal| PyValueError::new_err(refusal.against(&result).message()))?;
 
     with_aggregates(result, &set, &reduction)
         .map(|inner| BatchResult { inner })

@@ -8,8 +8,9 @@
 //! number. That is why the enum has three variants and no fourth, why it has no `Default`,
 //! and why the refusal is a test rather than a convention.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
+use plateforce_analysis::{records_under, BINDINGS};
 use plateforce_core::statistics::{mean, standard_deviation};
 use plateforce_core::DispersionEstimator;
 use serde::{Deserialize, Serialize};
@@ -21,6 +22,10 @@ use crate::relations::{AggregateRow, ProvenanceRow};
 
 /// The registry id every per-athlete reduction here is bound to.
 pub const TRIAL_AGGREGATION: &str = "trial.aggregation";
+
+/// The construct the rule whose name carries its own criterion ranks on.
+pub const PEAK_FORCE_RANKING_CONSTRUCT: &str =
+    plateforce_analysis::slots::net_peak_force::CONSTRUCT;
 
 /// The three published rules, and no fourth.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,10 +120,50 @@ pub enum AggregationRefusal {
         named: String,
     },
     CountNotStated,
-    /// The rule ranks on a quantity the analysis did not produce.
-    QuantityAbsent {
+    /// A rule using the word `best` without carrying its own criterion, where the caller left
+    /// the criterion open too.
+    RankedByNotStated {
+        rule: String,
+        /// The constructs this run's results offer, filled by `against` where the caller holds
+        /// the folder. Empty where the refusal was raised before a trial was read.
+        carried: Vec<String>,
+    },
+    /// A criterion stated beside a rule whose name already fixes another one.
+    RankedByContradictsRule {
+        rule: String,
+        named: String,
+        required: String,
+    },
+    /// No result column carries a value of the construct the rule ranks on.
+    RankingConstructAbsent {
+        rule: String,
+        construct: String,
+        /// The constructs this run's result columns do carry, which are the answers that would
+        /// have worked. A caller cannot reach a construct id from anywhere else on this
+        /// surface, so a refusal that named only the rejected one leaves them guessing.
+        carried: Vec<String>,
+    },
+    /// More than one result column carries a value of the named construct.
+    RankingConstructAmbiguous {
+        rule: String,
+        construct: String,
+        quantities: Vec<String>,
+    },
+    /// One trial in the group carries no value for the quantity that would order it.
+    RankingValueAbsent {
         rule: String,
         quantity: String,
+        trial_id: String,
+        group: String,
+    },
+    /// The criterion cannot choose a complete set because trials on both sides of the cutoff
+    /// carry the same value.
+    RankingTiedAtBoundary {
+        rule: String,
+        quantity: String,
+        group: String,
+        value: f64,
+        tied: usize,
     },
     /// Fewer trials in the group than the rule requires.
     TooFewTrials {
@@ -139,7 +184,44 @@ pub enum AggregationRefusal {
     },
 }
 
+/// What a refusal about a criterion offers instead, as the sentence both of them end with.
+///
+/// A run whose columns root at no rankable construct says so, because an empty list read as a
+/// reader having chosen wrong when nothing would have worked.
+fn offer(carried: &[String]) -> String {
+    match carried.split_last() {
+        None => {
+            ". No column in this folder carries a construct this reduction can rank on".to_string()
+        }
+        Some((last, [])) => format!(". This folder's columns carry {last}"),
+        Some((last, before)) => {
+            format!(
+                ". This folder's columns carry {} and {last}",
+                before.join(", ")
+            )
+        }
+    }
+}
+
 impl AggregationRefusal {
+    /// The same refusal, carrying what this folder's results offer.
+    ///
+    /// A criterion is refused before a trial is read, where the folder is not yet in hand, and
+    /// named again once it is. Every surface calls this on the way to `message`, so a reader
+    /// learns the vocabulary from the first refusal rather than by guessing a construct wrongly
+    /// to earn it.
+    pub fn against(self, result: &BatchResult) -> Self {
+        match self {
+            AggregationRefusal::RankedByNotStated { rule, .. } => {
+                AggregationRefusal::RankedByNotStated {
+                    rule,
+                    carried: constructs_carried(result),
+                }
+            }
+            other => other,
+        }
+    }
+
     pub fn message(&self) -> String {
         match self {
             AggregationRefusal::RuleNotStated => format!(
@@ -155,8 +237,51 @@ impl AggregationRefusal {
             AggregationRefusal::CountNotStated => format!(
                 "{TRIAL_AGGREGATION} takes a count of trials, and best of five and best of three are different numbers"
             ),
-            AggregationRefusal::QuantityAbsent { rule, quantity } => format!(
-                "{rule} ranks trials on {quantity}, which this analysis did not produce"
+            AggregationRefusal::RankedByNotStated { rule, carried } => format!(
+                "{TRIAL_AGGREGATION} publishes no default for ranked_by under {rule}, so it has \
+                 to be stated{}",
+                offer(carried)
+            ),
+            AggregationRefusal::RankedByContradictsRule {
+                rule,
+                named,
+                required,
+            } => format!(
+                "{rule} ranks trials on {required}, and the request named {named} instead"
+            ),
+            AggregationRefusal::RankingConstructAbsent {
+                rule,
+                construct,
+                carried,
+            } => format!(
+                "{rule} ranks trials on {construct}, and none of this folder's result columns \
+                 carries that construct's value{}",
+                offer(carried)
+            ),
+            AggregationRefusal::RankingConstructAmbiguous {
+                rule,
+                construct,
+                quantities,
+            } => format!(
+                "{rule} ranks trials on one value of {construct}, and this folder carries that construct in {}, so the criterion does not identify one value",
+                quantities.join(", ")
+            ),
+            AggregationRefusal::RankingValueAbsent {
+                rule,
+                quantity,
+                trial_id,
+                group,
+            } => format!(
+                "{rule} ranks {group} on {quantity}, and {trial_id} carries no value for it"
+            ),
+            AggregationRefusal::RankingTiedAtBoundary {
+                rule,
+                quantity,
+                group,
+                value,
+                tied,
+            } => format!(
+                "{rule} ranks {group} on {quantity}, and {tied} trials carry {value} at the boundary between trials taken and left out"
             ),
             AggregationRefusal::TooFewTrials {
                 rule,
@@ -206,6 +331,8 @@ pub struct AggregationRequest {
     pub rule: AggregationRule,
     /// Travels with the value in every export and every label.
     pub n: usize,
+    /// The construct whose value orders the trials before the rule takes any of them.
+    pub ranked_by: String,
     pub group_kind: GroupKind,
     pub quantities: Vec<String>,
     pub dispersion: DispersionEstimator,
@@ -216,6 +343,7 @@ impl AggregationRequest {
     pub fn declared(
         rule: Option<&str>,
         n: Option<usize>,
+        ranked_by: Option<&str>,
         group_kind: GroupKind,
         quantities: Vec<String>,
         dispersion: DispersionEstimator,
@@ -223,9 +351,31 @@ impl AggregationRequest {
         let rule = AggregationRule::parse(rule.unwrap_or_default())?;
         let n = n.ok_or(AggregationRefusal::CountNotStated)?;
         rule.check_declared(n)?;
+        let stated = ranked_by.filter(|name| !name.is_empty());
+        let ranked_by = match (rule, stated) {
+            (AggregationRule::BestOfNByPeakForce, None) => PEAK_FORCE_RANKING_CONSTRUCT.to_string(),
+            (AggregationRule::BestOfNByPeakForce, Some(PEAK_FORCE_RANKING_CONSTRUCT)) => {
+                PEAK_FORCE_RANKING_CONSTRUCT.to_string()
+            }
+            (AggregationRule::BestOfNByPeakForce, Some(named)) => {
+                return Err(AggregationRefusal::RankedByContradictsRule {
+                    rule: rule.as_registry_str().to_string(),
+                    named: named.to_string(),
+                    required: PEAK_FORCE_RANKING_CONSTRUCT.to_string(),
+                })
+            }
+            (_, Some(named)) => named.to_string(),
+            (_, None) => {
+                return Err(AggregationRefusal::RankedByNotStated {
+                    rule: rule.as_registry_str().to_string(),
+                    carried: Vec::new(),
+                })
+            }
+        };
         Ok(Self {
             rule,
             n,
+            ranked_by,
             group_kind,
             quantities,
             dispersion,
@@ -274,6 +424,8 @@ pub fn aggregate(
     result: &BatchResult,
     request: &AggregationRequest,
 ) -> Result<(Vec<AggregateRow>, Vec<ProvenanceRow>), AggregationRefusal> {
+    let ranking_quantity = ranking_quantity(result, request)?;
+
     let groups = groups(set, result, request.group_kind)?;
     let mut rows = Vec::new();
     let mut chains = Vec::new();
@@ -288,47 +440,137 @@ pub fn aggregate(
                 group: group_key,
             });
         }
-        for quantity in &request.quantities {
-            let mut values: Vec<f64> = trial_ids
+        let mut ranked: Vec<(String, f64)> = Vec::with_capacity(trial_ids.len());
+        for trial_id in &trial_ids {
+            let value = result
+                .results
                 .iter()
-                .filter_map(|id| {
+                .find(|row| row.trial_id == *trial_id)
+                .and_then(|row| row.values.get(&ranking_quantity).copied().flatten())
+                .ok_or_else(|| AggregationRefusal::RankingValueAbsent {
+                    rule: request.rule.as_registry_str().to_string(),
+                    quantity: ranking_quantity.clone(),
+                    trial_id: trial_id.clone(),
+                    group: group_key.clone(),
+                })?;
+            ranked.push((trial_id.clone(), value));
+        }
+        ranked.sort_by(|left, right| {
+            right
+                .1
+                .total_cmp(&left.1)
+                .then_with(|| left.0.cmp(&right.0))
+        });
+
+        let taken = request.rule.trials_taken();
+        if taken < ranked.len() && ranked[taken - 1].1 == ranked[taken].1 {
+            let boundary = ranked[taken].1;
+            let tied = ranked
+                .iter()
+                .filter(|(_, value)| *value == boundary)
+                .count();
+            return Err(AggregationRefusal::RankingTiedAtBoundary {
+                rule: request.rule.as_registry_str().to_string(),
+                quantity: ranking_quantity.clone(),
+                group: group_key,
+                value: boundary,
+                tied,
+            });
+        }
+        let selected: Vec<&str> = ranked
+            .iter()
+            .take(taken)
+            .map(|(trial_id, _)| trial_id.as_str())
+            .collect();
+
+        for quantity in &request.quantities {
+            let values: Option<Vec<f64>> = selected
+                .iter()
+                .map(|trial_id| {
                     result
                         .results
                         .iter()
-                        .find(|row| row.trial_id == *id)
+                        .find(|row| row.trial_id == *trial_id)
                         .and_then(|row| row.values.get(quantity).copied().flatten())
                 })
                 .collect();
-            if values.is_empty() {
-                continue;
-            }
+            let values = values.unwrap_or_default();
 
-            // Ranking is on the quantity being aggregated, except for the rule that names
-            // peak force, which needs a quantity this analysis does not produce.
-            if request.rule == AggregationRule::BestOfNByPeakForce
-                && !result
-                    .quantities
-                    .iter()
-                    .any(|key| key.contains("peak_force"))
-            {
-                return Err(AggregationRefusal::QuantityAbsent {
-                    rule: request.rule.as_registry_str().to_string(),
-                    quantity: "net_peak_force_newtons".to_string(),
-                });
-            }
-
-            values.sort_by(|left, right| {
-                right.partial_cmp(left).unwrap_or(std::cmp::Ordering::Equal)
-            });
-            let taken = request.rule.trials_taken().min(values.len());
-            let reduced = &values[..taken];
-
-            let (row, chain) = row_for(request, &group_key, quantity, reduced);
+            let (row, chain) = row_for(request, &group_key, quantity, &values, selected.len());
             rows.push(row);
             chains.extend(chain);
         }
     }
     Ok((rows, chains))
+}
+
+/// The constructs this run's results carry in exactly one column, which is the vocabulary
+/// `ranked_by` takes on this folder.
+///
+/// One column, because that is the condition `ranking_quantity` accepts: a construct two
+/// columns carry does not identify a value, and no flag on this surface narrows it, so
+/// offering one would send a reader from a refusal to a refusal with nothing further to try.
+fn constructs_carried(result: &BatchResult) -> Vec<String> {
+    let mut columns_per_construct: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for row in result.provenance.iter().filter(|row| row.depth == 0) {
+        if !result.quantities.contains(&row.quantity) {
+            continue;
+        }
+        for binding in BINDINGS.iter() {
+            if binding.id == row.method_id || records_under(binding.id) == row.method_id {
+                columns_per_construct
+                    .entry(binding.construct.to_string())
+                    .or_default()
+                    .insert(row.quantity.clone());
+            }
+        }
+    }
+    columns_per_construct
+        .into_iter()
+        .filter(|(_, columns)| columns.len() == 1)
+        .map(|(construct, _)| construct)
+        .collect()
+}
+
+/// The one result column whose root fills the construct named by `ranked_by`.
+///
+/// The root is taken from the chain the number carries, not inferred from the column name and
+/// not accepted because the rule appears somewhere below it. Two columns rooted in one
+/// construct are two possible values, so the required construct id has not chosen between
+/// them and the reduction refuses.
+fn ranking_quantity(
+    result: &BatchResult,
+    request: &AggregationRequest,
+) -> Result<String, AggregationRefusal> {
+    let mut quantities = BTreeSet::new();
+    for quantity in &result.quantities {
+        let fills_named_construct = result.provenance.iter().any(|row| {
+            row.quantity == *quantity
+                && row.depth == 0
+                && BINDINGS.iter().any(|binding| {
+                    binding.construct == request.ranked_by
+                        && (binding.id == row.method_id
+                            || records_under(binding.id) == row.method_id)
+                })
+        });
+        if fills_named_construct {
+            quantities.insert(quantity.clone());
+        }
+    }
+
+    match quantities.len() {
+        0 => Err(AggregationRefusal::RankingConstructAbsent {
+            rule: request.rule.as_registry_str().to_string(),
+            construct: request.ranked_by.clone(),
+            carried: constructs_carried(result),
+        }),
+        1 => Ok(quantities.into_iter().next().expect("one quantity")),
+        _ => Err(AggregationRefusal::RankingConstructAmbiguous {
+            rule: request.rule.as_registry_str().to_string(),
+            construct: request.ranked_by.clone(),
+            quantities: quantities.into_iter().collect(),
+        }),
+    }
 }
 
 /// One reduced value, and the chain that reaches the rule and the count behind it.
@@ -337,6 +579,7 @@ fn row_for(
     group_key: &str,
     quantity: &str,
     reduced: &[f64],
+    n: usize,
 ) -> (AggregateRow, Vec<ProvenanceRow>) {
     let value = mean(reduced);
     let dispersion = standard_deviation(reduced, request.dispersion);
@@ -369,8 +612,21 @@ fn row_for(
             depth: 0,
             method_id: method_id.clone(),
             parameter: "n".to_string(),
-            value: reduced.len().to_string(),
+            value: n.to_string(),
             source: source.to_string(),
+        },
+        ProvenanceRow {
+            provenance_id: String::new(),
+            quantity: quantity.to_string(),
+            depth: 0,
+            method_id: method_id.clone(),
+            parameter: "ranked_by".to_string(),
+            value: request.ranked_by.clone(),
+            source: match (request.group_kind, request.rule) {
+                (GroupKind::Run, _) => "assumed".to_string(),
+                (_, AggregationRule::BestOfNByPeakForce) => "cited".to_string(),
+                _ => "stated".to_string(),
+            },
         },
     ];
     chain.push(ProvenanceRow {
@@ -395,7 +651,7 @@ fn row_for(
             quantity: quantity.to_string(),
             value,
             dispersion,
-            n: reduced.len(),
+            n,
             method_id,
             provenance_id: identifier,
         },

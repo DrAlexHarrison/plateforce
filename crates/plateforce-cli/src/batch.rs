@@ -105,6 +105,10 @@ pub struct Args {
     /// of five and best of three are two requests of one rule and not one request
     #[arg(long = "aggregate-n", value_name = "N")]
     pub aggregate_n: Option<usize>,
+    /// The registry construct whose value orders the trials before the rule takes the best
+    /// ones. A rule whose name does not carry its own criterion requires this
+    #[arg(long = "aggregate-ranked-by", value_name = "CONSTRUCT")]
+    pub aggregate_ranked_by: Option<String>,
     /// Which trials one reduction is taken over. A session is one athlete on one occasion, so
     /// grouping by subject pools that athlete's occasions and grouping by session keeps them
     /// apart
@@ -161,6 +165,7 @@ impl Args {
     fn asked_for_a_reduction(&self) -> bool {
         self.aggregate.is_some()
             || self.aggregate_n.is_some()
+            || self.aggregate_ranked_by.is_some()
             || !self.aggregate_quantity.is_empty()
     }
 }
@@ -591,11 +596,12 @@ fn reduced_per_group(
     let request = AggregationRequest::declared(
         args.aggregate.as_deref(),
         args.aggregate_n,
+        args.aggregate_ranked_by.as_deref(),
         group_kind,
         quantities,
         dispersion,
     )
-    .map_err(|refusal| Declined::line(Fault::Request, refusal.message()))?;
+    .map_err(|refusal| Declined::line(Fault::Request, refusal.against(&result).message()))?;
 
     with_aggregates(result, set, &request)
         .map_err(|refusal| Declined::line(Fault::Request, refusal.message()))
