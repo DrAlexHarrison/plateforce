@@ -8,3 +8,5 @@
 ^\.prepare$
 ^src/Makevars$
 ^src/Makevars\.win$
+^tests/testthat/_problems$
+^tests/testthat/testthat-problems[.]rds$

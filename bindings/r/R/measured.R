@@ -47,7 +47,7 @@ measured_from_list <- function(fields) {
       "unknown_field",
       paste0(
         "this record carries ", paste(unknown, collapse = ", "),
-        ", which is not part of a measured value in this package"
+        "; a measured value carries ", paste(known, collapse = ", ")
       ),
       parameter = unknown[1],
       available = known

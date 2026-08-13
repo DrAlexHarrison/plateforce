@@ -54,11 +54,14 @@ test_that("the census R reports is the census the command line counts", {
               "the command line is not beside this test")
   skip_if_not(nzchar(Sys.which("cargo")), "no cargo on this machine")
 
+  target <- file.path(tempdir(), "plateforce-cli-target")
   printed <- suppressWarnings(system2(
     "cargo",
-    c("run", "-q", "--manifest-path", shQuote(file.path(repository, "Cargo.toml")),
+    c("run", "-q", "--offline", "--locked",
+      "--manifest-path", shQuote(file.path(repository, "Cargo.toml")),
       "-p", "plateforce-cli", "--",
       "--registry", shQuote(file.path(repository, "registry")), "registry", "census"),
+    env = c(paste0("CARGO_TARGET_DIR=", target), "CARGO_NET_OFFLINE=true"),
     stdout = TRUE, stderr = FALSE
   ))
   expect_true(any(startsWith(trimws(printed), "constructs")),

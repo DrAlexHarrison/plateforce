@@ -2,3 +2,5 @@
 set -eu
 
 sh tools/sync-engine.sh
+sh tools/vendor.sh
+Rscript tools/authors.R

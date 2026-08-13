@@ -17,7 +17,7 @@ stamp=$(sed -n 's/^Version: *//p' "$package_root/DESCRIPTION" | head -1)
 
 cd "$crate"
 rm -rf vendor vendor.tar.xz vendor.tar vendor.members
-cargo vendor --versioned-dirs vendor > /dev/null
+cargo vendor --locked --versioned-dirs vendor > /dev/null
 
 # The directory is written as a placeholder rather than as a path, because cargo resolves
 # a relative one against the config file it reads and the install puts that file
@@ -33,7 +33,7 @@ CONFIG
 # One mtime and one member order, expressed through touch and a sorted member list
 # rather than through --mtime and --sort, which macOS's tar does not carry.
 find vendor -exec touch -t 202601010000 {} +
-find vendor -print | LC_ALL=C sort > vendor.members
+find vendor \( -type f -o -type l \) -print | LC_ALL=C sort > vendor.members
 
 # The container holds a hard link's target in a field ustar caps at 100 bytes, and a
 # vendored crate ships test fixtures linked past it. pax holds them and records an access

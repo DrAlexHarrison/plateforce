@@ -33,8 +33,8 @@ block missing any member makes every result from this trial carry
 \code{\link[=pf_plate]{pf_plate()}} returns. A member in \code{acquisition} beside it is the answer that runs, and
 the result records what it replaced.}
 
-\item{plates_folder}{Where to look for \code{plate}, when it is a name. Absent reads the folder
-\verb{plateforce plate save} writes to.}
+\item{plates_folder}{Where to look for \code{plate}, when it is a name. Absent reads the
+folder \verb{plateforce plate save} writes to.}
 }
 \value{
 A \code{trial}.

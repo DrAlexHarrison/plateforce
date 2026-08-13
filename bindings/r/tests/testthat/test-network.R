@@ -2,14 +2,20 @@
 # in a document, because a sentence does not fail when somebody adds one.
 
 test_that("no file under R/ reaches a network", {
-  root <- testthat::test_path("..", "..", "R")
-  if (!dir.exists(root)) root <- system.file("R", package = "plateforce")
-  skip_if_not(dir.exists(root), "the sources are not beside this test")
+  candidates <- c(
+    testthat::test_path("..", "..", "R"),
+    testthat::test_path("..", "..", "..", "..", "bindings", "r", "R"),
+    file.path("R"),
+    file.path("bindings", "r", "R")
+  )
+  roots <- candidates[dir.exists(candidates)]
+  files <- unlist(lapply(roots, list.files, pattern = "[.]R$", full.names = TRUE))
+  skip_if_not(length(files) > 0, "the R sources are not beside this test")
 
   reaching <- c("url\\(", "download\\.file", "curl", "httr", "socketConnection",
                 "readLines\\(\\s*\"https?://", "nsl\\(")
   offenders <- character(0)
-  for (file in list.files(root, pattern = "[.]R$", full.names = TRUE)) {
+  for (file in files) {
     lines <- readLines(file, warn = FALSE)
     for (pattern in reaching) {
       hits <- grep(pattern, lines)

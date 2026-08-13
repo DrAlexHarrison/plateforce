@@ -3,22 +3,19 @@
 Force-plate jump kinetics where every number carries the method that produced it: the
 rule, its published parameters, its citation, and the choices made upstream of it.
 
-Ten published ways of computing one jump height disagree by 3.51 cm on 244 real trials,
-against the 1.98 cm training effect the source study was built to detect. So the method
-travels with the number rather than in a lab notebook.
+Ten published ways of computing one jump height disagree by a median 3.51 cm on 244 real
+trials, against the 1.98 cm training effect the source study was built to detect. So the
+method travels with the number rather than in a lab notebook.
 
 ## Install
 
 ```r
-install.packages("plateforce", repos = c(
-  "https://dralexharrison.r-universe.dev",
-  "https://cloud.r-project.org"
-))
+install.packages("plateforce")
 ```
 
-Windows and macOS get a binary and need no compiler. On Linux the package builds from
-source and needs cargo and rustc 1.82 or newer; the install stops with the version it
-found and the version it needs rather than with a compiler error.
+Binary installations need no compiler. Source installations need cargo and rustc 1.82 or
+newer; the install stops with the version it found and the version it needs rather than
+with a compiler error.
 
 ## Use
 
@@ -48,26 +45,19 @@ height@provenance@depends_on[[1]]@parameters
 
 ## What it covers
 
-The registry enumerates every method entry and every construct, and the count is a query
-rather than a line in this file:
+The registry census and executable bindings are read from the installed package:
 
 ```r
 pf_registry()@census
+pf_bindings()[c("construct", "id")]
 ```
-
-Three of those constructs have executable rules behind them on this surface: the weighing
-epoch that establishes system weight, movement onset, and takeoff. The quantities derived
-from them are system weight and mass, onset and takeoff time, time to takeoff, flight
-time, takeoff velocity, net impulse, jump height by the takeoff-velocity route and by the
-flight-time route, and modified reactive strength index.
 
 Reading a force file needs the delimiter and the force column stated.
 
 ## The same numbers as every other surface
 
 The R package links the same compiled engine as the browser, the command line and the
-Python package. It computes nothing of its own, so a number that differs between two
-surfaces is a build that failed rather than a discrepancy to reconcile.
+Python package.
 
 ## Licence
 

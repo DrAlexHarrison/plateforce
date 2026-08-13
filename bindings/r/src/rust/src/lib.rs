@@ -174,7 +174,7 @@ struct RegistryReport {
 }
 
 /// The census, one row per population, each derived count beside the denominator it was
-/// taken over. No total row and no total column: the two populations are not one
+/// taken over. No total row and no total column: the reported populations are not one
 /// population, and a table carrying a total invites adding them.
 pub fn registry_json(root: &str) -> String {
     let registry = match Registry::load(root) {

@@ -32,7 +32,7 @@ if [ "$counted" -lt 20 ]; then
 fi
 
 over=$(printf '%s\n' "$listing" | awk -v limit="$LIMIT" 'length($0) > limit')
-longest=$(printf '%s\n' "$listing" | awk '{ print length($0), $0 }' | sort -rn | head -3)
+longest=$(printf '%s\n' "$listing" | awk '{ print length($0), $0 }' | sort -rn | sed -n '1,3p')
 
 printf '%s files measured, limit %s bytes\n' "$counted" "$LIMIT"
 printf 'closest to the limit:\n%s\n' "$longest"
@@ -41,7 +41,7 @@ if [ -n "$over" ]; then
     count=$(printf '%s\n' "$over" | grep -c .)
     printf '%s path(s) longer than %s bytes, which a tarball is not required to store:\n' \
         "$count" "$LIMIT" >&2
-    printf '  %s\n' $over >&2
+    printf '  %s\n' "$over" >&2
     echo "Shorten the name, or stop copying that tree into the package." >&2
     exit 1
 fi

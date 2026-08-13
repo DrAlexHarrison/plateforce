@@ -43,8 +43,8 @@ the columns per row, the blank lines skipped, the samples that matched the senti
 convention, and the samples that carried no number at all.
 }
 \description{
-The file is read by the engine. Nothing in this package parses it, so there is one
-answer to which column carries force and one answer to what a row means.
+The engine reads the file, so every interface uses the same force column and the same
+meaning for each row.
 }
 \details{
 Every choice the read rests on is stated by the caller and reported back. A rate that

@@ -18,8 +18,8 @@ registry_root <- function(path = NULL) {
     refuse_here(
       "registry_not_found",
       paste(
-        "no registry was named and this installation carries none.",
-        "Name one with the path argument or with PLATEFORCE_REGISTRY."
+        "the registry directory is absent.",
+        "Name the directory with the path argument or with PLATEFORCE_REGISTRY."
       ),
       parameter = "path"
     )

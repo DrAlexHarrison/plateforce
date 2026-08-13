@@ -12,8 +12,8 @@ this package is used, unless \code{PLATEFORCE_REGISTRY} names another one.}
 }
 \value{
 A \code{registry}. \verb{@census} is one row per population, with each derived count
-beside the denominator it was taken over. The two populations are separate counts and
-are never added together, so there is no total row and no total column.
+beside the denominator it was taken over. The populations are separate counts and are
+never added together, so there is no total row and no total column.
 \verb{@digest} identifies the files that were read, measured from their bytes.
 \verb{@declared_version} is the revision the registry names about itself, empty where it
 names none. The two answer different questions: a revision is a name to cite and a

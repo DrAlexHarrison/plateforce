@@ -2,22 +2,26 @@ Package: plateforce
 Title: Force-Plate Jump Kinetics that Carry Their Method
 Version: 0.1.0
 Authors@R:
-    person("Alex", "Harrison", email = "alex@saturdaymorning.fit",
-           role = c("aut", "cre", "cph"))
+    c(
+      person("Alex", "Harrison", email = "alex@saturdaymorning.fit",
+             role = c("aut", "cre", "cph")),
+      person("The authors of the bundled Rust crates", role = "ctb",
+             comment = "See inst/AUTHORS for details")
+    )
 Description: Computes jump kinetics from a vertical ground reaction force
     trace. Every value carries the method that produced it: the rule, its
     published parameters, its citation and the choices made upstream of it.
-    Ten published ways of computing one jump height disagree by 3.51 cm on
-    244 real trials, against the 1.98 cm training effect the source study
-    was built to detect, so the method is reported with the number.
-    Authorship and copyright of the bundled Rust sources are listed in the
-    AUTHORS file of the installed package.
-License: Apache License (>= 2)
+    Across 244 trials from Harrison (2011) <doi:10.25710/929y-2n46>, ten
+    published ways of computing one jump height disagree by a median 3.51
+    cm, exceeding the study's 1.98 cm training effect, so the method is
+    reported with the number. Authorship and licences of the bundled Rust
+    sources are listed in the AUTHORS file of the installed package.
+License: Apache License (== 2.0)
 URL: https://github.com/DrAlexHarrison/plateforce
 BugReports: https://github.com/DrAlexHarrison/plateforce/issues
 Depends: R (>= 4.3.0)
-Imports: S7
-Suggests: testthat (>= 3.0.0), knitr, rmarkdown, jsonlite
+Imports: S7, tools
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown, jsonlite, withr
 SystemRequirements: Cargo (Rust's package manager), rustc >= 1.82
 Config/testthat/edition: 3
 Encoding: UTF-8

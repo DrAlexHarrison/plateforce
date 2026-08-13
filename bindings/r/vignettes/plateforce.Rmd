@@ -11,9 +11,9 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-Ten published ways of computing one jump height disagree by 3.51 cm on 244 real trials.
-The training effect the source study was built to detect is 1.98 cm. plateforce records
-which one you used.
+Ten published ways of computing one jump height disagree by a median 3.51 cm on 244 real
+trials. The training effect the source study was built to detect is 1.98 cm. plateforce
+records which one you used.
 
 ```{r setup}
 library(plateforce)
@@ -91,7 +91,7 @@ stated <- analyse_countermovement_jump(
   onset = "onset.threshold.noise_relative",
   takeoff = "takeoff.threshold.absolute_force"
 )
-bound <- pf_value(stated, "system_weight_newtons")@provenance@depends_on[[1]]@parameters
+bound <- pf_value(stated, "system_weight_newtons")@provenance@parameters
 bound[bound[["name"]] == "duration", ]
 ```
 
@@ -135,8 +135,8 @@ registry <- pf_registry()
 registry@census
 ```
 
-The two populations are counted apart and never added together, and each derived count
-sits beside the population it was taken over. One entry reads out in full:
+The populations are counted apart and never added together, and each derived count sits
+beside the population it was taken over. One entry reads out in full:
 
 ```{r entry}
 entry <- pf_entry("onset.threshold.noise_relative")

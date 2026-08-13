@@ -58,8 +58,8 @@ trial <- S7::new_class(
 #' @param plate A saved plate to fill the block from: a name this machine holds, or the list
 #'   [pf_plate()] returns. A member in `acquisition` beside it is the answer that runs, and
 #'   the result records what it replaced.
-#' @param plates_folder Where to look for `plate`, when it is a name. Absent reads the folder
-#'   `plateforce plate save` writes to.
+#' @param plates_folder Where to look for `plate`, when it is a name. Absent reads the
+#'   folder `plateforce plate save` writes to.
 #' @return A `trial`.
 #' @export
 #' @examples

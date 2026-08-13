@@ -3,8 +3,8 @@ NULL
 
 #' Read a force file
 #'
-#' The file is read by the engine. Nothing in this package parses it, so there is one
-#' answer to which column carries force and one answer to what a row means.
+#' The engine reads the file, so every interface uses the same force column and the same
+#' meaning for each row.
 #'
 #' Every choice the read rests on is stated by the caller and reported back. A rate that
 #' is guessed scales every velocity, displacement, impulse and rate of force development
