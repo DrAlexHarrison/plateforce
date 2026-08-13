@@ -27,12 +27,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Analysis window, start",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: "analysis_window_end_seconds",
         label: "Analysis window, end",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

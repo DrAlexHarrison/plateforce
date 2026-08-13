@@ -10,7 +10,41 @@
 
 use plateforce_wasm::LoadedTrial;
 
-/// The opening selection, in the shape `web/analysis.js` posts it.
+/// Which construct each landmark quantity is the answer of. Held here, while which rule fills
+/// a construct is read from the binding table, so neither half is the declaration under test.
+const LANDMARK_CONSTRUCT: [(&str, &str); 4] = [
+    ("system_weight_newtons", "system_weight"),
+    ("system_mass_kilograms", "system_weight"),
+    ("onset_time_seconds", "movement_onset"),
+    ("takeoff_time_seconds", "takeoff"),
+];
+
+/// The construct a rule fills, or nothing where no row declares it.
+fn construct_of(method_id: &str) -> Option<String> {
+    plateforce_analysis::BINDINGS
+        .iter()
+        .find(|binding| binding.id == method_id)
+        .map(|binding| binding.construct.to_string())
+}
+
+/// The rule an account opens with, which is the root of the chain it was written around.
+///
+/// The first line is the number and its unit; the second is the rule and the values it was
+/// bound to.
+fn opening_rule(account: &str) -> String {
+    account
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap_or_default()
+        .to_string()
+}
+
+/// A selection in the shape `web/analysis.js` posts it.
+///
+/// The onset rule is one whose search is bounded by takeoff, so the takeoff rule is among the
+/// rules the onset time rests on and an account naming any of them is not yet an account
+/// naming the rule that produced the number.
 const REQUEST: &str = r#"{
   "weighing": {
     "method_id": "bwepoch.fixed_window",
@@ -19,8 +53,8 @@ const REQUEST: &str = r#"{
     "options": {}
   },
   "onset": {
-    "method_id": "onset.threshold.noise_relative",
-    "parameters": { "k": 5.0 },
+    "method_id": "onset.threshold.last_within_band",
+    "parameters": {},
     "options": {},
     "manual_index": null
   },
@@ -32,7 +66,7 @@ const REQUEST: &str = r#"{
   },
   "touchdown_index": null,
   "gravity_meters_per_second_squared": 9.80665,
-  "registry_backed_ids": ["bwepoch.fixed_window", "onset.threshold.noise_relative", "takeoff.threshold.absolute_force"]
+  "registry_backed_ids": ["bwepoch.fixed_window", "onset.threshold.last_within_band", "takeoff.threshold.absolute_force"]
 }"#;
 
 fn analysed() -> serde_json::Value {
@@ -81,22 +115,39 @@ fn every_number_carried_out_of_the_tab_gives_an_account_of_itself() {
         valued.len()
     );
 
-    // The rule the record names is the rule the sentence names, so a block filled with
-    // anything at all does not pass this.
+    // The rule the account opens with is the rule that produced the number. This asked only
+    // that the rule appear somewhere in the account, against the first id the number rests on,
+    // which is the conditioning rule on every quantity and is named in every account: the
+    // question could not be answered no.
     for metric in metrics.iter().filter(|metric| !metric["value"].is_null()) {
         let key = metric["key"].as_str().expect("a metric names its quantity");
-        let named = metric["computed_by"]
-            .as_str()
-            .or_else(|| metric["contributing_method_ids"][0].as_str())
-            .expect("a number names a rule behind it");
         let account = accounts[key].as_str().expect("an account is a sentence");
-        assert!(
-            account.contains(named),
-            "the account of {key} never names {named}: {account}"
-        );
+        let opened_with = opening_rule(account);
+        match metric["computed_by"].as_str() {
+            Some(computed_by) => assert_eq!(
+                opened_with, computed_by,
+                "the account of {key} opens with {opened_with}: {account}"
+            ),
+            // A landmark quantity names no arithmetic and is the answer of the rule filling
+            // its own construct, which is a different question from which rules fed it.
+            None => {
+                let construct = LANDMARK_CONSTRUCT
+                    .iter()
+                    .find(|(quantity, _)| *quantity == key)
+                    .map(|(_, construct)| *construct)
+                    .unwrap_or_else(|| panic!("{key} names no arithmetic and no construct here"));
+                let filled = construct_of(&opened_with);
+                assert_eq!(
+                    filled.as_deref(),
+                    Some(construct),
+                    "the account of {key} opens with {opened_with}, which fills {filled:?}"
+                );
+            }
+        }
     }
     println!(
-        "{} of {} quantities carried a value and each gave an account naming its rule",
+        "{} of {} quantities carried a value and each opened its account with the rule that \
+         produced it",
         valued.len(),
         metrics.len()
     );

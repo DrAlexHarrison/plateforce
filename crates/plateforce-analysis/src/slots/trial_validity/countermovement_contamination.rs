@@ -32,18 +32,21 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Lowest force between standing and the start of the effort",
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: THRESHOLD_KEY,
         label: "Force the dip had to stay above",
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Admitted by the countermovement gate",
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

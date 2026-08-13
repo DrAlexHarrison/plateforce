@@ -9,12 +9,28 @@
 //! Read out of the page and the document from the same request, so this asserts the page
 //! agrees with the record rather than that the page holds a name written here. Where the
 //! record names an arithmetic in `computed_by`, that is the name the page owes; where it
-//! names none, the number is a landmark rule's own answer and the page owes one of the rules
-//! the record says it rests on.
+//! names none, the number is a landmark rule's own answer and the page owes the rule filling
+//! that landmark's own slot.
+//!
+//! The landmark half asked only that the name appear somewhere among the rules the number
+//! rests on. The takeoff rule is among them under the onset time whenever the onset search is
+//! bounded by takeoff, so that question was answered yes by a page naming the takeoff rule
+//! under the movement onset. These cases run such a pipeline.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::process::Command;
 
 const TRIAL: &str = "../plateforce-conformance/fixtures/subject01_trial1.force.txt";
+
+/// Which slot each landmark quantity is the answer of. The rules filling a slot are read from
+/// the software's own grouping, so this file holds the pairing and nothing about how the page
+/// picks a name.
+const LANDMARK_SLOT: [(&str, &str); 4] = [
+    ("system_weight_newtons", "weighing"),
+    ("system_mass_kilograms", "weighing"),
+    ("onset_time_seconds", "onset"),
+    ("takeoff_time_seconds", "takeoff"),
+];
 
 /// The takeoff rule the cases below run unless they are varying it.
 const TAKEOFF: [&str; 4] = [
@@ -50,10 +66,11 @@ fn analyse(format: &str, extra: &[&str]) -> String {
             "bwepoch.fixed_window",
             "--set",
             "weighing.duration=1.0",
+            // An onset rule whose search is bounded by takeoff, so the takeoff rule is among
+            // the rules the onset time rests on and a page naming one of them is not yet a
+            // page naming the rule that produced the number.
             "--onset",
-            "onset.threshold.noise_relative",
-            "--set",
-            "onset.k=5",
+            "onset.threshold.last_within_band",
         ])
         .args(extra)
         .env("NO_COLOR", "1")
@@ -69,6 +86,48 @@ fn document(extra: &[&str]) -> serde_json::Value {
         .get("ok")
         .cloned()
         .unwrap_or_else(|| panic!("the terminal returned a refusal: {parsed}"))
+}
+
+/// Every rule filling each slot, as the software itself groups them, plus the entry a rule
+/// records under where it records under another.
+fn rules_per_slot() -> BTreeMap<String, BTreeSet<String>> {
+    let output = Command::new(env!("CARGO_BIN_EXE_plateforce"))
+        .args([
+            "--registry",
+            "../../registry",
+            "--format",
+            "json",
+            "methods",
+        ])
+        .env("NO_COLOR", "1")
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .expect("the built binary runs");
+    let written = String::from_utf8(output.stdout).expect("the rule list is UTF-8");
+    let parsed: serde_json::Value = serde_json::from_str(&written).expect("the rule list parses");
+    let mut per_slot: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for step in parsed["ok"]["steps"]
+        .as_array()
+        .expect("the rule list groups rules into steps")
+    {
+        let slot = step["slot"]
+            .as_str()
+            .expect("a step names its slot")
+            .to_string();
+        let entry = per_slot.entry(slot).or_default();
+        for rule in step["rules"].as_array().expect("a step lists its rules") {
+            entry.insert(
+                rule["method_id"]
+                    .as_str()
+                    .expect("a rule has an id")
+                    .to_string(),
+            );
+            if let Some(under) = rule["records_under"].as_str() {
+                entry.insert(under.to_string());
+            }
+        }
+    }
+    per_slot
 }
 
 /// The labels the record reports, in the order the page draws them.
@@ -160,18 +219,13 @@ fn every_number_names_the_rule_the_record_roots_it_at() {
         metrics.len()
     );
 
+    let per_slot = rules_per_slot();
     let mut arithmetic = 0usize;
     let mut landmarks: Vec<String> = Vec::new();
     let mut wrong: Vec<String> = Vec::new();
     for (metric, name) in metrics.iter().zip(&named) {
         let name = name.as_deref().expect("every number named something");
         let key = metric["key"].as_str().expect("a metric names its quantity");
-        let resting_on: Vec<&str> = metric["contributing_method_ids"]
-            .as_array()
-            .expect("a metric lists what it rests on")
-            .iter()
-            .map(|id| id.as_str().expect("a contributing id is a name"))
-            .collect();
         match metric["computed_by"].as_str() {
             Some(computed_by) => {
                 arithmetic += 1;
@@ -182,13 +236,25 @@ fn every_number_names_the_rule_the_record_roots_it_at() {
                 }
             }
             // No arithmetic entry describes this number, so it is a landmark rule's own
-            // answer and the page owes one of the rules the record says it rests on.
+            // answer and the page owes the rule filling that landmark's slot.
             None => {
                 landmarks.push(name.to_string());
-                if !resting_on.contains(&name) {
+                let slot = LANDMARK_SLOT
+                    .iter()
+                    .find(|(quantity, _)| *quantity == key)
+                    .map(|(_, slot)| *slot)
+                    .unwrap_or_else(|| panic!("{key} names no arithmetic and no slot here"));
+                let population = per_slot
+                    .get(slot)
+                    .unwrap_or_else(|| panic!("{slot} is a slot the software groups rules under"));
+                if !population.contains(name) {
+                    let elsewhere = per_slot
+                        .iter()
+                        .find(|(_, rules)| rules.contains(name))
+                        .map(|(other, _)| other.as_str())
+                        .unwrap_or("no slot");
                     wrong.push(format!(
-                        "{key} names {name}, which is not among the {} rules it rests on",
-                        resting_on.len()
+                        "{key} names {name}, which fills {elsewhere} and not {slot}"
                     ));
                 }
             }
@@ -201,14 +267,15 @@ fn every_number_names_the_rule_the_record_roots_it_at() {
         metrics.len()
     );
 
-    // The landmark half is a membership test, which one rule repeated under every number
-    // would pass. The rules those numbers root at are distinct on this trial.
+    // Three landmark constructs ran under three rules here, so the numbers they produced name
+    // three rules. Two would be the onset and the takeoff collapsed onto one.
     let mut distinct = landmarks.clone();
     distinct.sort();
     distinct.dedup();
-    assert!(
-        distinct.len() >= 2,
-        "{} numbers name no arithmetic and root at {} rule: {distinct:?}",
+    assert_eq!(
+        distinct.len(),
+        3,
+        "{} numbers name no arithmetic and root at {} rules: {distinct:?}",
         landmarks.len(),
         distinct.len()
     );
@@ -264,6 +331,18 @@ fn the_name_under_a_number_moves_when_the_run_changes_the_rule() {
         under(&named_second, &second, "system_weight_newtons")
     );
     assert_ne!(weighing, OTHER[1]);
+
+    // The onset time rests on the takeoff rule here and is not its answer, so the name under
+    // it does not follow the takeoff rule either. This is the half the weighing quantity
+    // cannot make: the weighing rule is absent from the takeoff time's record altogether,
+    // where the takeoff rule is present in the onset time's.
+    let onset = under(&named_first, &first, "onset_time_seconds");
+    assert_eq!(
+        onset,
+        under(&named_second, &second, "onset_time_seconds"),
+        "the movement onset followed the takeoff rule"
+    );
+    assert_ne!(onset, under(&named_first, &first, "takeoff_time_seconds"));
     println!(
         "takeoff named {} and then {}, and system weight named {weighing} under both",
         TAKEOFF[1], OTHER[1]

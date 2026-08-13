@@ -70,6 +70,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "RPeM index",
     unit: "meters_per_second",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

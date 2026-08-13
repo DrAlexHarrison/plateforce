@@ -43,18 +43,21 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Start of the downward phase",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: DOWNWARD_END_KEY,
         label: "End of the downward phase, start of the upward phase",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: UPWARD_END_KEY,
         label: "End of the upward phase",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

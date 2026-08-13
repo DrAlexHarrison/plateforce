@@ -19,6 +19,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "What the numbers are divided by",
     unit: "dimensionless",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

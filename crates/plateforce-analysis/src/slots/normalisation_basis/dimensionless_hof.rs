@@ -33,12 +33,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "What the power is divided by",
         unit: "watts",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Peak power on Hof's dimensionless scale",
         unit: "dimensionless",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

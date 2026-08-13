@@ -18,6 +18,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Peak force, net",
     unit: "newtons",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

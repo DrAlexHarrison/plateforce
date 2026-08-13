@@ -26,6 +26,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Start of braking",
     unit: "seconds",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 /// Which signal the search reads, as the registry's parameter spells its values.

@@ -56,24 +56,28 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Duration of the flight phase the window accepted",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: CANDIDATE_KEY,
         label: "Flight phases the recording offered",
         unit: "count",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: REJECTED_KEY,
         label: "Flight phases the window turned down",
         unit: "count",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Admitted by the flight window",
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

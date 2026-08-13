@@ -31,6 +31,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Peak force for each kilogram of athlete",
     unit: "newtons_per_kilogram",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

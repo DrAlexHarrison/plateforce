@@ -33,12 +33,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Force above standing weight at the stated instant",
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Early force as a share of the peak",
         unit: "percent",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

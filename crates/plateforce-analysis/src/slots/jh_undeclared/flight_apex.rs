@@ -22,6 +22,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Jump height, frame not stated",
     unit: "meters",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

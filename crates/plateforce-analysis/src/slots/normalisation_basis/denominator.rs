@@ -33,6 +33,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "What the number is divided by",
     unit: "kilograms",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

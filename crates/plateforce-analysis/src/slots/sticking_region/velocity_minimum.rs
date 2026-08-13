@@ -35,12 +35,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Where the bar slows down, start",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: super::END_KEY,
         label: "Where the bar slows down, end",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

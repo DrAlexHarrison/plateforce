@@ -23,6 +23,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Start of propulsion",
     unit: "seconds",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = place;

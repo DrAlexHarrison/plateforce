@@ -35,6 +35,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "RSI modified",
     unit: "meters_per_second",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

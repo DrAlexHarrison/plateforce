@@ -36,12 +36,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "End of the static hold",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: PROPULSION_END_KEY,
         label: "End of propulsion",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

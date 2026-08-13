@@ -25,6 +25,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Force reached at the stated time",
     unit: "newtons",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

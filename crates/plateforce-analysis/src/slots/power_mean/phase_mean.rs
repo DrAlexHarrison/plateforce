@@ -23,6 +23,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Mean power",
     unit: "watts",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

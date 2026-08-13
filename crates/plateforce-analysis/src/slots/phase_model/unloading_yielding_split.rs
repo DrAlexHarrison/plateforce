@@ -37,30 +37,35 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Start of unloading",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: FORCE_MINIMUM_KEY,
         label: "Force minimum",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: PEAK_NEGATIVE_VELOCITY_KEY,
         label: "Peak negative velocity",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: POSITIVE_VELOCITY_KEY,
         label: "Velocity turns positive",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: CONCENTRIC_END_KEY,
         label: "End of the concentric phase",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

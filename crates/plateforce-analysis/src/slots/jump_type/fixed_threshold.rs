@@ -23,18 +23,21 @@ pub const QUANTITIES: &[Quantity] = &[
         label: super::CLASSIFICATION_LABEL,
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: super::UNWEIGHTING_KEY,
         label: super::UNWEIGHTING_LABEL,
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: super::THRESHOLD_KEY,
         label: super::THRESHOLD_LABEL,
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

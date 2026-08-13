@@ -38,6 +38,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "End of the landing",
     unit: "seconds",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = place;

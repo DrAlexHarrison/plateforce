@@ -34,24 +34,28 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Force peaks during braking",
         unit: "count",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: CEILING_KEY,
         label: "Peaks the trial was allowed",
         unit: "count",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: GREATEST_KEY,
         label: "Greatest force during braking",
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Admitted by the transient peak gate",
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

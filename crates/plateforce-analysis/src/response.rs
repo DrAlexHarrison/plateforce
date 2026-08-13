@@ -101,6 +101,15 @@ pub struct Quantity {
     /// The registry entry for the arithmetic that turns landmarks into this number. `None`
     /// means no entry describes it, which is itself worth seeing.
     pub computed_by: Option<&'static str>,
+    /// The construct whose rule produces this number directly, for a quantity no arithmetic
+    /// entry describes. What roots the chain behind it.
+    ///
+    /// A landmark quantity's chain carries every rule its answer rests on, and an onset search
+    /// bounded by takeoff carries the takeoff rule among them. Which of those rules the number
+    /// is the answer of is a fact about the quantity, not about the order the rules ran in,
+    /// and this is where that fact is stated. `None` beside a `computed_by` that names an
+    /// entry, because the entry answers it.
+    pub produced_by_construct: Option<&'static str>,
 }
 
 /// What the spine reports, which is what the pipeline computes from the landmarks directly
@@ -111,66 +120,77 @@ pub const SPINE_QUANTITIES: &[Quantity] = &[
         label: "System weight",
         unit: "newtons",
         computed_by: None,
+        produced_by_construct: Some(crate::WEIGHING_CONSTRUCT),
     },
     Quantity {
         key: "system_mass_kilograms",
         label: "System mass",
         unit: "kilograms",
         computed_by: None,
+        produced_by_construct: Some(crate::WEIGHING_CONSTRUCT),
     },
     Quantity {
         key: "onset_time_seconds",
         label: "Movement onset",
         unit: "seconds",
         computed_by: None,
+        produced_by_construct: Some(crate::ONSET_CONSTRUCT),
     },
     Quantity {
         key: "takeoff_time_seconds",
         label: "Takeoff",
         unit: "seconds",
         computed_by: None,
+        produced_by_construct: Some(crate::TAKEOFF_CONSTRUCT),
     },
     Quantity {
         key: "time_to_takeoff_seconds",
         label: "Time to takeoff",
         unit: "seconds",
         computed_by: Some("time_to_takeoff.onset_to_takeoff"),
+        produced_by_construct: None,
     },
     Quantity {
         key: "flight_time_seconds",
         label: "Flight time",
         unit: "seconds",
         computed_by: Some("flight_time.takeoff_to_touchdown"),
+        produced_by_construct: None,
     },
     Quantity {
         key: "takeoff_velocity_meters_per_second",
         label: "Takeoff velocity",
         unit: "meters_per_second",
         computed_by: Some("impulse.net_vertical.as_performance_determinant"),
+        produced_by_construct: None,
     },
     Quantity {
         key: "net_impulse_newton_seconds",
         label: "Net impulse",
         unit: "newton_seconds",
         computed_by: Some("impulse.net_vertical.as_performance_determinant"),
+        produced_by_construct: None,
     },
     Quantity {
         key: "jump_height_from_takeoff_meters",
         label: "Jump height, takeoff frame",
         unit: "meters",
         computed_by: Some("jumpheight.takeoff.impulse_momentum"),
+        produced_by_construct: None,
     },
     Quantity {
         key: "jump_height_from_flight_time_meters",
         label: "Jump height, flight time",
         unit: "meters",
         computed_by: Some("jumpheight.takeoff.flight_time"),
+        produced_by_construct: None,
     },
     Quantity {
         key: "reactive_strength_index_modified",
         label: "RSI modified",
         unit: "meters_per_second",
         computed_by: Some("rsimod.jh_tov_over_ttt"),
+        produced_by_construct: None,
     },
 ];
 

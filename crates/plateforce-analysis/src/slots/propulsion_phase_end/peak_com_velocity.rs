@@ -27,6 +27,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "End of propulsion",
     unit: "seconds",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 /// What a caller has to answer before this rule can run, with one value that answers it.

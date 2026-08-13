@@ -39,6 +39,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Jump height, flight time",
     unit: "meters",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

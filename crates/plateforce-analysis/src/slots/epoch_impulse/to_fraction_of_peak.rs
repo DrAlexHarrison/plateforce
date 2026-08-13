@@ -27,6 +27,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Epoch impulse",
     unit: "newton_seconds",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

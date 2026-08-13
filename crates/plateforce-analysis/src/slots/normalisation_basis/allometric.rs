@@ -47,12 +47,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "What the numbers are divided by",
         unit: "kilograms_to_the_exponent",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Peak force scaled allometrically",
         unit: "newtons_per_kilogram_to_the_exponent",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

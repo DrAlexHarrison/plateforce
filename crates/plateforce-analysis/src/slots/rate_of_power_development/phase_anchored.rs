@@ -20,6 +20,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Rate of power development",
     unit: "watts_per_second",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

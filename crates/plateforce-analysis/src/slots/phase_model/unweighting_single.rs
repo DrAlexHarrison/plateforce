@@ -30,12 +30,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Start of unweighting",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: END_KEY,
         label: "End of unweighting",
         unit: "seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

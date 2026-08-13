@@ -28,12 +28,14 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "Net impulse",
         unit: "newton_seconds",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: super::VELOCITY_KEY,
         label: "Takeoff velocity",
         unit: "meters_per_second",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

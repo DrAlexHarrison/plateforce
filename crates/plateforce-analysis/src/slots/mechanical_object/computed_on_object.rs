@@ -34,6 +34,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Mass of the object the numbers describe",
     unit: "kilograms",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

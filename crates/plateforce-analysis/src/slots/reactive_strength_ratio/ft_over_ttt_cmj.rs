@@ -39,6 +39,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Flight time to takeoff-time ratio",
     unit: "dimensionless",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = compute;

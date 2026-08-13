@@ -53,24 +53,28 @@ pub const QUANTITIES: &[Quantity] = &[
         label: "How far force stood from standing weight before the effort",
         unit: "newtons",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: ABSOLUTE_VERDICT_KEY,
         label: "Admitted against the newton ceiling",
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: PERCENT_VERDICT_KEY,
         label: "Admitted inside the percentage band",
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
     Quantity {
         key: KEY,
         label: "Admitted by the pretension gate",
         unit: "boolean",
         computed_by: Some(ID),
+        produced_by_construct: None,
     },
 ];
 

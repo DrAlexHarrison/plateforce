@@ -22,6 +22,7 @@ pub const QUANTITIES: &[Quantity] = &[Quantity {
     label: "Propulsion split",
     unit: "seconds",
     computed_by: Some(ID),
+    produced_by_construct: None,
 }];
 
 pub const RULE: DerivedRule = place;

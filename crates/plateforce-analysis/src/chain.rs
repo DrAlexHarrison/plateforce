@@ -39,9 +39,9 @@ pub struct MetricChain {
 /// Where a rule sits in the order `run` resolves them: what conditions the signal, then what
 /// weighs, then what places the landmarks, then what computes a quantity from them.
 ///
-/// Read off the binding table rather than from the order a response happens to list ids in. A
-/// rule added under a construct is ranked by the row that declares it, and a response whose
-/// list order changed would not move a root.
+/// Reached only by a quantity that names neither an arithmetic entry nor a construct. The two
+/// landmark constructs rank alike here, so a quantity resting on both would be rooted by
+/// whichever the response listed second.
 fn rank(method_id: &str) -> u8 {
     match BINDINGS.iter().find(|binding| binding.id == method_id) {
         Some(binding) => match binding.dispatch {
@@ -214,8 +214,7 @@ fn analysis_gravity_behind(
 ///
 /// The root is the arithmetic the response names in `computed_by`, carrying its own bound
 /// values. Where the response names none, the quantity is a landmark rule's own answer and the
-/// root is the last rule to run among the ones that contributed, which is the one whose answer
-/// this quantity is.
+/// root is the rule filling the construct the quantity declares.
 ///
 /// A contributing id with no bound record and no row of its own is not made a step. Every one
 /// of them is a value of a choice the root already records, so a step for it would report one
@@ -244,14 +243,23 @@ pub fn chain_of(
         .partition(|bound| composes_onto(&bound.method_id).is_some());
 
     // The arithmetic roots the chain when the response names one. Otherwise the quantity is a
-    // rule's own answer, and the rule that produced it is the last of the contributors to run.
+    // landmark rule's own answer, and the rule whose answer it is fills the construct the
+    // quantity declares. An onset search bounded by takeoff puts the takeoff rule among the
+    // onset time's contributors, and the two rules are indistinguishable by when they ran.
     let arithmetic = metric.computed_by.as_deref();
-    let root_of_the_landmarks = arithmetic.is_none().then(|| {
-        steps
+    let declared = crate::response::quantity(&metric.key).and_then(|q| q.produced_by_construct);
+    let root_of_the_landmarks = arithmetic.is_none().then(|| match declared {
+        // Nothing to fall back to. A quantity that declares a construct and finds no rule
+        // filling it among its contributors has no root, and the record says so rather than
+        // reverting to an ordering that cannot tell an onset rule from a takeoff rule.
+        Some(construct) => steps
+            .iter()
+            .position(|bound| construct_of(&bound.method_id) == Some(construct)),
+        None => steps
             .iter()
             .enumerate()
             .max_by_key(|(position, bound)| (rank(&bound.method_id), *position))
-            .map(|(position, _)| position)
+            .map(|(position, _)| position),
     });
     let landmark_root = match root_of_the_landmarks {
         Some(Some(position)) => Some(steps.remove(position)),
@@ -283,10 +291,17 @@ pub fn chain_of(
         .collect();
 
     // Operators whose landmark rule is not among the contributors, which would otherwise be
-    // left out of the record entirely.
+    // left out of the record entirely. The root's construct is claimed by the root, which takes
+    // its own operators through `inputs_of`; counting it orphaned puts each of them into the
+    // record twice, once composed onto the root and once beside it.
     let claimed: Vec<Option<&'static str>> = steps
         .iter()
         .map(|bound| construct_of(&bound.method_id))
+        .chain(
+            landmark_root
+                .iter()
+                .map(|bound| construct_of(&bound.method_id)),
+        )
         .collect();
     let orphaned: Vec<ProvenanceChain> = operators
         .iter()
