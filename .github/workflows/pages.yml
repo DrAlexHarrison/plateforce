@@ -51,11 +51,13 @@ jobs:
             target
           key: pages-${{ runner.os }}-${{ steps.pin.outputs.version }}-${{ hashFiles('Cargo.lock') }}
 
-      - name: Check the workspace
-        run: cargo test --workspace
-
+      # The bundle is built first because part of the suite starts the server, and a program
+      # with no interface embedded refuses to serve rather than serving an empty page.
       - name: Build the browser bundle
         run: ./scripts/build-web.sh release
+
+      - name: Check the workspace
+        run: cargo test --workspace
 
       # The browser is the one surface no cargo command reaches, so the only proof it still
       # renders is to load it and read the page back. Chrome is asked for first and by name,
