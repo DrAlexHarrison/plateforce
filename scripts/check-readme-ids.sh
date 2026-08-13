@@ -42,11 +42,14 @@ if ! cargo run -q -p plateforce-cli -- registry show bwepoch.fixed_window >/dev/
     exit 70
 fi
 
-published="$(cargo run -q -p plateforce-cli -- methods --format nonsense 2>/dev/null \
-    | grep -oE '"[a-z][a-z_0-9]*(\.[a-z][a-z_0-9]*)+"' | tr -d '"' | sort -u)"
-if [ "$(printf '%s\n' "$published" | grep -c .)" -lt 40 ]; then
-    echo "plateforce: read $(printf '%s\n' "$published" | grep -c .) published ids, too few for" >&2
-    echo "            the exclusion below to have been tested against anything" >&2
+# Without the fallback this pipeline ends the script under `set -e` with nothing said, and a
+# guard that dies silently reads in a log exactly like a step that ran and found nothing.
+published="$(cargo run -q -p plateforce-cli -- methods --format json 2>/dev/null \
+    | grep -oE '"[a-z][a-z_0-9]*(\.[a-z][a-z_0-9]*)+"' | tr -d '"' | sort -u || true)"
+published_count="$(printf '%s\n' "$published" | grep -c . || true)"
+if [ "${published_count:-0}" -lt 40 ]; then
+    echo "plateforce: read ${published_count:-0} published ids from methods --format json, too" >&2
+    echo "            few for the file-ending exclusion to have been tested against anything" >&2
     exit 70
 fi
 swallowed="$(printf '%s\n' "$published" | grep -E "\.($file_endings)\$" || true)"
