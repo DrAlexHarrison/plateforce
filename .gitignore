@@ -27,3 +27,14 @@ bindings/r/src/.cargo/
 
 # Working notes from a round, never tree content.
 *.log
+
+# The guides are rendered from docs/quickstart/ by its own build script, and they reach a
+# reader as release assets. The sources and the screenshots they place are tracked; the
+# rendered pages are not, for the same reason web/pkg/ is not.
+docs/quickstart/*.html
+docs/quickstart/*.pdf
+docs/quickstart/captured.json
+
+# testthat's failure spool.
+bindings/r/tests/testthat/_problems/
+bindings/r/tests/testthat/testthat-problems.rds
