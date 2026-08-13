@@ -58,7 +58,8 @@ def what_it_is():
 
 <p>plateforce reads a force-plate recording and computes the numbers a jump study reports:
 jump height, time to takeoff, flight time, impulse, power, and the rest. Every number it
-gives you carries the rule that produced it and the paper that rule came from.</p>
+gives you carries the rule that produced it, and opening that rule shows the papers behind
+it.</p>
 
 <p>That second half is the reason to use it. Ten published ways of computing one jump height
 disagree by a median of 3.5 cm on the same 244 real trials, and the training effect the
@@ -86,8 +87,9 @@ plateforce asks for them once:</p>
 your file, so you can pick the one shaped like a jump.</li>
 <li><strong>How many samples per second the plate recorded.</strong> If your file has a time
 column, plateforce works the rate out from it and says so. If it has not, ask whoever ran the
-collection, or look in the software that wrote the file, and do not guess: a 1200 Hz
-recording read as 1000 Hz puts every velocity, displacement and impulse out by a fifth.</li>
+collection, or look in the software that wrote the file, and do not guess: reading a 1200 Hz
+recording as 1000 Hz puts every velocity and impulse out by a fifth, and every height and
+displacement, which go with the square of the rate, out by nearly half.</li>
 <li><strong>How the file writes a sample it does not have.</strong> Some export software
 writes <code>0</code> or <code>-1</code> where no measurement was taken. Three such rows in
 one 244-trial study moved a published correlation by 0.16. If your file does this, say
@@ -215,27 +217,43 @@ TERMINAL_INSTALL = {
     "any": f"""## Get the program
 
 One file, from [the releases page]({RELEASES}). No installer, no compiler, no package
-manager.
+manager. Take the one your machine runs:
+
+| machine | file |
+|---|---|
+| macOS, Apple Silicon or Intel | `plateforce-universal-macos` |
+| Windows | `plateforce-x86_64-windows.exe` |
+| Linux, x86-64 | `plateforce-x86_64-linux-static` |
+| Linux, arm64 | `plateforce-aarch64-linux-static` |
 
 On macOS and Linux, fetching it at the terminal is the smoothest route, because a file
-downloaded with `curl` carries no quarantine attribute and nothing asks you to approve it:
+downloaded with `curl` carries no quarantine attribute and nothing asks you to approve it.
+On macOS:
 
 ```
-curl -LO {RELEASES}/latest/download/<file>
-chmod +x <file>
-./<file> version
+curl -LO {RELEASES}/latest/download/plateforce-universal-macos
+chmod +x plateforce-universal-macos
+./plateforce-universal-macos version
+```
+
+On Linux:
+
+```
+curl -LO {RELEASES}/latest/download/plateforce-x86_64-linux-static
+chmod +x plateforce-x86_64-linux-static
+./plateforce-x86_64-linux-static version
 ```
 
 If you downloaded it in a browser instead, macOS refuses to run it until you clear that
 attribute once:
 
 ```
-xattr -d com.apple.quarantine <file>
+xattr -d com.apple.quarantine plateforce-universal-macos
 ```
 
 On Windows, run it from PowerShell in the folder you saved it to:
 
-```
+```powershell
 .\\plateforce-x86_64-windows.exe version
 ```
 
@@ -285,20 +303,20 @@ installer, and it does not ask for an administrator.
 
 In PowerShell, in the folder you saved it to:
 
-```
+```powershell
 .\\plateforce-x86_64-windows.exe version
 ```
 
 Windows may hold the file as blocked because it came from the internet. One command clears
 that:
 
-```
+```powershell
 Unblock-File .\\plateforce-x86_64-windows.exe
 ```
 
 Put it somewhere on your `PATH` so the rest of this guide can say `plateforce`:
 
-```
+```powershell
 New-Item -ItemType Directory -Force "$HOME\\bin"
 Move-Item .\\plateforce-x86_64-windows.exe "$HOME\\bin\\plateforce.exe"
 [Environment]::SetEnvironmentVariable(
@@ -456,9 +474,11 @@ def methods_section():
         """
 <h2>What to write in your methods section</h2>
 
-<p><strong>Analysis record</strong>, at the bottom of the screen, carries everything a
-reader needs to reproduce your numbers: the version of plateforce, the revision of the
-method registry, and a digest that identifies that registry exactly.</p>
+<p><strong>Analysis record</strong>, at the bottom of the screen, identifies the software and
+the rule set your numbers came from: the version of plateforce, the revision of the method
+registry, a digest that identifies that registry exactly, the plate settings this analysis
+was given, and the gravity it was bound to. The rules you chose and the values they used sit
+under each number, and travel in the downloaded archive.</p>
 """
         + figure("record", "The record travels with the result.")
         + """
@@ -473,7 +493,12 @@ movement onset at five standard deviations of that window's noise
 
 <p><strong>Copy as Markdown</strong>, above the results, puts the whole record on your
 clipboard, so you can paste it into a document and read the rule names off it rather than
-copying them by hand.</p>
+copying them by hand. Every value each rule used comes with it, marked cited, measured or
+assumed.</p>
+
+<p>The sample rate, the force column and the missing-value convention are facts about your
+file that you told plateforce, so a reader needs them from you. A rate belongs in the same
+sentence as the rules.</p>
 """
     )
 

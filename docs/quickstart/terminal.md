@@ -4,15 +4,16 @@
 
 Read a force trace, get the jump numbers, and keep the record of how they were computed.
 
-This guide is written to be run start to finish. Every command below is one you can paste,
-on macOS, Windows or Linux. A person and an assistant working on their behalf can both
-follow it.
+This guide is written to be run start to finish, on macOS, Windows or Linux. Every command is
+written out in full, with your own file name in place of `trial.txt`. A person and an
+assistant working on their behalf can both follow it.
 
 ## What it does
 
 plateforce reads a force-plate recording and computes the numbers a jump study reports: jump
 height, time to takeoff, flight time, impulse, power, and the rest. Every number it gives you
-carries the rule that produced it and the paper that rule came from.
+carries the id of the rule that produced it, and `plateforce registry show <id>` prints that
+rule in full, with the papers behind it.
 
 That second half is the reason to use it. Ten published ways of computing one jump height
 disagree by a median of 3.5 cm on the same 244 real trials, and the training effect the study
@@ -30,8 +31,9 @@ Three things, and it will not guess any of them.
 column.
 
 **How many samples per second.** Force exports rarely carry this and it cannot be read from
-the numbers. A 1200 Hz recording read as 1000 Hz puts every velocity, displacement and
-impulse out by a fifth.
+the numbers. Reading a 1200 Hz recording as 1000 Hz puts every velocity and impulse out by a
+fifth, and every height and displacement, which go with the square of the rate, out by nearly
+half.
 
 **How the file writes a sample it does not have.** Some export software writes `0` or `-1`
 where no measurement was taken. `--sentinel zero`, `--sentinel negative_one`, or
@@ -53,7 +55,7 @@ It computes nothing and exits 64. What it prints is the point: the choices on th
 jump height that have no default, what the literature publishes for each, and the flag that
 answers it.
 
-```
+```text
 plateforce: 2 of 3 choices on the path to a jump height have no default.
 
   --weighing <METHOD>   Standing still, before the jump   system_weight
@@ -99,11 +101,14 @@ dropped quietly.
 **Method spread** puts a size on the method choice: the same quantity under every combination
 of rules on its path, over your trial, with the lowest and highest named.
 
-**Rules** and **Global to this analysis** are the record: every rule that ran, every value it
-used, and where each value came from. This is what makes the number reproducible.
+**Rules** and **Global to this analysis** are the record: every rule that ran with the values
+it was given, and the values that applied to the whole analysis. `--provenance` adds the
+values each rule chose for itself, and a section giving every number its own account of how
+it was produced.
 
-`--format json` gives the same content as a document a program can read, and `--format
-markdown` gives a block to paste into a document. `--out <path>` writes it to a file.
+`--format json` and `--format markdown` carry all of that without being asked, and mark each
+value cited, measured or assumed. JSON is the document a program reads, markdown is a block
+to paste into a document. `--out <path>` writes it to a file.
 
 ## A folder of trials
 
@@ -129,8 +134,24 @@ not.
 | `signals.csv` | the landmarks per trial |
 | `run.json` | the request, the registry, and the record for the whole run |
 
-`--pattern 'AT{subject}_{trial}'` reads a subject out of the file names, which is what lets
-`--aggregate` reduce an athlete's trials to one number under a published rule.
+`--pattern 'AT{subject}_{trial}'` reads a subject out of the file names, which is what lets a
+run reduce an athlete's trials to one number under a published rule. `trial.aggregation`
+carries three such rules and none of them is the arithmetic mean, so `--aggregate` names the
+one you want and `--aggregate-n` says how many trials it was asked for. Best of five and best
+of three are two requests of one rule, and the count travels with the value:
+
+```
+plateforce batch trials/ --out-dir results \
+  --trial-suffix .txt --column 0 --sample-rate-hz 1200 --sentinel none --preset sams \
+  --pattern 'AT{subject}_{trial}' --derive net_peak_force=force.peak.net \
+  --aggregate best_of_n_by_peak_force --aggregate-n 5
+```
+
+`best_of_n_by_peak_force` orders an athlete's trials on net peak force, so the run has to
+compute it, which is what `--derive net_peak_force=force.peak.net` asks for. A run that
+aggregates writes a ninth table into `results/` beside the eight above, `aggregates.csv`, one
+row per athlete per quantity, carrying the reduced value, its dispersion and the number of
+trials behind it.
 
 ## If you would rather click
 
@@ -145,7 +166,10 @@ the route for a laboratory machine that will not let you install anything.
 
 ## For an assistant, or a script
 
-`--format json` on any command returns a document with a single `ok` or a single `refusal`.
+`--format json` returns a document with a single `ok` or a single `refusal` from every command
+that reports a result: `analyse`, `batch`, `spread`, `capability`, `methods`, `reach`,
+`registry`, `plate` and `version`. `completions` and `man` write files for a shell and for
+`man` to read, and print the paths they wrote. `serve` prints the address it is listening on.
 
 `plateforce capability` reports every operation, method, output format and refusal code this
 build reaches, as JSON. That is the one call to make before writing anything against this
@@ -169,6 +193,7 @@ Exit codes follow `sysexits`, so a caller can branch without reading prose:
 | 65 | the recording did not hold what the rule looks for, and no result was produced |
 | 66 | the file named could not be read |
 | 69 | the port is already in use |
+| 70 | the program broke an invariant it states, and no result was produced |
 | 77 | the port is not one this process may open |
 | 78 | the registry does not load |
 
@@ -189,9 +214,11 @@ searched. Usually the trial is not the movement that rule expects, or the record
 trimmed before the event. Try another rule for that step.
 
 **You do not know the sample rate.** Do not guess it. It is in the collection software's
-settings, in the study protocol, or with whoever ran the session. If the file has a time
-column, the interval between the first two times is the answer: 0.000833 s is 1200 Hz,
-0.001 s is 1000 Hz.
+settings, in the study protocol, or with whoever ran the session. A time column gets you
+close enough to recognise the answer: take the last time minus the first, divide by the
+number of intervals, and take one over that. Two rows are not enough, because the export
+rounds each stamp. On a real 1200 Hz column, two rows 0.000833 s apart give 1200.48 Hz, and
+the whole column gives 1199.99992 Hz.
 
 **A quantity reads `no value`.** The recording does not support it, and the reason is printed
 beside it. A trace that stops before the athlete lands has no flight time, and nothing that

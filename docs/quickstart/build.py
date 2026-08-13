@@ -225,8 +225,10 @@ def terminal_guide(shell="any", subtitle="plateforce at a terminal"):
         # beside its source is a second place for the same words to be corrected.
         written = Path(tempfile.mkdtemp(prefix="plateforce-quickstart-")) / f"terminal-{shell}.md"
         written.write_text(source)
+        # A block carries its language so the command checker knows a shell line from printed
+        # output; highlighting it would make those blocks the only coloured ones on the page.
         rendered = subprocess.run(
-            ["pandoc", "--from", "gfm", "--to", "html", str(written)],
+            ["pandoc", "--from", "gfm", "--to", "html", "--no-highlight", str(written)],
             capture_output=True, text=True, check=True,
         ).stdout
         # The Markdown carries its own title block for a reader who opens the file
