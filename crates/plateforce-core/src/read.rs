@@ -101,6 +101,59 @@ pub struct ColumnReadReport {
     pub blank_lines_skipped: usize,
 }
 
+/// What holds a row's fields apart: one character, runs of whitespace, or nothing, in
+/// which case the row is one field.
+///
+/// Runs of whitespace are reachable only by name, so no single-character declaration
+/// widens, and the record carries "whitespace" for a file that is held apart by it
+/// rather than a character the file does not contain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FieldSeparator {
+    Character(char),
+    Whitespace,
+    WholeRow,
+}
+
+/// The unstated separator reads the row whole, which is what a single-column export is.
+impl From<char> for FieldSeparator {
+    fn from(character: char) -> Self {
+        match character {
+            '\u{0}' => FieldSeparator::WholeRow,
+            other => FieldSeparator::Character(other),
+        }
+    }
+}
+
+impl From<Delimiter> for FieldSeparator {
+    fn from(detected: Delimiter) -> Self {
+        match detected {
+            Delimiter::Tab => FieldSeparator::Character('\t'),
+            Delimiter::Comma => FieldSeparator::Character(','),
+            Delimiter::Semicolon => FieldSeparator::Character(';'),
+            Delimiter::Whitespace => FieldSeparator::Whitespace,
+        }
+    }
+}
+
+impl FieldSeparator {
+    fn split<'a>(&self, row: &'a str) -> Vec<&'a str> {
+        match self {
+            FieldSeparator::Character(character) => row.split(*character).collect(),
+            FieldSeparator::Whitespace => row.split_whitespace().collect(),
+            FieldSeparator::WholeRow => vec![row],
+        }
+    }
+
+    /// The spelling a record carries and a reader types.
+    pub fn label(&self) -> String {
+        match self {
+            FieldSeparator::Character(character) => character.to_string(),
+            FieldSeparator::Whitespace => "whitespace".to_string(),
+            FieldSeparator::WholeRow => "one value per row".to_string(),
+        }
+    }
+}
+
 /// Read one numeric column out of delimited text.
 ///
 /// Each field is trimmed because exports pad their columns to a fixed width, and each
@@ -108,9 +161,10 @@ pub struct ColumnReadReport {
 /// empty. A trailing carriage return is removed by either one.
 pub fn read_delimited_column(
     text: &str,
-    delimiter: char,
+    separator: impl Into<FieldSeparator>,
     column_index: usize,
 ) -> Result<(Vec<f64>, ColumnReadReport), ReadError> {
+    let separator = separator.into();
     let mut values = Vec::new();
     let mut blank_lines_skipped = 0usize;
     let mut columns_per_row = 0usize;
@@ -122,7 +176,7 @@ pub fn read_delimited_column(
             blank_lines_skipped += 1;
             continue;
         }
-        let fields: Vec<&str> = trimmed.split(delimiter).collect();
+        let fields: Vec<&str> = separator.split(trimmed);
         columns_per_row = fields.len();
         let field = fields
             .get(column_index)
@@ -159,7 +213,7 @@ pub fn read_delimited_column(
 /// exports do not carry one, and guessing it scales every velocity and height.
 pub fn read_trial_from_path(
     path: impl AsRef<std::path::Path>,
-    delimiter: char,
+    separator: impl Into<FieldSeparator>,
     column_index: usize,
     sample_rate_hz: f64,
 ) -> Result<(Trial, ColumnReadReport), ReadError> {
@@ -168,7 +222,7 @@ pub fn read_trial_from_path(
         path: path.display().to_string(),
         source,
     })?;
-    let (values, report) = read_delimited_column(&text, delimiter, column_index)?;
+    let (values, report) = read_delimited_column(&text, separator, column_index)?;
     Ok((Trial::new(values, sample_rate_hz)?, report))
 }
 
@@ -220,6 +274,52 @@ mod tests {
         let text = "1.0\t2.0\tnot-a-force\n";
         let error = read_delimited_column(text, '\t', 2).unwrap_err();
         assert!(error.to_string().contains("not-a-force"), "{error}");
+    }
+
+    /// Two columns held apart by runs of spaces, which no single character can name.
+    #[test]
+    fn a_file_held_apart_by_runs_of_spaces_reads_by_naming_whitespace() {
+        let text = "0.000000   584.3485\n0.000833   585.0000\n";
+        let (values, report) = read_delimited_column(text, FieldSeparator::Whitespace, 1).unwrap();
+        assert_eq!(values, vec![584.3485, 585.0]);
+        assert_eq!(report.columns_per_row, 2);
+    }
+
+    /// Fixed-width columns: the run before each field changes width row to row.
+    #[test]
+    fn a_fixed_width_export_reads_the_same_way() {
+        let text = "    0.000000     584.3485\n  100.000833    1585.0000\n";
+        let (values, _) = read_delimited_column(text, FieldSeparator::Whitespace, 0).unwrap();
+        assert_eq!(values, vec![0.0, 100.000833]);
+    }
+
+    /// A stated single space keeps meaning exactly one space: a run of them makes an
+    /// empty field, and the empty field is named rather than skipped.
+    #[test]
+    fn a_single_space_separator_still_means_exactly_one_space() {
+        let error = read_delimited_column("1.0   2.0\n", ' ', 1).unwrap_err();
+        assert!(matches!(error, ReadError::NotANumber { .. }), "{error}");
+    }
+
+    /// The unstated separator reads the row whole, through the same conversion every
+    /// stated character takes.
+    #[test]
+    fn an_unstated_separator_reads_the_row_whole() {
+        let (values, report) = read_delimited_column("584.3485\n585.0\n", '\u{0}', 0).unwrap();
+        assert_eq!(values, vec![584.3485, 585.0]);
+        assert_eq!(report.columns_per_row, 1);
+    }
+
+    /// The spellings a record carries, held here because a fingerprint reads them back.
+    #[test]
+    fn the_separator_spellings_a_record_carries() {
+        assert_eq!(FieldSeparator::Whitespace.label(), "whitespace");
+        assert_eq!(FieldSeparator::WholeRow.label(), "one value per row");
+        assert_eq!(FieldSeparator::Character('\t').label(), "\t");
+        assert_eq!(
+            FieldSeparator::from(Delimiter::Whitespace),
+            FieldSeparator::Whitespace
+        );
     }
 }
 
@@ -278,8 +378,12 @@ pub struct ColumnSummary {
     pub finite_count: usize,
     pub exact_zero_count: usize,
     pub strictly_increasing: bool,
-    /// Present only when the column is strictly increasing and evenly spaced, which is
-    /// what a time column looks like.
+    /// Present when the column reads as an even grid: the grid's step, in the column's
+    /// own units. Rounded clocks share stamps, so an even grid need not be strictly
+    /// increasing.
+    pub even_step_in_column_units: Option<f64>,
+    /// One over the step, present only when it lands in the acquisition band, so a
+    /// sample index or a millisecond clock never suggests a rate.
     pub implied_sample_rate_hz: Option<f64>,
     /// Downsampled shape for the column chooser. Not an analysis input.
     pub sparkline: Vec<f64>,
@@ -301,6 +405,10 @@ pub struct ForceFileSummary {
     /// system-level quantity read from one of them is wrong by roughly a factor of two.
     pub force_like_column_count: usize,
     pub suggested_time_column: Option<usize>,
+    /// A column that climbs at an acquisition-plausible rate without being an even grid,
+    /// present only when no column reads as one: what a time column with a gap or a
+    /// collision in it looks like, as opposed to a file with no time column at all.
+    pub uneven_time_like_column: Option<usize>,
     pub suggested_sample_rate_hz: Option<f64>,
     pub sample_rate_source: String,
 }
@@ -356,6 +464,9 @@ pub fn parse(text: &str) -> Result<ForceFile, ParseError> {
         .filter(|fields| fields.iter().any(|f| !f.is_empty()));
 
     let mut columns: Vec<Vec<f64>> = vec![Vec::new(); column_count];
+    // The precision the export wrote each column at, which is the quantum a rounded
+    // time column was rounded to.
+    let mut written_decimal_places: Vec<Option<u32>> = vec![Some(0); column_count];
     let mut ragged_rows_dropped = 0usize;
     for line in &lines[first_numeric..] {
         if line.trim().is_empty() {
@@ -369,7 +480,13 @@ pub fn parse(text: &str) -> Result<ForceFile, ParseError> {
         // A field that does not parse becomes NaN rather than dropping the row, so the
         // count of what was unreadable survives to the summary instead of vanishing.
         for (index, field) in fields.iter().enumerate() {
-            columns[index].push(field.trim().parse::<f64>().unwrap_or(f64::NAN));
+            let field = field.trim();
+            columns[index].push(field.parse::<f64>().unwrap_or(f64::NAN));
+            written_decimal_places[index] =
+                match (written_decimal_places[index], decimal_places_written(field)) {
+                    (Some(coarsest), Some(written)) => Some(coarsest.max(written)),
+                    _ => None,
+                };
         }
     }
 
@@ -380,25 +497,44 @@ pub fn parse(text: &str) -> Result<ForceFile, ParseError> {
         ));
     }
 
+    let grids: Vec<Option<TimeGrid>> = columns
+        .iter()
+        .enumerate()
+        .map(|(index, values)| time_grid(values, written_decimal_places[index]))
+        .collect();
     let summaries: Vec<ColumnSummary> = columns
         .iter()
         .enumerate()
-        .map(|(index, values)| summarise(index, values, header.as_ref()))
+        .map(|(index, values)| summarise(index, values, header.as_ref(), grids[index].as_ref()))
         .collect();
 
+    // The column the rate suggestion speaks about: the first that claims a rate, else
+    // the first that reads as a grid at all, a millisecond clock or a sample index.
     let suggested_time_column = summaries
         .iter()
         .find(|c| c.implied_sample_rate_hz.is_some())
+        .or_else(|| {
+            summaries
+                .iter()
+                .find(|c| c.even_step_in_column_units.is_some())
+        })
         .map(|c| c.index);
-    let (suggested_force_column, reason) = suggest_force_column(&summaries, suggested_time_column);
-    let force_like_column_count = force_like_columns(&summaries, suggested_time_column).len();
+    let (suggested_force_column, reason) = suggest_force_column(&summaries);
+    let force_like_column_count = force_like_columns(&summaries).len();
 
+    let uneven_time_like_column = grids
+        .iter()
+        .all(|grid| grid.is_none())
+        .then(|| {
+            columns
+                .iter()
+                .position(|values| rises_unevenly_at_a_plausible_rate(values))
+        })
+        .flatten();
     let suggested_sample_rate_hz =
         suggested_time_column.and_then(|index| summaries[index].implied_sample_rate_hz);
-    let sample_rate_source = match suggested_time_column {
-        Some(index) => format!("derived from the even spacing of column {}", index + 1),
-        None => "no time column found, so the rate must be stated".to_string(),
-    };
+    let sample_rate_source =
+        sample_rate_sentence(&summaries, &grids, uneven_time_like_column, row_count);
 
     Ok(ForceFile {
         summary: ForceFileSummary {
@@ -413,6 +549,7 @@ pub fn parse(text: &str) -> Result<ForceFile, ParseError> {
             suggested_force_column_reason: reason,
             force_like_column_count,
             suggested_time_column,
+            uneven_time_like_column,
             suggested_sample_rate_hz,
             sample_rate_source,
         },
@@ -458,7 +595,12 @@ fn is_numeric_row(delimiter: &Delimiter, line: &str) -> bool {
         .all(|field| field.trim().parse::<f64>().is_ok())
 }
 
-fn summarise(index: usize, values: &[f64], header: Option<&Vec<String>>) -> ColumnSummary {
+fn summarise(
+    index: usize,
+    values: &[f64],
+    header: Option<&Vec<String>>,
+    grid: Option<&TimeGrid>,
+) -> ColumnSummary {
     let finite: Vec<f64> = values.iter().copied().filter(|v| v.is_finite()).collect();
     let count = finite.len().max(1) as f64;
     let mean = finite.iter().sum::<f64>() / count;
@@ -469,10 +611,10 @@ fn summarise(index: usize, values: &[f64], header: Option<&Vec<String>>) -> Colu
     let median = sorted.get(sorted.len() / 2).copied().unwrap_or(f64::NAN);
 
     let strictly_increasing = values.windows(2).all(|w| w[1] > w[0]);
-    let implied_sample_rate_hz = strictly_increasing
-        .then(|| even_spacing(values))
-        .flatten()
-        .map(|interval| 1.0 / interval);
+    let even_step_in_column_units = grid.map(|g| g.step_in_column_units);
+    let implied_sample_rate_hz = even_step_in_column_units
+        .map(|step| 1.0 / step)
+        .filter(|rate| (ACQUISITION_RATE_FLOOR_HZ..=ACQUISITION_RATE_CEILING_HZ).contains(rate));
 
     ColumnSummary {
         index,
@@ -487,34 +629,167 @@ fn summarise(index: usize, values: &[f64], header: Option<&Vec<String>>) -> Colu
         finite_count: finite.len(),
         exact_zero_count: values.iter().filter(|v| **v == 0.0).count(),
         strictly_increasing,
+        even_step_in_column_units,
         implied_sample_rate_hz,
         sparkline: decimate(values, 48),
     }
 }
 
-/// A time column's steps agree to well within a part in a thousand. A force channel that
-/// happens to rise monotonically will not.
-fn even_spacing(values: &[f64]) -> Option<f64> {
-    let first = values[1] - values[0];
-    if !(first.is_finite() && first > 0.0) {
+/// No force platform acquires outside this band, so a grid stepping outside it is a
+/// sample index or a clock in another unit rather than a rate in hertz. The width stays
+/// under a factor of a thousand so a millisecond clock can never alias into it.
+const ACQUISITION_RATE_FLOOR_HZ: f64 = 20.0;
+const ACQUISITION_RATE_CEILING_HZ: f64 = 10_000.0;
+
+/// The grid a time column's stamps sit on: the fitted step, and the precision the export
+/// wrote the stamps at.
+struct TimeGrid {
+    step_in_column_units: f64,
+    quantum_in_column_units: f64,
+    written_decimal_places: Option<u32>,
+    float_noise: f64,
+}
+
+impl TimeGrid {
+    /// A step that is a whole number of quanta was written exactly, so the rate was read
+    /// off the spacing rather than reconstructed from rounded stamps.
+    fn step_is_a_whole_number_of_quanta(&self) -> bool {
+        if self.quantum_in_column_units <= 0.0 {
+            return true;
+        }
+        let quanta = self.step_in_column_units / self.quantum_in_column_units;
+        (quanta - quanta.round()).abs() * self.quantum_in_column_units <= self.float_noise
+    }
+}
+
+/// Decimal places the export wrote. Scientific notation states no quantum. Trailing
+/// zeros count: a column written at six places carries a finer clock than one written at
+/// three, even where the extra digits are zero.
+fn decimal_places_written(field: &str) -> Option<u32> {
+    if field.contains(['e', 'E']) {
         return None;
     }
-    let consistent = values
+    match field.split_once('.') {
+        Some((_, fraction)) => Some(fraction.len() as u32),
+        None => Some(0),
+    }
+}
+
+/// The grid a column of timestamps was rounded from, or nothing.
+///
+/// Fitted over the whole span rather than read off one interval, because stamps rounded
+/// to the export's own precision wander a quantum around the grid while agreeing with it
+/// over any distance. A stamp may sit one whole quantum off the fit, its own rounding
+/// plus the rounded endpoints', and no further; an interval no rounding could produce is
+/// refused even where the residuals forgive it, which is how a dropped sample fails at
+/// coarse precisions. A quantum coarser than two steps is refused outright: that is a
+/// staircase, not a clock.
+fn time_grid(values: &[f64], written_decimal_places: Option<u32>) -> Option<TimeGrid> {
+    if values.len() < 2 || values.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    if values.windows(2).any(|w| w[1] < w[0]) {
+        return None;
+    }
+    let first = values[0];
+    let last = values[values.len() - 1];
+    if last <= first {
+        return None;
+    }
+    let interval_count = (values.len() - 1) as f64;
+    let step = (last - first) / interval_count;
+    let quantum = match written_decimal_places {
+        Some(decimals) if decimals <= 9 => 10f64.powi(-(decimals as i32)),
+        _ => 0.0,
+    };
+    let float_noise = 1e-9 * first.abs().max(last.abs()).max(1.0);
+    if quantum > 2.0 * step + float_noise {
+        return None;
+    }
+    let stamp_tolerance = quantum + float_noise;
+    let interval_tolerance = quantum * (1.0 + 2.0 / interval_count) + float_noise;
+    let stamps_on_grid = values
+        .iter()
+        .enumerate()
+        .all(|(index, stamp)| (stamp - (first + index as f64 * step)).abs() <= stamp_tolerance);
+    let intervals_roundable = values
         .windows(2)
-        .all(|w| ((w[1] - w[0]) - first).abs() < first * 1e-3);
-    consistent.then_some(first)
+        .all(|w| ((w[1] - w[0]) - step).abs() <= interval_tolerance);
+    (stamps_on_grid && intervals_roundable).then_some(TimeGrid {
+        step_in_column_units: step,
+        quantum_in_column_units: quantum,
+        written_decimal_places,
+        float_noise,
+    })
+}
+
+/// A column that climbs at an acquisition-plausible rate without being an even grid is
+/// what a time column with a gap or a collision looks like, and the sentence names it
+/// rather than reporting no time column at all.
+fn rises_unevenly_at_a_plausible_rate(values: &[f64]) -> bool {
+    if values.len() < 2 || values.iter().any(|v| !v.is_finite()) {
+        return false;
+    }
+    if values.windows(2).any(|w| w[1] < w[0]) {
+        return false;
+    }
+    let span = values[values.len() - 1] - values[0];
+    if span <= 0.0 {
+        return false;
+    }
+    let rate = (values.len() - 1) as f64 / span;
+    (ACQUISITION_RATE_FLOOR_HZ..=ACQUISITION_RATE_CEILING_HZ).contains(&rate)
+}
+
+/// The sentence beside the rate field: where a suggested rate came from, or what stands
+/// between this file and one.
+fn sample_rate_sentence(
+    summaries: &[ColumnSummary],
+    grids: &[Option<TimeGrid>],
+    uneven_time_like_column: Option<usize>,
+    row_count: usize,
+) -> String {
+    if let Some(column) = summaries
+        .iter()
+        .find(|c| c.implied_sample_rate_hz.is_some())
+    {
+        let grid = grids[column.index]
+            .as_ref()
+            .expect("a claimed rate reads from a fitted grid");
+        return match grid.written_decimal_places {
+            Some(decimals) if !grid.step_is_a_whole_number_of_quanta() => format!(
+                "reconstructed from all {row_count} timestamps of column {}, which are written to {decimals} decimal places",
+                column.index + 1
+            ),
+            _ => format!("derived from the even spacing of column {}", column.index + 1),
+        };
+    }
+    if let Some(column) = summaries
+        .iter()
+        .find(|c| c.even_step_in_column_units.is_some())
+    {
+        return format!(
+            "column {} is evenly spaced but does not read as seconds, so the rate must be stated",
+            column.index + 1
+        );
+    }
+    if let Some(index) = uneven_time_like_column {
+        return format!(
+            "column {} increases but is not evenly spaced, so the rate must be stated",
+            index + 1
+        );
+    }
+    "no time column found, so the rate must be stated".to_string()
 }
 
 /// Columns that look like a vertical force channel: a positive baseline in the newton range
 /// that varies. Both the suggestion and the dual-plate refusal are taken over this one
-/// judgement rather than over two.
-fn force_like_columns(
-    summaries: &[ColumnSummary],
-    time_column: Option<usize>,
-) -> Vec<&ColumnSummary> {
+/// judgement rather than over two. Grid columns are out however large their values run,
+/// so a millisecond clock or a sample index is never offered as force.
+fn force_like_columns(summaries: &[ColumnSummary]) -> Vec<&ColumnSummary> {
     summaries
         .iter()
-        .filter(|c| Some(c.index) != time_column)
+        .filter(|c| c.even_step_in_column_units.is_none())
         .filter(|c| c.median > 50.0 && c.standard_deviation > 0.0)
         .collect()
 }
@@ -522,11 +797,8 @@ fn force_like_columns(
 /// The force channel is the one that moves most while sitting on a positive baseline. A
 /// heuristic is not a measurement, so the reason travels with the suggestion and the
 /// interface offers every column.
-fn suggest_force_column(
-    summaries: &[ColumnSummary],
-    time_column: Option<usize>,
-) -> (Option<usize>, String) {
-    let plausible = force_like_columns(summaries, time_column);
+fn suggest_force_column(summaries: &[ColumnSummary]) -> (Option<usize>, String) {
+    let plausible = force_like_columns(summaries);
 
     if plausible.is_empty() {
         return (
@@ -607,13 +879,17 @@ mod reading_an_undeclared_export {
             text.push_str(&format!(
                 "{},{}\n",
                 index as f64 / 1200.0,
-                600.0 + index as f64
+                600.0 + 120.0 * (index as f64 * 0.05).sin()
             ));
         }
         let file = parse(&text).unwrap();
         assert_eq!(file.summary.suggested_time_column, Some(0));
         let rate = file.summary.suggested_sample_rate_hz.unwrap();
         assert!((rate - 1200.0).abs() < 1e-6, "got {rate}");
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "derived from the even spacing of column 1"
+        );
         assert_eq!(file.summary.suggested_force_column, Some(1));
     }
 
@@ -628,6 +904,183 @@ mod reading_an_undeclared_export {
     #[test]
     fn a_file_with_no_numbers_says_so_rather_than_returning_an_empty_trace() {
         assert!(parse("name,notes\nalpha,beta\n").is_err());
+    }
+}
+
+#[cfg(test)]
+mod a_time_column_the_export_rounded {
+    use super::*;
+
+    /// One row per stamp: time at a fixed number of decimal places, force beside it.
+    fn export_rows(rows: usize, rate_hz: f64, decimals: usize, unit: f64) -> Vec<String> {
+        (0..rows)
+            .map(|index| {
+                format!(
+                    "{:.*},{:.1}",
+                    decimals,
+                    (index as f64 / rate_hz) * unit,
+                    600.0 + 300.0 * (index as f64 * 0.01).sin(),
+                )
+            })
+            .collect()
+    }
+
+    fn export(rows: usize, rate_hz: f64, decimals: usize, unit: f64) -> String {
+        format!(
+            "Time,Fz\n{}\n",
+            export_rows(rows, rate_hz, decimals, unit).join("\n")
+        )
+    }
+
+    /// 1200 Hz written at six decimal places: the intervals alternate 833 and 834
+    /// microseconds, and the grid they were rounded from carries the rate anyway.
+    #[test]
+    fn stamps_rounded_to_six_decimals_at_1200_hz_reconstruct_the_rate() {
+        let file = parse(&export(6000, 1200.0, 6, 1.0)).unwrap();
+        assert_eq!(file.summary.suggested_time_column, Some(0));
+        let rate = file.summary.suggested_sample_rate_hz.unwrap();
+        assert!((rate - 1200.0).abs() < 0.01, "got {rate}");
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "reconstructed from all 6000 timestamps of column 1, \
+             which are written to 6 decimal places"
+        );
+        assert_eq!(file.summary.uneven_time_like_column, None);
+        assert_eq!(file.summary.suggested_force_column, Some(1));
+    }
+
+    /// At three decimals the quantum is coarser than the interval, so consecutive stamps
+    /// legitimately collide; the whole span still states the grid.
+    #[test]
+    fn stamps_rounded_to_three_decimals_at_1200_hz_share_values_and_still_reconstruct() {
+        let file = parse(&export(6000, 1200.0, 3, 1.0)).unwrap();
+        assert!(!file.summary.columns[0].strictly_increasing);
+        let rate = file.summary.suggested_sample_rate_hz.unwrap();
+        assert!((rate - 1200.0).abs() < 0.15, "got {rate}");
+        assert!(
+            file.summary
+                .sample_rate_source
+                .contains("written to 3 decimal places"),
+            "{}",
+            file.summary.sample_rate_source
+        );
+    }
+
+    /// 1000 Hz at three decimals is exactly representable: nothing was reconstructed,
+    /// and the sentence does not claim otherwise.
+    #[test]
+    fn stamps_at_1000_hz_and_three_decimals_read_as_even_spacing() {
+        let file = parse(&export(6000, 1000.0, 3, 1.0)).unwrap();
+        let rate = file.summary.suggested_sample_rate_hz.unwrap();
+        assert!((rate - 1000.0).abs() < 1e-6, "got {rate}");
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "derived from the even spacing of column 1"
+        );
+    }
+
+    #[test]
+    fn a_clock_starting_before_zero_reads_the_same_rate() {
+        let mut text = String::from("Time,Fz\n");
+        for index in 0..6000 {
+            text.push_str(&format!(
+                "{:.6},{:.1}\n",
+                index as f64 / 1000.0 - 2.5,
+                600.0 + 300.0 * (index as f64 * 0.01).sin()
+            ));
+        }
+        let file = parse(&text).unwrap();
+        let rate = file.summary.suggested_sample_rate_hz.unwrap();
+        assert!((rate - 1000.0).abs() < 1e-6, "got {rate}");
+    }
+
+    /// A recording missing one row is not an even grid, and the sentence points at the
+    /// column rather than reporting no time column at all.
+    #[test]
+    fn a_dropped_sample_does_not_read_as_an_even_grid() {
+        let mut rows = export_rows(6000, 1200.0, 6, 1.0);
+        rows.remove(3000);
+        let file = parse(&format!("Time,Fz\n{}\n", rows.join("\n"))).unwrap();
+        assert_eq!(file.summary.suggested_time_column, None);
+        assert_eq!(file.summary.uneven_time_like_column, Some(0));
+        assert_eq!(file.summary.suggested_sample_rate_hz, None);
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "column 1 increases but is not evenly spaced, so the rate must be stated"
+        );
+        assert_eq!(file.summary.suggested_force_column, Some(1));
+    }
+
+    #[test]
+    fn a_duplicated_stamp_does_not_read_as_an_even_grid() {
+        let mut rows = export_rows(6000, 1200.0, 6, 1.0);
+        let repeated = rows[3000].clone();
+        rows.insert(3000, repeated);
+        let file = parse(&format!("Time,Fz\n{}\n", rows.join("\n"))).unwrap();
+        assert_eq!(file.summary.suggested_sample_rate_hz, None);
+        assert_eq!(file.summary.uneven_time_like_column, Some(0));
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "column 1 increases but is not evenly spaced, so the rate must be stated"
+        );
+    }
+
+    /// A five-second clock in milliseconds runs to 5000, newton-sized numbers with the
+    /// widest spread in the file, and it is neither a rate source nor a force channel.
+    #[test]
+    fn a_millisecond_clock_is_a_time_column_that_states_no_rate() {
+        let file = parse(&export(6000, 1200.0, 4, 1000.0)).unwrap();
+        assert_eq!(file.summary.suggested_time_column, Some(0));
+        assert_eq!(file.summary.suggested_sample_rate_hz, None);
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "column 1 is evenly spaced but does not read as seconds, so the rate must be stated"
+        );
+        assert_eq!(file.summary.suggested_force_column, Some(1));
+    }
+
+    #[test]
+    fn a_sample_index_column_is_not_a_rate_source_and_not_a_force_channel() {
+        let mut text = String::from("Sample,Fz\n");
+        for index in 0..6000 {
+            text.push_str(&format!(
+                "{},{:.1}\n",
+                index,
+                600.0 + 300.0 * (index as f64 * 0.01).sin()
+            ));
+        }
+        let file = parse(&text).unwrap();
+        assert_eq!(file.summary.suggested_sample_rate_hz, None);
+        assert!(
+            file.summary
+                .sample_rate_source
+                .contains("does not read as seconds"),
+            "{}",
+            file.summary.sample_rate_source
+        );
+        assert_eq!(file.summary.suggested_force_column, Some(1));
+    }
+
+    /// The channel the old tolerance existed for: strictly rising force, alone in its
+    /// file. Real loading curves bend, and the bend is thousands of quanta wide.
+    #[test]
+    fn a_monotonic_force_channel_is_not_a_time_column() {
+        let mut text = String::from("Fz\n");
+        for index in 0..6000 {
+            let index = index as f64;
+            text.push_str(&format!(
+                "{:.2}\n",
+                400.0 + 0.005 * index + 4e-8 * index * index
+            ));
+        }
+        let file = parse(&text).unwrap();
+        assert_eq!(file.summary.suggested_time_column, None);
+        assert_eq!(file.summary.suggested_sample_rate_hz, None);
+        assert_eq!(
+            file.summary.sample_rate_source,
+            "column 1 increases but is not evenly spaced, so the rate must be stated"
+        );
+        assert_eq!(file.summary.suggested_force_column, Some(0));
     }
 }
 
