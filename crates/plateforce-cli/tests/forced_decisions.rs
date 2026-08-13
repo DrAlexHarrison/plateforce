@@ -180,8 +180,13 @@ fn every_rule_named_produces_every_number_and_exits_zero() {
     assert!(stderr.is_empty(), "{stderr}");
     // The rows carrying a number, which each carry the rule behind it on the line beneath.
     // Counting every line of the block instead reads the rule a row names as a second row.
+    //
+    // Found by stepping over the trial block, which names the recording above the numbers and
+    // is indented the same way. Counting from the top of the document counts that block.
     let rows = stdout
         .lines()
+        .skip_while(|line| !line.is_empty())
+        .skip(1)
         .take_while(|line| !line.is_empty())
         .filter(|line| line.starts_with("  ") && !line.starts_with("   "))
         .count();

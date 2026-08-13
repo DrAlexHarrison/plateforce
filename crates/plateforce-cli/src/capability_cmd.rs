@@ -42,6 +42,14 @@ fn operations_named(command: &str) -> Option<&'static [Operation]> {
         // only the first would claim one operation where the software has three.
         "batch" => Some(&[Operation::Batch, Operation::Compare, Operation::Aggregate]),
         "capability" => Some(&[Operation::Capability]),
+        // The words a caller may write, read off this build's own bindings rather than
+        // computed over a trace, so it maps to nothing for the reason `plate` does. What the
+        // rules it names then do is `analyse` and `batch`, which are already here.
+        "methods" => Some(&[]),
+        // Both write a document describing this command tree for a program that is not this
+        // one, and neither reads a recording.
+        "man" => Some(&[]),
+        "completions" => Some(&[]),
         "reach" => Some(&[Operation::Reach]),
         "registry" => Some(&[
             Operation::RegistryCensus,

@@ -22,13 +22,15 @@ pub enum Fault {
 }
 
 impl Fault {
+    /// The three statuses the serve path also returns are read from the crate that returns
+    /// them rather than written again here, so the two cannot drift apart.
     pub fn code(self) -> u8 {
         match self {
-            Fault::Request => 64,   // EX_USAGE
-            Fault::Recording => 65, // EX_DATAERR
-            Fault::Input => 66,     // EX_NOINPUT
-            Fault::Internal => 70,  // EX_SOFTWARE
-            Fault::Registry => 78,  // EX_CONFIG
+            Fault::Request => plateforce_serve::A_REQUEST_THAT_CANNOT_BE_HONOURED, // EX_USAGE
+            Fault::Recording => 65,                                                // EX_DATAERR
+            Fault::Input => 66,                                                    // EX_NOINPUT
+            Fault::Internal => plateforce_serve::AN_INVARIANT_THIS_SOFTWARE_BREAKS, // EX_SOFTWARE
+            Fault::Registry => 78,                                                 // EX_CONFIG
         }
     }
 }
@@ -123,7 +125,6 @@ pub struct Outcome {
     /// Why the run fell short. This crate composes no sentence the engine already has.
     pub refusals: Vec<Declined>,
     pub fault: Option<Fault>,
-    pub every_requested_quantity_has_a_value: bool,
 }
 
 impl Outcome {
@@ -133,7 +134,6 @@ impl Outcome {
             document: Some(document),
             refusals: Vec::new(),
             fault: None,
-            every_requested_quantity_has_a_value: true,
         }
     }
 
@@ -143,7 +143,6 @@ impl Outcome {
             document: None,
             fault: Some(declined.fault()),
             refusals: vec![declined],
-            every_requested_quantity_has_a_value: false,
         }
     }
 
@@ -162,17 +161,16 @@ pub fn stream_for(outcome: &Outcome) -> Stream {
     }
 }
 
-/// Whether the run gave the caller what it asked for, and where it fell short if not.
+/// Whether a result reached the caller, which is the whole of what a status reports.
 ///
-/// A run that produced a document while one landmark declined answers "no" and says so with
-/// the recording's code, whatever the codes inside it: a request the engine could not bind
-/// declines before any metric computes, so a document that exists at all was requestable.
+/// A quantity that declined for a reason in the recording is a fact about the recording and
+/// travels in the result: in place in the text, in `refusals` in the document, and in
+/// `refusals.csv` for a folder. It is not a failure of the run, and most real collections
+/// carry one, because a trial trimmed before the athlete lands supports no flight time. A
+/// status saying otherwise stops a `&&` chain and a `set -e` script on a run that worked.
 pub fn code_for(outcome: &Outcome) -> u8 {
     if outcome.document.is_some() {
-        if outcome.every_requested_quantity_has_a_value {
-            return 0;
-        }
-        return Fault::Recording.code();
+        return 0;
     }
     outcome.fault.unwrap_or(Fault::Internal).code()
 }
@@ -188,13 +186,63 @@ mod tests {
         let mapped = [
             (Fault::Request, 64),
             (Fault::Recording, 65),
+            (Fault::Input, 66),
             (Fault::Internal, 70),
             (Fault::Registry, 78),
         ];
         for (fault, expected) in mapped {
             assert_eq!(fault.code(), expected, "{fault:?}");
         }
-        println!("faults mapped to a sysexits code: {} of 4", mapped.len());
+        println!(
+            "faults mapped to a sysexits code: {} of {}",
+            mapped.len(),
+            mapped.len()
+        );
+    }
+
+    /// Every status the serve path can return is a fault this table names, and names once.
+    ///
+    /// The two crates used to write these numbers twice, so renumbering the table here would
+    /// have left `serve` returning the old ones with nothing to say they had parted. Reading
+    /// them rather than restating them is what makes that unrepresentable, and this asserts
+    /// the reading reaches every one of them rather than only the pair that prompted it.
+    #[test]
+    fn every_status_the_serve_path_returns_is_a_fault_this_table_names() {
+        let returned = [
+            plateforce_serve::A_REQUEST_THAT_CANNOT_BE_HONOURED,
+            plateforce_serve::A_PORT_ANOTHER_PROGRAM_HOLDS,
+            plateforce_serve::AN_INVARIANT_THIS_SOFTWARE_BREAKS,
+            plateforce_serve::A_PORT_THIS_PROCESS_MAY_NOT_HAVE,
+        ];
+        // The two the serve path raises alone must not be a status this shell raises for
+        // something else, which is the only way the two sets can now contradict each other.
+        let raised_here: Vec<u8> = [
+            Fault::Request,
+            Fault::Recording,
+            Fault::Input,
+            Fault::Internal,
+            Fault::Registry,
+        ]
+        .iter()
+        .map(|fault| fault.code())
+        .collect();
+        for status in [
+            plateforce_serve::A_PORT_ANOTHER_PROGRAM_HOLDS,
+            plateforce_serve::A_PORT_THIS_PROCESS_MAY_NOT_HAVE,
+        ] {
+            assert!(
+                !raised_here.contains(&status),
+                "{status} is returned by the serve path and raised here for another reason"
+            );
+        }
+        // The two both paths use are one number read twice rather than two numbers written.
+        assert!(raised_here.contains(&plateforce_serve::A_REQUEST_THAT_CANNOT_BE_HONOURED));
+        assert!(raised_here.contains(&plateforce_serve::AN_INVARIANT_THIS_SOFTWARE_BREAKS));
+        println!(
+            "statuses the serve path returns, checked against the {} this shell raises: {}",
+            raised_here.len(),
+            returned.len()
+        );
     }
 
     /// `ALL` is generated beside the enum, so a sixteenth code joins this assertion without an
@@ -231,9 +279,12 @@ mod tests {
                 3.0,
             ))],
             fault: Some(Fault::Recording),
-            every_requested_quantity_has_a_value: false,
         };
-        assert_eq!(code_for(&partial), 65);
+        assert_eq!(
+            code_for(&partial),
+            0,
+            "a quantity that declined is carried in the result, not in the status"
+        );
         assert_eq!(
             stream_for(&partial),
             Stream::Stdout,

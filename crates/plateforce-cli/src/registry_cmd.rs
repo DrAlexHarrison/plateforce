@@ -17,10 +17,13 @@ use crate::verdict;
 #[derive(Debug, clap::Subcommand)]
 pub enum Command {
     /// Count the registry, per population, with denominators
+    #[command(after_help = crate::examples::CENSUS_SHORT)]
     Census,
     /// Load the registry and report every rule violation
+    #[command(after_help = crate::examples::VALIDATE_SHORT)]
     Validate,
     /// Print one method or protocol entry in full
+    #[command(after_help = crate::examples::SHOW_SHORT)]
     Show {
         /// The entry id, as the registry spells it
         id: String,
@@ -135,8 +138,16 @@ fn show(registry: &Registry, id: &str, format: Format, renderer: &Renderer) -> O
     }
     // A lookup in a data file rather than a rule that declined, so it carries no published
     // code: the vocabulary names what a rule or a reader refused, and an id absent from the
-    // registry reached neither.
-    Outcome::declined_line(Fault::Request, format!("no entry with id {id}"))
+    // registry reached neither. The neighbours come from the registry rather than from a list
+    // here, so a rule added as data is reachable by a misspelling on the day it lands.
+    let beside = registry.filed_beside(id);
+    if beside.is_empty() {
+        return Outcome::declined_line(Fault::Request, format!("no entry with id {id}"));
+    }
+    Outcome::declined_line(
+        Fault::Request,
+        format!("no entry with id {id}, and the registry files {beside:?} beside it"),
+    )
 }
 
 /// Sorted keys and no spacing, so a document written here and one written by another surface

@@ -124,7 +124,12 @@ fn a_landmark_that_declined_carries_its_code_beside_the_numbers_that_did_not() {
     // trace reaches and the rule has no band left to search.
     rules[7] = "onset.k=5000";
     let output = run("json", &rules);
-    assert_eq!(output.status.code(), Some(65), "{}", stderr_of(&output));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "a result reached the caller, and the landmark that declined is inside it: {}",
+        stderr_of(&output)
+    );
 
     let document: serde_json::Value =
         serde_json::from_str(&stdout_of(&output)).expect("a partial run writes a whole document");

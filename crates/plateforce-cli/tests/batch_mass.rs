@@ -45,7 +45,7 @@ const EVERY_VALUE_NAMED: [&str; 6] = [
 
 /// Five of the six trials end before the athlete lands, so the flight-time height declines by
 /// name. A run that wrote its table and could not produce one requested number exits here.
-const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
+const A_FOLDER_RUN_THAT_WROTE_ITS_TABLES: i32 = 0;
 const THE_LINE_CANNOT_BE_READ: i32 = 64;
 
 fn scratch(name: &str) -> std::path::PathBuf {
@@ -92,7 +92,7 @@ fn a_mass_keyed_by_athlete_is_recorded_against_that_athlete() {
     let output = run(&out_dir, &["--body-mass-kg", "01=58"]);
     assert_eq!(
         output.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES),
         "{}",
         stderr_of(&output)
     );
@@ -123,7 +123,7 @@ fn one_mass_for_the_folder_is_recorded_for_the_folder() {
     let output = run(&out_dir, &["--body-mass-kg", "58"]);
     assert_eq!(
         output.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES),
         "{}",
         stderr_of(&output)
     );

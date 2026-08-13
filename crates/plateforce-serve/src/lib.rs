@@ -14,10 +14,14 @@ pub use assets::{asset_for, assets, carries_the_browser_bundle, not_part_of_the_
 pub use content_types::content_type_for;
 pub use http::{listen, serve};
 
-// The codes `crates/plateforce-cli/src/exit.rs` declares. They are repeated rather than
-// imported, because that crate depends on this one and the dependency cannot run both ways.
-const A_REQUEST_THAT_CANNOT_BE_HONOURED: u8 = 64;
-const AN_INVARIANT_THIS_SOFTWARE_BREAKS: u8 = 70;
+// The statuses this path returns, and their one home. `crates/plateforce-cli/src/exit.rs`
+// reads them rather than restating them: that crate depends on this one and the dependency
+// cannot run both ways, so a number written in both places would be free to disagree in one.
+// This crate carries no dependencies at all, which is what puts the numbers on this side.
+pub const A_REQUEST_THAT_CANNOT_BE_HONOURED: u8 = 64;
+pub const A_PORT_ANOTHER_PROGRAM_HOLDS: u8 = 69;
+pub const AN_INVARIANT_THIS_SOFTWARE_BREAKS: u8 = 70;
+pub const A_PORT_THIS_PROCESS_MAY_NOT_HAVE: u8 = 77;
 
 const WHAT_SERVE_TAKES: &str = "\
 plateforce serve - serve the browser interface to this machine only
@@ -66,13 +70,11 @@ pub fn run(arguments: &[&str]) -> ExitCode {
 
     let listener = match listen(options.port) {
         Ok(listener) => listener,
-        Err(error) => {
-            eprintln!(
-                "plateforce: cannot listen on port {}: {error}",
-                options.port
-            );
-            return ExitCode::from(AN_INVARIANT_THIS_SOFTWARE_BREAKS);
-        }
+        // A port another program holds, and a port this process may not have, are facts about
+        // the machine rather than invariants this software broke. On a shared laboratory
+        // computer they are the likeliest way this command ends, and both are one flag from
+        // working, so neither sends the operator to a maintainer.
+        Err(error) => return declined_the_port(options.port, &error),
     };
     let address = match listener.local_addr() {
         Ok(address) => address,
@@ -145,6 +147,35 @@ fn parse_options(arguments: &[&str]) -> Result<Options, String> {
         port: port.unwrap_or(0),
         open_a_browser,
     })
+}
+
+/// What the operator is told when the port did not open, and the status a script reads.
+///
+/// The next act is named because there is one: every case here is answered by `--port` or by
+/// leaving it out, and a status of its own lets a workflow retry a busy port without retrying
+/// a forbidden one.
+fn declined_the_port(port: u16, error: &std::io::Error) -> ExitCode {
+    match error.kind() {
+        std::io::ErrorKind::AddrInUse => {
+            eprintln!("plateforce serve: port {port} is already in use.");
+            eprintln!(
+                "Choose another with --port, or leave it out and take whichever port is free."
+            );
+            ExitCode::from(A_PORT_ANOTHER_PROGRAM_HOLDS)
+        }
+        std::io::ErrorKind::PermissionDenied => {
+            eprintln!("plateforce serve: port {port} is not one this process may open.");
+            eprintln!(
+                "Ports below 1024 are the operating system's. Choose one above it with --port, \
+                 or leave it out and take whichever port is free."
+            );
+            ExitCode::from(A_PORT_THIS_PROCESS_MAY_NOT_HAVE)
+        }
+        _ => {
+            eprintln!("plateforce serve: cannot listen on port {port}: {error}");
+            ExitCode::from(AN_INVARIANT_THIS_SOFTWARE_BREAKS)
+        }
+    }
 }
 
 /// Opt-in, because opening a browser is the kind of thing a tool does on somebody's behalf

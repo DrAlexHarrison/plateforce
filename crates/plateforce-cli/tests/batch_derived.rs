@@ -14,7 +14,7 @@ use std::process::Output;
 /// Most of these recordings end while the athlete is still off the plate, so the flight-time
 /// height declines by name on five of the seven trials. A check that accepted every exit code
 /// would pass on a build that cannot run at all.
-const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
+const A_FOLDER_RUN_THAT_WROTE_ITS_TABLES: i32 = 0;
 const THE_REQUEST_COULD_NOT_BE_READ: i32 = 64;
 
 fn batch(out_dir: &std::path::Path, extra: &[&str]) -> Output {
@@ -153,7 +153,7 @@ fn a_rule_computed_from_the_landmarks_reaches_the_table_and_the_record() {
     );
     assert_eq!(
         output.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
@@ -207,7 +207,7 @@ fn a_value_stated_against_a_derived_construct_is_recorded_as_stated() {
     );
     assert_eq!(
         output.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
@@ -248,7 +248,7 @@ fn a_rule_that_declined_on_every_trial_leaves_a_blank_column_and_a_refusal_besid
     let output = batch(&out, &["--derive", "net_peak_force=force.peak.net"]);
     assert_eq!(
         output.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );

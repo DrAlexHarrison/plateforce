@@ -14,7 +14,7 @@ use std::process::Output;
 /// Most of these recordings end while the athlete is still off the plate, so a requested
 /// number declines by name on several trials and the run exits 65. A check that accepted any
 /// exit code would pass on a build that cannot run.
-const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
+const A_FOLDER_RUN_THAT_WROTE_ITS_TABLES: i32 = 0;
 const THE_REQUEST_COULD_NOT_BE_READ: i32 = 64;
 
 const EVERY_MEMBER: [&str; 5] = [
@@ -83,7 +83,7 @@ fn run_record(name: &str, extra: &[&str]) -> serde_json::Value {
     );
     assert_eq!(
         code,
-        A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER,
+        A_FOLDER_RUN_THAT_WROTE_ITS_TABLES,
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );

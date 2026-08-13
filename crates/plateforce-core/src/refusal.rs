@@ -977,6 +977,15 @@ fn sentence(
             named("needs"),
             named("had")
         ),
+        // A cell in the file rather than a value the caller typed, told apart by the line the
+        // reader recorded against it. The text is what ends the reading: a header row and a
+        // delimiter nobody named both arrive here, and neither is legible from the column alone.
+        RefusalCode::ParameterNotFinite if detail.contains_key("line_number") => format!(
+            "{} reads {:?} on line {}, which is not a number",
+            parameter.unwrap_or("that column"),
+            named_value.unwrap_or_default(),
+            named("line_number")
+        ),
         RefusalCode::ParameterNotFinite => format!(
             "{} must be a finite number, got {}",
             parameter.unwrap_or("the parameter"),
@@ -1022,6 +1031,19 @@ fn sentence(
                 named(RULES_THIS_BUILD_RUNS)
             )
         }
+        // Nobody named a rule, which is not the same as naming one that answers to nothing.
+        // Quoting the empty string tells a caller they passed something they did not pass,
+        // and it is the first thing anyone meets on a surface that carries no decision layer
+        // of its own: a preset leaving a step open reaches here, as does a call that named no
+        // rules at all.
+        RefusalCode::MethodNotImplemented if method_id.is_empty() => match slot {
+            Some(step) => format!(
+                "no rule is named for the {step} step, and the rules for it are {available:?}"
+            ),
+            None => format!(
+                "no step is named, and the steps this analysis runs are {available:?}"
+            ),
+        },
         RefusalCode::MethodNotImplemented => match slot {
             Some(step) => format!(
                 "'{method_id}' was passed as the {step} method, and the rules for that step are {available:?}"

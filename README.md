@@ -15,8 +15,9 @@ same way, and the record of how it was computed is the thing that makes the comp
 The browser build reads the file in the tab and sends nothing anywhere:
 [dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce)
 
-`docs/install.md` covers the desktop application, the command line, and the Python and R
-packages, on Linux, macOS, Windows, and machines that will not let you install anything.
+`docs/install.md` covers the desktop application and the command line, on Linux, macOS,
+Windows, and machines that will not let you install anything. `docs/terminal.md` covers
+working at a terminal, and `docs/for-an-agent.md` is the contract for a program driving one.
 
 At a terminal:
 

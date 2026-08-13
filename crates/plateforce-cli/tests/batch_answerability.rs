@@ -43,7 +43,7 @@ const HOW_THE_TRACES_READ: [&str; 6] = [
 /// Five of the six committed trials were trimmed before the athlete landed, so the flight-time
 /// height declines by name on them. A run that produced its table and could not produce one
 /// requested number exits here, which is a different answer from refusing to run at all.
-const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
+const A_FOLDER_RUN_THAT_WROTE_ITS_TABLES: i32 = 0;
 const A_CHOICE_ON_THE_PATH_IS_STILL_OPEN: i32 = 64;
 
 fn plateforce(arguments: &[String]) -> Output {
@@ -170,7 +170,7 @@ fn naming_every_value_runs_on_both_surfaces() {
     assert_eq!(alone.status.code(), Some(0), "{told_one}");
     assert_eq!(
         folder.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER),
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES),
         "{told_many}"
     );
     assert!(

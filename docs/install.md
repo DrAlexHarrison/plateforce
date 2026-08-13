@@ -78,3 +78,24 @@ your browser to open the address for you.
 
 The same binary is the command line program, so `./plateforce-x86_64-linux-static --help`
 lists everything it does in a terminal.
+
+## Python
+
+```sh
+pip install plateforce
+```
+
+The machine that installs it needs no compiler and no Rust toolchain: one wheel per platform
+carries the engine already built, and the same engine the browser, the desktop application
+and the command line run, so a number that differs between two of them is a build that
+failed rather than a discrepancy to reconcile.
+
+Python 3.11 and newer, on Linux, macOS and Windows. One abi3 wheel per platform covers 3.11
+and every later version, and the registry travels inside the wheel, so the digest a result
+reports names the same bytes on every machine that installed the same version.
+
+`crates/plateforce-python/README.md` shows a worked analysis and what the result carries.
+
+**`plateforce` is not `forceplate`.** The similarly named CRAN package analyses
+posturography, centre-of-pressure measures from quiet standing. This one computes jump
+kinetics from a vertical ground reaction force trace.

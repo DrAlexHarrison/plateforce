@@ -180,6 +180,36 @@ impl Registry {
     pub fn methods_that_can_fail(&self) -> impl Iterator<Item = &Method> {
         self.methods.values().filter(|m| m.failure.is_some())
     }
+
+    /// The entries filed beside an id that resolves to nothing, so a misspelling is answered
+    /// with the neighbours it was reaching for rather than with a dead end.
+    ///
+    /// Ids are dotted and the namespace is the shared part, so the answer is the entries under
+    /// the longest prefix of the typed id that any real id also has. That is bounded by the
+    /// data rather than by a limit chosen here: over 107 method ids the largest group sharing
+    /// everything but a final segment holds 5.
+    ///
+    /// An id sharing no whole segment with anything reaches nothing, which is the honest
+    /// answer: the alternative lists the registry at somebody who typed a word from another
+    /// vocabulary.
+    ///
+    /// One home, because the terminal, the browser, Python and R all answer this and four
+    /// spellings of "did you mean" is the conflation this project exists to refuse.
+    pub fn filed_beside(&self, id: &str) -> Vec<&str> {
+        let typed: Vec<&str> = id.split('.').collect();
+        let known = || self.methods.keys().chain(self.protocols.keys());
+        for depth in (1..typed.len()).rev() {
+            let prefix = format!("{}.", typed[..depth].join("."));
+            let beside: Vec<&str> = known()
+                .filter(|candidate| candidate.starts_with(&prefix))
+                .map(String::as_str)
+                .collect();
+            if !beside.is_empty() {
+                return beside;
+            }
+        }
+        Vec::new()
+    }
 }
 
 #[cfg(test)]

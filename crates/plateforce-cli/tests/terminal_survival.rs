@@ -184,6 +184,41 @@ fn the_help_a_reader_meets_first_is_the_committed_one() {
     );
 }
 
+/// The reader who has just installed this types the name on its own, and that is the first
+/// output the program ever gives anybody. Asking for help is the second thing they learn, so
+/// asserting the later moment alone leaves the earlier one uncovered: the two answered with
+/// the same words and reached different streams, and `plateforce | less` showed nothing.
+///
+/// Compared against `-h` as the run rather than against a committed file, because the words
+/// belong to whoever writes the help and only the stream is this case's business.
+#[test]
+fn the_bare_invocation_answers_where_a_reader_can_keep_the_answer() {
+    let bare = Command::new(env!("CARGO_BIN_EXE_plateforce"))
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env("TERM", "xterm-256color")
+        .output()
+        .expect("the built binary runs");
+
+    let printed = stdout_of(&bare);
+    assert!(
+        !printed.is_empty(),
+        "a reader who typed the name on its own cannot pipe or redirect what they were told"
+    );
+    assert_eq!(
+        printed,
+        stdout_of(&run(&["-h"], &[])),
+        "the name on its own and -h are one question and answer it differently"
+    );
+    assert!(
+        bare.stderr.is_empty(),
+        "nothing declined, so nothing belongs on the other stream"
+    );
+    assert_eq!(bare.status.code(), Some(0));
+}
+
 /// A refusal is output too, and it is the line most likely to drift without anybody reading
 /// it, because nothing downstream of a failure is usually looked at.
 #[test]

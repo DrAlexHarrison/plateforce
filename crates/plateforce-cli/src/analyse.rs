@@ -6,9 +6,10 @@ use std::path::{Path, PathBuf};
 
 use plateforce_analysis::quality::{QualitySignal, QualityStatus};
 use plateforce_analysis::{
-    bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, Metric,
-    WeighingChoice, ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
+    bindings_for, AnalysisRequest, AnalysisResponse, BoundMethod, MethodChoice, WeighingChoice,
+    ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT, WEIGHING_CONSTRUCT,
 };
+use plateforce_core::read::FieldSeparator;
 use plateforce_core::signal::{trial_from_column, ReportedSamples, Sentinel};
 use plateforce_core::{read_delimited_column, Refusal, Trial};
 use plateforce_registry::{Registry, Surfacing};
@@ -44,24 +45,17 @@ pub struct Args {
     /// How this file writes a sample it does not have
     #[arg(long, value_enum)]
     pub sentinel: SentinelConvention,
-    /// The character between columns. Absent reads each row whole
-    #[arg(long, value_name = "CHAR")]
-    pub delimiter: Option<char>,
-    /// The rule that finds the standing epoch
-    #[arg(long, value_name = "METHOD")]
+    #[arg(long, value_name = "CHAR", value_parser = field_separator, help = DELIMITER_HELP)]
+    pub delimiter: Option<FieldSeparator>,
+    #[arg(long, value_name = "METHOD", help = WEIGHING_HELP)]
     pub weighing: Option<String>,
-    /// The rule that finds the start of the jump
-    #[arg(long, value_name = "METHOD")]
+    #[arg(long, value_name = "METHOD", help = ONSET_HELP)]
     pub onset: Option<String>,
-    /// The rule that finds takeoff
-    #[arg(long, value_name = "METHOD")]
+    #[arg(long, value_name = "METHOD", help = TAKEOFF_HELP)]
     pub takeoff: Option<String>,
-    /// A published pipeline to run, which binds the rules and the values its source states
-    #[arg(long, value_name = "NAME")]
+    #[arg(long, value_name = "NAME", help = PRESET_HELP)]
     pub preset: Option<String>,
-    /// A rule for something computed from the landmarks, written <construct>=<method>.
-    /// Repeatable
-    #[arg(long = "derive", value_name = "ASSIGNMENT")]
+    #[arg(long = "derive", value_name = "ASSIGNMENT", help = DERIVE_HELP)]
     pub derive: Vec<String>,
     #[arg(long = "condition", value_name = "ASSIGNMENT", help = CONDITION_HELP)]
     pub condition: Vec<String>,
@@ -104,6 +98,57 @@ pub struct Args {
     pub provenance: bool,
 }
 
+/// The word a file held apart by runs of spaces is named by, on the flag and in the record
+/// both, because a reader who reads one and writes the other should not have to translate.
+const WHITESPACE: &str = "whitespace";
+
+pub(crate) const DELIMITER_HELP: &str =
+    "The character between columns, or the word `whitespace` when runs of spaces hold them apart. Absent reads each row whole";
+pub(crate) const DELIMITER_HELP_FOR_A_FOLDER: &str =
+    "The character between columns, or the word `whitespace` when runs of spaces hold them apart. It applies to every trial in the folder";
+
+/// One character, or the word. A fixed-width export separates its columns with runs of spaces
+/// of differing widths, and a single stated space reads each run as one field plus several
+/// empty ones, so naming the run is the only thing that reads the file.
+pub(crate) fn field_separator(written: &str) -> Result<FieldSeparator, String> {
+    if written == WHITESPACE {
+        return Ok(FieldSeparator::Whitespace);
+    }
+    let mut characters = written.chars();
+    match (characters.next(), characters.next()) {
+        (Some(only), None) => Ok(FieldSeparator::from(only)),
+        _ => Err(format!(
+            "--delimiter takes one character or the word {WHITESPACE}, and {written:?} is neither"
+        )),
+    }
+}
+
+/// What the three landmark flags show, each naming the one command that prints the rules it
+/// accepts.
+///
+/// The names come out of the registry, so a list written here would be wrong the first time
+/// somebody adds a rule. What does not move is which command prints them, and that is what a
+/// reader is given. `batch` shows the same sentences, because the flags mean the same thing on
+/// a folder as on one trace.
+pub(crate) const WEIGHING_HELP: &str =
+    "The rule that finds the standing epoch. `plateforce methods --slot weighing` names them";
+pub(crate) const ONSET_HELP: &str =
+    "The rule that finds the start of the jump. `plateforce methods --slot onset` names them";
+pub(crate) const TAKEOFF_HELP: &str =
+    "The rule that finds takeoff. `plateforce methods --slot takeoff` names them";
+
+/// A pipeline answers several of these flags at once out of one source, so it is the short way
+/// in and the sentence says where the names come from.
+pub(crate) const PRESET_HELP: &str =
+    "A published pipeline to run, which binds the rules and the values its source states. `plateforce methods` names the ones this registry carries";
+pub(crate) const PRESET_HELP_FOR_A_FOLDER: &str =
+    "A published pipeline to run over every trial in the folder, which binds the rules and the values its source states. `plateforce methods` names the ones this registry carries";
+
+pub(crate) const DERIVE_HELP: &str =
+    "A rule for something computed from the landmarks, written <construct>=<method>. Repeatable, and `plateforce methods` names each construct with the rules under it";
+pub(crate) const DERIVE_HELP_FOR_A_FOLDER: &str =
+    "A rule for something computed from the landmarks, written <construct>=<method>. Repeatable, it applies to every trial in the folder, and `plateforce methods` names each construct with the rules under it";
+
 /// What `--set` takes, in the word the method flags already use: a reader who wrote `--onset`
 /// writes `--set onset.k=5`.
 ///
@@ -137,7 +182,7 @@ pub(crate) const CHOOSE_HELP: &str =
 /// engine refuses a construct named through the wrong one. A rule that conditions produces the
 /// signal the landmark rules read; a rule that derives reads what they placed.
 pub(crate) const CONDITION_HELP: &str =
-    "A rule that conditions the signal before the landmarks are placed, written <construct>=<method>. Repeatable, and the phase runs its own rule and records it where nobody names one";
+    "A rule that conditions the signal before the landmarks are placed, written <construct>=<method>. Repeatable, the phase runs its own rule and records it where nobody names one, and `plateforce methods --slot conditioned_force_signal` names the rules it takes";
 
 /// What `--place` takes. One sample per landmark, in the same assignment grammar `--set` and
 /// `--choose` use, with the slot alone on the left because a landmark is one number and a
@@ -733,9 +778,9 @@ fn read_trial(args: &Args) -> Result<ReadTrial, Outcome> {
             error.to_string(),
         )))
     })?;
-    // A row with no stated delimiter is one field, so `--column 0` reads a single-column
+    // A row with no stated separator is one field, so `--column 0` reads a single-column
     // export and any other column refuses by naming the index it wanted.
-    let delimiter = args.delimiter.unwrap_or('\u{0}');
+    let delimiter = args.delimiter.unwrap_or(FieldSeparator::WholeRow);
     let (values, report) = read_delimited_column(&text, delimiter, args.column)
         .map_err(|error| Outcome::declined(Declined::recorded(Refusal::from(error))))?;
 
@@ -983,11 +1028,6 @@ fn render(
     format: Format,
     renderer: &Renderer,
 ) -> Outcome {
-    let missing: Vec<&Metric> = response
-        .metrics
-        .iter()
-        .filter(|metric| metric.value.is_none())
-        .collect();
     let refusals: Vec<Declined> = response.refusals.iter().map(declined_landmark).collect();
 
     let stamp = registry_stamp(registry, args.registry_version.clone());
@@ -1039,7 +1079,7 @@ fn render(
                 renderer,
                 &refusals,
                 &response.signals,
-                trial.rows_read,
+                trial,
                 &reported.descriptions,
                 &chains,
             )
@@ -1050,7 +1090,6 @@ fn render(
         document: Some(document),
         refusals,
         fault: None,
-        every_requested_quantity_has_a_value: missing.is_empty(),
     }
 }
 
@@ -1110,6 +1149,47 @@ fn describe_signal(signal: &QualitySignal, renderer: &Renderer) -> Vec<String> {
 /// declined, what was flagged, and how much of the recording was read. Bundling them would
 /// name a thing that does not exist just to satisfy a count.
 #[allow(clippy::too_many_arguments)]
+/// What was read, above the numbers read out of it.
+///
+/// A result pasted into a lab report otherwise names no recording, no rate and no convention,
+/// and one of six trials cannot be told from another. The convention's matches are stated and
+/// never characterised: on a jump trace the zero a vendor writes for a measurement it does not
+/// have is also the correct reading of an unloaded plate, so most of what it matches is an
+/// athlete in the air.
+fn trial_block(trial: &ReadTrial, stated: SentinelConvention) -> String {
+    let rows = trial.rows_read;
+    let (named_value, matched) = match stated {
+        // Counted through the predicate that matches a declared convention, so the terminal
+        // and the browser's column chooser cannot answer one file two ways.
+        SentinelConvention::None => {
+            let mut counts = String::from(
+                "No value is stated for a measurement not taken, so every sample is read as a \
+                 measurement.",
+            );
+            for (value, convention) in [("0", Sentinel::Zero), ("-1", Sentinel::NegativeOne)] {
+                let read_it = plateforce_core::signal::reported_samples(
+                    trial.trial.force(),
+                    Some(convention),
+                )
+                .matched_the_convention;
+                if read_it > 0 {
+                    let _ = write!(
+                        counts,
+                        " {read_it} of {rows} samples read exactly {value} N."
+                    );
+                }
+            }
+            return counts;
+        }
+        SentinelConvention::Zero => ("0", trial.reported_samples.matched_the_convention),
+        SentinelConvention::NegativeOne => ("-1", trial.reported_samples.matched_the_convention),
+    };
+    format!(
+        "{named_value} N is the value stated for a measurement not taken: {matched} of {rows} \
+         samples read it, counted and left as the file wrote them."
+    )
+}
+
 fn text_body(
     response: &AnalysisResponse,
     spread: Option<&plateforce_analysis::spread::SpreadResponse>,
@@ -1118,17 +1198,31 @@ fn text_body(
     renderer: &Renderer,
     refusals: &[Declined],
     signals: &[QualitySignal],
-    rows_read: usize,
+    trial: &ReadTrial,
     accounts: &BTreeMap<String, String>,
     chains: &[plateforce_analysis::MetricChain],
 ) -> String {
     let mut document = String::new();
+    let rows_read = trial.rows_read;
     let widest = response
         .metrics
         .iter()
         .map(|metric| metric.label.chars().count())
         .max()
         .unwrap_or(0);
+
+    let _ = writeln!(document, "Trial");
+    let _ = writeln!(document, "  {}", args.trial.display());
+    let _ = writeln!(
+        document,
+        "  {rows_read} rows at {} Hz, {:.4} s",
+        trial.trial.sample_rate_hz(),
+        trial.trial.duration_seconds()
+    );
+    for line in renderer.wrap(&trial_block(trial, args.sentinel), 2) {
+        let _ = writeln!(document, "{line}");
+    }
+    let _ = writeln!(document);
 
     // A gap in the recording, said before the numbers it reached. This column said nothing
     // about it at all, so a reader of the terminal met eight quantities without a value and

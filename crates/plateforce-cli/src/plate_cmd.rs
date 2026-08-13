@@ -14,6 +14,7 @@ use crate::registry_cmd::canonical;
 #[derive(clap::Subcommand)]
 pub enum Command {
     /// Record a plate's settings once, so a later run is told about it by name
+    #[command(after_help = crate::examples::PLATE_SAVE_SHORT)]
     Save {
         /// What to call this plate
         name: String,
@@ -25,13 +26,16 @@ pub enum Command {
         acquisition: Vec<String>,
     },
     /// Name every plate saved on this machine
+    #[command(after_help = crate::examples::PLATE_LIST_SHORT)]
     List,
     /// Show one saved plate's settings
+    #[command(after_help = crate::examples::PLATE_SHOW_SHORT)]
     Show {
         /// The plate to read
         name: String,
     },
     /// Remove a saved plate from this machine
+    #[command(after_help = crate::examples::PLATE_FORGET_SHORT)]
     Forget {
         /// The plate to remove
         name: String,

@@ -73,14 +73,14 @@ fn source_of(out_dir: &std::path::Path, method_id: &str, parameter: &str) -> Opt
         .and_then(|fields| fields.get(source).map(|found| (*found).to_string()))
 }
 
-/// What a run over this folder exits with, and why it is not zero.
+/// What a run over this folder exits with.
 ///
 /// Five of the six subject-01 trials never return above the takeoff threshold, so no touchdown
 /// is placed on them, so `jumpheight.takeoff.flight_time` has no interval to work on and
-/// declines by name. A batch holding a trial whose requested headline number could not be
-/// produced is not a clean run, and the exit code is where a reader learns that without
-/// reading the record.
-const A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER: i32 = 65;
+/// declines by name. That is the ordinary shape of a real collection rather than a failure of
+/// the run, and it is reported where a reader can act on it: by quantity in `refusals.csv`,
+/// with the rule and the reason. The status says only that the tables were written.
+const A_FOLDER_RUN_THAT_WROTE_ITS_TABLES: i32 = 0;
 
 fn scratch(name: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!("plateforce-batch-{name}-{}", std::process::id()));
@@ -102,7 +102,7 @@ fn a_value_stated_for_a_folder_is_recorded_as_stated() {
     let without = scratch("plain");
     assert_eq!(
         batch(&without, &forced).status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES)
     );
     let before = sources(&without);
 
@@ -112,7 +112,7 @@ fn a_value_stated_for_a_folder_is_recorded_as_stated() {
     let output = batch(&with, &also);
     assert_eq!(
         output.status.code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES)
     );
     let after = sources(&with);
 
@@ -213,7 +213,7 @@ fn the_record_names_the_convention_the_run_applied() {
         )
         .status
         .code(),
-        Some(A_TRIAL_COULD_NOT_PRODUCE_A_REQUESTED_NUMBER)
+        Some(A_FOLDER_RUN_THAT_WROTE_ITS_TABLES)
     );
     let run: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("run.json")).expect("a record"))

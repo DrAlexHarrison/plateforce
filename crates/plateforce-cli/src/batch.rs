@@ -58,9 +58,8 @@ pub struct Args {
     /// Samples per second. These exports do not carry it and it is never guessed
     #[arg(long, value_name = "HZ")]
     pub sample_rate_hz: f64,
-    /// The character between columns
-    #[arg(long, value_name = "CHAR")]
-    pub delimiter: Option<char>,
+    #[arg(long, value_name = "CHAR", value_parser = crate::analyse::field_separator, help = crate::analyse::DELIMITER_HELP_FOR_A_FOLDER)]
+    pub delimiter: Option<plateforce_core::read::FieldSeparator>,
     /// How these files write a sample they do not have. One answer covers every trial in the
     /// folder, and a marker read as force moves system weight and everything after it
     #[arg(long, value_enum)]
@@ -68,21 +67,17 @@ pub struct Args {
     /// A template such as AT{subject}_{trial}, which gives the run a subject as well
     #[arg(long, value_name = "TEMPLATE")]
     pub pattern: Option<String>,
-    /// The rule that finds the standing epoch
-    #[arg(long, value_name = "METHOD_ID")]
+    // The value name is the one `analyse` writes, because a reader who learned the flag on one
+    // trace writes it on a folder and a second spelling for one thing reads as a second thing.
+    #[arg(long, value_name = "METHOD", help = crate::analyse::WEIGHING_HELP)]
     pub weighing: Option<String>,
-    /// The rule that finds the start of the jump
-    #[arg(long, value_name = "METHOD_ID")]
+    #[arg(long, value_name = "METHOD", help = crate::analyse::ONSET_HELP)]
     pub onset: Option<String>,
-    /// The rule that finds takeoff
-    #[arg(long, value_name = "METHOD_ID")]
+    #[arg(long, value_name = "METHOD", help = crate::analyse::TAKEOFF_HELP)]
     pub takeoff: Option<String>,
-    /// A published pipeline to run over every trial in the folder
-    #[arg(long, value_name = "NAME")]
+    #[arg(long, value_name = "NAME", help = crate::analyse::PRESET_HELP_FOR_A_FOLDER)]
     pub preset: Option<String>,
-    /// A rule for something computed from the landmarks, written <CONSTRUCT>=<METHOD_ID>.
-    /// Repeatable, and it applies to every trial in the folder
-    #[arg(long = "derive", value_name = "ASSIGNMENT")]
+    #[arg(long = "derive", value_name = "ASSIGNMENT", help = crate::analyse::DERIVE_HELP_FOR_A_FOLDER)]
     pub derive: Vec<String>,
     #[arg(long = "condition", value_name = "ASSIGNMENT", help = crate::analyse::CONDITION_HELP)]
     pub condition: Vec<String>,
@@ -90,8 +85,9 @@ pub struct Args {
     pub set: Vec<String>,
     #[arg(long = "choose", value_name = "ASSIGNMENT", help = crate::analyse::CHOOSE_HELP)]
     pub choose: Vec<String>,
-    /// A rule to sweep against the bound one, for compare. Repeatable
-    #[arg(long = "against", value_name = "METHOD_ID")]
+    /// A rule to sweep against the bound one, for compare. Repeatable, and
+    /// `plateforce methods` names the rules each step runs
+    #[arg(long = "against", value_name = "METHOD")]
     pub against: Vec<String>,
     /// The quantity a compare run sweeps
     #[arg(
@@ -219,7 +215,9 @@ pub fn run(
     };
 
     let format_declaration = SourceFormat {
-        delimiter: args.delimiter.unwrap_or('\u{0}'),
+        delimiter: args
+            .delimiter
+            .unwrap_or(plateforce_core::read::FieldSeparator::WholeRow),
         force_column_index: args.column,
         sample_rate_hz: args.sample_rate_hz,
         trial_file_suffixes: args.trial_suffixes.clone(),
@@ -514,9 +512,7 @@ fn run_analyse(
     // A trial that declined one landmark computed the rest, so its refusals travel beside the
     // numbers: in the table, in the run's own refusals file, and in the JSON document, each
     // carrying the code and the rule that produced it.
-    let mut outcome = Outcome::complete(document);
-    outcome.every_requested_quantity_has_a_value = result.refusals.is_empty();
-    outcome
+    Outcome::complete(document)
 }
 
 /// The reduction a run asked for, joined onto its result, or the refusal that says why not.
@@ -665,9 +661,7 @@ fn run_compare(
         Format::Json => result.to_json(&stamp, &base_request_digest),
         _ => result.coverage(),
     };
-    let mut outcome = Outcome::complete(document);
-    outcome.every_requested_quantity_has_a_value = result.complete_pairs == result.trial_count;
-    outcome
+    Outcome::complete(document)
 }
 
 /// A run that read no trial, because a choice on its path is still open.
