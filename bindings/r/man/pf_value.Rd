@@ -7,12 +7,12 @@
 pf_value(x, quantity)
 }
 \arguments{
-\item{x}{A `countermovement_jump`.}
+\item{x}{A \code{countermovement_jump}.}
 
 \item{quantity}{The engine's name for the quantity, matched in full.}
 }
 \value{
-A [measured].
+A \code{measured}, the number with the rule that produced it attached.
 }
 \description{
 One quantity out of an analysis

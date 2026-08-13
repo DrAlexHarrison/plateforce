@@ -7,10 +7,10 @@
 pf_force(x)
 }
 \arguments{
-\item{x}{A `trial`.}
+\item{x}{A \code{trial}.}
 }
 \value{
-A `double` vector of vertical ground reaction force in newtons.
+A \code{double} vector of vertical ground reaction force in newtons.
 }
 \description{
 The force trace a trial holds

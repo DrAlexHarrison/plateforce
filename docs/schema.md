@@ -234,6 +234,9 @@ doi = "10.1519/JSC.0000000000000311"
 obtained = false           # false means the claim rests on a secondary source
 ```
 
+A preset carries the same table under `[[preset.citation]]`. A protocol carries it under
+`[[protocol.citations]]`, plural, and the singular spelling on a protocol does not load.
+
 ### Bias, and the criterion it was measured against
 
 A bias figure is meaningless without the thing it was measured against. `criterion` is
@@ -459,6 +462,12 @@ title = "Arms held on the hips throughout"
 description = "Athlete keeps both hands on the iliac crest from the weighing epoch to landing."
 affects = ["jump_height.takeoff_frame", "movement_onset"]
 provenance = "published"    # published | observed_from_code | vendor_documented
+
+[[protocol.citations]]
+key = "kirby2011"
+role = "proposes"
+reference = "Kirby et al. 2011, JSCR 25(9):2510-2518"
+obtained = true
 ```
 
 `observed_from_code` exists because the crosswalk finds protocol requirements that no paper
@@ -499,9 +508,10 @@ parameters = { duration = 1.0 }
 
 [[preset.binding]]
 construct = "movement_onset"
-method_id = "onset.threshold.noise_relative"
-parameters = { k = 5.0, offset_ms = 30.0 }
-note = "The thirty-millisecond step back is a registry entry of its own, composed onto the threshold rule."
+method_id = "onset.threshold.last_within_band"
+composed_from = "onset.threshold.noise_relative"
+parameters = { k = 5.0 }
+note = "The instant taken is the last sample still inside the band rather than the first outside it, which is the crossing operator bound to last."
 
 [[preset.citation]]
 key = "owen2014"
@@ -515,6 +525,11 @@ A binding states the numbers its source states in `parameters` and the named opt
 `options`, keyed by parameter name. `states_nothing_about` names constructs the source is
 silent about, as a fact about the source rather than about this software. Each must be a declared construct: a misspelling
 there would read as a source saying nothing about a quantity, with the software agreeing.
+
+`composed_from` names the entry a composed `method_id` composes. A composition is an entry
+with an operator bound onto it, and it carries that entry's citations rather than holding a
+row of its own, so it has nothing for a validator to resolve against. Without this field an
+id that composes and an id that is a typo are the same thing to the loader.
 
 A preset naming a method the registry does not carry does not load. A preset naming a method
 that exists but has no rule behind it does load, because the alternative would make the

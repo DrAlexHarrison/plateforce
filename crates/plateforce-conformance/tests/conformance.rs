@@ -301,3 +301,28 @@ fn a_reference_row_with_no_trace_is_reported_rather_than_skipped() {
     assert_eq!(report.missing_from_corpus, vec![(9, 1)]);
     assert!(!report.is_clean());
 }
+
+/// A run that compared nothing agrees with nothing.
+///
+/// Written over a reference carrying no rows rather than over a corpus carrying no traces,
+/// because the second route already fails on the missing rows and would report a pass here
+/// for the wrong reason. With no rows there is nothing missing and no column to breach, so
+/// the trial count is the only thing standing between an empty run and a clean verdict.
+#[test]
+fn a_run_that_compared_no_trials_is_not_a_clean_run() {
+    let reference = parse_reference("subject,trial,bw_025\n").unwrap();
+    let report = compare(
+        &reference,
+        &|_, _| None,
+        &ReferenceBindings::default(),
+        Tolerance::default(),
+    );
+
+    assert_eq!(report.trials_compared, 0);
+    assert!(report.missing_from_corpus.is_empty());
+    assert!(report.breaches().is_empty());
+    assert!(
+        !report.is_clean(),
+        "a run over 0 reference rows and 0 trials reported itself clean"
+    );
+}

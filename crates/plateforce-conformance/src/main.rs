@@ -236,13 +236,31 @@ fn main() -> ExitCode {
     );
 
     if report.is_clean() {
-        ExitCode::SUCCESS
-    } else {
-        eprintln!();
+        return ExitCode::SUCCESS;
+    }
+
+    // Each reason stands on its own, because a run can fail for two of them at once and a
+    // sentence naming only the first sends the reader to the wrong end of the output.
+    eprintln!();
+    if report.trials_compared == 0 {
+        eprintln!(
+            "plateforce-conformance: 0 trials compared, against {} reference row(s) and {} \
+             corpus file(s), so nothing above was measured",
+            report.reference_rows,
+            corpus.len()
+        );
+    }
+    if !report.missing_from_corpus.is_empty() {
+        eprintln!(
+            "plateforce-conformance: {} reference row(s) have no corpus file",
+            report.missing_from_corpus.len()
+        );
+    }
+    if !report.breaches().is_empty() {
         eprintln!(
             "plateforce-conformance: {} column(s) disagree with the reference",
             report.breaches().len()
         );
-        ExitCode::FAILURE
     }
+    ExitCode::FAILURE
 }

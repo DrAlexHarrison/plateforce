@@ -7,12 +7,12 @@
 describe(x, ...)
 }
 \arguments{
-\item{x}{A [measured], as returned by [pf_value()].}
+\item{x}{A \code{measured}, as returned by \code{\link[=pf_value]{pf_value()}}.}
 
 \item{...}{Unused.}
 }
 \value{
-`x`, invisibly. The account is printed.
+\code{x}, invisibly. The account is printed.
 }
 \description{
 The value, its unit, the rule that produced it, and every rule upstream of that one with

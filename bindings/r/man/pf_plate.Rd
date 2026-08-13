@@ -9,7 +9,7 @@ pf_plate(name, acquisition = NULL, plates_folder = NULL)
 \arguments{
 \item{name}{The plate to read, or to call the stated one.}
 
-\item{acquisition}{The members it holds, from [pf_acquisition()]. Absent reads a saved one.}
+\item{acquisition}{The members it holds, from \code{\link[=pf_acquisition]{pf_acquisition()}}. Absent reads a saved one.}
 
 \item{plates_folder}{Keep saved plates here rather than beside this machine's other
 settings. A plate saved under a named folder travels with a dataset; one saved without
@@ -17,10 +17,10 @@ travels with the person.}
 }
 \value{
 A list carrying the plate, its revision, where it is filed when it is, the block it
-  holds and the members still to answer.
+holds and the members still to answer.
 }
 \description{
-Naming `acquisition` states a plate from the members the caller holds, with no file behind
+Naming \code{acquisition} states a plate from the members the caller holds, with no file behind
 it, which is how a plate travels between machines. Leaving it out reads the one this
 machine has saved under that name.
 }

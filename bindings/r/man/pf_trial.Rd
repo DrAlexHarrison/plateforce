@@ -14,30 +14,30 @@ pf_trial(
 )
 }
 \arguments{
-\item{force_newtons}{Vertical ground reaction force, in newtons, as a `double` vector.}
+\item{force_newtons}{Vertical ground reaction force, in newtons, as a \code{double} vector.}
 
 \item{sample_rate_hz}{The rate the trace was recorded at. A rate that is guessed scales
 every velocity, displacement, impulse and rate of force development with it, so this
 has no default.}
 
-\item{sentinel_convention}{How this export writes a missing sample: `"none"`, `"zero"`
-or `"negative_one"`. A sample matching the convention is counted and left where it is,
+\item{sentinel_convention}{How this export writes a missing sample: \code{"none"}, \code{"zero"}
+or \code{"negative_one"}. A sample matching the convention is counted and left where it is,
 because closing the gap would shift every timestamp after it. Samples carrying no
 number are counted separately, whatever convention is declared.}
 
-\item{acquisition}{What the plate and its settings were, from [pf_acquisition()]. A
+\item{acquisition}{What the plate and its settings were, from \code{\link[=pf_acquisition]{pf_acquisition()}}. A
 block missing any member makes every result from this trial carry
-`acquisition_complete = FALSE`.}
+\code{acquisition_complete = FALSE}.}
 
 \item{plate}{A saved plate to fill the block from: a name this machine holds, or the list
-[pf_plate()] returns. A member in `acquisition` beside it is the answer that runs, and
+\code{\link[=pf_plate]{pf_plate()}} returns. A member in \code{acquisition} beside it is the answer that runs, and
 the result records what it replaced.}
 
-\item{plates_folder}{Where to look for `plate`, when it is a name. Absent reads the folder
-`plateforce plate save` writes to.}
+\item{plates_folder}{Where to look for \code{plate}, when it is a name. Absent reads the folder
+\verb{plateforce plate save} writes to.}
 }
 \value{
-A `trial`.
+A \code{trial}.
 }
 \description{
 Build a trial from a force vector

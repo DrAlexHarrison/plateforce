@@ -7,13 +7,13 @@
 pf_entry(id, path = NULL)
 }
 \arguments{
-\item{id}{Canonical dotted identifier, for example `"onset.threshold.noise_relative"`.}
+\item{id}{Canonical dotted identifier, for example \code{"onset.threshold.noise_relative"}.}
 
-\item{path}{Directory holding the registry, as in [pf_registry()].}
+\item{path}{Directory holding the registry, as in \code{\link[=pf_registry]{pf_registry()}}.}
 }
 \value{
 A list carrying the entry's parameters, citations, biases, failure block,
-  disagreements and surfacing verdict, as the registry states them.
+disagreements and surfacing verdict, as the registry states them.
 }
 \description{
 One registry entry

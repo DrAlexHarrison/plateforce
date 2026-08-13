@@ -3,7 +3,7 @@ NULL
 
 #' One countermovement jump, analysed
 #'
-#' `@values` is a named list of [measured] objects, one per quantity the engine reported,
+#' `@values` is a named list of `measured` objects, one per quantity the engine reported,
 #' keyed by the engine's own name for it. Read one with `x@values[["name"]]`, which
 #' matches the whole name, or with [pf_value()].
 #'
@@ -59,7 +59,7 @@ countermovement_jump <- S7::new_class(
 #'
 #' @param x A `countermovement_jump`.
 #' @param quantity The engine's name for the quantity, matched in full.
-#' @return A [measured].
+#' @return A `measured`, the number with the rule that produced it attached.
 #' @export
 pf_value <- function(x, quantity) {
   if (!quantity %in% names(x@values)) {
@@ -78,7 +78,7 @@ pf_value <- function(x, quantity) {
 #' Three landmark rules are named by their registry identifiers, and every parameter each
 #' one read travels in the result beside the number it produced.
 #'
-#' @param trial A [trial].
+#' @param trial A `trial`, as returned by [pf_trial()] or [pf_read_force_file()].
 #' @param weighing Registry id of the rule that establishes system weight.
 #' @param onset Registry id of the rule that places the start of the jump.
 #' @param takeoff Registry id of the rule that places the instant of takeoff.
@@ -116,7 +116,7 @@ pf_value <- function(x, quantity) {
 #'   the result names no pinned revision and reports the one the registry declares for
 #'   itself. The two are recorded separately: a revision the caller cited and one the data
 #'   claimed about itself are different facts.
-#' @return A [countermovement_jump].
+#' @return A `countermovement_jump`. Read one quantity out of it with [pf_value()].
 #' @export
 #' @examples
 #' standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)

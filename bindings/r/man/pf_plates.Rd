@@ -12,7 +12,7 @@ settings. A plate saved under a named folder travels with a dataset; one saved w
 travels with the person.}
 }
 \value{
-A list carrying `plates_folder` and one entry per saved plate.
+A list carrying \code{plates_folder} and one entry per saved plate.
 }
 \description{
 Every plate this machine holds

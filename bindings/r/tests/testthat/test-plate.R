@@ -43,11 +43,14 @@ test_that("a member stated beside a plate wins and the record says what it repla
     acquisition = pf_acquisition(firmware_version = "2.2"),
     plate = "lab-kistler-1", plates_folder = folder
   )
-  analysed <- unwrap(decode(rust_analyse_json(trial@handle, analysis_request_of(
-    weighing = "bwepoch.fixed_window",
-    onset = "onset.threshold.noise_relative",
-    takeoff = "takeoff.threshold.absolute_force"
-  ))))
+  analysed <- unwrap(decode(rust_analyse_json(
+    trial@handle, registry_root(),
+    analysis_request_of(
+      weighing = "bwepoch.fixed_window",
+      onset = "onset.threshold.noise_relative",
+      takeoff = "takeoff.threshold.absolute_force"
+    )
+  )))
 
   expect_true(analysed[["acquisition_complete"]])
   expect_equal(analysed[["acquisition"]][["firmware_version"]], "2.2")
@@ -63,11 +66,14 @@ test_that("a run that named no plate carries the block and nothing to attribute"
     sample_rate_hz = 1200,
     acquisition = members()
   )
-  analysed <- unwrap(decode(rust_analyse_json(trial@handle, analysis_request_of(
-    weighing = "bwepoch.fixed_window",
-    onset = "onset.threshold.noise_relative",
-    takeoff = "takeoff.threshold.absolute_force"
-  ))))
+  analysed <- unwrap(decode(rust_analyse_json(
+    trial@handle, registry_root(),
+    analysis_request_of(
+      weighing = "bwepoch.fixed_window",
+      onset = "onset.threshold.noise_relative",
+      takeoff = "takeoff.threshold.absolute_force"
+    )
+  )))
 
   expect_true(analysed[["acquisition_complete"]])
   expect_equal(analysed[["acquisition"]][["firmware_version"]], "2.1")

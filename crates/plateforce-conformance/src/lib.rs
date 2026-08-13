@@ -150,8 +150,13 @@ impl ConformanceReport {
         self.columns.iter().filter(|c| !c.is_clean()).collect()
     }
 
+    /// A run that compared nothing agrees with nothing, so the trial count belongs in the
+    /// verdict rather than beside it. Every column of a zero-trial run reports 0 compared and
+    /// 0 matched, which reads as agreement at both levels.
     pub fn is_clean(&self) -> bool {
-        self.breaches().is_empty() && self.missing_from_corpus.is_empty()
+        self.trials_compared > 0
+            && self.breaches().is_empty()
+            && self.missing_from_corpus.is_empty()
     }
 }
 

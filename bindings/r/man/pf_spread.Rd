@@ -34,10 +34,10 @@ pf_spread(
 )
 }
 \arguments{
-\item{trial}{A [trial].}
+\item{trial}{A \code{trial}, as returned by \code{\link[=pf_trial]{pf_trial()}} or \code{\link[=pf_read_force_file]{pf_read_force_file()}}.}
 
 \item{quantity}{The engine's name for the quantity to sweep, for example
-`"jump_height_from_takeoff_meters"`.}
+\code{"jump_height_from_takeoff_meters"}.}
 
 \item{slot}{One step whose rule is swept, or several. Several sweeps every combination of
 them, which is the question a number resting on more than one rule asks: the onset rule
@@ -60,9 +60,8 @@ step named; a list keyed by step names the ids for each. Absent, every rule boun
 that step is compared, read off the binding table rather than listed here.}
 
 \item{vary}{Settings to sweep, keyed by the step and the setting, as
-`list("onset.k" = c(2, 5, 10))`. Numbers or names per key: `"epoch_impulse.convention" =
-c("net", "gross")` compares two names, and `"global.gravity_meters_per_second_squared"`
-sweeps the value the run carries rather than one a rule reads. Written beside `slot`, the
+\code{list("onset.k" = c(2, 5, 10))}. Numbers or names per key: \code{"epoch_impulse.convention" = c("net", "gross")} compares two names, and \code{"global.gravity_meters_per_second_squared"}
+sweeps the value the run carries rather than one a rule reads. Written beside \code{slot}, the
 rules and the settings vary together.}
 
 \item{gravity_meters_per_second_squared}{Gravitational acceleration. A bound parameter
@@ -84,22 +83,20 @@ hand. An override is a fact about what produced the number, so it travels in the
 record rather than replacing it.}
 
 \item{derived}{Rules for constructs computed from the landmarks, named by the construct
-id the registry declares: `list(analysis_window = "window_end.takeoff.detected",
-peak_force = "force.peak.gross")`. A rule that takes values is written
-`list(peak_force = list(method_id = "force.peak.estimator",
-parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
+id the registry declares: \code{list(analysis_window = "window_end.takeoff.detected", peak_force = "force.peak.gross")}. A rule that takes values is written
+\code{list(peak_force = list(method_id = "force.peak.estimator", parameters = list(averaging_window_seconds = 0.1)))}. A rule that reads what another
 one placed declines by name when that construct was not named.}
 
 \item{conditioning}{Rules and values for the phase that conditions the signal before the
 landmarks are placed, named by the construct id the registry declares:
-`list(conditioned_force_signal = "filter.none")`. Values are written
-`list(conditioned_force_signal = list(options = list(passband_edge = "none")))`, with the
+\code{list(conditioned_force_signal = "filter.none")}. Values are written
+\code{list(conditioned_force_signal = list(options = list(passband_edge = "none")))}, with the
 rule left out where the phase's own is wanted. The phase runs whether or not this is
 passed, so what it buys is the record naming the caller rather than the software.}
 
 \item{maximum_combinations}{Cap on how many combinations run.}
 
-\item{registry}{Directory holding the registry, as in [pf_registry()].}
+\item{registry}{Directory holding the registry, as in \code{\link[=pf_registry]{pf_registry()}}.}
 
 \item{registry_version}{The revision of the registry data to cite in the result. Absent,
 the result names no pinned revision and reports the one the registry declares for
@@ -107,11 +104,11 @@ itself. The two are recorded separately: a revision the caller cited and one the
 claimed about itself are different facts.}
 }
 \value{
-A list carrying `variants`, one per combination with its label, its value and
-  the reason it declined when it did, and the summary the sweep computed over them:
-  `minimum`, `maximum`, `median`, `spread_absolute`, `spread_percent_of_median`, and
-  `succeeded` and `failed` beside the count that was requested. A sweep over one
-  combination carries no `spread_absolute`, because one number holds no disagreement.
+A list carrying \code{variants}, one per combination with its label, its value and
+the reason it declined when it did, and the summary the sweep computed over them:
+\code{minimum}, \code{maximum}, \code{median}, \code{spread_absolute}, \code{spread_percent_of_median}, and
+\code{succeeded} and \code{failed} beside the count that was requested. A sweep over one
+combination carries no \code{spread_absolute}, because one number holds no disagreement.
 }
 \description{
 Sweeps a step's alternatives on one trial and reports the spread over them.

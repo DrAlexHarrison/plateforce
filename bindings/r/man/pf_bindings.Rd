@@ -8,8 +8,8 @@ pf_bindings()
 }
 \value{
 A data frame with one row per rule, carrying the registry id it binds, the slot
-  it fills, the construct it computes, and the entry it composes an operator onto when
-  it does.
+it fills, the construct it computes, and the entry it composes an operator onto when
+it does.
 }
 \description{
 The rules available for each step

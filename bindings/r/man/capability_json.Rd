@@ -9,12 +9,12 @@ capability_json(registry = NULL)
 \arguments{
 \item{registry}{Path to a registry directory, or NULL to describe the registry this
 package ships. Every rule's published values are read from it, so a manifest and an
-`analyse()` call resolving different registries would report values the other would
-refuse. Resolved through the same `registry_root()` both use.}
+\code{analyse()} call resolving different registries would report values the other would
+refuse. Resolved through the same \code{registry_root()} both use.}
 }
 \value{
 A single JSON string with sorted keys and no spacing, so a comparison against
-  another surface is a plain diff.
+another surface is a plain diff.
 }
 \description{
 Every method available, the operations this package dispatches, the container formats it

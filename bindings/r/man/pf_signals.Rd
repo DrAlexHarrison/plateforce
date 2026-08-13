@@ -7,7 +7,7 @@
 pf_signals(x)
 }
 \arguments{
-\item{x}{A `countermovement_jump`.}
+\item{x}{A \code{countermovement_jump}.}
 }
 \value{
 A list of signals.

@@ -29,7 +29,7 @@ analyse_countermovement_jump(
 )
 }
 \arguments{
-\item{trial}{A [trial].}
+\item{trial}{A \code{trial}, as returned by \code{\link[=pf_trial]{pf_trial()}} or \code{\link[=pf_read_force_file]{pf_read_force_file()}}.}
 
 \item{weighing}{Registry id of the rule that establishes system weight.}
 
@@ -61,20 +61,18 @@ hand. An override is a fact about what produced the number, so it travels in the
 record rather than replacing it.}
 
 \item{derived}{Rules for constructs computed from the landmarks, named by the construct
-id the registry declares: `list(analysis_window = "window_end.takeoff.detected",
-peak_force = "force.peak.gross")`. A rule that takes values is written
-`list(peak_force = list(method_id = "force.peak.estimator",
-parameters = list(averaging_window_seconds = 0.1)))`. A rule that reads what another
+id the registry declares: \code{list(analysis_window = "window_end.takeoff.detected", peak_force = "force.peak.gross")}. A rule that takes values is written
+\code{list(peak_force = list(method_id = "force.peak.estimator", parameters = list(averaging_window_seconds = 0.1)))}. A rule that reads what another
 one placed declines by name when that construct was not named.}
 
 \item{conditioning}{Rules and values for the phase that conditions the signal before the
 landmarks are placed, named by the construct id the registry declares:
-`list(conditioned_force_signal = "filter.none")`. Values are written
-`list(conditioned_force_signal = list(options = list(passband_edge = "none")))`, with the
+\code{list(conditioned_force_signal = "filter.none")}. Values are written
+\code{list(conditioned_force_signal = list(options = list(passband_edge = "none")))}, with the
 rule left out where the phase's own is wanted. The phase runs whether or not this is
 passed, so what it buys is the record naming the caller rather than the software.}
 
-\item{registry}{Directory holding the registry, as in [pf_registry()].}
+\item{registry}{Directory holding the registry, as in \code{\link[=pf_registry]{pf_registry()}}.}
 
 \item{registry_version}{The revision of the registry data to cite in the result. Absent,
 the result names no pinned revision and reports the one the registry declares for
@@ -82,7 +80,7 @@ itself. The two are recorded separately: a revision the caller cited and one the
 claimed about itself are different facts.}
 }
 \value{
-A [countermovement_jump].
+A \code{countermovement_jump}. Read one quantity out of it with \code{\link[=pf_value]{pf_value()}}.
 }
 \description{
 Three landmark rules are named by their registry identifiers, and every parameter each

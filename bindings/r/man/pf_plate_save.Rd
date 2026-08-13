@@ -7,9 +7,9 @@
 pf_plate_save(name, acquisition = NULL, plates_folder = NULL)
 }
 \arguments{
-\item{name}{What to call this plate. Letters, digits, `-` and `_`.}
+\item{name}{What to call this plate. Letters, digits, \code{-} and \verb{_}.}
 
-\item{acquisition}{What the plate and its settings were, from [pf_acquisition()].}
+\item{acquisition}{What the plate and its settings were, from \code{\link[=pf_acquisition]{pf_acquisition()}}.}
 
 \item{plates_folder}{Keep saved plates here rather than beside this machine's other
 settings. A plate saved under a named folder travels with a dataset; one saved without
@@ -17,8 +17,8 @@ travels with the person.}
 }
 \value{
 A list carrying the plate, its revision, where it is filed, the block it holds and
-  the members still to answer, with `replaced_revision` and `replaced_members` where a
-  plate of that name was already saved.
+the members still to answer, with \code{replaced_revision} and \code{replaced_members} where a
+plate of that name was already saved.
 }
 \description{
 Answers five questions once instead of at every analysis. A run told about a saved plate
@@ -27,8 +27,8 @@ answers came off.
 }
 \details{
 Saving over a name changes what later runs are told. The revision that was there before
-comes back in `replaced_revision`, and each member whose answer moved in
-`replaced_members`, because a result recorded earlier rests on answers this machine no
+comes back in \code{replaced_revision}, and each member whose answer moved in
+\code{replaced_members}, because a result recorded earlier rests on answers this machine no
 longer holds.
 }
 \examples{

@@ -5,7 +5,7 @@ NULL
 #'
 #' Sweeps a step's alternatives on one trial and reports the spread over them.
 #'
-#' @param trial A [trial].
+#' @param trial A `trial`, as returned by [pf_trial()] or [pf_read_force_file()].
 #' @param quantity The engine's name for the quantity to sweep, for example
 #'   `"jump_height_from_takeoff_meters"`.
 #' @param slot One step whose rule is swept, or several. Several sweeps every combination of

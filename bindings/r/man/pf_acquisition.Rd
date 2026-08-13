@@ -25,7 +25,7 @@ which no later filtering undoes.}
 \item{firmware_version}{The plate firmware that wrote the trace.}
 }
 \value{
-A named list, for [pf_trial()] and [pf_read_force_file()].
+A named list, for \code{\link[=pf_trial]{pf_trial()}} and \code{\link[=pf_read_force_file]{pf_read_force_file()}}.
 }
 \description{
 Five facts about the capture that no reanalysis recovers. A block missing any of them
@@ -33,8 +33,8 @@ fingerprints as incomplete, so results from that trial are never declared to mat
 another lab's.
 }
 \details{
-`sample_rate_hz` is the sixth member of the block and belongs to the trial, so it is
-stated in [pf_trial()] rather than here.
+\code{sample_rate_hz} is the sixth member of the block and belongs to the trial, so it is
+stated in \code{\link[=pf_trial]{pf_trial()}} rather than here.
 }
 \examples{
 partial <- pf_acquisition(tare_state = "tared_before_trial")

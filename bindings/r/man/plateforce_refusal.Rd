@@ -10,12 +10,12 @@ was available instead, so a caller branches on the fields rather than parsing a
 sentence.
 }
 \details{
-The class vector is `c("plateforce_<code>", "plateforce_refusal", "plateforce_error")`,
-so `tryCatch` handles one code or every refusal.
+The class vector is \code{c("plateforce_<code>", "plateforce_refusal", "plateforce_error")},
+so \code{tryCatch} handles one code or every refusal.
 
-Read the fields with `[[`. `cnd$method` returns the value of `method_id` on a plain
-condition, silently, because `$` partial matches on a list, so this package defines
-`$` on a refusal to require the whole name.
+Read the fields with \code{[[}. \code{cnd$method} returns the value of \code{method_id} on a plain
+condition, silently, because \code{$} partial matches on a list, so this package defines
+\code{$} on a refusal to require the whole name.
 }
 \examples{
 standing <- pf_trial(rep(700, 1200), sample_rate_hz = 1200)
