@@ -21,6 +21,11 @@ use serde::Serialize;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct UnresolvedDecision {
     pub construct: String,
+    /// The field's words for the quantity, read off the registry entry with the same
+    /// preference every surface applies: label, else title, else the id. The sentence below
+    /// is built from this, so a reader met by a panel naming the quantity one way is not
+    /// met by a message naming it another.
+    pub title: String,
     /// The entries on this construct that force a decision.
     pub forcing_entries: Vec<String>,
     /// What could be bound instead, so a caller prints candidates without a second query.
@@ -31,7 +36,7 @@ impl UnresolvedDecision {
     pub fn message(&self) -> String {
         format!(
             "{} is still to be chosen, and {} of {} published rules for it force the choice",
-            self.construct,
+            self.title,
             self.forcing_entries.len(),
             self.published_alternatives.len()
         )
@@ -68,8 +73,13 @@ pub fn unresolved(
         if !forcing_entries.is_empty() {
             forcing_entries.sort();
             published_alternatives.sort();
+            let words = registry
+                .constructs
+                .get(*construct)
+                .map(|entry| entry.label.clone().unwrap_or_else(|| entry.title.clone()));
             open.push(UnresolvedDecision {
                 construct: (*construct).to_string(),
+                title: words.unwrap_or_else(|| (*construct).to_string()),
                 forcing_entries,
                 published_alternatives,
             });
@@ -223,6 +233,25 @@ mod tests {
         assert_eq!(open[0].forcing_entries.len(), 6);
         assert_eq!(open[1].construct, "movement_onset");
         assert_eq!(open[1].forcing_entries.len(), 3);
+    }
+
+    /// The sentence speaks the field's words for the quantity, never the identifier: a
+    /// reader met by a panel naming the choice in English is not sent to settle a row named
+    /// by a dotted id in the same breath.
+    #[test]
+    fn the_refusal_sentence_speaks_the_fields_words_and_not_the_id() {
+        let registry = registry();
+        let open = unresolved(&registry, &["movement_onset"], &BTreeSet::new());
+        assert_eq!(open.len(), 1);
+        let sentence = open[0].message();
+        println!("{sentence}");
+        assert!(
+            !sentence.contains("movement_onset"),
+            "the identifier reached the reader: {sentence}"
+        );
+        let entry = registry.constructs.get("movement_onset").unwrap();
+        let words = entry.label.clone().unwrap_or_else(|| entry.title.clone());
+        assert!(sentence.starts_with(&words), "{sentence}");
     }
 
     #[test]

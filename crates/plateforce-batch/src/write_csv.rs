@@ -98,10 +98,7 @@ impl BatchResult {
         let mut written = Vec::new();
         written.push(self.write_one(directory, Relation::Run)?);
         for relation in relations {
-            if *relation == Relation::Run {
-                continue;
-            }
-            if *relation == Relation::Aggregates && self.aggregates.is_empty() {
+            if *relation == Relation::Run || !self.writes(relation) {
                 continue;
             }
             written.push(self.write_one(directory, *relation)?);
@@ -109,9 +106,27 @@ impl BatchResult {
         Ok(written)
     }
 
+    /// Whether this result puts a relation on disk. One rule for the directory and the
+    /// archive, so the two cannot come to hold different file sets for one run.
+    pub(crate) fn writes(&self, relation: &Relation) -> bool {
+        *relation != Relation::Aggregates || !self.aggregates.is_empty()
+    }
+
     fn write_one(&self, directory: &Path, relation: Relation) -> Result<PathBuf, WriteRefusal> {
         let path = directory.join(relation.file_name());
-        let body = match relation {
+        let body = self.relation_text(relation);
+        std::fs::write(&path, body).map_err(|source| WriteRefusal::Io {
+            path: path.display().to_string(),
+            source,
+        })?;
+        Ok(path)
+    }
+
+    /// The bytes one relation holds, exactly as `write_csv` puts them on disk. The archive a
+    /// browser downloads is built from these, so the tab's file and the terminal's file are
+    /// one rendering rather than two.
+    pub fn relation_text(&self, relation: Relation) -> String {
+        match relation {
             Relation::Run => serde_json::to_string_pretty(&self.run).unwrap_or_default(),
             Relation::Results => render_table(
                 ResultRow::header(&self.quantities),
@@ -150,12 +165,7 @@ impl BatchResult {
                 AggregateRow::header(),
                 self.aggregates.iter().map(AggregateRow::cells),
             ),
-        };
-        std::fs::write(&path, body).map_err(|source| WriteRefusal::Io {
-            path: path.display().to_string(),
-            source,
-        })?;
-        Ok(path)
+        }
     }
 }
 

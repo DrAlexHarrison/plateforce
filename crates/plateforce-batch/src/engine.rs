@@ -747,7 +747,7 @@ pub fn analyse(
         gates_applied: request.gates.applied_count(),
         distinct_provenance_count: provenance_ids.len(),
         trial_identity: set.identity.describe(),
-        delimiter: set.format.delimiter.to_string(),
+        delimiter: set.format.delimiter.label(),
         force_column_index: set.format.force_column_index,
         sample_rate_hz: set.format.sample_rate_hz,
         sentinel: set

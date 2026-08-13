@@ -10,7 +10,7 @@ use plateforce_batch::{Session, SourceFormat, TrialIdentity, TrialSet};
 
 fn committed_format() -> SourceFormat {
     SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["force.txt".to_string()],
@@ -70,7 +70,7 @@ fn reads_every_committed_fixture() {
 #[test]
 fn a_declared_pattern_parses_what_the_conformance_crate_parses() {
     let format = SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
@@ -113,7 +113,7 @@ fn a_declared_pattern_parses_what_the_conformance_crate_parses() {
 #[test]
 fn a_file_the_pattern_does_not_match_is_refused_by_name_rather_than_skipped() {
     let format = SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
@@ -223,7 +223,7 @@ fn grouping_by_subject_is_unavailable_when_no_pattern_was_declared() {
 #[test]
 fn a_declared_pattern_groups_one_subjects_trials_from_one_occasion() {
     let format = SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],
@@ -254,7 +254,7 @@ fn a_declared_pattern_groups_one_subjects_trials_from_one_occasion() {
 #[test]
 fn a_run_that_declares_no_trial_names_is_refused_rather_than_given_a_default() {
     let format = SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: Vec::new(),

@@ -3034,6 +3034,7 @@
         }
       ],
       "output_formats": [
+        "csv",
         "json"
       ],
       "plateforce_version": "0.1.0",

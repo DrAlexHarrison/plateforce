@@ -238,16 +238,24 @@ fn a_run_with_a_choice_still_open_reads_no_trial_at_all() {
         2,
         "two of three constructs force one"
     );
-    assert!(
-        refusal.message.contains("system_weight"),
-        "{}",
-        refusal.message
-    );
-    assert!(
-        refusal.message.contains("movement_onset"),
-        "{}",
-        refusal.message
-    );
+    // The words rather than the wording: each open choice reaches the reader under the
+    // field's name for the quantity, and its identifier reaches them nowhere. Pinning the
+    // sentence itself made a copy improvement read as an engine fault.
+    for open in &refusal.unresolved {
+        assert!(
+            refusal.message.contains(&open.title),
+            "the message does not name '{}': {}",
+            open.title,
+            refusal.message
+        );
+        assert!(
+            !refusal.message.contains(&open.construct),
+            "the identifier '{}' reached the reader: {}",
+            open.construct,
+            refusal.message
+        );
+        assert_ne!(open.title, open.construct, "the words are the id");
+    }
     assert!(
         refusal
             .unresolved

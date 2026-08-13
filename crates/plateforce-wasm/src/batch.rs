@@ -177,6 +177,23 @@ pub fn batch_document(request_json: &str) -> Result<String, String> {
     Ok(plateforce_batch::envelope(&Ok(reduced)))
 }
 
+/// The relation set the terminal writes beside a run, as one archive for the tab to save.
+///
+/// Rendered by the disk writer's own renderer from the envelope the tab is holding, so the
+/// file a reader saves from the page and the folder the terminal writes are one rendering.
+/// A refusal envelope holds no relations, and is refused here in the record's own words.
+#[wasm_bindgen(js_name = batchArchive)]
+pub fn batch_archive(envelope_json: &str) -> Result<Vec<u8>, JsError> {
+    archive_document(envelope_json).map_err(|message| JsError::new(&message))
+}
+
+/// The same archive, answering with the sentence rather than the exception, so the route
+/// from envelope to bytes runs off a wasm target too.
+pub fn archive_document(envelope_json: &str) -> Result<Vec<u8>, String> {
+    let result = plateforce_batch::BatchResult::from_json(envelope_json)?;
+    Ok(result.zip_archive())
+}
+
 /// What a run walked, so a page over ten seconds fills in counts rather than spinning.
 #[wasm_bindgen(js_name = batchCoverage)]
 pub fn batch_coverage(request_json: &str) -> Result<String, JsError> {

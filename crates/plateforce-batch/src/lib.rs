@@ -18,6 +18,7 @@ pub mod relations;
 pub mod render;
 pub mod sweep;
 pub mod synthetic;
+pub mod write_archive;
 pub mod write_csv;
 pub mod write_json;
 #[cfg(feature = "parquet")]
@@ -46,5 +47,6 @@ pub use relations::{
 };
 pub use render::{Rendered, Rendering};
 pub use sweep::{axis_over, binds, SweepRefusal};
+pub use write_archive::read_archive;
 pub use write_csv::{read_csv, Relation, WriteRefusal, EVERY_RELATION};
 pub use write_json::envelope;

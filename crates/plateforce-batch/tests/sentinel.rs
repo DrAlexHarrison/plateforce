@@ -43,7 +43,7 @@ fn trace_with_missing_samples(directory: &std::path::Path) -> usize {
 
 fn format_declaring(sentinel: Option<f64>) -> SourceFormat {
     SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["force.txt".to_string()],

@@ -90,15 +90,15 @@ pub fn request_digest(
         "weighing": {
             "method_id": weighing_id,
             "start_index": start_index,
-            "parameters": weighing_parameters,
-            "options": weighing_options,
+            "parameters": without_registry_defaults(weighing_parameters, weighing_from_registry_default),
+            "options": without_registry_defaults(weighing_options, weighing_from_registry_default),
             "recommended": weighing_recommended,
             "method_from_recommendation": weighing_method_from_recommendation,
             // Pinned for the reason the line above is: a rule the caller picked and one the
             // registry declared for a construct nobody named run the same arithmetic and
             // leave two different records.
             "method_from_registry_default": weighing_method_from_registry_default,
-            "from_registry_default": weighing_from_registry_default,
+            "from_registry_default": BTreeSet::<String>::new(),
             "cited": weighing_cited,
             "preset": weighing_preset,
         },
@@ -149,16 +149,33 @@ fn method_choice(choice: &MethodChoice) -> Value {
     } = choice;
     json!({
         "method_id": method_id,
-        "parameters": parameters,
-        "options": options,
+        "parameters": without_registry_defaults(parameters, from_registry_default),
+        "options": without_registry_defaults(options, from_registry_default),
         "recommended": recommended,
         "method_from_recommendation": method_from_recommendation,
         "method_from_registry_default": method_from_registry_default,
-        "from_registry_default": from_registry_default,
+        "from_registry_default": BTreeSet::<String>::new(),
         "cited": cited,
         "preset": preset,
         "manual_index": manual_index,
     })
+}
+
+/// A value that arrived from the registry with nobody asked has two wire spellings: an
+/// entry named in `from_registry_default`, which is how a picker that displays the value
+/// sends it, or no entry at all, which is how a terminal that never mentions it does. One
+/// claim, so the digest reads one spelling, absence, and the set itself is hashed empty to
+/// keep the digest of an absence-spelled request what it was. Identical acts on two
+/// surfaces must not digest apart over how each spells not-asking.
+fn without_registry_defaults<V: Clone + serde::Serialize>(
+    values: &BTreeMap<String, V>,
+    from_registry_default: &BTreeSet<String>,
+) -> BTreeMap<String, V> {
+    values
+        .iter()
+        .filter(|(name, _)| !from_registry_default.contains(*name))
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect()
 }
 
 /// The run's own identity: everything in the `run` row except this field, plus the distinct
@@ -262,6 +279,48 @@ mod tests {
         let id = provenance_id(&[row("onset.a", "5")]);
         assert!(id.starts_with("content-"), "{id}");
         assert_eq!(id.len(), "content-".len() + 16);
+    }
+
+    /// A default spelled as a marked entry and a default spelled by absence are one claim,
+    /// and the same value stated is a different one. The browser sends the first spelling
+    /// and the terminal the second, so without this the two surfaces digest one run apart.
+    #[test]
+    fn a_default_spelled_as_an_entry_digests_as_the_default_spelled_by_absence() {
+        let of = |request: &AnalysisRequest| request_digest(request, None, &BTreeMap::new());
+
+        let mut by_absence = AnalysisRequest::default();
+        by_absence.onset.parameters.insert("k".to_string(), 5.0);
+
+        let mut by_entry = by_absence.clone();
+        by_entry
+            .onset
+            .parameters
+            .insert("window_seconds".to_string(), 1.0);
+        by_entry
+            .onset
+            .from_registry_default
+            .insert("window_seconds".to_string());
+        assert_eq!(of(&by_absence), of(&by_entry));
+
+        let mut stated = by_absence.clone();
+        stated
+            .onset
+            .parameters
+            .insert("window_seconds".to_string(), 1.0);
+        assert_ne!(of(&by_absence), of(&stated));
+
+        // The same collapse on the request's own weighing arm, which is destructured
+        // separately from the other slots and could drift from them.
+        let mut weighing_by_entry = by_absence.clone();
+        weighing_by_entry
+            .weighing
+            .options
+            .insert("centre".to_string(), "mean".to_string());
+        weighing_by_entry
+            .weighing
+            .from_registry_default
+            .insert("centre".to_string());
+        assert_eq!(of(&by_absence), of(&weighing_by_entry));
     }
 
     /// A filled acquisition block, so the comparisons below are over the digest.

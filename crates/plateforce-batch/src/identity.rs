@@ -7,6 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use plateforce_core::read::FieldSeparator;
 use plateforce_core::signal::{trial_from_column, ReportedSamples, Sentinel};
 use plateforce_core::{read_delimited_column, ColumnReadReport, ReadError, Trial};
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct SourceFormat {
-    pub delimiter: char,
+    /// How a row is split into fields: a character, runs of whitespace, or not at all for
+    /// a row holding one value. Spelled on the wire as the character itself, the word
+    /// `whitespace`, or the empty string, so a request stays one string field.
+    #[serde(with = "separator_wire")]
+    pub delimiter: FieldSeparator,
     pub force_column_index: usize,
     pub sample_rate_hz: f64,
     /// The value this export writes where a sample is missing. `None` is the statement that
@@ -32,6 +37,41 @@ pub struct SourceFormat {
     /// filtered silently would drop files out of the denominator with nothing recording it,
     /// and a walk that did not filter would refuse a README and call that a data failure.
     pub trial_file_suffixes: Vec<String>,
+}
+
+/// One string field either way, so the request a tab sends and the record a run writes
+/// keep the shapes they had when the separator could only be a character.
+mod separator_wire {
+    use plateforce_core::read::FieldSeparator;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(
+        separator: &FieldSeparator,
+        target: S,
+    ) -> Result<S::Ok, S::Error> {
+        let written = match separator {
+            FieldSeparator::Character(character) => character.to_string(),
+            FieldSeparator::Whitespace => "whitespace".to_string(),
+            FieldSeparator::WholeRow => String::new(),
+        };
+        target.serialize_str(&written)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(source: D) -> Result<FieldSeparator, D::Error> {
+        let written = String::deserialize(source)?;
+        if written == "whitespace" {
+            return Ok(FieldSeparator::Whitespace);
+        }
+        let mut characters = written.chars();
+        match (characters.next(), characters.next()) {
+            (None, _) => Ok(FieldSeparator::WholeRow),
+            (Some(only), None) => Ok(only.into()),
+            _ => Err(serde::de::Error::custom(format!(
+                "a separator is one character, the word whitespace, or empty for a row \
+                 holding one value, and this run named {written:?}"
+            ))),
+        }
+    }
 }
 
 impl SourceFormat {
@@ -587,7 +627,7 @@ mod tests {
     #[test]
     fn the_longest_declared_suffix_names_the_stem() {
         let format = SourceFormat {
-            delimiter: '\t',
+            delimiter: '\t'.into(),
             force_column_index: 0,
             sample_rate_hz: 1200.0,
             trial_file_suffixes: vec!["txt".to_string(), "force.txt".to_string()],

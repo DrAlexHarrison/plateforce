@@ -2,7 +2,8 @@
 //!
 //! The browser build runs the same compiled logic as the desktop, so nothing in this
 //! crate computes a quantity and nothing here decides a method. It reads files, holds a
-//! trial, forwards to `plateforce_analysis`, and hands back JSON.
+//! trial, forwards to `plateforce_analysis`, and hands back JSON, plus one byte archive of
+//! the tables the disk writer writes.
 //!
 //! The boundary is JSON strings rather than a structural bridge. That holds the
 //! dependency tree at wasm-bindgen and serde, and no payload in this project is large
@@ -182,6 +183,9 @@ fn operations_named(export: &str) -> Option<&'static [Operation]> {
         // can reach through that name.
         "batchJson" => Some(&[Operation::Batch, Operation::Aggregate]),
         "batchCoverage" => Some(&[Operation::Batch]),
+        // Rendering a result the run already produced, which is a container the manifest
+        // claims in `output_formats` rather than an operation of its own.
+        "batchArchive" => Some(&[]),
         "capabilityJson" => Some(&[Operation::Capability]),
         // One call answers all three: it returns the census, every entry in full, and
         // whether the registry it was compiled against passes its own validator.
@@ -207,6 +211,7 @@ fn operations_named(export: &str) -> Option<&'static [Operation]> {
 const EXPORTS: &[&str] = &[
     "adoptPreset",
     "analyse",
+    "batchArchive",
     "batchCoverage",
     "batchJson",
     "buildInfoJson",
@@ -249,7 +254,7 @@ pub fn capability_json() -> Result<String, JsError> {
     let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
     replied(&capability(
         &operations,
-        &[OutputFormat::Json],
+        &[OutputFormat::Csv, OutputFormat::Json],
         ACQUISITION_INTAKE,
         &loaded.registry,
     ))
@@ -820,14 +825,24 @@ mod tests {
         assert!(manifest.contains("\"stated_by_caller\":"), "{manifest}");
     }
 
-    /// JSON strings are the whole boundary of this crate, so a container format arriving
-    /// here without a writer behind it would be a claim about nobody's code.
+    /// Each container the manifest claims has a writer behind it: JSON is the boundary's
+    /// own shape, and CSV is `batchArchive`, which hands back the disk writer's tables. A
+    /// format here without a writer would be a claim about nobody's code.
     #[test]
-    fn the_only_container_the_tab_writes_is_json() {
+    fn the_containers_the_tab_claims_are_the_containers_it_writes() {
         let manifest = capability_json().expect("the manifest serialises");
         assert!(
-            manifest.contains("\"output_formats\":[\"json\"]"),
+            manifest.contains("\"output_formats\":[\"csv\",\"json\"]"),
             "{manifest}"
         );
+    }
+
+    /// The envelope of a run that refused holds no relations, and the archive says so in
+    /// the record's own words rather than downloading an empty table set.
+    #[test]
+    fn a_refusal_envelope_archives_to_the_refusals_own_words() {
+        let declined = crate::batch::archive_document(r#"{"refusal":{"code":"x","message":"m"}}"#)
+            .expect_err("a refusal holds nothing to archive");
+        assert!(declined.contains("refusal"), "{declined}");
     }
 }

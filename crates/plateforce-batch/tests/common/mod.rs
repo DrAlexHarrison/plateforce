@@ -25,7 +25,7 @@ pub fn registry() -> Registry {
 /// so the column index is declared per run rather than defaulted.
 pub fn committed_format() -> SourceFormat {
     SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["force.txt".to_string()],
@@ -35,7 +35,7 @@ pub fn committed_format() -> SourceFormat {
 
 pub fn synthetic_format() -> SourceFormat {
     SourceFormat {
-        delimiter: '\t',
+        delimiter: '\t'.into(),
         force_column_index: 0,
         sample_rate_hz: 1200.0,
         trial_file_suffixes: vec!["txt".to_string()],

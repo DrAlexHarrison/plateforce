@@ -292,7 +292,7 @@ fn the_batch_reader_hands_back_the_trace_the_file_wrote() {
 
     for declared in [None, Some(0.0)] {
         let format = SourceFormat {
-            delimiter: '\t',
+            delimiter: '\t'.into(),
             force_column_index: 0,
             sample_rate_hz: SAMPLE_RATE_HZ,
             trial_file_suffixes: vec!["force.txt".to_string()],
