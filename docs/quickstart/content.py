@@ -237,9 +237,7 @@ manager. Take the one your machine runs:
 | Linux, x86-64 | `plateforce-x86_64-linux-static` |
 | Linux, arm64 | `plateforce-aarch64-linux-static` |
 
-On macOS and Linux, fetching it at the terminal is the smoothest route, because a file
-downloaded with `curl` carries no quarantine attribute and nothing asks you to approve it.
-On macOS:
+On macOS and Linux, fetching it at the terminal is the quickest route. On macOS:
 
 ```
 curl -LO {RELEASES}/latest/download/plateforce-universal-macos
@@ -255,8 +253,9 @@ chmod +x plateforce-x86_64-linux-static
 ./plateforce-x86_64-linux-static version
 ```
 
-If you downloaded it in a browser instead, macOS refuses to run it until you clear that
-attribute once:
+A copy downloaded in a browser opens as well. macOS checks it with Apple the first time it
+runs, so that first run needs a network connection. On a machine that has none, clear the
+download attribute once:
 
 ```
 xattr -d com.apple.quarantine plateforce-universal-macos
@@ -276,8 +275,7 @@ this guide can say `plateforce` instead of the whole name.
 Take `plateforce-universal-macos` from [the releases page]({RELEASES}). One file, no
 installer, no compiler, no package manager, and it runs on both Apple Silicon and Intel.
 
-Fetch it at the terminal rather than in a browser. A file downloaded with `curl` carries no
-quarantine attribute, so nothing asks you to approve it:
+Fetching it at the terminal is the quickest route:
 
 ```
 curl -LO {RELEASES}/latest/download/plateforce-universal-macos
@@ -285,8 +283,9 @@ chmod +x plateforce-universal-macos
 ./plateforce-universal-macos version
 ```
 
-If you already downloaded it in a browser, macOS refuses to run it until you clear that
-attribute once:
+A copy downloaded in a browser opens as well. macOS checks it with Apple the first time it
+runs, so that first run needs a network connection. On a machine that has none, clear the
+download attribute once:
 
 ```
 xattr -d com.apple.quarantine plateforce-universal-macos
