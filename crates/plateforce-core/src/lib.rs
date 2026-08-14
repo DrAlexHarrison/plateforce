@@ -64,7 +64,7 @@ pub use trial::{
     drop_touchdown_velocity_meters_per_second, flight_time_seconds, heel_rise_constant_meters,
     jump_height_from_flight_time, jump_height_from_flight_time_with_landing_offset,
     jump_height_from_takeoff_velocity, landing_below_takeoff_from_ankle_angles_meters,
-    reactive_strength_index_modified, takeoff_velocity_integration_spec,
+    reactive_strength_index_modified, return_to_the_plate, takeoff_velocity_integration_spec,
     takeoff_velocity_meters_per_second, time_to_takeoff_seconds, AnkleToToeSegment,
     CentralTendency, Landmarks, WeighingEpoch,
 };

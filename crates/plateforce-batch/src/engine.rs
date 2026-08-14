@@ -144,6 +144,11 @@ pub struct Coverage {
     pub computed: usize,
     pub refused: usize,
     pub excluded: usize,
+    /// Rows carrying a code for a quantity they have no number for, which is every refused
+    /// trial plus every trial that answered some quantities and declined others. Reported
+    /// beside the two rather than folded into either: a trial that produced nine numbers is
+    /// not a refused trial, and a reader counting codes in the file gets this number.
+    pub carrying_a_refusal_code: usize,
 }
 
 impl Coverage {
@@ -156,7 +161,7 @@ impl Coverage {
     /// six trials instead of 244 succeeds the same way.
     pub fn line(&self) -> String {
         format!(
-            "{}, {} of {} named, results {} of {} trials, computed {} of {}, refused {} of {}, excluded {} of {}",
+            "{}, {} of {} named, results {} of {} trials, computed {} of {}, refused {} of {}, excluded {} of {}, a refusal code on {} of {}",
             files_line(self.files_found, self.files_without_declared_suffix),
             self.trial_count,
             self.files_found,
@@ -171,6 +176,10 @@ impl Coverage {
             // are the ones that got that far. Counting against every trial reports a share of a
             // population the gate never saw.
             self.computed,
+            self.carrying_a_refusal_code,
+            // Against the rows written rather than the trials named, because it is a count of
+            // cells in the file and an unwritten row carries none.
+            self.results_written,
         )
     }
 }
@@ -228,10 +237,27 @@ impl BatchResult {
             .collect();
         self.results
             .iter()
-            .filter(|row| row.refusal_code.is_empty() && !removed.contains(row.trial_id.as_str()))
+            // A trial that produced numbers, which is what an identifier on the row means. Read
+            // off `refusal_code`, this dropped every trial that answered nine quantities and
+            // declined two, because such a row now carries the codes for the two.
+            .filter(|row| {
+                !row.provenance_id.is_empty() && !removed.contains(row.trial_id.as_str())
+            })
             .map(|row| row.trial_id.clone())
             .collect()
     }
+}
+
+/// Rows whose absent quantities are accounted for by a code.
+///
+/// Counted off the rows rather than tallied beside them, and read by the coverage line and by
+/// a result rebuilt from its envelope, so the sentence a reader is shown and the file they
+/// open answer with one number.
+pub(crate) fn rows_carrying_a_refusal_code(results: &[ResultRow]) -> usize {
+    results
+        .iter()
+        .filter(|row| !row.refusal_code.is_empty())
+        .count()
 }
 
 /// The constructs a jump-height request walks, read from the binding layer rather than
@@ -499,6 +525,10 @@ pub fn analyse(
                     trial_id: trial_id.clone(),
                     ordinal: ordinal(&refusals),
                     code: code.to_string(),
+                    // A file that could not be read reached no rule, so every column is absent
+                    // and none of them is this row's to name. The row's own `refusal_code`
+                    // carries the code for all of them.
+                    quantity: String::new(),
                     method_id: String::new(),
                     slot: String::new(),
                     parameter: String::new(),
@@ -538,9 +568,14 @@ pub fn analyse(
 
         // A landmark that declined while other numbers computed is the partial state, so the
         // trial carries values and one refusal row per decline at once.
+        let declines_start_at = refusals.len();
         for declined in &response.refusals {
             refusals.push(rule_refusal_row(trial_id, ordinal(&refusals), declined));
         }
+        // The codes this trial's blank cells are accounted for by, read off the rows just
+        // written rather than off the responses they came from, so the cell on the results row
+        // and the rows in `refusals` cannot name different codes.
+        let refusal_code = codes_of(&refusals[declines_start_at..]);
         for (index, sentence) in response.warnings.iter().enumerate() {
             warnings.push(WarningRow {
                 trial_id: trial_id.clone(),
@@ -647,7 +682,7 @@ pub fn analyse(
             subject: subject_of(entry),
             source_path,
             provenance_id: identifier,
-            refusal_code: String::new(),
+            refusal_code,
             values,
         });
         computed += 1;
@@ -662,6 +697,8 @@ pub fn analyse(
             units.insert(key.to_string(), unit.to_string());
         }
     }
+
+    let descriptions = describing_the_absent(&results, &quantities, &descriptions, &refusals);
 
     let excluded = exclusions
         .iter()
@@ -679,6 +716,7 @@ pub fn analyse(
         computed,
         refused,
         excluded,
+        carrying_a_refusal_code: rows_carrying_a_refusal_code(&results),
     };
     let provenance_ids: BTreeSet<String> = provenance.keys().cloned().collect();
     let mut flattened: Vec<ProvenanceRow> = provenance.into_values().flatten().collect();
@@ -784,6 +822,86 @@ pub fn analyse(
     })
 }
 
+/// One row per trial per quantity, with the quantities a trial has no number for filled in.
+///
+/// A rule that declined reported no metric at all, so the account writer had nothing to
+/// describe and the row was absent from this relation rather than present and empty. The table
+/// is the one a cohort question is filtered over, so a reader filtering it by quantity got
+/// three trials of six with nothing saying the other three existed, and `DescriptionRow::value`
+/// is `Option<f64>` for a case that never arrived.
+///
+/// The account is the sentence the refusal already generated. That is the one home for why a
+/// number is absent, as `describe` is the one home for the account of a number that exists, so
+/// nothing here composes a second sentence about the same fact.
+///
+/// Rows the walk already wrote keep their place and their order. The filled-in rows follow the
+/// trial they belong to, so a reader meets a trial's quantities together and nothing that was
+/// in the table moved.
+fn describing_the_absent(
+    results: &[ResultRow],
+    quantities: &[String],
+    written: &[DescriptionRow],
+    refusals: &[RefusalRow],
+) -> Vec<DescriptionRow> {
+    let described: BTreeSet<(&str, &str)> = written
+        .iter()
+        .map(|row| (row.trial_id.as_str(), row.quantity.as_str()))
+        .collect();
+
+    let mut rows: Vec<DescriptionRow> = Vec::with_capacity(results.len() * quantities.len());
+    for result in results {
+        rows.extend(
+            written
+                .iter()
+                .filter(|row| row.trial_id == result.trial_id)
+                .cloned(),
+        );
+        for quantity in quantities {
+            if described.contains(&(result.trial_id.as_str(), quantity.as_str())) {
+                continue;
+            }
+            // A trial that produced nothing has one reason for every absent quantity, and its
+            // refusal names no column because no rule was reached. A trial that produced
+            // numbers is accounted for per column by the rule that declined.
+            let mine = refusals.iter().filter(|row| row.trial_id == result.trial_id);
+            let accounted_for = if result.provenance_id.is_empty() {
+                mine.clone().next()
+            } else {
+                mine.clone()
+                    .find(|row| row.quantity.split(',').any(|key| key == quantity))
+            };
+            rows.push(DescriptionRow {
+                trial_id: result.trial_id.clone(),
+                subject: result.subject.clone(),
+                quantity: quantity.clone(),
+                value: None,
+                method_id: accounted_for
+                    .map(|row| row.method_id.clone())
+                    .unwrap_or_default(),
+                provenance_id: result.provenance_id.clone(),
+                account: accounted_for
+                    .map(|row| row.message.clone())
+                    .unwrap_or_default(),
+            });
+        }
+    }
+    rows
+}
+
+/// The distinct codes a set of refusal rows was recorded under, in one cell.
+///
+/// Comma separated, as `available` on a refusal and `qualifies` on a signal already are. One
+/// trial can decline twice under two codes, and a cell naming whichever came last would send a
+/// reader to repair the wrong thing.
+fn codes_of(rows: &[RefusalRow]) -> String {
+    rows.iter()
+        .map(|row| row.code.as_str())
+        .collect::<BTreeSet<&str>>()
+        .into_iter()
+        .collect::<Vec<&str>>()
+        .join(",")
+}
+
 /// The athlete a walked trial belongs to, or empty where the run declared no pattern.
 ///
 /// One reading, so a refused row and a computed row cannot come to disagree about whose trial
@@ -817,6 +935,8 @@ pub(crate) fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> Refus
         trial_id: String::new(),
         ordinal,
         code: RefusalCode::TrialIdentityUnparsed.wire_name().to_string(),
+        // A file the identity could not name reached no rule, so it accounts for no column.
+        quantity: String::new(),
         method_id: String::new(),
         slot: String::new(),
         parameter: file.file_name.clone(),
@@ -847,6 +967,9 @@ pub(crate) fn refusal_row(trial_id: &str, ordinal: usize, refused: &Refusal) -> 
         trial_id: trial_id.to_string(),
         ordinal,
         code: refused.code.wire_name().to_string(),
+        // The columns this decline accounts for, so a blank cell in `results` joins to the row
+        // that explains it. Asked of the binding table rather than derived from the id here.
+        quantity: crate::derive::quantities_of_rule(&refused.method_id).join(","),
         method_id: refused.method_id.clone(),
         slot: refused.slot.clone().unwrap_or_default(),
         parameter: refused.parameter.clone().unwrap_or_default(),

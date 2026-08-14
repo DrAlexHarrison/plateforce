@@ -46,7 +46,7 @@ impl BatchResult {
         let results: Vec<crate::relations::ResultRow> =
             serde_json::from_value(read("results")).map_err(|error| error.to_string())?;
         Ok(Self {
-            coverage: coverage_of(&run, results.len()),
+            coverage: coverage_of(&run, &results),
             run,
             results,
             quantities: serde_json::from_value(read("quantities"))
@@ -78,19 +78,20 @@ impl BatchResult {
 
 /// The counts a read-back result reports, taken from the record it arrived with.
 ///
-/// Every one of them is on the `run` row, and `results_written` is the rows themselves. A
-/// result rebuilt with zeroes here reports a run that read nothing, which is a measurement
-/// nobody made.
-fn coverage_of(run: &RunRow, results_written: usize) -> Coverage {
+/// Every one of them is on the `run` row, and the two counts over the rows are taken over the
+/// rows themselves. A result rebuilt with zeroes here reports a run that read nothing, which
+/// is a measurement nobody made.
+fn coverage_of(run: &RunRow, results: &[crate::relations::ResultRow]) -> Coverage {
     Coverage {
         files_found: run.files_found,
         files_without_declared_suffix: run.files_without_declared_suffix,
         files_unidentified: run.files_unidentified,
         trial_count: run.trial_count,
-        results_written,
+        results_written: results.len(),
         computed: run.computed_count,
         refused: run.refusal_count,
         excluded: run.trials_excluded,
+        carrying_a_refusal_code: crate::engine::rows_carrying_a_refusal_code(results),
     }
 }
 

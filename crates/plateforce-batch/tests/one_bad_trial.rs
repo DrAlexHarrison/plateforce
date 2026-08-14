@@ -39,11 +39,14 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
     assert_eq!(result.coverage.trial_count, copied + 1);
     assert_eq!(result.coverage.computed, copied);
     assert_eq!(result.coverage.refused, 1);
+    // An identifier on the row is what says the trial produced numbers. `refusal_code` says
+    // something narrower, that a quantity on the row has none, and a trace that answered nine
+    // of eleven carries both.
     assert_eq!(
         result
             .results
             .iter()
-            .filter(|row| row.refusal_code.is_empty())
+            .filter(|row| !row.provenance_id.is_empty())
             .count(),
         copied,
         "every good trace carries values"
@@ -52,7 +55,7 @@ fn one_bad_trial_costs_one_row_and_the_run_continues() {
     let refused: Vec<&str> = result
         .results
         .iter()
-        .filter(|row| !row.refusal_code.is_empty())
+        .filter(|row| row.provenance_id.is_empty())
         .map(|row| row.trial_id.as_str())
         .collect();
     assert_eq!(refused, vec!["truncated"], "the bad trial fails by name");
@@ -154,8 +157,15 @@ fn a_trial_that_computed_and_declined_two_landmarks_carries_a_row_for_each() {
 
     assert!(computed > 0, "the trial produced numbers");
     assert!(
-        row.refusal_code.is_empty(),
+        !row.provenance_id.is_empty(),
         "so it is not a trial that produced nothing"
+    );
+    // And it says so on the row, not only in the relation beside it. A reader averaging a
+    // column meets the blank cell here rather than in `refusals`. Both landmark rules found no
+    // crossing on a standing trial, so the cell carries that one code rather than a list.
+    assert_eq!(
+        row.refusal_code, "no_crossing",
+        "the row names the code its blank cells are accounted for by"
     );
     assert_eq!(
         declines,

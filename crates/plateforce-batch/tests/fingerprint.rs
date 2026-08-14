@@ -54,7 +54,7 @@ fn trials_that_produced_the_same_quantities_under_the_same_rules_share_one_chain
     let grouped: BTreeSet<usize> = result
         .results
         .iter()
-        .filter(|row| row.refusal_code.is_empty())
+        .filter(|row| !row.provenance_id.is_empty())
         .map(|row| row.values.values().filter(|value| value.is_some()).count())
         .collect();
     println!(
@@ -157,7 +157,7 @@ fn every_number_reaches_the_rules_that_produced_it() {
     let row = result
         .results
         .iter()
-        .find(|row| row.refusal_code.is_empty())
+        .find(|row| !row.provenance_id.is_empty())
         .expect("a trial computed");
     let chain: Vec<&ProvenanceRow> = result
         .provenance

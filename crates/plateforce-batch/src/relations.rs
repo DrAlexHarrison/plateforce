@@ -17,10 +17,21 @@ pub struct ResultRow {
     pub trial_id: String,
     /// Written as walked, and empty when a declared pattern already carries the subject.
     pub source_path: String,
-    /// Empty when the trial produced no numbers at all.
+    /// Empty when the trial produced no numbers at all, which is what tells a refused row from
+    /// a computed one. `refusal_code` below no longer answers that: a row carrying nine
+    /// numbers and two blanks carries a code too.
     pub provenance_id: String,
-    /// Set when the trial produced nothing. A trial that produced some numbers and declined
-    /// a landmark carries values here and its refusals in `refusals`.
+    /// The codes accounting for every quantity this row has no number for, comma separated,
+    /// and empty on a row whose every column carries one.
+    ///
+    /// A trial that produced nothing carries the one code it was refused under. A trial that
+    /// produced some numbers and declined others carries the codes those declines were
+    /// recorded with, and `refusals` carries a row per decline naming the column. Read off
+    /// this row's own refusal rows rather than tallied beside them, so the cell and the rows
+    /// cannot come to disagree.
+    ///
+    /// Left empty on a partial row, a reader averaging a column met a blank cell with nothing
+    /// on the row saying a rule had declined, which is the same silence as a zero.
     pub refusal_code: String,
     /// The athlete this trial belongs to, where a declared pattern named one, and empty
     /// where the run declared none.
@@ -189,6 +200,15 @@ pub struct RefusalRow {
     pub trial_id: String,
     pub ordinal: usize,
     pub code: String,
+    /// The columns in `results` this refusal accounts for, comma separated, as `qualifies`
+    /// carries them on a signal. Empty for a refusal about no reported quantity, a file the
+    /// identity could not name among them.
+    ///
+    /// Without it a blank cell joins to nothing. `slot` names a construct and `method_id` a
+    /// rule, and turning either into a column name is this software's own binding table
+    /// reimplemented by its reader and free to disagree with it.
+    #[serde(default)]
+    pub quantity: String,
     pub method_id: String,
     pub slot: String,
     pub parameter: String,
@@ -204,6 +224,7 @@ impl RefusalRow {
             "trial_id",
             "ordinal",
             "code",
+            "quantity",
             "method_id",
             "slot",
             "parameter",
@@ -222,6 +243,7 @@ impl RefusalRow {
             self.trial_id.clone(),
             self.ordinal.to_string(),
             self.code.clone(),
+            self.quantity.clone(),
             self.method_id.clone(),
             self.slot.clone(),
             self.parameter.clone(),

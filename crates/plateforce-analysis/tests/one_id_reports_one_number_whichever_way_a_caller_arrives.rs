@@ -299,49 +299,52 @@ fn the_gravity_behind_the_height_is_recorded_and_says_whether_anybody_chose_it()
 /// A gravity chosen for the whole analysis moves the height, because the height is
 /// `g t^2 / 8` and nothing else about the trace changed.
 ///
-/// The property the sweep rests on. `spread.rs` varies gravity as an axis, and a rule that
-/// answered with its entry's published constant regardless would report a spread of zero over
-/// a knob that had moved. The request's gravity is honoured where the record can say somebody
-/// chose it: left as the constant the request type fills in for everybody, the entry's value
-/// stands.
+/// The property the sweep rests on. `spread.rs` varies gravity as an axis, and a rule answering
+/// with a constant of its own regardless would report a spread of zero over a knob that had
+/// moved. The entry published such a constant and this height was the one number in the report
+/// that did not move with the analysis; the entry now publishes four values and answers none of
+/// them, so the gravity the analysis is bound to reaches the equation under either claim.
+///
+/// The claims are still two different claims. What tells them apart is the source the record
+/// carries, which is where the difference belongs: it was the value, and a number that changed
+/// with who was asked rather than with what was measured is the thing this product exists to
+/// stop.
 #[test]
-fn a_gravity_chosen_for_the_analysis_moves_the_height_and_the_filled_in_one_does_not() {
+fn the_analysis_gravity_reaches_the_height_under_either_claim() {
     let trial = a_jump_that_lands();
     let seconds = FLIGHT_SAMPLES as f64 / SAMPLE_RATE_HZ;
+    let height_at = |gravity: f64, source: ParameterSource| {
+        let mut request = base();
+        request.gravity_meters_per_second_squared = gravity;
+        request.gravity_source = source;
+        metric(
+            &run(&trial, &request).expect("the request is well formed"),
+            FLIGHT_KEY,
+        )
+        .and_then(|metric| metric.value)
+        .expect("a height")
+    };
 
-    let mut chosen = base();
-    chosen.gravity_meters_per_second_squared = 9.79;
-    chosen.gravity_source = ParameterSource::Stated;
-    let moved = metric(
-        &run(&trial, &chosen).expect("the request is well formed"),
-        FLIGHT_KEY,
-    )
-    .and_then(|metric| metric.value)
-    .expect("a height");
+    let chosen = height_at(9.79, ParameterSource::Stated);
+    let filled_in = height_at(9.79, ParameterSource::Assumed);
+    println!("chosen 9.79 gives {chosen:.6} m, the same number filled in gives {filled_in:.6} m");
+    for (label, height) in [("chosen", chosen), ("filled in", filled_in)] {
+        assert!(
+            (height - 9.79 * seconds * seconds / 8.0).abs() < 1e-9,
+            "a gravity {label} did not reach the projectile equation"
+        );
+    }
 
-    // The same number the request carries, and nobody claiming to have chosen it. The entry's
-    // published default stands, because falling back to a value no entry declares would be a
-    // silent default wearing a declared one's paperwork.
-    let mut filled_in = base();
-    filled_in.gravity_meters_per_second_squared = 9.79;
-    let untouched = metric(
-        &run(&trial, &filled_in).expect("the request is well formed"),
-        FLIGHT_KEY,
-    )
-    .and_then(|metric| metric.value)
-    .expect("a height");
-
-    println!("chosen 9.79 gives {moved:.6} m, the same number filled in gives {untouched:.6} m");
+    // The knob the sweep turns. A filled-in gravity reached nothing here, so a sweep over it
+    // read a spread of zero on the one height whose closed form is gravity times a constant.
+    let lower = height_at(9.6, ParameterSource::Assumed);
+    println!("filled in 9.6 gives {lower:.6} m");
     assert!(
-        (moved - 9.79 * seconds * seconds / 8.0).abs() < 1e-9,
-        "a gravity somebody chose did not reach the projectile equation"
-    );
-    assert!(
-        (untouched - 9.81 * seconds * seconds / 8.0).abs() < 1e-9,
-        "a gravity nobody chose displaced the value the entry declares"
+        (lower - 9.6 * seconds * seconds / 8.0).abs() < 1e-9,
+        "a filled-in gravity does not move the height, so a sweep over it reports nothing"
     );
     assert_ne!(
-        moved, untouched,
-        "the two claims produced one number, so the record cannot be telling them apart"
+        lower, filled_in,
+        "two gravities gave one height, so this proves nothing about the axis"
     );
 }

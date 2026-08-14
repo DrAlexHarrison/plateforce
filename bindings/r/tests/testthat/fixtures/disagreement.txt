@@ -1,10 +1,10 @@
 first_rule onset.threshold.noise_relative
 first_signal_count 0
 first_takeoff_meters 0.41051766027242942
-first_flight_meters 0.44022460156250015
-first_percent 6.7481329268357895
+first_flight_meters 0.44007427002170146
+first_percent 6.7162776291862087
 second_rule onset.threshold.last_within_band
 second_signal_count 0
 second_takeoff_meters 0.41048371429404634
-second_flight_meters 0.44022460156250015
-second_percent 6.7558439857503956
+second_flight_meters 0.44007427002170146
+second_percent 6.7239913222365661

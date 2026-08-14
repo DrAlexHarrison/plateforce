@@ -135,14 +135,20 @@ which means there is no grouping to do, not that the athlete is unnamed. **A tri
 no numbers keeps its subject**, so an athlete's denominator includes the trials that refused;
 count those rows rather than dropping them, and `refusal_code` says why each one is there.
 
-**`refusal_code` on a trial row is trial-level and is empty on a trial that produced numbers.**
-A quantity that declined inside a trial that otherwise succeeded is not there: it is a row in
-`refusals.csv`, and in `refusals` in the JSON, naming the quantity, the rule and the reason.
-The two are counted separately and never added, because one counts trials and the other counts
-quantities. A folder of trials trimmed before the athlete lands is the ordinary case, and it
-reads as every trial row carrying an empty `refusal_code` with a quantity-level refusal for
-each landmark that had nothing to work on. How many of those there are depends on the rules
-you bound, so read the relation rather than expecting a number.
+**`refusal_code` carries the codes accounting for every quantity the row has no number for,
+comma separated, and is empty only on a row whose every column carries one.** A trial that
+produced nothing carries the one code it was refused under; a trial that produced nine numbers
+and declined two carries the codes those two were declined with. **Which trials produced
+numbers is `provenance_id`, which is empty exactly when a trial produced none**, so branch on
+that rather than on the code when you are counting trials.
+
+Which columns each code accounts for is the `quantity` column of `refusals.csv`, comma
+separated, so a blank cell joins to the row that explains it on `trial_id` and the column name.
+Trial counts and quantity counts are never added, because one counts trials and the other
+counts quantities. A folder of trials trimmed before the athlete lands is the ordinary case,
+and it reads as most trial rows carrying a code with a quantity-level refusal for each landmark
+that had nothing to work on. How many of those there are depends on the rules you bound, so
+read the relation rather than expecting a number.
 
 `provenance_id` is the join back to `provenance.csv`, which carries one row per method per
 parameter with `source` reading `stated`, `assumed` or `measured`. That join is how a value in the

@@ -12,12 +12,12 @@
 //! on the opposite premise. The published evidence cuts both ways, both entries are registered,
 //! and a reader picks.
 
-use plateforce_core::{heel_rise_constant_meters, jump_height_from_flight_time, Refusal};
+use plateforce_core::{heel_rise_constant_meters, jump_height_from_flight_time};
 
 use crate::binding::TAKEOFF_CONSTRUCT;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
-use crate::resolution::{Resolution, RuleRefusal};
+use crate::resolution::Resolution;
 use crate::response::Quantity;
 use crate::slots::flight_time;
 
@@ -98,10 +98,7 @@ fn compute(
     let Some(seconds) = flight_time::seconds(context, takeoff_index) else {
         return DerivedOutcome::declined(
             resolved.finish(),
-            RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
-                ID,
-                flight_time::TOUCHDOWN_FIELD,
-            ))),
+            flight_time::no_landing_recorded(context, ID, takeoff_index),
         );
     };
 

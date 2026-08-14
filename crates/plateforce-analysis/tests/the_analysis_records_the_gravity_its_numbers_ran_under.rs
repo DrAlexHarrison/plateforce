@@ -152,23 +152,32 @@ fn every_number_the_analysis_gravity_moves_runs_in_an_analysis_whose_record_name
 
 /// A value somebody chose against the same value nobody chose.
 ///
-/// Two analyses at the identical gravity, differing only in whether anybody chose it. Ten of
-/// the eleven numbers are the same, and for those ten the claim is visible nowhere but in the
-/// record.
+/// Two analyses at the identical gravity, differing only in whether anybody chose it. Every
+/// number is the same, and the claim is visible nowhere but in the record.
 ///
-/// The eleventh is the flight-time height, and it differs on purpose: a reader who measured
-/// 9.80665 at their own plate gets their measurement, where a reader who stated nothing gets
-/// the 9.81 that entry publishes. Stating the standard value is an act, and this is where the
-/// act is worth something.
+/// The flight-time height was the exception, because its entry published a gravity of its own
+/// and took that while nobody had chosen one. So one analysis carried 9.81 behind that height
+/// and 9.80665 behind the ten numbers beside it, both recorded as assumed. The entry no longer
+/// answers a gravity, and the claim now moves the record alone, which is where a claim belongs:
+/// a number that changed with who was asked rather than with what was measured is the thing
+/// this product exists to stop.
 #[test]
-fn one_gravity_under_two_claims_gives_two_records_and_moves_only_the_rule_that_reads_the_claim() {
+fn one_gravity_under_two_claims_gives_two_records_and_one_set_of_numbers() {
     let chosen = at(STANDARD, ParameterSource::Stated);
     let filled_in = at(STANDARD, ParameterSource::Assumed);
 
+    // Gravity reaches numbers at all, which is what makes the emptiness below mean "the same
+    // numbers" rather than "no numbers". An empty set satisfies the assertion either way, and
+    // on a build where gravity is inert this test passed while measuring nothing.
+    assert!(
+        !moved_between(&chosen, &at(PUBLISHED, ParameterSource::Stated)).is_empty(),
+        "a moving gravity moved no number, so the emptiness below is about an inert build \
+         rather than about the two claims"
+    );
     assert_eq!(
         moved_between(&chosen, &filled_in),
-        BTreeSet::from([FLIGHT_TIME_HEIGHT.to_string()]),
-        "one gravity under two claims moved a number no rule reads the claim in"
+        BTreeSet::new(),
+        "one gravity under two claims moved a number, so a claim is reaching an answer"
     );
     assert_eq!(gravity_on_the_record(&chosen).value, STANDARD);
     assert_eq!(gravity_on_the_record(&filled_in).value, STANDARD);
@@ -184,16 +193,15 @@ fn one_gravity_under_two_claims_gives_two_records_and_moves_only_the_rule_that_r
 
 /// The resolution order, held by measurement rather than by reading the code.
 ///
-/// A rule whose entry publishes its own gravity takes that gravity while nobody has chosen
-/// one, and takes the caller's the moment somebody has. So the set of numbers a moving gravity
-/// moves is strictly larger under a stated claim than under a filled-in one, and the
-/// difference is exactly the numbers those rules produce.
+/// No entry answers a gravity of its own, so a moving gravity moves the same numbers whether
+/// or not anybody claimed to choose it, and the two sets are equal. One entry did, and the set
+/// under a stated claim was strictly the larger by exactly the height that entry produced.
 ///
-/// Both sets are measured. The one name written down is the key the difference is expected to
-/// contain, and it is asserted as the whole difference rather than as a member of it, so a
-/// second rule publishing its own gravity fails this rather than slipping in beside the first.
+/// Both sets are measured, and the equality is asserted rather than a named member of either,
+/// so an entry that starts answering its own gravity fails this rather than slipping in. The
+/// emptiness guard below is what stops two empty sets satisfying it.
 #[test]
-fn a_gravity_nobody_chose_leaves_exactly_the_numbers_whose_rules_publish_their_own() {
+fn a_moving_gravity_moves_the_same_numbers_whoever_is_said_to_have_chosen_it() {
     let moved_when_stated = moved_between(
         &at(STANDARD, ParameterSource::Stated),
         &at(PUBLISHED, ParameterSource::Stated),
@@ -208,19 +216,15 @@ fn a_gravity_nobody_chose_leaves_exactly_the_numbers_whose_rules_publish_their_o
         !moved_when_assumed.is_empty(),
         "a gravity nobody chose moved nothing, so the two sets below are not being compared"
     );
-    assert!(
-        moved_when_assumed.is_subset(&moved_when_stated),
-        "a number moved under a filled-in gravity and held still under a chosen one"
-    );
-
-    let only_when_stated: BTreeSet<String> = moved_when_stated
-        .difference(&moved_when_assumed)
-        .cloned()
-        .collect();
     assert_eq!(
-        only_when_stated,
-        BTreeSet::from([FLIGHT_TIME_HEIGHT.to_string()]),
-        "the numbers a chosen gravity reaches and a filled-in one does not"
+        moved_when_stated, moved_when_assumed,
+        "a gravity reaches a different set of numbers depending on who is said to have chosen it"
+    );
+    // The height that used to be the difference, named so this reads as the property it is
+    // rather than as an equality between two sets that happen to match.
+    assert!(
+        moved_when_assumed.contains(FLIGHT_TIME_HEIGHT),
+        "the height whose entry published its own gravity does not move with the analysis"
     );
 }
 

@@ -7,7 +7,10 @@
 
 pub mod takeoff_to_touchdown;
 
+use plateforce_core::Refusal;
+
 use crate::derived::DerivedContext;
+use crate::resolution::RuleRefusal;
 
 /// The construct id, as `registry/constructs.toml` declares it.
 pub const CONSTRUCT: &str = "flight_time";
@@ -34,4 +37,24 @@ pub fn seconds(context: &DerivedContext, takeoff_index: usize) -> Option<f64> {
         touchdown_index,
         context.trial.sample_interval_seconds(),
     ))
+}
+
+/// What the four rules bounded by the return to the plate report where the recording holds no
+/// return.
+///
+/// One sentence for the four, so a reader who asked for flight time, either height taken from
+/// it, or the ratio over time to takeoff meets one account of the recording rather than four.
+/// It counts the samples the reading was taken over, which is the denominator behind the
+/// claim: a recording holding four samples past takeoff and one holding four thousand are
+/// different evidence for the same sentence.
+pub fn no_landing_recorded(
+    context: &DerivedContext,
+    method_id: &str,
+    takeoff_index: usize,
+) -> RuleRefusal {
+    RuleRefusal::Refused(Box::new(Refusal::landing_not_in_recording(
+        method_id,
+        crate::boundaries::LANDING_CONSTRUCT,
+        context.trial.len().saturating_sub(takeoff_index + 1),
+    )))
 }

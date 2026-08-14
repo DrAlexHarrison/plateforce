@@ -143,10 +143,13 @@ fn two_hands_placing_two_samples_do_not_fingerprint_as_one_result() {
             request(Some(1180), None),
             request(Some(1120), None),
         ),
+        // Both samples sit in the flight. The pair read 2300 and 2360, and the plate carries
+        // 1445.5 N at 2300, so the athlete is still pushing there: the flight time from it was
+        // zero, and the inequality below was met by a sentinel rather than by two measurements.
         (
             "takeoff",
             FLIGHT,
-            request(None, Some(2300)),
+            request(None, Some(2420)),
             request(None, Some(2360)),
         ),
     ] {

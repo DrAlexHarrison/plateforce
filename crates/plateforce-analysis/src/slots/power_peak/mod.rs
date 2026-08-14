@@ -13,8 +13,6 @@ pub mod from_height_lewis;
 pub mod from_height_regression;
 pub mod instantaneous;
 
-use plateforce_core::Refusal;
-
 use crate::derived::DerivedContext;
 use crate::resolution::RuleRefusal;
 use crate::slots::flight_time;
@@ -48,9 +46,11 @@ pub(crate) fn height_from_flight_meters(
         return Err(context.unavailable(method_id, &[crate::binding::TAKEOFF_CONSTRUCT]));
     };
     let Some(seconds) = flight_time::seconds(context, takeoff_index) else {
-        return Err(RuleRefusal::Refused(Box::new(
-            Refusal::required_parameter_unstated(method_id, flight_time::TOUCHDOWN_FIELD),
-        )));
+        return Err(flight_time::no_landing_recorded(
+            context,
+            method_id,
+            takeoff_index,
+        ));
     };
     context.rests_on(KEY, &[HEIGHT_ENTRY]);
     Ok(plateforce_core::jump_height_from_flight_time(

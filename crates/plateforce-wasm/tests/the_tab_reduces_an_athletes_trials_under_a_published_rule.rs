@@ -110,7 +110,7 @@ fn a_tab_that_names_a_published_rule_reduces_and_records_which() {
         .as_array()
         .map(|rows| {
             rows.iter()
-                .filter(|row| row["refusal_code"].as_str().unwrap_or_default().is_empty())
+                .filter(|row| !row["provenance_id"].as_str().unwrap_or_default().is_empty())
                 .count()
         })
         .unwrap_or(0);

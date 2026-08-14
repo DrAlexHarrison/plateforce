@@ -142,14 +142,18 @@ pub fn run(
     bound_methods.extend(takeoff_methods);
 
     // Touchdown is the return above the threshold that defined takeoff, so it is not an
-    // independent choice and it is not offered as one.
+    // independent choice and it is not offered as one. The weighed system weight is what tells
+    // that return from the plate's own noise floor, and it is read here rather than in the
+    // rules that divide by the interval, because those four would otherwise each answer it.
     let touchdown_was_stated = request.touchdown_index.is_some();
     let touchdown_index = request.touchdown_index.or_else(|| {
         takeoff_index.and_then(|from| {
-            trial.force()[from..]
-                .iter()
-                .position(|&force| force > takeoff.threshold_newtons)
-                .map(|offset| offset + from)
+            plateforce_core::return_to_the_plate(
+                trial.force(),
+                from,
+                takeoff.threshold_newtons,
+                epoch.system_weight_newtons,
+            )
         })
     });
 

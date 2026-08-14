@@ -8,31 +8,20 @@
 //! Which sample bounds each end is not this rule's to decide. Takeoff comes from the bound
 //! takeoff rule and the return to the plate from the recording, and the entry says so.
 
-use plateforce_core::{jump_height_from_flight_time, Refusal};
+use plateforce_core::jump_height_from_flight_time;
 
 use crate::binding::TAKEOFF_CONSTRUCT;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
-use crate::resolution::{Resolution, RuleRefusal};
+use crate::resolution::Resolution;
 use crate::response::Quantity;
 use crate::slots::flight_time;
 
 pub const ID: &str = "jumpheight.takeoff.flight_time";
 
-/// The entry's own name for gravity, and the value it declares.
-///
-/// It publishes four values because the tools disagree on this constant, and declares 9.81,
-/// which is the value the paper that teaches the derivation uses. A caller who states nothing
-/// gets that rather than the constant the request carries, because the request's is a struct
-/// initialiser no entry declares and a record calling it assumed would be naming an act
-/// nobody performed.
-///
-/// A caller who did choose a gravity for the analysis gets theirs, on the same reasoning read
-/// the other way: half a percent of this number rides on where the plate stands, so a value
-/// somebody measured there beats a value a paper published, and running the entry's constant
-/// over the top of it would discard the better information in silence.
+/// The entry's own name for gravity. It publishes four values because the tools disagree on
+/// this constant, and answers none of them itself.
 pub const GRAVITY_PARAMETER: &str = "gravity";
-pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 = 9.81;
 
 pub const QUANTITIES: &[Quantity] = &[Quantity {
     key: super::FLIGHT_TIME_KEY,
@@ -55,10 +44,14 @@ fn compute(
         choice.declared.of_entry(ID),
         choice.claims(),
     );
+    // Stated on the rule first, then a gravity somebody chose for the analysis, then the one
+    // the analysis is bound to, which is what every other quantity that moves with gravity
+    // runs at. The entry published its own default here, so one run carried 9.81 behind this
+    // height and 9.80665 behind the other ten numbers beside it, both recorded as assumed.
     let gravity = resolved.number_or_chosen(
         GRAVITY_PARAMETER,
         context.chosen_gravity_behind(super::FLIGHT_TIME_KEY),
-        GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED,
+        context.gravity_behind(Some(super::FLIGHT_TIME_KEY)),
     );
 
     // Takeoff and the return to the plate. The projectile equation reads the time off the
@@ -73,10 +66,7 @@ fn compute(
     let Some(seconds) = flight_time::seconds(context, takeoff_index) else {
         return DerivedOutcome::declined(
             resolved.finish(),
-            RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
-                ID,
-                flight_time::TOUCHDOWN_FIELD,
-            ))),
+            flight_time::no_landing_recorded(context, ID, takeoff_index),
         );
     };
 

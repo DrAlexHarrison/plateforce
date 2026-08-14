@@ -13,7 +13,7 @@ case onset noise_relative bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -48,7 +48,7 @@ case onset noise_relative k on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233717976826715)
   metric net_impulse_newton_seconds Some(44.25693055555555)
   metric jump_height_from_takeoff_meters Some(0.026679179826070053)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04262984792447944)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -83,7 +83,7 @@ case onset noise_relative direction below_only on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -118,7 +118,7 @@ case onset noise_relative direction two_sided on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -153,7 +153,7 @@ case onset noise_relative selection last on synthetic
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -189,7 +189,7 @@ case onset noise_relative selection first on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -224,7 +224,7 @@ case onset noise_relative persistence on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -259,7 +259,7 @@ case onset noise_relative search floor on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -294,7 +294,7 @@ case onset noise_relative back offset on synthetic
   metric takeoff_velocity_meters_per_second Some(0.723375270958045)
   metric net_impulse_newton_seconds Some(44.25714305555555)
   metric jump_height_from_takeoff_meters Some(0.02667943602726849)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.041686618792607016)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -329,7 +329,7 @@ case onset noise_relative degenerate fraction on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -364,7 +364,7 @@ case onset noise_relative every value stated on synthetic
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -400,7 +400,7 @@ case onset noise_relative names another rule carries on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -435,7 +435,7 @@ case onset relative_to_system_weight bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7234261442267518)
   metric net_impulse_newton_seconds Some(44.26025555555555)
   metric jump_height_from_takeoff_meters Some(0.026683188762257504)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043446168948044775)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -469,7 +469,7 @@ case onset relative_to_system_weight pct on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7234335902027159)
   metric net_impulse_newton_seconds Some(44.26071111111111)
   metric jump_height_from_takeoff_meters Some(0.02668373804681472)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.044534750564920254)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -503,7 +503,7 @@ case onset relative_to_system_weight superseded spelling on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7234261442267518)
   metric net_impulse_newton_seconds Some(44.26025555555555)
   metric jump_height_from_takeoff_meters Some(0.026683188762257504)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043446168948044775)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -537,7 +537,7 @@ case onset relative_to_system_weight every value stated on synthetic
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -572,7 +572,7 @@ case onset absolute_force bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232614701119822)
   metric net_impulse_newton_seconds Some(44.25018055555555)
   metric jump_height_from_takeoff_meters Some(0.02667104231050082)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04378283279425579)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -607,7 +607,7 @@ case onset absolute_force threshold on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7269700655673779)
   metric net_impulse_newton_seconds Some(44.47707777777777)
   metric jump_height_from_takeoff_meters Some(0.026945260421807535)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04652419065635833)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -642,7 +642,7 @@ case onset absolute_force superseded spelling on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232614701119822)
   metric net_impulse_newton_seconds Some(44.25018055555555)
   metric jump_height_from_takeoff_meters Some(0.02667104231050082)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04378283279425579)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -677,7 +677,7 @@ case onset absolute_force direction two_sided on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232614701119822)
   metric net_impulse_newton_seconds Some(44.25018055555555)
   metric jump_height_from_takeoff_meters Some(0.02667104231050082)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04378283279425579)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -712,7 +712,7 @@ case onset absolute_force direction below_only on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232614701119822)
   metric net_impulse_newton_seconds Some(44.25018055555555)
   metric jump_height_from_takeoff_meters Some(0.02667104231050082)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04378283279425579)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -747,7 +747,7 @@ case onset absolute_force every value stated on synthetic
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -783,7 +783,7 @@ case onset last_within_band bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233406063077482)
   metric net_impulse_newton_seconds Some(44.255022222222216)
   metric jump_height_from_takeoff_meters Some(0.026676879093964854)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04296946968155413)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -817,7 +817,7 @@ case onset last_within_band k on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233060097608901)
   metric net_impulse_newton_seconds Some(44.25290555555555)
   metric jump_height_from_takeoff_meters Some(0.026674327306277928)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.042735904896573446)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -851,7 +851,7 @@ case onset last_within_band inverse lookback on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233406063077482)
   metric net_impulse_newton_seconds Some(44.255022222222216)
   metric jump_height_from_takeoff_meters Some(0.026676879093964854)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04296946968155413)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -885,7 +885,7 @@ case onset last_within_band back offset on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233999925062921)
   metric net_impulse_newton_seconds Some(44.25865555555555)
   metric jump_height_from_takeoff_meters Some(0.026681259612513112)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04163525557219211)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -919,7 +919,7 @@ case onset last_within_band every value stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233371330323747)
   metric net_impulse_newton_seconds Some(44.25480972222221)
   metric jump_height_from_takeoff_meters Some(0.02667662290504379)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043972455337984266)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -953,7 +953,7 @@ case onset adaptive_trailing_window bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7243845866206818)
   metric net_impulse_newton_seconds Some(44.31889444444444)
   metric jump_height_from_takeoff_meters Some(0.026753938874825557)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04540979724157095)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -983,7 +983,7 @@ case onset adaptive_trailing_window window on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7252632344856054)
   metric net_impulse_newton_seconds Some(44.37265138888888)
   metric jump_height_from_takeoff_meters Some(0.026818881029532116)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04584424107612327)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1013,7 +1013,7 @@ case onset adaptive_trailing_window k on synthetic
   metric takeoff_velocity_meters_per_second Some(0.723789703083663)
   metric net_impulse_newton_seconds Some(44.2824986111111)
   metric jump_height_from_takeoff_meters Some(0.026710014851653575)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04501687896346108)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1043,7 +1043,7 @@ case onset adaptive_trailing_window population on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7243845866206818)
   metric net_impulse_newton_seconds Some(44.31889444444444)
   metric jump_height_from_takeoff_meters Some(0.026753938874825557)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04540979724157095)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1073,7 +1073,7 @@ case onset adaptive_trailing_window sample on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7243845866206818)
   metric net_impulse_newton_seconds Some(44.31889444444444)
   metric jump_height_from_takeoff_meters Some(0.026753938874825557)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04540979724157095)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1103,7 +1103,7 @@ case onset adaptive_trailing_window every value stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7239936047791219)
   metric net_impulse_newton_seconds Some(44.294973611111104)
   metric jump_height_from_takeoff_meters Some(0.02672506614190714)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04516912587364587)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1133,7 +1133,7 @@ case takeoff absolute_force bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1168,7 +1168,7 @@ case takeoff absolute_force threshold on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1203,7 +1203,7 @@ case takeoff absolute_force superseded spelling on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1238,7 +1238,7 @@ case takeoff absolute_force persistence on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1273,7 +1273,7 @@ case takeoff absolute_force magnitude on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1308,7 +1308,7 @@ case takeoff absolute_force signed on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1343,7 +1343,7 @@ case takeoff absolute_force every value stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1378,7 +1378,7 @@ case takeoff longest_run bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1414,7 +1414,7 @@ case takeoff longest_run filter then rank on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1450,7 +1450,7 @@ case takeoff longest_run rank then filter on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1486,7 +1486,7 @@ case takeoff longest_run every value stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1522,7 +1522,7 @@ case takeoff descending_crossing bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1555,7 +1555,7 @@ case takeoff descending_crossing confirmation on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1588,7 +1588,7 @@ case takeoff descending_crossing threshold on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1621,7 +1621,7 @@ case takeoff flight_noise_k_sd bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1654,7 +1654,7 @@ case takeoff flight_noise_k_sd trim on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1687,7 +1687,7 @@ case takeoff flight_noise_k_sd k on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1720,7 +1720,7 @@ case takeoff flight_noise_k_sd population on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1753,7 +1753,7 @@ case takeoff flight_noise_k_sd every value stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1786,7 +1786,7 @@ case weighing fixed_window bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1821,7 +1821,7 @@ case weighing fixed_window half second on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7234269970744389)
   metric net_impulse_newton_seconds Some(44.25993888888888)
   metric jump_height_from_takeoff_meters Some(0.026683251675961736)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303750270316409)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1856,7 +1856,7 @@ case weighing fixed_window moved on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232948628933503)
   metric net_impulse_newton_seconds Some(44.252715277777774)
   metric jump_height_from_takeoff_meters Some(0.026673505156598352)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.0430217825106425)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample Some(240)
@@ -1891,7 +1891,7 @@ case weighing fixed_window median on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232004844814814)
   metric net_impulse_newton_seconds Some(44.24755555555556)
   metric jump_height_from_takeoff_meters Some(0.026666544679082537)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043010555934004095)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1926,7 +1926,7 @@ case weighing fixed_window mean on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1961,7 +1961,7 @@ case weighing fixed_window population on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -1996,7 +1996,7 @@ case weighing fixed_window sample on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2031,7 +2031,7 @@ case weighing fixed_window superseded spelling on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2066,7 +2066,7 @@ case weighing fixed_window every value stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232004844814814)
   metric net_impulse_newton_seconds Some(44.24755555555556)
   metric jump_height_from_takeoff_meters Some(0.026666544679082537)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043010555934004095)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample Some(120)
@@ -2101,7 +2101,7 @@ case weighing manual_placement moved on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233514911988782)
   metric net_impulse_newton_seconds Some(44.2558111111111)
   metric jump_height_from_takeoff_meters Some(0.0266776819719089)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04302851930953048)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.manual_placement backed false placed_by_hand_at_sample Some(240)
@@ -2136,7 +2136,7 @@ case weighing manual_placement anchored on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7234269970744389)
   metric net_impulse_newton_seconds Some(44.25993888888888)
   metric jump_height_from_takeoff_meters Some(0.026683251675961736)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303750270316409)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.manual_placement backed false placed_by_hand_at_sample None
@@ -2171,7 +2171,7 @@ case weighing adaptive_lowest_variance bare on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232527855275342)
   metric net_impulse_newton_seconds Some(44.25041490162042)
   metric jump_height_from_takeoff_meters Some(0.026670401807617154)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04301677710905993)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2206,7 +2206,7 @@ case weighing adaptive_lowest_variance cumulative on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232527855275342)
   metric net_impulse_newton_seconds Some(44.25041490162042)
   metric jump_height_from_takeoff_meters Some(0.026670401807617154)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04301677710905993)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2241,7 +2241,7 @@ case weighing adaptive_lowest_variance two pass on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232527855275342)
   metric net_impulse_newton_seconds Some(44.25041490162042)
   metric jump_height_from_takeoff_meters Some(0.026670401807617154)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04301677710905993)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2276,7 +2276,7 @@ case weighing adaptive_lowest_variance population on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232527855275342)
   metric net_impulse_newton_seconds Some(44.25041490162042)
   metric jump_height_from_takeoff_meters Some(0.026670401807617154)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04301677710905993)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2311,7 +2311,7 @@ case weighing adaptive_lowest_variance moved on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232004844814814)
   metric net_impulse_newton_seconds Some(44.24755555555556)
   metric jump_height_from_takeoff_meters Some(0.026666544679082537)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043010555934004095)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample Some(240)
@@ -2346,7 +2346,7 @@ case weighing adaptive_lowest_variance half second on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7232155848512059)
   metric net_impulse_newton_seconds Some(44.24838111111107)
   metric jump_height_from_takeoff_meters Some(0.02666765828145553)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043012352066863754)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2381,7 +2381,7 @@ case weighing adaptive_lowest_variance floor published on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233095511261377)
   metric net_impulse_newton_seconds Some(44.253887962963006)
   metric jump_height_from_takeoff_meters Some(0.02667458850628374)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04343216581755832)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2417,7 +2417,7 @@ case weighing adaptive_lowest_variance floor binding on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7310809355667557)
   metric net_impulse_newton_seconds Some(44.72936070601856)
   metric jump_height_from_takeoff_meters Some(0.02725086213687461)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.047878527912517614)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.adaptive_lowest_variance backed false placed_by_hand_at_sample None
@@ -2453,7 +2453,7 @@ case gravity 9.8 on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7228798419034549)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.02666098295052877)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.30625)
   metric reactive_strength_index_modified Some(0.04300158540407866)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2523,7 +2523,7 @@ case touchdown stated on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.12296562500000004)
+  metric jump_height_from_flight_time_meters Some(0.12292363368055557)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2558,7 +2558,7 @@ case onset dragged on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7234104123324127)
   metric net_impulse_newton_seconds Some(44.25929305555555)
   metric jump_height_from_takeoff_meters Some(0.026682028249756608)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.03904687060939991)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2588,7 +2588,7 @@ case takeoff dragged on synthetic
   metric takeoff_velocity_meters_per_second Some(-0.7374343178312097)
   metric net_impulse_newton_seconds Some(-45.117295833333344)
   metric jump_height_from_takeoff_meters Some(0.027726561726745712)
-  metric jump_height_from_flight_time_meters Some(0.15021562500000005)
+  metric jump_height_from_flight_time_meters Some(0.15016432812500002)
   metric reactive_strength_index_modified Some(0.03600852172304638)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2623,7 +2623,7 @@ case both dragged on synthetic
   metric takeoff_velocity_meters_per_second Some(-0.32877500289555917)
   metric net_impulse_newton_seconds Some(-20.114929166666677)
   metric jump_height_from_takeoff_meters Some(0.005511209359412998)
-  metric jump_height_from_flight_time_meters Some(0.18811015625000005)
+  metric jump_height_from_flight_time_meters Some(0.18804591883680558)
   metric reactive_strength_index_modified Some(0.007348279145883998)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2642,18 +2642,18 @@ case onset after takeoff on synthetic
   window 0..960
   onset Some(2200)
   takeoff Some(1300)
-  touchdown Some(1300)
+  touchdown None
   levels Some(599.985) Some(1.9610662971704482) Some(590.1796685141478) Some(609.7903314858522) Some(20.0)
   metric system_weight_newtons Some(599.985)
   metric system_mass_kilograms Some(61.181443204356235)
   metric onset_time_seconds Some(1.8333333333333335)
   metric takeoff_time_seconds Some(1.0833333333333335)
   metric time_to_takeoff_seconds None
-  metric flight_time_seconds Some(0.0)
+  metric flight_time_seconds None
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.0)
+  metric jump_height_from_flight_time_meters None
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2684,7 +2684,7 @@ case nothing registry backed on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2719,7 +2719,7 @@ case everything registry backed on synthetic
   metric takeoff_velocity_meters_per_second Some(0.7233703675104588)
   metric net_impulse_newton_seconds Some(44.25684305555555)
   metric jump_height_from_takeoff_meters Some(0.026679074331816485)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303076505131691)
   method filter.none backed true placed_by_hand_at_sample None
   method bwepoch.fixed_window backed true placed_by_hand_at_sample None
@@ -2754,7 +2754,7 @@ case bump onset absolute_force bare on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.723430366639951)
   metric net_impulse_newton_seconds Some(44.26051388888888)
   metric jump_height_from_takeoff_meters Some(0.026683500246099022)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043803283577727524)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2789,7 +2789,7 @@ case bump onset absolute_force direction below_only on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.723430366639951)
   metric net_impulse_newton_seconds Some(44.26051388888888)
   metric jump_height_from_takeoff_meters Some(0.026683500246099022)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.043803283577727524)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2824,7 +2824,7 @@ case bump onset absolute_force direction two_sided on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.8543057663357054)
   metric net_impulse_newton_seconds Some(52.26765972222221)
   metric jump_height_from_takeoff_meters Some(0.03721139952962719)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04001225755873891)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2859,7 +2859,7 @@ case bump onset absolute_force both and last on pre_movement_bump
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2895,7 +2895,7 @@ case bump onset noise_relative bare on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.7234330226740602)
   metric net_impulse_newton_seconds Some(44.26067638888888)
   metric jump_height_from_takeoff_meters Some(0.026683696180414686)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303821964583014)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2930,7 +2930,7 @@ case bump onset noise_relative direction below_only on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.7234330226740602)
   metric net_impulse_newton_seconds Some(44.26067638888888)
   metric jump_height_from_takeoff_meters Some(0.026683696180414686)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303821964583014)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -2965,7 +2965,7 @@ case bump onset noise_relative direction two_sided on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.8543057663357054)
   metric net_impulse_newton_seconds Some(52.26765972222221)
   metric jump_height_from_takeoff_meters Some(0.03721139952962719)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04001225755873891)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3000,7 +3000,7 @@ case bump onset noise_relative persistence on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.7234330226740602)
   metric net_impulse_newton_seconds Some(44.26067638888888)
   metric jump_height_from_takeoff_meters Some(0.026683696180414686)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04303821964583014)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3035,7 +3035,7 @@ case bump onset relative_to_system_weight bare on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.7234315925018475)
   metric net_impulse_newton_seconds Some(44.26058888888888)
   metric jump_height_from_takeoff_meters Some(0.026683590677232246)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.04344682335505928)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3069,7 +3069,7 @@ case bump onset last_within_band bare on pre_movement_bump
   metric takeoff_velocity_meters_per_second Some(0.8543250396088566)
   metric net_impulse_newton_seconds Some(52.26883888888888)
   metric jump_height_from_takeoff_meters Some(0.037213078538679084)
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified Some(0.039978240148983796)
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3103,7 +3103,7 @@ case bump onset adaptive_trailing_window bare on pre_movement_bump
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.3065625)
+  metric jump_height_from_flight_time_meters Some(0.3064578125)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3134,7 +3134,7 @@ case two flight phases first sustained run on two_flight_phases
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.13625000000000004)
+  metric jump_height_from_flight_time_meters Some(0.13620347222222223)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3206,7 +3206,7 @@ case two flight phases descending crossing on two_flight_phases
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.13625000000000004)
+  metric jump_height_from_flight_time_meters Some(0.13620347222222223)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None
@@ -3239,7 +3239,7 @@ case two flight phases flight noise on two_flight_phases
   metric takeoff_velocity_meters_per_second None
   metric net_impulse_newton_seconds None
   metric jump_height_from_takeoff_meters None
-  metric jump_height_from_flight_time_meters Some(0.13625000000000004)
+  metric jump_height_from_flight_time_meters Some(0.13620347222222223)
   metric reactive_strength_index_modified None
   method filter.none backed false placed_by_hand_at_sample None
   method bwepoch.fixed_window backed false placed_by_hand_at_sample None

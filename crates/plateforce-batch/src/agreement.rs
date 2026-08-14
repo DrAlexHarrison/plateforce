@@ -507,6 +507,9 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                     code: plateforce_core::refusal::RefusalCode::from(&error)
                         .wire_name()
                         .to_string(),
+                    // A file that could not be read reached no rule, so it accounts for no
+                    // one column rather than for whichever the axis happens to move.
+                    quantity: String::new(),
                     method_id: String::new(),
                     slot: request.axis.slot.clone(),
                     parameter: String::new(),

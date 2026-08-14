@@ -91,28 +91,39 @@ fn chain_for(response: &AnalysisResponse, key: &str) -> ProvenanceChain {
 
 /// The rule named in `computed_by` roots the chain and carries the values it read.
 ///
-/// `jumpheight.takeoff.flight_time` publishes a gravity of its own, 9.81, which is not the
-/// 9.80665 the request carries. A root carrying no parameters would report a number produced
-/// by a value that appears nowhere in the record beside it.
+/// A root carrying no parameters would report a number produced by a value that appears
+/// nowhere in the record beside it. `jumpheight.takeoff.flight_time` published a gravity of
+/// its own and this asserted the root named that rather than the analysis constant; the entry
+/// now answers no gravity, so the value the root must name is the one the analysis ran at.
 #[test]
 fn the_arithmetic_roots_the_chain_and_carries_the_values_it_read() {
+    let read_gravity = |response: &AnalysisResponse| {
+        let chain = chain_for(response, "jump_height_from_flight_time_meters");
+        assert_eq!(chain.provenance.method_id, "jumpheight.takeoff.flight_time");
+        chain
+            .provenance
+            .parameters
+            .iter()
+            .find(|parameter| parameter.name == "gravity")
+            .expect("the rule that computed this height read a gravity and the root does not name it")
+            .value
+    };
+
     let response = analysed(5.0);
-    let chain = chain_for(&response, "jump_height_from_flight_time_meters");
+    let named = read_gravity(&response);
+    assert_eq!(named, response.bound_globals[0].value);
 
-    assert_eq!(chain.provenance.method_id, "jumpheight.takeoff.flight_time");
-    let gravity = chain
-        .provenance
-        .parameters
-        .iter()
-        .find(|parameter| parameter.name == "gravity")
-        .expect("the rule that computed this height read a gravity and the root does not name it");
-    assert_eq!(gravity.value, 9.81);
-
-    // And the other half, so this cannot pass by giving every root every value: the request's
-    // own gravity is not what this rule ran at, and the root must not claim it was.
+    // And the other half, so this cannot pass by writing one constant into every root: the
+    // value the root names moves when the analysis is bound to a different gravity.
+    let mut elsewhere = request_with_onset_k(5.0);
+    elsewhere.gravity_meters_per_second_squared = 9.6;
+    let moved = run(&a_jump_that_lands(), &elsewhere).expect("the request is well formed");
+    let named_elsewhere = read_gravity(&moved);
+    println!("the root names {named} here and {named_elsewhere} at a bound 9.6");
+    assert_eq!(named_elsewhere, 9.6);
     assert_ne!(
-        gravity.value, response.bound_globals[0].value,
-        "the root reports the request's gravity rather than the one its rule published"
+        named, named_elsewhere,
+        "the root names one value whatever the analysis ran at"
     );
 }
 

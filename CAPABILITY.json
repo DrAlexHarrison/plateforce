@@ -734,7 +734,7 @@
           "id": "jumpheight.takeoff.flight_time",
           "parameters": [
             {
-              "default": 9.81,
+              "default": null,
               "default_key": null,
               "name": "gravity",
               "named_values": [],
@@ -3855,7 +3855,7 @@
           "id": "jumpheight.takeoff.flight_time",
           "parameters": [
             {
-              "default": 9.81,
+              "default": null,
               "default_key": null,
               "name": "gravity",
               "named_values": [],
@@ -6979,7 +6979,7 @@
           "id": "jumpheight.takeoff.flight_time",
           "parameters": [
             {
-              "default": 9.81,
+              "default": null,
               "default_key": null,
               "name": "gravity",
               "named_values": [],
@@ -10101,7 +10101,7 @@
           "id": "jumpheight.takeoff.flight_time",
           "parameters": [
             {
-              "default": 9.81,
+              "default": null,
               "default_key": null,
               "name": "gravity",
               "named_values": [],

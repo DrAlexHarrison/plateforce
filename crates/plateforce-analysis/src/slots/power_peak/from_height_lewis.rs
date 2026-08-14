@@ -24,8 +24,6 @@ pub const ID: &str = "power.peak_from_height.lewis";
 /// on is that entry's number and a second constant here would give a height the entry it names
 /// does not produce.
 pub const GRAVITY_PARAMETER: &str = crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
-pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 =
-    crate::slots::jh_takeoff_frame::flight_time::GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED;
 
 pub const QUANTITIES: &[Quantity] = &[Quantity {
     key: super::KEY,
@@ -48,10 +46,12 @@ fn compute(
         choice.declared.of_entry(ID),
         choice.claims(),
     );
+    // The gravity the analysis is bound to, reached the way the height entry this rests on
+    // reaches it, so the estimate and the height it is built from cannot run at two constants.
     let gravity = resolved.number_or_chosen(
         GRAVITY_PARAMETER,
         context.chosen_gravity_behind(super::KEY),
-        GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED,
+        context.gravity_behind(Some(super::KEY)),
     );
     let height = super::height_from_flight_meters(context, ID, gravity);
     let mass_kilograms = super::system_mass_kilograms(context, gravity);

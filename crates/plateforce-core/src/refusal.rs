@@ -258,6 +258,10 @@ pub(crate) const PRESETS_CARRIED: &str = "presets_this_registry_carries";
 /// not known, so the alternatives are every rule rather than one step's.
 pub(crate) const RULES_THIS_BUILD_RUNS: &str = "rules_this_build_runs";
 
+/// Marks the unmet dependency that is a fact about the recording rather than about an earlier
+/// rule, and carries the stretch of recording the reading was taken over.
+pub(crate) const SAMPLES_AFTER_TAKEOFF: &str = "samples_after_takeoff";
+
 /// A declined result, carrying what a caller branches on and the sentence a person reads.
 ///
 /// `message` has no public constructor path of its own: every way of building a `Refusal`
@@ -549,6 +553,32 @@ impl Refusal {
             None,
             BTreeMap::new(),
             needs,
+        )
+    }
+
+    /// A rule measuring to the return to the plate, run on a recording that stops while the
+    /// athlete is still in the air.
+    ///
+    /// The same code as any other unmet dependency, because that is what it is: the request
+    /// was answerable and the step this rule reads placed nothing. It carries its own sentence
+    /// because the remedy is not a rule to repair. Reported as a required parameter nobody
+    /// stated, this sent a reader to look up a landing index by hand on a recording that holds
+    /// no landing to look up.
+    pub fn landing_not_in_recording(
+        method_id: impl Into<String>,
+        construct: impl Into<String>,
+        samples_after_takeoff: usize,
+    ) -> Self {
+        Self::build(
+            RefusalCode::DependencyUnresolved,
+            method_id,
+            None,
+            None,
+            BTreeMap::from([(
+                SAMPLES_AFTER_TAKEOFF.to_string(),
+                samples_after_takeoff as f64,
+            )]),
+            vec![construct.into()],
         )
     }
 
@@ -1020,6 +1050,14 @@ fn sentence(
             "{} could not be read: {}",
             parameter.unwrap_or("that path"),
             available.first().map(String::as_str).unwrap_or("no detail")
+        ),
+        // The recording rather than an earlier rule, told apart from the other form of this
+        // code by the detail. Nothing upstream declined: the trace stops while the athlete is
+        // off the plate, so the interval this rule measures has no far end in it.
+        RefusalCode::DependencyUnresolved if detail.contains_key(SAMPLES_AFTER_TAKEOFF) => format!(
+            "{subject} measures to the return to the plate, and the athlete is off the plate \
+             for all {} samples after takeoff, so this recording carries no landing",
+            named(SAMPLES_AFTER_TAKEOFF)
         ),
         RefusalCode::DependencyUnresolved => format!(
             "{subject} reads what {} placed, and that step placed nothing",

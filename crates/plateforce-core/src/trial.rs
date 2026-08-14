@@ -438,6 +438,57 @@ pub fn flight_time_seconds(
     (touchdown_index as f64 - takeoff_index as f64) * sample_interval_seconds
 }
 
+/// The sample the athlete came back down on, or nothing on a recording that does not carry
+/// the return.
+///
+/// The interval this bounds is the one the athlete was off the plate, so the plate carries
+/// nothing at the sample the search opens from and the return is the first run above the
+/// threshold that goes on to carry the weighed system weight. Neither condition is decoration.
+/// A threshold below the converter's own step is met by every sample a plate can report as
+/// nonzero, so one step of dither read as a landing gave a flight of 0.0025 s. A marker
+/// dragged onto a loaded stretch of the trace placed the return on takeoff itself and gave a
+/// flight of zero, and the interval from such a marker is not a flight at any length: the
+/// athlete is standing on the plate through the front of it. The weight separates a plate
+/// carrying the athlete from a plate carrying nothing, and it is measured on this trial rather
+/// than published anywhere.
+///
+/// A sample that is not a number ends the run rather than continuing or completing it.
+/// Reading an infinity as above the weight would place a landing on the one sample in the
+/// recording carrying no measurement.
+///
+/// A weight that is not a number is a recording whose weighing window lost samples, and it
+/// leaves no weight to confirm against. The search then reports the first return the declared
+/// rule names, unaugmented, rather than refusing: a gap in the weighing window says nothing
+/// about a landing further down the trace, and refusing there took a flight time and a height
+/// off a recording whose 2861 N landing is not in doubt.
+pub fn return_to_the_plate(
+    force_newtons: &[f64],
+    takeoff_index: usize,
+    threshold_newtons: f64,
+    system_weight_newtons: f64,
+) -> Option<usize> {
+    let at_takeoff = *force_newtons.get(takeoff_index)?;
+    if !at_takeoff.is_finite() || at_takeoff > threshold_newtons {
+        return None;
+    }
+    let confirm_against = system_weight_newtons
+        .is_finite()
+        .then_some(system_weight_newtons);
+
+    let mut run_start: Option<usize> = None;
+    for (offset, &force) in force_newtons.get(takeoff_index..)?.iter().enumerate() {
+        if !force.is_finite() || force <= threshold_newtons {
+            run_start = None;
+            continue;
+        }
+        let start = *run_start.get_or_insert(takeoff_index + offset);
+        if confirm_against.is_none_or(|weight| force >= weight) {
+            return Some(start);
+        }
+    }
+    None
+}
+
 /// Reactive strength index, modified: jump height over the time taken to produce it.
 ///
 /// Height is in metres here. One commercial export labels this column cm/s while
@@ -501,6 +552,188 @@ mod tests {
             DispersionEstimator::Sample,
         )
         .unwrap()
+    }
+
+    // Measured on `subject01_trial5`: the plate quantises at 1.398 N, the flight-noise rule
+    // re-estimated the threshold at 0.7292 N, and the first step of dither lands three samples
+    // after takeoff. Read as a return it gives a flight of 0.0025 s and a height of
+    // 0.0000076 m, which a reader averaging the column takes as a jump of nothing.
+    const CONVERTER_STEP_NEWTONS: f64 = 1.398;
+    const THRESHOLD_BELOW_ONE_STEP_NEWTONS: f64 = 0.7292;
+    const SYSTEM_WEIGHT_NEWTONS: f64 = 584.27;
+
+    /// Takeoff, then flight carrying dither, then whatever the caller says came next.
+    fn flight_then(dither_at: &[usize], tail: Vec<f64>) -> (Vec<f64>, usize) {
+        let takeoff_index = 10;
+        let mut force = vec![SYSTEM_WEIGHT_NEWTONS; takeoff_index];
+        force.extend(std::iter::repeat_n(0.0, 200));
+        for offset in dither_at {
+            force[takeoff_index + offset] = CONVERTER_STEP_NEWTONS;
+        }
+        force.extend(tail);
+        (force, takeoff_index)
+    }
+
+    /// The landing on `subject01_trial1` reaches system weight seven samples after the
+    /// crossing, so a rise of that length is the shape a real return has.
+    fn landing() -> Vec<f64> {
+        vec![135.6, 271.2, 254.4, 201.3, 254.4, 374.7, 497.7, 629.1, 722.8, 801.0]
+    }
+
+    #[test]
+    fn a_step_of_dither_after_takeoff_is_not_the_athlete_coming_back_down() {
+        let (force, takeoff_index) = flight_then(&[3, 8, 14], Vec::new());
+        assert_eq!(
+            return_to_the_plate(
+                &force,
+                takeoff_index,
+                THRESHOLD_BELOW_ONE_STEP_NEWTONS,
+                SYSTEM_WEIGHT_NEWTONS
+            ),
+            None,
+            "a recording that ends in flight reported a landing"
+        );
+    }
+
+    #[test]
+    fn the_return_is_the_first_sample_of_the_run_that_carries_the_athlete() {
+        let (force, takeoff_index) = flight_then(&[3, 8], landing());
+        let expected = force
+            .iter()
+            .rposition(|value| *value == 0.0)
+            .expect("the flight is in the trace")
+            + 1;
+        assert_eq!(
+            return_to_the_plate(
+                &force,
+                takeoff_index,
+                THRESHOLD_BELOW_ONE_STEP_NEWTONS,
+                SYSTEM_WEIGHT_NEWTONS
+            ),
+            Some(expected),
+            "the return was not placed on the first sample of the rise"
+        );
+    }
+
+    /// The dither and the landing in one trace, which is what separates skipping an
+    /// unconfirmed crossing from refusing the whole recording. A rule that took the first
+    /// crossing would answer the dither; one that gave up at the first unconfirmed crossing
+    /// would lose a landing that is sitting in the trace.
+    #[test]
+    fn dither_before_a_real_landing_costs_neither_the_landing_nor_its_place() {
+        let (force, takeoff_index) = flight_then(&[3], landing());
+        let placed = return_to_the_plate(
+            &force,
+            takeoff_index,
+            THRESHOLD_BELOW_ONE_STEP_NEWTONS,
+            SYSTEM_WEIGHT_NEWTONS,
+        )
+        .expect("the trace carries a landing");
+        assert!(
+            placed > takeoff_index + 3,
+            "the return was placed on the dither at {}",
+            takeoff_index + 3
+        );
+        assert_eq!(force[placed], landing()[0]);
+    }
+
+    /// A sample that is not a number ends the run rather than completing it. Both values are
+    /// held against it, because rejecting only NaN lets an infinity place a landing on the one
+    /// sample in the recording that carries no measurement.
+    #[test]
+    fn a_sample_that_is_not_a_number_places_no_return() {
+        for absent in [f64::NAN, f64::INFINITY] {
+            let (force, takeoff_index) = flight_then(&[], vec![absent]);
+            assert_eq!(
+                return_to_the_plate(&force, takeoff_index, 20.0, SYSTEM_WEIGHT_NEWTONS),
+                None,
+                "{absent} was read as the athlete returning to the plate"
+            );
+        }
+    }
+
+    /// A recording whose weighing window lost samples still reports the landing it holds.
+    ///
+    /// The weight is measured over the quiet window and the landing is 700 samples past
+    /// takeoff, so a gap in the first says nothing about the second. Confirming against a
+    /// weight that is not a number refuses every crossing, and it took the flight time and the
+    /// height from it off `subject01_trial1_interrupted`, whose landing peaks at 2861 N: the
+    /// two numbers that recording still answered, of eleven, were the two that went.
+    #[test]
+    fn a_weight_that_is_not_a_number_leaves_the_landing_the_recording_holds() {
+        let (force, takeoff_index) = flight_then(&[3], landing());
+        let expected = return_to_the_plate(&force, takeoff_index, 20.0, SYSTEM_WEIGHT_NEWTONS)
+            .expect("the trace carries a landing");
+        for absent in [f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                return_to_the_plate(&force, takeoff_index, 20.0, absent),
+                Some(expected),
+                "a weight of {absent} lost the landing rather than the confirmation"
+            );
+        }
+        // And the dither is still not a landing, because the athlete leaving the plate is the
+        // other condition and it does not rest on the weight.
+        let (dither_only, takeoff_index) = flight_then(&[3, 8, 14], Vec::new());
+        assert_eq!(
+            return_to_the_plate(
+                &dither_only,
+                takeoff_index,
+                THRESHOLD_BELOW_ONE_STEP_NEWTONS,
+                f64::NAN
+            ),
+            Some(takeoff_index + 3),
+            "with no weight to confirm against the declared rule takes the first return, and \
+             this names the sample it takes so a change to that is visible here"
+        );
+    }
+
+    /// The same two values at takeoff itself, where the question is not whether the athlete
+    /// came back but whether they ever left. A sample carrying no number cannot show the plate
+    /// unloaded, so the interval has no near end and the landing further down the trace is not
+    /// a return from anything.
+    #[test]
+    fn a_takeoff_sample_that_is_not_a_number_bounds_no_flight() {
+        for absent in [f64::NAN, f64::INFINITY] {
+            let (mut force, takeoff_index) = flight_then(&[], landing());
+            force[takeoff_index] = absent;
+            assert_eq!(
+                return_to_the_plate(&force, takeoff_index, 20.0, SYSTEM_WEIGHT_NEWTONS),
+                None,
+                "{absent} at takeoff was read as the athlete being off the plate"
+            );
+        }
+    }
+
+    /// A marker dragged onto a loaded stretch of the trace. The plate never unloads after it,
+    /// so the athlete never left and there is nothing to return from. Read as a return, the
+    /// loaded sample at takeoff gave a flight of zero seconds and a height of zero metres,
+    /// which is the sentinel-shaped number this project refuses to write.
+    #[test]
+    fn a_plate_that_never_unloads_after_takeoff_carries_no_return() {
+        let force = vec![SYSTEM_WEIGHT_NEWTONS; 40];
+        assert_eq!(return_to_the_plate(&force, 10, 20.0, SYSTEM_WEIGHT_NEWTONS), None);
+    }
+
+    /// The same marker on a trace that does carry a real flight and a real landing further on.
+    /// The landing is there, and the interval from this marker still is not a flight, because
+    /// the athlete is on the plate through the front of it. Refused rather than reported at
+    /// whatever length the marker happens to give, which was 1.0167 s and a height of 1.2675 m
+    /// on the recording this suite characterises.
+    #[test]
+    fn a_marker_on_a_loaded_sample_bounds_no_flight_even_where_a_landing_follows() {
+        let mut force = vec![SYSTEM_WEIGHT_NEWTONS * 2.0; 20];
+        force.extend(std::iter::repeat_n(0.0, 100));
+        force.extend(landing());
+        assert_eq!(
+            return_to_the_plate(&force, 5, 20.0, SYSTEM_WEIGHT_NEWTONS),
+            None
+        );
+        // And the same trace read from a sample where the plate carries nothing answers, so
+        // the refusal above is about where the marker sits rather than about this recording.
+        assert_eq!(
+            return_to_the_plate(&force, 20, 20.0, SYSTEM_WEIGHT_NEWTONS),
+            Some(120)
+        );
     }
 
     #[test]

@@ -90,9 +90,13 @@ debate = "genuine"
 name = "gravity"
 unit = "meters_per_second_squared"
 published_values = [9.8, 9.806, 9.80665, 9.81]
-default = 9.81
-default_source = "linthorne2001"
 required = true
+notes = """
+Required and answered by no default here. A default type-checks as readily as a stated value, so
+a parameter carrying both is required in its declaration and optional in practice. Linthorne
+teaches the derivation at 9.81, which is the citation below and the third published value; the
+value this height runs at is the one the analysis is bound to, as every other quantity's is.
+"""
 
 [[method.citation]]
 key = "linthorne2001"

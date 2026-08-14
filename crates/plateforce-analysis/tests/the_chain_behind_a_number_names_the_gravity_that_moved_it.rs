@@ -244,19 +244,19 @@ fn the_gravity_a_number_names_is_recorded_once_at_the_root_and_is_the_one_it_ran
     }
 }
 
-/// A rule whose entry publishes its own gravity ran at that one, and the chain says so.
+/// The chain names the gravity the height was produced at, and nothing else.
 ///
-/// Nobody states a gravity, the request carries 9.80665, and `jumpheight.takeoff.flight_time`
-/// runs at the 9.81 its entry declares. The record naming the request's value would name a
-/// number that did not produce the height. Checked as the closed form rather than against a
-/// second value read from the same place.
+/// Nobody states a gravity and the analysis is bound to 9.80665, which is what the height runs
+/// at. `jumpheight.takeoff.flight_time` published 9.81 as its own default and ran at that, so
+/// the chain named a value ten of the eleven numbers beside it did not rest on. Checked as the
+/// closed form rather than against a second value read from the same place.
 #[test]
-fn a_rule_publishing_its_own_gravity_puts_the_one_it_ran_at_into_the_chain() {
+fn the_chain_names_the_gravity_the_height_was_produced_at() {
     let quiet = at(STANDARD, ParameterSource::Assumed);
     let found = gravity_in_the_chain(&quiet, FLIGHT_TIME_HEIGHT);
     assert_eq!(found.len(), 1, "{FLIGHT_TIME_HEIGHT} names {found:?}");
     let recorded = found[0].1;
-    assert_eq!(recorded, PUBLISHED);
+    assert_eq!(recorded, STANDARD);
 
     let read = |key: &str| {
         values(&quiet)
@@ -273,8 +273,23 @@ fn a_rule_publishing_its_own_gravity_puts_the_one_it_ran_at_into_the_chain() {
         recorded * flight * flight / 8.0
     );
     assert!(
-        (height - STANDARD * flight * flight / 8.0).abs() > 1e-9,
-        "the two gravities give the same height, so this proves nothing about which was used"
+        (height - PUBLISHED * flight * flight / 8.0).abs() > 1e-9,
+        "the height is the one the entry's removed default would have produced, so this proves \
+         nothing about which value was used"
+    );
+
+    // The chain names the gravity this analysis was bound to, rather than one value it names
+    // whatever it ran at. Every assertion above holds on a build where gravity is frozen at
+    // the number they compare against, so without this the test passes while measuring
+    // nothing: it is the same shape as an empty difference set satisfied by an empty build.
+    let elsewhere = at(PUBLISHED, ParameterSource::Stated);
+    let named_elsewhere = gravity_in_the_chain(&elsewhere, FLIGHT_TIME_HEIGHT);
+    assert_eq!(named_elsewhere.len(), 1, "{named_elsewhere:?}");
+    println!("bound to {STANDARD} the chain names {recorded}, bound to {PUBLISHED} it names {}", named_elsewhere[0].1);
+    assert_eq!(named_elsewhere[0].1, PUBLISHED);
+    assert_ne!(
+        recorded, named_elsewhere[0].1,
+        "the chain names one value at two bindings, so gravity is reaching nothing"
     );
 }
 

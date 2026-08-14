@@ -18,13 +18,12 @@
 
 use plateforce_core::{
     jump_height_from_flight_time, reactive_strength_index_modified, time_to_takeoff_seconds,
-    Refusal,
 };
 
 use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
-use crate::resolution::{Resolution, RuleRefusal};
+use crate::resolution::Resolution;
 use crate::response::Quantity;
 use crate::slots::flight_time;
 
@@ -65,10 +64,7 @@ fn compute(
     let Some(flight_seconds) = flight_time::seconds(context, landmarks.takeoff_index) else {
         return DerivedOutcome::declined(
             resolved.finish(),
-            RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
-                ID,
-                flight_time::TOUCHDOWN_FIELD,
-            ))),
+            flight_time::no_landing_recorded(context, ID, landmarks.takeoff_index),
         );
     };
 

@@ -1,12 +1,10 @@
 //! `flight_time.takeoff_to_touchdown`: the samples between takeoff and the return above the
 //! threshold that placed it, times the sampling interval.
 
-use plateforce_core::Refusal;
-
 use crate::binding::TAKEOFF_CONSTRUCT;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
-use crate::resolution::{Resolution, RuleRefusal};
+use crate::resolution::Resolution;
 use crate::response::Quantity;
 
 pub const ID: &str = "flight_time.takeoff_to_touchdown";
@@ -43,10 +41,7 @@ fn compute(
     let Some(seconds) = super::seconds(context, takeoff_index) else {
         return DerivedOutcome::declined(
             bound,
-            RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
-                ID,
-                super::TOUCHDOWN_FIELD,
-            ))),
+            super::no_landing_recorded(context, ID, takeoff_index),
         );
     };
 

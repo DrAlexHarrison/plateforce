@@ -27,8 +27,6 @@ pub const POPULATION_PARAMETER: &str = "population";
 pub const REQUIRED_OPTIONS: &[(&str, &str)] = &[(POPULATION_PARAMETER, "harman1991")];
 
 pub const GRAVITY_PARAMETER: &str = crate::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
-pub const GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED: f64 =
-    crate::slots::jh_takeoff_frame::flight_time::GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED;
 
 /// The ten sets the registry publishes, keyed as it keys them.
 ///
@@ -149,10 +147,12 @@ fn compute(
         choice.declared.of_entry(ID),
         choice.claims(),
     );
+    // The gravity the analysis is bound to, reached the way the height entry this rests on
+    // reaches it, so the estimate and the height it is built from cannot run at two constants.
     let gravity = resolved.number_or_chosen(
         GRAVITY_PARAMETER,
         context.chosen_gravity_behind(super::KEY),
-        GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED,
+        context.gravity_behind(Some(super::KEY)),
     );
     let population = resolved.required_enumerated(ID, POPULATION_PARAMETER, COEFFICIENT_SETS);
     let height = super::height_from_flight_meters(context, ID, gravity);

@@ -46,7 +46,7 @@ fn a_column_behind_runs_of_spaces_is_read_and_recorded_as_whitespace() {
     // The second column was read as force: a padded index column read as force would put
     // the trace nowhere near a plate's newtons.
     let row = &result.results[0];
-    assert!(row.refusal_code.is_empty(), "{row:?}");
+    assert!(!row.provenance_id.is_empty(), "{row:?}");
 }
 
 /// The wire spellings, both directions. A tab's request and a terminal's construction meet

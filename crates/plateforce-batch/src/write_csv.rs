@@ -268,13 +268,14 @@ pub fn read_csv(directory: &Path) -> Result<ReadBack, WriteRefusal> {
             trial_id: cells[0].clone(),
             ordinal: cells[1].parse().unwrap_or_default(),
             code: cells[2].clone(),
-            method_id: cells[3].clone(),
-            slot: cells[4].clone(),
-            parameter: cells[5].clone(),
-            value: cells[6].clone(),
-            detail: cells[7].clone(),
-            available: cells[8].clone(),
-            message: cells[9].clone(),
+            quantity: cells[3].clone(),
+            method_id: cells[4].clone(),
+            slot: cells[5].clone(),
+            parameter: cells[6].clone(),
+            value: cells[7].clone(),
+            detail: cells[8].clone(),
+            available: cells[9].clone(),
+            message: cells[10].clone(),
         })
         .collect();
 

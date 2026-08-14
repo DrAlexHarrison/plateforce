@@ -138,7 +138,7 @@ fn every_column_carries_something_the_results_table_does_not() {
         .expect("the removed trial keeps its row and its numbers");
     // The premise. A removed trial is not absent from the table, it is present and complete,
     // which is why nothing in the table can say it was removed.
-    assert!(results_row.refusal_code.is_empty());
+    assert!(!results_row.provenance_id.is_empty());
     assert!(
         results_row.values.values().any(|value| value.is_some()),
         "the removed trial carries numbers a reader would otherwise pool"

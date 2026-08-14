@@ -229,7 +229,7 @@
         "bound_parameters": [
           [
             "gravity",
-            "9.81"
+            "9.80665"
           ]
         ],
         "manual_override": false,
@@ -424,7 +424,7 @@
         "note": "The projectile equation's estimate of the same takeoff-frame rise as the figure above. Higher by about 2.1 cm across nine unloaded studies, and lower under load.",
         "unit": "meters",
         "unit_symbol": "m",
-        "value": 0.2737679765625
+        "value": 0.2736744880078125
       },
       {
         "carried_no_number": false,

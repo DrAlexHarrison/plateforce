@@ -62,15 +62,20 @@ test_that("the census R reports is the census the command line counts", {
       "-p", "plateforce-cli", "--",
       "--registry", shQuote(file.path(repository, "registry")), "registry", "census"),
     env = c(paste0("CARGO_TARGET_DIR=", target), "CARGO_NET_OFFLINE=true"),
-    stdout = TRUE, stderr = FALSE
+    stdout = TRUE, stderr = TRUE
   ))
   # A census that did not arrive and a census that disagrees are different findings, and
   # only the second is about this software. The build reaches no network here, so a machine
   # whose workspace is not vendored cannot answer, and saying a count is missing would name
   # this package for a fact about the machine.
+  #
+  # The build's own words are kept and reported. Discarding them makes every reason a machine
+  # cannot answer look like the same reason, and a skip nobody can attribute is a silence
+  # wearing the shape of an explanation.
   asked <- is.null(attr(printed, "status")) || identical(attr(printed, "status"), 0L)
   skip_if_not(asked && length(printed) > 0,
-              "the command line could not be built offline on this machine")
+              paste("the command line could not be built offline here:",
+                    paste(utils::tail(printed, 8), collapse = " | ")))
 
   expect_true(any(startsWith(trimws(printed), "constructs")),
               info = paste(printed, collapse = " | "))

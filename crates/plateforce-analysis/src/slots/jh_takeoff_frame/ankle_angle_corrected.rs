@@ -134,10 +134,7 @@ fn compute(
     let Some(seconds) = flight_time::seconds(context, takeoff_index) else {
         return DerivedOutcome::declined(
             resolved.finish(),
-            RuleRefusal::Refused(Box::new(Refusal::required_parameter_unstated(
-                ID,
-                flight_time::TOUCHDOWN_FIELD,
-            ))),
+            flight_time::no_landing_recorded(context, ID, takeoff_index),
         );
     };
 

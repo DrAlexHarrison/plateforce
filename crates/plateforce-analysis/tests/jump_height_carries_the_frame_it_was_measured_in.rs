@@ -113,24 +113,31 @@ fn height(construct: &str, method_id: &str, key: &str) -> f64 {
 /// The projectile equation on a flight phase of stated length, which is the one jump-height
 /// answer that has a closed form. Nothing about the integrator can move it.
 ///
-/// A reader who states nothing gets the value the entry declares, 9.81, and not the constant
-/// the request carries. The entry publishes four values because the tools disagree on this one
-/// and a rule running on whichever number a struct initialiser held would be the silent
-/// default with the paperwork of a declared one.
+/// A reader who states nothing gets the gravity the analysis is bound to, which is what the
+/// other ten numbers beside this one run at. The entry published its own default, 9.81, and a
+/// run then carried two values for one physical constant with nothing saying so.
+///
+/// The value that default held is held against the answer below rather than left out, because
+/// an assertion that only checked the analysis constant would pass just as well on a rule that
+/// had gone on reading the entry's if the two ever met.
 #[test]
-fn the_flight_time_height_is_the_closed_form_at_the_gravity_its_entry_declares() {
-    use plateforce_analysis::slots::jh_takeoff_frame::flight_time::{
-        GRAVITY_DEFAULT_METERS_PER_SECOND_SQUARED as DECLARED, GRAVITY_PARAMETER,
-    };
+fn the_flight_time_height_runs_at_the_gravity_the_analysis_is_bound_to() {
+    use plateforce_analysis::slots::jh_takeoff_frame::flight_time::GRAVITY_PARAMETER;
+
+    const THE_ENTRY_ONCE_DEFAULTED_TO: f64 = 9.81;
 
     let seconds = FLIGHT_SAMPLES as f64 / SAMPLE_RATE_HZ;
     let stated_nothing = height(TAKEOFF_FRAME, "jumpheight.takeoff.flight_time", FLIGHT_KEY);
-    let closed_form = DECLARED * seconds * seconds / 8.0;
-    println!("flight {seconds:.4} s, height {stated_nothing:.6} m, closed form at g = {DECLARED} is {closed_form:.6} m");
+    let closed_form = GRAVITY * seconds * seconds / 8.0;
+    println!("flight {seconds:.4} s, height {stated_nothing:.6} m, closed form at g = {GRAVITY} is {closed_form:.6} m");
     assert!((stated_nothing - closed_form).abs() < 1e-9);
     assert_ne!(
-        DECLARED, GRAVITY,
-        "the entry's value and the request's constant are the same number here, so this could not tell them apart"
+        THE_ENTRY_ONCE_DEFAULTED_TO, GRAVITY,
+        "the two constants are the same number here, so this could not tell them apart"
+    );
+    assert!(
+        (stated_nothing - THE_ENTRY_ONCE_DEFAULTED_TO * seconds * seconds / 8.0).abs() > 1e-9,
+        "the height is the one the removed entry default would have produced"
     );
 
     // And a reader who does state one gets theirs. A rule that took its entry's default over a
@@ -443,7 +450,15 @@ fn a_flight_time_height_on_a_recording_that_never_lands_is_refused_by_name() {
         .expect("the rule declined");
     let refusal = plateforce_analysis::document::refusal_from_rule(declined);
     println!("{}", refusal.message());
-    assert_eq!(refusal.code, RefusalCode::RequiredParameterUnstated);
+    // The step this rule reads placed nothing, which is what an unmet dependency is. Recorded
+    // as a required parameter nobody stated, the sentence told a reader to look a landing
+    // index up by hand on a recording that holds no landing to look up.
+    assert_eq!(refusal.code, RefusalCode::DependencyUnresolved);
+    assert!(
+        refusal.message().contains("carries no landing"),
+        "the sentence names what is missing from the recording: {}",
+        refusal.message()
+    );
     assert!(value(&response, FLIGHT_KEY).is_none());
 }
 

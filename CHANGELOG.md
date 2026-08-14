@@ -14,7 +14,7 @@ produced it. Record them beside any number you report, and quote them in a metho
 ```
 plateforce version                0.1.0
 method registry revision          2026-07-25
-method registry digest            content-f8aff30ff8f6aafa
+method registry digest            content-e613e95011150591
 ```
 
 The revision is the date the registry names itself. The digest is taken over the registry's

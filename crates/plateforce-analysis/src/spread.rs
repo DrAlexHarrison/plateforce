@@ -160,6 +160,13 @@ pub struct SpreadResponse {
     /// The other half of the same question. A reader holding a figure can see both what moved
     /// and what did not, so the figure cannot be read as wider than the set it came from.
     pub held_fixed: Vec<HeldRule>,
+    /// Landmarks a reader placed by hand that the sweep set aside, named by their slot.
+    ///
+    /// A swept slot cannot also be pinned, so the figures here answer for the published rules
+    /// rather than for the analysis on screen, and the two are different claims. The reader is
+    /// told which, from the record, because a surface working it out for itself would be a
+    /// second place that knows what the sweep did.
+    pub released_landmarks: Vec<String>,
     pub unit: String,
     pub unit_symbol: String,
     pub combinations_requested: usize,
@@ -500,6 +507,7 @@ pub fn run(trial: &Trial, request: &SpreadRequest) -> Result<SpreadResponse, Box
             })
             .collect(),
         held_fixed: held_fixed(&request.base, &axes, computed_by.as_deref()),
+        released_landmarks: released_landmarks(&request.base, &axes),
         unit,
         unit_symbol,
         combinations_requested,
@@ -686,6 +694,18 @@ fn materialise(
 /// something a caller naming an axis has to know. Reached through `derived` alone, a sweep
 /// over a conditioning rule was refused as a name the request did not carry, on a request
 /// that carried it.
+/// The same lookup without taking the request mutably, for reading what a sweep will set aside.
+/// One shape, so a construct found by one is found by the other.
+fn rule_bound_for_read<'a>(
+    request: &'a AnalysisRequest,
+    construct: &str,
+) -> Option<&'a crate::MethodChoice> {
+    if request.derived.contains_key(construct) {
+        return request.derived.get(construct);
+    }
+    request.conditioning.get(construct)
+}
+
 fn rule_bound_for<'a>(
     request: &'a mut AnalysisRequest,
     construct: &str,
@@ -708,6 +728,25 @@ fn options_bound_for<'a>(
         "takeoff" => Some(&mut request.takeoff.options),
         construct => rule_bound_for(request, construct).map(|choice| &mut choice.options),
     }
+}
+
+/// Which of the swept slots the reader had placed by hand, so the answer says whose analysis it
+/// is describing.
+///
+/// Read from the same request and the same axes that `release_dragged_marker` acts on, so the
+/// two cannot drift: a slot appears here exactly when the sweep set its marker aside.
+fn released_landmarks(base: &AnalysisRequest, axes: &[Axis]) -> Vec<String> {
+    axes.iter()
+        .map(|axis| axis.slot.as_str())
+        .filter(|slot| match *slot {
+            "weighing" => false,
+            "onset" => base.onset.manual_index.is_some(),
+            "takeoff" => base.takeoff.manual_index.is_some(),
+            construct => rule_bound_for_read(base, construct)
+                .is_some_and(|choice| choice.manual_index.is_some()),
+        })
+        .map(str::to_string)
+        .collect()
 }
 
 /// A swept setting has to be able to move the answer, so any marker the user dragged on that
