@@ -996,6 +996,10 @@ fn sentence(
     available: &[String],
 ) -> String {
     let named = |key: &str| detail.get(key).copied().unwrap_or(f64::NAN);
+    // What a reader is offered, in the reader's punctuation. Rust's Debug reaches an operator
+    // with its brackets and quotes intact, and a reader who has just met two refusals written
+    // in this product's voice should not meet a third written in the language's.
+    let offered = available.join(", ");
     let subject = match (parameter, value, named_value) {
         (Some(name), Some(number), _) => format!("{method_id}({name} = {number})"),
         (Some(name), None, Some(chosen)) => format!("{method_id}({name} = {chosen})"),
@@ -1095,7 +1099,7 @@ fn sentence(
         ),
         RefusalCode::TraceTooShort => "trace is empty".to_string(),
         RefusalCode::ObservationsNotPaired => format!(
-            "{subject} compares values from different repetitions, and the values it paired are {available:?}"
+            "{subject} compares values from different repetitions, and the values it paired are {offered}"
         ),
         RefusalCode::ConventionsNotComparable => format!(
             "no published figure describes how {} and {} differ, so their agreement has no meaning to report",
@@ -1151,13 +1155,13 @@ fn sentence(
             }
         }
         RefusalCode::MethodNotImplemented if detail.contains_key(PRESETS_CARRIED) => format!(
-            "'{method_id}' is not a published pipeline this registry carries, and the {} it carries {} {available:?}",
+            "'{method_id}' is not a published pipeline this registry carries, and the {} it carries {} {offered}",
             named(PRESETS_CARRIED),
             if named(PRESETS_CARRIED) == 1.0 { "is" } else { "are" }
         ),
         RefusalCode::MethodNotImplemented if detail.contains_key(RULES_THIS_BUILD_RUNS) => {
             format!(
-                "'{method_id}' answers to no rule, and the {} rules this build runs are {available:?}",
+                "'{method_id}' answers to no rule, and the {} rules this build runs are {offered}",
                 named(RULES_THIS_BUILD_RUNS)
             )
         }
@@ -1166,39 +1170,43 @@ fn sentence(
         // and it is the first thing anyone meets on a surface that carries no decision layer
         // of its own: a preset leaving a step open reaches here, as does a call that named no
         // rules at all.
+        // The list is joined rather than debugged. Rust's Debug reaches the operator with its
+        // brackets and quotes intact, so a reader who has just met two refusals written in this
+        // product's voice meets a third written in Rust's, on the surface with no decision layer
+        // of its own and therefore the likeliest place a first-time reader arrives.
         RefusalCode::MethodNotImplemented if method_id.is_empty() => match slot {
             Some(step) => format!(
-                "no rule is named for the {step} step, and the rules for it are {available:?}"
+                "no rule is named for the {step} step, and the rules for it are {offered}"
             ),
             None => format!(
-                "no step is named, and the steps this analysis runs are {available:?}"
+                "no step is named, and the steps this analysis runs are {offered}"
             ),
         },
         RefusalCode::MethodNotImplemented => match slot {
             Some(step) => format!(
-                "'{method_id}' was passed as the {step} method, and the rules for that step are {available:?}"
+                "'{method_id}' was passed as the {step} method, and the rules for that step are {offered}"
             ),
             None => format!(
-                "'{method_id}' is not a step this analysis runs, and the steps it runs are {available:?}"
+                "'{method_id}' is not a step this analysis runs, and the steps it runs are {offered}"
             ),
         },
         // No rule read the axis, so the sentence names the request's axes rather than a
         // rule's parameters.
         RefusalCode::UnknownParameter if detail.contains_key("axes_offered") => format!(
-            "'{}' was passed as a sweep axis, and the {} axes this sweep can vary are {available:?}",
+            "'{}' was passed as a sweep axis, and the {} axes this sweep can vary are {offered}",
             parameter.unwrap_or("that name"),
             named("axes_offered")
         ),
         RefusalCode::UnknownParameter => format!(
-            "{method_id} does not read {}, and the names it reads are {available:?}",
+            "{method_id} does not read {}, and the names it reads are {offered}",
             parameter.unwrap_or("that name")
         ),
         RefusalCode::ColumnNotFound => format!(
-            "no column named {}, and the file carries {available:?}",
+            "no column named {}, and the file carries {offered}",
             parameter.unwrap_or("that")
         ),
         RefusalCode::SentinelConventionUnknown => format!(
-            "{} is not a sentinel convention this reader applies, and it applies {available:?}",
+            "{} is not a sentinel convention this reader applies, and it applies {offered}",
             parameter.unwrap_or("that")
         ),
         RefusalCode::SchemaUnsupported => format!(
@@ -1217,7 +1225,7 @@ fn sentence(
             .unwrap_or("this build does not offer that argument")
             .to_string(),
         RefusalCode::DecisionNotMade => format!(
-            "{} states every choice behind a number, and {available:?} {} still open",
+            "{} states every choice behind a number, and {offered} {} still open",
             parameter.unwrap_or("this artifact"),
             if available.len() == 1 { "is" } else { "are" }
         ),
