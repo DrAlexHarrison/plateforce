@@ -9,6 +9,7 @@ Usage: python3 docs/quickstart/build.py [--html-only]
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -270,14 +271,26 @@ GUIDES = {
 }
 
 
+def chrome_executable():
+    """Where a headless Chrome runs, asked of the environment rather than assumed, the same
+    resolution scripts/browser.mjs applies for the checks."""
+    stated = os.environ.get("PLATEFORCE_CHROME") or os.environ.get("CHROME_PATH")
+    if stated:
+        return stated
+    if sys.platform == "darwin":
+        return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    return "google-chrome"
+
+
 def render_pdf(html_path, pdf_path):
     """Prints the page with headless Chrome, which is the only renderer here that reads the
     print stylesheet the guide is designed against."""
-    profile = tempfile.mkdtemp(prefix="plateforce-quickstart-", dir="/dev/shm")
+    scratch = "/dev/shm" if os.path.isdir("/dev/shm") else None
+    profile = tempfile.mkdtemp(prefix="plateforce-quickstart-", dir=scratch)
     try:
         subprocess.run(
             [
-                "google-chrome", "--headless=new", "--disable-gpu", "--no-sandbox",
+                chrome_executable(), "--headless=new", "--disable-gpu", "--no-sandbox",
                 f"--user-data-dir={profile}",
                 "--no-pdf-header-footer", "--print-to-pdf-no-header",
                 f"--print-to-pdf={pdf_path}", str(html_path),

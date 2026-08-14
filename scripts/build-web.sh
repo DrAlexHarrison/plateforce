@@ -44,9 +44,16 @@ if [ -z "$wasm_bindgen_version" ]; then
   exit 1
 fi
 
-if ! rustup target list --installed | grep -qx wasm32-unknown-unknown; then
-  echo "installing the wasm32-unknown-unknown target"
-  rustup target add wasm32-unknown-unknown
+# The toolchain itself is asked whether it can build the target, because a Homebrew or
+# distribution rustc carries no rustup and can still hold the standard library.
+if ! [ -d "$(rustc --print target-libdir --target wasm32-unknown-unknown 2>/dev/null)" ]; then
+  if command -v rustup >/dev/null 2>&1; then
+    echo "installing the wasm32-unknown-unknown target"
+    rustup target add wasm32-unknown-unknown
+  else
+    echo "this rustc has no wasm32-unknown-unknown standard library and no rustup to add one" >&2
+    exit 1
+  fi
 fi
 
 installed_version="$(wasm-bindgen --version 2>/dev/null | awk '{print $2}' || true)"

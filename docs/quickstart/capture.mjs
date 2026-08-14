@@ -16,6 +16,7 @@ import { createServer } from 'node:http';
 import { rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
+import { chromeExecutable, scratchDirectory } from '../../scripts/browser.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const OUT = join(ROOT, 'docs/quickstart/img');
@@ -43,8 +44,8 @@ await new Promise((ready) => server.listen(PORT, ready));
 
 // Its own process group and a profile in memory, so a run that throws still takes its
 // browser tree and its 160 MB of profile with it.
-const profile = `/dev/shm/plateforce-capture-${PORT}`;
-const chrome = spawn('google-chrome', [
+const profile = scratchDirectory(`plateforce-capture-${PORT}`);
+const chrome = spawn(chromeExecutable(), [
   '--headless=new', `--remote-debugging-port=${PORT + 1}`, '--no-sandbox', '--disable-gpu',
   '--hide-scrollbars', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: 'ignore', detached: true });
