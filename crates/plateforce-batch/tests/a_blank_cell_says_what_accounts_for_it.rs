@@ -848,7 +848,7 @@ fn every_trial_that_computed_writes_one_row_per_quantity_the_run_asked_for() {
 
 /// A rule that declined names the columns its refusal accounts for.
 ///
-/// The property `derive::quantities_of_rule`'s first test held, asserted against a real
+/// The property the batch's deleted static lookup held, asserted against a real
 /// response rather than against a static table read with no trial in hand. That is why the
 /// original could not reach the damaged recording: it never ran one.
 ///

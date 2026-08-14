@@ -770,6 +770,17 @@ EMPTY_ON_EVERY_REQUEST = {
         "absence. wsrp/registry-pin made the field mean the pin and nothing else, and gave R "
         "the field for the first time, so a request that states one would compare a value",
     ),
+    "released_landmarks": EmptyEverywhere(
+        "a sweep request that also places a landmark by hand on a slot it varies, which the "
+        "request schema this harness reads has no spelling for on the swept path",
+        "the landmarks a sweep set aside because it was varying the rule that placed them. A "
+        "swept slot cannot also be pinned, or every variant returns the pinned index and the "
+        "panel reports a spread of zero, so the sweep releases the marker and the reader is "
+        "told which. Measured filled on the terminal: `plateforce spread ... --place "
+        "onset=4100 --slot onset` answers `released_landmarks: [\"onset\"]`. Every committed "
+        "sweep request leaves every landmark to its rule, so the four surfaces agree about an "
+        "empty list",
+    ),
 }
 
 

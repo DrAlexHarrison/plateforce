@@ -642,7 +642,7 @@ fn a_rule_on_the_chain_of_a_quantity_that_answered_accounts_for_none_of_it() {
 
 /// A name that is the front of two rules claims nothing.
 ///
-/// The property `derive::quantities_of_rule`'s second test held, asserted where attribution now
+/// The property the batch's deleted static lookup held, asserted where attribution now
 /// happens. `jumpheight.takeoff` is the front of two rules reporting two different heights, so
 /// a lookup matching on it would point a reader at a blank cell the refusal has nothing to do
 /// with. The control is the full id, which does claim its quantity, so a comparison that
