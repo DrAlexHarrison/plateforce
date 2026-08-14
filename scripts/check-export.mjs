@@ -27,6 +27,7 @@ import { readFile, readdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize } from 'node:path';
 import { listenForConsoleErrors } from './console-errors.mjs';
+import { chromeArguments, chromeExecutable, scratchDirectory } from './browser.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8761)];
 const FIXTURES = 'crates/plateforce-conformance/fixtures';
@@ -48,15 +49,13 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((settle) => server.listen(port, settle));
 
-// Profile and downloads live in memory and go on every exit, the check-minute shape: these
-// scripts run many times over while a guard is broken and put back.
-const profile = `/dev/shm/plateforce-check-export-${port}`;
+// Profile and downloads go on every exit, the check-minute shape: these scripts run many
+// times over while a guard is broken and put back. `scratchDirectory` puts them in memory
+// where the system has somewhere to put them and on disk where it does not.
+const profile = scratchDirectory(`plateforce-check-export-${port}`);
 const downloads = `${profile}-downloads`;
 mkdirSync(downloads, { recursive: true });
-const chrome = spawn('google-chrome', [
-  '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=${profile}`, 'about:blank',
-], { stdio: 'ignore', detached: true });
+const chrome = spawn(chromeExecutable(), chromeArguments(port + 1, profile), { stdio: 'ignore', detached: true });
 process.on('exit', () => {
   try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
   try { rmSync(profile, { recursive: true, force: true }); } catch { /* already gone */ }

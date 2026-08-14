@@ -14,6 +14,7 @@ import { createServer } from 'node:http';
 import { rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { chromeArguments, chromeExecutable, scratchDirectory } from './browser.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8801)];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
@@ -30,11 +31,8 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(port, resolve));
 
-const profile = `/dev/shm/plateforce-recompute-${port}`;
-const chrome = spawn('google-chrome', [
-  '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=${profile}`, 'about:blank',
-], { stdio: 'ignore', detached: true });
+const profile = scratchDirectory(`plateforce-recompute-${port}`);
+const chrome = spawn(chromeExecutable(), chromeArguments(port + 1, profile), { stdio: 'ignore', detached: true });
 process.on('exit', () => {
   try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
   try { rmSync(profile, { recursive: true, force: true }); } catch { /* already gone */ }

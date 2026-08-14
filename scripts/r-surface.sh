@@ -26,9 +26,31 @@ library="${PLATEFORCE_R_LIBRARY:-$surface_root/library}"
 
 # Two gate runs share the vendored package source and its Cargo target. Serialise that build,
 # then let each caller consume its own installed library without another run deleting it.
+#
+# `flock` is util-linux and macOS does not carry it. This script sets no `-e`, so where it was
+# absent the shell printed `flock: command not found` and carried straight on, and two runs
+# raced over one directory while the script read as though it had serialised them. `mkdir` is
+# atomic on every POSIX filesystem, which is the one property a mutex needs, so it stands in.
 mkdir -p "$surface_root"
-exec 9>"$surface_root/install.lock"
-flock 9
+if command -v flock >/dev/null 2>&1; then
+    exec 9>"$surface_root/install.lock"
+    flock 9
+else
+    lock_directory="$surface_root/install.lock.d"
+    waited_seconds=0
+    until mkdir "$lock_directory" 2>/dev/null; do
+        # Bounded, because a run killed between taking the lock and its trap leaves the
+        # directory behind, and a gate that waits for ever reads as a gate that hung.
+        if [ "$waited_seconds" -ge 600 ]; then
+            echo "$lock_directory has been held for ten minutes" >&2
+            echo "remove it if the run that took it is gone" >&2
+            exit 1
+        fi
+        sleep 1
+        waited_seconds=$((waited_seconds + 1))
+    done
+    trap 'rmdir "$lock_directory" 2>/dev/null' EXIT
+fi
 
 case "$library" in
     "$surface_root"/library*) ;;

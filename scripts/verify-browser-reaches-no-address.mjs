@@ -17,6 +17,7 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { chromeArguments, chromeExecutable, scratchDirectory } from './browser.mjs';
 
 const [root, port] = [process.argv[2], Number(process.argv[3] || 8741)];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
@@ -43,10 +44,8 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(port, resolve));
 
-const chrome = spawn('google-chrome', [
-  '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=/tmp/plateforce-outbound-check-${port}`, 'about:blank',
-], { stdio: 'ignore' });
+const profile = scratchDirectory(`plateforce-outbound-check-${port}`);
+const chrome = spawn(chromeExecutable(), chromeArguments(port + 1, profile), { stdio: 'ignore' });
 
 const targets = await (async () => {
   for (let attempt = 0; attempt < 60; attempt += 1) {

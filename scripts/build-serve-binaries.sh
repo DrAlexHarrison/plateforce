@@ -73,6 +73,8 @@ for target in "${targets[@]}"; do
   named="${output_directory}/plateforce-${architecture}-linux-static"
   cp -f "$binary" "$named"
 
+  # `stat -c` is GNU and `stat -f` is BSD, so a Mac reports nothing here without the second
+  # form. `verify-windows-artefact.sh` already asks both ways; this asks the same way.
   printf '%s %s bytes statically linked -> %s\n' \
-    "$target" "$(stat -c %s "$named")" "$named"
+    "$target" "$(stat -c %s "$named" 2>/dev/null || stat -f %z "$named")" "$named"
 done

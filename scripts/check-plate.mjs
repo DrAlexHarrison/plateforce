@@ -18,6 +18,7 @@ import { rmSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { listenForConsoleErrors } from './console-errors.mjs';
+import { chromeArguments, chromeExecutable, scratchDirectory } from './browser.mjs';
 
 const [root, port] = [process.argv[2] || 'web', Number(process.argv[3] || 8771)];
 const FIXTURES = 'crates/plateforce-conformance/fixtures';
@@ -55,11 +56,8 @@ await new Promise((listening) => server.listen(port, listening));
 
 // In memory and removed on every exit, including the exit a timeout leaves through. A profile
 // per run on the root disk reaches gigabytes while a guard is being broken and put back.
-const profile = `/dev/shm/plateforce-check-plate-${port}`;
-const chrome = spawn('google-chrome', [
-  '--headless=new', `--remote-debugging-port=${port + 1}`, '--no-sandbox',
-  '--disable-gpu', `--user-data-dir=${profile}`, 'about:blank',
-], { stdio: 'ignore', detached: true });
+const profile = scratchDirectory(`plateforce-check-plate-${port}`);
+const chrome = spawn(chromeExecutable(), chromeArguments(port + 1, profile), { stdio: 'ignore', detached: true });
 process.on('exit', () => {
   try { process.kill(-chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
   try { rmSync(profile, { recursive: true, force: true }); } catch { /* already gone */ }
