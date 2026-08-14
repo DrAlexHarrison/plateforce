@@ -83,6 +83,15 @@ jobs:
         shell: bash
         run: bash bindings/r/tools/vendor.sh
 
+      # One assertion in the suite builds the command line and compares the census it prints
+      # against the census R reports, with the network off so the comparison cannot quietly
+      # depend on what a registry serves that day. That build reads the workspace's own cache,
+      # which is not the package's vendored copy, so it is filled here. The suite treats a skip
+      # as a failure, so an assertion that cannot run is a red rather than a silence.
+      - name: Fill the workspace cache the census comparison builds from
+        shell: bash
+        run: cargo fetch --locked
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: bindings/r

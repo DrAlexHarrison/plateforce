@@ -20,7 +20,7 @@ License: Apache License (== 2.0)
 URL: https://github.com/DrAlexHarrison/plateforce
 BugReports: https://github.com/DrAlexHarrison/plateforce/issues
 Depends: R (>= 4.3.0)
-Imports: S7, tools
+Imports: S7
 Suggests: testthat (>= 3.0.0), knitr, rmarkdown, jsonlite, withr
 SystemRequirements: Cargo (Rust's package manager), rustc >= 1.82
 Config/testthat/edition: 3
