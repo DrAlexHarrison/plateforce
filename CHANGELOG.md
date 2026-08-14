@@ -2,6 +2,39 @@
 
 What changed for somebody using plateforce, one section per release.
 
+## 0.1.1, 2026-08-14
+
+```
+plateforce version                0.1.1
+method registry revision          2026-07-25
+method registry digest            content-e613e95011150591
+```
+
+The registry is unchanged from 0.1.0, so the digest is the same and a number this release
+returns differs only where a fix below says so.
+
+### Fixed
+
+- The drop-jump height under `jumpheight.dj.mcmahon_correction_factor` read its standing
+  period over one sample more than the weighing window its own record names. The height now
+  comes from exactly the declared window. On a swaying standing period the value moves by
+  0.16 to 4.8 micrometres, measured at three sway amplitudes; the visible change is that a
+  weighing window ending at the recording's last sample used to make the rule decline, and
+  weighing a drop jump over the standing period the athlete holds at the end now answers.
+- A rule handed no interval to search reported a quantity with no value and no reason: two
+  landmarks enclosing no samples, a propulsive peak standing at the onset, or a weighing
+  window ending at the recording's last sample. Each of those declines now and names the
+  interval it was given. Measured across a sweep of the committed recordings, 27 of 675
+  analyses were silent before and every one now states its reason.
+- The macOS command line binaries are notarised. A copy that arrives with a quarantine flag,
+  a browser download or an AirDrop, now opens cleanly; the disk image already did.
+
+### The download page
+
+The site root now offers the download built for the machine reading it, with the version and
+size read from the newest release as the page loads, and a prompt for an AI assistant beside
+the steps. The browser application lives at `/app/`, one link away, and links back.
+
 ## 0.1.0, 2026-08-14
 
 First release.
