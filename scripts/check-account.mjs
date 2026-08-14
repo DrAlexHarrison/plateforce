@@ -178,6 +178,10 @@ const painted = await evaluate(`(async () => {
       entry.title = document.getElementById('drawer-title').textContent;
       entry.blocks = document.querySelectorAll('#drawer-body pre.account').length;
       entry.shown = document.querySelector('#drawer-body pre.account')?.textContent ?? null;
+      // The first line is where the engine puts the figure: an account opens with the value
+      // and its unit. So whether an account claims a measurement is readable there and nowhere
+      // else, and a rule's own sentence about declining does not begin that way.
+      entry.opensWithAFigure = /^\\s*-?\\d/.test((entry.shown ?? '').split('\\n')[0]);
       entry.rules = [...document.querySelectorAll('#drawer-body .method-list .provenance')]
         .map((rule) => rule.title);
       document.querySelector('#method-drawer [data-close-drawer]').click();
@@ -196,24 +200,44 @@ check('every card carries the quantity the analysis reported in that position',
   painted.cards === painted.metrics && cards.every((card) => card.paired),
   `${cards.filter((card) => card.paired).length} of ${painted.cards} cards paired, against ${painted.metrics} quantities`);
 
-// Both halves against their own denominator. A value with no account is the state this
-// exists to forbid; an account under a card showing no number would assert a measurement
-// nobody made, which is the distinction `carried_no_number` was separated out to keep.
-check('every result offers one method record, and only a reported number carries an account',
+/*
+ * Both halves against their own denominator.
+ *
+ * A value with no account is the state this exists to forbid. The other half is the one worth
+ * stating carefully: what an account under a card showing no number must not do is **assert a
+ * measurement nobody made**, which is the distinction `carried_no_number` was separated out to
+ * keep. It is not that such a card may carry nothing.
+ *
+ * So an absent quantity may carry its rule record and may carry the account its rule wrote,
+ * and what it may not carry is an account opening with a value and a unit. Written this way
+ * because a rule that declines is an answer: a landing rule refusing a flight time where the
+ * plate never unloads has a great deal to tell the reader, and forbidding the account would
+ * hide the declining rule on exactly the quantities where they most need to see it.
+ */
+const claimingAMeasurement = unvalued.filter((card) => card.opensWithAFigure);
+check('every result offers one method record, and no absent number carries an account claiming a measurement',
   valued.length > 0
     && cards.every((card) => card.offered)
-    && valued.every((card) => card.blocks === 1)
-    && unvalued.every((card) => card.blocks === 0),
-  `${valued.filter((card) => card.offered).length} of ${valued.length} values offer one, ` +
-    `${unvalued.filter((card) => card.offered).length} of ${unvalued.length} absent values retain their rule record`);
+    && valued.every((card) => card.blocks === 1 && card.opensWithAFigure)
+    && unvalued.every((card) => card.blocks <= 1)
+    && claimingAMeasurement.length === 0,
+  `${valued.filter((card) => card.offered).length} of ${valued.length} values offer one and open on their figure, ` +
+    `${unvalued.filter((card) => card.offered).length} of ${unvalued.length} absent values retain their rule record, ` +
+    `${unvalued.filter((card) => card.blocks === 1).length} of ${unvalued.length} of those carry their rule's own account, ` +
+    `${claimingAMeasurement.length} of ${unvalued.length} claiming a measurement` +
+    (claimingAMeasurement.length
+      ? `: ${claimingAMeasurement[0].key} opens "${(claimingAMeasurement[0].shown ?? '').split('\n')[0]}"`
+      : ''));
 
 check('the panel opens on the number it was opened from, and on that one alone',
   opened.length > 0
     && opened.every((card) => card.title === card.label)
     && valued.every((card) => card.blocks === 1)
-    && unvalued.every((card) => card.blocks === 0),
+    && unvalued.every((card) => card.blocks <= 1)
+    && claimingAMeasurement.length === 0,
   `${opened.filter((card) => card.title === card.label).length} of ${opened.length} titled with their own value, ` +
-    `${valued.filter((card) => card.blocks === 1).length} carrying one account`);
+    `${valued.filter((card) => card.blocks === 1).length} of ${valued.length} carrying one account, ` +
+    `${claimingAMeasurement.length} of ${unvalued.length} absent values claiming a measurement`);
 
 const altered = opened.filter((card) => card.shown !== card.written);
 check('the account on screen is the one the engine wrote, character for character',
