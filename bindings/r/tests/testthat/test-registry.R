@@ -55,13 +55,29 @@ test_that("the census R reports is the census the command line counts", {
   skip_if_not(nzchar(Sys.which("cargo")), "no cargo on this machine")
 
   target <- file.path(tempdir(), "plateforce-cli-target")
+  # Set on this process rather than passed to system2's `env`, which composes a shell
+  # assignment ahead of the command. Windows has no such shell, so cargo received
+  # "CARGO_TARGET_DIR=..." as its subcommand, answered that no such subcommand exists, and the
+  # skip that followed named the machine for a fact about how the command was spelled. Put
+  # back on the way out, because this suite leaves the environment as it found it.
+  held <- Sys.getenv(c("CARGO_TARGET_DIR", "CARGO_NET_OFFLINE"), unset = NA)
+  Sys.setenv(CARGO_TARGET_DIR = target, CARGO_NET_OFFLINE = "true")
+  on.exit({
+    for (name in names(held)) {
+      if (is.na(held[[name]])) {
+        Sys.unsetenv(name)
+      } else {
+        do.call(Sys.setenv, stats::setNames(list(held[[name]]), name))
+      }
+    }
+  }, add = TRUE)
+
   printed <- suppressWarnings(system2(
     "cargo",
     c("run", "-q", "--offline", "--locked",
       "--manifest-path", shQuote(file.path(repository, "Cargo.toml")),
       "-p", "plateforce-cli", "--",
       "--registry", shQuote(file.path(repository, "registry")), "registry", "census"),
-    env = c(paste0("CARGO_TARGET_DIR=", target), "CARGO_NET_OFFLINE=true"),
     stdout = TRUE, stderr = TRUE
   ))
   # A census that did not arrive and a census that disagrees are different findings, and
