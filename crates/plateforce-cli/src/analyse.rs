@@ -1359,8 +1359,14 @@ fn text_body(
             "{}",
             renderer.paint(Role::Heading, "How each number was produced")
         );
+        // A quantity whose state no producer owns carries an empty account, which under this
+        // heading would be a label with nothing beneath it. The state itself is reported where
+        // it belongs, against the number.
         for metric in &response.metrics {
-            let Some(account) = accounts.get(&metric.key) else {
+            let Some(account) = accounts
+                .get(&metric.key)
+                .filter(|account| !account.trim().is_empty())
+            else {
                 continue;
             };
             for line in describe_account(&metric.label, account, renderer) {

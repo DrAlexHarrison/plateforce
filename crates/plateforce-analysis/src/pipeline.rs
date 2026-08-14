@@ -3170,4 +3170,71 @@ mod tests {
             "the case list is no longer the one the baseline was recorded from"
         );
     }
+
+    /// The widest row this build declares, so what follows is read against a rule reporting
+    /// several quantities rather than one. Five is the current widest.
+    fn the_widest_row() -> &'static crate::binding::Binding {
+        BINDINGS
+            .iter()
+            .filter(|binding| !binding.quantities.is_empty())
+            .max_by_key(|binding| binding.quantities.len())
+            .expect("this build declares a rule that reports a quantity")
+    }
+
+    /// A rule reporting a key its binding row does not declare ends the run.
+    ///
+    /// The declaration is what the fill iterates, so a key no row declares is invisible to it:
+    /// without this the value reaches no reader and the rule reports one number fewer than it
+    /// computed, with nothing anywhere saying so.
+    #[test]
+    #[should_panic(expected = "which its binding row does not declare")]
+    fn a_rule_reporting_a_key_its_row_does_not_declare_stops_the_run() {
+        against_the_declaration(the_widest_row(), &[("a_key_no_row_declares", Some(1.0))]);
+    }
+
+    /// The control on the guard above, and the fill it guards.
+    ///
+    /// A rule that answers one of its quantities reports the rest with no number rather than
+    /// dropping them, which is what a decline leaves for the account beside it to attach to.
+    /// Read against the row rather than against a literal count, so a rule that gains a
+    /// quantity is answered here without an edit.
+    #[test]
+    fn every_quantity_a_row_declares_is_reported_whether_or_not_the_rule_answered_it() {
+        let row = the_widest_row();
+        let width = row.quantities.len();
+        assert!(
+            width > 1,
+            "the widest row reports one quantity, so this says nothing about a rule that \
+             answers some of its own and not others"
+        );
+
+        let answered = row.quantities[0].key;
+        let partly = against_the_declaration(row, &[(answered, Some(2.5))]);
+        assert_eq!(partly.len(), width);
+        assert_eq!(partly[0].0.key, answered);
+        assert_eq!(partly[0].1, Some(2.5));
+        for (quantity, value) in partly.iter().skip(1) {
+            assert_eq!(
+                *value, None,
+                "{} was never reported and came back carrying a number",
+                quantity.key
+            );
+        }
+
+        // A rule that declined reports nothing at all, and every quantity its row declares
+        // still reaches the reader.
+        let declined = against_the_declaration(row, &[]);
+        assert_eq!(declined.len(), width);
+        assert!(declined.iter().all(|(_, value)| value.is_none()));
+        assert_eq!(
+            declined
+                .iter()
+                .map(|(quantity, _)| quantity.key)
+                .collect::<Vec<&str>>(),
+            row.quantities
+                .iter()
+                .map(|quantity| quantity.key)
+                .collect::<Vec<&str>>()
+        );
+    }
 }
