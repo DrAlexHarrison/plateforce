@@ -212,7 +212,9 @@ svg { stroke: currentColor; }
 .app-header__install {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 44px;
+  min-width: 44px;
   font-size: var(--text-sm);
   color: var(--text-secondary);
   white-space: nowrap;
