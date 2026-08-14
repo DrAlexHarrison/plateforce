@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -287,18 +288,47 @@ def render_pdf(html_path, pdf_path):
     print stylesheet the guide is designed against."""
     scratch = "/dev/shm" if os.path.isdir("/dev/shm") else None
     profile = tempfile.mkdtemp(prefix="plateforce-quickstart-", dir=scratch)
+    pdf_path.unlink(missing_ok=True)
+    browser = subprocess.Popen(
+        [
+            chrome_executable(), "--headless=new", "--disable-gpu", "--no-sandbox",
+            f"--user-data-dir={profile}",
+            "--no-pdf-header-footer", "--print-to-pdf-no-header",
+            f"--print-to-pdf={pdf_path}", str(html_path),
+        ],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
     try:
-        subprocess.run(
-            [
-                chrome_executable(), "--headless=new", "--disable-gpu", "--no-sandbox",
-                f"--user-data-dir={profile}",
-                "--no-pdf-header-footer", "--print-to-pdf-no-header",
-                f"--print-to-pdf={pdf_path}", str(html_path),
-            ],
-            capture_output=True, text=True, check=True, timeout=120,
-        )
+        await_printed(pdf_path, browser)
     finally:
+        browser.kill()
+        browser.wait()
         shutil.rmtree(profile, ignore_errors=True)
+
+
+def await_printed(pdf_path, browser, seconds=120):
+    """The finished file is what is waited for, not the browser. Chrome 151 on macOS returns
+    to its event loop once the page is printed and stays there, so a run that waits to be
+    exited ends on a timeout holding a complete PDF. A PDF is complete when it carries its
+    trailer."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if printed(pdf_path):
+            return
+        if browser.poll() is not None:
+            raise RuntimeError(
+                f"chrome exited {browser.returncode} without printing {pdf_path.name}"
+            )
+        time.sleep(0.25)
+    raise RuntimeError(f"chrome did not print {pdf_path.name} within {seconds} seconds")
+
+
+def printed(pdf_path):
+    if not pdf_path.exists():
+        return False
+    with pdf_path.open("rb") as opened:
+        opened.seek(max(0, pdf_path.stat().st_size - 64))
+        return opened.read().rstrip().endswith(b"%%EOF")
 
 
 def main():
