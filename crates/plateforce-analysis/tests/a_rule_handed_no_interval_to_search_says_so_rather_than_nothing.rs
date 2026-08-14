@@ -15,11 +15,13 @@
 //! | the two landmarks enclose no samples | `synthetic_untrimmed_step_off_after_jump` | 12 of 675 |
 //! | the propulsive peak stands at the onset | both synthetic recordings | 15 of 675 |
 //!
-//! The third is `jumpheight.dj.mcmahon_correction_factor`, whose standing period runs one sample
-//! past the weighing window, so a window ending at the recording's last sample reaches past the
-//! velocity series. Over six window lengths by the two landing rules on the drop jump built
-//! below, one of the twelve came back silent, and it is the one whose window ends at the last
-//! sample: the same request one sample shorter answers 0.3427 m.
+//! The third was `jumpheight.dj.mcmahon_correction_factor`, and what looked like a third silence
+//! was the visible edge of an arithmetic fault. Its standing period was the weighing window plus
+//! one sample, so the height rested on a sample outside the window the record names and the rule
+//! ran out of series on a window ending at the recording's last sample. The period is the
+//! window's own half-open span now, and the two tests below hold the number to it: it moves with
+//! every sample the window holds and with none outside it, and the whole standing period is a
+//! window the rule answers.
 //!
 //! The corpus holds no drop jump, so the drop-jump case is built here as it is in
 //! `a_drop_jump_height_names_the_landing_it_rested_on`. A population of countermovement jumps
@@ -335,45 +337,122 @@ fn drop_jump_weighed_over(trial: &Trial, samples: usize) -> AnalysisResponse {
     analysed(trial, request)
 }
 
-/// The standing period this rule averages over runs past the recording, so it declines.
+/// A standing period that wanders, which is every recording a plate actually produces.
 ///
-/// Paired with the window one sample shorter, which answers. The pair is what makes this a
-/// measurement rather than an assertion: a build declining whichever window it is given passes
-/// the first half and fails the second.
-#[test]
-fn the_drop_jump_height_declines_where_the_period_it_averages_runs_past_the_recording() {
-    let trial = synthetic_drop_jump();
+/// On a period that is exactly flat every sample equals the mean, so widening or narrowing the
+/// span by one changes nothing and no assertion about the span can fail. The sway is what makes
+/// the span observable: 1.4 N is one converter step on the plate this corpus came from.
+fn drop_jump_with_a_standing_period_that_wanders() -> Trial {
+    let flat = synthetic_drop_jump();
+    let standing_start = flat.len() - STANDING_SAMPLES;
+    let mut force = flat.force().to_vec();
+    for (offset, sample) in force[standing_start..].iter_mut().enumerate() {
+        let seconds = offset as f64 / DROP_RATE_HZ;
+        *sample += 5.0
+            * ((2.0 * std::f64::consts::PI * 0.37 * seconds).sin()
+                + 0.4 * (2.0 * std::f64::consts::PI * 7.3 * seconds).sin());
+    }
+    Trial::new(force, DROP_RATE_HZ).expect("the swaying drop jump is a trial")
+}
 
-    let over_the_end = drop_jump_weighed_over(&trial, STANDING_SAMPLES);
-    assert_eq!(
-        over_the_end.weighing_end_index,
-        trial.len(),
-        "the window no longer ends at the recording's last sample, so this is not the case"
-    );
-    let sentence = account_is_the_rules_own(&over_the_end, HEIGHT_KEY, MCMAHON);
-    println!(
-        "window {}..{} of {} samples: {sentence}",
-        over_the_end.weighing_start_index,
-        over_the_end.weighing_end_index,
-        trial.len()
-    );
-
-    let one_shorter = drop_jump_weighed_over(&trial, STANDING_SAMPLES - 1);
-    assert_eq!(one_shorter.weighing_end_index, trial.len() - 1);
-    let answered = one_shorter
+fn height_over(trial: &Trial, window_samples: usize) -> f64 {
+    drop_jump_weighed_over(trial, window_samples)
         .metric(HEIGHT_KEY)
         .expect("the quantity is reported")
         .value
-        .expect("the same request one sample shorter answers");
-    println!("one sample shorter reads {answered:.4} m");
+        .expect("the rule answers on this window")
+}
+
+/// The height rests on no sample outside the weighing window the record names.
+///
+/// Two recordings identical everywhere except the single sample at the window's exclusive end,
+/// which is the first sample the window does not hold. A period taken a sample wider reads it
+/// and reports a different height, while the record names the same window both times, so the
+/// number would move under a name that cannot account for it.
+///
+/// The span is pinned by value as well, on the swaying trace, because the assertion above is
+/// one-sided: it catches a period reaching past the window and says nothing about one stopping
+/// short. Narrowing the span leaves the sample at the end untouched and passes the first half.
+/// The perturbation control cannot close that gap, because a sample inside the window moves the
+/// system weight too, so it moves the height whether the standing period reads it or not.
+#[test]
+fn the_drop_jump_height_reads_the_weighing_window_and_no_sample_outside_it() {
+    let window_samples = STANDING_SAMPLES - 200;
+    let swaying = drop_jump_with_a_standing_period_that_wanders();
+    let end_index = swaying.len() - STANDING_SAMPLES + window_samples;
+
+    let untouched = height_over(&swaying, window_samples);
+    let moved_outside = {
+        let mut force = swaying.force().to_vec();
+        force[end_index] += 90.0;
+        let trial = Trial::new(force, DROP_RATE_HZ).expect("the perturbed drop jump is a trial");
+        let response = drop_jump_weighed_over(&trial, window_samples);
+        assert_eq!(response.weighing_end_index, end_index);
+        response
+            .metric(HEIGHT_KEY)
+            .expect("the quantity is reported")
+            .value
+            .expect("the rule answers on this window")
+    };
+
+    println!("window ends at {end_index}: {untouched:.10} m, sample {end_index} moved {moved_outside:.10} m");
+    assert_eq!(
+        untouched, moved_outside,
+        "the height moved with the sample at {end_index}, which the weighing window does not \
+         hold, so it rests on a sample the record does not name"
+    );
+
+    // The measured value of the span itself, so a period that stops short reddens here even
+    // though it leaves the sample at the end untouched and passes the assertion above. Seven
+    // places rather than the ten the run prints: a span one sample narrower reads 0.3510861,
+    // which differs in the sixth, so the digits below that carry no signal and would only pin
+    // this to the machine that measured it.
+    assert_eq!(
+        format!("{untouched:.7}"),
+        "0.3510849",
+        "the height over this window changed, so the span the velocity is averaged over moved"
+    );
+}
+
+/// A window ending at the recording's last sample is one the rule answers.
+///
+/// The paired half of the property above. A period taken as the window plus one sample runs off
+/// the end of a recording that ends exactly where the window does, and the rule declined on a
+/// request that is the ordinary way to weigh a drop jump: over the whole standing period the
+/// athlete holds at the end.
+#[test]
+fn a_weighing_window_ending_at_the_last_sample_of_the_recording_is_answered() {
+    let trial = synthetic_drop_jump();
+    let response = drop_jump_weighed_over(&trial, STANDING_SAMPLES);
+    assert_eq!(
+        response.weighing_end_index,
+        trial.len(),
+        "the window no longer ends at the recording's last sample, so this is not the case"
+    );
     assert!(
-        !one_shorter
+        !response
             .refusals
             .iter()
             .any(|declined| declined.method_id == MCMAHON),
-        "the rule declined on the window it can read: {:#?}",
-        one_shorter.refusals
+        "the rule declined on a window that sits inside the recording: {:#?}",
+        response.refusals
     );
+    let answered = response
+        .metric(HEIGHT_KEY)
+        .expect("the quantity is reported")
+        .value
+        .expect("the rule answers over the whole standing period");
+    println!("the whole standing period reads {answered:.10} m");
+
+    // The control: one sample shorter answers too, so the assertion above is about the window
+    // reaching the end rather than about the rule answering whatever it is given.
+    let one_shorter = drop_jump_weighed_over(&trial, STANDING_SAMPLES - 1);
+    assert_eq!(one_shorter.weighing_end_index, trial.len() - 1);
+    assert!(one_shorter
+        .metric(HEIGHT_KEY)
+        .expect("the quantity is reported")
+        .value
+        .is_some());
 }
 
 // ------------------------------------------------------------------ the swept population

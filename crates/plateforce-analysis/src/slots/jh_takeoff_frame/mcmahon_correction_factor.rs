@@ -141,10 +141,9 @@ fn compute(
     let velocity = centre_of_mass_velocity_meters_per_second(context.trial, epoch, &spec, gravity);
     let bound = resolved.finish();
 
-    // The series carries one sample per sample of the recording, so both reads below are asking
-    // whether the recording holds the samples this rule averages over. Refused together and in
-    // the standing period's own terms, because the window is what a reader moves either way.
-    let standing_period = epoch.start_index..epoch.end_index + 1;
+    // The window's own half-open span. The record names this window under the weighing rule's id
+    // and names no other, so a sample outside it is one nothing on the record accounts for.
+    let standing_period = epoch.start_index..epoch.end_index;
     let reached = arrival_velocity_from_final_standing_period_meters_per_second(
         velocity.meters_per_second(),
         standing_period.clone(),
