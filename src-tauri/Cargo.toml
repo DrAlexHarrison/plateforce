@@ -5,7 +5,7 @@ description = "The plateforce interface as a desktop application."
 # literal is the app version Tauri reads. `scripts/verify-release-artefacts.sh` refuses a
 # release whose two version homes disagree, because a bump applied to one and not the other
 # ships an installer whose About box names a different release from the tag that produced it.
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 # The shell's own floor, which is not the workspace's. `scripts/check-msrv.sh` reads the
 # workspace and this package sits outside it, so the floor is declared where it is enforced.

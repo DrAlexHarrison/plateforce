@@ -629,7 +629,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "plateforce-analysis"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-core",
  "plateforce-registry",
@@ -639,7 +639,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-batch"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrow-array",
  "arrow-schema",
@@ -654,7 +654,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anstream",
  "anstyle-query",
@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-conformance"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-core",
  "thiserror",
@@ -682,7 +682,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-registry",
  "serde",
@@ -693,7 +693,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-python"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-analysis",
  "plateforce-batch",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-registry"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "thiserror",
@@ -715,11 +715,11 @@ dependencies = [
 
 [[package]]
 name = "plateforce-serve"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "plateforce-wasm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-analysis",
  "plateforce-batch",
