@@ -285,7 +285,10 @@ fn the_chain_names_the_gravity_the_height_was_produced_at() {
     let elsewhere = at(PUBLISHED, ParameterSource::Stated);
     let named_elsewhere = gravity_in_the_chain(&elsewhere, FLIGHT_TIME_HEIGHT);
     assert_eq!(named_elsewhere.len(), 1, "{named_elsewhere:?}");
-    println!("bound to {STANDARD} the chain names {recorded}, bound to {PUBLISHED} it names {}", named_elsewhere[0].1);
+    println!(
+        "bound to {STANDARD} the chain names {recorded}, bound to {PUBLISHED} it names {}",
+        named_elsewhere[0].1
+    );
     assert_eq!(named_elsewhere[0].1, PUBLISHED);
     assert_ne!(
         recorded, named_elsewhere[0].1,

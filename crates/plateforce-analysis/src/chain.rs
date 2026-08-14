@@ -357,6 +357,49 @@ pub fn chain_names(metric: &Metric, method_id: &str) -> bool {
             .any(|id| id == method_id)
 }
 
+/// Whether a rule's decline accounts for a quantity: the quantity came back with no number, and
+/// its own chain names the rule.
+///
+/// One predicate for the two directions the question is asked in. A reader holding a blank cell
+/// asks which refusal explains it; a reader holding a refusal asks which cells it explains. Each
+/// direction had an answer of its own, and the two disagreed with this one and with each other:
+/// the sweep read half of `chain_names` and reported no reason on 60 of 75 variants, and the
+/// folder run read a static table off the binding rows, which names no quantity at all for the
+/// three rules that place the landmarks.
+///
+/// The value is half the test. A rule that declined for one quantity may have answered another,
+/// and writing its refusal against the number it did produce would tell a reader that a number
+/// in front of them is absent.
+pub fn accounts_for(metric: &Metric, method_id: &str) -> bool {
+    metric.value.is_none() && chain_names(metric, method_id)
+}
+
+/// The refusal accounting for one quantity that came back with no number.
+///
+/// The record rather than a sentence written here: `document::refusal_from_rule` is what
+/// `refusals.csv` is written through, so the account a reader meets under a blank cell and the
+/// row that names that cell are one string reached two ways.
+pub fn refusal_accounting_for(
+    response: &AnalysisResponse,
+    metric: &Metric,
+) -> Option<plateforce_core::Refusal> {
+    response
+        .refusals
+        .iter()
+        .map(crate::document::refusal_from_rule)
+        .find(|refusal| accounts_for(metric, &refusal.method_id))
+}
+
+/// Every quantity a rule's decline accounts for, in the response's own order.
+pub fn absences_resting_on(response: &AnalysisResponse, method_id: &str) -> Vec<String> {
+    response
+        .metrics
+        .iter()
+        .filter(|metric| accounts_for(metric, method_id))
+        .map(|metric| metric.key.clone())
+        .collect()
+}
+
 /// Every quantity whose chain names this rule, in the response's own order.
 ///
 /// What a signal about a rule is about. A list of keys written beside the rule instead is the
@@ -407,32 +450,70 @@ pub fn chains_of(
 /// carrying none of the arithmetic's own values, so the gravity behind the flight-time height
 /// was absent from the sentence a reader was shown.
 ///
-/// A quantity with no value gets no account, because an account is written around a
-/// `Measured` and there is nothing measured to write one about. This used to be the one place
-/// in the whole product where a number that is not a number could be told from a number
-/// nobody computed: a metric could hold a NaN, so it reached this loop, and the account read
-/// "NaN newtons" with a full provenance chain behind it, asserting a measurement that was
-/// never made. That distinction now lives on the metric itself, on every surface, as
-/// `carried_no_number`, so this loop is free to say nothing about a quantity that has no
-/// value without taking the only account of it away from a reader.
+/// One entry per quantity the response reports, whichever of the five states it is in. A number
+/// carries `describe`'s account of it. A quantity a rule on its chain declined over carries that
+/// rule's own refusal. One a condition qualifies carries that signal's remedy. The two states no
+/// producer owns, the arithmetic that ran and produced no number and the rule that returned
+/// nothing without declining, carry an empty account rather than no key: a key a map sometimes
+/// omits cannot be told apart from a surface that never carried the field, which is the reason
+/// `registry_version` is written as null rather than left out. Written per value, this map went
+/// nine keys to the terminal's eleven on five of six fixtures, and a reader who filtered for a
+/// quantity was answered by its absence.
+///
+/// Nothing here composes a sentence. Every string is one an existing producer already wrote.
+///
+/// An account is never written around a value that is not a number. A metric could once hold a
+/// NaN, so it reached `describe` and read "NaN newtons" with a full provenance chain behind it,
+/// asserting a measurement nobody made. That state travels on the metric now, on every surface,
+/// as `carried_no_number`, so a reader tells it from a quantity no rule produced without either
+/// of them borrowing the other's account.
 pub fn descriptions_of(
     response: &AnalysisResponse,
     chains: &[MetricChain],
 ) -> BTreeMap<String, String> {
     let mut accounts = BTreeMap::new();
     for (metric, derived) in response.metrics.iter().zip(chains) {
-        let Some(value) = metric.value else { continue };
-        let Some(unit) = declared_unit(metric) else {
-            continue;
+        let account = match metric.value {
+            Some(value) => declared_unit(metric)
+                .map(|unit| {
+                    let measured = Measured {
+                        value,
+                        unit,
+                        provenance: derived.chain.provenance.clone(),
+                    };
+                    describe(&measured, &derived.chain)
+                })
+                // A number this software cannot name a unit for has no account, and the empty
+                // string already means something else here: it is what the two states no
+                // producer owns carry. Saying so rather than falling back, because
+                // `Metric::from_declaration` reads the unit from the declaration this reads,
+                // and panics on a key no quantity declares, so the two cannot disagree.
+                .expect("a quantity that reported a number declares the unit it reported it in"),
+            None => account_of_an_absence(response, metric),
         };
-        let measured = Measured {
-            value,
-            unit,
-            provenance: derived.chain.provenance.clone(),
-        };
-        accounts.insert(metric.key.to_string(), describe(&measured, &derived.chain));
+        accounts.insert(metric.key.to_string(), account);
     }
     accounts
+}
+
+/// What a quantity with no number says about itself, taken from whichever producer owns that
+/// state.
+///
+/// A rule on its chain declined, and the refusal is why. A condition qualified it, and the
+/// signal says what a reader would change. Where neither happened the account is empty, because
+/// the two remaining states have no producer: a reader tells them apart by `carried_no_number`
+/// on the metric, and a sentence written here for either would be this file's own rather than
+/// the record's.
+fn account_of_an_absence(response: &AnalysisResponse, metric: &Metric) -> String {
+    if let Some(refusal) = refusal_accounting_for(response, metric) {
+        return refusal.message().to_string();
+    }
+    response
+        .signals
+        .iter()
+        .find(|signal| signal.qualifies.contains(&metric.key))
+        .map(|signal| signal.remedy.clone())
+        .unwrap_or_default()
 }
 
 /// The account each quantity gives of itself, for a caller holding no chains of its own.

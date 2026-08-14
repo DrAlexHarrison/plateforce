@@ -1042,6 +1042,7 @@ fn render(
             name: args.trial.display().to_string(),
             rows_read: trial.rows_read,
             samples_matching_the_convention: trial.reported_samples.matched_the_convention,
+            sample_rate_hz: trial.trial.sample_rate_hz(),
         },
         &stamp,
         capture,

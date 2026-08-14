@@ -99,67 +99,9 @@ pub fn declared_quantities(
     declared
 }
 
-/// The result columns one rule reports, for a refusal that names it.
-///
-/// Read off the binding row rather than off what the trial produced, because a rule that
-/// declined produced no metric: the columns it would have filled are knowable only from the
-/// table that declares them. Empty where no row answers for the name, which is every refusal
-/// that is not a rule declining, a file the identity could not name among them.
-///
-/// Matched on the recorded name as well as the selected one. A composed id records under the
-/// entry the registry already spells, and the refusal carries the recorded name, so a lookup
-/// on `id` alone would report a composed rule's columns as none.
-pub fn quantities_of_rule(method_id: &str) -> Vec<&'static str> {
-    if method_id.is_empty() {
-        return Vec::new();
-    }
-    let mut keys: Vec<&'static str> = plateforce_analysis::binding::BINDINGS
-        .iter()
-        .filter(|binding| binding.id == method_id || binding.records_under == Some(method_id))
-        .flat_map(|binding| binding.quantities.iter().map(|quantity| quantity.key))
-        .collect();
-    keys.sort_unstable();
-    keys.dedup();
-    keys
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// The mapping a blank cell is joined to its reason by. Held against a rule whose decline
-    /// is the one this crate meets on five of six shipped fixtures.
-    #[test]
-    fn a_declining_rule_names_the_columns_its_refusal_accounts_for() {
-        assert_eq!(
-            quantities_of_rule("flight_time.takeoff_to_touchdown"),
-            vec!["flight_time_seconds"]
-        );
-        assert_eq!(
-            quantities_of_rule("jumpheight.takeoff.flight_time"),
-            vec!["jump_height_from_flight_time_meters"]
-        );
-    }
-
-    /// A refusal no rule row answers for keeps an empty cell rather than borrowing the columns
-    /// of whichever row a loose match found.
-    ///
-    /// The prefix is the case that separates an exact match from a loose one, and neither name
-    /// above reaches it: `jumpheight.takeoff` is the front of two rules that report different
-    /// heights, so a lookup matching on it would point a reader at a blank cell the refusal has
-    /// nothing to do with. Without this the two names above pass under a prefix match as
-    /// readily as under an exact one.
-    #[test]
-    fn a_refusal_naming_no_rule_claims_no_column() {
-        assert!(quantities_of_rule("").is_empty());
-        assert!(quantities_of_rule("not.a.rule").is_empty());
-        assert!(
-            quantities_of_rule("jumpheight.takeoff").is_empty(),
-            "{:?}",
-            quantities_of_rule("jumpheight.takeoff")
-        );
-        assert!(quantities_of_rule("flight_time").is_empty());
-    }
 
     #[test]
     fn a_construct_this_build_runs_no_rule_for_is_refused_with_the_ones_it_does() {

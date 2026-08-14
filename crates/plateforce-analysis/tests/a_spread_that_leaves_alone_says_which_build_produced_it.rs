@@ -159,6 +159,7 @@ fn the_two_documents_spell_their_identity_the_same_way() {
             name: "trial".into(),
             rows_read: 0,
             samples_matching_the_convention: 0,
+            sample_rate_hz: 1200.0,
         },
         registry_version: None,
         registry_declared_version: None,

@@ -568,7 +568,9 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
             }
             // The sweep says which code it declined under, so this row carries that rather
             // than a code chosen here for every failure the sweep can have.
-            Err(declined) => refusals.push(crate::engine::refusal_row(trial_id, 0, &declined)),
+            Err(declined) => {
+                refusals.push(crate::engine::refusal_row(trial_id, 0, &declined, None))
+            }
         }
     }
 

@@ -240,9 +240,7 @@ impl BatchResult {
             // A trial that produced numbers, which is what an identifier on the row means. Read
             // off `refusal_code`, this dropped every trial that answered nine quantities and
             // declined two, because such a row now carries the codes for the two.
-            .filter(|row| {
-                !row.provenance_id.is_empty() && !removed.contains(row.trial_id.as_str())
-            })
+            .filter(|row| !row.provenance_id.is_empty() && !removed.contains(row.trial_id.as_str()))
             .map(|row| row.trial_id.clone())
             .collect()
     }
@@ -554,7 +552,7 @@ pub fn analyse(
             // The code is the one the engine decided it was declining under.
             Err(declined) => {
                 let code = declined.code.wire_name();
-                refusals.push(refusal_row(trial_id, ordinal(&refusals), &declined));
+                refusals.push(refusal_row(trial_id, ordinal(&refusals), &declined, None));
                 results.push(refused_row(
                     trial_id,
                     &subject_of(entry),
@@ -570,7 +568,12 @@ pub fn analyse(
         // trial carries values and one refusal row per decline at once.
         let declines_start_at = refusals.len();
         for declined in &response.refusals {
-            refusals.push(rule_refusal_row(trial_id, ordinal(&refusals), declined));
+            refusals.push(rule_refusal_row(
+                trial_id,
+                ordinal(&refusals),
+                declined,
+                &response,
+            ));
         }
         // The codes this trial's blank cells are accounted for by, read off the rows just
         // written rather than off the responses they came from, so the cell on the results row
@@ -617,15 +620,6 @@ pub fn analyse(
 
         let rows = provenance_rows(&response, &stamp, acquisition_is_complete);
         let identifier = provenance_id(&rows);
-        // The rule that produced each quantity, taken from depth 0 of that quantity's own
-        // chain, which is where `ProvenanceRow` says the arithmetic sits. Read before the
-        // rows move into the map, because the entry is only filled for a chain nobody has
-        // seen and a second trial under the same rules would find nothing to read.
-        let producing: BTreeMap<String, String> = rows
-            .iter()
-            .filter(|row| row.depth == 0)
-            .map(|row| (row.quantity.clone(), row.method_id.clone()))
-            .collect();
         provenance.entry(identifier.clone()).or_insert_with(|| {
             rows.into_iter()
                 .map(|mut row| {
@@ -634,6 +628,25 @@ pub fn analyse(
                 })
                 .collect()
         });
+
+        // The chain behind every quantity this trial reports, valued or not, derived once and
+        // read twice below: for the account each quantity gives of itself, and for the rule at
+        // the root of it.
+        let chains = plateforce_analysis::chains_of(&response, &stamp, acquisition_is_complete);
+        // The rule that produced each quantity, taken from the root of that quantity's own
+        // chain, which is where `ProvenanceRow` says the arithmetic sits. Read off the chains
+        // rather than off the rows above, which carry the numbers alone: a quantity with no
+        // number named no rule at all, and a blank in the rule column is the same absence the
+        // account beside it exists to end.
+        let producing: BTreeMap<String, String> = chains
+            .iter()
+            .map(|derived| {
+                (
+                    derived.quantity.clone(),
+                    derived.chain.provenance.method_id.clone(),
+                )
+            })
+            .collect();
 
         // The account each of this trial's numbers gives of itself, from the one site that
         // writes them. A folder run wrote none, so a reader who ran two hundred trials held
@@ -644,9 +657,7 @@ pub fn analyse(
         // itself. That is the long-form table a cohort question is filtered over, and it is
         // this one rather than a second one beside it: two tables at one row per trial per
         // quantity would be two answers to one question, free to disagree.
-        for (quantity, account) in
-            plateforce_analysis::accounts_of(&response, &stamp, acquisition_is_complete)
-        {
+        for (quantity, account) in plateforce_analysis::descriptions_of(&response, &chains) {
             // The metric already carries its own absence, so the two Nones are flattened into
             // the one this row means: no number for this quantity on this trial.
             let value = response
@@ -822,13 +833,20 @@ pub fn analyse(
     })
 }
 
-/// One row per trial per quantity, with the quantities a trial has no number for filled in.
+/// One row per trial per quantity, with the quantities of a trial that produced nothing filled
+/// in.
 ///
-/// A rule that declined reported no metric at all, so the account writer had nothing to
-/// describe and the row was absent from this relation rather than present and empty. The table
-/// is the one a cohort question is filtered over, so a reader filtering it by quantity got
-/// three trials of six with nothing saying the other three existed, and `DescriptionRow::value`
-/// is `Option<f64>` for a case that never arrived.
+/// A trial whose analysis returned a refusal has no response to inherit an account from: no
+/// rule was reached, so every quantity the run asked for is absent under that one reason and
+/// this is the only place they can be named. The table is the one a cohort question is filtered
+/// over, and a reader filtering it by quantity met three trials of six with nothing saying the
+/// other three existed.
+///
+/// A trial that computed fills in nothing here. Its response carries an entry for every
+/// quantity it was asked for, answered or not, so the account under each of them is the one
+/// that quantity's own state produced. Filled in from the refusal rows instead, a blank cell
+/// took whichever row named the construct it was matched by, and the three rules that place the
+/// landmarks name no quantity at all.
 ///
 /// The account is the sentence the refusal already generated. That is the one home for why a
 /// number is absent, as `describe` is the one home for the account of a number that exists, so
@@ -843,11 +861,6 @@ fn describing_the_absent(
     written: &[DescriptionRow],
     refusals: &[RefusalRow],
 ) -> Vec<DescriptionRow> {
-    let described: BTreeSet<(&str, &str)> = written
-        .iter()
-        .map(|row| (row.trial_id.as_str(), row.quantity.as_str()))
-        .collect();
-
     let mut rows: Vec<DescriptionRow> = Vec::with_capacity(results.len() * quantities.len());
     for result in results {
         rows.extend(
@@ -856,20 +869,13 @@ fn describing_the_absent(
                 .filter(|row| row.trial_id == result.trial_id)
                 .cloned(),
         );
+        if !result.provenance_id.is_empty() {
+            continue;
+        }
+        // One reason for every absent quantity, so the first row this trial wrote answers for
+        // all of them.
+        let accounted_for = refusals.iter().find(|row| row.trial_id == result.trial_id);
         for quantity in quantities {
-            if described.contains(&(result.trial_id.as_str(), quantity.as_str())) {
-                continue;
-            }
-            // A trial that produced nothing has one reason for every absent quantity, and its
-            // refusal names no column because no rule was reached. A trial that produced
-            // numbers is accounted for per column by the rule that declined.
-            let mine = refusals.iter().filter(|row| row.trial_id == result.trial_id);
-            let accounted_for = if result.provenance_id.is_empty() {
-                mine.clone().next()
-            } else {
-                mine.clone()
-                    .find(|row| row.quantity.split(',').any(|key| key == quantity))
-            };
             rows.push(DescriptionRow {
                 trial_id: result.trial_id.clone(),
                 subject: result.subject.clone(),
@@ -956,20 +962,42 @@ pub(crate) fn unidentified_row(file: &UnidentifiedFile, ordinal: usize) -> Refus
 /// matching the start of a method id against a table of prefixes. This surface and the
 /// document surface each kept a copy of that table and the two copies had different last
 /// arms, so an unrecognised name resolved to `bwepoch.` here and to `takeoff.` there.
-fn rule_refusal_row(trial_id: &str, ordinal: usize, declined: &DeclinedRule) -> RefusalRow {
-    refusal_row(trial_id, ordinal, &refusal_from_rule(declined))
+fn rule_refusal_row(
+    trial_id: &str,
+    ordinal: usize,
+    declined: &DeclinedRule,
+    reached: &AnalysisResponse,
+) -> RefusalRow {
+    let refused = refusal_from_rule(declined);
+    refusal_row(trial_id, ordinal, &refused, Some(reached))
 }
 
 /// One writer for every refusal this surface records, so a decline that arrives on a
 /// response and one that ends the analysis outright cannot be written into two shapes.
-pub(crate) fn refusal_row(trial_id: &str, ordinal: usize, refused: &Refusal) -> RefusalRow {
+///
+/// A refusal that ended the analysis carries no response, and its cell stays empty: it reached
+/// no rule, so it accounts for no column of its own and the row's code answers for all of them.
+pub(crate) fn refusal_row(
+    trial_id: &str,
+    ordinal: usize,
+    refused: &Refusal,
+    reached: Option<&AnalysisResponse>,
+) -> RefusalRow {
     RefusalRow {
         trial_id: trial_id.to_string(),
         ordinal,
         code: refused.code.wire_name().to_string(),
         // The columns this decline accounts for, so a blank cell in `results` joins to the row
-        // that explains it. Asked of the binding table rather than derived from the id here.
-        quantity: crate::derive::quantities_of_rule(&refused.method_id).join(","),
+        // that explains it. Asked of the result rather than of a table beside it: the quantities
+        // with no number whose own chain names this rule. Read off the binding rows, the three
+        // rules that place the landmarks declare no quantity, so 8 of the 11 rows an interrupted
+        // recording writes were present and empty in both columns.
+        quantity: reached
+            .map(|response| {
+                plateforce_analysis::chain::absences_resting_on(response, &refused.method_id)
+                    .join(",")
+            })
+            .unwrap_or_default(),
         method_id: refused.method_id.clone(),
         slot: refused.slot.clone().unwrap_or_default(),
         parameter: refused.parameter.clone().unwrap_or_default(),

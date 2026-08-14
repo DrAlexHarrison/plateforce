@@ -287,6 +287,15 @@ fn provenance(out: &mut String, document: &ResultDocument) {
         );
     }
     let _ = writeln!(out, "trial {}", document.trial.name);
+    // Beside the trial rather than among the rules, because it is a fact about the recording
+    // and not a choice among published ones. Every velocity, displacement, impulse and rate of
+    // force development is this number times a count of samples, so a paste carrying the
+    // registry's content digest and not this cannot be repeated from.
+    let _ = writeln!(
+        out,
+        "sampled at {} Hz",
+        crate::recorded_number_text(document.trial.sample_rate_hz)
+    );
     out.push('\n');
 
     for bound in &document.bound_methods {

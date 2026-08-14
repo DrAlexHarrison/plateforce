@@ -151,15 +151,57 @@ fn an_id_filed_under_another_construct_is_refused_by_name() {
 /// A peak asked for with no window chosen names the choice that is open. The number would
 /// otherwise be taken over a window nobody picked, which is the silent default this registry
 /// exists to record.
+///
+/// The property this held is that no number is reported over a window nobody chose, and it
+/// survives. What moved is where a reader meets that fact. The key used to be absent from the
+/// document, so a caller who asked for the peak was answered by silence and could not tell it
+/// from a run that never carried the field. It is now present, carries no number, and its
+/// account names the choice that is open.
 #[test]
 fn a_peak_with_no_window_chosen_names_the_open_choice() {
     let output = analyse(&["--derive", "peak_force=force.peak.gross"]);
     let text = String::from_utf8_lossy(&output.stdout).to_string()
         + &String::from_utf8_lossy(&output.stderr);
     println!("{text}");
-    assert!(text.contains("analysis_window"), "{text}");
     assert!(text.contains("decision_not_made"), "{text}");
-    // The peak itself is absent rather than present with a value taken over a window nobody
-    // chose, so nothing downstream can read one.
-    assert!(!text.contains("\"peak_force_newtons\""), "{text}");
+
+    let document: serde_json::Value =
+        serde_json::from_str(String::from_utf8_lossy(&output.stdout).trim())
+            .expect("the terminal wrote a document");
+    let result = &document["ok"];
+
+    let peak = result["metrics"]
+        .as_array()
+        .expect("the document reports metrics")
+        .iter()
+        .find(|metric| metric["key"] == "peak_force_newtons")
+        .expect("the caller asked for the peak and the document says nothing about it");
+    // No number, and not the state where the arithmetic ran and produced one that is not a
+    // number, which is a different thing a reader tells apart by this flag.
+    assert!(peak["value"].is_null(), "{peak}");
+    assert_eq!(peak["carried_no_number"], false, "{peak}");
+    assert_eq!(peak["computed_by"], "force.peak.gross", "{peak}");
+
+    // And the row says which choice is open, which is the whole of what a reader can act on.
+    let account = result["descriptions"]["peak_force_newtons"]
+        .as_str()
+        .expect("the quantity has an account");
+    println!("{account}");
+    assert!(
+        account.contains("analysis_window"),
+        "the account of the absent peak does not name the choice that is open: {account}"
+    );
+    assert!(
+        account.contains("force.peak.gross"),
+        "the account does not name the rule that would have computed it: {account}"
+    );
+    // A number's account opens with the number. This one has none, so it must not open with a
+    // figure, which is the shape that would tell a reader a peak was measured.
+    assert!(
+        !account
+            .split_whitespace()
+            .next()
+            .is_some_and(|token| token.parse::<f64>().is_ok()),
+        "the account of a quantity nobody computed opens with a value: {account}"
+    );
 }

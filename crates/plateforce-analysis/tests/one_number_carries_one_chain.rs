@@ -105,7 +105,9 @@ fn the_arithmetic_roots_the_chain_and_carries_the_values_it_read() {
             .parameters
             .iter()
             .find(|parameter| parameter.name == "gravity")
-            .expect("the rule that computed this height read a gravity and the root does not name it")
+            .expect(
+                "the rule that computed this height read a gravity and the root does not name it",
+            )
             .value
     };
 

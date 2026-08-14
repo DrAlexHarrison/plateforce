@@ -577,7 +577,9 @@ mod tests {
     /// The landing on `subject01_trial1` reaches system weight seven samples after the
     /// crossing, so a rise of that length is the shape a real return has.
     fn landing() -> Vec<f64> {
-        vec![135.6, 271.2, 254.4, 201.3, 254.4, 374.7, 497.7, 629.1, 722.8, 801.0]
+        vec![
+            135.6, 271.2, 254.4, 201.3, 254.4, 374.7, 497.7, 629.1, 722.8, 801.0,
+        ]
     }
 
     #[test]
@@ -711,7 +713,10 @@ mod tests {
     #[test]
     fn a_plate_that_never_unloads_after_takeoff_carries_no_return() {
         let force = vec![SYSTEM_WEIGHT_NEWTONS; 40];
-        assert_eq!(return_to_the_plate(&force, 10, 20.0, SYSTEM_WEIGHT_NEWTONS), None);
+        assert_eq!(
+            return_to_the_plate(&force, 10, 20.0, SYSTEM_WEIGHT_NEWTONS),
+            None
+        );
     }
 
     /// The same marker on a trace that does carry a real flight and a real landing further on.

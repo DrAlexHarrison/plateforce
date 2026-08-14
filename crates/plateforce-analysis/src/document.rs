@@ -34,6 +34,14 @@ pub struct TrialSource {
     /// Counted by `plateforce_core::signal::reported_samples`, which is where the policy
     /// lives for every surface.
     pub samples_matching_the_convention: usize,
+    /// How many samples a second the recording was declared at.
+    ///
+    /// Every velocity, displacement, impulse and rate of force development is this number
+    /// times a count of samples, so it moves every one of them. A trial declared at 1000 Hz
+    /// where the plate recorded at 1200 answers 0.588 m against a true 0.409 m, and nothing
+    /// in the trace says which is right. A record that names the registry down to its content
+    /// digest and does not name this is a record a reader cannot repeat the analysis from.
+    pub sample_rate_hz: f64,
 }
 
 /// One analysed trial and everything a surface reports about it.

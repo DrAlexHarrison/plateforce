@@ -28,9 +28,15 @@ mod common;
 
 /// One surface that hands a caller a document, what it names to reach the one generator, and
 /// what a second generator would have to define.
+///
+/// A list of names rather than one, because the generator has two doors into it and both lead
+/// to the same loop: `accounts_of` derives the chains itself, and `descriptions_of` takes chains
+/// a caller already holds. A publisher that needs the chains for something else reaches the
+/// second and is not writing an account of its own, which is what the guard below this one is
+/// for.
 struct Publisher {
     path: &'static str,
-    reads: &'static str,
+    reads: &'static [&'static str],
 }
 
 /// The generator, and the file that holds it. A publisher carrying this line has written a
@@ -69,31 +75,35 @@ const THE_DOCUMENT_BUILT_BY_HAND: (&str, &str) = (
     "crates/plateforce-analysis/tests/a_spread_that_leaves_alone_says_which_build_produced_it.rs",
 );
 
+/// The two doors into the one generator. Naming either is reaching it.
+const THE_GENERATOR: &[&str] = &["accounts_of(", "descriptions_of("];
+
 const PUBLISHERS: &[Publisher] = &[
     // The terminal and the browser tab assemble `ResultDocument`, which fills the block from
     // the response, so what they name is the document.
     Publisher {
         path: "crates/plateforce-cli/src/analyse.rs",
-        reads: "ResultDocument::of(",
+        reads: &["ResultDocument::of("],
     },
     Publisher {
         path: "crates/plateforce-wasm/src/lib.rs",
-        reads: "ResultDocument::of(",
+        reads: &["ResultDocument::of("],
     },
     // A notebook and an R session assemble documents of their own, because neither is handed
     // a path and neither can carry the trial block, so each names the generator directly.
     Publisher {
         path: "crates/plateforce-python/src/analysis.rs",
-        reads: "accounts_of(",
+        reads: THE_GENERATOR,
     },
     Publisher {
         path: "bindings/r/src/rust/src/lib.rs",
-        reads: "descriptions_of(",
+        reads: THE_GENERATOR,
     },
-    // A folder run publishes one account per number as a relation of its own.
+    // A folder run publishes one account per number as a relation of its own, and holds the
+    // chains anyway to read the rule at the root of each.
     Publisher {
         path: "crates/plateforce-batch/src/engine.rs",
-        reads: "accounts_of(",
+        reads: THE_GENERATOR,
     },
 ];
 
@@ -128,13 +138,26 @@ fn every_publisher_names_the_one_generator() {
             text.len()
         );
         assert!(
-            text.contains(publisher.reads),
-            "{} hands out a result and never names {}",
+            publisher.reads.iter().any(|name| text.contains(name)),
+            "{} hands out a result and names none of {:?}",
             publisher.path,
             publisher.reads
         );
     }
     println!("{} publishers checked", PUBLISHERS.len());
+
+    // Every name a publisher is allowed to reach the generator by is proven alive in the file
+    // that declares the generator. A spelling that drifted out of the language matches nothing,
+    // and a publisher matching nothing is what the assertion above reports as reaching it.
+    let (_, home) = A_GENERATOR_OF_ITS_OWN;
+    let declaring = source(home);
+    for name in THE_GENERATOR {
+        assert!(
+            declaring.contains(&format!("fn {}", name.trim_end_matches('('))),
+            "{name} is offered as a way to reach the generator and {home} declares no such \
+             function, so a publisher naming nothing would read as reaching it"
+        );
+    }
 }
 
 /// And none of them writes one, or builds the document that fills it by hand.
@@ -299,6 +322,7 @@ fn document_for(trial: &Trial) -> ResultDocument {
             name: "trial".into(),
             rows_read: trial.len(),
             samples_matching_the_convention: 0,
+            sample_rate_hz: 1200.0,
         },
         &RegistryStamp {
             version: Some("fixture-pin".to_string()),
@@ -363,38 +387,124 @@ fn every_number_in_the_document_gives_an_account_of_itself() {
     );
 }
 
-/// A quantity no rule computed gives no account rather than an invented one.
+/// A quantity no rule computed gives its producer's account and never an invented one.
 ///
 /// The control on the case above, and it has to come from a trial where the state is real: a
 /// block that simply held every key would pass that one, and a sentence about a number nobody
 /// computed is the shape this whole field exists against.
+///
+/// The property is the one this guard has always held. What moved is where the invention would
+/// have to show: the block used to answer by holding no key at all, and a reader filtering it
+/// for a quantity met the same silence whether the rule declined or was never asked. It now
+/// holds a key for every quantity, so the assertion is on the sentence rather than on the key,
+/// and the sentence has to be one an existing producer wrote. `describe`'s output opens with the
+/// value and its unit, which is exactly what a number nobody computed must never carry, so that
+/// is what is checked and the trial where every quantity answers is what proves the check can
+/// see it.
 #[test]
-fn a_quantity_with_no_value_gives_no_account_rather_than_an_invented_one() {
+fn a_quantity_with_no_value_gives_its_producers_account_and_never_an_invented_one() {
     let document = document_for(&a_trial_that_never_leaves_the_plate());
-    let absent: Vec<&str> = document
+    let absent: Vec<&plateforce_analysis::Metric> = document
         .metrics
         .iter()
         .filter(|metric| metric.value.is_none())
-        .map(|metric| metric.key.as_str())
         .collect();
 
     assert!(
         !absent.is_empty(),
         "every quantity carried a value on a trial written to leave some without one"
     );
-    let invented: Vec<&&str> = absent
+
+    // The refusals this response carries, reached through the record every other surface is
+    // handed rather than through the call the block itself makes.
+    let refusals: Vec<String> = document
+        .refusals
         .iter()
-        .filter(|key| document.descriptions.contains_key(**key))
+        .map(|refusal| refusal.message().to_string())
         .collect();
+    let remedies: Vec<&str> = document
+        .signals
+        .iter()
+        .map(|signal| signal.remedy.as_str())
+        .collect();
+
+    let mut invented: Vec<String> = Vec::new();
+    for metric in &absent {
+        let account = document.descriptions.get(&metric.key).unwrap_or_else(|| {
+            panic!(
+                "the block holds no entry for {}, so a reader filtering for it meets the same \
+                 silence whether a rule declined or nobody asked",
+                metric.key
+            )
+        });
+        let written_by_a_producer = account.is_empty()
+            || refusals.iter().any(|sentence| sentence == account)
+            || remedies.iter().any(|remedy| *remedy == account);
+        if !written_by_a_producer {
+            invented.push(format!("{}: {account}", metric.key));
+        }
+    }
     assert!(
         invented.is_empty(),
-        "{} of {} quantities with no value carry an account: {invented:?}",
+        "{} of {} quantities with no value carry a sentence no producer wrote: {invented:?}",
         invented.len(),
         absent.len()
     );
+
+    // And none of them asserts a measurement. `describe` opens with the value and its unit, so
+    // an account beginning with a number is a claim about a number nobody computed.
+    let asserting: Vec<&str> = absent
+        .iter()
+        .filter(|metric| {
+            document.descriptions[&metric.key]
+                .split_whitespace()
+                .next()
+                .is_some_and(|token| token.parse::<f64>().is_ok())
+        })
+        .map(|metric| metric.key.as_str())
+        .collect();
+    assert!(
+        asserting.is_empty(),
+        "an account of a number nobody computed opens with a value: {asserting:?}"
+    );
     println!(
-        "{} of {} quantities carried no value and none of them was described",
+        "{} of {} quantities carried no value and none of them asserts a measurement",
         absent.len(),
         document.metrics.len()
+    );
+}
+
+/// The control on the predicate the guard above rests on.
+///
+/// A test for accounts that open with a value proves nothing until the predicate is shown
+/// finding one. Every quantity answers on the trial that lands, and every one of their accounts
+/// opens with its own value, so a predicate that had stopped recognising `describe`'s output
+/// reddens here rather than reading as a clean block over there.
+#[test]
+fn the_check_for_an_account_that_opens_with_a_value_finds_one_where_every_quantity_answers() {
+    let document = document_for(&a_jump_that_lands());
+    let opening: Vec<&str> = document
+        .metrics
+        .iter()
+        .filter(|metric| metric.value.is_some())
+        .filter(|metric| {
+            document
+                .descriptions
+                .get(&metric.key)
+                .and_then(|account| account.split_whitespace().next())
+                .is_some_and(|token| token.parse::<f64>().is_ok())
+        })
+        .map(|metric| metric.key.as_str())
+        .collect();
+    println!(
+        "{} of {} accounts open with the value they are about",
+        opening.len(),
+        document.metrics.len()
+    );
+    assert_eq!(
+        opening.len(),
+        document.metrics.len(),
+        "an account of a number does not open with that number, so the guard beside this one is \
+         looking for a shape this build no longer writes"
     );
 }

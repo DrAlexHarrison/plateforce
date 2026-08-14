@@ -113,6 +113,7 @@ fn document(response: &AnalysisResponse, rows: usize) -> ResultDocument {
             name: "selected jump".into(),
             rows_read: rows,
             samples_matching_the_convention: 0,
+            sample_rate_hz: 1200.0,
         },
         &RegistryStamp {
             version: Some("fixture-pin".to_string()),

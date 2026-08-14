@@ -140,3 +140,21 @@ pub fn copy_committed_fixtures(into: &Path) -> usize {
     }
     copied
 }
+
+/// The recording that stops mid-jump, kept apart from the fixtures because nobody would analyse
+/// a damaged trace on purpose.
+///
+/// A folder population drawn from `fixtures/` alone is one on which every landmark places, so a
+/// guard over it cannot reach a trial where a landmark rule declines and every quantity resting
+/// on that rule comes back empty.
+pub const DAMAGED: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../plateforce-conformance/damaged/subject01_trial1_interrupted.force.txt"
+);
+
+pub fn copy_damaged_recording(into: &Path) -> usize {
+    let path = Path::new(DAMAGED);
+    let name = path.file_name().unwrap().to_str().unwrap();
+    std::fs::copy(path, into.join(name)).unwrap();
+    1
+}

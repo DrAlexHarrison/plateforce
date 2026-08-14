@@ -719,25 +719,54 @@ fn run_spine_default(
             });
         }
     }
-    // Every quantity the row declares, whether or not the rule produced it. A rule that
-    // declined still consulted something, and the chain is what it consulted: a number's
-    // absence has a cause, the cause is a rule on that chain, and a reader who cannot see the
-    // chain cannot reach it. `spread.rs` reads exactly this to say why a swept variant came
-    // back empty, and it will only name a rule the quantity itself says it rests on.
-    //
-    // Read off the row rather than off what ran, for the reason `keys_the_request_bound` is:
-    // what a rule reports is settled by its declaration, before anything computes one.
+    against_the_declaration(binding, &outcome.values)
+        .into_iter()
+        .map(|(declared, value)| SpineQuantity {
+            key: declared.key,
+            value,
+            rests_on: chain_behind(&context, declared.key, conditioning_ids),
+        })
+        .collect()
+}
+
+/// What a rule reported, one entry per quantity its binding row declares, in the row's order.
+///
+/// Every quantity the row declares, whether or not the rule produced it. A rule that declined
+/// still consulted something, and the chain is what it consulted: a number's absence has a
+/// cause, the cause is a rule on that chain, and a reader who cannot see the chain cannot reach
+/// it. `chain::accounts_for` reads exactly this to say why a cell came back empty, and it will
+/// only name a rule the quantity itself says it rests on.
+///
+/// Read off the row rather than off what ran, for the reason `keys_the_request_bound` is: what
+/// a rule reports is settled by its declaration, before anything computes one.
+///
+/// A key the row does not declare ends the run. Nothing downstream reads a value under a key no
+/// quantity is declared for, so it would leave the rule silently reporting one number fewer
+/// than it computed.
+fn against_the_declaration(
+    binding: &'static crate::binding::Binding,
+    values: &[(&'static str, Option<f64>)],
+) -> Vec<(&'static crate::response::Quantity, Option<f64>)> {
+    if let Some((undeclared, _)) = values.iter().find(|(key, _)| {
+        !binding
+            .quantities
+            .iter()
+            .any(|declared| declared.key == *key)
+    }) {
+        panic!(
+            "{} reported {undeclared}, which its binding row does not declare",
+            binding.id
+        );
+    }
     binding
         .quantities
         .iter()
-        .map(|declared| SpineQuantity {
-            key: declared.key,
-            value: outcome
-                .values
+        .map(|declared| {
+            let value = values
                 .iter()
                 .find(|(key, _)| *key == declared.key)
-                .and_then(|(_, value)| *value),
-            rests_on: chain_behind(&context, declared.key, conditioning_ids),
+                .and_then(|(_, value)| *value);
+            (declared, value)
         })
         .collect()
 }
@@ -848,21 +877,16 @@ fn run_derived_phase(
         // A record naming only the last step understates what produced the number, and one
         // naming every earlier step cites rules it never used. Built per quantity, because two
         // numbers under one entry can rest on different things.
-        for (key, value) in &outcome.values {
-            let declared = binding
-                .quantities
-                .iter()
-                .find(|quantity| quantity.key == *key)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "{} reported {key}, which its binding row does not declare",
-                        binding.id
-                    )
-                });
+        //
+        // Every quantity the row declares reaches the response, so a rule that declined reports
+        // its quantities with no value rather than reporting nothing: a request for a number
+        // was answered by the key's absence, and a reader filtering for it received no row to
+        // read the reason off.
+        for (declared, value) in against_the_declaration(binding, &outcome.values) {
             metrics.push(Metric::from_declaration(
                 declared,
-                *value,
-                chain_behind(&context, key, conditioning_ids),
+                value,
+                chain_behind(&context, declared.key, conditioning_ids),
                 None,
             ));
         }

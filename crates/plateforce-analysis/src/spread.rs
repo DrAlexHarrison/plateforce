@@ -539,21 +539,21 @@ fn extract(response: &crate::AnalysisResponse, quantity_key: &str) -> Option<f64
 /// Why this quantity has no value on this variant, taken from a rule that declined on its
 /// own chain.
 ///
-/// Attributed rather than assumed: the refusal has to name one of the rules the quantity
-/// itself says produced it, so a rule declining elsewhere in the analysis is not written
-/// against a number it had no part in. Where nothing on the chain declined this is `None`,
-/// because a cause nobody recorded is not a cause to report.
+/// Attributed rather than assumed: the refusal has to name a rule the quantity itself says
+/// produced it or fed it, so a rule declining elsewhere in the analysis is not written against
+/// a number it had no part in. Where nothing on the chain declined this is `None`, because a
+/// cause nobody recorded is not a cause to report.
+///
+/// The chain is `chain::accounts_for`'s, which is the one the account under a blank cell is
+/// written from. Read here against the contributing rules alone, it could not see the
+/// arithmetic that computed the quantity, and 60 of 75 variants of the committed sweep came
+/// back with no value and no reason.
 fn declined_for(response: &crate::AnalysisResponse, quantity_key: &str) -> Option<Refusal> {
-    let chain = response
+    let metric = response
         .metrics
         .iter()
-        .find(|metric| metric.key == quantity_key)
-        .map(|metric| metric.contributing_method_ids.as_slice())?;
-    response
-        .refusals
-        .iter()
-        .map(crate::document::refusal_from_rule)
-        .find(|refusal| chain.contains(&refusal.method_id))
+        .find(|metric| metric.key == quantity_key)?;
+    crate::chain::refusal_accounting_for(response, metric)
 }
 
 /// The three landmark slots, which are reached by their own names on the request.

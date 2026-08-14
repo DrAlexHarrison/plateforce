@@ -526,6 +526,7 @@ impl LoadedTrial {
                     name: trial_name.unwrap_or_default(),
                     rows_read: self.info.sample_count,
                     samples_matching_the_convention: self.info.samples_matching_the_convention,
+                    sample_rate_hz: self.trial.sample_rate_hz(),
                 },
                 // Nothing pinned: this surface runs the registry compiled into the bundle,
                 // and a tab asserting a revision about bytes it did not choose would be
@@ -576,6 +577,7 @@ impl LoadedTrial {
                         name: trial_name.unwrap_or_default(),
                         rows_read: self.info.sample_count,
                         samples_matching_the_convention: self.info.samples_matching_the_convention,
+                        sample_rate_hz: self.trial.sample_rate_hz(),
                     },
                     &plateforce_core::provenance::RegistryStamp::unpinned(
                         loaded.registry.declared_version.clone(),
