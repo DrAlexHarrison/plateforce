@@ -172,6 +172,16 @@ pub enum AggregationRefusal {
         needs: usize,
         group: String,
     },
+    /// Fewer values in a result column than the rule requires, even though the group itself
+    /// holds enough trials.
+    TooFewUsableValues {
+        rule: String,
+        quantity: String,
+        usable: usize,
+        trials: usize,
+        needs: usize,
+        group: String,
+    },
     /// The run declared no pattern, so it has no subject to group by.
     NoDeclaredGrouping {
         template_hint: String,
@@ -289,6 +299,16 @@ impl AggregationRefusal {
                 needs,
                 group,
             } => format!("{rule} reduces {needs} trials and {group} has {had}"),
+            AggregationRefusal::TooFewUsableValues {
+                rule,
+                quantity,
+                usable,
+                trials,
+                needs,
+                group,
+            } => format!(
+                "{rule} reduces {needs} values of {quantity}, and {group} has {usable} of {trials} usable values"
+            ),
             AggregationRefusal::NoDeclaredGrouping { template_hint } => format!(
                 "this run named its trials by file stem, so it has no subject to group by, and a pattern such as {template_hint} would supply one"
             ),
@@ -484,6 +504,27 @@ pub fn aggregate(
             .collect();
 
         for quantity in &request.quantities {
+            let usable = trial_ids
+                .iter()
+                .filter(|trial_id| {
+                    result
+                        .results
+                        .iter()
+                        .find(|row| row.trial_id == trial_id.as_str())
+                        .and_then(|row| row.values.get(quantity).copied().flatten())
+                        .is_some()
+                })
+                .count();
+            if usable < needs {
+                return Err(AggregationRefusal::TooFewUsableValues {
+                    rule: request.rule.as_registry_str().to_string(),
+                    quantity: quantity.clone(),
+                    usable,
+                    trials: trial_ids.len(),
+                    needs,
+                    group: group_key.clone(),
+                });
+            }
             let values: Option<Vec<f64>> = selected
                 .iter()
                 .map(|trial_id| {
@@ -496,7 +537,7 @@ pub fn aggregate(
                 .collect();
             let values = values.unwrap_or_default();
 
-            let (row, chain) = row_for(request, &group_key, quantity, &values, selected.len());
+            let (row, chain) = row_for(request, &group_key, quantity, &values);
             rows.push(row);
             chains.extend(chain);
         }
@@ -579,7 +620,6 @@ fn row_for(
     group_key: &str,
     quantity: &str,
     reduced: &[f64],
-    n: usize,
 ) -> (AggregateRow, Vec<ProvenanceRow>) {
     let value = mean(reduced);
     let dispersion = standard_deviation(reduced, request.dispersion);
@@ -612,7 +652,7 @@ fn row_for(
             depth: 0,
             method_id: method_id.clone(),
             parameter: "n".to_string(),
-            value: n.to_string(),
+            value: request.n.to_string(),
             source: source.to_string(),
         },
         ProvenanceRow {
@@ -651,7 +691,7 @@ fn row_for(
             quantity: quantity.to_string(),
             value,
             dispersion,
-            n,
+            n: request.n,
             method_id,
             provenance_id: identifier,
         },

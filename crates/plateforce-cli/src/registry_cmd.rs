@@ -229,12 +229,8 @@ fn describe_parameter(parameter: &plateforce_registry::Parameter) -> String {
 /// What the registry says about a parameter beyond its name and its numbers, indented under
 /// it.
 ///
-/// 185 of the registry's 241 parameters carry one, and they hold the part a reader cannot
-/// recover from the name: which of four studies disagreed about a window width and whether they
-/// disagreed about the measurement or the acceptance criterion, that omitting a backtrack "is
-/// not choosing 0 ms, it is failing to implement the cited method", which instant a rule reports
-/// where it read a landmark off the trace. The browser has drawn them since it had a drawer;
-/// the terminal is one of the four surfaces and was printing the name alone.
+/// A note carries distinctions the name and numbers do not, such as whether studies disagree
+/// about a measurement or its acceptance criterion.
 fn note_lines(notes: Option<&str>, renderer: &Renderer) -> Vec<String> {
     match notes.map(str::trim).filter(|text| !text.is_empty()) {
         Some(text) => renderer.wrap(text, VALUE_INDENT_COLUMNS),

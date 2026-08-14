@@ -243,6 +243,9 @@ pub enum AgreementRefusal {
     },
     /// A subject-level unit of analysis on a run with no declared grouping.
     SubjectUnitWithoutGrouping,
+    /// A subject-level unit of analysis with no declared rule for reducing repeated trials
+    /// to one independent difference per subject.
+    SubjectReductionRuleUnstated,
     /// Two figures under conventions whose difference has never been published.
     ConventionsDiffer {
         left: String,
@@ -263,7 +266,8 @@ impl AgreementRefusal {
             // The pattern that would name a subject is the thing left unstated, so the
             // remedy is to state it rather than to repair the data.
             AgreementRefusal::RequiredParametersUnstated { .. }
-            | AgreementRefusal::SubjectUnitWithoutGrouping => {
+            | AgreementRefusal::SubjectUnitWithoutGrouping
+            | AgreementRefusal::SubjectReductionRuleUnstated => {
                 RefusalCode::RequiredParameterUnstated
             }
             AgreementRefusal::NotTheSameRepetition { .. } => RefusalCode::ObservationsNotPaired,
@@ -285,6 +289,9 @@ impl AgreementRefusal {
             ),
             AgreementRefusal::SubjectUnitWithoutGrouping => {
                 "the subject unit of analysis needs a declared naming pattern, and this run named its trials by file stem".to_string()
+            }
+            AgreementRefusal::SubjectReductionRuleUnstated => {
+                "subject-level limits need one independent difference per subject, and the request states no rule for reducing repeated trials to that difference".to_string()
             }
             AgreementRefusal::ConventionsDiffer { left, right } => format!(
                 "these figures were taken under {left} and {right}, and the difference between the two has never been published"
@@ -722,6 +729,9 @@ pub fn bland_altman(
 ) -> Result<LimitsOfAgreement, AgreementRefusal> {
     if request.unit_of_analysis == UnitOfAnalysis::Subject && Session::group(set).is_none() {
         return Err(AgreementRefusal::SubjectUnitWithoutGrouping);
+    }
+    if request.unit_of_analysis == UnitOfAnalysis::Subject {
+        return Err(AgreementRefusal::SubjectReductionRuleUnstated);
     }
     let pairs = pairs_from(result)?;
     limits_of_agreement(&pairs, request.dispersion).ok_or(AgreementRefusal::NotEnoughPairs {

@@ -7,7 +7,7 @@ use std::time::Duration;
 use crate::assets::asset_for;
 
 /// A request line and its headers cannot exceed this. The client is a browser on the same
-/// machine asking for one of six files, which is well under a kilobyte.
+/// machine asking for an embedded file, which is well under a kilobyte.
 const LARGEST_REQUEST_HEAD_BYTES: usize = 8 * 1024;
 
 /// A connection that opens and sends nothing must not hold the port. Browsers open sockets

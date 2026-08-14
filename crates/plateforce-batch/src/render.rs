@@ -76,7 +76,7 @@ fn signal_line(row: &SignalRow) -> String {
     )
 }
 
-/// The mean row as the user reads it, with the count it was taken over beside it.
+/// The mean row as the user reads it, with the count the request declared beside it.
 fn summary_line(row: &AggregateRow) -> String {
     let value = row
         .value

@@ -200,6 +200,43 @@ fn the_subject_unit_of_analysis_needs_a_declared_grouping() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
+/// Naming subjects is not the same as reducing repeated trials to independent observations.
+/// Until a rule states how to make one difference per subject, subject mode must not reuse
+/// the trial pairs and report their count under another name.
+#[test]
+fn subject_level_limits_do_not_compute_over_repeated_trials() {
+    for (subjects, trials_each) in [(3usize, 4usize), (4, 3)] {
+        let directory = tempdir(&format!(
+            "agreement-subject-repetitions-{subjects}-{trials_each}"
+        ));
+        plateforce_batch::synthetic::write_corpus(&directory, subjects, trials_each, 7).unwrap();
+        let set = TrialSet::walk(&directory, &synthetic_format(), &declared_pattern()).unwrap();
+        let result = compare(&set, &compare_request());
+
+        let trial_request = LimitsRequest::declared(Some("trial"), Some("sample")).unwrap();
+        let trial_limits = bland_altman(&set, &result, trial_request)
+            .expect("the trial unit uses one pair per repetition");
+        assert_eq!(
+            trial_limits.n,
+            subjects * trials_each,
+            "trial mode counts every repetition in this control"
+        );
+
+        let subject_request = LimitsRequest::declared(Some("subject"), Some("sample")).unwrap();
+        let refusal = bland_altman(&set, &result, subject_request)
+            .expect_err("subject mode has no declared within-subject reduction rule");
+        assert_eq!(refusal, AgreementRefusal::SubjectReductionRuleUnstated);
+        assert!(
+            refusal
+                .message()
+                .contains("one independent difference per subject"),
+            "the refusal names the observation the method needs: {}",
+            refusal.message()
+        );
+        std::fs::remove_dir_all(&directory).ok();
+    }
+}
+
 #[test]
 fn a_correlation_arrives_with_its_limits_or_not_at_all() {
     let directory = tempdir("agreement-correlation");
@@ -432,6 +469,7 @@ fn every_agreement_refusal_carries_a_published_code() {
             pairs: vec!["a against b".to_string()],
         },
         AgreementRefusal::SubjectUnitWithoutGrouping,
+        AgreementRefusal::SubjectReductionRuleUnstated,
         AgreementRefusal::ConventionsDiffer {
             left: "sample".to_string(),
             right: "population".to_string(),
@@ -449,6 +487,7 @@ fn every_agreement_refusal_carries_a_published_code() {
     let expected = [
         "required_parameter_unstated",
         "observations_not_paired",
+        "required_parameter_unstated",
         "required_parameter_unstated",
         "conventions_not_comparable",
         "not_enough_observations",
@@ -483,7 +522,7 @@ fn every_agreement_refusal_carries_a_published_code() {
     );
     assert!(
         distinct.len() >= 4,
-        "these five faults are not one fault: {distinct:?}"
+        "these six faults are not one fault: {distinct:?}"
     );
 }
 

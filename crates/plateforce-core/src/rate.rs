@@ -152,6 +152,8 @@ impl LevelCrossing {
 
 /// The first sample from `from_index` onward at which the trace stands at or above a level,
 /// with the interpolated position beside it, or nothing when it never reaches the level.
+/// A selected search span carrying any non-finite sample is an error under the shared
+/// numeric-span rule in `refusal`.
 ///
 /// A trace already at or above the level at `from_index` crossed before the search started,
 /// so the position is that sample rather than an extrapolation backward into a stretch the
@@ -161,16 +163,17 @@ pub fn first_crossing_at_or_above(
     level: f64,
     from_index: usize,
     until_index: usize,
-) -> Option<LevelCrossing> {
+) -> Result<Option<LevelCrossing>, crate::refusal::SamplesCarryNoNumber> {
     let last = until_index.min(values.len().saturating_sub(1));
     if from_index > last {
-        return None;
+        return Ok(None);
     }
+    crate::refusal::require_numeric_span(values, from_index, last + 1)?;
     if values[from_index] >= level {
-        return Some(LevelCrossing {
+        return Ok(Some(LevelCrossing {
             sample_index: from_index,
             position: from_index as f64,
-        });
+        }));
     }
     for index in (from_index + 1)..=last {
         if values[index] < level {
@@ -185,12 +188,12 @@ pub fn first_crossing_at_or_above(
         } else {
             0.0
         };
-        return Some(LevelCrossing {
+        return Ok(Some(LevelCrossing {
             sample_index: index,
             position: (index - 1) as f64 + fraction,
-        });
+        }));
     }
-    None
+    Ok(None)
 }
 
 /// The centred derivative at a position that need not be a sample, as the chord of two
@@ -327,7 +330,9 @@ mod tests {
         let values = ramp(1200.0, 1200);
         // 1200 N/s at 1200 Hz rises exactly 1 N per sample, so 300.5 N sits half a sample
         // past index 300 and the sample at or above it is 301.
-        let found = first_crossing_at_or_above(&values, 300.5, 0, 1199).unwrap();
+        let found = first_crossing_at_or_above(&values, 300.5, 0, 1199)
+            .unwrap()
+            .unwrap();
         assert_eq!(found.sample_index, 301);
         assert!((found.position - 300.5).abs() < 1e-9, "{found:?}");
         assert!((found.seconds(SAMPLE_INTERVAL_SECONDS) - 300.5 / 1200.0).abs() < 1e-12);
@@ -338,14 +343,51 @@ mod tests {
     #[test]
     fn a_level_never_reached_returns_nothing_and_one_already_held_returns_the_first_sample() {
         let values = ramp(1200.0, 1200);
-        assert!(first_crossing_at_or_above(&values, 5000.0, 0, 1199).is_none());
+        assert!(first_crossing_at_or_above(&values, 5000.0, 0, 1199)
+            .unwrap()
+            .is_none());
         // Bounded short of where the trace reaches it, which is a different fact from the
         // trace never reaching it and must not be answered from past the bound.
-        assert!(first_crossing_at_or_above(&values, 900.0, 0, 500).is_none());
+        assert!(first_crossing_at_or_above(&values, 900.0, 0, 500)
+            .unwrap()
+            .is_none());
 
-        let held = first_crossing_at_or_above(&values, 100.0, 400, 1199).unwrap();
+        let held = first_crossing_at_or_above(&values, 100.0, 400, 1199)
+            .unwrap()
+            .unwrap();
         assert_eq!(held.sample_index, 400);
         assert_eq!(held.position, 400.0);
+    }
+
+    #[test]
+    fn a_crossing_refuses_every_non_finite_sample_in_its_search_span() {
+        let clean = ramp(2000.0, 1200);
+        let crossing = first_crossing_at_or_above(&clean, 1000.0, 0, 1199)
+            .unwrap()
+            .unwrap();
+        assert!((crossing.position - 600.0).abs() < 1e-9);
+
+        for (missing_at, missing_value) in [
+            (0usize, f64::NAN),
+            (599, f64::INFINITY),
+            (600, f64::NEG_INFINITY),
+            (900, f64::NAN),
+        ] {
+            let mut interrupted = clean.clone();
+            interrupted[missing_at] = missing_value;
+            let missing = first_crossing_at_or_above(&interrupted, 1000.0, 0, 1199)
+                .expect_err("a search span carrying no number cannot yield a crossing");
+            assert_eq!(missing.first_sample, missing_at);
+            assert_eq!((missing.count, missing.samples_read), (1, 1200));
+        }
+
+        let mut outside = clean;
+        outside[0] = f64::NAN;
+        outside[1199] = f64::INFINITY;
+        let bounded = first_crossing_at_or_above(&outside, 1000.0, 1, 1000)
+            .unwrap()
+            .unwrap();
+        assert!((bounded.position - 600.0).abs() < 1e-9);
     }
 
     /// On a ramp the derivative is the slope everywhere, including between samples, so the

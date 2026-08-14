@@ -67,9 +67,8 @@ fn a_port_another_program_holds_says_so_and_names_the_flag() {
     drop(held);
 }
 
-/// Below 1024 the operating system refuses every process that is not root, and this one asks
-/// for nothing it could be granted, so the sentence sends the reader upward rather than to an
-/// administrator.
+/// A stated port is named with the range the account can choose from, so the reader can change
+/// the request without having to know what a privileged port is.
 #[test]
 fn a_port_this_process_may_not_open_is_told_apart_from_one_that_is_busy() {
     let output = serving("80");
@@ -87,15 +86,10 @@ fn a_port_this_process_may_not_open_is_told_apart_from_one_that_is_busy() {
         "{}",
         refusal(&output)
     );
-    assert!(
-        refusal(&output).starts_with("plateforce serve: port 80 is not one this process may open."),
-        "{}",
-        refusal(&output)
-    );
-    assert!(
-        refusal(&output).contains("--port"),
-        "the flag that answers it is named: {}",
-        refusal(&output)
+    assert_eq!(
+        refusal(&output),
+        "plateforce serve: this account is not permitted to open port 80. Choose another port \
+         from 1024 to 65535 with --port, or leave --port out to let the operating system choose."
     );
 }
 

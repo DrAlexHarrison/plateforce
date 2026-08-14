@@ -182,6 +182,15 @@ def test_a_separator_of_several_characters_is_refused_rather_than_read_as_its_fi
     assert raised.value.parameter == "delimiter"
 
 
+def test_runs_of_spaces_read_by_naming_whitespace(tmp_path):
+    path = a_three_column_export(tmp_path, [600.0, 601.0], delimiter="     ")
+    trial = pf.read_force_file(
+        path, sample_rate_hz=100.0, delimiter="whitespace", force_column=2
+    )
+    assert trial.force_newtons == [600.0, 601.0]
+    assert trial.read_report.delimiter == "whitespace"
+
+
 def test_the_rate_the_column_and_the_separator_have_no_defaults(tmp_path):
     """A rate that is guessed scales every velocity, displacement and impulse with it, and a
     guessed column can be the wrong one quietly, so each has to be stated."""

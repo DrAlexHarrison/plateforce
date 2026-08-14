@@ -418,9 +418,8 @@ fn chosen_methods(args: &Args) -> Result<BTreeMap<String, String>, Outcome> {
 /// Which step of this run a qualified name is written against, and which of its parameters.
 ///
 /// Read against the steps the run actually has rather than off the first dot in the name.
-/// Three of the fifteen constructs this build binds are named with a dot in them, all three
-/// of them jump-height constructs carrying nine rules, and splitting on the first dot reports
-/// every value written against one of them as naming a step that does not exist.
+/// A construct name can carry dots, so splitting on the first can report a value written
+/// against one as naming a step that does not exist.
 ///
 /// The longest match wins, so a step whose name begins another step's name takes only the
 /// names written against itself.
@@ -1500,10 +1499,9 @@ fn displaced(bound: &BoundMethod) -> String {
 mod tests {
     use super::*;
 
-    /// Every step this run has, against a value written for one of them.
+    /// A step whose name carries a dot, against a value written for it.
     ///
-    /// The cases that matter are the three constructs whose own names carry a dot, because
-    /// splitting a qualified name on its first one reads `jump_height` out of
+    /// Splitting a qualified name on its first dot reads `jump_height` out of
     /// `jump_height.takeoff_frame` and reports a step this run has as a step it does not.
     #[test]
     fn a_value_reaches_the_step_it_names_however_many_dots_that_name_carries() {

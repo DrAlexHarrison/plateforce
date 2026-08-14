@@ -217,18 +217,22 @@ fn a_stated_ranking_criterion_is_recorded_with_the_reduction() {
     std::fs::remove_dir_all(&written).ok();
 }
 
-/// The closing help paragraph names exactly the relations an aggregated run writes. Reading
-/// the paragraph after its own opening keeps a file named elsewhere on the page from passing.
+/// The analyse section names exactly the relations an aggregated run writes. Reading only
+/// between its headings keeps a compare file named elsewhere on the page from passing.
 #[test]
 fn batch_help_names_all_nine_files_an_aggregated_run_writes() {
     let help = plateforce(&["batch", "--help"]);
     assert!(help.status.success(), "{}", said(&help));
     let page = String::from_utf8(help.stdout).expect("the help is UTF-8");
-    let closing = page
-        .split_once("--out-dir holds ")
-        .map(|(_, paragraph)| paragraph)
-        .unwrap_or_else(|| panic!("the help carries no closing output paragraph:\n{page}"));
-    let mut named: Vec<String> = closing
+    let analyse = page
+        .split_once("Analyse mode writes:")
+        .map(|(_, sections)| sections)
+        .and_then(|sections| sections.split_once("Compare mode writes:"))
+        .map(|(analyse, _)| analyse)
+        .unwrap_or_else(|| {
+            panic!("the help does not separate analyse and compare outputs:\n{page}")
+        });
+    let mut named: Vec<String> = analyse
         .split_whitespace()
         .map(|word| {
             word.trim_matches(|character: char| {
@@ -279,7 +283,7 @@ fn batch_help_names_all_nine_files_an_aggregated_run_writes() {
     assert_eq!(
         named.len(),
         9,
-        "the closing paragraph names {} of {} written files: {named:?}",
+        "the analyse section names {} of {} written files: {named:?}",
         named.len(),
         actual.len()
     );

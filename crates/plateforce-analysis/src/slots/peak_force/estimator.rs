@@ -73,6 +73,9 @@ fn compute(
                 ID, start, end,
             ))),
         ),
+        Err(plateforce_core::peak::PeakError::SamplesCarryNoNumber(missing)) => {
+            DerivedOutcome::declined(bound, RuleRefusal::Refused(Box::new(missing.refusal(ID))))
+        }
         // A width longer than the recording is a number the caller stated and can restate,
         // so it comes back naming the parameter and the value rather than the span.
         Err(plateforce_core::peak::PeakError::Smoothing(_)) => DerivedOutcome::declined(

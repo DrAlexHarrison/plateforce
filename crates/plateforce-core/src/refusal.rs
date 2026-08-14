@@ -8,6 +8,61 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+/// The samples that prevent a numerical operation from reading a complete span.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("{count} of {samples_read} samples from {span_start} through {span_last} carry no number")]
+pub struct SamplesCarryNoNumber {
+    pub span_start: usize,
+    pub span_last: usize,
+    pub first_sample: usize,
+    pub count: usize,
+    pub samples_read: usize,
+}
+
+impl SamplesCarryNoNumber {
+    /// Turn the measured gap into the refusal every surface already knows how to carry.
+    pub fn refusal(&self, method_id: impl Into<String>) -> Refusal {
+        Refusal::samples_carry_no_number(method_id, self)
+    }
+}
+
+/// Missing-data rule for numerical reductions and ordered searches.
+///
+/// The half-open span `[start, end)` must be complete: if any sample is not finite, the
+/// operation refuses the whole span. It never skips or imputes that sample and never lets a
+/// floating-point comparison turn it into an ordering result. Samples outside the span do
+/// not affect the answer.
+pub fn require_numeric_span(
+    values: &[f64],
+    start: usize,
+    end: usize,
+) -> Result<(), SamplesCarryNoNumber> {
+    let end = end.min(values.len());
+    if start >= end {
+        return Ok(());
+    }
+    let mut first_sample = None;
+    let mut count = 0usize;
+    for (offset, value) in values[start..end].iter().enumerate() {
+        if !value.is_finite() {
+            if first_sample.is_none() {
+                first_sample = Some(start + offset);
+            }
+            count += 1;
+        }
+    }
+    let Some(first_sample) = first_sample else {
+        return Ok(());
+    };
+    Err(SamplesCarryNoNumber {
+        span_start: start,
+        span_last: end - 1,
+        first_sample,
+        count,
+        samples_read: end - start,
+    })
+}
+
 /// Declares the enum and the list of every variant from one source, so the list a surface
 /// reports as this build's vocabulary cannot fall behind the codes the build can emit.
 macro_rules! refusal_codes {
@@ -373,6 +428,33 @@ impl Refusal {
             BTreeMap::from([
                 ("span_start_sample".to_string(), start as f64),
                 ("span_end_sample".to_string(), end as f64),
+            ]),
+            Vec::new(),
+        )
+    }
+
+    /// A numerical operation whose selected span contains samples that carry no number.
+    pub fn samples_carry_no_number(
+        method_id: impl Into<String>,
+        missing: &SamplesCarryNoNumber,
+    ) -> Self {
+        Self::build(
+            RefusalCode::TraceTooShort,
+            method_id,
+            None,
+            None,
+            BTreeMap::from([
+                ("span_start_sample".to_string(), missing.span_start as f64),
+                ("span_last_sample".to_string(), missing.span_last as f64),
+                ("samples_read".to_string(), missing.samples_read as f64),
+                (
+                    "samples_carrying_no_number".to_string(),
+                    missing.count as f64,
+                ),
+                (
+                    "first_sample_carrying_no_number".to_string(),
+                    missing.first_sample as f64,
+                ),
             ]),
             Vec::new(),
         )
@@ -958,6 +1040,16 @@ fn sentence(
             named("start_seconds"),
             named("available_seconds")
         ),
+        RefusalCode::TraceTooShort if detail.contains_key("samples_carrying_no_number") => {
+            format!(
+                "{subject} reads samples {} through {}, and {} of {} samples carry no number; the first is sample {}",
+                named("span_start_sample"),
+                named("span_last_sample"),
+                named("samples_carrying_no_number"),
+                named("samples_read"),
+                named("first_sample_carrying_no_number")
+            )
+        }
         RefusalCode::TraceTooShort if detail.contains_key("span_start_sample") => format!(
             "{subject} was given samples {} to {}, which selects none of the recording",
             named("span_start_sample"),
@@ -1124,6 +1216,39 @@ fn sentence(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_numeric_span_names_every_missing_sample_against_its_denominator() {
+        let values = [f64::NAN, 10.0, f64::INFINITY, 20.0, f64::NEG_INFINITY];
+        let missing = require_numeric_span(&values, 1, 5)
+            .expect_err("two of the four selected samples are not numbers");
+        assert_eq!(missing.span_start, 1);
+        assert_eq!(missing.span_last, 4);
+        assert_eq!(missing.first_sample, 2);
+        assert_eq!(missing.count, 2);
+        assert_eq!(missing.samples_read, 4);
+
+        let refusal = missing.refusal("force.peak.gross");
+        assert_eq!(refusal.code, RefusalCode::TraceTooShort);
+        assert_eq!(refusal.detail["samples_carrying_no_number"], 2.0);
+        assert_eq!(refusal.detail["samples_read"], 4.0);
+        assert!(
+            refusal.message().contains("2 of 4"),
+            "{}",
+            refusal.message()
+        );
+        assert!(
+            refusal.message().contains("first is sample 2"),
+            "{}",
+            refusal.message()
+        );
+
+        // The NaN at sample zero is outside this span. Expanding the span by one makes it
+        // three missing samples of five, so both boundaries are exercised.
+        assert!(require_numeric_span(&values, 1, 2).is_ok());
+        let expanded = require_numeric_span(&values, 0, 5).unwrap_err();
+        assert_eq!((expanded.count, expanded.samples_read), (3, 5));
+    }
 
     /// What a refusal costs to carry, printed rather than asserted against a figure that
     /// would go stale the next time a field is added.

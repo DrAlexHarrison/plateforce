@@ -401,10 +401,8 @@ pub fn batch(
     // routine every surface writes a gravity through.
     let (gravity_meters_per_second_squared, gravity_source) =
         plateforce_analysis::gravity_stated(gravity_meters_per_second_squared);
-    let delimiter = delimiter
-        .chars()
-        .next()
-        .ok_or_else(|| PyValueError::new_err("a delimiter is one character"))?;
+    let delimiter =
+        Python::attach(|python| crate::trial::field_separator(python, "batch", delimiter))?;
     // No default: a walk that filtered quietly would drop files out of the denominator with
     // nothing recording it.
     let suffixes = trial_file_suffixes.ok_or_else(|| {
@@ -414,7 +412,7 @@ pub fn batch(
     })?;
 
     let format = SourceFormat {
-        delimiter: delimiter.into(),
+        delimiter,
         force_column_index,
         sample_rate_hz,
         trial_file_suffixes: suffixes,

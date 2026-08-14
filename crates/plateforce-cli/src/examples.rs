@@ -93,11 +93,24 @@ Several rules for one quantity, one row per trial per rule:
 
   plateforce batch trials --out-dir results --trial-suffix .force.txt --column 0 --sample-rate-hz 1000 --sentinel none --preset sams --mode compare --against takeoff.threshold.longest_run
 
---out-dir holds results.csv, one row per trial, aggregates.csv, one row per group per quantity
-when a reduction was bound, descriptions.csv, one row per trial per quantity, provenance.csv,
-one row per method per parameter, refusals.csv, warnings.csv, exclusions.csv and signals.csv,
-and run.json, which carries the registry digest and the run fingerprint. A table separated
-from run.json is a set of numbers whose method nobody can recover.";
+Analyse mode writes:
+  results.csv       one row per trial
+  descriptions.csv  one row per trial per quantity
+  provenance.csv    one row per method per parameter
+  refusals.csv      one row per declined quantity
+  warnings.csv      one row per warning
+  exclusions.csv    one row per gate finding
+  signals.csv       one row per quality signal
+  run.json          the registry digest and run fingerprint
+  aggregates.csv    one row per group per quantity, when a reduction was bound
+
+Compare mode writes:
+  paired.csv         one row per trial per rule
+  provenance.csv     one row per method per parameter
+  refusals.csv       one row per refusal
+  compare-run.json   the registry digest, base request digest and sweep
+
+Keep each table with its run record. The record names the rules behind its numbers.";
 
 pub const SPREAD_SHORT: &str = "\
 Examples:
@@ -285,8 +298,12 @@ Writes it to a file under the name that shell looks for, and prints the path:
 
   plateforce completions zsh --out-dir completions
 
-For the current shell only, bash and zsh read the script as it arrives, which is written
-`source <(plateforce completions bash)`.
+For the current bash shell:
+  source <(plateforce completions bash)
+
+For the current zsh shell, initialise completions before loading its script:
+  autoload -Uz compinit && compinit
+  source <(plateforce completions zsh)
 
 Kept between sessions, the script goes in a directory the shell reads at startup:
 ~/.local/share/bash-completion/completions for bash, a directory on fpath for zsh,

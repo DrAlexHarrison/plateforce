@@ -53,11 +53,17 @@ fn compute(
             bound,
             refusal: None,
         },
-        Err(_) => DerivedOutcome::declined(
+        Err(plateforce_core::peak::PeakError::SamplesCarryNoNumber(missing)) => {
+            DerivedOutcome::declined(bound, RuleRefusal::Refused(Box::new(missing.refusal(ID))))
+        }
+        Err(plateforce_core::peak::PeakError::EmptySpan { .. }) => DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
                 ID, start, end,
             ))),
         ),
+        Err(plateforce_core::peak::PeakError::Smoothing(_)) => {
+            unreachable!("a raw maximum does not smooth")
+        }
     }
 }

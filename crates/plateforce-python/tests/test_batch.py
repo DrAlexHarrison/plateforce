@@ -31,6 +31,8 @@ def trial_folder(tmp_path, force_newtons):
 def run(folder, registry_path, **extra):
     import plateforce as pf
 
+    delimiter = extra.pop("delimiter", "\t")
+    force_column_index = extra.pop("force_column_index", 0)
     return pf.batch(
         folder,
         registry=registry_path,
@@ -40,13 +42,49 @@ def run(folder, registry_path, **extra):
         onset_parameters={"k": 5.0},
         takeoff="takeoff.threshold.absolute_force",
         sentinel=None,
-        delimiter="\t",
-        force_column_index=0,
+        delimiter=delimiter,
+        force_column_index=force_column_index,
         sample_rate_hz=SAMPLE_RATE_HZ,
         trial_file_suffixes=[".force.txt"],
         resolved=["system_weight", "movement_onset", "takeoff"],
         **extra,
     )
+
+
+def test_a_separator_of_several_characters_is_refused_before_the_folder_is_read(
+    trial_folder, registry_path
+):
+    import plateforce as pf
+
+    with pytest.raises(pf.ParameterError) as raised:
+        run(trial_folder, registry_path, delimiter="::")
+    assert raised.value.code == "value_not_accepted"
+    assert raised.value.parameter == "delimiter"
+    assert raised.value.available == ["one character", "the word whitespace"]
+    assert "::" in str(raised.value)
+
+
+def test_a_folder_held_apart_by_runs_of_spaces_reads_by_naming_whitespace(
+    tmp_path, force_newtons, registry_path
+):
+    folder = tmp_path / "space-separated"
+    folder.mkdir()
+    for trial in range(1, 5):
+        (folder / f"AT01_{trial}.force.txt").write_text(
+            "\n".join(
+                f"{sample}     {value + trial:.6f}"
+                for sample, value in enumerate(force_newtons)
+            )
+        )
+
+    result = run(
+        folder,
+        registry_path,
+        delimiter="whitespace",
+        force_column_index=1,
+    )
+    assert result.run.computed_count == result.run.trial_count == 4
+    assert '"delimiter":"whitespace"' in result.to_json()
 
 
 def test_a_rule_computed_from_the_landmarks_reaches_the_table(trial_folder, registry_path):

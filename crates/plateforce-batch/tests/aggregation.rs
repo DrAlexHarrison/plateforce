@@ -82,7 +82,10 @@ fn an_aggregate_names_its_rule_and_its_n() {
 
     let row = &joined.aggregates[0];
     assert_eq!(row.method_id, "trial.aggregation", "the rule is named");
-    assert_eq!(row.n, 3, "and the count it reduced travels with the value");
+    assert_eq!(
+        row.n, 5,
+        "the count the request named travels with the value"
+    );
     assert_eq!(row.group_kind, "subject");
     assert!(row.value.is_some());
 
@@ -97,7 +100,9 @@ fn an_aggregate_names_its_rule_and_its_n() {
         .iter()
         .any(|entry| entry.parameter == "rule"
             && entry.value == "mean_of_best_three_of_at_least_five"));
-    assert!(chain.iter().any(|entry| entry.parameter == "n"));
+    assert!(chain
+        .iter()
+        .any(|entry| entry.parameter == "n" && entry.value == "5"));
     println!(
         "chain: {}",
         chain
@@ -470,6 +475,118 @@ fn a_missing_value_inside_the_selected_set_does_not_become_a_smaller_mean() {
     );
     assert_eq!(rows[0].dispersion, None);
     assert_eq!(rows[0].n, 2, "the rule selected two of three trials");
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// The folder can hold enough trials while the requested result column does not. Counting
+/// files here would let a mean of two be taken over one value, which is a different rule.
+#[test]
+fn a_mean_of_two_refuses_when_only_one_of_six_values_is_usable() {
+    let (directory, set) = synthetic("aggregate-one-usable-value", 1, 6);
+    let original = analyse(&set, &bound_request(), &registry()).unwrap();
+
+    for usable_at in [0usize, 5usize] {
+        let mut result = original.clone();
+        for (index, row) in result.results.iter_mut().enumerate() {
+            row.values.insert(
+                FLIGHT_TIME.to_string(),
+                (index == usable_at).then_some(0.4 + index as f64 / 100.0),
+            );
+        }
+        let plan = AggregationRequest::declared(
+            Some("mean_of_best_two"),
+            Some(6),
+            Some(RSI_CONSTRUCT),
+            GroupKind::Subject,
+            vec![FLIGHT_TIME.to_string()],
+            DispersionEstimator::Sample,
+        )
+        .unwrap();
+        let refusal = aggregate(&set, &result, &plan)
+            .expect_err("one usable value cannot answer a mean-of-two rule");
+        match refusal {
+            AggregationRefusal::TooFewUsableValues {
+                quantity,
+                usable,
+                trials,
+                needs,
+                ..
+            } => {
+                assert_eq!(quantity, FLIGHT_TIME);
+                assert_eq!(usable, 1, "one of six values is usable");
+                assert_eq!(trials, 6, "the usable count carries its denominator");
+                assert_eq!(needs, 2, "mean_of_best_two keeps its floor");
+            }
+            other => panic!("the wrong refusal: {other:?}"),
+        }
+    }
+
+    // Exact-floor control. A `<=` check would refuse this, while checking the six files
+    // instead of the two values would let the cases above through.
+    let mut result = original;
+    for (index, row) in result.results.iter_mut().enumerate() {
+        row.values.insert(
+            FLIGHT_TIME.to_string(),
+            match index {
+                0 => Some(0.4),
+                1 => Some(0.6),
+                _ => None,
+            },
+        );
+        row.values.insert(
+            "reactive_strength_index_modified".to_string(),
+            Some((6 - index) as f64),
+        );
+    }
+    let plan = AggregationRequest::declared(
+        Some("mean_of_best_two"),
+        Some(6),
+        Some(RSI_CONSTRUCT),
+        GroupKind::Subject,
+        vec![FLIGHT_TIME.to_string()],
+        DispersionEstimator::Sample,
+    )
+    .unwrap();
+    let (rows, _) = aggregate(&set, &result, &plan).expect("two usable values meet the floor");
+    assert_eq!(rows.len(), 1, "one subject and one requested quantity");
+    assert_eq!(rows[0].value, Some(0.5), "both usable values contribute");
+    assert_eq!(rows[0].n, 6, "the requested count, not two contributors");
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// The count is part of the method request, not a count reconstructed from how many values
+/// the rule reduces. One rule takes one winning value and the other takes three, while both
+/// must still export the count the caller named.
+#[test]
+fn requested_n_is_not_replaced_by_the_number_of_contributors() {
+    let (directory, set) = synthetic("aggregate-requested-n", 1, 6);
+    let original = analyse(&set, &bound_request(), &registry()).unwrap();
+
+    let mut best = original.clone();
+    add_peak_force_root(&mut best);
+    for (index, row) in best.results.iter_mut().enumerate() {
+        row.values
+            .insert(PEAK_FORCE.to_string(), Some((index + 1) as f64));
+    }
+    let best_plan = request("best_of_n_by_peak_force", 6, GroupKind::Subject).unwrap();
+    let (best_rows, best_chain) = aggregate(&set, &best, &best_plan).unwrap();
+    assert_eq!(
+        best_rows[0].n, 6,
+        "best of six contributes one and declares six"
+    );
+    assert!(best_chain
+        .iter()
+        .any(|entry| entry.parameter == "n" && entry.value == "6"));
+
+    let mean_plan = request("mean_of_best_three_of_at_least_five", 6, GroupKind::Subject).unwrap();
+    let (mean_rows, mean_chain) = aggregate(&set, &original, &mean_plan).unwrap();
+    assert_eq!(
+        mean_rows[0].n, 6,
+        "best three of six contributes three and declares six"
+    );
+    assert!(mean_chain
+        .iter()
+        .any(|entry| entry.parameter == "n" && entry.value == "6"));
     std::fs::remove_dir_all(&directory).ok();
 }
 

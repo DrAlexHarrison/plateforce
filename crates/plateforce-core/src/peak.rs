@@ -5,6 +5,7 @@
 //! weight, or smoothed. So the maximum itself is one function and the series it reads is
 //! the choice.
 
+use crate::refusal::{require_numeric_span, SamplesCarryNoNumber};
 use crate::smoothing::{moving_average_boxcar, SmoothingError};
 
 /// Why no peak could be taken.
@@ -13,6 +14,9 @@ pub enum PeakError {
     /// The span selected no samples, so there is nothing to be the largest.
     #[error("a peak was asked for over samples {start} to {end}, which selects no samples")]
     EmptySpan { start: usize, end: usize },
+    /// At least one sample in the span carries no number.
+    #[error("{0}")]
+    SamplesCarryNoNumber(#[from] SamplesCarryNoNumber),
     /// The averaging window does not fit the series it was asked to smooth.
     #[error("{0}")]
     Smoothing(#[from] SmoothingError),
@@ -22,15 +26,14 @@ pub enum PeakError {
 /// `Trial::integrate_newton_seconds` uses so a peak and an impulse read one window the
 /// same way.
 ///
-/// `fold` over `f64::max` rather than `max_by`, because `max_by` on a partial order needs
-/// a total one supplied and every way of supplying it decides what a NaN does. Here a NaN
-/// in the span propagates to the answer rather than being skipped, so a trace carrying one
-/// is visible instead of quietly producing a peak taken over the samples either side of it.
+/// The shared numeric-span rule runs before the reduction, so `f64::max` never gets to turn
+/// a sample carrying no number into a plausible maximum over the samples beside it.
 pub fn maximum_over(values: &[f64], start: usize, end: usize) -> Result<f64, PeakError> {
     let end = end.min(values.len());
     if start >= end {
         return Err(PeakError::EmptySpan { start, end });
     }
+    require_numeric_span(values, start, end)?;
     Ok(values[start..end]
         .iter()
         .copied()
@@ -47,6 +50,7 @@ pub fn index_of_maximum_over(values: &[f64], start: usize, end: usize) -> Result
     if start >= end {
         return Err(PeakError::EmptySpan { start, end });
     }
+    require_numeric_span(values, start, end)?;
     crate::statistics::index_of_maximum(&values[start..end])
         .map(|offset| start + offset)
         .ok_or(PeakError::EmptySpan { start, end })
@@ -72,6 +76,10 @@ pub fn maximum_of_moving_average_over(
         return maximum_over(values, start, end);
     }
     let averaged = moving_average_boxcar(values, window_samples)?;
+    // The smoother reads the whole recording, so that is its selected span even though the
+    // maximum beneath it is bounded more narrowly. The smoothing request is checked first,
+    // so a width that does not fit is still reported as the stated value that must change.
+    require_numeric_span(values, 0, values.len())?;
     maximum_over(&averaged, start, end)
 }
 
@@ -121,6 +129,40 @@ mod tests {
     fn a_span_running_past_the_recording_reads_what_is_there() {
         let values = [1.0, 4.0, 2.0];
         assert_eq!(maximum_over(&values, 0, 99).unwrap(), 4.0);
+    }
+
+    #[test]
+    fn a_peak_refuses_every_non_finite_sample_in_its_span() {
+        for (missing_at, missing_value) in [
+            (0usize, f64::NAN),
+            (1, f64::INFINITY),
+            (2, f64::NEG_INFINITY),
+        ] {
+            let mut values = [1000.0, 1200.0, 1100.0];
+            values[missing_at] = missing_value;
+            for error in [
+                maximum_over(&values, 0, values.len()).unwrap_err(),
+                index_of_maximum_over(&values, 0, values.len()).unwrap_err(),
+            ] {
+                let PeakError::SamplesCarryNoNumber(missing) = error else {
+                    panic!("the wrong peak refusal: {error:?}");
+                };
+                assert_eq!(missing.first_sample, missing_at);
+                assert_eq!((missing.count, missing.samples_read), (1, 3));
+            }
+        }
+
+        let outside = [f64::NAN, 1000.0, 1200.0, f64::INFINITY];
+        assert_eq!(maximum_over(&outside, 1, 3).unwrap(), 1200.0);
+        assert_eq!(index_of_maximum_over(&outside, 1, 3).unwrap(), 2);
+
+        let two_missing = [f64::NAN, 1200.0, f64::INFINITY];
+        let PeakError::SamplesCarryNoNumber(missing) =
+            maximum_over(&two_missing, 0, 3).unwrap_err()
+        else {
+            panic!("a non-finite span returned the wrong error");
+        };
+        assert_eq!((missing.count, missing.samples_read), (2, 3));
     }
 
     /// The gap between the two estimators is the whole reason the registry files them

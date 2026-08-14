@@ -143,15 +143,19 @@ of three are two requests of one rule, and the count travels with the value:
 ```
 plateforce batch trials/ --out-dir results \
   --trial-suffix .txt --column 0 --sample-rate-hz 1200 --sentinel none --preset sams \
-  --pattern 'AT{subject}_{trial}' --derive net_peak_force=force.peak.net \
-  --aggregate best_of_n_by_peak_force --aggregate-n 5
+  --pattern 'AT{subject}_{trial}' \
+  --derive analysis_window=window_end.takeoff.detected \
+  --derive net_peak_force=force.peak.net \
+  --aggregate best_of_n_by_peak_force --aggregate-n 5 \
+  --aggregate-quantity net_peak_force_newtons
 ```
 
 `best_of_n_by_peak_force` orders an athlete's trials on net peak force, so the run has to
-compute it, which is what `--derive net_peak_force=force.peak.net` asks for. A run that
-aggregates writes a ninth table into `results/` beside the eight above, `aggregates.csv`, one
-row per athlete per quantity, carrying the reduced value, its dispersion and the number of
-trials behind it.
+compute it. `force.peak.net` reads an analysis window, so the first `--derive` places that
+window and the second computes net peak force over it. `--aggregate-quantity` says which
+computed column to reduce. A run that aggregates writes a ninth table into `results/` beside
+the eight above, `aggregates.csv`, one row per athlete per quantity, carrying the reduced
+value, its dispersion and the requested trial count.
 
 ## If you would rather click
 

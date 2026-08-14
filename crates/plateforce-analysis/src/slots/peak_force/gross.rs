@@ -38,8 +38,6 @@ fn compute(
         );
     };
 
-    // The maximum declines on one thing only, a span selecting no samples, and both of that
-    // span's ends are the numbers a caller moves to fix it.
     match plateforce_core::peak::maximum_over(context.trial.force(), start, end) {
         Ok(peak) => DerivedOutcome {
             values: vec![(super::KEY, Some(peak))],
@@ -47,11 +45,17 @@ fn compute(
             bound,
             refusal: None,
         },
-        Err(_) => DerivedOutcome::declined(
+        Err(plateforce_core::peak::PeakError::SamplesCarryNoNumber(missing)) => {
+            DerivedOutcome::declined(bound, RuleRefusal::Refused(Box::new(missing.refusal(ID))))
+        }
+        Err(plateforce_core::peak::PeakError::EmptySpan { .. }) => DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
                 ID, start, end,
             ))),
         ),
+        Err(plateforce_core::peak::PeakError::Smoothing(_)) => {
+            unreachable!("a raw maximum does not smooth")
+        }
     }
 }

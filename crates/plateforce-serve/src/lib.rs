@@ -37,6 +37,7 @@ OPTIONS:
 
 struct Options {
     port: u16,
+    port_was_stated: bool,
     open_a_browser: bool,
 }
 
@@ -74,7 +75,7 @@ pub fn run(arguments: &[&str]) -> ExitCode {
         // the machine rather than invariants this software broke. On a shared laboratory
         // computer they are the likeliest way this command ends, and both are one flag from
         // working, so neither sends the operator to a maintainer.
-        Err(error) => return declined_the_port(options.port, &error),
+        Err(error) => return declined_the_port(options.port, options.port_was_stated, &error),
     };
     let address = match listener.local_addr() {
         Ok(address) => address,
@@ -145,6 +146,7 @@ fn parse_options(arguments: &[&str]) -> Result<Options, String> {
         // Port 0 asks the operating system for a free one, which is then printed. A fixed
         // default would collide with whatever else on the machine had claimed it.
         port: port.unwrap_or(0),
+        port_was_stated: port.is_some(),
         open_a_browser,
     })
 }
@@ -154,7 +156,7 @@ fn parse_options(arguments: &[&str]) -> Result<Options, String> {
 /// The next act is named because there is one: every case here is answered by `--port` or by
 /// leaving it out, and a status of its own lets a workflow retry a busy port without retrying
 /// a forbidden one.
-fn declined_the_port(port: u16, error: &std::io::Error) -> ExitCode {
+fn declined_the_port(port: u16, port_was_stated: bool, error: &std::io::Error) -> ExitCode {
     match error.kind() {
         std::io::ErrorKind::AddrInUse => {
             eprintln!("plateforce serve: port {port} is already in use.");
@@ -164,11 +166,9 @@ fn declined_the_port(port: u16, error: &std::io::Error) -> ExitCode {
             ExitCode::from(A_PORT_ANOTHER_PROGRAM_HOLDS)
         }
         std::io::ErrorKind::PermissionDenied => {
-            eprintln!("plateforce serve: port {port} is not one this process may open.");
-            eprintln!(
-                "Ports below 1024 are the operating system's. Choose one above it with --port, \
-                 or leave it out and take whichever port is free."
-            );
+            let (reason, next) = permission_denied_message(port, port_was_stated);
+            eprintln!("{reason}");
+            eprintln!("{next}");
             ExitCode::from(A_PORT_THIS_PROCESS_MAY_NOT_HAVE)
         }
         _ => {
@@ -176,6 +176,22 @@ fn declined_the_port(port: u16, error: &std::io::Error) -> ExitCode {
             ExitCode::from(AN_INVARIANT_THIS_SOFTWARE_BREAKS)
         }
     }
+}
+
+fn permission_denied_message(port: u16, port_was_stated: bool) -> (String, String) {
+    if port_was_stated {
+        return (
+            format!("plateforce serve: this account is not permitted to open port {port}."),
+            "Choose another port from 1024 to 65535 with --port, or leave --port out to let the operating system choose."
+                .to_string(),
+        );
+    }
+    (
+        "plateforce serve: this account was not permitted to open an automatically selected port."
+            .to_string(),
+        "Run plateforce serve --port 8000. If that port is unavailable, replace 8000 with another number from 1024 to 65535."
+            .to_string(),
+    )
 }
 
 /// Opt-in, because opening a browser is the kind of thing a tool does on somebody's behalf
@@ -208,6 +224,8 @@ mod tests {
     #[test]
     fn no_options_asks_the_operating_system_for_a_port_and_opens_nothing() {
         assert_eq!(options(&[]), Ok((0, false)));
+        assert!(!parse_options(&[]).unwrap().port_was_stated);
+        assert!(parse_options(&["--port", "8000"]).unwrap().port_was_stated);
     }
 
     #[test]
@@ -263,5 +281,21 @@ mod tests {
                 "{elsewhere} is not this command's to offer"
             );
         }
+    }
+
+    #[test]
+    fn a_denied_automatic_port_names_a_choice_the_reader_has_not_already_made() {
+        let automatic = permission_denied_message(0, false);
+        let automatic = format!("{}\n{}", automatic.0, automatic.1);
+        println!("{automatic}");
+        assert!(automatic.contains("automatically selected port"));
+        assert!(automatic.contains("plateforce serve --port 8000"));
+        for misleading in ["port 0", "below 1024", "leave it out"] {
+            assert!(!automatic.contains(misleading), "{automatic}");
+        }
+
+        let explicit = permission_denied_message(80, true);
+        assert!(explicit.0.contains("port 80"));
+        assert_ne!(automatic, format!("{}\n{}", explicit.0, explicit.1));
     }
 }

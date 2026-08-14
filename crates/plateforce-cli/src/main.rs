@@ -175,6 +175,10 @@ pub fn command_tree() -> clap::Command {
 }
 
 fn main() -> ExitCode {
+    if asked_for_serve_help() {
+        return plateforce_serve::run(&["--help"]);
+    }
+
     let invocation = match Invocation::try_parse() {
         Ok(invocation) => invocation,
         Err(error) => return report_parse_failure(error),
@@ -278,6 +282,16 @@ fn main() -> ExitCode {
         invocation.out.as_deref(),
         invocation.color,
         invocation.format,
+    )
+}
+
+/// The server owns its flags and therefore owns the page that names them. Clap answers its
+/// generated `help serve` page before the parsed command reaches that server.
+fn asked_for_serve_help() -> bool {
+    let mut arguments = std::env::args_os().skip(1);
+    matches!(
+        (arguments.next(), arguments.next(), arguments.next()),
+        (Some(command), Some(topic), None) if command == "help" && topic == "serve"
     )
 }
 

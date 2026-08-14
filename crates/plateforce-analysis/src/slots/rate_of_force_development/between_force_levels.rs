@@ -97,19 +97,39 @@ fn compute(
 
     let force = context.trial.force();
     let last = end.saturating_sub(1);
-    let lower_crossing =
-        plateforce_core::rate::first_crossing_at_or_above(force, lower_newtons, start, last);
+    let lower_crossing = match plateforce_core::rate::first_crossing_at_or_above(
+        force,
+        lower_newtons,
+        start,
+        last,
+    ) {
+        Ok(crossing) => crossing,
+        Err(missing) => {
+            return DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(missing.refusal(ID))),
+            )
+        }
+    };
     // The upper level is searched forward from where the lower was reached, so the interval
     // is the one the rule names rather than the gap between two independent first crossings.
-    let crossings = lower_crossing.and_then(|lower_crossing| {
-        plateforce_core::rate::first_crossing_at_or_above(
+    let crossings = match lower_crossing {
+        Some(lower_crossing) => match plateforce_core::rate::first_crossing_at_or_above(
             force,
             upper_newtons,
             lower_crossing.sample_index,
             last,
-        )
-        .map(|upper_crossing| (lower_crossing, upper_crossing))
-    });
+        ) {
+            Ok(upper_crossing) => upper_crossing.map(|upper| (lower_crossing, upper)),
+            Err(missing) => {
+                return DerivedOutcome::declined(
+                    bound,
+                    RuleRefusal::Refused(Box::new(missing.refusal(ID))),
+                )
+            }
+        },
+        None => None,
+    };
 
     let Some((lower_crossing, upper_crossing)) = crossings else {
         // Which of the two levels the trace never reached is the fact a reader acts on, so

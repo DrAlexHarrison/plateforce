@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use plateforce_core::read::read_delimited_column;
+use plateforce_core::read::{read_delimited_column, FieldSeparator};
 use plateforce_core::signal::{
     partition_sentinels, reported_samples, trial_from_column, Sentinel as CoreSentinel,
 };
@@ -550,7 +550,7 @@ pub fn read_force_file(
     acquisition: Option<Acquisition>,
     plate: Option<crate::plate::Plate>,
 ) -> PyResult<Trial> {
-    let separator = one_character(python, delimiter)?;
+    let separator = field_separator(python, "read_force_file", delimiter)?;
     let text = std::fs::read_to_string(&path).map_err(|error| {
         raise_refusal(
             python,
@@ -569,7 +569,7 @@ pub fn read_force_file(
         sentinel,
         Some(ReadReport {
             source: path.display().to_string(),
-            delimiter: separator.to_string(),
+            delimiter: separator.label(),
             force_column: column.column_index,
             rows_read: column.rows_read,
             columns_per_row: column.columns_per_row,
@@ -578,19 +578,29 @@ pub fn read_force_file(
     )
 }
 
-/// A column separator is one character, and a string of several is refused rather than
-/// silently read as its first, which would split on a character the caller did not name.
-fn one_character(python: Python<'_>, delimiter: &str) -> PyResult<char> {
+/// A separator is one character or the core reader's whitespace mode. A string of several
+/// characters is refused rather than silently read as one of them.
+pub(crate) fn field_separator(
+    python: Python<'_>,
+    operation: &str,
+    delimiter: &str,
+) -> PyResult<FieldSeparator> {
+    if delimiter == "whitespace" {
+        return Ok(FieldSeparator::Whitespace);
+    }
     let mut characters = delimiter.chars();
     match (characters.next(), characters.next()) {
-        (Some(single), None) => Ok(single),
+        (Some(single), None) => Ok(single.into()),
         _ => Err(raise_refusal(
             python,
             &Refusal::name_not_accepted(
-                "read_force_file",
+                operation,
                 "delimiter",
                 delimiter,
-                vec!["one character".to_string()],
+                vec![
+                    "one character".to_string(),
+                    "the word whitespace".to_string(),
+                ],
             ),
         )),
     }

@@ -54,22 +54,39 @@ fn compute(
     };
 
     let force = context.trial.force();
-    let Ok(peak_newtons) = plateforce_core::peak::maximum_over(force, start, end) else {
-        return DerivedOutcome::declined(
-            bound,
-            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
-                ID, start, end,
-            ))),
-        );
+    let peak_newtons = match plateforce_core::peak::maximum_over(force, start, end) {
+        Ok(peak) => peak,
+        Err(plateforce_core::peak::PeakError::SamplesCarryNoNumber(missing)) => {
+            return DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(missing.refusal(ID))),
+            )
+        }
+        Err(_) => {
+            return DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
+                    ID, start, end,
+                ))),
+            )
+        }
     };
 
     let level_newtons = peak_newtons * fraction_percent / 100.0;
-    let crossing = plateforce_core::rate::first_crossing_at_or_above(
+    let crossing = match plateforce_core::rate::first_crossing_at_or_above(
         force,
         level_newtons,
         start,
         end.saturating_sub(1),
-    );
+    ) {
+        Ok(crossing) => crossing,
+        Err(missing) => {
+            return DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(missing.refusal(ID))),
+            )
+        }
+    };
     // A fraction above 100 asks for a force above the peak the window holds, which is the
     // stated number rather than the recording.
     let Some(crossing) = crossing else {
