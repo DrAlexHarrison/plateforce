@@ -58,10 +58,18 @@ fi
 
 source_kind=worktree
 revision=
-if [ "${PLATEFORCE_SYNC_FROM:-commit}" = "commit" ] && \
-   git -C "$repository" rev-parse --verify HEAD >/dev/null 2>&1; then
-    source_kind=commit
+if git -C "$repository" rev-parse --verify HEAD >/dev/null 2>&1; then
     revision=$(git -C "$repository" rev-parse --short HEAD)
+    if [ "${PLATEFORCE_SYNC_FROM:-commit}" = "commit" ]; then
+        source_kind=commit
+    else
+        # A copy taken from the working tree is the commit it stands on plus whatever is
+        # uncommitted, and naming only the second discards the first. A snapshot that says
+        # which commit it is nearly can be resolved back to an engine; one that says only
+        # "worktree" cannot, which on the surface heading for CRAN would be this product's
+        # own principle failing inside its own provenance record.
+        revision="$revision+worktree"
+    fi
 fi
 
 rm -rf "$registry"
