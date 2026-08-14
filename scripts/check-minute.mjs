@@ -1235,6 +1235,33 @@ check('the missing-value question names the zeros in the column the reader chose
   agreement.sentinelHint ?? 'the question said nothing about the reader’s own column');
 
 /*
+ * A rate the reader answered for an earlier trial, on the screen for a later one.
+ *
+ * Read here rather than after the reload below, because this is the only state in the run
+ * where an earlier trial has been analysed and a later one is on screen. The sentence names
+ * the trial the number came from, which is the whole of what makes it the reader's own answer
+ * rather than a plausible number this software chose: a rate carried silently is the defect
+ * this field exists against, and one carrying the name of a recording is a claim the reader
+ * can check against their own session.
+ */
+const carriedRate = await evaluate(`(() => ({
+  hint: document.getElementById('sample-rate-hint').textContent,
+  rate: document.getElementById('sample-rate').value,
+  lead: document.getElementById('columns-lead').textContent,
+}))()`);
+const carriedFrom = /^Carried from (.+)\. Change it if this trial was recorded differently\.$/
+  .exec(carriedRate.hint);
+check('a rate carried onto the next trial names the trial it was answered for',
+  Boolean(carriedFrom)
+    && carriedFrom[1] === 'long-trial.txt'
+    // The file on screen is not the one named, so the sentence is telling the reader something
+    // they could not otherwise know rather than restating the heading above it.
+    && carriedRate.lead.startsWith('recovered.txt')
+    && carriedRate.rate !== '',
+  `"${carriedRate.hint}" over ${carriedRate.lead.split(':')[0]}, box reads ` +
+    `"${carriedRate.rate}"`);
+
+/*
  * What the rate field says when the rate could not be read, over all three files it is said of.
  *
  * Two sentences, and the third file is the one that tells them apart. A file whose columns
@@ -1245,7 +1272,13 @@ check('the missing-value question names the zeros in the column the reader chose
  * evenly spaced, so a surface reading the wrong field tells that reader their steps are uneven
  * while the record beside it says the opposite. Without that third file this check passes on
  * either field and proves nothing about which one the page reads.
+ *
+ * From a fresh page, because a reader who has already answered for one trial meets the
+ * sentence checked directly above instead, and a probe run after them is asking what the page
+ * says about an earlier answer rather than what it says about these files.
  */
+await send('Page.reload', { ignoreCache: true });
+await settle("!document.getElementById('stage-empty').hidden", 'the drop zone on a fresh page');
 const noRate = await evaluate(`(async () => {
   const said = {};
   const rows = Array.from({ length: 3000 }, (_, index) => (index < 1500 ? 600 : 200));
