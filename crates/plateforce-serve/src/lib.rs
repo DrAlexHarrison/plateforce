@@ -63,10 +63,16 @@ pub fn run(arguments: &[&str]) -> ExitCode {
 
     // A page whose module is absent loads to a blank window and a console line nobody is
     // watching.
+    //
+    // How this program was built is a fact about the build, in the same class as the two port
+    // refusals below and not in the class this software reserves for breaking its own
+    // invariant. The message names the command that produces the bundle, which is a remedy the
+    // reader can carry out, and an operator who reads 70 is being sent to a maintainer for
+    // something one build step fixes.
     if !carries_the_browser_bundle() {
         eprintln!("plateforce: this program carries no browser interface to serve");
         eprintln!("run scripts/build-web.sh release, then build plateforce again");
-        return ExitCode::from(AN_INVARIANT_THIS_SOFTWARE_BREAKS);
+        return ExitCode::from(A_REQUEST_THAT_CANNOT_BE_HONOURED);
     }
 
     let listener = match listen(options.port) {
