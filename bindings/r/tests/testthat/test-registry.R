@@ -64,12 +64,23 @@ test_that("the census R reports is the census the command line counts", {
     env = c(paste0("CARGO_TARGET_DIR=", target), "CARGO_NET_OFFLINE=true"),
     stdout = TRUE, stderr = FALSE
   ))
+  # A census that did not arrive and a census that disagrees are different findings, and
+  # only the second is about this software. The build reaches no network here, so a machine
+  # whose workspace is not vendored cannot answer, and saying a count is missing would name
+  # this package for a fact about the machine.
+  asked <- is.null(attr(printed, "status")) || identical(attr(printed, "status"), 0L)
+  skip_if_not(asked && length(printed) > 0,
+              "the command line could not be built offline on this machine")
+
   expect_true(any(startsWith(trimws(printed), "constructs")),
               info = paste(printed, collapse = " | "))
 
   number <- function(label) {
     line <- printed[startsWith(trimws(printed), label)]
-    skip_if(length(line) == 0, paste(label, "is not in the census"))
+    # Not a skip. The command line answered, so a population it did not name is a
+    # disagreement between two surfaces rather than a question nobody could ask.
+    expect_true(length(line) > 0, info = paste(label, "is absent from:",
+                                               paste(printed, collapse = " | ")))
     # The derived rows read "N of M". The count is the first number and M is the
     # denominator it was taken over, so taking the last number would report the wrong one.
     as.integer(regmatches(line[1], gregexpr("[0-9]+", line[1]))[[1]][1])

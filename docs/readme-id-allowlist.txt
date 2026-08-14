@@ -43,3 +43,15 @@ weighing.duration
 # that no published id carries one of those endings.
 dralexharrison.github.io
 github.com
+
+# Attribute chains from the Python worked examples added when the surface reached parity:
+# a partial result carrying what the engine computed alongside its refusals, the module and
+# its call, a row's own column, and the conversions a reader asks a result for.
+partial.onset_time_seconds
+partial.refusals
+partial.system_weight_newtons.value
+pf.batch
+row.method_id
+run.run.run_fingerprint
+run.to_arrow
+run.to_pandas
