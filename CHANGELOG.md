@@ -2,7 +2,7 @@
 
 What changed for somebody using plateforce, one section per release.
 
-## 0.1.0, 2026-08-13
+## 0.1.0, 2026-08-14
 
 First release.
 

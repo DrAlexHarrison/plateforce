@@ -212,6 +212,17 @@ jobs:
       # scripts/break-parity-population.sh is deliberately not here. It rebuilds two surfaces
       # three times and takes about twenty minutes, so it is a thing a person runs against a
       # branch rather than a step on every push. Recorded so its absence reads as a decision.
+      # A guide is a surface, and it was the one surface here nothing asked. Every command the
+      # quick starts print is run against a real trial and has to reach the exit code the guide
+      # states beneath it, and every file name any of them sends a reader to download is checked
+      # against the list scripts/verify-release-artefacts.sh counts a release by. A guide is
+      # what a reader has instead of the author, so a command that has stopped working there
+      # costs more than the same command failing anywhere else.
+      #
+      # It asks `plateforce serve` to start and then stops it, which is where its two minutes go.
+      - name: Every command the guides print still runs, and every file they name is published
+        run: python3 docs/quickstart/check-guide-commands.py
+
       - name: The parity gate's own refusals fire, one cause at a time
         run: python3 scripts/prove-parity-coverage-refuses.py
 

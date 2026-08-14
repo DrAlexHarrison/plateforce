@@ -11,8 +11,6 @@ WORKED_TRIAL = "subject01_trial1.force.txt"
 
 from pathlib import Path
 
-from PIL import Image
-
 IMAGES = Path(__file__).resolve().parent / "img"
 COLUMN_MILLIMETRES = 165.0
 TALLEST_MILLIMETRES = 88.0
@@ -25,7 +23,14 @@ def figure(name, caption):
     half its pixel width. Printing a narrow rail at full column width magnifies it past what
     it was drawn for and makes it the loudest thing on the page, and a tall one pushes past
     the bottom of the page and leaves most of the previous one empty.
+
+    Imported here rather than beside the other imports, so that reading the prose out of this
+    module costs nothing but this module: the command checker imports it to hold the guides to
+    the program, and asking it for an image library to do that would put the gate behind an
+    install on every machine that runs it.
     """
+    from PIL import Image
+
     pixels = Image.open(IMAGES / f"{name}.png").size
     millimetres = [side / 2 * 25.4 / 96 for side in pixels]
     width = min(millimetres[0], COLUMN_MILLIMETRES)
@@ -204,6 +209,12 @@ so a stray file in the folder cannot join your results without saying so.</p>
             + """
 <p>A trial that cannot be analysed is listed by name, with the rule and the value that
 declined it. Nothing is dropped quietly.</p>
+
+<p>A trial can be analysed and still have a quantity its rule would not give a number for,
+and the <code>refusal_code</code> column is where that is said. In the trials above, five
+recordings stop while the athlete is still in the air, so the landing never arrives and the
+two quantities measured from it are left empty on those rows with the reason beside them. The
+count at the top is of trials, and none of these was declined.</p>
 """,
         )
     )
@@ -475,10 +486,11 @@ def methods_section():
 <h2>What to write in your methods section</h2>
 
 <p><strong>Analysis record</strong>, at the bottom of the screen, identifies the software and
-the rule set your numbers came from: the version of plateforce, the revision of the method
-registry, a digest that identifies that registry exactly, the plate settings this analysis
-was given, and the gravity it was bound to. The rules you chose and the values they used sit
-under each number, and travel in the downloaded archive.</p>
+the rule set your numbers came from: the version of plateforce, the sample rate the analysis
+ran at and where that number came from, the revision of the method registry, a digest that
+identifies that registry exactly, the plate settings this analysis was given, and the gravity
+it was bound to. The rules you chose and the values they used sit under each number, and
+travel in the downloaded archive.</p>
 """
         + figure("record", "The record travels with the result.")
         + """
@@ -496,9 +508,9 @@ clipboard, so you can paste it into a document and read the rule names off it ra
 copying them by hand. Every value each rule used comes with it, marked cited, measured or
 assumed.</p>
 
-<p>The sample rate, the force column and the missing-value convention are facts about your
-file that you told plateforce, so a reader needs them from you. A rate belongs in the same
-sentence as the rules.</p>
+<p>The rate is in the record, with a note of whether you typed it or plateforce read it from
+a time column. The force column you chose and the missing-value convention you declared are
+yours to state, and they belong in the same sentence as the rules.</p>
 """
     )
 

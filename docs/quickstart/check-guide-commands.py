@@ -14,6 +14,7 @@ none.
     python3 docs/quickstart/check-guide-commands.py
 """
 
+import json
 import re
 import shlex
 import shutil
@@ -35,23 +36,45 @@ FIXTURES = ROOT / "crates/plateforce-conformance/fixtures"
 # makes the count a denominator rather than a sample.
 FLOOR = 9
 
-# The names the release workflows publish. A guide that tells a reader to fetch a file under
-# any other name sends them to a 404.
-RELEASE_ASSETS = {
-    "plateforce-universal-macos",
-    "plateforce-x86_64-windows.exe",
-    "plateforce-x86_64-linux-static",
-    "plateforce-aarch64-linux-static",
-}
-
 # The install commands the guides name. A line reaching for anything else is a line nobody
 # decided to publish, so it stops the run.
 INSTALL_COMMANDS = {"curl", "chmod", "xattr", "mkdir", "mv", "echo", "export"}
 
+# Both separators, because the desktop bundles are named with underscores and the command line
+# programs with hyphens, and a pattern carrying one of them reads the other guide's file names
+# as prose.
+ASSET = re.compile(r"plateforce[-_][\w.-]*(?<!\.)\b")
 PROGRAM = re.compile(r"^(plateforce|\./plateforce-[\w.-]+|\.\\plateforce-[\w.-]+\.exe)$")
 PLACEHOLDER = re.compile(r"<[A-Za-z][\w-]*>")
 BLOCK = re.compile(r"```(\w*)\n(.*?)```(.*?)(?=```|\Z)", re.S)
 STATED_EXIT = re.compile(r"\bexits (\d+)\b")
+DECLARED = re.compile(r"local declared=\(\n(.*?)\n\s*\)", re.S)
+
+
+def version_of(binary):
+    """The version this build carries, read from it the way the guides read theirs."""
+    return json.loads(
+        subprocess.run(
+            [str(binary), "version", "--format", "json"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    )["ok"]["plateforce_version"]
+
+
+def release_assets(version):
+    """The names a release publishes, read from the script that counts them.
+
+    Restating them here would make this gate agree with itself while a reader followed a guide
+    to a file the release does not carry. The nine names are one list, in
+    `scripts/verify-release-artefacts.sh`, and this reads that list.
+    """
+    declared = DECLARED.search((ROOT / "scripts/verify-release-artefacts.sh").read_text())
+    if not declared:
+        return set()
+    return {
+        name.replace("${version}", version)
+        for name in re.findall(r'"([^"]+)"', declared.group(1))
+    }
 
 
 def guide_source():
@@ -91,7 +114,22 @@ def classify(line):
 
 def named_assets(text):
     """Every release asset name the text reaches for."""
-    return set(re.findall(r"plateforce-[\w.-]*(?<!\.)\b", text)) - {"plateforce-"}
+    return set(ASSET.findall(text)) - {"plateforce-", "plateforce_"}
+
+
+def desktop_download_sections(version):
+    """The three sections that tell a reader which installer to download, as rendered.
+
+    The fenced blocks below are the terminal guides, and the file name a desktop reader is sent
+    for appears in none of them: it is prose in `content.install`, and until this read it, the
+    only thing standing between a renamed bundle and a 404 was somebody remembering.
+    """
+    return {
+        platform: content.install(platform).format(
+            version=version, releases=content.RELEASES
+        )
+        for platform in ("macos", "windows", "linux")
+    }
 
 
 def scratch_folder(into):
@@ -115,7 +153,7 @@ def substitute(argument, scratch, run_index):
     return argument
 
 
-def read_the_guides():
+def read_the_guides(published):
     """The lines to run, and every complaint about the blocks they came from."""
     to_run, complaints = [], []
     longest_physical = 0
@@ -125,7 +163,7 @@ def read_the_guides():
         if language != "text":
             for placeholder in PLACEHOLDER.findall(text):
                 complaints.append(f"{placeholder} is a placeholder a reader cannot paste")
-            for asset in named_assets(text) - RELEASE_ASSETS:
+            for asset in named_assets(text) - published:
                 complaints.append(f"{asset} is not a name the release publishes")
         if language == "text":
             continue
@@ -191,8 +229,33 @@ def main():
         print(f"no built program at {binary}", file=sys.stderr)
         return 1
 
-    to_run, complaints, longest_physical = read_the_guides()
+    version = version_of(binary)
+    published = release_assets(version)
+    # A set read out of a script that stopped declaring one would make every name below
+    # unpublishable, and a set read out of a script that stopped declaring the version would
+    # make every name below publishable. Neither reads as a broken reader, so both are stated.
+    if len(published) < 9 or not any(version in name for name in published):
+        print(
+            f"{len(published)} release assets read from scripts/verify-release-artefacts.sh, "
+            f"{len([name for name in published if version in name])} of them naming {version}, "
+            "so the names below were compared against a list that is not the release's",
+            file=sys.stderr,
+        )
+        return 1
+
+    to_run, complaints, longest_physical = read_the_guides(published)
     complaints += shell_blocks_parse()
+
+    # The file a desktop reader is sent to download, which appears in no fenced block.
+    downloads = 0
+    for platform, section in desktop_download_sections(version).items():
+        named = named_assets(section)
+        downloads += len(named)
+        for asset in named - published:
+            complaints.append(f"the {platform} guide sends a reader for {asset}, which the "
+                              "release does not publish")
+        if not named:
+            complaints.append(f"the {platform} guide names no file to download")
 
     lines = [line for line, _ in to_run]
     if len(lines) < FLOOR:
@@ -231,6 +294,10 @@ def main():
     print(
         f"{len(to_run)} of this program's command lines extracted from the guides, "
         f"{produced} of {len(to_run)} reached the exit code stated for them, {broken} did not"
+    )
+    print(
+        f"{downloads} file names across the three desktop guides, and every name any guide "
+        f"prints is one of the {len(published)} the release publishes"
     )
     return 1 if broken else 0
 
