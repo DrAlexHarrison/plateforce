@@ -198,12 +198,14 @@ jobs:
       - name: It carries the browser build
         run: bash scripts/verify-release-artefacts.sh --cli-payload-only dist/plateforce-universal-macos
 
-      # Signed, not notarised, and the difference decides what a reader has to do. Gatekeeper
-      # reads the quarantine attribute, which the downloading application sets: a browser sets
-      # it and curl does not. So a signed and un-notarised binary fetched with curl runs with
-      # no prompt, and the same file downloaded in a browser is refused until the reader clears
-      # the attribute. Notarisation applies to an archive or a bundle rather than to a loose
-      # executable, so it is a separate submission from the one the dmg makes above.
+      # Signed here and notarised below, in two steps, because notarisation applies to an
+      # archive rather than to a loose executable and so is a separate submission from the one
+      # the disk image makes. What rides on it: Gatekeeper consults a signature when the file
+      # carries a quarantine attribute, which the downloading application sets, and a browser,
+      # AirDrop and a mail attachment all set it while curl does not. So this file is the one a
+      # reader is most likely to receive by hand, and an un-notarised one would be refused with
+      # nothing they could act on.
+      #
       # The bundler imports the certificate into a keychain of its own and takes it away again,
       # so by here the identity that signed the application is gone and codesign reports it as
       # absent from the keychain rather than as a signing failure. This step keeps its own.
@@ -242,24 +244,35 @@ jobs:
         run: |
           image="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg \
             -name '*.dmg' | head -1)"
-          attempt=1
-          until xcrun notarytool submit "$image" \
-                  --key "$APPLE_API_KEY_PATH" \
-                  --key-id "$APPLE_API_KEY" \
-                  --issuer "$APPLE_API_ISSUER" \
-                  --wait --timeout 30m 2>&1 | tee submission.log; do
-            if [ "$attempt" -ge "$NOTARISATION_ATTEMPTS" ]; then
-              echo "notarisation did not complete in $attempt attempts" >&2
-              grep -oE 'id: [0-9a-f-]+' submission.log | head -1 >&2 || true
-              echo "the signed artefact is uploaded below and can be notarised and stapled" >&2
-              echo "by hand against this same binary rather than a rebuilt one" >&2
-              exit 1
-            fi
-            echo "notarisation attempt $attempt did not complete, waiting"
-            sleep $((attempt * 60))
-            attempt=$((attempt + 1))
-          done
+          bash scripts/notarise.sh "$image" "$NOTARISATION_ATTEMPTS"
+          # An image can hold the ticket, so it gets one and answers Gatekeeper offline.
           xcrun stapler staple "$image"
+
+      # The same submission for the command line program, which reaches a reader as a loose
+      # file. It is zipped only because the notary service takes an archive; the ticket it
+      # issues is against the binary's own signature, so the archive is thrown away here and
+      # the file a reader downloads is the notarised one.
+      #
+      # Not stapled, because nothing can staple it: `stapler` attaches a ticket to UDIF disk
+      # images, code-signed bundles and flat installer packages, and a bare Mach-O file is
+      # none of those. Its ticket stays where the notary service published it, and Gatekeeper
+      # fetches it on first launch. That is the one difference from the image above: this file
+      # needs the network the first time it runs on a machine, and the image does not.
+      - name: Notarise the command line program
+        if: steps.signing.outputs.able == 'yes'
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/apple-api-key.p8
+        run: |
+          archive="$RUNNER_TEMP/plateforce-universal-macos.zip"
+          ditto -c -k dist/plateforce-universal-macos "$archive"
+          bash scripts/notarise.sh "$archive" "$NOTARISATION_ATTEMPTS"
+          rm -f "$archive"
+
+      - name: Ask Gatekeeper about the command line program
+        if: steps.signing.outputs.able == 'yes'
+        run: bash scripts/verify-macos-artefact.sh dist/plateforce-universal-macos --executable
 
       - name: Ask the three questions Gatekeeper asks
         if: steps.signing.outputs.able == 'yes'
