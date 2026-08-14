@@ -498,10 +498,15 @@ pub fn compare(set: &TrialSet, request: &BatchCompareRequest) -> BatchCompareRes
                 trial
             }
             Err(error) => {
+                // The same mapping the analysis run uses, rather than one code for every way a
+                // file can fail to be read. A reader whose file is absent was being told their
+                // column was.
                 refusals.push(RefusalRow {
                     trial_id: trial_id.clone(),
                     ordinal: 0,
-                    code: "column_not_found".to_string(),
+                    code: plateforce_core::refusal::RefusalCode::from(&error)
+                        .wire_name()
+                        .to_string(),
                     method_id: String::new(),
                     slot: request.axis.slot.clone(),
                     parameter: String::new(),

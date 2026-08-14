@@ -167,7 +167,10 @@ impl Coverage {
             self.refused,
             self.trial_count,
             self.excluded,
-            self.trial_count,
+            // Gates run on a trial that computed, so the trials that could have been excluded
+            // are the ones that got that far. Counting against every trial reports a share of a
+            // population the gate never saw.
+            self.computed,
         )
     }
 }
