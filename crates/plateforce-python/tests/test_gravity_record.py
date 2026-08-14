@@ -1,9 +1,8 @@
 """The gravity beside a number is the one that produced it.
 
-This surface hand-listed four numbers and attached the request's gravity to each. One of the
-four was the flight-time height, whose rule takes the 9.81 its own registry entry declares
-whenever nobody has stated a gravity, so the record named a value that had not produced the
-number. Modified reactive strength moves with gravity and was not on the list at all.
+This surface hand-listed four numbers and attached the request's gravity to each, which named
+a value that had not produced the number wherever a rule ran at one of its own. Modified
+reactive strength moves with gravity and was not on the list at all.
 
 Every set here is computed by moving the gravity and reading which numbers followed, and the
 keys come from the analysis rather than from a list written here. Four attribute names written
@@ -99,22 +98,35 @@ def test_a_number_a_gravity_never_reached_does_not_claim_one(
         ), f"{name} is the same at {STANDARD} and {PUBLISHED} and names a gravity anyway"
 
 
-def test_the_rule_that_publishes_its_own_gravity_reports_the_one_it_ran_at(
+def test_the_flight_time_height_reports_the_gravity_it_ran_at(
     landing_trial, bound_methods
 ):
-    """The defect this file was written for. Nobody states a gravity, the request carries
-    9.80665, and `jumpheight.takeoff.flight_time` runs at the 9.81 its entry declares. The
-    record used to read 9.80665 beside a height 9.80665 does not produce, and the check is the
-    closed form rather than a second value read from the same place."""
-    jump = analysed(landing_trial, bound_methods)
-    height = jump.jump_height_flight_time_meters
-    assert height is not None, "the trace lands, so the flight-time height has to exist"
+    """The defect this file was written for. `jumpheight.takeoff.flight_time` declares gravity
+    required and answers it with no default, so the height runs at the gravity the analysis is
+    bound to and the record has to name that one and not another.
 
-    recorded = gravity_recorded_for(height)
-    flight = jump.flight_time_seconds.value
-    assert recorded == pytest.approx(PUBLISHED)
-    assert height.value == pytest.approx(recorded * flight * flight / 8.0)
-    assert height.value != pytest.approx(STANDARD * flight * flight / 8.0)
+    The check is the closed form rather than a second value read from the same place, so a
+    record quoting a gravity the height was not computed at cannot agree with the number beside
+    it. Run at both constants, because one alone holds on a build where this height reads no
+    gravity at all: the two heights are required to differ, which is the same claim as the
+    record's, made on the number instead of on the record."""
+    heights = {}
+    for requested in (STANDARD, PUBLISHED):
+        jump = analysed(landing_trial, bound_methods, requested)
+        height = jump.jump_height_flight_time_meters
+        assert height is not None, "the trace lands, so the flight-time height has to exist"
+
+        recorded = gravity_recorded_for(height)
+        flight = jump.flight_time_seconds.value
+        assert recorded == pytest.approx(
+            requested
+        ), f"the height ran at {requested} and its record names {recorded}"
+        assert height.value == pytest.approx(recorded * flight * flight / 8.0)
+        heights[requested] = height.value
+
+    assert heights[STANDARD] != heights[PUBLISHED], (
+        "the height is the same at both constants, so nothing above is about gravity"
+    )
 
 
 def test_a_gravity_nobody_was_asked_about_is_listed_among_the_values_nobody_chose(

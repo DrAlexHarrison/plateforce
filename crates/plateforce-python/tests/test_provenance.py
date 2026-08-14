@@ -5,12 +5,17 @@ that fail if it ever becomes a bare float.
 """
 
 import json
+import re
 
 import pytest
 
 import plateforce as pf
 
 from conftest import DECLARED_REVISION, SAMPLE_RATE_HZ
+
+# Where the engine puts the figure. An account opens with the value and its unit, so whether
+# one claims a measurement is readable on the first line and nowhere else.
+OPENS_WITH_A_FIGURE = re.compile(r"^\s*-?\d")
 
 
 @pytest.fixture
@@ -390,14 +395,21 @@ def test_a_number_and_its_account_report_one_value(trial, bound_methods):
     assert compared >= 8, f"only {compared} of {len(GETTER_QUANTITIES)} getters were compared"
 
 
-def test_a_quantity_with_no_value_gives_no_account_rather_than_an_invented_one(
+def test_a_quantity_with_no_value_gives_no_account_claiming_a_measurement(
     trial, bound_methods
 ):
-    """The control on the case above. A block that simply held every key would pass it, and
-    a sentence about a number nobody computed is what this field exists against.
+    """The control on the case above. A block that simply held every key would pass it, and a
+    sentence asserting a figure nobody computed is what this field exists against.
+
+    What an absent quantity may not carry is an account opening with a value and a unit, which
+    is where the case above reads the figure. It may carry its rule's own sentence, and on
+    these quantities it has the most to say: a landing rule declining a flight time where the
+    plate never unloads is an answer, and forbidding the account would hide the declining rule
+    on exactly the quantities a reader needs it on. Same property as the browser's, in
+    `scripts/check-account.mjs`, read the same way.
 
     The shared trace ends in flight, so nothing places a touchdown and the quantities that
-    rest on one have no value to give an account of."""
+    rest on one report no number."""
     epoch, onset, takeoff = bound_methods
     document = json.loads(
         pf._analyse_json(trial, weighing_epoch=epoch, onset=onset, takeoff=takeoff)
@@ -405,9 +417,34 @@ def test_a_quantity_with_no_value_gives_no_account_rather_than_an_invented_one(
 
     absent = [metric["key"] for metric in document["metrics"] if metric["value"] is None]
     assert absent != [], "every quantity carried a value on a trial written to leave some without one"
-    invented = [key for key in absent if key in document["descriptions"]]
-    assert invented == [], (
-        f"{len(invented)} of {len(absent)} quantities with no value carry an account: {invented}"
+    accounted = [key for key in absent if key in document["descriptions"]]
+    # Without this the sweep below runs over nothing and reports clean on a build that dropped
+    # every declining rule's sentence, which is the state this quantity's reader is worst served by.
+    assert accounted == absent, (
+        f"{len(absent) - len(accounted)} of {len(absent)} quantities with no value name no rule: "
+        f"{sorted(set(absent) - set(accounted))}"
+    )
+    def opening(key):
+        return document["descriptions"][key].splitlines()[0]
+
+    # The same reading over the quantities that did produce a number, where every one has to
+    # match. A predicate that had stopped recognising a figure would report the line below
+    # clean over any account at all, and this is the population that cannot let it.
+    valued = [
+        metric["key"]
+        for metric in document["metrics"]
+        if metric["value"] is not None and metric["key"] in document["descriptions"]
+    ]
+    blind = [key for key in valued if not OPENS_WITH_A_FIGURE.match(opening(key))]
+    assert valued != [] and blind == [], (
+        f"{len(blind)} of {len(valued)} quantities carrying a value do not open on a figure, so "
+        f"the reading below cannot see one: {[(key, opening(key)) for key in blind[:3]]}"
+    )
+
+    claiming = [key for key in accounted if OPENS_WITH_A_FIGURE.match(opening(key))]
+    assert claiming == [], (
+        f"{len(claiming)} of {len(absent)} quantities with no value open on a figure: "
+        + "; ".join(f'{key} opens "{opening(key)}"' for key in claiming)
     )
 
 

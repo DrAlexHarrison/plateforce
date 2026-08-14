@@ -30,6 +30,14 @@ FLIGHT_TIME = "jump_height_from_flight_time_meters"
 # picked: at the true touchdown the two are 6.7 percent apart and no signal is raised.
 A_TOUCHDOWN_PLACED_LATE = 5900
 
+# What the two routes disagree by there, taken from the engine that computes it: 100 times one
+# minus the ratio of the two heights.
+THEY_DISAGREE_BY_PERCENT = 38.567780726859404
+
+# The two constants the tools argue over, for the case below that moves gravity.
+STANDARD_GRAVITY = 9.80665
+PUBLISHED_GRAVITY = 9.81
+
 
 @pytest.fixture
 def shipped():
@@ -75,10 +83,44 @@ def test_two_routes_disagreeing_reach_a_reader_with_the_figure_they_disagree_by(
     assert len(result.signals) == 1
     signal = result.signals[0]
     assert signal.status == "disagrees"
-    assert signal.value == pytest.approx(38.58875911, rel=1e-6)
+    assert signal.value == pytest.approx(THEY_DISAGREE_BY_PERCENT, rel=1e-6)
     assert signal.value > signal.threshold, "a signal raised below its own threshold"
     assert signal.unit == "percent"
     assert signal.threshold == 20.0
+
+
+def test_the_figure_they_disagree_by_is_not_an_artefact_of_the_gravity_they_ran_at(
+    recorded, rules
+):
+    """Both heights run at the gravity the analysis is bound to, so how far apart they are is
+    a property of this recording rather than of a constant nobody was comparing them on.
+
+    It was not always so, and the frozen copy of this figure above is what noticed: while one
+    route answered with a constant its own entry declared and the other took the request's, a
+    reader moving gravity moved the size of a disagreement neither route was being judged on.
+    The heights are required to move first, or a build where gravity reaches neither of them
+    satisfies the line that matters while proving nothing."""
+    heights, figures = set(), set()
+    for gravity in (STANDARD_GRAVITY, PUBLISHED_GRAVITY):
+        result = pf.analyse_countermovement_jump(
+            recorded,
+            touchdown_index=A_TOUCHDOWN_PLACED_LATE,
+            gravity_meters_per_second_squared=gravity,
+            **rules,
+        )
+        heights.add(
+            (
+                result.jump_height_takeoff_frame_meters.value,
+                result.jump_height_flight_time_meters.value,
+            )
+        )
+        figures.add(round(result.signals[0].value, 9))
+
+    assert len(heights) == 2, "neither height moved with gravity, so nothing here is about it"
+    assert all(
+        one != other for one, other in zip(*sorted(heights))
+    ), f"one of the two heights ignored the gravity it was bound to: {sorted(heights)}"
+    assert len(figures) == 1, f"the figure they disagree by moved with gravity: {sorted(figures)}"
 
 
 def test_a_comparison_that_could_not_run_reports_no_value_rather_than_a_sentence(

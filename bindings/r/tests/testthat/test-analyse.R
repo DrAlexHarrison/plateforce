@@ -256,7 +256,13 @@ test_that("a peak asked for with no window chosen names the open choice", {
   expect_identical(length(result@refusals), 1L)
   expect_identical(result@refusals[[1]][["code"]], "decision_not_made")
   expect_true("analysis_window" %in% unlist(result@refusals[[1]][["available"]]))
-  expect_false("peak_force_newtons" %in% names(result@values))
+  # The quantity asked for is reported and reports no number. A caller reading the table by
+  # quantity finds the row that names the choice nobody made; a quantity present in neither
+  # array leaves them to work out for themselves that they asked for something.
+  expect_true("peak_force_newtons" %in% names(result@values))
+  peak <- pf_value(result, "peak_force_newtons")
+  expect_true(is.na(peak@value))
+  expect_match(paste(peak@account, collapse = " "), "analysis_window")
 })
 
 
