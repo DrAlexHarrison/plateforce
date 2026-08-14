@@ -207,6 +207,18 @@ svg { stroke: currentColor; }
 .app-header__tagline { font-size: var(--text-sm); color: var(--text-secondary); }
 .app-header__status { display: flex; align-items: center; gap: var(--space-3); }
 
+/* Quiet on purpose: a reader already working in the tab is not being sold the desktop
+   application, only told where it is. */
+.app-header__install {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.app-header__install:hover { color: var(--text); }
+
 .privacy-badge {
   display: inline-flex;
   align-items: center;
@@ -1296,6 +1308,7 @@ table.data td.failed { color: var(--danger); white-space: normal; }
   .spread-headline__figure { font-size: var(--text-xl); }
   .privacy-badge span { display: none; }
   .privacy-badge { padding: var(--space-2); }
+  .app-header__install span { display: none; }
 }
 
 /* Dense controls stay compact under a mouse and grow to a full touch target on a

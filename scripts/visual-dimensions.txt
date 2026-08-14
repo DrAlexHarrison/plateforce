@@ -29,7 +29,7 @@ min-height: 24px	1	Batch trial-name row.
 min-height: 26px	1	Compact method row.
 min-height: 32px	2	Compact desktop button and plate chip.
 min-height: 36px	2	Desktop method record and parameter control.
-min-height: 44px	27	Minimum touch target across responsive controls.
+min-height: 44px	28	Minimum touch target across responsive controls.
 min-width: 16px	2	Desktop checkbox hit geometry.
 min-width: 20px	1	Tablet checkbox hit geometry.
 min-width: 22px	2	Phone checkbox hit geometry.

@@ -399,6 +399,27 @@ record(app.ok, `the application answers at /app/, ${app.status}`);
 const appBody = await app.text();
 record(appBody.includes('id="dropzone"'), 'the application at /app/ is the application');
 
+// The way back. A reader who opened the application and wants it on their own machine has no
+// route otherwise, and `../` from /app/ is this page.
+await send('Page.navigate', { url: `http://127.0.0.1:${port}/app/index.html` });
+for (let attempt = 0; attempt < 80; attempt += 1) {
+  if (await evaluate("document.readyState === 'complete'")) break;
+  await new Promise((resolve) => setTimeout(resolve, 125));
+}
+const back = await evaluate(`(() => {
+  const link = document.querySelector('.app-header__install');
+  return link ? { href: link.href, says: link.textContent.trim(), height: link.getBoundingClientRect().height } : null;
+})()`);
+record(back !== null, 'the application offers a way to the download page');
+record(back?.href.endsWith('/'), `that link resolves to ${back?.href}`);
+record(back?.height >= 44, `that link is ${back?.height}px tall`);
+const backLanded = back ? await fetch(back.href.replace(/^http:\/\/[^/]+/, `http://127.0.0.1:${port}`)) : null;
+record(Boolean(backLanded?.ok), `following it back answers ${backLanded?.status}`);
+record(
+  Boolean(backLanded && (await backLanded.text()).includes('Download for Mac')),
+  'following it back reaches the download page',
+);
+
 server.close();
 
 for (const line of held) console.log(`  ${line}`);
