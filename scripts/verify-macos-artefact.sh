@@ -19,6 +19,14 @@
 # attaches a ticket to UDIF disk images, code-signed bundles and flat installer packages,
 # and a bare executable is none of those. Its ticket stays where the notary service
 # published it, and spctl below is the question that reads it.
+#
+# The assessment type is `open` rather than `exec`, because `exec` assesses an application
+# and answers `rejected (the code is valid but does not seem to be an app)` for a Mach-O
+# file whatever its ticket says. Measured against a notarised binary and an un-notarised
+# one signed by the same identity: under `exec` both are rejected, and under `open` with
+# the primary signature the notarised one is accepted as `Notarized Developer ID` while
+# the other is rejected as `Unnotarized Developer ID`, which is the property being asked
+# about.
 
 set -euo pipefail
 
@@ -62,7 +70,7 @@ if [ "$executable" = "yes" ]; then
   attempt=1
   while true; do
     accepted=yes
-    spctl -a -t exec -vv "$image" > "$assessment" 2>&1 || accepted=no
+    spctl -a -t open --context context:primary-signature -vv "$image" > "$assessment" 2>&1 || accepted=no
     cat "$assessment"
     # An un-notarised signature is a settled answer rather than a slow one, and asking six
     # times cannot change it. Only an absent ticket is worth waiting for.
