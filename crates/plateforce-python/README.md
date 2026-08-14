@@ -45,7 +45,7 @@ print(jump.jump_height_takeoff_frame_meters.describe())
     integration_direction = integration.direction.forward
     integration_rule = integration.rule.trapezoid
     integration_start = integration.start.detected_onset
-  registry declaring 2026-07-25 (content-a3dce809ef906bd2)
+  registry declaring 2026-07-25 (content-f8aff30ff8f6aafa)
     filter.none {}
       passband_edge = none
     bwepoch.fixed_window {'duration': 1, 'start_seconds': 0}
@@ -135,24 +135,35 @@ the registry's own ruling on how hard an interface should push the choice at a u
 always states the `criterion` it was measured against, because a bias figure without one
 cannot be added to anything safely.
 
-## Errors name the method and the parameter
+## Refusals stay beside partial results
 
 ```python
->>> pf.analyse_countermovement_jump(quiet_standing_trial, weighing_epoch, onset, takeoff)
-NoCrossingError: onset.threshold.noise_relative(k = 5) found no crossing within the search bound of 2.5 s
+>>> partial = pf.analyse_countermovement_jump(
+...     quiet_standing_trial, weighing_epoch, onset, takeoff
+... )
+>>> partial.system_weight_newtons.value
+600.0716666666667
+>>> [(type(row).__name__, row.method_id) for row in partial.refusals]
+[
+    ('NoCrossingError', 'onset.threshold.noise_relative'),
+    ('NoCrossingError', 'takeoff.threshold.absolute_force'),
+]
+>>> partial.onset_time_seconds is None
+True
 ```
 
-The fields are on the exception, so a batch run can branch on them instead of parsing the
-sentence:
+Each refusal carries the same class and fields it would carry if the whole request had to
+raise, so a notebook can branch on the record instead of parsing a sentence:
 
 ```python
+>>> error = partial.refusals[0]
 >>> error.method_id, error.parameter, error.value
 ('onset.threshold.noise_relative', 'k', 5.0)
 ```
 
-The registry describes the literature, which is larger than the set of rules any one piece
-of software runs. Selecting an entry with no rule behind it fails by name rather than
-resolving to something near it:
+A request that cannot run still raises. The registry describes the literature, which is
+larger than the methods a selected analysis can bind. Selecting an entry with no rule behind
+it fails by name rather than resolving to something near it:
 
 ```python
 MethodNotImplementedError: 'onset.op.backward_offset_fixed' was passed as
@@ -201,6 +212,43 @@ trial = pf.Trial(
 
 Until every member is present, `provenance.acquisition_complete` stays `False` and every
 result says so. `pf.Acquisition(...).missing` lists what is still needed.
+
+## Analysing a folder
+
+A folder states the same rate and acquisition block as one trial. The rate has no default:
+these files do not carry it, and guessing it changes the answer.
+
+```python
+run = pf.batch(
+    "trials",
+    registry="registry",
+    weighing="bwepoch.fixed_window",
+    onset="onset.threshold.noise_relative",
+    takeoff="takeoff.threshold.absolute_force",
+    sentinel=None,
+    sample_rate_hz=1200.0,
+    acquisition=pf.Acquisition(
+        filter_at_capture="none",
+        tare_state="tared_before_trial",
+        plate_natural_frequency_hz=800.0,
+        floor_surface="concrete",
+        firmware_version="2.4.1",
+    ),
+    trial_file_suffixes=[".force.txt"],
+    weighing_parameters={"duration": 1.0},
+    onset_parameters={"k": 5.0},
+    takeoff_parameters={"threshold_n": 20.0},
+)
+
+print(run.run.run_fingerprint)
+frame = run.to_pandas()
+table = run.to_arrow()
+```
+
+The fingerprint stays `None` until every computed trial carries all 5 of 5 acquisition
+members. `to_pandas()` and `to_arrow()` preserve the rows and their order. They import pandas
+or pyarrow only when called, so neither table package is required for list, JSON, CSV, or
+Parquet output.
 
 ## Arrays
 
