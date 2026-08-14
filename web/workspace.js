@@ -4,9 +4,11 @@ import { TraceChart, landmarkDefinitions } from './chart.js';
 import { $, state } from './state.js';
 import { counted, element, formatNumber, setWindowTitle, showStage, typesetUnit } from './format.js';
 import { windowLengthParameter, buildDecisionModel } from './registry.js';
-import { resetSelections, candidateFor } from './startup.js';
+import { resetSelections, candidateFor, applyTheCarriedChoices } from './startup.js';
 import { renderDecisions } from './decisions.js';
-import { boundMethodId, runAnalysis, recordStated, withSources, HEADLINE } from './analysis.js';
+import {
+  boundMethodId, runAnalysis, recordStated, withSources, methodTitle, HEADLINE,
+} from './analysis.js';
 import { endingOf } from './batch-run.js';
 import { renderPicker, putOnThePath, removeFromPath } from './add-quantity.js';
 import { findMethod } from './registry.js';
@@ -33,9 +35,13 @@ const PHASE_NAME = 'phase';
 export function enterWorkspace() {
   setWindowTitle(state.fileName);
   state.overrides = { onset: null, takeoff: null, touchdown: null };
+  forgetTheRecordLine();
   resetSelections();
   clearHistory();
   recordTheOpeningSelection();
+  // After the opening selection is stamped, so a rule the reader chose for the trial before
+  // this one is not counted among the values nobody was asked about.
+  const carried = applyTheCarriedChoices();
   showStage('stage-workspace');
   offerTheRun();
 
@@ -121,6 +127,25 @@ export function enterWorkspace() {
   renderPicker();
   renderDecisions();
   runAnalysis();
+  sayWhatWasCarried(carried);
+}
+
+/*
+ * What this trial took from the one before it, said rather than assumed.
+ *
+ * Choices that arrive without being mentioned are choices nobody made on this trial, which is
+ * the shape of every defect this software exists to expose. It names the rules and the trial
+ * they came from, and it takes the same line an edit to the record takes, because it is one.
+ */
+function sayWhatWasCarried(carried) {
+  if (!carried.length) return;
+  const named = carried.length <= 2
+    ? carried.join(' and ')
+    : `${carried.slice(0, 2).join(', ')} and ${counted(carried.length - 2, 'other rule')}`;
+  announce(
+    `${named} carried from ${state.carried.trialName}. Change any of them on the rail.`,
+    { onScreen: true },
+  );
 }
 
 /* ---------------------------------------------------- saying what an edit did */
@@ -134,13 +159,35 @@ export function enterWorkspace() {
  * rather than composed: the landmark and where it now sits, then the two headline quantities
  * that moved, then how many others did.
  */
-function announce(sentence) {
+function announce(sentence, { onScreen = false } = {}) {
   const host = $('chart-announcement');
   if (!host) return;
   // Replaced rather than appended, and cleared first, so two nudges to the same place are two
   // announcements rather than one unchanged string a reader is never told about again.
   host.textContent = '';
   window.setTimeout(() => { host.textContent = sentence; }, 0);
+
+  // An edit whose whole effect is on the record leaves the screen identical, so a reader who
+  // can see it is told exactly as little as one who cannot. Those are drawn as well as spoken.
+  // A nudge is not: the marker moves under the reader's hand, and a line flashing on every
+  // arrow key is noise on top of an answer they already have.
+  //
+  // Written only by the edits it is about, and never cleared by the ones it is not. It stood on
+  // a timer at first, which put the sentence on a clock the reader is not on and made whether
+  // it was there at all depend on how long they took to get to the next thing. It says what
+  // last changed the record and stays saying it until something else does.
+  const line = $('record-change');
+  if (!line || !onScreen) return;
+  line.textContent = sentence;
+  line.hidden = false;
+}
+
+/* A different trial has a different record, so the last one's sentence goes with it. */
+function forgetTheRecordLine() {
+  const line = $('record-change');
+  if (!line) return;
+  line.textContent = '';
+  line.hidden = true;
 }
 
 /* The reported numbers as they stood before the edit began, so the sentence after it can say
@@ -153,9 +200,12 @@ function rememberTheNumbers() {
   );
 }
 
-function shown(metric) {
-  const formatted = formatNumber(metric.value, metric.unit);
-  return formatted == null ? 'no value' : `${formatted} ${metric.unit_symbol}`;
+/* A number with its unit, typeset the one way this page typesets one. Both the reading now and
+ * the reading before go through here, so a sentence cannot carry the terminal's spelling of a
+ * symbol beside the page's. The engine spells for a terminal; the page typesets, once. */
+function withUnit(value, metric) {
+  const formatted = formatNumber(value, metric.unit);
+  return formatted == null ? 'no value' : `${formatted} ${typesetUnit(metric.unit_symbol)}`;
 }
 
 /* The quantities this edit moved, the headline ones by name and the rest by count. Reading
@@ -168,10 +218,10 @@ function whatFollowed() {
   if (!moved.length) return 'No reported number changed.';
   const named = moved.filter((metric) => HEADLINE.has(metric.key));
   const rest = moved.length - named.length;
-  const sentences = named.map((metric) => {
-    const was = formatNumber(numbersBeforeTheEdit.get(metric.key), metric.unit);
-    return `${metric.label} ${shown(metric)}, was ${was == null ? 'no value' : `${was} ${metric.unit_symbol}`}.`;
-  });
+  const sentences = named.map((metric) => (
+    `${metric.label} ${withUnit(metric.value, metric)}, ` +
+    `was ${withUnit(numbersBeforeTheEdit.get(metric.key), metric)}.`
+  ));
   if (rest) sentences.push(`${counted(rest, 'other reported number')} changed.`);
   return sentences.join(' ');
 }
@@ -197,8 +247,60 @@ function announceWindow() {
   );
 }
 
+/*
+ * Which rule each slot is running, and whether anybody chose it.
+ *
+ * An edit can leave every number on screen identical and still change what produced them: a
+ * step back over an accepted recommendation puts three rules back to unchosen without moving
+ * a digit. The values are the wrong witness for that, so the rules are read separately.
+ */
+function rulesNow() {
+  return new Map(state.slots.map((slot) => [slot.key, {
+    title: slot.title,
+    methodId: state.selection[slot.key]?.methodId ?? null,
+  }]));
+}
+
+let rulesBeforeTheEdit = new Map();
+
+function rememberTheRules() {
+  rulesBeforeTheEdit = rulesNow();
+}
+
+/* A rule the reader can look up, or the state of having none, in the words the rail uses. */
+function ruleWords(methodId) {
+  return methodId ? methodTitle(methodId) : 'no rule chosen';
+}
+
+/*
+ * The rules this edit moved, each named from and to.
+ *
+ * Over the union of before and after, because a construct that left the path stopped running
+ * the rule it was running, and a reader told only about the slots that survived would be told
+ * a smaller truth than the record holds.
+ */
+function rulesThatMoved() {
+  const after = rulesNow();
+  const moved = [];
+  for (const key of new Set([...rulesBeforeTheEdit.keys(), ...after.keys()])) {
+    const was = rulesBeforeTheEdit.get(key);
+    const now = after.get(key);
+    if ((was?.methodId ?? null) === (now?.methodId ?? null)) continue;
+    const title = now?.title ?? was?.title ?? key;
+    moved.push(`${title}: ${ruleWords(now?.methodId ?? null)}, was ${ruleWords(was?.methodId ?? null)}.`);
+  }
+  return moved;
+}
+
 /* ---------------------------------------------------------------- history */
 
+/*
+ * A step through the history, said out loud and drawn on screen.
+ *
+ * The act is named, then every rule it moved, then the numbers. All three, because the three
+ * are independent: an edit can move numbers and no rule, a rule and no numbers, or both, and
+ * the case that reads as nothing happening is exactly the one that changed only the record.
+ */
 function restoreEdit(held, verb) {
   if (!held) return;
   restore(held);
@@ -206,16 +308,31 @@ function restoreEdit(held, verb) {
   renderPicker();
   renderDecisions();
   runAnalysis();
-  announce(held.label ? `${verb} ${held.label}.` : `${verb} the last edit on the trace.`);
+
+  // Two named in full and the rest counted, the same shape the numbers take above. A step back
+  // over an accepted recommendation moves six rules at once, and six full sentences is a
+  // paragraph nobody reads standing at a trace.
+  const moved = rulesThatMoved();
+  const named = moved.length <= 2
+    ? moved
+    : [...moved.slice(0, 2), `${counted(moved.length - 2, 'other rule')} changed with them.`];
+  const said = [
+    held.label ? `${verb} ${held.label}.` : `${verb} the last edit on the trace.`,
+    ...named,
+    whatFollowed(),
+  ].join(' ');
+  announce(said, { onScreen: moved.length > 0 });
 }
 
 export function undoEdit() {
   rememberTheNumbers();
+  rememberTheRules();
   restoreEdit(undo(), 'Undid');
 }
 
 export function redoEdit() {
   rememberTheNumbers();
+  rememberTheRules();
   restoreEdit(redo(), 'Redid');
 }
 

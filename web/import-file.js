@@ -4,6 +4,7 @@ import { ForceFile } from './pkg/plateforce_wasm.js';
 import { $, state } from './state.js';
 import { element, setWindowTitle, showStage } from './format.js';
 import { renderColumnChooser, confirmColumns, loadDemonstration } from './import-columns.js';
+import { rememberTheChoices } from './startup.js';
 import { runAnalysis } from './analysis.js';
 import { endingOf, endingsChosen } from './batch-run.js';
 import { focusableWithin, hidePanel, returnInDrawer } from './drawer.js';
@@ -72,7 +73,12 @@ export function wireGlobalControls() {
   $('load-demo').addEventListener('click', (event) => { event.stopPropagation(); loadDemonstration(); });
   $('columns-cancel').addEventListener('click', () => { setWindowTitle(); showStage('stage-empty'); });
   $('columns-confirm').addEventListener('click', confirmColumns);
-  $('change-file').addEventListener('click', () => { setWindowTitle(); showStage('stage-empty'); });
+  $('change-file').addEventListener('click', () => {
+    // Taken before the workspace is left, because this is the last moment the choices exist.
+    rememberTheChoices();
+    setWindowTitle();
+    showStage('stage-empty');
+  });
   $('reset-markers').addEventListener('click', resetLandmarks);
   wireHistoryControls();
 

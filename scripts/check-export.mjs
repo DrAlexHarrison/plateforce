@@ -426,7 +426,7 @@ const offered = await evaluate(`(() => {
   return { hidden: control.hidden, label: control.textContent };
 })()`);
 check('the batch stage offers one download control once the run has computed',
-  !offered.hidden && offered.label === 'Download results (CSV)', offered.label);
+  !offered.hidden && offered.label === 'Download results (ZIP)', offered.label);
 
 const request = await pageRequest();
 const batchZip = await capture("document.getElementById('batch-download').click()");
@@ -455,7 +455,7 @@ const workspaceControl = await evaluate(`(() => {
   return buttons.map((button) => button.textContent);
 })()`);
 check('the workspace offers the same download beside Copy as Markdown',
-  workspaceControl.includes('Download results (CSV)'), workspaceControl.join(' · '));
+  workspaceControl.includes('Download results (ZIP)'), workspaceControl.join(' · '));
 
 // The engine spells unit symbols for terminals; the page typesets them. A card showing the
 // terminal spelling is a symbol that reached the DOM around the one rendering.
@@ -497,7 +497,7 @@ const trialRequest = await pageRequest();
 try {
 const trialZip = await capture(`(() => {
   const control = [...document.querySelectorAll('#result-actions button')]
-    .find((button) => button.textContent === 'Download results (CSV)');
+    .find((button) => button.textContent === 'Download results (ZIP)');
   if (!control) throw new Error('the workspace offers no download control');
   control.click();
 })()`);

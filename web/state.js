@@ -28,6 +28,15 @@ export const state = {
    * on this machine with the revision the engine last reported for it, and `picked` is the one
    * the chip names. A member in `stated` displaces the picked plate's answer for the run. */
   plate: { members: [], stated: {}, saved: {}, picked: null },
+  /* How many samples a second this trial holds, and whose answer that is. The one number that
+   * scales every velocity, every impulse and every height, and the one the record did not
+   * carry: declaring a 1200 Hz recording at 1000 moves jump height from 0.409 to 0.588 m and
+   * nothing on the page or in a paste says which rate produced it. */
+  sampleRate: { hz: null, source: null },
+  /* What survives opening another trial in the same session: the rules the reader chose and
+   * the quantities they asked for, never a landmark or a window placed on samples that belong
+   * to a different recording. Null until a trial has been analysed. */
+  carried: null,
   file: null,
   /* What the reader called the trace they opened, carried onto every result computed from
    * it. The module is handed text and never a file, so a name it is not given is a name it

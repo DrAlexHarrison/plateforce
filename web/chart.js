@@ -300,6 +300,9 @@ export class TraceChart {
 
   attachMarkerDrag(element, key) {
     element.addEventListener('pointerdown', (event) => {
+      // Near the line without being on it, so this press is the trace's rather than this
+      // landmark's. It is left alone to bubble, and the container reads it as a selection.
+      if (!this.markerUnder(event)) return;
       // Preventing the default suppresses the browser's own focus-on-press, so a reader who
       // clicked a landmark and then pressed an arrow key moved nothing. The default is still
       // prevented, because it also starts a native drag over the plot, and the focus the press
@@ -389,6 +392,38 @@ export class TraceChart {
    * reader has to be able to draw a narrower span inside a wide one they already drew. */
   static GRABBABLE = '.marker';
 
+  /*
+   * How near a landmark's line a press has to be to become that landmark's drag.
+   *
+   * The element is 44 px wide because a finger needs that much to reach it at all, and that put
+   * 183 ms of trace either side of a line drawn 1 px wide: measured at twelve distances, every
+   * press out to 20 px moved a landmark, so a 12 px miss at any of the five moved one. Two of
+   * those are dangerous. A miss near the landing moves it before takeoff and changes no number
+   * the reader is looking at, and a miss inside the weighing band takes the marker rather than
+   * the band's own handle 16 px away.
+   *
+   * Narrower than that 16 px gap, so the nearer control wins. Read off the press rather than a
+   * media query, because a finger and a pointer that can be aimed arrive on the same element
+   * and only the event knows which one this is. A media query cannot be asked here at all: a
+   * browser driven with no input device matches neither fine nor coarse.
+   */
+  static GRAB_WITHIN_PX = 10;
+
+  /*
+   * The landmark this press belongs to, or nothing where it is near one without being on it.
+   *
+   * One home for the question, because the marker's own handler and the container's selection
+   * have to give the same answer: two answers would leave a press that starts no drag also
+   * starting no selection, which is a press that does nothing.
+   */
+  markerUnder(event) {
+    const marker = event.target instanceof Element && event.target.closest(TraceChart.GRABBABLE);
+    if (!marker) return null;
+    const box = marker.getBoundingClientRect();
+    const reach = event.pointerType === 'touch' ? box.width / 2 : TraceChart.GRAB_WITHIN_PX;
+    return Math.abs(event.clientX - (box.left + box.width / 2)) <= reach ? marker : null;
+  }
+
   attachSelection() {
     this.container.addEventListener('pointerdown', (event) => this.beginDrag(event));
     this.container.addEventListener('pointermove', (event) => this.growDrag(event));
@@ -406,7 +441,7 @@ export class TraceChart {
   beginDrag(event) {
     if (!this.envelope) return;
     if (event.button !== 0) return;
-    if (event.target instanceof Element && event.target.closest(TraceChart.GRABBABLE)) return;
+    if (this.markerUnder(event)) return;
     const bounds = this.canvas.getBoundingClientRect();
     const pointerX = event.clientX - bounds.left;
     if (pointerX < this.plot.left || pointerX > this.plot.right) return;

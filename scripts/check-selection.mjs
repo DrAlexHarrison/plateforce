@@ -712,6 +712,48 @@ check('the whole-result block carries the methods, the values with their sources
   carries(blocks.whole).length ? `missing ${carries(blocks.whole).join(', ')}; the block opens ${blocks.opening}` :
     `${blocks.wholeRows} quantities, and the fenced block carries all five`);
 
+/*
+ * Every row of the copied table names the rules behind its number, including the rows the
+ * record roots on a landmark rule rather than on an arithmetic step.
+ *
+ * Those rows carry no `computed_by`, and they are exactly the quantities whose rule choice
+ * moves the answer furthest: the column used to fall back to a phrase naming this software as
+ * their author. The population is read off the record rather than listed here, so a quantity
+ * that stops being rooted that way leaves the check rather than silently passing it.
+ */
+const attribution = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const whole = state.loadedTrial.markdown(JSON.stringify(analysis.buildRequest()), state.fileName, null, undefined);
+  const rows = whole.split('\\n')
+    .filter((line) => line.startsWith('| ') && !line.startsWith('| Quantity') && !line.startsWith('|---'))
+    .map((line) => line.split('|').map((cell) => cell.trim()).filter(Boolean))
+    .map((cells) => ({ label: cells[0], rules: cells[cells.length - 1] }));
+  return {
+    rows,
+    // The quantities the record names no arithmetic step for, which is the population this is about.
+    rootedOnALandmark: state.analysis.metrics.filter((m) => !m.computed_by).map((m) => m.label),
+    namesTheSoftware: /the analysis itself/.test(whole),
+  };
+})()`);
+
+const unattributed = attribution.rows.filter((row) => !/`[a-z0-9_]+\.[a-z0-9_.]+`/.test(row.rules));
+const landmarkRows = attribution.rows.filter((row) => attribution.rootedOnALandmark.includes(row.label));
+const landmarkUnattributed = landmarkRows.filter((row) => !/`[a-z0-9_]+\.[a-z0-9_.]+`/.test(row.rules));
+
+check('every quantity in the copied table names the rules behind it, and none names the software',
+  attribution.rows.length > 0
+    && attribution.rootedOnALandmark.length > 0
+    && landmarkRows.length === attribution.rootedOnALandmark.length
+    && unattributed.length === 0
+    && landmarkUnattributed.length === 0
+    && attribution.namesTheSoftware === false,
+  `${attribution.rows.length - unattributed.length} of ${attribution.rows.length} rows name a rule, ` +
+    `including ${landmarkRows.length - landmarkUnattributed.length} of ${attribution.rootedOnALandmark.length} ` +
+    `the record roots on a landmark rule (${attribution.rootedOnALandmark.join(', ')})` +
+    (attribution.namesTheSoftware ? '; the block still names the software as an author' : '') +
+    (unattributed.length ? `; first without one: ${unattributed[0].label} "${unattributed[0].rules}"` : ''));
+
 check('the window block carries the same provenance and only the numbers taken over that window',
   carries(blocks.window).length === 0
     && blocks.windowRows > 0 && blocks.windowRows < blocks.wholeRows
@@ -1454,6 +1496,192 @@ check('Undo restores the hand-placed window the recommendation took back',
     && handPlacementBack.start === handPlaced.start && handPlacementBack.end === handPlaced.end,
   `${handPlacementBack.method} over ${handPlacementBack.start}-${handPlacementBack.end}`);
 
+// ------------------------------------------- an edit that changes only the record
+/*
+ * The reader corrects a landmark, takes the recommended rules, then presses Undo meaning to
+ * take back the landmark.
+ *
+ * Undo pops the accept, which is the right last-in-first-out answer and leaves every number on
+ * screen identical. So the only thing that changed is which rules produced them, and a page
+ * that says nothing here is an unrecorded change to the record on the control a reader trusts
+ * most. Both halves are asserted: the numbers must not move, and the change must be reported.
+ */
+await evaluate(`(async () => {
+  document.getElementById('change-file').click();
+  document.getElementById('load-demo').click();
+  return true;
+})()`);
+await settle("!document.getElementById('stage-workspace').hidden", 'the workspace for the record check');
+await settle("(async () => Boolean((await import('./state.js')).state.analysis))()", 'its analysis');
+
+await evaluate("document.getElementById('change-file').focus()");
+for (let step = 0; step < 14; step += 1) {
+  await tabKey();
+  if ((await focused()).includes('marker--onset')) break;
+}
+await arrowKey('ArrowRight');
+await evaluate("document.getElementById('accept-recommended')?.click()");
+await pause(240);
+const beforeTheStepBack = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    onset: state.analysis.onset_index,
+    override: state.overrides.onset,
+    timeToTakeoff: state.analysis.metrics.find((m) => m.key === 'time_to_takeoff_seconds')?.value,
+    weighing: state.selection.weighing?.methodId ?? null,
+    open: (await import('./decisions.js')).unresolvedDecisions().length,
+    undoNames: document.getElementById('undo-edit').getAttribute('aria-label'),
+  };
+})()`);
+await evaluate("document.getElementById('undo-edit').click()");
+await pause(260);
+const afterTheStepBack = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const line = document.getElementById('record-change');
+  return {
+    onset: state.analysis.onset_index,
+    override: state.overrides.onset,
+    timeToTakeoff: state.analysis.metrics.find((m) => m.key === 'time_to_takeoff_seconds')?.value,
+    weighing: state.selection.weighing?.methodId ?? null,
+    open: (await import('./decisions.js')).unresolvedDecisions().length,
+    onScreen: Boolean(line) && !line.hidden,
+    drawn: line ? line.textContent : null,
+    spoken: document.getElementById('chart-announcement').textContent,
+  };
+})()`);
+
+check('a step back over an accepted recommendation leaves the landmark and every number where they were',
+  beforeTheStepBack.override != null
+    && afterTheStepBack.override === beforeTheStepBack.override
+    && afterTheStepBack.onset === beforeTheStepBack.onset
+    && afterTheStepBack.timeToTakeoff === beforeTheStepBack.timeToTakeoff,
+  `onset ${beforeTheStepBack.onset} to ${afterTheStepBack.onset}, override ${beforeTheStepBack.override} to ` +
+    `${afterTheStepBack.override}, time to takeoff ${beforeTheStepBack.timeToTakeoff} to ${afterTheStepBack.timeToTakeoff}`);
+
+check('it did change the record, and it says which rule went back to what, on screen and out loud',
+  beforeTheStepBack.weighing !== null
+    && afterTheStepBack.weighing === null
+    && afterTheStepBack.open > beforeTheStepBack.open
+    && afterTheStepBack.onScreen
+    && /no rule chosen, was \S/.test(afterTheStepBack.drawn || '')
+    && afterTheStepBack.drawn === afterTheStepBack.spoken
+    && /recommended rules/.test(afterTheStepBack.drawn || ''),
+  `${beforeTheStepBack.weighing} became ${afterTheStepBack.weighing}, ` +
+    `${beforeTheStepBack.open} open choices became ${afterTheStepBack.open}; ` +
+    `${afterTheStepBack.onScreen ? 'drawn' : 'NOT DRAWN'}: "${afterTheStepBack.drawn}"; ` +
+    `spoken: "${afterTheStepBack.spoken}"`);
+
+/*
+ * The other direction: an edit that moves numbers and no rule is not a record change, so it is
+ * spoken and does not write the line. Without this the check above passes on a page that draws
+ * every edit.
+ *
+ * The claim is that this edit did not write the line, not that the line is blank. The line says
+ * what last changed the record and stays saying it, so a previous change still showing is the
+ * design rather than a failure: what would be wrong is this edit overwriting it.
+ */
+const lineBefore = await evaluate("document.getElementById('record-change').textContent");
+await arrowKey('ArrowRight');
+await evaluate("document.getElementById('undo-edit').click()");
+await pause(240);
+const plainEdit = await evaluate(`(() => ({
+  drawn: document.getElementById('record-change').textContent,
+  spoken: document.getElementById('chart-announcement').textContent,
+}))()`);
+check('an edit that moves a number and no rule is spoken without taking the reader’s eye',
+  lineBefore.length > 0
+    && plainEdit.drawn === lineBefore
+    && /Undid moving /.test(plainEdit.spoken || '')
+    && !/Undid moving /.test(plainEdit.drawn || ''),
+  `the line still reads what last changed the record (${plainEdit.drawn === lineBefore ? 'untouched' : 'OVERWRITTEN'}), ` +
+    `while the edit was spoken as "${plainEdit.spoken}"`);
+
+// ------------------------------------------- choosing a rule is an edit like any other
+const chosenByHand = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const select = document.querySelector('#decision-list select[data-construct]');
+  const construct = select.dataset.construct;
+  const slot = state.slots.find((entry) => entry.construct === construct);
+  const before = state.selection[slot.key]?.methodId ?? null;
+  const pick = [...select.options].find((option) => option.value && option.value !== before);
+  select.value = pick.value;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return {
+    key: slot.key,
+    before,
+    after: state.selection[slot.key]?.methodId ?? null,
+    stated: state.selection[slot.key]?.methodStated ?? null,
+    undoDisabled: document.getElementById('undo-edit').disabled,
+    undoNames: document.getElementById('undo-edit').getAttribute('aria-label'),
+  };
+})()`);
+await evaluate("document.getElementById('undo-edit').click()");
+await pause(240);
+const choiceUndone = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    after: state.selection['${chosenByHand.key}']?.methodId ?? null,
+    drawn: document.getElementById('record-change').textContent,
+    spoken: document.getElementById('chart-announcement').textContent,
+  };
+})()`);
+check('choosing a rule is one undoable edit that names itself and goes back exactly',
+  chosenByHand.after !== chosenByHand.before
+    && chosenByHand.stated === true
+    && chosenByHand.undoDisabled === false
+    && /^Undo choosing /.test(chosenByHand.undoNames || '')
+    && choiceUndone.after === chosenByHand.before
+    && /was \S/.test(choiceUndone.drawn || ''),
+  `${chosenByHand.before} to ${chosenByHand.after} under "${chosenByHand.undoNames}", ` +
+    `back to ${choiceUndone.after}; drawn "${choiceUndone.drawn}"; spoken "${choiceUndone.spoken}"`);
+
+/*
+ * A reader who tried an alternative and wants to leave the decision, not the value.
+ *
+ * A rule is bound first, inside the check, because the state this is about is the one where
+ * something is already chosen. Read after the undo above, the row carries no rule, the
+ * placeholder is offered for the ordinary reason, and a page that removed it the moment a rule
+ * was picked would pass.
+ */
+const noPreference = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const select = document.querySelector('#decision-list select[data-construct]');
+  const slot = state.slots.find((entry) => entry.construct === select.dataset.construct);
+  const pick = [...select.options].find((option) => option.value);
+  select.value = pick.value;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  const bound = document.querySelector('#decision-list select[data-construct="' + slot.construct + '"]');
+  const boundTo = state.selection[slot.key]?.methodId ?? null;
+  const offered = [...bound.options].some((option) => option.value === '');
+  const select2 = bound;
+  select2.value = '';
+  select2.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const analysis = await import('./analysis.js');
+  const running = analysis.boundMethodId(slot.key);
+  const record = state.analysis.bound_methods.find((row) => row.method_id === running);
+  return {
+    boundTo,
+    offered,
+    methodId: state.selection[slot.key]?.methodId ?? null,
+    stated: state.selection[slot.key]?.methodStated ?? null,
+    running,
+    source: record ? record.method_source : null,
+  };
+})()`);
+check('a rule can be left as well as chosen, and the record stops carrying the reader’s signature',
+  noPreference.boundTo !== null
+    && noPreference.offered
+    && noPreference.methodId === null
+    && noPreference.stated === false
+    && noPreference.running !== null
+    && noPreference.source !== 'stated',
+  `with ${noPreference.boundTo} bound the placeholder was ${noPreference.offered ? 'offered' : 'GONE'}; ` +
+    `after leaving it the selection is ${noPreference.methodId}, still running ${noPreference.running} under ${noPreference.source}`);
+
 // ---------------------------------------------------------------- reaching a quantity
 const pickerClosed = await evaluate(`(() => {
   const list = document.getElementById('add-quantity-list');
@@ -1472,6 +1700,238 @@ const pickerOpen = await evaluate(`(() => {
 check('the quantity picker says what it can offer before the reader has to guess a word',
   pickerClosed.hidden && !pickerOpen.hidden && pickerOpen.typed === '' && pickerOpen.offers > 1,
   `closed with ${pickerClosed.offers}, focused with ${pickerOpen.offers} offers and "${pickerOpen.typed}" typed`);
+
+// ------------------------------------------- the rate, the grab radius, the value in force
+/*
+ * The number that scales every velocity, every impulse and every height, in the record.
+ *
+ * Declaring a 1200 Hz recording at 1000 moves jump height from 0.409 to 0.588 m and net impulse
+ * by a fifth, and a 58.8 cm countermovement jump passes without comment. The record found room
+ * for the registry digest and not for this.
+ */
+const rateInTheRecord = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const terms = [...document.querySelectorAll('#build-info dt')].map((node) => node.textContent);
+  const at = terms.indexOf('Sample rate');
+  return {
+    terms,
+    shown: at === -1 ? null : document.querySelectorAll('#build-info dd')[at].textContent,
+    running: state.info.sample_rate_hz,
+  };
+})()`);
+check('the record names the rate the analysis ran at, and whose answer it is',
+  rateInTheRecord.shown !== null
+    && rateInTheRecord.shown.startsWith(`${rateInTheRecord.running} Hz`)
+    && rateInTheRecord.shown.length > `${rateInTheRecord.running} Hz`.length + 2,
+  rateInTheRecord.shown === null
+    ? `no rate in the record, which holds ${rateInTheRecord.terms.join(', ')}`
+    : `"${rateInTheRecord.shown}" against a trial running at ${rateInTheRecord.running} Hz`);
+
+/*
+ * A press near a landmark without being on it belongs to the trace.
+ *
+ * Driven at measured offsets with real pointer events, because the defect is a press landing on
+ * the wrong control and only a press can show it. Both directions: on the line it still drags,
+ * and a miss that used to move a landmark now draws a selection instead of doing nothing.
+ */
+await evaluate("document.getElementById('reset-markers')?.click()");
+await evaluate("document.getElementById('selection-clear')?.click()");
+await pause(200);
+const grab = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const box = document.querySelector('.marker--takeoff').getBoundingClientRect();
+  return {
+    centre: box.left + box.width / 2,
+    y: box.top + box.height / 2,
+    width: Math.round(box.width),
+    takeoff: state.analysis.takeoff_index,
+  };
+})()`);
+const pressAt = async (offset) => {
+  // Measured immediately before the press. Anything that appears or leaves above the trace
+  // moves it, and a coordinate taken a moment earlier lands somewhere else.
+  const now = await evaluate(`(() => {
+    // Brought into view first. Earlier checks move the keyboard onto the rail, which scrolls
+    // the trace off the top, and a press dispatched at a negative viewport coordinate lands
+    // nowhere and reads exactly like a control that ignored it.
+    document.querySelector('.panel--trace').scrollIntoView({ block: 'center' });
+    const box = document.querySelector('.marker--takeoff').getBoundingClientRect();
+    return {
+      centre: box.left + box.width / 2,
+      y: box.top + box.height / 2,
+      where: [Math.round(box.left), Math.round(box.top), Math.round(box.right), Math.round(box.bottom)].join(','),
+      viewport: [innerWidth, innerHeight].join('x'),
+      hidden: document.getElementById('stage-workspace').hidden,
+    };
+  })()`);
+  await pause(120);
+  await mouse('mousePressed', now.centre + offset, now.y);
+  for (const step of [8, 16, 26]) await mouse('mouseMoved', now.centre + offset + step, now.y);
+  await mouse('mouseReleased', now.centre + offset + 26, now.y);
+  await pause(240);
+  const seen = await evaluate(`(async () => {
+    const state = (await import('./state.js')).state;
+    return { moved: state.overrides.takeoff != null, regions: state.chart.regions.length };
+  })()`);
+  seen.where = now.where;
+  seen.viewport = now.viewport;
+  seen.hidden = now.hidden;
+  await evaluate("document.getElementById('reset-markers')?.click()");
+  await evaluate("document.getElementById('selection-clear')?.click()");
+  await pause(200);
+  return seen;
+};
+const onTheLine = await pressAt(0);
+const nearMiss = await pressAt(14);
+
+check('a press on a landmark drags it, and a press near one draws on the trace instead',
+  grab.width >= 44
+    && onTheLine.moved === true
+    && nearMiss.moved === false
+    && nearMiss.regions === 1,
+  `the element is ${grab.width} px wide for a finger; on the line the landmark ` +
+    `${onTheLine.moved ? 'moved' : 'DID NOT MOVE'}, 14 px away it ` +
+    `${nearMiss.moved ? 'STILL MOVED' : 'stayed'} and left ${nearMiss.regions} selection` +
+    `; the landmark sat at ${onTheLine.where} in a ${onTheLine.viewport} viewport, workspace ` +
+    `${onTheLine.hidden ? 'HIDDEN' : 'shown'}`);
+
+/*
+ * A value on screen that the analysis is not running under.
+ *
+ * The field fell back to the first value the entry publishes, so a parameter with a published
+ * 0.5 and no declared default read 0.5 while the request carried nothing and the record said
+ * `0 (assumed)`. A reader who opens Settings, reads that and closes it has been told something
+ * untrue about their own analysis, and it is the number they will write down.
+ */
+const fieldsAgainstTheRecord = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  // The rule this is about is named, because the case only exists where an entry publishes a
+  // value and declares no default: the search rule publishes 0.5 for its variance floor and
+  // the analysis runs at 0. Whichever rule happens to be bound when this check is reached does
+  // not necessarily have such a parameter, and a check that reads whatever is there passes on
+  // a page doing the wrong thing.
+  const weighing = document.querySelector('#decision-list select[data-construct]');
+  if ([...weighing.options].some((option) => option.value === 'bwepoch.adaptive_lowest_variance')) {
+    weighing.value = 'bwepoch.adaptive_lowest_variance';
+    weighing.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 240));
+  }
+  for (const open of document.querySelectorAll('#decision-list details')) open.open = true;
+  const read = [];
+  for (const field of document.querySelectorAll('#decision-list input[type="number"]')) {
+    const row = field.closest('.decision');
+    const select = row?.querySelector('select[data-construct]');
+    if (!select) continue;
+    const slot = state.slots.find((entry) => entry.construct === select.dataset.construct);
+    const running = analysis.boundMethodId(slot.key);
+    const record = state.analysis.bound_methods.find((bound) => bound.method_id === running);
+    const name = field.id.split('-').slice(2).join('-');
+    const inForce = (record?.bound_parameters || []).find(([held]) => held === name)?.[1];
+    // What the entry publishes for it, which is what the field used to fall back to. Carried so
+    // the check can require the interesting case to be present rather than hope for it: a
+    // population where every published value happens to equal the bound one proves nothing.
+    const entry = (await import('./registry.js')).findMethod(state.registry, running);
+    const parameter = (entry?.parameter || []).find((held) => held.name === name);
+    const published = (parameter?.published_values || [])[0];
+    read.push({
+      name, shown: field.value, inForce: inForce ?? null,
+      published: published ?? null, placeholder: field.placeholder,
+    });
+  }
+  return read;
+})()`);
+const disagreeingFields = fieldsAgainstTheRecord.filter(
+  (field) => field.inForce !== null && field.shown !== '' && Number(field.shown) !== Number(field.inForce),
+);
+// The case this is about: a parameter the entry publishes a value for and the analysis is
+// running under a different one. Without at least one of those the check cannot fail.
+const divergent = fieldsAgainstTheRecord.filter(
+  (field) => field.published !== null && field.inForce !== null
+    && Number(field.published) !== Number(field.inForce),
+);
+check('every parameter on screen is the value the analysis is running under',
+  fieldsAgainstTheRecord.length > 0
+    && divergent.length > 0
+    && divergent.every((field) => Number(field.shown) === Number(field.inForce))
+    && disagreeingFields.length === 0,
+  `${fieldsAgainstTheRecord.length} fields read, ` +
+    `${fieldsAgainstTheRecord.filter((field) => field.inForce !== null).length} of them bound in the record, ` +
+    `${divergent.length} where the published value differs from the bound one` +
+    (divergent.length ? ` (${divergent[0].name}: shows ${divergent[0].shown}, bound ${divergent[0].inForce}, published ${divergent[0].published})` : ', so the case this is about was not reachable') +
+    `, ${disagreeingFields.length} disagreeing` +
+    (disagreeingFields.length
+      ? `: ${disagreeingFields[0].name} shows ${disagreeingFields[0].shown} against ${disagreeingFields[0].inForce}`
+      : ''));
+
+/*
+ * Two trials of one athlete, opened one after the other, computed under the same rules.
+ *
+ * A student picking rules for trial 1, pressing New file and opening trial 3 had every choice
+ * discarded, so the two were computed under different rules and both pastes read as equally
+ * authoritative. The folder route already applies one path to every trial in it; this was the
+ * route that diverged.
+ *
+ * Both directions. The rules carry and the page says so. A landmark does not, because an index
+ * is a sample of one recording and carrying it onto another would be the same defect with the
+ * opposite sign.
+ */
+await evaluate("document.getElementById('reset-markers')?.click()");
+await pause(160);
+const beforeTheNextTrial = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const select = document.querySelector('#decision-list select[data-construct]');
+  const slot = state.slots.find((entry) => entry.construct === select.dataset.construct);
+  const pick = [...select.options].find((option) => option.value);
+  select.value = pick.value;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  // A landmark placed by hand on this recording, which must not follow the reader to another.
+  const marker = state.chart.markers.find((entry) => entry.key === 'onset').element;
+  marker.focus();
+  marker.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return {
+    key: slot.key,
+    chose: state.selection[slot.key]?.methodId ?? null,
+    override: state.overrides.onset,
+  };
+})()`);
+await evaluate("document.getElementById('change-file').click()");
+await settle("!document.getElementById('stage-empty').hidden", 'the empty stage between trials');
+await evaluate("document.getElementById('load-demo').click()");
+await settle("!document.getElementById('stage-workspace').hidden", 'the next trial');
+await settle("(async () => Boolean((await import('./state.js')).state.analysis))()", 'its analysis');
+await pause(200);
+const onTheNextTrial = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const line = document.getElementById('record-change');
+  return {
+    carried: state.selection['${beforeTheNextTrial.key}']?.methodId ?? null,
+    stated: state.selection['${beforeTheNextTrial.key}']?.methodStated ?? null,
+    override: state.overrides.onset,
+    weighingStart: state.weighing.startIndex,
+    said: line && !line.hidden ? line.textContent : null,
+    spoken: document.getElementById('chart-announcement').textContent,
+    carriedCount: Object.keys(state.carried?.selection || {}).length,
+  };
+})()`);
+check('the rules a reader chose follow them to the next trial, and the landmarks they placed do not',
+  beforeTheNextTrial.chose !== null
+    && beforeTheNextTrial.override != null
+    && onTheNextTrial.carried === beforeTheNextTrial.chose
+    && onTheNextTrial.stated === true
+    && onTheNextTrial.override === null
+    && onTheNextTrial.weighingStart === null,
+  `${beforeTheNextTrial.chose} chosen with onset placed at ${beforeTheNextTrial.override}; ` +
+    `the next trial runs ${onTheNextTrial.carried} with onset ${onTheNextTrial.override} ` +
+    `and no hand-placed window (${onTheNextTrial.weighingStart})`);
+
+check('and it says what it carried rather than letting the rules arrive unmentioned',
+  /carried from/.test(onTheNextTrial.said || ''),
+  onTheNextTrial.said
+    ? `"${onTheNextTrial.said}"`
+    : `nothing drawn; the live region holds "${onTheNextTrial.spoken}" and ${onTheNextTrial.carriedCount} rules were carried`);
 
 // ---------------------------------------------------------------- a choice that outlives the tab
 const themeChosen = await evaluate(`(() => {

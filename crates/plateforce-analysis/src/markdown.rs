@@ -48,8 +48,16 @@ pub fn window(document: &ResultDocument, over: &str) -> String {
     out
 }
 
-/// One row per quantity, and the rule that computed it in the row rather than in a footnote: a
+/// One row per quantity, and the rules behind it in the row rather than in a footnote: a
 /// reader who copies three of these rows into a message keeps the attribution with the number.
+///
+/// Every rule the record names, not only the arithmetic one. A quantity that is a landmark
+/// rule's own answer carries no `computed_by`, which is four of the eleven a plain run reports
+/// and exactly the four whose rule choice moves the answer furthest. The column used to fall
+/// back to a phrase naming this software as the author of those, which is the misattribution
+/// the registry exists to prevent, wearing the costume of a table cell. Which rule roots a
+/// chain is `chain.rs`'s answer and is not re-derived here: a second rooting rule that
+/// disagreed with the first would be two records of one figure.
 fn numbers(out: &mut String, document: &ResultDocument, over: Option<&str>) {
     let rows: Vec<&crate::response::Metric> = document
         .metrics
@@ -69,25 +77,25 @@ fn numbers(out: &mut String, document: &ResultDocument, over: Option<&str>) {
         );
         return;
     }
-    let _ = writeln!(out, "| Quantity | Value | Unit | Computed by |");
+    let _ = writeln!(out, "| Quantity | Value | Unit | Rules |");
     let _ = writeln!(out, "|---|---|---|---|");
     for metric in rows {
         let value = match metric.value {
             Some(number) => format!("{number:.4}"),
             None => "no value on this trial".to_string(),
         };
+        let behind = rules(document, &metric.key);
         let _ = writeln!(
             out,
             "| {} | {} | {} | {} |",
             escape(&metric.label),
             value,
             escape(&metric.unit),
-            escape(
-                metric
-                    .computed_by
-                    .as_deref()
-                    .unwrap_or("the analysis itself")
-            ),
+            if behind.is_empty() {
+                "no rule recorded".to_string()
+            } else {
+                rule_list(&behind)
+            },
         );
     }
     out.push('\n');

@@ -16,6 +16,7 @@ import {
   ruleSourceLine,
 } from './analysis.js';
 import { openDrawer, opensPanel } from './drawer.js';
+import { snapshot, remember } from './history.js';
 
 /*
  * Two of the registry's surfacing verdicts oblige the interface to say something about a
@@ -107,11 +108,14 @@ function renderSlot(slot) {
   select.setAttribute('aria-label', `${slot.title} method`);
   // The construct is the row's identity, and it stays readable when the label changes.
   select.dataset.construct = slot.construct;
-  if (!selection.methodId) {
-    const placeholder = element('option', null, 'Choose a method');
-    placeholder.value = '';
-    select.append(placeholder);
-  }
+  // Offered whether or not a rule is bound, because choosing one and having chosen one are two
+  // states and a reader who tried an alternative has to be able to leave it. Without this the
+  // record went on reading `Chosen by you` for a decision the reader had abandoned, and the
+  // only way back was to open the trial again.
+  const placeholder = element('option', null, selection.methodId ? 'No preference' : 'Choose a method');
+  placeholder.value = '';
+  placeholder.selected = !selection.methodId;
+  select.append(placeholder);
   for (const candidate of rankCandidates(slot.available)) {
     const suffix = candidate.registryBacked
       ? ` (${candidate.status})`
@@ -124,9 +128,26 @@ function renderSlot(slot) {
     select.append(option);
   }
   select.addEventListener('change', () => {
-    const candidate = candidateFor(slot.key, select.value);
-    state.selection[slot.key] = selectionFromChosenRule(candidate, slot.forcesDecision);
-    state.selection[slot.key].methodStated = true;
+    // Every act that changes the record belongs in the history, not only the ones that move a
+    // marker. A mis-click here used to be unrecoverable: it changed which rule produced every
+    // number below it and Undo could not see it.
+    const before = snapshot();
+    const candidate = select.value ? candidateFor(slot.key, select.value) : null;
+    if (candidate) {
+      state.selection[slot.key] = selectionFromChosenRule(candidate, slot.forcesDecision);
+      state.selection[slot.key].methodStated = true;
+    } else {
+      // Back to nobody having chosen. The rule that runs is the registry's own first ranked
+      // one again, and the record says so rather than carrying the reader's signature.
+      state.selection[slot.key] = {
+        methodId: null, values: {}, options: {}, unresolved: [],
+        fromDefault: new Set(), recommended: new Set(),
+        methodFromRecommendation: false, methodStated: false,
+      };
+    }
+    remember(before, candidate
+      ? `choosing ${candidate.title} for ${slot.title.toLowerCase()}`
+      : `leaving ${slot.title.toLowerCase()} to no preference`);
     renderDecisions();
     runAnalysis();
   });
@@ -436,11 +457,13 @@ function namedChoiceRow(slot, parameter, selection) {
     select.append(option);
   }
   select.addEventListener('change', () => {
+    const before = snapshot();
     selection.options ??= {};
     if (select.value === '') delete selection.options[parameter.name];
     else selection.options[parameter.name] = select.value;
     selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
     recordStated(selection, parameter.name);
+    remember(before, `stating ${parameter.name} on ${slot.title.toLowerCase()}`);
     renderDecisions();
     runAnalysis();
   });
@@ -491,10 +514,12 @@ function quantityRow(slot, parameter, selection) {
       select.append(option);
     }
     select.addEventListener('change', () => {
+      const before = snapshot();
       if (select.value === '') delete selection.values[parameter.name];
       else selection.values[parameter.name] = Number(select.value);
       selection.unresolved = (selection.unresolved || []).filter((name) => name !== parameter.name);
       recordStated(selection, parameter.name);
+      remember(before, `stating ${parameter.name} on ${slot.title.toLowerCase()}`);
       renderDecisions();
       runAnalysis();
     });
@@ -504,10 +529,26 @@ function quantityRow(slot, parameter, selection) {
     input.type = 'number';
     input.id = id;
     input.step = 'any';
-    input.value = String(selection.values[parameter.name] ?? parameter.default ?? values[0] ?? '');
+    /*
+     * What the analysis ran under, never what the entry publishes for it.
+     *
+     * The field fell back to the first published value, so a parameter the registry publishes
+     * a 0.5 for but declares no default for read 0.5 on screen while the request carried
+     * nothing and the record said `0 (assumed)`. A reader who opens Settings, reads that
+     * number and closes it has been told something untrue about their own analysis, and it is
+     * the number they will write down. The published value is offered as the placeholder,
+     * which is what it is: a value on offer rather than a value in force.
+     */
+    const running = boundMethodId(slot.key);
+    const inForce = (boundRecordFor(running)?.bound_parameters || [])
+      .find(([name]) => name === parameter.name)?.[1];
+    input.value = String(selection.values[parameter.name] ?? inForce ?? '');
+    if (values.length) input.placeholder = String(values[0]);
     input.addEventListener('change', () => {
+      const before = snapshot();
       selection.values[parameter.name] = Number(input.value);
       recordStated(selection, parameter.name);
+      remember(before, `stating ${parameter.name} on ${slot.title.toLowerCase()}`);
       runAnalysis();
     });
     row.append(input);

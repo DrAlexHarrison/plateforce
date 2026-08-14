@@ -73,6 +73,10 @@ export function renderBuildInfo() {
   const census = state.registry.census;
   const rows = [
     ['Version', state.build.version],
+    // The number that scales every velocity, every impulse and every height, beside whose
+    // answer it is. A record carrying the registry digest and not this one lets a recording
+    // declared at the wrong rate leave the building looking as reproducible as a right one.
+    ...(state.info ? [['Sample rate', sampleRateLine()]] : []),
     // The revision is the name a reader cites and the digest is the bytes behind it. The
     // revision lives beside the rules rather than among them, so the digest cannot stand in
     // for it, and this panel showed only the digest.
@@ -90,6 +94,14 @@ export function renderBuildInfo() {
   for (const [term, definition] of rows) {
     list.append(element('dt', null, term), element('dd', null, definition));
   }
+}
+
+/* The rate the analysis ran at, and whose answer it is. The value is the engine's own, read
+ * off the trial rather than off the field the reader typed into, so a rate the module refused
+ * can never be reported as the one that produced the numbers. */
+function sampleRateLine() {
+  const source = state.sampleRate?.source;
+  return `${state.info.sample_rate_hz} Hz${source ? `, ${source}` : ''}`;
 }
 
 export function resetSelections() {
@@ -113,6 +125,68 @@ export function initialiseMissingSelections() {
       ? { methodId: candidate.id, ...initialParameters(candidate, slot.forcesDecision) }
       : { methodId: null, values: {}, options: {}, unresolved: [] };
   }
+}
+
+/*
+ * The reader's choices, kept for the next trial they open in the same session.
+ *
+ * A student picking rules for trial 1, pressing New file and opening trial 3 had every choice
+ * silently discarded, so two trials of one athlete were computed under different rules and both
+ * pastes read as authoritative. The folder route already applies one path to every trial in it;
+ * the one-at-a-time route was the one that diverged.
+ *
+ * Rules and the quantities asked for, never a placement. A landmark index and a hand-drawn
+ * window are samples of one recording, and carrying them onto another would be the same defect
+ * with the opposite sign.
+ */
+export function rememberTheChoices() {
+  if (!state.analysis || !state.slots?.length) return;
+  const kept = {};
+  for (const slot of state.slots) {
+    const selection = state.selection[slot.key];
+    if (!selection?.methodId || selection.placedByHand) continue;
+    kept[slot.key] = {
+      methodId: selection.methodId,
+      values: { ...(selection.values || {}) },
+      options: { ...(selection.options || {}) },
+      methodStated: selection.methodStated === true,
+      methodFromRecommendation: selection.methodFromRecommendation === true,
+      fromDefault: [...(selection.fromDefault || [])],
+      recommended: [...(selection.recommended || [])],
+    };
+  }
+  state.carried = {
+    trialName: state.fileName,
+    selection: kept,
+    path: [...state.path],
+    sampleRateHz: state.sampleRate?.hz ?? null,
+  };
+}
+
+/*
+ * Those choices, put back on a trial just opened. A slot the new trial does not raise is
+ * dropped rather than forced, and the values ride with the rule that reads them so a rule the
+ * reader chose does not arrive under another rule's numbers.
+ */
+export function applyTheCarriedChoices() {
+  if (!state.carried) return [];
+  const applied = [];
+  for (const [key, held] of Object.entries(state.carried.selection)) {
+    const slot = state.slots.find((entry) => entry.key === key);
+    if (!slot || !slot.available.some((candidate) => candidate.id === held.methodId)) continue;
+    state.selection[key] = {
+      methodId: held.methodId,
+      values: { ...held.values },
+      options: { ...held.options },
+      unresolved: [],
+      fromDefault: new Set(held.fromDefault),
+      recommended: new Set(held.recommended),
+      methodFromRecommendation: held.methodFromRecommendation,
+      methodStated: held.methodStated,
+    };
+    applied.push(slot.title);
+  }
+  return applied;
 }
 
 export function candidateFor(slotKey, id) {

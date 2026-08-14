@@ -124,10 +124,27 @@ export function renderColumnChooser(fileName, summary) {
   // registry documents, so when it cannot be derived the field starts empty and blocks.
   const rate = $('sample-rate');
   const derived = summary.suggested_sample_rate_hz;
-  rate.value = derived ? String(Number(derived.toFixed(4))) : '';
+  // A rate the reader stated for the trial before this one is their own answer rather than a
+  // plausible number this software made up, which is the difference the paragraph above turns
+  // on. It arrives filled in and saying where it came from, and it is theirs to change. Without
+  // it a student running twenty trials types the same rate twenty times, which is also how they
+  // mistype it once.
+  const carried = !derived && state.carried?.sampleRateHz ? state.carried.sampleRateHz : null;
+  rate.value = derived ? String(Number(derived.toFixed(4))) : carried ? String(carried) : '';
   rate.placeholder = 'state the rate';
-  $('sample-rate-hint').textContent = derived ? summary.sample_rate_source : whyNoRate(summary);
-  rate.oninput = updateColumnsReady;
+  $('sample-rate-hint').textContent = derived
+    ? summary.sample_rate_source
+    : carried
+      ? `Carried from ${state.carried.trialName}. Change it if this trial was recorded differently.`
+      : whyNoRate(summary);
+  rateWasDerived = Boolean(derived);
+  derivedSource = derived ? summary.sample_rate_source : null;
+  rateWasCarried = Boolean(carried);
+  rateWasEdited = false;
+  rate.oninput = () => {
+    rateWasEdited = true;
+    updateColumnsReady();
+  };
   describeTheZeros(summary);
   renderRunDeclaration(summary);
   updateColumnsReady();
@@ -204,6 +221,20 @@ function renderRunDeclaration(summary) {
   $('run-count').textContent = declarationLine();
 }
 
+/* Whose answer the rate on screen is, tracked as the reader acts. A value they typed over and
+ * a value they accepted are two different claims about the same number. */
+let rateWasDerived = false;
+let derivedSource = null;
+let rateWasCarried = false;
+let rateWasEdited = false;
+
+function rateSource() {
+  if (rateWasEdited) return 'stated by you';
+  if (rateWasDerived) return derivedSource || 'read from the file';
+  if (rateWasCarried) return `carried from ${state.carried.trialName}`;
+  return 'stated by you';
+}
+
 function updateColumnsReady() {
   const rate = Number($('sample-rate').value);
   const runDeclared = !state.run || (state.run.endings.size > 0 && $('run-delimiter').value !== '');
@@ -229,6 +260,7 @@ export function confirmColumns() {
     const loaded = LoadedTrial.fromForceFile(state.file, state.chosenColumn, rate, $('sentinel').value);
     state.loadedTrial?.free?.();
     state.loadedTrial = loaded;
+    state.sampleRate = { hz: rate, source: rateSource() };
     enterWorkspace();
   } catch (error) {
     reportInline(String(error.message || error));
@@ -244,5 +276,6 @@ export function loadDemonstration() {
   // and a result computed from it says so rather than reporting whatever was opened before.
   state.fileName = 'demonstration';
   state.trialText = null;
+  state.sampleRate = { hz: null, source: 'recorded with the demonstration trial' };
   enterWorkspace();
 }
