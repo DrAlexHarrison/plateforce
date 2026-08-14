@@ -60,3 +60,14 @@ an exit code through a pipe reports the pipe's status. Verify a push with
 `git merge-base --is-ancestor` rather than reading piped output. Usually err toward
 backgrounding any command expected to run longer than ten seconds; a foregrounded long run
 holds the turn.
+
+**Green on `main` is not green on a tag.** `python-wheels.yml` and `r-package.yml` carry path
+filters, so a commit touching neither never runs them and the branch reads green while both
+are red. A tag push evaluates no path filter, so it runs everything and a release fails on a
+workflow no commit had run. Both carry `workflow_dispatch`, so before a tag they are run
+against the exact commit rather than waited for:
+
+```bash
+gh workflow run python-wheels.yml --repo DrAlexHarrison/plateforce --ref <sha>
+gh workflow run r-package.yml     --repo DrAlexHarrison/plateforce --ref <sha>
+```
