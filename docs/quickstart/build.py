@@ -217,13 +217,19 @@ def terminal_guide(shell="any", subtitle="plateforce at a terminal"):
     are a terminal and an assistant, and a PDF is unreadable to both. One source per shell,
     two outputs each, and only the section about getting the program differs."""
 
-    def make(f):
+    def make(f, markdown_into=None):
         source = (HERE / "terminal.md").read_text().replace(
             "<!--GET-THE-PROGRAM-->", content.TERMINAL_INSTALL[shell]
         )
         # Written outside the tree: it is derived from terminal.md, and a generated copy
-        # beside its source is a second place for the same words to be corrected.
-        written = Path(tempfile.mkdtemp(prefix="plateforce-quickstart-")) / f"terminal-{shell}.md"
+        # beside its source is a second place for the same words to be corrected. A caller
+        # naming a directory gets the Markdown itself, which is what a terminal and an
+        # assistant read, and is how these reach a release without becoming a second source.
+        into = Path(markdown_into) if markdown_into else Path(
+            tempfile.mkdtemp(prefix="plateforce-quickstart-")
+        )
+        into.mkdir(parents=True, exist_ok=True)
+        written = into / f"quick-start-terminal-{shell}.md"
         written.write_text(source)
         # A block carries its language so the command checker knows a shell line from printed
         # output; highlighting it would make those blocks the only coloured ones on the page.
@@ -286,6 +292,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--html-only", action="store_true")
     parser.add_argument("--only", default=None)
+    parser.add_argument(
+        "--markdown-into",
+        default=None,
+        help="where to keep the terminal guides as Markdown, which is what a terminal and an "
+        "assistant read",
+    )
     arguments = parser.parse_args()
 
     f = facts()
@@ -294,7 +306,9 @@ def main():
         if arguments.only and arguments.only != name:
             continue
         html_path = HERE / f"quick-start-{name}.html"
-        html_path.write_text(make(f))
+        html_path.write_text(
+            make(f, arguments.markdown_into) if name in TERMINAL else make(f)
+        )
         built.append(html_path)
         if not arguments.html_only:
             pdf_path = HERE / f"quick-start-{name}.pdf"
