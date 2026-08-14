@@ -17,7 +17,7 @@ use plateforce_core::{
 };
 use pyo3::prelude::*;
 
-use crate::errors::{raise_refusal, MethodNotImplementedError, TrialError};
+use crate::errors::{raise_refusal, refusal_object, MethodNotImplementedError, TrialError};
 use crate::quality::QualitySignal;
 use crate::registry::{BoundMethod, Preset, RegistryIdentity};
 use crate::result::{Exclusions, Measured};
@@ -253,29 +253,6 @@ fn weighing_choice(chosen: MethodChoice, start_index: Option<usize>) -> Weighing
     }
 }
 
-/// A landmark rule that placed nothing, raised as the error it was rather than as a
-/// sentence, so a caller can branch on the parameter that failed.
-fn refusal_of(python: Python<'_>, response: &AnalysisResponse, slot: &str) -> PyErr {
-    let construct = plateforce_analysis::binding::construct_for_slot(slot).unwrap_or(slot);
-    match response
-        .refusals
-        .iter()
-        .find(|declined| declined.construct == construct)
-    {
-        // The record the rule built, with the id it was reached by and the construct it
-        // filled stamped on, so the code and the sentence a Python caller sees are the ones
-        // every other surface publishes. Both arms used to be told apart here, and the
-        // second of them threw its code away.
-        Some(declined) => raise_refusal(
-            python,
-            &plateforce_analysis::document::refusal_from_rule(declined),
-        ),
-        None => TrialError::new_err(format!(
-            "the {construct} rule placed no landmark and gave no reason"
-        )),
-    }
-}
-
 struct Derived<'a> {
     response: &'a AnalysisResponse,
     registry: &'a RegistryIdentity,
@@ -418,19 +395,19 @@ impl BoundGlobal {
     name = "CountermovementJump"
 )]
 pub struct CountermovementJump {
-    system_weight_newtons: Measured,
-    system_mass_kilograms: Measured,
+    system_weight_newtons: Option<Measured>,
+    system_mass_kilograms: Option<Measured>,
     weighing_epoch_tied_window_count: usize,
-    onset_index: usize,
-    onset_time_seconds: Measured,
-    takeoff_index: usize,
-    takeoff_time_seconds: Measured,
+    onset_index: Option<usize>,
+    onset_time_seconds: Option<Measured>,
+    takeoff_index: Option<usize>,
+    takeoff_time_seconds: Option<Measured>,
     touchdown_index: Option<usize>,
-    time_to_takeoff_seconds: Measured,
+    time_to_takeoff_seconds: Option<Measured>,
     flight_time_seconds: Option<Measured>,
-    net_impulse_newton_seconds: Measured,
-    takeoff_velocity_meters_per_second: Measured,
-    jump_height_takeoff_frame_meters: Measured,
+    net_impulse_newton_seconds: Option<Measured>,
+    takeoff_velocity_meters_per_second: Option<Measured>,
+    jump_height_takeoff_frame_meters: Option<Measured>,
     jump_height_flight_time_meters: Option<Measured>,
     reactive_strength_index_modified: Option<Measured>,
     trial_exclusions: Exclusions,
@@ -438,6 +415,8 @@ pub struct CountermovementJump {
     unread_parameters: Vec<String>,
     assumed_parameters: Vec<String>,
     warnings: Vec<String>,
+    /// Every rule that declined while the rest of the response remained usable.
+    refusals: Vec<plateforce_core::Refusal>,
     /// What the whole analysis was bound to, which no rule's row can carry.
     bound_globals: Vec<BoundGlobal>,
     /// What the software noticed about the values above, as the records the engine raised.
@@ -467,12 +446,12 @@ impl CountermovementJump {
     }
 
     #[getter]
-    fn system_weight_newtons(&self) -> Measured {
+    fn system_weight_newtons(&self) -> Option<Measured> {
         self.system_weight_newtons.clone()
     }
 
     #[getter]
-    fn system_mass_kilograms(&self) -> Measured {
+    fn system_mass_kilograms(&self) -> Option<Measured> {
         self.system_mass_kilograms.clone()
     }
 
@@ -484,22 +463,22 @@ impl CountermovementJump {
     }
 
     #[getter]
-    fn onset_index(&self) -> usize {
+    fn onset_index(&self) -> Option<usize> {
         self.onset_index
     }
 
     #[getter]
-    fn onset_time_seconds(&self) -> Measured {
+    fn onset_time_seconds(&self) -> Option<Measured> {
         self.onset_time_seconds.clone()
     }
 
     #[getter]
-    fn takeoff_index(&self) -> usize {
+    fn takeoff_index(&self) -> Option<usize> {
         self.takeoff_index
     }
 
     #[getter]
-    fn takeoff_time_seconds(&self) -> Measured {
+    fn takeoff_time_seconds(&self) -> Option<Measured> {
         self.takeoff_time_seconds.clone()
     }
 
@@ -512,7 +491,7 @@ impl CountermovementJump {
     /// The metric on which open implementations disagree most: two of them agree at
     /// r = 0.696 on this while agreeing at r = 0.961 on jump height.
     #[getter]
-    fn time_to_takeoff_seconds(&self) -> Measured {
+    fn time_to_takeoff_seconds(&self) -> Option<Measured> {
         self.time_to_takeoff_seconds.clone()
     }
 
@@ -523,19 +502,19 @@ impl CountermovementJump {
     }
 
     #[getter]
-    fn net_impulse_newton_seconds(&self) -> Measured {
+    fn net_impulse_newton_seconds(&self) -> Option<Measured> {
         self.net_impulse_newton_seconds.clone()
     }
 
     #[getter]
-    fn takeoff_velocity_meters_per_second(&self) -> Measured {
+    fn takeoff_velocity_meters_per_second(&self) -> Option<Measured> {
         self.takeoff_velocity_meters_per_second.clone()
     }
 
     /// Jump height in the takeoff frame. Not comparable with a standing-frame height
     /// without a declared correction: the two differ by 26 to 45 percent.
     #[getter]
-    fn jump_height_takeoff_frame_meters(&self) -> Measured {
+    fn jump_height_takeoff_frame_meters(&self) -> Option<Measured> {
         self.jump_height_takeoff_frame_meters.clone()
     }
 
@@ -593,6 +572,16 @@ impl CountermovementJump {
         self.warnings.clone()
     }
 
+    /// Structured refusals from rules that could not place or compute their construct.
+    /// Each object carries the same class and fields it would carry if raised.
+    #[getter]
+    fn refusals(&self, python: Python<'_>) -> Vec<Py<PyAny>> {
+        self.refusals
+            .iter()
+            .map(|refusal| refusal_object(python, refusal))
+            .collect()
+    }
+
     /// What the software noticed about the values above.
     ///
     /// A signal is not a refusal and not a warning: the number stands, and each one carries
@@ -617,10 +606,20 @@ impl CountermovementJump {
     }
 
     fn __repr__(&self) -> String {
+        let height = self
+            .jump_height_takeoff_frame_meters
+            .as_ref()
+            .map(|value| format!("{:.4}", value.value_for_display()))
+            .unwrap_or_else(|| "None".to_string());
+        let time = self
+            .time_to_takeoff_seconds
+            .as_ref()
+            .map(|value| format!("{:.4}", value.value_for_display()))
+            .unwrap_or_else(|| "None".to_string());
         format!(
-            "CountermovementJump(jump_height_takeoff_frame_meters={:.4}, time_to_takeoff_seconds={:.4}, unregistered_methods={})",
-            self.jump_height_takeoff_frame_meters.value_for_display(),
-            self.time_to_takeoff_seconds.value_for_display(),
+            "CountermovementJump(jump_height_takeoff_frame_meters={}, time_to_takeoff_seconds={}, unregistered_methods={})",
+            height,
+            time,
             self.unregistered_methods.len()
         )
     }
@@ -854,9 +853,9 @@ struct AnalysisDocument<'a> {
 /// same primitive sits behind R's `pf_analyse` and the browser's `analyse`, and is private
 /// here for the reason it is private there: the shaped answer is what a caller reads.
 ///
-/// A rule that declines raises, carrying every field the record holds, because a caller
-/// meeting a refusal here meets the exception `analyse_countermovement_jump` raises rather
-/// than a second shape to parse.
+/// A request-level refusal raises. A rule that declines after other quantities computed stays
+/// in the document beside those quantities, in the same partial-result shape every surface
+/// reads.
 #[pyfunction]
 #[pyo3(name = "_analyse_json")]
 #[pyo3(signature = (
@@ -1061,48 +1060,36 @@ pub fn analyse_countermovement_jump(
     )?;
     let acquisition_complete = trial.acquisition_complete();
 
-    // The record the engine built, raised under the class its own code names. This used to
-    // arrive as a sentence, so every one of these was a `TrialError` whatever it was about.
+    // A refusal of the request itself raises. Landmark refusals are records on a successful
+    // partial response and leave with the quantities that still computed.
     let response = plateforce_analysis::run(&trial.inner, &request)
         .map_err(|refusal| raise_refusal(python, &refusal))?;
-
-    let onset_index = response
-        .onset_index
-        .ok_or_else(|| refusal_of(python, &response, "onset"))?;
-    let takeoff_index = response
-        .takeoff_index
-        .ok_or_else(|| refusal_of(python, &response, "takeoff"))?;
 
     let derived = Derived {
         response: &response,
         registry: &registry,
         acquisition_complete,
     };
-    // A quantity the spine always reports, and the slot whose rule declined when it is
-    // missing, so a caller meets the refusal that rule made rather than an absent attribute.
-    let required = |key: &str, slot: &str| {
-        derived
-            .one(key)
-            .ok_or_else(|| refusal_of(python, &response, slot))
-    };
+    let refusals = response
+        .refusals
+        .iter()
+        .map(plateforce_analysis::document::refusal_from_rule)
+        .collect();
 
     Ok(CountermovementJump {
-        system_weight_newtons: required("system_weight_newtons", "weighing")?,
-        system_mass_kilograms: required("system_mass_kilograms", "weighing")?,
+        system_weight_newtons: derived.one("system_weight_newtons"),
+        system_mass_kilograms: derived.one("system_mass_kilograms"),
         weighing_epoch_tied_window_count: response.weighing_epoch_tied_window_count,
-        onset_index,
-        onset_time_seconds: required("onset_time_seconds", "onset")?,
-        takeoff_index,
-        takeoff_time_seconds: required("takeoff_time_seconds", "takeoff")?,
+        onset_index: response.onset_index,
+        onset_time_seconds: derived.one("onset_time_seconds"),
+        takeoff_index: response.takeoff_index,
+        takeoff_time_seconds: derived.one("takeoff_time_seconds"),
         touchdown_index: response.touchdown_index,
-        time_to_takeoff_seconds: required("time_to_takeoff_seconds", "onset")?,
+        time_to_takeoff_seconds: derived.one("time_to_takeoff_seconds"),
         flight_time_seconds: derived.one("flight_time_seconds"),
-        net_impulse_newton_seconds: required("net_impulse_newton_seconds", "takeoff")?,
-        takeoff_velocity_meters_per_second: required(
-            "takeoff_velocity_meters_per_second",
-            "takeoff",
-        )?,
-        jump_height_takeoff_frame_meters: required("jump_height_from_takeoff_meters", "takeoff")?,
+        net_impulse_newton_seconds: derived.one("net_impulse_newton_seconds"),
+        takeoff_velocity_meters_per_second: derived.one("takeoff_velocity_meters_per_second"),
+        jump_height_takeoff_frame_meters: derived.one("jump_height_from_takeoff_meters"),
         jump_height_flight_time_meters: derived.one("jump_height_from_flight_time_meters"),
         reactive_strength_index_modified: derived.one("reactive_strength_index_modified"),
         trial_exclusions: trial.exclusions_for_result(),
@@ -1134,6 +1121,7 @@ pub fn analyse_countermovement_jump(
             .collect(),
         bound_globals: response.bound_globals.iter().map(BoundGlobal::of).collect(),
         warnings: response.warnings.clone(),
+        refusals,
         // The signals the analysis already raised. Raising them again here would run the
         // same function over the same response a second time, and a signal that disagreed
         // with the number it qualifies would be worse than no signal at all.

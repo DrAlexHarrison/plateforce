@@ -1,8 +1,7 @@
 //! Batch from a notebook.
 //!
-//! The relations arrive as lists of dictionaries and the converters are opt-in, so the
-//! object pulls in no third-party package. Asking for one that is not installed says which
-//! package would answer and what is available without it.
+//! The relations arrive as lists of dictionaries. The table converters are opt-in and read
+//! that same results relation, so changing representation cannot change which trials leave.
 
 use std::path::PathBuf;
 
@@ -15,6 +14,8 @@ use plateforce_registry::Registry;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+
+use crate::trial::Acquisition;
 
 /// How a run names its trials.
 ///
@@ -267,14 +268,32 @@ impl BatchResult {
             .map_err(|error| PyValueError::new_err(error.to_string()))
     }
 
-    /// Arrow and pandas are not dependencies of this package. Asking for one that is absent
-    /// says which package answers and what is available without it.
+    /// One Arrow row per trial, with the same columns and order as `to_pylist()`.
     fn to_arrow(&self, python: Python<'_>) -> PyResult<Py<PyAny>> {
-        convert_through(python, "pyarrow", "to_pylist")
+        let rows = self.to_pylist(python)?;
+        let arrow = python.import("pyarrow").map_err(|_| {
+            PyValueError::new_err(
+                "one dictionary per trial is available through .to_pylist(); install pyarrow to read those rows as an Arrow table",
+            )
+        })?;
+        arrow
+            .getattr("Table")?
+            .call_method1("from_pylist", (rows,))
+            .map(Bound::unbind)
     }
 
+    /// One DataFrame row per trial, with the same columns and order as `to_pylist()`.
     fn to_pandas(&self, python: Python<'_>) -> PyResult<Py<PyAny>> {
-        convert_through(python, "pandas", "to_pylist")
+        let rows = self.to_pylist(python)?;
+        let pandas = python.import("pandas").map_err(|_| {
+            PyValueError::new_err(
+                "one dictionary per trial is available through .to_pylist(); install pandas to read those rows as a DataFrame",
+            )
+        })?;
+        pandas
+            .getattr("DataFrame")?
+            .call1((rows,))
+            .map(Bound::unbind)
     }
 
     /// A frozen class cannot take `__setstate__`, so the whole object travels as the one
@@ -338,6 +357,13 @@ fn conditioning_choices(
 /// that it writes none. It is keyword-only and undefaulted, so omitting it raises rather than
 /// reading a vendor's missing marker as a force.
 ///
+/// `sample_rate_hz` is also keyword-only and undefaulted. The files do not carry it, and a
+/// guessed rate moves velocity and impulse once and height and displacement twice.
+///
+/// `acquisition` records all 5 of 5 capture facts that are not already carried by the sample
+/// rate. A complete block gives the run a fingerprint; a partial block remains on the run and
+/// keeps the fingerprint empty rather than declaring incomplete captures to match.
+///
 /// `aggregate` names the published rule that reduces an athlete's trials to one number.
 /// `trial.aggregation` publishes three and none of them is the arithmetic mean of a session, so
 /// naming none leaves the run unreduced and naming one the registry does not publish is refused
@@ -349,7 +375,7 @@ fn conditioning_choices(
 /// quantities are reduced, defaulting to every quantity the run computed, which is a scope
 /// rather than a method choice because each row names what it reduced.
 #[pyfunction]
-#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, delimiter = "\t", force_column_index = 0, sample_rate_hz = 1000.0, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None, aggregate = None, aggregate_n = None, aggregate_ranked_by = None, aggregate_by = "subject", aggregate_quantity = None, aggregate_dispersion = "sample"))]
+#[pyo3(signature = (directory, *, registry, weighing, onset, takeoff, sentinel, sample_rate_hz, delimiter = "\t", force_column_index = 0, acquisition = None, trial_file_suffixes = None, pattern = None, resolved = None, weighing_parameters = None, onset_parameters = None, takeoff_parameters = None, weighing_options = None, onset_options = None, takeoff_options = None, derived = None, derived_parameters = None, derived_options = None, conditioning = None, conditioning_parameters = None, conditioning_options = None, gravity_meters_per_second_squared = None, body_mass_kilograms = None, aggregate = None, aggregate_n = None, aggregate_ranked_by = None, aggregate_by = "subject", aggregate_quantity = None, aggregate_dispersion = "sample"))]
 #[allow(clippy::too_many_arguments)]
 pub fn batch(
     directory: PathBuf,
@@ -358,9 +384,10 @@ pub fn batch(
     onset: &str,
     takeoff: &str,
     sentinel: Option<f64>,
+    sample_rate_hz: f64,
     delimiter: &str,
     force_column_index: usize,
-    sample_rate_hz: f64,
+    acquisition: Option<Acquisition>,
     trial_file_suffixes: Option<Vec<String>>,
     pattern: Option<&str>,
     resolved: Option<Vec<String>>,
@@ -505,6 +532,10 @@ pub fn batch(
     let declared = resolved.unwrap_or_default();
     let borrowed: Vec<&str> = declared.iter().map(String::as_str).collect();
     let request = CoreBatchRequest::new(analysis).resolving(&borrowed);
+    let request = match acquisition {
+        Some(acquisition) => request.describing(acquisition.block()),
+        None => request,
+    };
 
     let result = analyse(&set, &request, &loaded)
         .map_err(|refusal| PyValueError::new_err(refusal.message))?;
@@ -619,15 +650,4 @@ fn json_to_object(python: Python<'_>, value: &serde_json::Value) -> PyResult<Py<
         }
         serde_json::Value::Object(_) => json_to_dict(python, value)?.into(),
     })
-}
-
-fn convert_through(python: Python<'_>, package: &str, available: &str) -> PyResult<Py<PyAny>> {
-    match python.import(package) {
-        Ok(_) => Err(PyValueError::new_err(format!(
-            "{package} is installed; call .{available}() and hand the rows to it"
-        ))),
-        Err(_) => Err(PyValueError::new_err(format!(
-            "{package} answers this, and .{available}() returns the same rows without it"
-        ))),
-    }
 }

@@ -110,12 +110,18 @@ def test_a_collapsed_noise_band_is_refused_rather_than_substituted(registry):
     onset = registry.method("onset.threshold.noise_relative").bind(k=5.0)
     takeoff = registry.method("takeoff.threshold.absolute_force").bind(threshold_n=20.0)
 
-    with pytest.raises(pf.CollapsedBandError) as raised:
-        pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
-    assert raised.value.method_id == "onset.threshold.noise_relative"
-    assert raised.value.parameter == "k"
-    assert raised.value.dispersion_newtons == 0.0
-    assert "no band to search" in str(raised.value)
+    partial = pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
+    refused = next(
+        refusal
+        for refusal in partial.refusals
+        if refusal.method_id == "onset.threshold.noise_relative"
+    )
+    assert isinstance(refused, pf.CollapsedBandError)
+    assert refused.method_id == "onset.threshold.noise_relative"
+    assert refused.parameter == "k"
+    assert refused.dispersion_newtons == 0.0
+    assert "no band to search" in str(refused)
+    assert partial.system_weight_newtons.value == pytest.approx(600.0)
 
     rescued = pf.analyse_countermovement_jump(
         trial,

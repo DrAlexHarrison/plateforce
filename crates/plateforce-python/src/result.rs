@@ -124,6 +124,18 @@ impl Provenance {
         self.chain.provenance.acquisition_complete
     }
 
+    /// True where a reader placed this rule's landmark instead of accepting detection.
+    #[getter]
+    fn manual_override(&self) -> bool {
+        self.chain.provenance.placed_by_hand_at_sample.is_some()
+    }
+
+    /// The zero-based sample the reader placed, and None where the rule placed it.
+    #[getter]
+    fn placed_by_hand_at_sample(&self) -> Option<usize> {
+        self.chain.provenance.placed_by_hand_at_sample
+    }
+
     /// Choices between named alternatives, which move the number as much as the numeric
     /// parameters do. Population against sample standard deviation is one of them.
     #[getter]

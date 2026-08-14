@@ -50,6 +50,8 @@ def as_data(provenance):
         provenance.registry_declared_version,
         provenance.registry_digest,
         provenance.acquisition_complete,
+        provenance.manual_override,
+        provenance.placed_by_hand_at_sample,
         tuple(as_data(step) for step in provenance.depends_on),
     )
 
@@ -117,6 +119,37 @@ def test_every_result_names_its_method_and_unit(jump):
         result = getattr(jump, attribute)
         assert result.unit == unit, attribute
         assert result.provenance.method_id == method_id, attribute
+
+
+def test_manual_landmarks_carry_the_exact_samples_the_reader_placed(trial, bound_methods):
+    """The 2 of 2 manual landmarks keep their flags and exact samples."""
+    epoch, onset, takeoff = bound_methods
+    placed = pf.analyse_countermovement_jump(
+        trial,
+        epoch,
+        onset,
+        takeoff,
+        onset_index=1300,
+        takeoff_index=1800,
+    )
+    placed_records = [
+        placed.onset_time_seconds.provenance,
+        placed.takeoff_time_seconds.provenance,
+    ]
+    assert [record.manual_override for record in placed_records] == [True, True]
+    assert [record.placed_by_hand_at_sample for record in placed_records] == [1300, 1800]
+
+
+def test_automatically_placed_landmarks_carry_no_manual_marker(trial, bound_methods):
+    """The 2 of 2 automatic controls carry neither a manual flag nor a manual sample."""
+    epoch, onset, takeoff = bound_methods
+    automatic = pf.analyse_countermovement_jump(trial, epoch, onset, takeoff)
+    automatic_records = [
+        automatic.onset_time_seconds.provenance,
+        automatic.takeoff_time_seconds.provenance,
+    ]
+    assert [record.manual_override for record in automatic_records] == [False, False]
+    assert [record.placed_by_hand_at_sample for record in automatic_records] == [None, None]
 
 
 def test_the_bound_parameters_travel_with_the_number(jump):

@@ -9,6 +9,8 @@ The registry here is the fixture one from `conftest`, so a failure means the bin
 rather than that the shipped registry gained an entry.
 """
 
+import inspect
+
 import numpy as np
 import pytest
 
@@ -49,6 +51,140 @@ def run(folder, registry_path, **extra):
         resolved=["system_weight", "movement_onset", "takeoff"],
         **extra,
     )
+
+
+def test_a_folder_run_has_no_sample_rate_default():
+    import plateforce as pf
+
+    rate = inspect.signature(pf.batch).parameters["sample_rate_hz"]
+    assert rate.default is inspect.Parameter.empty
+
+
+def test_a_folder_run_refuses_a_sample_rate_nobody_stated(trial_folder, registry_path):
+    """The single-file reader already requires the rate. A folder cannot quietly choose one
+    because height and displacement move with the square of that choice."""
+    import plateforce as pf
+
+    with pytest.raises(TypeError) as refused:
+        pf.batch(
+            trial_folder,
+            registry=registry_path,
+            weighing="bwepoch.fixed_window",
+            onset="onset.threshold.noise_relative",
+            onset_parameters={"k": 5.0},
+            takeoff="takeoff.threshold.absolute_force",
+            sentinel=None,
+            delimiter="\t",
+            force_column_index=0,
+            trial_file_suffixes=[".force.txt"],
+            resolved=["system_weight", "movement_onset", "takeoff"],
+        )
+    assert "sample_rate_hz" in str(refused.value)
+
+
+def test_a_folder_run_records_every_acquisition_member(
+    trial_folder, registry_path, complete_acquisition
+):
+    complete = run(
+        trial_folder,
+        registry_path,
+        acquisition=complete_acquisition,
+    )
+    record = complete.run.to_dict()
+    assert sum(value is not None for value in record["acquisition"].values()) == 5, (
+        "recorded 5 of 5 acquisition members"
+    )
+    assert record["acquisition_complete_count"] == complete.run.computed_count == 4, (
+        "recorded complete acquisition for 4 of 4 computed trials"
+    )
+
+
+def test_only_a_complete_acquisition_block_publishes_a_fingerprint(
+    trial_folder, registry_path, complete_acquisition
+):
+    """The complete, partial and unstated cases are controls for one another. A fingerprint
+    is published only for 4 of 4 computed trials with all 5 of 5 acquisition members."""
+    import plateforce as pf
+
+    complete = run(
+        trial_folder,
+        registry_path,
+        acquisition=complete_acquisition,
+    )
+    partial = run(
+        trial_folder,
+        registry_path,
+        acquisition=pf.Acquisition(
+            filter_at_capture="none",
+            tare_state="tared_before_trial",
+            plate_natural_frequency_hz=800.0,
+            floor_surface="concrete",
+        ),
+    )
+    unstated = run(trial_folder, registry_path)
+
+    partial_record = partial.run.to_dict()
+    unstated_record = unstated.run.to_dict()
+    assert complete.run.run_fingerprint is not None
+    assert complete.run.run_fingerprint.startswith("content-")
+
+    assert sum(value is not None for value in partial_record["acquisition"].values()) == 4, (
+        "recorded 4 of 5 stated acquisition members"
+    )
+    assert partial_record["acquisition_complete_count"] == 0
+    assert partial.run.run_fingerprint is None
+
+    assert sum(value is not None for value in unstated_record["acquisition"].values()) == 0, (
+        "recorded 0 of 5 acquisition members when none were stated"
+    )
+    assert unstated_record["acquisition_complete_count"] == 0
+    assert unstated.run.run_fingerprint is None
+
+
+def test_a_changed_acquisition_block_changes_the_fingerprint(
+    trial_folder, registry_path, complete_acquisition
+):
+    import plateforce as pf
+
+    complete = run(
+        trial_folder,
+        registry_path,
+        acquisition=complete_acquisition,
+    )
+    changed = run(
+        trial_folder,
+        registry_path,
+        acquisition=pf.Acquisition(
+            filter_at_capture="none",
+            tare_state="tared_before_trial",
+            plate_natural_frequency_hz=800.0,
+            floor_surface="concrete",
+            firmware_version="synthetic-1",
+        ),
+    )
+    assert changed.run.run_fingerprint != complete.run.run_fingerprint
+
+
+def test_to_pandas_converts_all_trial_rows(trial_folder, registry_path):
+    pandas = pytest.importorskip("pandas")
+    result = run(trial_folder, registry_path)
+
+    frame = result.to_pandas()
+    expected = [row["trial_id"] for row in result.results]
+    assert isinstance(frame, pandas.DataFrame)
+    assert len(frame.index) == len(expected) == 4, "converted 4 of 4 trial rows"
+    assert frame["trial_id"].tolist() == expected
+
+
+def test_to_arrow_converts_all_trial_rows(trial_folder, registry_path):
+    pyarrow = pytest.importorskip("pyarrow")
+    result = run(trial_folder, registry_path)
+
+    table = result.to_arrow()
+    expected = [row["trial_id"] for row in result.results]
+    assert isinstance(table, pyarrow.Table)
+    assert table.num_rows == len(expected) == 4, "converted 4 of 4 trial rows"
+    assert table.column("trial_id").to_pylist() == expected
 
 
 def test_a_separator_of_several_characters_is_refused_before_the_folder_is_read(
