@@ -30,6 +30,7 @@ name = "search_signal"
 unit = "enumeration"
 default_key = "velocity_argmin"
 default_source = "plateforce_corpus_fit"
+required = true
 notes = """
 Definitionally equivalent and numerically consequential. The intuition that the force crossing is
 the sturdy one was measured on 243 trials and is wrong: disagreement magnitude correlates with
@@ -62,7 +63,7 @@ obtained = true
 [[method.citation]]
 key = "plateforce_corpus_fit"
 role = "proposes"
-reference = "Fitted on 243 countermovement-jump trials at the braking start: disagreement magnitude tracks raw-force re-crossings at r = +0.640 and velocity flat-band width at r = -0.062, so the velocity minimum carries the cross-trial error variance the force crossing does not. Measured at this boundary and does not transfer to another one"
+reference = "Fitted on 243 countermovement-jump trials at the braking start: disagreement magnitude tracks raw-force re-crossings at r = +0.640 and velocity flat-band width at r = -0.062, so the force crossing carries the cross-trial error variance the velocity minimum does not. Measured at this boundary and does not transfer to another one"
 obtained = true
 
 [[method.bias]]

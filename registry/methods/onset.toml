@@ -120,9 +120,10 @@ required = true
 notes = """
 20 N is retained because a large installed base of published and practitioner data is computed with
 it. 40 N and 75 N are deprecated on evidence: Guppy concludes a 40 N absolute rise overestimates
-force-generating capacity and its use should be avoided, and Dos'Santos found 75 N produced
-unacceptable limits of agreement on all force-time variables. Both deprecations are isometric
-mid-thigh pull findings and neither tested a jump.
+force-generating capacity and its use should be avoided. Dos'Santos found BW10 and BW75N produced
+unacceptable limits of agreement for Force100, Force150 and RFD150; body weight and peak force were
+unaffected, p = 1.000. Both deprecations are isometric mid-thigh pull findings and neither tested a
+jump.
 """
 
 [[method.citation]]
@@ -135,9 +136,9 @@ obtained = true
 [[method.citation]]
 key = "dossantos2017"
 role = "evaluates"
-reference = "Dos'Santos et al. 2017, onset thresholds in the isometric mid-thigh pull, read through Ripley 2025"
+reference = "Dos'Santos et al. 2017, complete primary article on onset thresholds in the isometric mid-thigh pull"
 doi = "10.1519/JSC.0000000000001765"
-obtained = false
+obtained = true
 
 [[method.citation]]
 key = "vald_glossary"
@@ -219,9 +220,10 @@ required = true
 notes = """
 Accepted at 2.5 and 5 percent, deprecated at 10 percent, undeclared at 1 percent. 2.5 has a
 published rationale, that unfiltered signal noise sits slightly below 2.5 percent of bodyweight.
-10 percent produced unacceptable limits of agreement on all force-time variables and differed
-significantly from both lower thresholds on nearly every variable. 1 percent stays undeclared:
-one study found it less reliable, which is a direction and not a ruling.
+BW10 and BW75N produced unacceptable limits of agreement for Force100, Force150 and RFD150; body
+weight and peak force were unaffected, p = 1.000. The higher thresholds differed significantly from
+the lower thresholds on time-specific force values. 1 percent stays undeclared: one study found it
+less reliable, which is a direction and not a ruling.
 """
 
 [[method.citation]]
@@ -246,9 +248,9 @@ obtained = true
 [[method.citation]]
 key = "dossantos2017"
 role = "evaluates"
-reference = "Dos'Santos et al. 2017, reached second-hand through Ripley 2025's discussion"
+reference = "Dos'Santos et al. 2017, complete primary article on onset thresholds in the isometric mid-thigh pull"
 doi = "10.1519/JSC.0000000000001765"
-obtained = false
+obtained = true
 
 [[method.bias]]
 magnitude = 14.42
@@ -1019,10 +1021,9 @@ required = true
 notes = """
 The window before the candidate crossing that is searched for an excursion the other side of the
 band, which is what makes the retreat fire on a trace that preloads before it unweights. Sams is
-the only source that states one and states it as 100 ms. The 0.5 s default this implementation
-runs is five times that and matches no published value; nobody has measured which is right on this
-corpus, and the recording that would settle it is a countermovement jump preceded by a deliberate
-preload.
+the only source that states one and states it as 100 ms. The 0.5 s default is five times that and
+matches no published value; nobody has measured which is right on this corpus, and the recording
+that would settle it is a countermovement jump preceded by a deliberate preload.
 """
 
 [[method.citation]]
@@ -1034,7 +1035,7 @@ obtained = true
 [[method.citation]]
 key = "plateforce_derivation"
 role = "proposes"
-reference = "Named in this registry. The lookback window is stated by one source at 100 ms and the wider default this build runs is this registry's, not a published figure"
+reference = "Named in this registry. One source states a 100 ms lookback; the wider 0.5 s default is not a published figure"
 obtained = true
 
 [[method.citation]]
@@ -1171,6 +1172,7 @@ name = "selection"
 unit = "enumeration"
 default_key = "first"
 default_source = "plateforce_derivation"
+required = true
 notes = """
 The apparent first-against-last fork between two open tools is discretisation rather than a fork:
 within a search bounded above by the minimum force, a countermovement-jump trace crosses once, so
@@ -1312,7 +1314,7 @@ and never look earlier.
 """
 # Split out of onset.op.search_floor, which files three tools under one entry while one of them
 # derives the floor and the other two state it. The two behave the same only when the weighing
-# window is fixed and anchored at sample zero, which is one of the weighing rules this build runs.
+# window is fixed and anchored at sample zero.
 # Proposed by this registry rather than by a publication, so it takes the same floor as the other
 # entry proposed here rather than being promoted to accepted.
 status = "contested"
@@ -1434,6 +1436,7 @@ name = "direction"
 unit = "enumeration"
 default_key = "below_only"
 default_source = "plateforce_derivation"
+required = true
 notes = """
 An implementation detail for a countermovement jump, which always unweights first, and a genuine
 method fork for a squat jump, an isometric pull or a squat, which only rise. The same code is
@@ -1525,6 +1528,7 @@ name = "dispersion"
 unit = "enumeration"
 default_key = "sample"
 default_source = "plateforce_derivation"
+required = true
 notes = "The trailing window is short, so the divisor is not negligible the way it is over a long epoch."
 
 [[method.parameter.value]]

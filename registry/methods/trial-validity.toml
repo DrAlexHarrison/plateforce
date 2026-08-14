@@ -158,7 +158,7 @@ unit = "percent"
 published_values = [10.0]
 default = 10.0
 default_source = "chavda2020"
-required = false
+required = true
 notes = "A live-feedback band, flagged by its own authors as needing further research."
 
 [[method.citation]]
@@ -215,6 +215,7 @@ name = "dispersion"
 unit = "enumeration"
 default_key = "sample"
 default_source = "plateforce_derivation"
+required = true
 notes = """
 The source states the threshold as mean less k standard deviations over the baseline window and
 never names the divisor. The rule reads this choice, so the entry declares it rather than leaving

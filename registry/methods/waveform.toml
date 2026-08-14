@@ -198,7 +198,7 @@ note = """
 An explicit published critique on two grounds: that the competing family does not inherently identify
 key phases and so has the potential to mask performance-related factors, and that it cannot examine
 the combined magnitude-time domain, which matters here precisely because of the impulse-momentum
-relationship. For this project's central quantity, magnitude and time are not separable.
+relationship. For vertical jump impulse-momentum, magnitude and time are not separable.
 """
 
 [method.gui]

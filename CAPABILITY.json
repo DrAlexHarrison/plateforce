@@ -35,7 +35,7 @@
                 "two_pass"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.accumulation",
               "unit": "enumeration"
             },
@@ -48,7 +48,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -71,7 +71,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -81,7 +81,7 @@
               "name": "reject_at_or_below_fraction_of_weight",
               "named_values": [],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.reject_at_or_below_fraction_of_weight",
               "unit": "fraction"
             },
@@ -140,7 +140,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -153,7 +153,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -206,7 +206,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -219,7 +219,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -549,7 +549,7 @@
               "published_values": [
                 0.039
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.ankle_height_fraction_of_stature",
               "unit": "fraction"
             },
@@ -571,7 +571,7 @@
               "published_values": [
                 0.152
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.foot_length_fraction_of_stature",
               "unit": "fraction"
             },
@@ -583,7 +583,7 @@
               "published_values": [
                 0.787
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.malleolus_fraction_of_foot_length",
               "unit": "fraction"
             },
@@ -978,7 +978,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.dispersion",
               "unit": "enumeration"
             },
@@ -1236,7 +1236,7 @@
                 "velocity_argmin"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "braking_phase_start.search_signal",
               "unit": "enumeration"
             }
@@ -1613,7 +1613,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "trial_validity.dispersion",
               "unit": "enumeration"
             },
@@ -2230,7 +2230,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "takeoff.dispersion",
               "unit": "enumeration"
             },
@@ -2277,7 +2277,7 @@
               "published_values": [
                 0.1
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_ceiling_bodyweights",
               "unit": "bodyweights"
             },
@@ -2289,7 +2289,7 @@
               "published_values": [
                 0.02
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_seconds",
               "unit": "seconds"
             },
@@ -2325,7 +2325,7 @@
               "published_values": [
                 0.6
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.maximum_rise_seconds",
               "unit": "seconds"
             },
@@ -2337,7 +2337,7 @@
               "published_values": [
                 0.008
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.minimum_run_seconds",
               "unit": "seconds"
             },
@@ -2349,7 +2349,7 @@
               "published_values": [
                 0.01
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.slope_span_seconds",
               "unit": "seconds"
             },
@@ -2431,7 +2431,7 @@
               "published_values": [
                 10.0
               ],
-              "required": false,
+              "required": true,
               "states": "trial_validity.band_pct_bodyweight",
               "unit": "percent"
             },
@@ -2804,7 +2804,7 @@
                 "longest_run"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.selection",
               "unit": "enumeration"
             }
@@ -2827,7 +2827,7 @@
                 "two_sided"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.direction",
               "unit": "enumeration"
             }
@@ -3156,7 +3156,7 @@
                 "two_pass"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.accumulation",
               "unit": "enumeration"
             },
@@ -3169,7 +3169,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -3192,7 +3192,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -3202,7 +3202,7 @@
               "name": "reject_at_or_below_fraction_of_weight",
               "named_values": [],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.reject_at_or_below_fraction_of_weight",
               "unit": "fraction"
             },
@@ -3261,7 +3261,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -3274,7 +3274,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -3327,7 +3327,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -3340,7 +3340,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -3670,7 +3670,7 @@
               "published_values": [
                 0.039
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.ankle_height_fraction_of_stature",
               "unit": "fraction"
             },
@@ -3692,7 +3692,7 @@
               "published_values": [
                 0.152
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.foot_length_fraction_of_stature",
               "unit": "fraction"
             },
@@ -3704,7 +3704,7 @@
               "published_values": [
                 0.787
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.malleolus_fraction_of_foot_length",
               "unit": "fraction"
             },
@@ -4099,7 +4099,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.dispersion",
               "unit": "enumeration"
             },
@@ -4357,7 +4357,7 @@
                 "velocity_argmin"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "braking_phase_start.search_signal",
               "unit": "enumeration"
             }
@@ -4734,7 +4734,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "trial_validity.dispersion",
               "unit": "enumeration"
             },
@@ -5351,7 +5351,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "takeoff.dispersion",
               "unit": "enumeration"
             },
@@ -5398,7 +5398,7 @@
               "published_values": [
                 0.1
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_ceiling_bodyweights",
               "unit": "bodyweights"
             },
@@ -5410,7 +5410,7 @@
               "published_values": [
                 0.02
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_seconds",
               "unit": "seconds"
             },
@@ -5446,7 +5446,7 @@
               "published_values": [
                 0.6
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.maximum_rise_seconds",
               "unit": "seconds"
             },
@@ -5458,7 +5458,7 @@
               "published_values": [
                 0.008
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.minimum_run_seconds",
               "unit": "seconds"
             },
@@ -5470,7 +5470,7 @@
               "published_values": [
                 0.01
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.slope_span_seconds",
               "unit": "seconds"
             },
@@ -5552,7 +5552,7 @@
               "published_values": [
                 10.0
               ],
-              "required": false,
+              "required": true,
               "states": "trial_validity.band_pct_bodyweight",
               "unit": "percent"
             },
@@ -5927,7 +5927,7 @@
                 "longest_run"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.selection",
               "unit": "enumeration"
             }
@@ -5950,7 +5950,7 @@
                 "two_sided"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.direction",
               "unit": "enumeration"
             }
@@ -6280,7 +6280,7 @@
                 "two_pass"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.accumulation",
               "unit": "enumeration"
             },
@@ -6293,7 +6293,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -6316,7 +6316,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -6326,7 +6326,7 @@
               "name": "reject_at_or_below_fraction_of_weight",
               "named_values": [],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.reject_at_or_below_fraction_of_weight",
               "unit": "fraction"
             },
@@ -6385,7 +6385,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -6398,7 +6398,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -6451,7 +6451,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -6464,7 +6464,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -6794,7 +6794,7 @@
               "published_values": [
                 0.039
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.ankle_height_fraction_of_stature",
               "unit": "fraction"
             },
@@ -6816,7 +6816,7 @@
               "published_values": [
                 0.152
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.foot_length_fraction_of_stature",
               "unit": "fraction"
             },
@@ -6828,7 +6828,7 @@
               "published_values": [
                 0.787
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.malleolus_fraction_of_foot_length",
               "unit": "fraction"
             },
@@ -7223,7 +7223,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.dispersion",
               "unit": "enumeration"
             },
@@ -7481,7 +7481,7 @@
                 "velocity_argmin"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "braking_phase_start.search_signal",
               "unit": "enumeration"
             }
@@ -7858,7 +7858,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "trial_validity.dispersion",
               "unit": "enumeration"
             },
@@ -8475,7 +8475,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "takeoff.dispersion",
               "unit": "enumeration"
             },
@@ -8522,7 +8522,7 @@
               "published_values": [
                 0.1
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_ceiling_bodyweights",
               "unit": "bodyweights"
             },
@@ -8534,7 +8534,7 @@
               "published_values": [
                 0.02
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_seconds",
               "unit": "seconds"
             },
@@ -8570,7 +8570,7 @@
               "published_values": [
                 0.6
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.maximum_rise_seconds",
               "unit": "seconds"
             },
@@ -8582,7 +8582,7 @@
               "published_values": [
                 0.008
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.minimum_run_seconds",
               "unit": "seconds"
             },
@@ -8594,7 +8594,7 @@
               "published_values": [
                 0.01
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.slope_span_seconds",
               "unit": "seconds"
             },
@@ -8676,7 +8676,7 @@
               "published_values": [
                 10.0
               ],
-              "required": false,
+              "required": true,
               "states": "trial_validity.band_pct_bodyweight",
               "unit": "percent"
             },
@@ -9049,7 +9049,7 @@
                 "longest_run"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.selection",
               "unit": "enumeration"
             }
@@ -9072,7 +9072,7 @@
                 "two_sided"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.direction",
               "unit": "enumeration"
             }
@@ -9402,7 +9402,7 @@
                 "two_pass"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.accumulation",
               "unit": "enumeration"
             },
@@ -9415,7 +9415,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -9438,7 +9438,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -9448,7 +9448,7 @@
               "name": "reject_at_or_below_fraction_of_weight",
               "named_values": [],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.reject_at_or_below_fraction_of_weight",
               "unit": "fraction"
             },
@@ -9507,7 +9507,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -9520,7 +9520,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -9573,7 +9573,7 @@
                 "median"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.centre",
               "unit": "enumeration"
             },
@@ -9586,7 +9586,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "weighing.dispersion",
               "unit": "enumeration"
             },
@@ -9916,7 +9916,7 @@
               "published_values": [
                 0.039
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.ankle_height_fraction_of_stature",
               "unit": "fraction"
             },
@@ -9938,7 +9938,7 @@
               "published_values": [
                 0.152
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.foot_length_fraction_of_stature",
               "unit": "fraction"
             },
@@ -9950,7 +9950,7 @@
               "published_values": [
                 0.787
               ],
-              "required": false,
+              "required": true,
               "states": "jump_height.takeoff_frame.malleolus_fraction_of_foot_length",
               "unit": "fraction"
             },
@@ -10345,7 +10345,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.dispersion",
               "unit": "enumeration"
             },
@@ -10603,7 +10603,7 @@
                 "velocity_argmin"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "braking_phase_start.search_signal",
               "unit": "enumeration"
             }
@@ -10980,7 +10980,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "trial_validity.dispersion",
               "unit": "enumeration"
             },
@@ -11597,7 +11597,7 @@
                 "sample"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "takeoff.dispersion",
               "unit": "enumeration"
             },
@@ -11644,7 +11644,7 @@
               "published_values": [
                 0.1
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_ceiling_bodyweights",
               "unit": "bodyweights"
             },
@@ -11656,7 +11656,7 @@
               "published_values": [
                 0.02
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.bridged_gap_seconds",
               "unit": "seconds"
             },
@@ -11692,7 +11692,7 @@
               "published_values": [
                 0.6
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.maximum_rise_seconds",
               "unit": "seconds"
             },
@@ -11704,7 +11704,7 @@
               "published_values": [
                 0.008
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.minimum_run_seconds",
               "unit": "seconds"
             },
@@ -11716,7 +11716,7 @@
               "published_values": [
                 0.01
               ],
-              "required": false,
+              "required": true,
               "states": "takeoff.slope_span_seconds",
               "unit": "seconds"
             },
@@ -11798,7 +11798,7 @@
               "published_values": [
                 10.0
               ],
-              "required": false,
+              "required": true,
               "states": "trial_validity.band_pct_bodyweight",
               "unit": "percent"
             },
@@ -12168,7 +12168,7 @@
                 "longest_run"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.selection",
               "unit": "enumeration"
             }
@@ -12191,7 +12191,7 @@
                 "two_sided"
               ],
               "published_values": [],
-              "required": false,
+              "required": true,
               "states": "onset.direction",
               "unit": "enumeration"
             }

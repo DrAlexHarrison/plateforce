@@ -940,7 +940,7 @@ kind = "genuine"
 
 [method.gui]
 surfacing = "default_and_hide"
-sensitivity = "very small"
+sensitivity = "none; identity up to floating-point residue"
 rationale = """
 Kept for recognition value: it is the only artefact in any jump tool presenting itself as a
 velocity-drift policy, and a practitioner who meets it needs to be able to look it up and be told

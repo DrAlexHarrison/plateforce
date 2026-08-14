@@ -621,13 +621,13 @@ invariance.
 [[method.citation]]
 key = "sanchezmedina2017"
 role = "proposes"
-reference = "Sanchez-Medina et al. 2017, on disk and still unread"
-obtained = false
+reference = "Sanchez-Medina et al. 2017, complete primary article on the full back squat load-velocity relation"
+obtained = true
 
 [[method.citation]]
 key = "jidovtseff2011"
-role = "proposes"
-reference = "Jidovtseff, Harris, Crielaard and Cronin 2011, JSCR 25(1):267-270, held in full via an open repository copy"
+role = "evaluates"
+reference = "Jidovtseff, Harris, Crielaard and Cronin 2011, complete primary article; observed V1RM was 0.23 +/- 0.09 m/s across 112 bench-press participants"
 doi = "10.1519/jsc.0b013e3181b62c5f"
 obtained = true
 

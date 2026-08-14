@@ -301,7 +301,7 @@ note = "Definitional rather than an implementation detail: peak velocity and tak
 [method.gui]
 surfacing = "default_and_hide"
 sensitivity = "small but systematic, which is worse than large and random for cross-study comparison"
-rationale = "Available in a reproduce-legacy mode, defaulting to takeoff velocity."
+rationale = "Choose only to reproduce an analysis that used peak centre of mass velocity; otherwise use takeoff velocity."
 
 [[method]]
 id = "jumpheight.takeoff.work_energy"
@@ -695,22 +695,9 @@ obtained = true
 [[method.citation]]
 key = "kibele1998"
 role = "disputes"
-reference = "Kibele A 1998, J Appl Biomech 14(1):105-117, held as a 2-page publisher preview"
+reference = "Kibele A 1998, complete primary article; its Dempster film model gave jump heights 2.4 cm higher on average than numerical impulse-momentum"
 doi = "10.1123/jab.14.1.105"
-obtained = false
-
-[[method.bias]]
-magnitude = 0.0398
-unit = "meters"
-direction = "low"
-criterion = "jumpheight.takeoff.impulse_momentum"
-criterion_kind = "model"
-source = "kibele1998"
-# The rigid-trunk assumption puts the modelled centre of gravity too low, and the trunk is 49
-# percent of body mass: multi-segment against rigid-trunk differs by about 3.98 cm. Kibele's
-# conclusion inverts the usual criterion hierarchy, that Dempster-like models can cause errors
-# disqualifying their use as validation criteria for kinetic parameters while numerical integration
-# of force was a reasonable tool.
+obtained = true
 
 [[method.disagrees_with]]
 id = "jumpheight.standing.double_integration"
@@ -817,10 +804,10 @@ note = "A genuine debate if the resultant reading is correct and a documentation
 surfacing = "surface_on_demand"
 sensitivity = "potentially a systematic positive offset on every jump height from this device"
 rationale = """
-Under a reproduce-legacy option, never a default. This software produced the 2011 reference values
-the validation corpus rests on, and it writes exactly 0.00 to jump height, time to takeoff and
-reactive strength index simultaneously on 3 of the 244 trials, which are missing values wearing the
-costume of a measurement and must be dropped before any comparison.
+Use only to reproduce AccuPower-derived results, never as a default. The 2011 validation corpus uses
+AccuPower reference values. AccuPower writes exactly 0.00 to jump height, time to takeoff and reactive
+strength index simultaneously on 3 of the 244 analyzed trials. These are missing values and must be
+dropped before any comparison.
 """
 
 [method.reach]
@@ -937,15 +924,14 @@ doi = "10.1007/s40279-023-01828-x"
 obtained = false
 
 [[method.bias]]
-magnitude = 0.2
+magnitude = 0.1484
 unit = "meters"
 direction = "high"
 criterion = "jumpheight.takeoff.flight_time"
 criterion_kind = "instrument"
 source = "xu2023"
-# The mat added about 100 ms to the measured flight time: 0.524 +/- 0.078 s on a force plate against
-# 0.629 +/- 0.077 s on the mat. A 100 ms additive constant on a 520 ms flight time inflates jump
-# height by roughly 40 percent, about 20 cm at typical flight times.
+# The reported means are 0.524 s on the force plate and 0.629 s on the mat. Applying h = g t^2 / 8
+# gives 0.33658 m and 0.48499 m, a 0.14841 m or 44.09 percent increase.
 
 [[method.disagrees_with]]
 id = "jumpheight.takeoff.flight_time"
@@ -1189,7 +1175,7 @@ unit = "fraction"
 published_values = [0.152]
 default = 0.152
 default_source = "winter2009"
-required = false
+required = true
 
 [[method.parameter]]
 name = "malleolus_fraction_of_foot_length"
@@ -1197,7 +1183,7 @@ unit = "fraction"
 published_values = [0.787]
 default = 0.787
 default_source = "tilley2001"
-required = false
+required = true
 
 [[method.parameter]]
 name = "ankle_height_fraction_of_stature"
@@ -1205,7 +1191,7 @@ unit = "fraction"
 published_values = [0.039]
 default = 0.039
 default_source = "winter2009"
-required = false
+required = true
 notes = """
 The third fraction the published length equation uses. Without it the rule holds a constant no
 entry declares, and the segment comes to 0.1196 of stature against the source's 0.126.

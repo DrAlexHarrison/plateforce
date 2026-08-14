@@ -59,6 +59,7 @@ name = "centre"
 unit = "enumeration"
 default_key = "mean"
 default_source = "plateforce_derivation"
+required = true
 notes = "The mean is what every published epoch rule states. The median resists a sample the athlete moved during, at the cost of no longer being the quantity the integration divisor is defined as."
 
 [[method.parameter.value]]
@@ -74,6 +75,7 @@ name = "dispersion"
 unit = "enumeration"
 default_key = "sample"
 default_source = "plateforce_derivation"
+required = true
 notes = "The spread of this window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
 
 [[method.parameter.value]]
@@ -209,6 +211,7 @@ name = "reject_at_or_below_fraction_of_weight"
 unit = "fraction"
 default = 0.025
 default_source = "plateforce_derivation"
+required = true
 notes = """
 Candidate windows whose force sits at or below this fraction of the provisional system weight are
 refused, which keeps the unloaded plate out of the search. The plate reads near zero in flight and
@@ -246,6 +249,7 @@ name = "accumulation"
 unit = "enumeration"
 default_key = "two_pass"
 default_source = "plateforce_derivation"
+required = true
 notes = "The search compares the variance of every candidate window, so how the variance is accumulated decides which window wins whenever two are close."
 
 [[method.parameter.value]]
@@ -262,6 +266,7 @@ name = "dispersion"
 unit = "enumeration"
 default_key = "sample"
 default_source = "plateforce_derivation"
+required = true
 notes = "The spread of the selected window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
 
 [[method.parameter.value]]
@@ -277,6 +282,7 @@ name = "centre"
 unit = "enumeration"
 default_key = "mean"
 default_source = "plateforce_derivation"
+required = true
 notes = """
 Read on the placed path: a caller who states a start turns the search into a placement, and the
 placed window's centre is this choice. The rule reads the name either way, so the entry declares
@@ -596,6 +602,7 @@ name = "centre"
 unit = "enumeration"
 default_key = "mean"
 default_source = "plateforce_derivation"
+required = true
 notes = "The mean is what every published epoch rule states. The median resists a sample the athlete moved during, at the cost of no longer being the quantity the integration divisor is defined as."
 
 [[method.parameter.value]]
@@ -611,6 +618,7 @@ name = "dispersion"
 unit = "enumeration"
 default_key = "sample"
 default_source = "plateforce_derivation"
+required = true
 notes = "The spread of this window scales every noise-relative threshold downstream, so the divisor travels with the number it produced."
 
 [[method.parameter.value]]

@@ -100,13 +100,11 @@ unit = "enumeration"
 published_values = []
 required = true
 notes = """
-subject, trial. The rule says subject and the obvious implementation uses trials, which is not the
-same test: this project's own corpus is 244 trials from 41 subjects, so taking trials inflates the
-count almost sixfold, narrows the limits of agreement by roughly the square root of that, and
-reports a tighter agreement than the data supports. Repeated trials from one athlete are not
-independent observations of the between-method difference. Carried as a required parameter with no
-default so it cannot be defaulted through silently, which is the failure this entry would otherwise
-have shipped.
+subject, trial. The rule says subject, and the corpus has 244 trials from 41 subjects. Treating
+repeated trials as independent overstates precision and requires a repeated-measures agreement
+model; it does not narrow the limits themselves by the square root of the trial count. Repeated
+trials from one athlete are not independent observations of the between-method difference. Carried
+as a required parameter with no default so it cannot be defaulted through silently.
 """
 
 [[method.parameter]]
@@ -128,6 +126,13 @@ role = "proposes"
 reference = "Bland and Altman 1986, Lancet 327:307-310; not obtained, the rule is standard and stated identically by three sources that were"
 doi = "10.1016/S0140-6736(86)90837-8"
 obtained = false
+
+[[method.citation]]
+key = "blandaltman1999"
+role = "proposes"
+reference = "Bland and Altman 1999, Statistical Methods in Medical Research 8:135-160, extending limits of agreement to repeated measurements"
+doi = "10.1177/096228029900800204"
+obtained = true
 
 [[method.bias]]
 magnitude = 1.0

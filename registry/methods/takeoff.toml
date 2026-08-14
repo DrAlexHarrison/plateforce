@@ -18,8 +18,8 @@ construct = "takeoff"
 group = "D"
 title = "First sample past a fixed newton threshold"
 rule = """
-Takeoff is the first sample below a fixed newton threshold, and landing the first sample above it,
-optionally qualified by a persistence span.
+Takeoff is the first sample beginning a sustained run below a fixed newton threshold, optionally
+qualified by a persistence span.
 """
 status = "accepted"
 confidence = "high"
@@ -236,6 +236,7 @@ name = "dispersion"
 unit = "enumeration"
 default_key = "sample"
 default_source = "plateforce_derivation"
+required = true
 notes = "The window this rule measures over is a fraction of one flight phase, so the divisor is not negligible the way it is over a long epoch."
 
 [[method.parameter.value]]
@@ -708,9 +709,8 @@ Begin the search for the flight phase at the end of the window that defined body
 that window fell, and never look earlier.
 """
 # Split out of the threshold rules that apply it, which recorded the threshold they compared
-# against and not the first sample they were permitted to compare. Two of the five shipped takeoff
-# rules take this floor and three search the whole recording, so the fork is between rules rather
-# than inside any one of them.
+# against and not the first sample they were permitted to compare. Two rules take this floor and
+# three search the whole recording, so the fork is between rules rather than inside any one of them.
 status = "contested"
 confidence = "medium"
 debate = "genuine"
@@ -730,7 +730,7 @@ the takeoff reported is that sample.
 [[method.citation]]
 key = "plateforce_shipped_convention"
 role = "uses"
-reference = "The floor this software has applied to its first-run and re-estimating takeoff rules since they were written, recorded here so a takeoff produced under it names it"
+reference = "The weighing-epoch-end floor used by the first-run and re-estimating takeoff rules, recorded so the resulting takeoff names its search boundary"
 obtained = true
 
 [[method.citation]]
@@ -843,7 +843,7 @@ returned for want of anywhere else to look.
 [[method.citation]]
 key = "plateforce_shipped_convention"
 role = "uses"
-reference = "The policy this software has applied to its longest-run, descending-crossing and landing-shape takeoff rules since they were written"
+reference = "The whole-recording search policy used by the longest-run, descending-crossing and landing-shape takeoff rules"
 obtained = true
 
 [[method.disagrees_with]]
@@ -900,7 +900,7 @@ debate = "genuine"
 [[method.citation]]
 key = "plateforce_shipped_convention"
 role = "uses"
-reference = "The convention this software has applied since flight time was first emitted, recorded here so a number produced under it names it"
+reference = "The tied-edge convention in which landing reuses the threshold that placed takeoff, recorded so the resulting flight time names both edge rules"
 obtained = true
 
 [[method.disagrees_with]]
@@ -916,8 +916,8 @@ magnitude apart in persistence.
 [method.gui]
 surfacing = "default_and_hide"
 sensitivity = """
-None against the shipped behaviour, which is this rule. Against a separately stated rising edge it
-is the whole of the difference in flight time, and flight-time jump height goes as the square of it.
+None against the tied-edge rule. Against a separately stated rising edge it is the whole of the
+difference in flight time, and flight-time jump height goes as the square of it.
 """
 rationale = """
 It is what runs when nobody states otherwise, so it is chosen silently and recorded always. Hidden
@@ -966,8 +966,8 @@ exposed to a brief excursion.
 [[method.citation]]
 key = "jumpmetrics"
 role = "uses"
-reference = "JumpMetrics landing and takeoff detection, as recorded in this project's tool survey rather than read first-hand"
-obtained = false
+reference = "JumpMetrics src/jumpmetrics/core/io.py:163-195 and 230-254, direct takeoff and landing implementations"
+obtained = true
 
 [[method.disagrees_with]]
 id = "landing.threshold.tied_to_takeoff"
@@ -1054,6 +1054,7 @@ unit = "seconds"
 published_values = [0.6]
 default = 0.6
 default_source = "plateforce_corpus_fit"
+required = true
 notes = """
 The peak the verdict reads is found inside this window, so the window has to contain the rise it is
 measuring. A landing turns over inside about 100 ms and a reweighting takes longer. Truncated to a
@@ -1067,6 +1068,7 @@ unit = "seconds"
 published_values = [0.01]
 default = 0.01
 default_source = "plateforce_corpus_fit"
+required = true
 notes = "Slope is read over this span rather than between adjacent samples, where the converter step and the plate noise dominate the difference."
 
 [[method.parameter]]
@@ -1075,6 +1077,7 @@ unit = "seconds"
 published_values = [0.008]
 default = 0.008
 default_source = "plateforce_corpus_fit"
+required = true
 notes = "Below this a run is a few samples of noise crossing the threshold rather than an event."
 
 [[method.parameter]]
@@ -1083,6 +1086,7 @@ unit = "seconds"
 published_values = [0.02]
 default = 0.02
 default_source = "plateforce_corpus_fit"
+required = true
 notes = """
 An unloaded plate reading near zero crosses a near-zero threshold repeatedly, which cuts one flight
 phase into a dozen runs and measures the shape of a noise blip. A gap is treated as part of the
@@ -1095,6 +1099,7 @@ unit = "bodyweights"
 published_values = [0.1]
 default = 0.1
 default_source = "plateforce_corpus_fit"
+required = true
 notes = "A landing or a push is neither brief nor small, so neither is bridged."
 
 [[method.citation]]
@@ -1117,7 +1122,7 @@ recordings to be wrong about. This rule reads what happens after each run instea
 [method.gui]
 surfacing = "surface_on_demand"
 sensitivity = """
-Decisive on a recording holding anything other than one trimmed jump, and identical to the shipped
+Decisive on a recording holding anything other than one trimmed jump, and identical to the threshold
 rules on one that holds exactly that. It moves takeoff by the whole distance between a step-off and
 the jump when the two disagree.
 """
