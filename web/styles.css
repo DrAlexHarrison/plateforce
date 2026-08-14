@@ -213,6 +213,8 @@ svg { stroke: currentColor; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Flex layout discards the space between the word and its longer phrase. */
+  gap: var(--space-1);
   min-height: 44px;
   min-width: 44px;
   font-size: var(--text-sm);
