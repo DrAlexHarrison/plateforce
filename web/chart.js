@@ -57,16 +57,47 @@ function timeDecimals(ticks) {
   return 6;
 }
 
+function wrapLine(context, text, width) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && context.measureText(next).width > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function pngBlob(canvas) {
+  const encoded = canvas.toDataURL('image/png').split(',')[1];
+  const bytes = atob(encoded);
+  const data = new Uint8Array(bytes.length);
+  for (let index = 0; index < bytes.length; index += 1) data[index] = bytes.charCodeAt(index);
+  return new Blob([data], { type: 'image/png' });
+}
+
 export class TraceChart {
   constructor({
     container, canvas, overlay, markers,
-    onMarkerMove, onWindowChange, onViewChange, onSelectionChange, regionLabel,
+    onMarkerMove, onMarkerEditStart, onMarkerEditEnd,
+    onWindowChange, onWindowEditStart, onWindowEditEnd,
+    onViewChange, onSelectionChange, regionLabel,
   }) {
     this.container = container;
     this.canvas = canvas;
     this.overlay = overlay;
     this.onMarkerMove = onMarkerMove;
+    this.onMarkerEditStart = onMarkerEditStart;
+    this.onMarkerEditEnd = onMarkerEditEnd;
     this.onWindowChange = onWindowChange;
+    this.onWindowEditStart = onWindowEditStart;
+    this.onWindowEditEnd = onWindowEditEnd;
     this.onViewChange = onViewChange;
     this.onSelectionChange = onSelectionChange;
     /* The words for an interval the analysis placed. Supplied rather than held here, because
@@ -94,6 +125,8 @@ export class TraceChart {
     this.pendingClear = null;
     /* Views a zoom replaced, so a reader who zoomed to a span can step back out of it. */
     this.viewStack = [];
+    this.markerEdits = new Map();
+    this.windowEdit = null;
 
     this.buildOverlay();
     this.attachSelection();
@@ -255,6 +288,7 @@ export class TraceChart {
       event.preventDefault();
       element.setPointerCapture(event.pointerId);
       element.dataset.dragging = 'true';
+      this.markerEdits.set(key, this.onMarkerEditStart?.(key));
     });
     element.addEventListener('pointermove', (event) => {
       if (element.dataset.dragging !== 'true') return;
@@ -264,6 +298,8 @@ export class TraceChart {
       if (element.dataset.dragging !== 'true') return;
       delete element.dataset.dragging;
       element.releasePointerCapture?.(event.pointerId);
+      this.onMarkerEditEnd?.(key, this.markerEdits.get(key));
+      this.markerEdits.delete(key);
     };
     element.addEventListener('pointerup', release);
     element.addEventListener('pointercancel', release);
@@ -274,11 +310,14 @@ export class TraceChart {
       const steps = { ArrowLeft: -1, ArrowRight: 1, PageDown: -100, PageUp: 100, Home: null, End: null };
       if (!(event.key in steps)) return;
       event.preventDefault();
+      const before = this.onMarkerEditStart?.(key);
       const current = Number(element.dataset.index || 0);
-      if (event.key === 'Home') return this.onMarkerMove(key, 0);
-      if (event.key === 'End') return this.onMarkerMove(key, this.envelope.sample_count - 1);
-      const step = steps[event.key] * (event.shiftKey ? 10 : 1);
-      this.onMarkerMove(key, current + step);
+      let next;
+      if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = this.envelope.sample_count - 1;
+      else next = current + steps[event.key] * (event.shiftKey ? 10 : 1);
+      this.onMarkerMove(key, next);
+      this.onMarkerEditEnd?.(key, before);
     });
   }
 
@@ -289,6 +328,7 @@ export class TraceChart {
       event.preventDefault();
       element.setPointerCapture(event.pointerId);
       element.dataset.dragging = 'true';
+      this.windowEdit = this.onWindowEditStart?.();
       originIndex = this.pointerIndex(event);
       originStart = this.analysis ? this.analysis.weighing_start_index : 0;
     });
@@ -314,6 +354,8 @@ export class TraceChart {
       if (element.dataset.dragging !== 'true') return;
       delete element.dataset.dragging;
       element.releasePointerCapture?.(event.pointerId);
+      this.onWindowEditEnd?.(this.windowEdit);
+      this.windowEdit = null;
     };
     element.addEventListener('pointerup', release);
     element.addEventListener('pointercancel', release);
@@ -324,7 +366,7 @@ export class TraceChart {
   /* Anything a reader can grab. A drag that starts on one of these is that control's drag and
    * not a selection, and the pointer has to reach it. A selected span is not among them: a
    * reader has to be able to draw a narrower span inside a wide one they already drew. */
-  static GRABBABLE = '.marker, .window-body, .window-handle';
+  static GRABBABLE = '.marker';
 
   attachSelection() {
     this.container.addEventListener('pointerdown', (event) => this.beginDrag(event));
@@ -577,6 +619,25 @@ export class TraceChart {
     this.setView(centre - span / 2, centre + span / 2);
   }
 
+  zoomAt(factor, anchor) {
+    const span = this.viewEnd - this.viewStart;
+    const held = Math.min(this.viewEnd, Math.max(this.viewStart, anchor));
+    const position = span > 0 ? (held - this.viewStart) / span : 0.5;
+    const next = span * factor;
+    this.setView(held - next * position, held + next * (1 - position));
+  }
+
+  sampleAtClientX(clientX) {
+    const bounds = this.canvas.getBoundingClientRect();
+    return this.xToIndex(clientX - bounds.left);
+  }
+
+  panBy(fractionOfView) {
+    const span = this.viewEnd - this.viewStart;
+    const shift = span * fractionOfView;
+    this.setView(this.viewStart + shift, this.viewEnd + shift);
+  }
+
   pan(fraction) {
     const span = this.viewEnd - this.viewStart;
     const available = Math.max(0, this.totalSamples - 1 - span);
@@ -589,6 +650,74 @@ export class TraceChart {
 
   isFit() {
     return this.viewStart === 0 && this.viewEnd === this.totalSamples - 1;
+  }
+
+  snapshot(notes = []) {
+    this.render();
+    const ratio = window.devicePixelRatio || 1;
+    const width = this.container.clientWidth;
+    const height = this.container.clientHeight;
+    const font = `${readColour('--text-xs')} ${readColour('--font-mono')}`;
+    const measure = document.createElement('canvas').getContext('2d');
+    measure.font = font;
+    const lines = notes.flatMap((line) => wrapLine(measure, line, Math.max(120, width - 32)));
+    const lineHeight = 18;
+    const footerHeight = lines.length ? 24 + lines.length * lineHeight : 0;
+    const exported = document.createElement('canvas');
+    exported.width = Math.round(width * ratio);
+    exported.height = Math.round((height + footerHeight) * ratio);
+    const context = exported.getContext('2d');
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.fillStyle = readColour('--surface');
+    context.fillRect(0, 0, width, height + footerHeight);
+    context.drawImage(this.canvas, 0, 0, width, height);
+
+    if (this.analysis) {
+      context.save();
+      context.font = `600 ${readColour('--text-xs')} ${readColour('--font-body')}`;
+      context.textBaseline = 'middle';
+      let row = 0;
+      for (const marker of this.markers) {
+        const index = this.analysis[`${marker.key}_index`];
+        if (index == null || index < this.viewStart || index > this.viewEnd) continue;
+        const x = this.indexToX(index);
+        const colour = readColour(`--track-${marker.key}`);
+        context.strokeStyle = colour;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(Math.round(x) + 0.5, this.plot.top);
+        context.lineTo(Math.round(x) + 0.5, this.plot.bottom);
+        context.stroke();
+        const labelWidth = context.measureText(marker.label).width + 12;
+        const left = Math.min(this.plot.right - labelWidth, Math.max(this.plot.left, x - labelWidth / 2));
+        const top = this.plot.top + row * 20;
+        context.fillStyle = colour;
+        context.fillRect(left, top, labelWidth, 18);
+        context.fillStyle = readColour('--marker-contrast');
+        context.fillText(marker.label, left + 6, top + 9);
+        row += 1;
+      }
+      context.restore();
+    }
+
+    if (lines.length) {
+      context.strokeStyle = readColour('--border-strong');
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(0, height + 0.5);
+      context.lineTo(width, height + 0.5);
+      context.stroke();
+      context.fillStyle = readColour('--text');
+      context.font = font;
+      context.textAlign = 'left';
+      context.textBaseline = 'top';
+      lines.forEach((line, index) => context.fillText(line, 16, height + 12 + index * lineHeight));
+    }
+    return exported;
+  }
+
+  imageBlob(notes = []) {
+    return pngBlob(this.snapshot(notes));
   }
 
   plotWidthPx() {

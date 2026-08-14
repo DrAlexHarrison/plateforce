@@ -42,7 +42,7 @@ export function openMetricRecord(title, account, methodIds) {
     details.append(element('summary', null, 'Calculation account'), accountBlock(account));
     nodes.push(details);
   }
-  fill(title, nodes);
+  fill(title, nodes, { root: true });
 }
 
 function recordFor(methodId) {
@@ -88,7 +88,9 @@ function accountBlock(account) {
   return element('pre', 'rule-text account', account);
 }
 
-function fill(title, nodes) {
+function fill(title, nodes, { root = false } = {}) {
+  if (root) returnView = null;
+  $('drawer-back').hidden = true;
   $('drawer-title').textContent = title;
   $('drawer-body').replaceChildren(...nodes);
   showPanel($('method-drawer'));
@@ -96,6 +98,7 @@ function fill(title, nodes) {
 
 /* The control the panel was opened from, so closing puts the reader back on it. */
 let openedFrom = null;
+let returnView = null;
 
 /*
  * A panel that covers the screen takes the keyboard with it.
@@ -105,15 +108,27 @@ let openedFrom = null;
  * covering, on the drawer a reader opens to read what a rule is.
  */
 export function showPanel(drawer) {
-  openedFrom = document.activeElement;
+  if (drawer.hidden) openedFrom = document.activeElement;
   drawer.hidden = false;
-  focusableWithin(drawer)[0]?.focus();
+  focusableWithin(drawer).find((entry) => !entry.matches('[data-close-drawer]'))?.focus();
 }
 
 export function hidePanel(drawer) {
   drawer.hidden = true;
+  returnView = null;
+  $('drawer-back').hidden = true;
   openedFrom?.focus?.();
   openedFrom = null;
+}
+
+export function returnInDrawer() {
+  if (!returnView) return;
+  const held = returnView;
+  returnView = null;
+  $('drawer-title').textContent = held.title;
+  $('drawer-body').replaceChildren(...held.nodes);
+  $('drawer-back').hidden = true;
+  window.setTimeout(() => held.focus?.focus?.(), 0);
 }
 
 export function focusableWithin(node) {
@@ -124,12 +139,19 @@ export function focusableWithin(node) {
 export function openDrawer(method, fallbackId, bound) {
   const drawer = $('method-drawer');
   const body = $('drawer-body');
+  if (!drawer.hidden && body.childElementCount && !returnView) {
+    returnView = {
+      title: $('drawer-title').textContent,
+      nodes: [...body.childNodes],
+      focus: document.activeElement,
+    };
+  }
+  $('drawer-back').hidden = !returnView;
   body.replaceChildren();
   $('drawer-title').textContent =
     method?.title || state.build.bindings.find((entry) => entry.id === fallbackId)?.title || fallbackId;
 
   // Ahead of everything the entry says about itself, because a reader who has just opened a
-  // rule from beside a number is asking who put it there before they ask what it does. Absent
   // where the panel was opened from the registry rather than from a result, which carries no
   // claim about any run.
   const chosen = ruleSourceLine(bound);

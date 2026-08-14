@@ -11,8 +11,12 @@
 
 use std::collections::BTreeMap;
 
-use plateforce_analysis::{run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice};
+use plateforce_analysis::document::{ResultDocument, TrialSource};
+use plateforce_analysis::{
+    markdown, run, AnalysisRequest, AnalysisResponse, MethodChoice, WeighingChoice,
+};
 use plateforce_core::provenance::ParameterSource;
+use plateforce_core::provenance::RegistryStamp;
 use plateforce_core::Trial;
 
 mod common;
@@ -100,6 +104,25 @@ fn row<'a>(response: &'a AnalysisResponse, id: &str) -> &'a plateforce_analysis:
         .iter()
         .find(|bound| bound.method_id == id)
         .unwrap_or_else(|| panic!("{id} is on the record"))
+}
+
+fn document(response: &AnalysisResponse, rows: usize) -> ResultDocument {
+    ResultDocument::of(
+        "0.1.0",
+        TrialSource {
+            name: "selected jump".into(),
+            rows_read: rows,
+            samples_matching_the_convention: 0,
+        },
+        &RegistryStamp {
+            version: Some("fixture-pin".to_string()),
+            declared_version: Some("fixture-declares".to_string()),
+            digest: Some("content-fixture".to_string()),
+        },
+        &plateforce_core::Capture::default(),
+        response,
+        None,
+    )
 }
 
 /// The one property the pair exists for. Both windows are made to cover the same samples, and
@@ -292,4 +315,79 @@ fn the_intervals_a_run_offers_are_the_ones_its_own_rules_settled() {
             region.phase,
         );
     }
+}
+
+/// A copied selection is a description of the data in that selection, not only of the rules
+/// that happened to compute a quantity over it. The three visible landmarks are the major events
+/// a reader uses to orient the trace, so the block names exactly the ones inside the two stated
+/// ends and keeps each event attached to the rule chain that placed it.
+#[test]
+fn a_copied_window_names_exactly_the_landmarks_inside_it_and_their_rules() {
+    let trial = a_jump_that_lands();
+    let landmarks = answered(base());
+    let onset = value(&landmarks, "onset_time_seconds").expect("the jump has an onset");
+    let takeoff = value(&landmarks, "takeoff_time_seconds").expect("the jump has a takeoff");
+    let flight = value(&landmarks, "flight_time_seconds").expect("the jump has a landing");
+
+    let mut request = naming(&[(WINDOW, STATED), ("peak_force", "force.peak.gross")]);
+    let choice = request.derived.get_mut(WINDOW).unwrap();
+    choice
+        .parameters
+        .insert("start_seconds".to_string(), onset - 0.01);
+    choice
+        .parameters
+        .insert("end_seconds".to_string(), takeoff + 0.01);
+    let response = answered(common::prepared(request));
+    let copied = markdown::window(&document(&response, trial.len()), STATED);
+
+    assert!(
+        copied.contains("## Landmarks in this window"),
+        "the copied window has no landmark ledger:\n{copied}",
+    );
+    assert!(
+        copied.contains("Movement onset") && copied.contains("onset.threshold.noise_relative"),
+        "the contained onset and its rule are absent:\n{copied}",
+    );
+    assert!(
+        copied.contains("Takeoff") && copied.contains("takeoff.threshold.absolute_force"),
+        "the contained takeoff and its rule are absent:\n{copied}",
+    );
+    assert!(
+        !copied.contains("- Landing at"),
+        "landing at {:.4} s is outside the window and was still reported:\n{copied}",
+        takeoff + flight,
+    );
+}
+
+/// The empty-landmark case is the one that looked like a successful copy while telling a reader
+/// nothing about where their range sat. A range wholly inside flight contains no boundary, but it
+/// still carries the takeoff and landing rules that define the phase around it.
+#[test]
+fn a_copied_window_with_no_landmark_says_it_is_inside_flight_under_both_boundary_rules() {
+    let trial = a_jump_that_lands();
+    let landmarks = answered(base());
+    let takeoff = value(&landmarks, "takeoff_time_seconds").expect("the jump has a takeoff");
+    let flight = value(&landmarks, "flight_time_seconds").expect("the jump has a landing");
+
+    let mut request = naming(&[(WINDOW, STATED), ("peak_force", "force.peak.gross")]);
+    let choice = request.derived.get_mut(WINDOW).unwrap();
+    choice
+        .parameters
+        .insert("start_seconds".to_string(), takeoff + 0.05);
+    choice
+        .parameters
+        .insert("end_seconds".to_string(), takeoff + flight - 0.05);
+    let response = answered(common::prepared(request));
+    let copied = markdown::window(&document(&response, trial.len()), STATED);
+
+    assert!(
+        copied.contains("No movement onset, takeoff, or landing falls inside this window."),
+        "the no-landmark result is not stated:\n{copied}",
+    );
+    assert!(
+        copied.contains("This window is inside flight")
+            && copied.contains("takeoff.threshold.absolute_force")
+            && copied.contains("flight_time.takeoff_to_touchdown"),
+        "the surrounding phase and both of its rules are absent:\n{copied}",
+    );
 }

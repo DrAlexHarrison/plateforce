@@ -3,16 +3,19 @@
 import { TraceChart, landmarkDefinitions } from './chart.js';
 import { $, state } from './state.js';
 import { counted, element, formatNumber, setWindowTitle, showStage, typesetUnit } from './format.js';
-import { windowLengthParameter } from './registry.js';
+import { windowLengthParameter, buildDecisionModel } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
-import { runAnalysis, recordStated, withSources } from './analysis.js';
+import { boundMethodId, runAnalysis, recordStated, withSources } from './analysis.js';
 import { endingOf } from './batch-run.js';
 import { renderPicker, putOnThePath, removeFromPath } from './add-quantity.js';
 import { findMethod } from './registry.js';
-import { copyButton } from './copy.js';
+import { copyButton, putImage } from './copy.js';
 import { buildRequest } from './analysis.js';
 import { captureJson } from './plate.js';
+import {
+  snapshot, remember, clearHistory, undo, redo, restore, updateHistoryControls,
+} from './history.js';
 
 /*
  * The two rules a span selected on the trace binds, named by their registry ids the way the
@@ -31,6 +34,7 @@ export function enterWorkspace() {
   setWindowTitle(state.fileName);
   state.overrides = { onset: null, takeoff: null, touchdown: null };
   resetSelections();
+  clearHistory();
   recordTheOpeningSelection();
   showStage('stage-workspace');
   offerTheRun();
@@ -53,6 +57,8 @@ export function enterWorkspace() {
         state.overrides[key] = Math.max(0, Math.min(state.info.sample_count - 1, index));
         runAnalysis();
       },
+      onMarkerEditStart: () => snapshot(),
+      onMarkerEditEnd: (_key, before) => remember(before),
       onWindowChange: (startIndex, durationSeconds) => {
         // Placing the window by hand is a registry entry in its own right, so the drag
         // rebinds the method rather than overriding whichever rule was selected.
@@ -77,6 +83,8 @@ export function enterWorkspace() {
         renderDecisions();
         runAnalysis();
       },
+      onWindowEditStart: () => snapshot(),
+      onWindowEditEnd: (before) => remember(before),
       onViewChange: () => {
         refreshEnvelope();
         updateChartNavigation();
@@ -96,6 +104,48 @@ export function enterWorkspace() {
   renderPicker();
   renderDecisions();
   runAnalysis();
+}
+
+function restoreEdit(held) {
+  if (!held) return;
+  restore(held);
+  state.slots = buildDecisionModel(state.registry, state.build, state.path);
+  renderPicker();
+  renderDecisions();
+  runAnalysis();
+}
+
+export function undoEdit() {
+  restoreEdit(undo());
+}
+
+export function redoEdit() {
+  restoreEdit(redo());
+}
+
+export function resetLandmarks() {
+  const before = snapshot();
+  state.overrides = { onset: null, takeoff: null, touchdown: null };
+  remember(before);
+  runAnalysis();
+}
+
+export function applySelectionAsStandingStill() {
+  const selected = state.chart?.selection().active;
+  if (!selected || !state.info) return;
+  const before = snapshot();
+  const durationSeconds = (selected.endIndex - selected.startIndex) / state.info.sample_rate_hz;
+  state.chart.onWindowChange(selected.startIndex, durationSeconds);
+  remember(before);
+}
+
+export function wireHistoryControls() {
+  const undoButton = $('undo-edit');
+  if (undoButton.dataset.wired === 'true') return;
+  undoButton.dataset.wired = 'true';
+  undoButton.addEventListener('click', undoEdit);
+  $('redo-edit').addEventListener('click', redoEdit);
+  updateHistoryControls();
 }
 
 /*
@@ -155,6 +205,119 @@ function wireChartNavigation() {
   $('chart-zoom-out').addEventListener('click', () => state.chart.zoom(2));
   $('chart-fit').addEventListener('click', () => state.chart.fit());
   $('chart-pan').addEventListener('input', () => state.chart.pan(Number($('chart-pan').value) / 1000));
+
+  let wheelScale = 1;
+  let wheelPan = 0;
+  let wheelAnchor = null;
+  let wheelTimer = null;
+  $('chart').addEventListener('wheel', (event) => {
+    const zooming = event.metaKey || event.ctrlKey;
+    const panning = event.shiftKey && !zooming;
+    if (!zooming && !panning) return;
+    event.preventDefault();
+    const delta = event.deltaY || event.deltaX;
+    if (zooming) {
+      wheelScale *= Math.exp(Math.min(0.35, Math.max(-0.35, delta * 0.002)));
+      wheelAnchor = state.chart.sampleAtClientX(event.clientX);
+    } else {
+      wheelPan += Math.min(0.5, Math.max(-0.5, delta / 600));
+    }
+    window.clearTimeout(wheelTimer);
+    wheelTimer = window.setTimeout(() => {
+      if (wheelScale !== 1 && wheelAnchor != null) state.chart.zoomAt(wheelScale, wheelAnchor);
+      if (wheelPan !== 0) state.chart.panBy(wheelPan);
+      wheelScale = 1;
+      wheelPan = 0;
+      wheelAnchor = null;
+    }, 24);
+  }, { passive: false });
+
+  document.addEventListener('keydown', (event) => {
+    if ($('stage-workspace').hidden || event.altKey) return;
+    const field = event.target instanceof Element
+      && event.target.closest('input, textarea, select, [contenteditable="true"]');
+    if (field) return;
+    const actions = {
+      '+': () => state.chart.zoom(0.8),
+      '=': () => state.chart.zoom(0.8),
+      '-': () => state.chart.zoom(1.25),
+      '0': () => state.chart.fit(),
+    };
+    const action = actions[event.key];
+    if (!action) return;
+    event.preventDefault();
+    action();
+  });
+
+  $('copy-chart-image').addEventListener('click', () => copyChartImage());
+  $('save-chart-image').addEventListener('click', () => saveChartImage());
+}
+
+function chartImageNotes() {
+  const rate = state.info.sample_rate_hz;
+  const view = state.chart.visibleRange();
+  const notes = [
+    `plateforce chart. Trial: ${state.fileName}.`,
+    `Visible range: ${(view.start / rate).toFixed(4)} to ${(view.end / rate).toFixed(4)} s. Display range chosen in chart.`,
+    `Registry revision: ${state.build.registry_declared_version ?? 'none declared'}. Registry digest: ${state.build.registry_digest}.`,
+  ];
+  const traceRules = uniqueRules(
+    methodForConstruct('system_weight'),
+    methodForConstruct('movement_onset'),
+    methodForConstruct('takeoff'),
+  );
+  if (traceRules.length) notes.push(`Trace levels and bands. ${ruleText(traceRules)}.`);
+  for (const landmark of majorLandmarks()) {
+    notes.push(
+      `${landmark.label}: ${(landmark.index / rate).toFixed(4)} s, sample ${landmark.index}. ` +
+      `${ruleText(landmark.rules)}.`,
+    );
+  }
+  const selected = state.chart.selection().active;
+  if (selected) {
+    notes.push(
+      `Selected window: ${(selected.startIndex / rate).toFixed(4)} to ` +
+      `${(selected.endIndex / rate).toFixed(4)} s, ` +
+      `${selected.endIndex - selected.startIndex + 1} samples. ` +
+      `${ruleText(uniqueRules(boundWindowRule()))}.`,
+    );
+  }
+  return notes;
+}
+
+function imageName() {
+  const stem = String(state.fileName || 'plateforce')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-z0-9_-]+/gi, '-')
+    .replace(/^-+|-+$/g, '') || 'plateforce';
+  return `${stem}-chart.png`;
+}
+
+function reportImageAction(button, message) {
+  const label = button.dataset.label || button.textContent;
+  button.dataset.label = label;
+  button.textContent = message;
+  window.clearTimeout(button.reportTimer);
+  button.reportTimer = window.setTimeout(() => { button.textContent = label; }, 2000);
+}
+
+async function copyChartImage() {
+  const button = $('copy-chart-image');
+  const copied = await putImage(state.chart.imageBlob(chartImageNotes()));
+  reportImageAction(button, copied ? 'Copied chart image' : 'Could not reach the clipboard');
+}
+
+function saveChartImage() {
+  const button = $('save-chart-image');
+  const url = URL.createObjectURL(state.chart.imageBlob(chartImageNotes()));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = imageName();
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  reportImageAction(button, `Saved ${imageName()}`);
 }
 
 function updateChartNavigation() {
@@ -230,6 +393,8 @@ function releaseTheWindow() {
   if (!construct || !state.windowCameFromASelection) return;
   state.windowCameFromASelection = false;
   removeFromPath(construct);
+  for (const essential of state.selectionEssentials) removeFromPath(essential);
+  state.selectionEssentials.clear();
 }
 
 function selectionChanged(selection, event) {
@@ -300,11 +465,13 @@ function renderSelectionReadout(selection, event) {
   if (event.dragging) {
     host.append(element('span', 'chart-selection__origin', 'Release to select this window.'));
   } else if (span.stated) {
-    host.append(element('span', 'chart-selection__origin', 'Selected by you, so every number over it records the window as yours.'));
+    host.append(element('span', 'chart-selection__origin',
+      `Selected by you. Window rule: ${STATED_WINDOW}.`));
   } else {
     const rules = (span.placed.placed_by || []).join(', ');
     const label = phaseLabels().get(span.placed.phase) || span.placed.phase;
-    host.append(element('span', 'chart-selection__origin', `${label}, placed by ${rules}`));
+    host.append(element('span', 'chart-selection__origin',
+      `${label}, placed by ${rules}. Window rule: ${PHASE_WINDOW}.`));
   }
   if (selection.regions.length > 1) {
     host.append(element('span', 'chart-selection__origin', `${selection.regions.length} windows selected. Numbers are taken over this one.`));
@@ -317,6 +484,72 @@ function boundWindowRule() {
   const construct = windowConstruct();
   if (!construct || !state.path.includes(construct)) return null;
   return state.selection[construct]?.methodId || null;
+}
+
+function methodForConstruct(construct) {
+  const slot = state.slots.find((entry) => entry.construct === construct);
+  if (slot) return boundMethodId(slot.key);
+  return (state.analysis?.bound_methods || []).find((bound) =>
+    findMethod(state.registry, bound.method_id)?.construct === construct)?.method_id || null;
+}
+
+function uniqueRules(...rules) {
+  return [...new Set(rules.flat().filter(Boolean))];
+}
+
+function ruleText(rules) {
+  return `${rules.length === 1 ? 'Rule' : 'Rules'}: ${rules.join(', ')}`;
+}
+
+function majorLandmarks() {
+  if (!state.analysis || !state.info) return [];
+  const takeoffRule = methodForConstruct('takeoff');
+  const flightTimeRule = state.analysis.metrics
+    .find((metric) => metric.key === 'flight_time_seconds')?.computed_by;
+  return [
+    {
+      key: 'onset', label: 'Start of jump', index: state.analysis.onset_index,
+      rules: uniqueRules(methodForConstruct('movement_onset')),
+    },
+    {
+      key: 'takeoff', label: 'Takeoff', index: state.analysis.takeoff_index,
+      rules: uniqueRules(takeoffRule),
+    },
+    {
+      key: 'touchdown', label: 'Landing', index: state.analysis.touchdown_index,
+      rules: uniqueRules(methodForConstruct('landing') || takeoffRule, flightTimeRule),
+    },
+  ].filter((event) => event.index != null && event.rules.length);
+}
+
+function landmarksInside(selected) {
+  return majorLandmarks().filter(
+    (event) => event.index >= selected.startIndex && event.index <= selected.endIndex,
+  );
+}
+
+function phaseContext(selected) {
+  const landmarks = majorLandmarks();
+  const takeoff = landmarks.find((event) => event.key === 'takeoff');
+  const landing = landmarks.find((event) => event.key === 'touchdown');
+  if (!takeoff || !landing) return null;
+  if (selected.startIndex <= takeoff.index || selected.endIndex >= landing.index) return null;
+  const rate = state.info.sample_rate_hz;
+  return 'Inside flight. ' +
+    `Takeoff: ${(takeoff.index / rate).toFixed(4)} s under ${takeoff.rules.join(', ')}. ` +
+    `Landing: ${(landing.index / rate).toFixed(4)} s under ${landing.rules.join(', ')}.`;
+}
+
+function appendFigures(host, entries, className = '') {
+  const figures = element('dl', `chart-selection__figures ${className}`.trim());
+  for (const entry of entries) {
+    const figure = element('div', 'chart-selection__figure');
+    figure.append(element('dt', null, entry.label));
+    figure.append(element('dd', null, entry.value));
+    figure.append(element('span', 'chart-selection__method', ruleText(entry.rules)));
+    figures.append(figure);
+  }
+  host.append(figures);
 }
 
 /*
@@ -351,23 +584,49 @@ export function renderSelectionNumbers() {
   }
 
   if (over.length) {
-    const figures = element('dl', 'chart-selection__figures');
-    for (const metric of over) {
-      const figure = element('div', 'chart-selection__figure');
-      figure.append(element('dt', null, metric.label));
+    appendFigures(host, over.map((metric) => {
       const shown = formatNumber(metric.value, metric.unit);
-      figure.append(element('dd', null, shown == null ? 'no value' : `${shown} ${typesetUnit(metric.unit_symbol)}`));
-      figures.append(figure);
-    }
-    host.append(figures);
+      return {
+        label: metric.label,
+        value: shown == null ? 'no value' : `${shown} ${typesetUnit(metric.unit_symbol)}`,
+        rules: uniqueRules(metric.computed_by, metric.contributing_method_ids),
+      };
+    }));
   }
+
+  const contained = landmarksInside(selected);
+  host.append(element('p', 'chart-selection__heading', 'Landmarks in this window'));
+  if (contained.length) {
+    const rate = state.info.sample_rate_hz;
+    appendFigures(host, contained.map((event) => ({
+      label: event.label,
+      value: `${(event.index / rate).toFixed(4)} s`,
+      rules: event.rules,
+    })), 'chart-selection__landmarks');
+  } else {
+    host.append(element('p', 'chart-selection__no-landmarks',
+      'No start, takeoff, or landing landmark falls inside this window.'));
+  }
+  const context = phaseContext(selected);
+  if (context) host.append(element('p', 'chart-selection__phase', context));
 
   // What a reader copies from beside a selection is what that selection produced. The block
   // names the window's own rule and the values behind it, so a paste says which span the peak
   // was taken over rather than handing a model a number and no interval.
   $('selection-copy').replaceChildren(
-    copyButton('Copy this window', () =>
-      state.loadedTrial.markdown(JSON.stringify(buildRequest()), state.fileName, captureJson(), bound)),
+    copyButton(
+      'Copy selected values',
+      () => state.loadedTrial.markdown(JSON.stringify(buildRequest()), state.fileName, captureJson(), bound),
+      () => {
+        const labels = [...over.map((metric) => metric.label), ...contained.map((event) => event.label)];
+        const named = labels.length === 0
+          ? 'selection and methods'
+          : labels.length === 1
+            ? labels[0]
+            : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
+        return `Copied ${named}${contained.length ? '' : '; no landmarks in range'}`;
+      },
+    ),
   );
 
   if (elsewhere.length) {
@@ -388,6 +647,7 @@ function updateSelectionControls(selection, event = {}) {
   $('chart-selection').hidden = !(selected || undoable || event.dragging || event.placedNothingHere);
   $('selection-zoom').disabled = !selected;
   $('selection-clear').disabled = !selected;
+  $('selection-use-baseline').disabled = !selected;
   $('selection-undo-zoom').disabled = !undoable;
   $('selection-reset-zoom').disabled = state.chart.isFit() && !undoable;
 }
@@ -400,6 +660,7 @@ function wireSelectionControls() {
   $('selection-undo-zoom').addEventListener('click', () => state.chart.undoZoom());
   $('selection-reset-zoom').addEventListener('click', () => state.chart.resetZoom());
   $('selection-clear').addEventListener('click', () => state.chart.clearSelection());
+  $('selection-use-baseline').addEventListener('click', applySelectionAsStandingStill);
   renderSelectionReadout({ regions: [], active: null }, {});
 }
 

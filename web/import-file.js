@@ -6,7 +6,10 @@ import { element, setWindowTitle, showStage } from './format.js';
 import { renderColumnChooser, confirmColumns, loadDemonstration } from './import-columns.js';
 import { runAnalysis } from './analysis.js';
 import { endingOf, endingsChosen } from './batch-run.js';
-import { focusableWithin, hidePanel } from './drawer.js';
+import { focusableWithin, hidePanel, returnInDrawer } from './drawer.js';
+import {
+  resetLandmarks, undoEdit, redoEdit, wireHistoryControls,
+} from './workspace.js';
 
 export function wireGlobalControls() {
   const dropzone = $('dropzone');
@@ -40,10 +43,8 @@ export function wireGlobalControls() {
   $('columns-cancel').addEventListener('click', () => { setWindowTitle(); showStage('stage-empty'); });
   $('columns-confirm').addEventListener('click', confirmColumns);
   $('change-file').addEventListener('click', () => { setWindowTitle(); showStage('stage-empty'); });
-  $('reset-markers').addEventListener('click', () => {
-    state.overrides = { onset: null, takeoff: null, touchdown: null };
-    runAnalysis();
-  });
+  $('reset-markers').addEventListener('click', resetLandmarks);
+  wireHistoryControls();
 
   $('theme-toggle').addEventListener('click', () => {
     const root = document.documentElement;
@@ -58,11 +59,31 @@ export function wireGlobalControls() {
   for (const node of document.querySelectorAll('[data-close-drawer]')) {
     node.addEventListener('click', () => hidePanel(node.closest('.drawer')));
   }
+  $('drawer-back').addEventListener('click', returnInDrawer);
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    for (const drawer of document.querySelectorAll('.drawer')) {
-      if (!drawer.hidden) hidePanel(drawer);
+    const drawer = [...document.querySelectorAll('.drawer')].find((node) => !node.hidden);
+    if (drawer) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      hidePanel(drawer);
+      return;
     }
+    if (state.chart?.selection().regions.length) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      state.chart.clearSelection();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
+    const field = event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]');
+    if (field) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.shiftKey) redoEdit();
+    else undoEdit();
   });
 
   // A panel declaring itself modal keeps the tab key, so the reader cannot walk out of the

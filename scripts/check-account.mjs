@@ -243,6 +243,35 @@ check('the control is worded in the reader’s words',
     && opened.every((card) => !/\b(provenance|fingerprint|where this came from)\b/i.test(card.wording ?? '')),
   `${opened.length} compact rule counts, first "${opened[0]?.wording ?? 'nothing'}"`);
 
+const returnsToList = await evaluate(`(async () => {
+  const control = document.querySelector('#headline-metric-grid .metric-record, #metric-grid .metric-record');
+  control.click();
+  const rowsBefore = document.querySelectorAll('#drawer-body .method-list .provenance').length;
+  const first = document.querySelector('#drawer-body .method-list .provenance');
+  const listTitle = document.getElementById('drawer-title').textContent;
+  first.click();
+  const detailTitle = document.getElementById('drawer-title').textContent;
+  const back = document.getElementById('drawer-back');
+  const offered = !back.hidden && back.textContent === 'Back';
+  back.click();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const rowsAfter = document.querySelectorAll('#drawer-body .method-list .provenance').length;
+  const restoredTitle = document.getElementById('drawer-title').textContent;
+  const focusRestored = document.activeElement === first;
+  const active = document.activeElement
+    ? [document.activeElement.tagName, document.activeElement.id, document.activeElement.className].join('|')
+    : null;
+  document.querySelector('#method-drawer [data-close-drawer]').click();
+  return { rowsBefore, rowsAfter, listTitle, detailTitle, restoredTitle, offered, focusRestored, active };
+})()`);
+check('a rule detail offers Back to the same result rule list and restores its focus',
+  returnsToList.rowsBefore > 0
+    && returnsToList.rowsAfter === returnsToList.rowsBefore
+    && returnsToList.restoredTitle === returnsToList.listTitle
+    && returnsToList.detailTitle !== returnsToList.listTitle
+    && returnsToList.offered && returnsToList.focusRestored,
+  JSON.stringify(returnsToList));
+
 // The narrow viewport, with the panel open, where a block of preformatted text takes the
 // page sideways rather than scrolling inside its own frame.
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });

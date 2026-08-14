@@ -94,8 +94,10 @@ export function renderBuildInfo() {
 
 export function resetSelections() {
   state.selection = {};
+  state.selectionEssentials = new Set();
   initialiseMissingSelections();
   state.weighing = { startIndex: null };
+  state.windowCameFromASelection = false;
   state.spread = { quantity: 'jump_height_from_takeoff_meters', axes: new Set() };
 }
 

@@ -170,7 +170,11 @@
         </div>
         <div class="panel__head-actions">
           <button type="button" class="button button--primary button--small" id="run-folder" hidden></button>
-          <button type="button" class="button button--ghost button--small" id="reset-markers" hidden>Release dragged markers</button>
+          <button type="button" class="button button--ghost button--small" id="undo-edit" disabled>Undo</button>
+          <button type="button" class="button button--ghost button--small" id="redo-edit" disabled>Redo</button>
+          <button type="button" class="button button--ghost button--small" id="reset-markers" hidden>Reset landmarks</button>
+          <button type="button" class="button button--ghost button--small" id="copy-chart-image">Copy chart image</button>
+          <button type="button" class="button button--ghost button--small" id="save-chart-image">Save chart image</button>
           <button type="button" class="button button--ghost button--small" id="change-file">New file</button>
         </div>
       </div>
@@ -199,13 +203,14 @@
           <button type="button" class="button button--ghost button--small" id="selection-undo-zoom" disabled>Undo zoom</button>
           <button type="button" class="button button--ghost button--small" id="selection-reset-zoom" disabled>Reset zoom</button>
           <button type="button" class="button button--ghost button--small" id="selection-clear" disabled>Clear selection</button>
+          <button type="button" class="button button--ghost button--small" id="selection-use-baseline" disabled>Use as standing-still window</button>
           <span id="selection-copy"></span>
         </div>
         <div class="chart-selection__numbers" id="chart-selection-numbers"></div>
       </div>
 
       <div class="chart-legend" id="chart-legend"></div>
-      <p class="chart-help">Drag a marker to recompute. Drag across the trace to select a window, double-click inside a phase to select it.</p>
+      <p class="chart-help">Drag a marker to recompute. Drag across the trace to select a window, double-click inside a phase to select it. Command or Control + scroll zooms at the pointer. Shift + scroll moves across a zoomed trace. +, -, and 0 also change the view.</p>
     </section>
 
     <section class="panel panel--headlines workspace__headlines" aria-labelledby="headline-metrics-heading">
@@ -272,7 +277,7 @@
         <input type="checkbox" id="batch-provenance" checked>
         Show method record
       </label>
-      <button type="button" class="button button--ghost button--small" id="batch-download" hidden>Download results (CSV)</button>
+      <button type="button" class="button button--ghost button--small" id="batch-download" hidden>Download results (ZIP)</button>
       <label class="batch-controls__toggle">
         <input type="checkbox" id="batch-declined" checked>
         Show declined
@@ -338,6 +343,7 @@
   <div class="drawer__scrim" data-close-drawer></div>
   <div class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
     <div class="drawer__head">
+      <button type="button" class="button button--ghost button--small" id="drawer-back" hidden>Back</button>
       <h2 id="drawer-title"></h2>
       <button type="button" class="button button--ghost button--icon" data-close-drawer aria-label="Close">
         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke-width="1.6" stroke-linecap="round"/></svg>

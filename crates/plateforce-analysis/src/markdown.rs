@@ -41,6 +41,7 @@ pub fn window(document: &ResultDocument, over: &str) -> String {
     let _ = writeln!(out, "# plateforce window: {}", escape(&document.trial.name));
     out.push('\n');
     numbers(&mut out, document, Some(over));
+    landmarks_in_window(&mut out, document);
     windows(&mut out, document);
     said(&mut out, document);
     provenance(&mut out, document);
@@ -90,6 +91,126 @@ fn numbers(out: &mut String, document: &ResultDocument, over: Option<&str>) {
         );
     }
     out.push('\n');
+}
+
+struct Landmark<'a> {
+    label: &'static str,
+    seconds: f64,
+    rules: Vec<&'a str>,
+}
+
+fn metric<'a>(document: &'a ResultDocument, key: &str) -> Option<&'a crate::response::Metric> {
+    document.metrics.iter().find(|metric| metric.key == key)
+}
+
+fn value(document: &ResultDocument, key: &str) -> Option<f64> {
+    metric(document, key).and_then(|metric| metric.value)
+}
+
+fn rules<'a>(document: &'a ResultDocument, key: &str) -> Vec<&'a str> {
+    let Some(metric) = metric(document, key) else {
+        return Vec::new();
+    };
+    let mut found: Vec<&str> = Vec::new();
+    if let Some(computed_by) = metric.computed_by.as_deref() {
+        found.push(computed_by);
+    }
+    for method_id in &metric.contributing_method_ids {
+        if !found.contains(&method_id.as_str()) {
+            found.push(method_id);
+        }
+    }
+    found
+}
+
+fn rule_list(rules: &[&str]) -> String {
+    rules
+        .iter()
+        .map(|method_id| format!("`{}`", escape(method_id)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn landmark<'a>(
+    document: &'a ResultDocument,
+    label: &'static str,
+    value_key: &str,
+) -> Option<Landmark<'a>> {
+    let seconds = value(document, value_key)?;
+    let rules = rules(document, value_key);
+    (!rules.is_empty()).then_some(Landmark {
+        label,
+        seconds,
+        rules,
+    })
+}
+
+fn landing<'a>(document: &'a ResultDocument) -> Option<Landmark<'a>> {
+    let seconds =
+        value(document, "takeoff_time_seconds")? + value(document, "flight_time_seconds")?;
+    let rules = rules(document, "flight_time_seconds");
+    (!rules.is_empty()).then_some(Landmark {
+        label: "Landing",
+        seconds,
+        rules,
+    })
+}
+
+/// The visible events inside a copied interval, and the phase around an interval that contains
+/// none. The values come from the result document and every one stays attached to the rule chain
+/// already recorded behind it. Nothing here reads the trace or computes a second landmark.
+fn landmarks_in_window(out: &mut String, document: &ResultDocument) {
+    let (Some(start), Some(end)) = (
+        value(document, "analysis_window_start_seconds"),
+        value(document, "analysis_window_end_seconds"),
+    ) else {
+        return;
+    };
+
+    let onset = landmark(document, "Movement onset", "onset_time_seconds");
+    let takeoff = landmark(document, "Takeoff", "takeoff_time_seconds");
+    let landing = landing(document);
+    let landmarks = [onset.as_ref(), takeoff.as_ref(), landing.as_ref()];
+    let inside: Vec<&Landmark<'_>> = landmarks
+        .iter()
+        .flatten()
+        .copied()
+        .filter(|event| event.seconds >= start && event.seconds <= end)
+        .collect();
+
+    let _ = writeln!(out, "## Landmarks in this window\n");
+    if inside.is_empty() {
+        let _ = writeln!(
+            out,
+            "No movement onset, takeoff, or landing falls inside this window.\n"
+        );
+    } else {
+        for event in inside {
+            let _ = writeln!(
+                out,
+                "- {} at {:.4} s, under {}",
+                event.label,
+                event.seconds,
+                rule_list(&event.rules),
+            );
+        }
+        out.push('\n');
+    }
+
+    let (Some(takeoff), Some(landing)) = (takeoff.as_ref(), landing.as_ref()) else {
+        return;
+    };
+    if start > takeoff.seconds && end < landing.seconds {
+        let _ = writeln!(out, "## Where this window sits\n");
+        let _ = writeln!(
+            out,
+            "This window is inside flight, between takeoff at {:.4} s under {} and landing at {:.4} s under {}.\n",
+            takeoff.seconds,
+            rule_list(&takeoff.rules),
+            landing.seconds,
+            rule_list(&landing.rules),
+        );
+    }
 }
 
 /// The intervals this run's own rules settled, named so a reader can ask for one of them again.

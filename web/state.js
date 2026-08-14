@@ -15,6 +15,7 @@ export const state = {
    * fields. A construct nobody asked for is not on the path, so no rule instantiates it and
    * it raises no decision. */
   path: [],
+  selectionEssentials: new Set(),
   slots: [],
   selection: {},
   weighing: { startIndex: null },
@@ -43,6 +44,10 @@ export const state = {
    * repeatedly, so it is never asked again before it has had as long as its last answer took. */
   analysisMilliseconds: null,
   chart: null,
+  /* One history entry is one action the reader completed, not every pointer position the
+   * action crossed. `past` and `future` hold complete editable states so an Undo restores the
+   * choices and every recomputed number together. */
+  history: { past: [], future: [], restoring: false },
   /* The folder the reader handed over, once they have handed one over: the files
    * themselves, the name endings they declared to be trials, and how every file in it is
    * read. Declared once for the whole run, because a run that read each file its own way

@@ -230,6 +230,169 @@ check('the window the engine reports back is the window the reader drew',
   dragged.window.map(([key, value]) => `${key} ${value}`).join(', ')
     + ` against ${dragged.regions[0].startIndex / plot.sampleRateHz} to ${dragged.regions[0].endIndex / plot.sampleRateHz}`);
 
+await pause(300);
+const automaticValues = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const host = document.getElementById('chart-selection-numbers');
+  const labels = [...host.querySelectorAll('.chart-selection__figure dt')].map((node) => node.textContent);
+  const methods = (state.analysis?.metrics || [])
+    .filter((metric) => labels.includes(metric.label))
+    .map((metric) => metric.computed_by);
+  return { labels, methods };
+})()`);
+check('a plain range immediately describes peak force and rate of force development',
+  automaticValues.labels.includes('Peak force')
+    && automaticValues.labels.includes('Rate of force development')
+    && automaticValues.methods.includes('force.peak.gross')
+    && automaticValues.methods.includes('rfd.peak_sliding_window'),
+  `${automaticValues.labels.join(', ') || 'no selected values'}, from ` +
+    `${automaticValues.methods.join(', ') || 'no selected rules'}`);
+
+const initialDescription = await evaluate(`(() => {
+  const host = document.getElementById('chart-selection-numbers');
+  return {
+    methods: [...host.querySelectorAll('.chart-selection__method')].map((node) => node.textContent),
+    landmarkHeading: host.querySelector('.chart-selection__heading')?.textContent ?? '',
+    landmarks: [...host.querySelectorAll('.chart-selection__landmarks dt')].map((node) => node.textContent),
+    noLandmarks: host.querySelector('.chart-selection__no-landmarks')?.textContent ?? '',
+  };
+})()`);
+check('every selected value keeps the rule that produced it beside the number',
+  initialDescription.methods.some((line) => line.includes('force.peak.gross'))
+    && initialDescription.methods.some((line) => line.includes('rfd.peak_sliding_window')),
+  initialDescription.methods.join(' | ') || 'no selected value carried a visible rule');
+
+check('a range containing no major landmark says so instead of leaving the reader to infer it',
+  initialDescription.landmarkHeading === 'Landmarks in this window'
+    && initialDescription.landmarks.length === 0
+    && initialDescription.noLandmarks.includes('No start, takeoff, or landing'),
+  `${initialDescription.landmarkHeading || 'no heading'}; ` +
+    `${initialDescription.noLandmarks || 'no empty result'}`);
+
+const imageActions = await evaluate(`(() => ({
+  copy: document.getElementById('copy-chart-image')?.textContent ?? null,
+  save: document.getElementById('save-chart-image')?.textContent ?? null,
+}))()`);
+check('the chart names image copy and image save as two distinct actions',
+  imageActions.copy === 'Copy chart image' && imageActions.save === 'Save chart image',
+  JSON.stringify(imageActions));
+
+const copiedImage = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const button = document.getElementById('copy-chart-image');
+  const originalImageBlob = state.chart.imageBlob.bind(state.chart);
+  const originalWrite = navigator.clipboard.write;
+  let notes = [];
+  let written = null;
+  state.chart.imageBlob = (given) => {
+    notes = given;
+    return originalImageBlob(given);
+  };
+  navigator.clipboard.write = async (items) => { written = items; };
+  button.click();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const blob = written ? await written[0].getType('image/png') : null;
+  const bitmap = blob ? await createImageBitmap(blob) : null;
+  const result = {
+    confirmation: button.textContent,
+    type: blob?.type ?? null,
+    size: blob?.size ?? 0,
+    width: bitmap?.width ?? 0,
+    height: bitmap?.height ?? 0,
+    chartWidth: state.chart.canvas.width,
+    chartHeight: state.chart.canvas.height,
+    notes,
+  };
+  bitmap?.close();
+  state.chart.imageBlob = originalImageBlob;
+  navigator.clipboard.write = originalWrite;
+  return result;
+})()`);
+check('copy chart image writes a real PNG of the visible chart and its method footer',
+  copiedImage.confirmation === 'Copied chart image'
+    && copiedImage.type === 'image/png' && copiedImage.size > 1000
+    && copiedImage.width === copiedImage.chartWidth
+    && copiedImage.height > copiedImage.chartHeight,
+  `${copiedImage.confirmation}; ${copiedImage.type} ${copiedImage.size} bytes, ` +
+    `${copiedImage.width}x${copiedImage.height} against chart ${copiedImage.chartWidth}x${copiedImage.chartHeight}`);
+
+check('the chart image footer carries the registry, landmarks, selection and their rules',
+  copiedImage.notes.some((line) => line.includes('Registry revision'))
+    && copiedImage.notes.some((line) => line.includes('Start of jump') && line.includes('onset.'))
+    && copiedImage.notes.some((line) => line.includes('Takeoff') && line.includes('takeoff.'))
+    && copiedImage.notes.some((line) => line.includes('Landing') && line.includes('flight_time.'))
+    && copiedImage.notes.some((line) => line.includes('Selected window') && line.includes('window.stated.by_caller')),
+  copiedImage.notes.join(' | '));
+
+const savedImage = await evaluate(`(async () => {
+  const clicked = HTMLAnchorElement.prototype.click;
+  let download = null;
+  let href = null;
+  HTMLAnchorElement.prototype.click = function () {
+    download = this.download;
+    href = this.href;
+  };
+  const button = document.getElementById('save-chart-image');
+  button.click();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  HTMLAnchorElement.prototype.click = clicked;
+  return { download, href, confirmation: button.textContent };
+})()`);
+check('save chart image downloads a clearly named PNG and confirms the saved name',
+  savedImage.download === 'demonstration-chart.png'
+    && savedImage.href.startsWith('blob:')
+    && savedImage.confirmation === 'Saved demonstration-chart.png',
+  JSON.stringify(savedImage));
+
+const wheelBefore = await geometry();
+const wheelX = wheelBefore.left + (wheelBefore.right - wheelBefore.left) * 0.72;
+const wheelAnchorBefore = Math.round(
+  wheelBefore.viewStart + 0.72 * (wheelBefore.viewEnd - wheelBefore.viewStart));
+await send('Input.dispatchMouseEvent', {
+  type: 'mouseWheel', x: wheelX, y: wheelBefore.middle,
+  deltaX: 0, deltaY: -120, modifiers: 2,
+});
+await pause(120);
+const wheelZoomed = await geometry();
+const wheelAnchorAfter = Math.round(
+  wheelZoomed.viewStart + 0.72 * (wheelZoomed.viewEnd - wheelZoomed.viewStart));
+check('Control + scroll zooms at the pointer instead of at the middle of the chart',
+  wheelZoomed.viewEnd - wheelZoomed.viewStart < wheelBefore.viewEnd - wheelBefore.viewStart
+    && Math.abs(wheelAnchorAfter - wheelAnchorBefore) <= 3,
+  `view ${wheelBefore.viewStart}-${wheelBefore.viewEnd} became ` +
+    `${wheelZoomed.viewStart}-${wheelZoomed.viewEnd}; pointer sample ${wheelAnchorBefore} became ${wheelAnchorAfter}`);
+
+await send('Input.dispatchMouseEvent', {
+  type: 'mouseWheel', x: wheelX, y: wheelBefore.middle,
+  deltaX: 0, deltaY: 180, modifiers: 8,
+});
+await pause(120);
+const wheelPanned = await geometry();
+check('Shift + scroll moves across a zoomed trace without changing its width',
+  wheelPanned.viewStart > wheelZoomed.viewStart
+    && wheelPanned.viewEnd - wheelPanned.viewStart === wheelZoomed.viewEnd - wheelZoomed.viewStart,
+  `view ${wheelZoomed.viewStart}-${wheelZoomed.viewEnd} became ` +
+    `${wheelPanned.viewStart}-${wheelPanned.viewEnd}`);
+
+const key = async (value, code, virtual, modifiers = 0) => {
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: value, code, windowsVirtualKeyCode: virtual, modifiers });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: value, code, windowsVirtualKeyCode: virtual, modifiers });
+  await pause(80);
+};
+const beforeMinus = await geometry();
+await key('-', 'Minus', 189);
+const afterMinus = await geometry();
+await key('+', 'Equal', 187, 8);
+const afterPlus = await geometry();
+await key('0', 'Digit0', 48);
+const afterZero = await geometry();
+check('minus and plus zoom the chart, and 0 fits the whole recording',
+  afterMinus.viewEnd - afterMinus.viewStart > beforeMinus.viewEnd - beforeMinus.viewStart
+    && afterPlus.viewEnd - afterPlus.viewStart < afterMinus.viewEnd - afterMinus.viewStart
+    && afterZero.viewStart === 0 && afterZero.viewEnd === wheelBefore.viewEnd,
+  `minus ${beforeMinus.viewStart}-${beforeMinus.viewEnd} to ${afterMinus.viewStart}-${afterMinus.viewEnd}; ` +
+    `plus to ${afterPlus.viewStart}-${afterPlus.viewEnd}; 0 to ${afterZero.viewStart}-${afterZero.viewEnd}`);
+
 // ---------------------------------------------------------------- zooming to it
 await evaluate("document.getElementById('selection-zoom').click()");
 await pause(80);
@@ -306,6 +469,15 @@ check('a click on the trace clear of every span clears the selection rather than
   cleared.regions.length === 0 && cleared.rowHidden && cleared.requestedMethod === null,
   `${cleared.regions.length} spans, the row is ${cleared.rowHidden ? 'gone' : 'still shown'}, ` +
     `the request names ${cleared.requestedMethod ?? 'no window rule'}`);
+
+const afterClearingValues = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return state.path.filter((construct) =>
+    construct === 'peak_force' || construct === 'rate_of_force_development');
+})()`);
+check('clearing a range removes the descriptive quantities that range added',
+  afterClearingValues.length === 0,
+  afterClearingValues.length ? `still on the path: ${afterClearingValues.join(', ')}` : 'neither remains');
 
 // ---------------------------------------------------------------- a placed phase
 const beforePhases = await readSelection();
@@ -510,6 +682,127 @@ check('the window block carries the same provenance and only the numbers taken o
     `naming ${blocks.boundRule}` +
     (carries(blocks.window).length ? ` | missing ${carries(blocks.window).join(', ')}` : ''));
 
+const copyConfirmation = await evaluate(`(async () => {
+  const original = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async () => {};
+  document.querySelector('#selection-copy button').click();
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  const text = document.querySelector('#selection-copy button').textContent;
+  navigator.clipboard.writeText = original;
+  return text;
+})()`);
+check('copy confirmation names the selected values that reached the clipboard',
+  copyConfirmation.toLowerCase().includes('peak force')
+    && copyConfirmation.toLowerCase().includes('rate of force development')
+    && copyConfirmation.toLowerCase().includes('no landmarks'),
+  copyConfirmation);
+
+// ---------------------------------------------------------------- landmarks and phase context
+const aroundTakeoff = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  state.chart.clearSelection();
+  const box = document.getElementById('chart').getBoundingClientRect();
+  const plot = state.chart.plot;
+  const span = state.chart.viewEnd - state.chart.viewStart;
+  const x = (index) => box.left + plot.left + ((index - state.chart.viewStart) / span) * plot.width;
+  const index = state.analysis.takeoff_index;
+  const fromX = x(index - 300);
+  const toX = x(index + 300);
+  const y = box.top + plot.top + plot.height / 2;
+  return {
+    fromX, toX, y, index, viewStart: state.chart.viewStart, viewEnd: state.chart.viewEnd,
+    target: document.elementFromPoint(fromX, y)?.className ?? null,
+  };
+})()`);
+await dragAcross(aroundTakeoff.fromX, aroundTakeoff.toX, aroundTakeoff.y);
+await pause(240);
+const takeoffSelectionCount = await evaluate("(async () => (await import('./state.js')).state.chart.regions.length)()");
+if (takeoffSelectionCount !== 1) {
+  throw new Error(`the takeoff selection reached ${takeoffSelectionCount} ranges from ${JSON.stringify(aroundTakeoff)}`);
+}
+
+const takeoffDescription = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const host = document.getElementById('chart-selection-numbers');
+  const bound = state.selection[state.build.bindings.find((b) => b.id === 'window.stated.by_caller').construct];
+  const markdown = state.loadedTrial.markdown(
+    JSON.stringify(analysis.buildRequest()), state.fileName, null, bound.methodId);
+  const original = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async () => {};
+  document.querySelector('#selection-copy button').click();
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  const confirmation = document.querySelector('#selection-copy button').textContent;
+  navigator.clipboard.writeText = original;
+  return {
+    labels: [...host.querySelectorAll('.chart-selection__landmarks dt')].map((node) => node.textContent),
+    methods: [...host.querySelectorAll('.chart-selection__landmarks .chart-selection__method')]
+      .map((node) => node.textContent),
+    markdown, confirmation,
+  };
+})()`);
+check('a range crossing takeoff names takeoff and no landmark outside the range',
+  takeoffDescription.labels.length === 1 && takeoffDescription.labels[0] === 'Takeoff',
+  takeoffDescription.labels.join(', ') || 'no landmark was named');
+
+check('the takeoff in the range keeps its placement rule on screen and in the copied block',
+  takeoffDescription.methods.some((line) => line.includes('takeoff.threshold'))
+    && takeoffDescription.markdown.includes('## Landmarks in this window')
+    && takeoffDescription.markdown.includes('- Takeoff at')
+    && !takeoffDescription.markdown.includes('- Landing at'),
+  `${takeoffDescription.methods.join(' | ') || 'no visible rule'}; ` +
+    `${takeoffDescription.markdown.includes('- Takeoff at') ? 'copy has takeoff' : 'copy lacks takeoff'}`);
+
+check('copy confirmation names the landmark it found in the range',
+  takeoffDescription.confirmation.includes('Takeoff'),
+  takeoffDescription.confirmation);
+
+const insideFlight = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  state.chart.clearSelection();
+  const box = document.getElementById('chart').getBoundingClientRect();
+  const plot = state.chart.plot;
+  const span = state.chart.viewEnd - state.chart.viewStart;
+  const x = (index) => box.left + plot.left + ((index - state.chart.viewStart) / span) * plot.width;
+  return {
+    fromX: x(state.analysis.takeoff_index + 250),
+    toX: x(state.analysis.touchdown_index - 250),
+    y: box.top + plot.top + plot.height / 2,
+  };
+})()`);
+await dragAcross(insideFlight.fromX, insideFlight.toX, insideFlight.y);
+await settle("(async () => (await import('./state.js')).state.chart.regions.length === 1)()", 'the flight selection');
+await pause(240);
+
+const flightDescription = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const analysis = await import('./analysis.js');
+  const host = document.getElementById('chart-selection-numbers');
+  const bound = state.selection[state.build.bindings.find((b) => b.id === 'window.stated.by_caller').construct];
+  const markdown = state.loadedTrial.markdown(
+    JSON.stringify(analysis.buildRequest()), state.fileName, null, bound.methodId);
+  return {
+    landmarks: [...host.querySelectorAll('.chart-selection__landmarks dt')].map((node) => node.textContent),
+    empty: host.querySelector('.chart-selection__no-landmarks')?.textContent ?? '',
+    phase: host.querySelector('.chart-selection__phase')?.textContent ?? '',
+    markdown,
+  };
+})()`);
+check('a flight-only range says that it contains no landmark and where it sits',
+  flightDescription.landmarks.length === 0
+    && flightDescription.empty.includes('No start, takeoff, or landing')
+    && flightDescription.phase.includes('Inside flight'),
+  `${flightDescription.empty || 'no empty result'}; ${flightDescription.phase || 'no phase context'}`);
+
+check('flight context keeps both boundary rules on screen and in the copied block',
+  flightDescription.phase.includes('takeoff.threshold')
+    && flightDescription.phase.includes('flight_time.takeoff_to_touchdown')
+    && flightDescription.markdown.includes('This window is inside flight')
+    && flightDescription.markdown.includes('takeoff.threshold')
+    && flightDescription.markdown.includes('flight_time.takeoff_to_touchdown'),
+  `${flightDescription.phase || 'no phase context'}; ` +
+    `${flightDescription.markdown.includes('This window is inside flight') ? 'copy has phase' : 'copy lacks phase'}`);
+
 /* The engine is asked on a trailing edge, not once per frame. Counted rather than reasoned
  * about: the whole reason for the trailing edge is a measurement, so the claim it makes about
  * the running page is measured too. */
@@ -536,6 +829,240 @@ check('a drag asks the engine on a trailing edge rather than once a frame',
   calls >= 1 && calls < moves / 2,
   `${moves} pointer moves dispatched without waiting produced ${calls} ` +
     `${calls === 1 ? 'analysis' : 'analyses'}, at a wait taken from the last one's own duration`);
+
+// ---------------------------------------------------------------- familiar desktop recovery
+/* One marker drag is one edit even though it crosses many pointer positions. The native desktop
+ * shortcuts have to restore the marker and every number recomputed from it together. */
+await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  state.chart.clearSelection();
+  document.getElementById('reset-markers').click();
+  state.chart.fit();
+  return true;
+})()`);
+await pause(160);
+
+const beforeMarker = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const marker = state.chart.markers.find((entry) => entry.key === 'onset').element;
+  marker.focus();
+  return {
+    index: state.analysis.onset_index,
+    override: state.overrides.onset,
+  };
+})()`);
+await send('Input.dispatchKeyEvent', {
+  type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37,
+});
+await send('Input.dispatchKeyEvent', {
+  type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37,
+});
+await settle("(async () => (await import('./state.js')).state.overrides.onset != null)()", 'the marker edit');
+const movedMarker = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return { index: state.analysis.onset_index, override: state.overrides.onset };
+})()`);
+
+await send('Input.dispatchKeyEvent', {
+  type: 'keyDown', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90,
+});
+await send('Input.dispatchKeyEvent', {
+  type: 'keyUp', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90,
+});
+await pause(160);
+const markerUndone = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return { index: state.analysis.onset_index, override: state.overrides.onset };
+})()`);
+check('Command+Z restores one whole marker drag and its recomputed landmark',
+  movedMarker.index !== beforeMarker.index
+    && markerUndone.index === beforeMarker.index && markerUndone.override === beforeMarker.override,
+  `${beforeMarker.index} became ${movedMarker.index}, then Undo reached ${markerUndone.index}`);
+
+await send('Input.dispatchKeyEvent', {
+  type: 'keyDown', key: 'Z', code: 'KeyZ', modifiers: 12, windowsVirtualKeyCode: 90,
+});
+await send('Input.dispatchKeyEvent', {
+  type: 'keyUp', key: 'Z', code: 'KeyZ', modifiers: 12, windowsVirtualKeyCode: 90,
+});
+await pause(160);
+const markerRedone = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return { index: state.analysis.onset_index, override: state.overrides.onset };
+})()`);
+check('Command+Shift+Z reapplies the marker drag and its recomputed landmark',
+  movedMarker.index !== beforeMarker.index && markerUndone.index === beforeMarker.index
+    && markerRedone.index === movedMarker.index && markerRedone.override === movedMarker.override,
+  `Redo reached ${markerRedone.index}, against the moved ${movedMarker.index}`);
+
+const visibleHistory = await evaluate(`(() => ({
+  undo: document.getElementById('undo-edit')?.textContent ?? null,
+  redo: document.getElementById('redo-edit')?.textContent ?? null,
+  undoDisabled: document.getElementById('undo-edit')?.disabled ?? null,
+  redoDisabled: document.getElementById('redo-edit')?.disabled ?? null,
+}))()`);
+check('visible Undo and Redo actions name the same history as the shortcuts',
+  visibleHistory.undo === 'Undo' && visibleHistory.redo === 'Redo'
+    && visibleHistory.undoDisabled === false && visibleHistory.redoDisabled === true,
+  JSON.stringify(visibleHistory));
+
+await evaluate("document.getElementById('reset-markers').click()");
+await pause(160);
+
+// ---------------------------------------------------------------- selection and the weighing band
+/* The band is data already on the chart. Starting a range inside it still means range selection.
+ * Turning that range into a standing-still window is a separate action whose label says so. */
+const weighingBand = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const box = document.getElementById('chart').getBoundingClientRect();
+  const plot = state.chart.plot;
+  const span = state.chart.viewEnd - state.chart.viewStart;
+  const x = (index) => box.left + plot.left + ((index - state.chart.viewStart) / span) * plot.width;
+  const start = state.analysis.weighing_start_index;
+  const end = state.analysis.weighing_end_index;
+  const from = Math.round(start + (end - start) * 0.25);
+  const to = Math.round(start + (end - start) * 0.70);
+  return {
+    start, end, from, to,
+    method: state.selection.weighing?.methodId,
+    fromX: x(from), toX: x(to), y: box.top + plot.top + plot.height / 2,
+  };
+})()`);
+await dragAcross(weighingBand.fromX, weighingBand.toX, weighingBand.y);
+await pause(200);
+const selectedInsideWeighing = await readSelection();
+const weighingAfterDrag = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return { start: state.analysis.weighing_start_index, end: state.analysis.weighing_end_index };
+})()`);
+check('dragging inside the standing-still band selects data without moving the baseline',
+  selectedInsideWeighing.regions.length === 1
+    && selectedInsideWeighing.regions[0].startIndex === weighingBand.from
+    && selectedInsideWeighing.regions[0].endIndex === weighingBand.to
+    && weighingAfterDrag.start === weighingBand.start && weighingAfterDrag.end === weighingBand.end,
+  `${selectedInsideWeighing.regions.length} selections; weighing ${weighingBand.start}-${weighingBand.end} ` +
+    `became ${weighingAfterDrag.start}-${weighingAfterDrag.end}`);
+
+const baselineAction = await evaluate(`(() => {
+  const button = document.getElementById('selection-use-baseline');
+  return { text: button?.textContent ?? null, disabled: button?.disabled ?? null };
+})()`);
+check('the selected interval offers an explicit standing-still action',
+  baselineAction.text === 'Use as standing-still window' && baselineAction.disabled === false,
+  JSON.stringify(baselineAction));
+
+/* Isolate this action from the marker history above. Without this reset, Undo can recover the
+ * old baseline by stepping back over an unrelated marker edit, so the interesting case never
+ * proves the baseline action made an entry of its own. */
+const isolatedBaselineHistory = await evaluate(`(async () => {
+  const history = await import('./history.js');
+  history.clearHistory();
+  return {
+    undoDisabled: document.getElementById('undo-edit').disabled,
+    redoDisabled: document.getElementById('redo-edit').disabled,
+  };
+})()`);
+check('the standing-still action starts this recovery check with no unrelated edit to undo',
+  isolatedBaselineHistory.undoDisabled === true && isolatedBaselineHistory.redoDisabled === true,
+  JSON.stringify(isolatedBaselineHistory));
+
+const usedBaseline = await evaluate(`(async () => {
+  const button = document.getElementById('selection-use-baseline');
+  button?.click();
+  await new Promise((resolve) => setTimeout(resolve, 160));
+  const state = (await import('./state.js')).state;
+  return {
+    clicked: Boolean(button), start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+    method: state.selection.weighing?.methodId,
+  };
+})()`);
+check('using the explicit action applies exactly the selected interval as the standing-still window',
+  usedBaseline.clicked && usedBaseline.start === weighingBand.from
+    && usedBaseline.end === weighingBand.to && usedBaseline.method === 'bwepoch.manual_placement',
+  JSON.stringify(usedBaseline));
+
+const historyAfterBaseline = await evaluate(`(() => ({
+  undoDisabled: document.getElementById('undo-edit').disabled,
+  redoDisabled: document.getElementById('redo-edit').disabled,
+}))()`);
+check('using a selection as the standing-still window becomes one undoable action',
+  historyAfterBaseline.undoDisabled === false && historyAfterBaseline.redoDisabled === true,
+  JSON.stringify(historyAfterBaseline));
+
+await send('Input.dispatchKeyEvent', {
+  type: 'keyDown', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90,
+});
+await send('Input.dispatchKeyEvent', {
+  type: 'keyUp', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90,
+});
+await pause(160);
+const baselineUndone = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+    method: state.selection.weighing?.methodId,
+    selectionStart: state.chart.selection().active?.startIndex,
+    selectionEnd: state.chart.selection().active?.endIndex,
+  };
+})()`);
+check('Command+Z restores the earlier standing-still window and its rule without losing the selection',
+  baselineUndone.start === weighingBand.start && baselineUndone.end === weighingBand.end
+    && baselineUndone.method === weighingBand.method
+    && baselineUndone.selectionStart === weighingBand.from
+    && baselineUndone.selectionEnd === weighingBand.to,
+  JSON.stringify(baselineUndone));
+
+await send('Input.dispatchKeyEvent', {
+  type: 'keyDown', key: 'Z', code: 'KeyZ', modifiers: 12, windowsVirtualKeyCode: 90,
+});
+await send('Input.dispatchKeyEvent', {
+  type: 'keyUp', key: 'Z', code: 'KeyZ', modifiers: 12, windowsVirtualKeyCode: 90,
+});
+await pause(160);
+const baselineRedone = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+    method: state.selection.weighing?.methodId,
+  };
+})()`);
+check('Command+Shift+Z reapplies the selected standing-still window and its rule',
+  baselineRedone.start === weighingBand.from && baselineRedone.end === weighingBand.to
+    && baselineRedone.method === 'bwepoch.manual_placement',
+  JSON.stringify(baselineRedone));
+
+/* Start over before Escape, so the key is tested on a normal selection rather than a window
+ * that intentionally changed the analysis underneath it. */
+await evaluate(`(async () => {
+  document.getElementById('change-file').click();
+  document.getElementById('load-demo').click();
+  return true;
+})()`);
+await settle("!document.getElementById('stage-workspace').hidden", 'the restarted workspace');
+await settle("(async () => Boolean((await import('./state.js')).state.analysis))()", 'the restarted analysis');
+const fresh = await geometry();
+await dragAcross(
+  fresh.left + (fresh.right - fresh.left) * 0.08,
+  fresh.left + (fresh.right - fresh.left) * 0.18,
+  fresh.middle,
+);
+await settle("(async () => (await import('./state.js')).state.chart.regions.length === 1)()", 'the Escape selection');
+await send('Input.dispatchKeyEvent', {
+  type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27,
+});
+await send('Input.dispatchKeyEvent', {
+  type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27,
+});
+await pause(160);
+const escapedSelection = await readSelection();
+check('Escape clears a settled chart selection and its bound window rule',
+  escapedSelection.regions.length === 0 && escapedSelection.rowHidden
+    && escapedSelection.requestedMethod === null,
+  `${escapedSelection.regions.length} selections, row ${escapedSelection.rowHidden ? 'hidden' : 'shown'}, ` +
+    `request ${escapedSelection.requestedMethod ?? 'without a window rule'}`);
 
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {

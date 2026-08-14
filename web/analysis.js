@@ -2,8 +2,8 @@
 
 import { $, state } from './state.js';
 import { element, formatNumber, reply, secondaryDisplay, typesetUnit } from './format.js';
-import { rankCandidates, initialParameters, namedValues, findMethod } from './registry.js';
-import { candidateFor, renderBuildInfo } from './startup.js';
+import { rankCandidates, initialParameters, namedValues, findMethod, buildDecisionModel } from './registry.js';
+import { candidateFor, renderBuildInfo, initialiseMissingSelections } from './startup.js';
 import { unresolvedDecisions, renderDecisions } from './decisions.js';
 import { renderSpreadControls, scheduleSpread } from './spread.js';
 import { openMetricRecord } from './drawer.js';
@@ -16,6 +16,32 @@ import { captureJson, recordAttribution, renderChip } from './plate.js';
 import { renderSelectionNumbers } from './workspace.js';
 import { copyButton } from './copy.js';
 import { trialDownloadButton } from './export.js';
+import { renderPicker } from './add-quantity.js';
+
+const WINDOW_ESSENTIALS = [
+  // These are not silently promoted as the trial's chosen methods. They appear only while a
+  // reader has selected an interval, under the selected interval's rule, with the method ids
+  // shown beside the values and carried into the copy.
+  ['peak_force', 'force.peak.gross'],
+  ['rate_of_force_development', 'rfd.peak_sliding_window'],
+];
+
+function keepWindowEssentialsOnPath() {
+  if (!state.windowCameFromASelection) return false;
+  let changed = false;
+  for (const [construct, methodId] of WINDOW_ESSENTIALS) {
+    if (state.path.includes(construct)) continue;
+    state.path.push(construct);
+    state.selectionEssentials.add(construct);
+    changed = true;
+    state.slots = buildDecisionModel(state.registry, state.build, state.path);
+    initialiseMissingSelections();
+    const slot = state.slots.find((entry) => entry.construct === construct);
+    const candidate = slot?.available.find((entry) => entry.id === methodId);
+    if (slot && candidate) state.selection[slot.key] = selectionFromChosenRule(candidate, false);
+  }
+  return changed;
+}
 
 /*
  * The rule a slot is running under right now.
@@ -175,6 +201,10 @@ export function buildRequest() {
 
 export function runAnalysis() {
   if (!state.loadedTrial) return;
+  if (keepWindowEssentialsOnPath()) {
+    renderPicker();
+    renderDecisions();
+  }
   $('reset-markers').hidden = !Object.values(state.overrides).some((value) => value != null);
 
   /*

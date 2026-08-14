@@ -37,6 +37,16 @@ async function put(text) {
   }
 }
 
+export async function putImage(blob) {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') return false;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /*
  * A button that copies what `produce` returns.
  *
@@ -48,7 +58,7 @@ async function put(text) {
  * button that reported nothing leaves a reader pressing it twice; one that kept the report
  * leaves them unable to see what it does.
  */
-export function copyButton(label, produce) {
+export function copyButton(label, produce, describe = null) {
   const button = element('button', 'button button--ghost button--small', label);
   button.type = 'button';
   let restore = null;
@@ -62,7 +72,7 @@ export function copyButton(label, produce) {
     }
     if (text != null) {
       const copied = await put(text);
-      button.textContent = copied ? 'Copied' : 'Could not reach the clipboard';
+      button.textContent = copied ? (describe?.() || 'Copied') : 'Could not reach the clipboard';
     }
     clearTimeout(restore);
     restore = setTimeout(() => { button.textContent = label; }, 2000);

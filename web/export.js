@@ -132,7 +132,7 @@ export function trialEnvelope() {
  * text, so there is no file set to write for it. */
 export function trialDownloadButton() {
   if (!state.trialText || !state.fileName) return null;
-  const button = element('button', 'button button--ghost button--small', 'Download results (CSV)');
+  const button = element('button', 'button button--ghost button--small', 'Download results (ZIP)');
   button.type = 'button';
   armDownload(button, trialEnvelope);
   return button;

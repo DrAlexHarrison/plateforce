@@ -441,7 +441,7 @@ def getting_numbers_out():
     return """
 <h2>Getting your numbers out</h2>
 
-<p><strong>Download results (CSV)</strong> writes a zip file to your downloads folder. Inside
+<p><strong>Download results (ZIP)</strong> writes a zip file to your downloads folder. Inside
 it is one table per kind of thing, and <code>results.csv</code> is the one to open in a
 spreadsheet.</p>
 
