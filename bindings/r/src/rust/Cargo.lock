@@ -87,7 +87,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "plateforce-analysis"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-core",
  "plateforce-registry",
@@ -97,7 +97,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plateforce-registry",
  "serde",
@@ -120,7 +120,7 @@ dependencies = [
 
 [[package]]
 name = "plateforce-registry"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "thiserror",

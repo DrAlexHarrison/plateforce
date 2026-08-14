@@ -3037,7 +3037,7 @@
         "csv",
         "json"
       ],
-      "plateforce_version": "0.1.0",
+      "plateforce_version": "0.1.1",
       "refusal_codes": [
         {
           "code": "ambiguous_force_channels",
@@ -6161,7 +6161,7 @@
         "json",
         "text"
       ],
-      "plateforce_version": "0.1.0",
+      "plateforce_version": "0.1.1",
       "refusal_codes": [
         {
           "code": "ambiguous_force_channels",
@@ -9283,7 +9283,7 @@
         "json",
         "parquet"
       ],
-      "plateforce_version": "0.1.0",
+      "plateforce_version": "0.1.1",
       "refusal_codes": [
         {
           "code": "ambiguous_force_channels",
@@ -12398,7 +12398,7 @@
         }
       ],
       "output_formats": [],
-      "plateforce_version": "0.1.0",
+      "plateforce_version": "0.1.1",
       "refusal_codes": [
         {
           "code": "ambiguous_force_channels",
