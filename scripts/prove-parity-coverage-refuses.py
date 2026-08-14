@@ -1208,13 +1208,20 @@ def hollow_faults_when(name, committed, fields, expected):
 def a_population_valuing_everything():
     """Two requests between them putting a value in every compared field.
 
-    `registry_version` is empty in both, as it is in every committed request, and it is the
-    one name in `EMPTY_ON_EVERY_REQUEST`. So the control also shows the register covering the
-    field it declares rather than merely existing.
+    Every name in `EMPTY_ON_EVERY_REQUEST` is compared here and empty in both, as each is in
+    every committed request, so the control shows the register covering the fields it declares
+    rather than merely existing.
+
+    Read from the register rather than written out. Naming them here held while it named the
+    only entry, and the day a second was declared this control refused and reported the
+    register broken, which is the register working and the control describing a population of
+    one.
     """
+    empty = {name: None for name in gate.EMPTY_ON_EVERY_REQUEST}
+    assert empty, "the register declares no field, so this control covers nothing"
     committed = {
-        "first": {"metrics": [1.0], "refusals": [], "registry_version": None},
-        "second": {"metrics": [], "refusals": [{"code": "no_crossing"}], "registry_version": None},
+        "first": {"metrics": [1.0], "refusals": [], **empty},
+        "second": {"metrics": [], "refusals": [{"code": "no_crossing"}], **empty},
     }
     fields = {name: sorted(held) for name, held in committed.items()}
     return committed, fields
