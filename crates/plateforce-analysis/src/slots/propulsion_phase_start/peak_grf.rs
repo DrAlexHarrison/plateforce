@@ -50,6 +50,6 @@ fn place(
     // The jump, meaning onset to takeoff. Over an untrimmed recording the largest force is
     // the landing, and this rule would place the start of propulsion after the athlete had
     // already come back down.
-    let index = boundaries::propulsive_peak_index(context, onset, takeoff);
+    let index = boundaries::propulsive_peak_index(context, onset, takeoff).ok();
     boundaries::placed_outcome(context, super::KEY, super::PLACED, index, bound)
 }

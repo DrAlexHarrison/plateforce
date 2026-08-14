@@ -15,7 +15,7 @@ use crate::binding::{ONSET_CONSTRUCT, TAKEOFF_CONSTRUCT};
 use crate::boundaries;
 use crate::derived::{DerivedContext, DerivedOutcome, DerivedRule};
 use crate::request::MethodChoice;
-use crate::resolution::Resolution;
+use crate::resolution::{Resolution, RuleRefusal};
 use crate::response::Quantity;
 
 pub const ID: &str = "phase.braking_start.min_force";
@@ -48,16 +48,39 @@ fn place(
         return DerivedOutcome::declined(bound, context.unavailable(ID, &missing));
     };
 
-    let placed = boundaries::propulsive_peak_index(context, onset, takeoff)
-        .and_then(|peak| braking_start_by_force_minimum(context.trial.force(), onset, peak));
+    // The peak bounds the search, so a peak that could not be taken is a search that never
+    // ran rather than a recording carrying no nadir. Both faults the peak reports are the
+    // recording failing to supply an interval, and they take different repairs.
+    let peak = match boundaries::propulsive_peak_index(context, onset, takeoff) {
+        Ok(peak) => peak,
+        Err(plateforce_core::peak::PeakError::SamplesCarryNoNumber(missing)) => {
+            return DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(missing.refusal(ID))),
+            )
+        }
+        Err(plateforce_core::peak::PeakError::EmptySpan { .. }) => {
+            return DerivedOutcome::declined(
+                bound,
+                RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
+                    ID, onset, takeoff,
+                ))),
+            )
+        }
+        Err(plateforce_core::peak::PeakError::Smoothing(_)) => {
+            unreachable!("a raw maximum does not smooth")
+        }
+    };
 
-    let Some(index) = placed else {
-        return DerivedOutcome {
-            values: vec![(super::KEY, None)],
-            placed: Vec::new(),
+    // The nadir is the least force between the onset and that peak, so a peak standing at the
+    // onset leaves the search no samples to be least of.
+    let Some(index) = braking_start_by_force_minimum(context.trial.force(), onset, peak) else {
+        return DerivedOutcome::declined(
             bound,
-            refusal: None,
-        };
+            RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(
+                ID, onset, peak,
+            ))),
+        );
     };
     DerivedOutcome {
         values: vec![(super::KEY, Some(context.trial.time_at(index)))],

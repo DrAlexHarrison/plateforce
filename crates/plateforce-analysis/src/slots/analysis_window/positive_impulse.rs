@@ -70,7 +70,7 @@ fn place(
     // The falling crossing is searched back from the propulsive peak, so the rising crossing
     // has to be found on the near side of it. Handing the whole interval to both searches
     // would let the rising one take a re-crossing after the peak.
-    let Some(peak) = boundaries::propulsive_peak_index(context, onset, takeoff) else {
+    let Ok(peak) = boundaries::propulsive_peak_index(context, onset, takeoff) else {
         return DerivedOutcome::declined(
             bound,
             RuleRefusal::Refused(Box::new(plateforce_core::Refusal::span_selects_no_samples(

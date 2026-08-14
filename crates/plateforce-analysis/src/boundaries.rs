@@ -452,11 +452,14 @@ pub(crate) fn phase_interval(
 /// through the reference afterwards. Bounded at takeoff instead, the search reaches the
 /// collapse toward zero, where force is under the reference again, and lands there. Shown by
 /// `plateforce_core::phases::a_rising_crossing_is_fixed_across_the_band_the_propulsive_peak_sits_in`.
+///
+/// The reason travels with the failure, because an interval its two landmarks enclose no
+/// samples of and an interval carrying samples that are not numbers are different faults with
+/// different remedies. A rule that reports neither writes `.ok()`.
 pub(crate) fn propulsive_peak_index(
     context: &DerivedContext,
     from_index: usize,
     takeoff_index: usize,
-) -> Option<usize> {
+) -> Result<usize, plateforce_core::peak::PeakError> {
     plateforce_core::peak::index_of_maximum_over(context.trial.force(), from_index, takeoff_index)
-        .ok()
 }

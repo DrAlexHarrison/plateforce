@@ -102,6 +102,7 @@ fn place(
     // model defines its own start and reading the bound rule's would move every boundary
     // below it with a choice this model does not make.
     let model = boundaries::propulsive_peak_index(context, onset, takeoff)
+        .ok()
         .map(|peak| {
             phase_model_unloading_yielding_split(
                 context.trial.force(),

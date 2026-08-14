@@ -62,6 +62,7 @@ fn place(
     };
 
     let model = boundaries::propulsive_peak_index(context, onset, takeoff)
+        .ok()
         .map(|peak| {
             phase_model_unweighting_single(
                 context.trial.force(),

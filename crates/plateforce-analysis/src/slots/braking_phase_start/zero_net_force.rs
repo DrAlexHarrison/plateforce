@@ -80,8 +80,9 @@ fn place(
         // Bounded at the propulsive peak. Bounded at takeoff the search anchors on the force
         // collapse rather than on the unweighting minimum and returns takeoff itself.
         SearchSignal::ForceCrossing => {
-            let crossing =
-                boundaries::propulsive_peak_index(context, onset, takeoff).and_then(|peak| {
+            let crossing = boundaries::propulsive_peak_index(context, onset, takeoff)
+                .ok()
+                .and_then(|peak| {
                     braking_start_by_force_return(
                         context.trial.force(),
                         onset,

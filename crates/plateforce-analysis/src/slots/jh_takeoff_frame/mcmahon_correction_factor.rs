@@ -141,25 +141,25 @@ fn compute(
     let velocity = centre_of_mass_velocity_meters_per_second(context.trial, epoch, &spec, gravity);
     let bound = resolved.finish();
 
+    // The series carries one sample per sample of the recording, so both reads below are asking
+    // whether the recording holds the samples this rule averages over. Refused together and in
+    // the standing period's own terms, because the window is what a reader moves either way.
     let standing_period = epoch.start_index..epoch.end_index + 1;
-    let Some(arrival_velocity) = arrival_velocity_from_final_standing_period_meters_per_second(
+    let reached = arrival_velocity_from_final_standing_period_meters_per_second(
         velocity.meters_per_second(),
-        standing_period,
-    ) else {
-        return DerivedOutcome {
-            values: vec![(super::KEY, None)],
-            placed: Vec::new(),
+        standing_period.clone(),
+    );
+    let (Some(arrival_velocity), Some(change_from_arrival)) = (reached, velocity.at(takeoff_index))
+    else {
+        return DerivedOutcome::declined(
             bound,
-            refusal: None,
-        };
-    };
-    let Some(change_from_arrival) = velocity.at(takeoff_index) else {
-        return DerivedOutcome {
-            values: vec![(super::KEY, None)],
-            placed: Vec::new(),
-            bound,
-            refusal: None,
-        };
+            RuleRefusal::Refused(Box::new(Refusal::epoch_does_not_fit(
+                ID,
+                standing_period.len() as f64 * context.trial.sample_interval_seconds(),
+                context.trial.time_at(standing_period.start),
+                context.trial.duration_seconds(),
+            ))),
+        );
     };
     let takeoff_velocity = change_from_arrival + arrival_velocity;
 
