@@ -3,9 +3,10 @@
  * because it answers the same reader asking about the same figure. */
 
 import { $, state } from './state.js';
-import { element } from './format.js';
-import { findMethod } from './registry.js';
-import { notice, boundValueText, ruleSourceLine } from './analysis.js';
+import { element, formatNumber, reply, typesetUnit } from './format.js';
+import { findMethod, rankCandidates } from './registry.js';
+import { notice, boundValueText, ruleSourceLine, boundMethodId, buildRequest } from './analysis.js';
+import { majorLandmarks } from './workspace.js';
 
 /*
  * One number's account, as the engine wrote it.
@@ -30,19 +31,181 @@ export function openAccounts(title, accounts) {
 }
 
 /* One metric's account and every rule named in its record. */
-export function openMetricRecord(title, account, methodIds) {
+export function openMetricRecord(metric, account, methodIds) {
+  const nodes = [];
+  const landmarks = landmarksBehind(methodIds);
+  if (landmarks) nodes.push(landmarks);
+
+  const competing = competingMethods(metric, methodIds);
+  if (competing) nodes.push(competing);
+
   const section = element('section');
   section.append(element('h3', null, 'Methods'));
   const list = element('div', 'method-list');
   for (const id of [...new Set(methodIds)]) list.append(methodRecordRow(id));
   section.append(list);
-  const nodes = [section];
+  nodes.push(section);
+
   if (account) {
     const details = element('details', 'metric-account');
     details.append(element('summary', null, 'Calculation account'), accountBlock(account));
     nodes.push(details);
   }
-  fill(title, nodes, { root: true });
+  fill(metric.label, nodes, { root: true });
+}
+
+/*
+ * The instants on the trace this number rests on, in the words the chart draws beside them.
+ *
+ * The account below spells its steps as registry ids, and a reader who cannot match
+ * `onset.threshold.adaptive_trailing_window` to the label on the orange line is holding an
+ * audit they cannot check against the picture in front of them. These are the same three
+ * quantities the analysis reported, read off the record, so nothing here places a landmark or
+ * works one out: two surfaces naming the same instant differently is the failure the ids were
+ * spelt out to prevent.
+ */
+function landmarksBehind(methodIds) {
+  if (!state.info) return null;
+  const named = new Set(methodIds);
+  // Only the landmarks this number's own chain reaches. A jump height that never read the
+  // landing is not explained by naming where the landing was.
+  const marks = majorLandmarks().filter((event) => event.rules.some((id) => named.has(id)));
+  if (!marks.length) return null;
+
+  const section = element('section');
+  section.append(element('h3', null, 'On this trace'));
+  const list = element('dl', 'kv kv--landmarks');
+  for (const event of marks) {
+    list.append(element('dt', null, event.label));
+    const value = element('dd');
+    value.append(element('span', 'landmark-time',
+      `${(event.index / state.info.sample_rate_hz).toFixed(4)} s, sample ${event.index}`));
+    value.append(element('span', 'landmark-rule', event.rules.join(', ')));
+    list.append(value);
+  }
+  section.append(list);
+  return section;
+}
+
+/*
+ * The rules that would have produced this number instead, and the number each would give.
+ *
+ * Beside the value rather than in a panel of its own, because a reader comparing published
+ * methods for one quantity is reading one thing, and the comparison used to live two surfaces
+ * away from the figure it is about. The alternatives' values come from the engine running
+ * them, one rule at a time against everything else the reader has settled, so a figure here
+ * is a figure the software would report and not an estimate of one.
+ *
+ * The choices offered are the ones on this number's own chain that a reader can actually make:
+ * a construct whose rule the record names behind this figure and which has more than one
+ * runnable rule under it. Rooting it on the rule that computed the number instead reaches
+ * nothing, because the constructs that compute quantities carry one rule each and the
+ * disagreement this software exists to show lives further up, in which onset, which takeoff
+ * and which weighing window.
+ */
+const COMPETING_RULE_CEILING = 10;
+
+function competingMethods(metric, methodIds) {
+  if (!state.loadedTrial || !state.slots) return null;
+  const named = new Set(methodIds);
+  const slots = state.slots.filter((slot) =>
+    slot.available.length > 1 && slot.available.some((candidate) => named.has(candidate.id)));
+  if (!slots.length) return null;
+
+  const section = element('section');
+  section.append(element('h3', null, 'Competing rules'));
+  for (const slot of slots) {
+    const ranked = rankCandidates(slot.available).slice(0, COMPETING_RULE_CEILING);
+    const values = valueUnderEachRule(slot, ranked, metric);
+    const running = boundMethodId(slot.key);
+
+    section.append(element('p', 'competing__construct', slot.title));
+    const list = element('div', 'competing');
+    for (const candidate of ranked) {
+      const isRunning = candidate.id === running;
+      const row = element('div', `competing__row${isRunning ? ' competing__row--running' : ''}`);
+      const name = element('button', 'competing__name');
+      name.type = 'button';
+      name.append(element('span', `status-dot status-dot--${candidate.status || 'legacy'}`));
+      name.append(document.createTextNode(candidate.title));
+      name.title = candidate.id;
+      opensPanel(name, () => openDrawer(candidate.method, candidate.id, recordFor(candidate.id)));
+      row.append(name);
+      row.append(element('span', 'competing__mark', isRunning ? 'running' : ''));
+      const answer = values.get(candidate.id);
+      row.append(element(
+        'span',
+        'competing__value',
+        answer === undefined
+          ? 'no value'
+          : answer === null
+            ? 'no value'
+            : `${formatNumber(answer, metric.unit)} ${typesetUnit(metric.unit_symbol)}`,
+      ));
+      list.append(row);
+    }
+    section.append(list);
+    if (ranked.length < slot.available.length) {
+      section.append(element('p', 'metric__note',
+        `${ranked.length} of ${slot.available.length} rules shown.`));
+    }
+  }
+  return section;
+}
+
+/*
+ * What this quantity comes to under each of those rules, asked of the engine.
+ *
+ * One sweep over one axis, so every rule answers against the same settled choices the reader
+ * is looking at and the difference between two rows is the rule and nothing else. A sweep
+ * that declines leaves the rows without values rather than without rules: the names and their
+ * citations are what the reader came for and they do not depend on a run.
+ *
+ * The answers are kept against the request that produced them, because opening the same panel
+ * again is the same question and the reader waited for it once. The request is the key, so a
+ * rule the reader has since changed can never be answered from the old run.
+ */
+const sweptBefore = new Map();
+
+function valueUnderEachRule(slot, candidates, metric) {
+  const answers = new Map();
+  const request = JSON.stringify(buildRequest());
+  const key = `${metric.key}|${slot.key}|${request}`;
+  if (sweptBefore.has(key)) return sweptBefore.get(key);
+  try {
+    const swept = reply(state.loadedTrial.spread(JSON.stringify({
+      base: JSON.parse(request),
+      axes: [{
+        slot: slot.key,
+        parameter: null,
+        values: [],
+        method_ids: candidates.map((candidate) => candidate.id),
+      }],
+      quantity_key: metric.key,
+      maximum_combinations: COMPETING_RULE_CEILING,
+    })));
+    if (swept.refusal) return answers;
+    for (const variant of swept.ok.variants) {
+      const chosen = variant.settings.find(([, value]) =>
+        candidates.some((candidate) => candidate.id === value));
+      // The sweep writes no setting for the combination the reader is already on, because it
+      // is the one it varied away from. Its number is the baseline, and the rule it belongs
+      // to is the one running, so the row for the active rule reads the same figure the card
+      // reads rather than an empty cell.
+      if (chosen) answers.set(chosen[1], variant.value ?? null);
+      else if (swept.ok.baseline_value !== undefined) {
+        answers.set(boundMethodId(slot.key), swept.ok.baseline_value ?? null);
+      }
+    }
+  } catch {
+    return answers;
+  }
+  // Only a sweep that answered is kept. A refused one is a question still worth asking again.
+  if (answers.size) {
+    if (sweptBefore.size > 64) sweptBefore.clear();
+    sweptBefore.set(key, answers);
+  }
+  return answers;
 }
 
 function recordFor(methodId) {
@@ -78,7 +241,7 @@ function methodRecordRow(methodId) {
   }
   if (badges.childElementCount) button.append(badges);
   button.title = methodId;
-  button.addEventListener('click', () => openDrawer(method, methodId, bound));
+  opensPanel(button, () => openDrawer(method, methodId, bound));
   return button;
 }
 
@@ -99,6 +262,22 @@ function fill(title, nodes, { root = false } = {}) {
 /* The control the panel was opened from, so closing puts the reader back on it. */
 let openedFrom = null;
 let returnView = null;
+
+/*
+ * A control that opens a panel, taking the focus its own press is owed.
+ *
+ * Where the reader came from is read off `document.activeElement`, and a press does not put it
+ * there everywhere: WebKit leaves a button unfocused when it is clicked, so on macOS closing a
+ * rule detail returned the reader to whatever held focus before they reached the row. The same
+ * fact that kept the keyboard off the chart landmarks.
+ */
+export function opensPanel(button, open) {
+  button.addEventListener('click', () => {
+    button.focus();
+    open();
+  });
+  return button;
+}
 
 /*
  * A panel that covers the screen takes the keyboard with it.
@@ -171,7 +350,7 @@ export function openDrawer(method, fallbackId, bound) {
       if (base) {
         const open = element('button', 'button button--ghost button--small', 'Open source entry');
         open.type = 'button';
-        open.addEventListener('click', () => openDrawer(base));
+        opensPanel(open, () => openDrawer(base));
         body.append(open);
       }
     } else {
@@ -289,7 +468,7 @@ export function openDrawer(method, fallbackId, bound) {
       if (alternative) {
         const open = element('button', 'button button--ghost button--small', 'Open this entry');
         open.type = 'button';
-        open.addEventListener('click', () => openDrawer(alternative));
+        opensPanel(open, () => openDrawer(alternative));
         item.append(document.createTextNode(' '));
         item.append(open);
       }

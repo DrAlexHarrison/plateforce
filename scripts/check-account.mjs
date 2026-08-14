@@ -317,6 +317,220 @@ check('at 390 px a line too long for the panel scrolls inside the account, not a
       `${narrow.wider ? 'wider than' : 'inside'} its frame at ${narrow.size} px`
     : 'no account to open at 390 px');
 
+/*
+ * What a reader meets above the account, which is the half of the audit they can check against
+ * the picture in front of them.
+ *
+ * The account spells its steps as registry ids. A first-time reader holding
+ * `onset.threshold.adaptive_trailing_window` and looking at a line labelled `Start of jump` has
+ * an audit and no way to tie it to the trace. Every instant here is compared against the number
+ * the analysis reported for it, so a panel that worked one out for itself is caught: a second
+ * answer to where a landmark is is exactly the defect the ids were spelt out to prevent.
+ */
+const landmarkHeads = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const cards = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')];
+  const read = [];
+  for (const card of cards) {
+    const control = card.querySelector('.metric-record');
+    if (!control) continue;
+    control.click();
+    const body = document.getElementById('drawer-body');
+    const heading = [...body.querySelectorAll('h3')].map((node) => node.textContent);
+    const rows = [...body.querySelectorAll('.kv--landmarks dt')].map((term, position) => ({
+      label: term.textContent,
+      time: body.querySelectorAll('.kv--landmarks .landmark-time')[position].textContent,
+      rule: body.querySelectorAll('.kv--landmarks .landmark-rule')[position].textContent,
+    }));
+    read.push({
+      label: card.querySelector('.metric__label').textContent,
+      leads: heading[0] ?? null,
+      rows,
+      // The instants the record itself reports, to compare the panel against.
+      reported: Object.fromEntries(state.chart.markers
+        .map((marker) => [marker.label, state.analysis[marker.key + '_index']])
+        .filter(([, index]) => index != null)),
+      rate: state.info.sample_rate_hz,
+    });
+    document.querySelector('#method-drawer [data-close-drawer]').click();
+  }
+  return read;
+})()`);
+
+const withLandmarks = landmarkHeads.filter((entry) => entry.rows.length > 0);
+const wrongTime = withLandmarks.flatMap((entry) => entry.rows
+  .filter((row) => {
+    const index = entry.reported[row.label];
+    return index == null || !row.time.startsWith((index / entry.rate).toFixed(4));
+  })
+  .map((row) => `${entry.label}/${row.label} shows ${row.time}`));
+const ruleless = withLandmarks.flatMap((entry) => entry.rows.filter((row) => !row.rule.trim()));
+
+check('a number that rests on a landmark opens with that landmark, at the instant the record reports, under its rule',
+  withLandmarks.length > 0
+    && withLandmarks.every((entry) => entry.leads === 'On this trace')
+    && wrongTime.length === 0
+    && ruleless.length === 0,
+  `${withLandmarks.length} of ${landmarkHeads.length} numbers rest on a landmark, ` +
+    `${withLandmarks.reduce((total, entry) => total + entry.rows.length, 0)} landmarks named, ` +
+    `${wrongTime.length} at the wrong instant${wrongTime.length ? `: ${wrongTime[0]}` : ''}, ` +
+    `${ruleless.length} without a rule`);
+
+/*
+ * The rules that would have produced this number instead, beside it rather than two surfaces
+ * away, each carrying what it would give.
+ *
+ * The row for the rule that is running has to read the number on the card. A comparison whose
+ * own baseline disagrees with the value it is explaining is worse than no comparison.
+ */
+const comparison = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  // The page's own formatter, so the figure this check expects is written by the one site that
+  // writes every figure a reader sees rather than by a second rounding rule living here.
+  const { formatNumber } = await import('./format.js');
+  const began = performance.now();
+  const cards = [...document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric')];
+  const read = [];
+  for (const card of cards) {
+    const control = card.querySelector('.metric-record');
+    if (!control) continue;
+    const label = card.querySelector('.metric__label').textContent;
+    const metric = state.analysis.metrics.find((entry) => entry.label === label);
+    control.click();
+    const rows = [...document.querySelectorAll('#drawer-body .competing__row')].map((row) => ({
+      name: row.querySelector('.competing__name').textContent.trim(),
+      id: row.querySelector('.competing__name').title,
+      running: row.classList.contains('competing__row--running'),
+      value: row.querySelector('.competing__value').textContent.trim(),
+    }));
+    if (rows.length) {
+      read.push({
+        label,
+        rows,
+        // One section per construct the number rests on, so the count of rules that are
+        // running has to be that many rather than one.
+        constructs: [...document.querySelectorAll('#drawer-body .competing__construct')]
+          .map((node) => node.textContent),
+        cardValue: card.querySelector('.metric__primary')?.textContent.trim() ?? null,
+        expected: metric ? formatNumber(metric.value, metric.unit) : null,
+        heading: [...document.querySelectorAll('#drawer-body h3')]
+          .find((node) => node.textContent.startsWith('Competing rules'))?.textContent ?? null,
+      });
+    }
+    document.querySelector('#method-drawer [data-close-drawer]').click();
+  }
+  return { read, milliseconds: Math.round(performance.now() - began) };
+})()`);
+
+const compared = comparison.read;
+const valuedRows = compared.flatMap((entry) => entry.rows.filter((row) => /\d/.test(row.value)));
+// Exactly one running rule per construct offered. Fewer means a section whose active rule is
+// not among the alternatives it lists, which is a comparison with nothing to compare against.
+const miscounted = compared.filter(
+  (entry) => entry.rows.filter((row) => row.running).length !== entry.constructs.length,
+);
+// Every running row against the figure the page itself writes for that number, so a
+// comparison whose own baseline disagrees with the value it is explaining is caught. Against
+// the card as well as the record, because a panel agreeing with one and not the other is two
+// different faults and the card is the one a reader meets.
+const disagreeing = compared.filter((entry) => {
+  if (entry.expected == null) return false;
+  const active = entry.rows.filter((row) => row.running);
+  return active.some((row) => !row.value.startsWith(entry.expected))
+    || !(entry.cardValue || '').startsWith(entry.expected);
+});
+
+check('a number with competing rules shows them beside it, each with what it would give',
+  compared.length > 0
+    && compared.every((entry) => entry.rows.length > 1 && entry.constructs.length > 0)
+    && miscounted.length === 0
+    && valuedRows.length > compared.length
+    && disagreeing.length === 0,
+  `${compared.length} quantities carry a comparison over ` +
+    `${compared.reduce((total, entry) => total + entry.constructs.length, 0)} choices, ` +
+    `${compared.reduce((total, entry) => total + entry.rows.length, 0)} rules across them, ` +
+    `${valuedRows.length} carrying a number, ${miscounted.length} miscounting their running rules, ` +
+    `${disagreeing.length} disagreeing with their own card` +
+    `${disagreeing.length ? `: ${disagreeing[0].label} card "${disagreeing[0].cardValue}" against ${disagreeing[0].expected}` : ''}` +
+    `, ${comparison.milliseconds} ms to open every panel`);
+
+/*
+ * A value still resting on a choice nobody has made, and whether the reader can reach that
+ * choice. The names lived in a `title` attribute, which is nothing on a touch screen and
+ * nothing from a keyboard, on the one card whose number depends on the answer.
+ */
+const provisional = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const analysis = await import('./analysis.js');
+  const cards = [...document.querySelectorAll('.metric--provisional')];
+  if (!cards.length) return { present: false };
+  const naming = cards.find((card) => card.querySelector('.metric__provisional-reach'));
+  if (!naming) return { present: true, cards: cards.length, reachable: false };
+  const reach = naming.querySelector('.metric__provisional-reach');
+  const named = reach.textContent.trim();
+
+  // Which choices that card is actually about, read off the record rather than out of the
+  // sentence, so the check compares the rail against the slots and not against itself.
+  const label = naming.querySelector('.metric__label').textContent;
+  const metric = state.analysis.metrics.find((entry) => entry.label === label);
+  const resting = state.provisional.filter((slot) =>
+    metric.contributing_method_ids.includes(analysis.boundMethodId(slot.key)));
+
+  // Which set of open choices each provisional value rests on, so a pair named twice and a
+  // pair named nowhere are both caught. Two distinct sets on this trial, so a check expecting
+  // one naming card would fail on a page that is doing exactly the right thing.
+  const setOf = (card) => {
+    const held = state.analysis.metrics.find(
+      (entry) => entry.label === card.querySelector('.metric__label').textContent,
+    );
+    return state.provisional
+      .filter((slot) => held.contributing_method_ids.includes(analysis.boundMethodId(slot.key)))
+      .map((slot) => slot.key).sort().join('|');
+  };
+  const sets = new Set(cards.map(setOf));
+  const namers = cards.filter((card) => card.querySelector('.metric__provisional-reach'));
+
+  reach.click();
+  const landed = document.activeElement;
+  return {
+    present: true,
+    cards: cards.length,
+    reachable: true,
+    named,
+    namesEvery: resting.every((slot) => named.includes(slot.title)),
+    distinctSets: sets.size,
+    namingCards: namers.length,
+    // One naming per set, never two for one set.
+    namedSetsAreDistinct: new Set(namers.map(setOf)).size === namers.length,
+    // Every value that is not the one naming its set still says it is provisional.
+    counted: cards.filter((card) => !namers.includes(card)).map((card) =>
+      card.querySelector('.metric__provisional-count')?.textContent ?? null),
+    landedOn: landed ? [landed.tagName, landed.dataset.construct ?? ''].join('|') : 'none',
+    insideTheRail: Boolean(landed && landed.closest('#decision-list')),
+    // Naming a construct id rather than the words the reader was shown would be the rail
+    // speaking a different language from the card that pointed at it.
+    railLabel: landed ? landed.getAttribute('aria-label') : null,
+    railIsOneOfThem: resting.some((slot) =>
+      (landed?.getAttribute('aria-label') ?? '').startsWith(slot.title)),
+  };
+})()`);
+
+check('a provisional number names the choices it rests on and puts the keyboard on them',
+  provisional.present && provisional.reachable
+    && provisional.namesEvery
+    && provisional.insideTheRail
+    && provisional.railIsOneOfThem
+    && provisional.namingCards === provisional.distinctSets
+    && provisional.namedSetsAreDistinct
+    && provisional.counted.length > 0
+    && provisional.counted.every((said) => /^Provisional · \d+ method choices? open$/.test(said ?? '')),
+  provisional.present
+    ? `"${provisional.named}" lands on ${provisional.landedOn} ` +
+      `(${provisional.insideTheRail ? 'inside' : 'outside'} the rail) labelled "${provisional.railLabel}"; ` +
+      `${provisional.namingCards} naming cards for ${provisional.distinctSets} distinct sets of open choices, ` +
+      `${provisional.counted.length} of ${provisional.cards} further values stating the count without renaming a pair`
+    : 'no provisional value on this trial, so the reach could not be exercised');
+
 check('no console errors', consoleLines.length === 0, consoleLines.join(' | ') || 'none');
 
 for (const { name, passed, read } of results) {

@@ -12,6 +12,9 @@
 
 <a class="skip-link" href="#main">Skip to content</a>
 
+<!-- What an edit on the trace did, for a reader who cannot see the trace change. -->
+<p class="offscreen" id="chart-announcement" role="status" aria-live="polite"></p>
+
 <header class="app-header">
   <div class="app-header__identity">
     <svg class="app-header__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
@@ -210,7 +213,14 @@
       </div>
 
       <div class="chart-legend" id="chart-legend"></div>
-      <p class="chart-help">Drag a marker to recompute. Drag across the trace to select a window, double-click inside a phase to select it. Command or Control + scroll zooms at the pointer. Shift + scroll moves across a zoomed trace. +, -, and 0 also change the view.</p>
+      <dl class="chart-help">
+        <dt>Landmarks</dt>
+        <dd>Drag one to recompute, or tab to it and use the arrow keys, one sample at a time and ten with Shift.</dd>
+        <dt>Windows</dt>
+        <dd>Drag across the trace to select one, double-click inside a phase to take its boundaries. Arrow keys move a selected window, Shift and an arrow move its far end.</dd>
+        <dt>View</dt>
+        <dd>Command or Control with the scroll wheel zooms at the pointer, Shift with the wheel moves across a zoomed trace, and +, -, and 0 also change it.</dd>
+      </dl>
     </section>
 
     <section class="panel panel--headlines workspace__headlines" aria-labelledby="headline-metrics-heading">

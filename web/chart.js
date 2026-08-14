@@ -20,7 +20,9 @@ export function landmarkDefinitions(registry, slots) {
   return identity.map(([key, construct, className]) => {
     const slot = slots.find((entry) => entry.key === key || entry.construct === construct);
     const entry = registry.constructs.find((candidate) => candidate.id === construct);
-    return { key, className, label: slot?.title || entry?.label || entry?.title || construct };
+    // The construct rides with the track, so a caller asking which rule placed this landmark
+    // reads it from the one table that pairs the two rather than naming it a second time.
+    return { key, construct, className, label: slot?.title || entry?.label || entry?.title || construct };
   });
 }
 
@@ -150,6 +152,7 @@ export class TraceChart {
     this.windowBody = document.createElement('button');
     this.windowBody.type = 'button';
     this.windowBody.className = 'window-body';
+    this.windowBody.tabIndex = 0;
     this.windowBody.setAttribute('aria-label', 'Weighing window, drag to move');
     this.attachWindowDrag(this.windowBody, 'move');
     this.overlay.append(this.windowBody);
@@ -158,23 +161,35 @@ export class TraceChart {
       const handle = document.createElement('button');
       handle.type = 'button';
       handle.className = 'window-handle';
+      handle.tabIndex = 0;
       handle.setAttribute('aria-label', `Weighing window ${edge}, drag to resize`);
       this.attachWindowDrag(handle, edge);
       this.overlay.append(handle);
       return { edge, element: handle };
     });
 
+    // The three landmarks in trace order, which is the order a reader reads them in and the
+    // order the tab key walks them.
     this.markers = this.markerDefinitions.map((definition) => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = `marker ${definition.className}`;
       element.setAttribute('role', 'slider');
+      // Spelt out rather than left to the button element. WebKit leaves a button out of the
+      // tab order until the reader turns on full keyboard access, which is off by default, so
+      // on one of the three desktops this software ships to the landmarks were unreachable.
+      element.tabIndex = 0;
       element.setAttribute('aria-label', `${definition.label} marker`);
       const label = document.createElement('span');
       label.className = 'marker__label';
       label.textContent = definition.label;
       element.append(label);
       this.attachMarkerDrag(element, definition.key);
+      // Focus changes nothing the canvas draws, so the overlay is repositioned rather than the
+      // trace redrawn, which is what puts the instant on the label the keyboard just reached.
+      for (const type of ['focus', 'blur']) {
+        element.addEventListener(type, () => { if (this.envelope) this.positionOverlay(); });
+      }
       this.overlay.append(element);
       return { ...definition, element, labelElement: label };
     });
@@ -285,7 +300,12 @@ export class TraceChart {
 
   attachMarkerDrag(element, key) {
     element.addEventListener('pointerdown', (event) => {
+      // Preventing the default suppresses the browser's own focus-on-press, so a reader who
+      // clicked a landmark and then pressed an arrow key moved nothing. The default is still
+      // prevented, because it also starts a native drag over the plot, and the focus the press
+      // was owed is given here instead.
       event.preventDefault();
+      element.focus();
       element.setPointerCapture(event.pointerId);
       element.dataset.dragging = 'true';
       this.markerEdits.set(key, this.onMarkerEditStart?.(key));
@@ -326,6 +346,7 @@ export class TraceChart {
     let originStart = 0;
     element.addEventListener('pointerdown', (event) => {
       event.preventDefault();
+      element.focus();
       element.setPointerCapture(event.pointerId);
       element.dataset.dragging = 'true';
       this.windowEdit = this.onWindowEditStart?.();
@@ -498,13 +519,14 @@ export class TraceChart {
   }
 
   /* One home for every change to the set, so the record, the drawing and the controls cannot
-   * disagree about what is selected. */
-  setRegions(regions, active = regions.length - 1) {
+   * disagree about what is selected. `how` carries what moved the set, for a caller that says
+   * out loud what an edit did and has no other way to tell a keyboard from a pointer. */
+  setRegions(regions, active = regions.length - 1, how = {}) {
     this.regions = regions;
     this.activeRegion = regions.length ? Math.min(Math.max(0, active), regions.length - 1) : -1;
     this.drawSelectionHandles();
     this.schedule();
-    this.onSelectionChange?.(this.selection(), {});
+    this.onSelectionChange?.(this.selection(), how);
   }
 
   /* What is selected, as the caller reads it: every span, and which of them is the one a
@@ -556,15 +578,55 @@ export class TraceChart {
    * pointer. The band itself is drawn on the canvas; this is what a reader tabs to and what a
    * screen reader reads out. */
   drawSelectionHandles() {
+    // A nudge rebuilds the set, and a reader holding an arrow key down would lose the span
+    // they were moving on the first press. Which of them the keyboard was on survives the
+    // rebuild, so a second press reaches the same span.
+    const held = this.regionElements?.indexOf(document.activeElement) ?? -1;
     this.selectionLayer.replaceChildren();
     this.regionElements = this.regions.map((region, position) => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = `selection-region${position === this.activeRegion ? ' selection-region--active' : ''}`;
       element.dataset.stated = String(region.stated);
+      element.tabIndex = 0;
       element.addEventListener('click', () => this.setRegions(this.regions, position));
+      this.attachRegionKeys(element, position);
       this.selectionLayer.append(element);
       return element;
+    });
+    if (held >= 0) this.regionElements[Math.min(held, this.regionElements.length - 1)]?.focus();
+  }
+
+  /*
+   * A selected span under the keyboard, in the grammar the reader already has for a selection.
+   *
+   * Arrows move the whole span and Shift extends its far end, which is what Shift and an arrow
+   * do to a selection in every text field. A landmark takes Shift as a larger step instead,
+   * because a landmark is a slider and that is the slider's own convention: two controls, each
+   * following the convention of the widget it is.
+   */
+  attachRegionKeys(element, position) {
+    element.addEventListener('keydown', (event) => {
+      const steps = { ArrowLeft: -1, ArrowRight: 1, PageDown: -100, PageUp: 100 };
+      if (!(event.key in steps) || !this.regions[position]) return;
+      event.preventDefault();
+      const region = this.regions[position];
+      const limit = this.totalSamples - 1;
+      const span = region.endIndex - region.startIndex;
+      let { startIndex, endIndex } = region;
+      if (event.shiftKey && event.key.startsWith('Arrow')) {
+        endIndex = Math.min(limit, Math.max(startIndex + 1, endIndex + steps[event.key]));
+      } else {
+        startIndex = Math.min(limit - span, Math.max(0, startIndex + steps[event.key]));
+        endIndex = startIndex + span;
+      }
+      if (startIndex === region.startIndex && endIndex === region.endIndex) return;
+      // A span a rule placed becomes the reader's own the moment they move an end of it, so it
+      // rebinds to the rule for a stated window rather than keeping the phase rules' name on
+      // boundaries they no longer placed.
+      const moved = this.regions.map((held, at) =>
+        (at === position ? { startIndex, endIndex, stated: true } : held));
+      this.setRegions(moved, position, { nudged: event.shiftKey ? 'end' : 'span' });
     });
   }
 
@@ -1011,10 +1073,21 @@ export class TraceChart {
       marker.element.style.left = `${this.indexToX(index)}px`;
       marker.element.dataset.index = String(index);
       marker.labelElement.style.top = `${labelRow * 20}px`;
+
+      const seconds = index / this.sampleRateHz;
+      // The instant, on the landmark the reader is holding. The crosshair that would otherwise
+      // answer where the pointer is steps aside for a marker, so a drag used to move a line to
+      // no stated time and a reader learnt where they had put it by reading a card afterwards.
+      // Shown on the one being moved rather than on all three, which would put three times
+      // across a trace whose whole width is five seconds.
+      const holding = marker.element.dataset.dragging === 'true'
+        || document.activeElement === marker.element;
+      marker.labelElement.textContent = holding
+        ? `${marker.label} ${seconds.toFixed(4)} s`
+        : marker.label;
       this.anchorLabel(marker.labelElement, this.indexToX(index), 'marker__label');
       labelRow += 1;
 
-      const seconds = index / this.sampleRateHz;
       marker.element.setAttribute('aria-valuemin', '0');
       marker.element.setAttribute('aria-valuemax', String(this.envelope.sample_count - 1));
       marker.element.setAttribute('aria-valuenow', String(index));

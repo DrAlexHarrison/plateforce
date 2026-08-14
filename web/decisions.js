@@ -7,6 +7,7 @@ import { candidateFor } from './startup.js';
 import {
   runAnalysis,
   acceptRecommended,
+  handPlacedSlots,
   recordStated,
   selectionFromChosenRule,
   boundMethodId,
@@ -14,7 +15,7 @@ import {
   methodTitle,
   ruleSourceLine,
 } from './analysis.js';
-import { openDrawer } from './drawer.js';
+import { openDrawer, opensPanel } from './drawer.js';
 
 /*
  * Two of the registry's surfacing verdicts oblige the interface to say something about a
@@ -50,10 +51,19 @@ export function renderDecisions() {
   // One act covering every open choice, which is a different act from choosing each and is
   // recorded as the one it is. It sits with the choices rather than in front of the
   // numbers, because the numbers are already there.
-  if (pending.length) {
+  //
+  // Offered while a rule a gesture bound is still running, as well as while a choice is open.
+  // A reader who put the standing-still window on the force ramp by hand has closed every
+  // choice and holds a number no rule would have produced, and the control that would take
+  // the rules back used to leave the page at exactly that moment.
+  const placed = handPlacedSlots();
+  if (pending.length || placed.length) {
     const accept = element('button', 'button button--primary button--small', 'Use recommended rules');
     accept.type = 'button';
     accept.id = 'accept-recommended';
+    accept.title = pending.length
+      ? `Resolve ${pending.length} open ${pending.length === 1 ? 'choice' : 'choices'}`
+      : `Take back ${placed.map((slot) => slot.title.toLowerCase()).join(', ')}, placed by hand`;
     accept.addEventListener('click', acceptRecommended);
     host.append(accept);
   }
@@ -127,8 +137,7 @@ function renderSlot(slot) {
   if (candidate?.method) {
     const inspect = element('button', 'chip decision__inspect', 'Details');
     inspect.type = 'button';
-    inspect.addEventListener('click', () =>
-      openDrawer(candidate.method, candidate.id, boundRecordFor(candidate.id)));
+    opensPanel(inspect, () => openDrawer(candidate.method, candidate.id, boundRecordFor(candidate.id)));
     control.append(inspect);
   }
   wrap.append(control);
@@ -335,7 +344,7 @@ function ranBesideRow(method, bound) {
   if (values) row.append(element('span', 'ran-beside__value', values));
   row.append(element('span', 'ran-beside__action', verdict === NAMES_ITS_ALTERNATIVES ? 'Alternatives' : 'Details'));
   row.title = values ? `${method.title}: ${values}` : method.title;
-  row.addEventListener('click', () => openDrawer(method, bound.method_id, bound));
+  opensPanel(row, () => openDrawer(method, bound.method_id, bound));
   return row;
 }
 

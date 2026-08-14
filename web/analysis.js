@@ -17,20 +17,21 @@ import { renderSelectionNumbers } from './workspace.js';
 import { copyButton } from './copy.js';
 import { trialDownloadButton } from './export.js';
 import { renderPicker } from './add-quantity.js';
+import { snapshot, remember } from './history.js';
 
-const WINDOW_ESSENTIALS = [
-  // These are not silently promoted as the trial's chosen methods. They appear only while a
-  // reader has selected an interval, under the selected interval's rule, with the method ids
-  // shown beside the values and carried into the copy.
-  ['peak_force', 'force.peak.gross'],
-  ['rate_of_force_development', 'rfd.peak_sliding_window'],
-];
+// The two quantities a selected interval describes itself with. These are not silently
+// promoted as the trial's chosen methods: they appear only while a reader has selected an
+// interval, under that interval's rule, with the method ids shown beside the values and
+// carried into the copy. Named by rule, because the registry says which construct a rule
+// fills and a second answer here could disagree with it.
+const WINDOW_ESSENTIAL_RULES = ['force.peak.gross', 'rfd.peak_sliding_window'];
 
 function keepWindowEssentialsOnPath() {
   if (!state.windowCameFromASelection) return false;
   let changed = false;
-  for (const [construct, methodId] of WINDOW_ESSENTIALS) {
-    if (state.path.includes(construct)) continue;
+  for (const methodId of WINDOW_ESSENTIAL_RULES) {
+    const construct = findMethod(state.registry, methodId)?.construct;
+    if (!construct || state.path.includes(construct)) continue;
     state.path.push(construct);
     state.selectionEssentials.add(construct);
     changed = true;
@@ -307,13 +308,38 @@ export function notice(kind, title, body) {
   return node;
 }
 
-/* Resolving every forced decision at once is still an explicit act, and it is recorded as
- * one. It is not the same as never having been asked. */
+/* Slots running a rule a gesture bound rather than a rule the reader picked from the list.
+ * A hand-placed window that produced an implausible number is recoverable through this
+ * population, and a rule chosen from the list is not in it. */
+export function handPlacedSlots() {
+  return state.slots.filter((slot) => state.selection[slot.key]?.placedByHand);
+}
+
+/*
+ * Resolving every forced decision at once is still an explicit act, and it is recorded as
+ * one. It is not the same as never having been asked.
+ *
+ * It also takes back a rule a gesture bound. A reader who put the standing-still window on
+ * the force ramp by hand has a number resting on a window no rule would have chosen, and
+ * before this the only route back was to open the trial again. The evidence the gesture left
+ * goes with the rule, because a recommended rule reading a hand-supplied index is neither of
+ * the two things it claims to be.
+ *
+ * Landmarks are not in this. A dragged marker is a placement rather than a rule, and Reset
+ * landmarks is the control that owns it: two controls doing one thing would leave a reader
+ * unable to keep their landmarks while taking the rules back.
+ */
 export function acceptRecommended() {
+  const before = snapshot();
+  // The one gesture that binds a rule this way also states where the window starts, and the
+  // index outlives the rule that read it: a recommended weighing rule left running on a
+  // hand-supplied start is neither the reader's placement nor the registry's.
+  if (handPlacedSlots().length) state.weighing = { startIndex: null };
+
   for (const slot of state.slots) {
     const before = withSources(state.selection[slot.key]);
     const pickedTheRule = !before.methodId && slot.available.length > 0;
-    if (pickedTheRule) {
+    if (pickedTheRule || before.placedByHand) {
       const candidate = rankCandidates(slot.available)[0];
       state.selection[slot.key] = selectionFromChosenRule(candidate, slot.forcesDecision);
       state.selection[slot.key].methodFromRecommendation = true;
@@ -337,11 +363,12 @@ export function acceptRecommended() {
     }
     selection.unresolved = [];
   }
+  remember(before, 'using the recommended rules');
   renderDecisions();
   runAnalysis();
 }
 
-const HEADLINE = new Set(['time_to_takeoff_seconds', 'jump_height_from_takeoff_meters']);
+export const HEADLINE = new Set(['time_to_takeoff_seconds', 'jump_height_from_takeoff_meters']);
 
 function clearMetricGrids() {
   $('headline-metric-grid').replaceChildren();
@@ -357,6 +384,8 @@ function renderMetrics() {
   // than repeating it. A signal about seven absent values is one finding, and a reader who
   // meets the same three sentences on the sixth card learns nothing from it.
   const saidUnder = new Map();
+  // The same, for the open choices a value rests on: which card named a given set of them.
+  const choicesSaidUnder = new Map();
 
   for (const metric of state.analysis.metrics) {
     // Provisional taints its closure: a value rests on every rule that fed it, so a value
@@ -386,7 +415,19 @@ function renderMetrics() {
       card.append(value);
     }
 
-    if (restingOn.length) card.append(stillToBeChosen(restingOn));
+    // The same two open choices sat under ten of eleven numbers, naming themselves ten times.
+    // One fact, said once, and pointed at from the rest, which is what the signals below
+    // already do and for the same reason.
+    if (restingOn.length) {
+      const sameChoices = restingOn.map((slot) => slot.key).sort().join('|');
+      const already = choicesSaidUnder.get(sameChoices);
+      if (already) {
+        card.append(choicesSaidElsewhere(restingOn, already));
+      } else {
+        choicesSaidUnder.set(sameChoices, { label: metric.label, card });
+        card.append(stillToBeChosen(restingOn));
+      }
+    }
     for (const signal of signalsQualifying(metric.key)) {
       const already = saidUnder.get(signal);
       if (already) {
@@ -404,7 +445,7 @@ function renderMetrics() {
     // assembly with every value each was bound to. A quantity the trial produced no number
     // for has none, because an account is written around a measurement.
     const account = state.analysis.descriptions?.[metric.key];
-    card.append(metricRecord(metric.label, account, ruleIds));
+    card.append(metricRecord(metric, account, ruleIds));
     (HEADLINE.has(metric.key) ? headlineGrid : grid).append(card);
   }
 
@@ -512,15 +553,66 @@ function renderSignal(signal) {
   return wrap;
 }
 
-/* Named beside the number rather than in a drawer, with the choice one interaction away.
+/*
+ * Named beside the number rather than in a drawer, with the choice one interaction away.
  * The rule that produced this one is named because it is what the value is: a different
- * choice is a different number, which is the thing the reader is being asked to see. */
+ * choice is a different number, which is the thing the reader is being asked to see.
+ *
+ * Which choices, said rather than hidden in a tooltip, and reachable. The names used to be a
+ * `title` on a line of text, which is nothing at all on a touch screen and nothing at all
+ * from the keyboard, so the reader who most needs the choice, the one whose headline number
+ * rests on it, was the one who could not reach it.
+ *
+ * One control on the card and not one per choice. The rows it leads to sit together on the
+ * rail, and a control per choice on every provisional card is the repeated decision button
+ * this surface already decided against.
+ */
 function stillToBeChosen(slots) {
-  const line = element('p', 'metric__provisional');
+  const named = slots.map((slot) => slot.title);
+  const spoken = named.length === 1
+    ? named[0]
+    : `${named.slice(0, -1).join(', ')} and ${named.at(-1)}`;
+  return provisionalReach(slots, `Provisional · ${spoken} still to choose`,
+    () => reachTheChoice(slots[0].construct));
+}
+
+/*
+ * A value resting on choices another card has already named.
+ *
+ * The state, because this number is provisional and has to say so on its own card, and no
+ * second naming and no second control. Ten of eleven numbers on this trial rest on the same
+ * pair of open choices, and a control repeated under each of them is one pair of choices
+ * asking to be resolved ten times, on a phone where it costs two screens of the reading order
+ * the panel below is meant to reach.
+ */
+function choicesSaidElsewhere(slots, said) {
+  const wrap = element('div', 'metric__provisional');
   const count = slots.length;
-  line.textContent = `Provisional · ${count} method ${count === 1 ? 'choice' : 'choices'} open`;
-  line.title = slots.map((slot) => `${slot.title}: ${boundMethodId(slot.key)}`).join('; ');
-  return line;
+  const line = element('span', 'metric__provisional-count',
+    `Provisional · ${count} method ${count === 1 ? 'choice' : 'choices'} open`);
+  line.title = `${slots.map((slot) => `${slot.title}: ${boundMethodId(slot.key)}`).join('; ')}. Named under ${said.label}.`;
+  wrap.append(line);
+  return wrap;
+}
+
+/* The control on the one card that names them. */
+function provisionalReach(slots, sentence, reach) {
+  const wrap = element('div', 'metric__provisional');
+  const control = element('button', 'metric__provisional-reach', sentence);
+  control.type = 'button';
+  control.title = slots.map((slot) => `${slot.title}: ${boundMethodId(slot.key)}`).join('; ');
+  control.addEventListener('click', reach);
+  wrap.append(control);
+  return wrap;
+}
+
+/* The rail's own control for a construct, brought under the reader's hands. The row is found
+ * by the construct it stands for, which is the identity every surface uses for it. */
+function reachTheChoice(construct) {
+  const control = document.querySelector(`#decision-list select[data-construct="${construct}"]`);
+  if (!control) return;
+  control.scrollIntoView({ block: 'center' });
+  control.focus();
 }
 
 export function methodTitle(id) {
@@ -606,7 +698,7 @@ export function boundValueText(bound, separator = ' ') {
   );
 }
 
-function metricRecord(label, account, methodIds) {
+function metricRecord(metric, account, methodIds) {
   const ids = [...new Set(methodIds)];
   const button = element('button', 'metric-record');
   button.type = 'button';
@@ -615,6 +707,6 @@ function metricRecord(label, account, methodIds) {
   const count = `${ids.length} ${ids.length === 1 ? 'rule' : 'rules'}`;
   button.append(element('span', 'metric-record__count', count));
   button.title = ids.join(' | ');
-  button.addEventListener('click', () => openMetricRecord(label, account, ids));
+  button.addEventListener('click', () => openMetricRecord(metric, account, ids));
   return button;
 }

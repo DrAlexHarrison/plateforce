@@ -101,6 +101,33 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const results = [];
 const check = (name, passed, read) => results.push({ name, passed, read });
 
+/*
+ * What has been established so far, printed whatever happens next.
+ *
+ * A step that drives the page rather than asserting about it can throw when the page is broken,
+ * and a run that ends there used to print nothing at all: sixty settled results, green and red
+ * alike, discarded because the sixty-first could not find a control. A harness that only
+ * reports from a working product cannot be used to find out whether the product works.
+ */
+let reported = false;
+function report(raised = null) {
+  if (reported) return;
+  reported = true;
+  for (const result of results) {
+    console.log(`${result.passed ? 'pass' : 'FAIL'}  ${result.name}\n      ${result.read}`);
+  }
+  if (consoleLines.length) console.log(`\nconsole errors:\n  ${consoleLines.join('\n  ')}`);
+  const failed = results.filter((result) => !result.passed).length;
+  console.log(`\n${results.length - failed} of ${results.length} checks passed`);
+  if (raised) console.log(`\nthe run stopped early: ${raised?.message ?? raised}`);
+}
+for (const ending of ['uncaughtException', 'unhandledRejection']) {
+  process.on(ending, (raised) => {
+    report(raised);
+    process.exit(1);
+  });
+}
+
 await send('Runtime.enable');
 await send('Log.enable');
 await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
@@ -316,13 +343,24 @@ check('copy chart image writes a real PNG of the visible chart and its method fo
   `${copiedImage.confirmation}; ${copiedImage.type} ${copiedImage.size} bytes, ` +
     `${copiedImage.width}x${copiedImage.height} against chart ${copiedImage.chartWidth}x${copiedImage.chartHeight}`);
 
+/* The landmark names are read from the chart rather than written here, so the check asserts
+ * that the footer calls each landmark what the trace calls it. A literal here passes while the
+ * two drift apart, which is the whole failure a footer on a figure exists to prevent. */
+const drawnLandmarks = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  return state.chart.markers
+    .filter((marker) => state.analysis[marker.key + '_index'] != null)
+    .map((marker) => marker.label);
+})()`);
+const footerNames = drawnLandmarks.filter((label) =>
+  copiedImage.notes.some((line) => line.startsWith(`${label}:`) && /Rules?: \S+\.\S+/.test(line)));
 check('the chart image footer carries the registry, landmarks, selection and their rules',
   copiedImage.notes.some((line) => line.includes('Registry revision'))
-    && copiedImage.notes.some((line) => line.includes('Start of jump') && line.includes('onset.'))
-    && copiedImage.notes.some((line) => line.includes('Takeoff') && line.includes('takeoff.'))
-    && copiedImage.notes.some((line) => line.includes('Landing') && line.includes('flight_time.'))
+    && drawnLandmarks.length === 3
+    && footerNames.length === drawnLandmarks.length
     && copiedImage.notes.some((line) => line.includes('Selected window') && line.includes('window.stated.by_caller')),
-  copiedImage.notes.join(' | '));
+  `${footerNames.length} of ${drawnLandmarks.length} landmarks the chart draws are named in the footer under a rule ` +
+    `(${drawnLandmarks.join(', ')}) | ${copiedImage.notes.join(' | ')}`);
 
 const savedImage = await evaluate(`(async () => {
   const clicked = HTMLAnchorElement.prototype.click;
@@ -906,7 +944,7 @@ check('visible Undo and Redo actions name the same history as the shortcuts',
     && visibleHistory.undoDisabled === false && visibleHistory.redoDisabled === true,
   JSON.stringify(visibleHistory));
 
-await evaluate("document.getElementById('reset-markers').click()");
+await evaluate("document.getElementById('reset-markers')?.click()");
 await pause(160);
 
 // ---------------------------------------------------------------- selection and the weighing band
@@ -1064,12 +1102,401 @@ check('Escape clears a settled chart selection and its bound window rule',
   `${escapedSelection.regions.length} selections, row ${escapedSelection.rowHidden ? 'hidden' : 'shown'}, ` +
     `request ${escapedSelection.requestedMethod ?? 'without a window rule'}`);
 
-const failures = results.filter((result) => !result.passed);
-for (const result of results) {
-  console.log(`${result.passed ? 'pass' : 'FAIL'}  ${result.name}\n      ${result.read}`);
+// ---------------------------------------------------------------- the keyboard on the trace
+/*
+ * A landmark under the keyboard, driven with real key and pointer events.
+ *
+ * Calling `focus()` from the check would prove the element accepts focus and say nothing about
+ * whether a reader can put focus there, and being unable to put focus there was the defect.
+ */
+const tabKey = async (shift = false) => {
+  for (const type of ['keyDown', 'keyUp']) {
+    await send('Input.dispatchKeyEvent', {
+      type, key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, modifiers: shift ? 8 : 0,
+    });
+  }
+  await pause(25);
+};
+
+const arrowKey = async (key, shift = false) => {
+  const code = key === 'ArrowRight' ? 39 : 37;
+  for (const type of ['keyDown', 'keyUp']) {
+    await send('Input.dispatchKeyEvent', {
+      type, key, code: key, windowsVirtualKeyCode: code, modifiers: shift ? 8 : 0,
+    });
+  }
+  await pause(120);
+};
+
+const focused = async () => evaluate(`(() => {
+  const node = document.activeElement;
+  return node ? [node.tagName, node.className, node.id].join('|') : 'none';
+})()`);
+
+/* Tab from the control before the plot until the keyboard has walked past the last landmark,
+ * so the order is read rather than a stop count being assumed: how many controls sit between
+ * the two depends on whether the weighing window is inside the visible range. */
+await evaluate("document.getElementById('change-file').focus()");
+const tabOrder = [];
+for (let step = 0; step < 14; step += 1) {
+  await tabKey();
+  const stop = await focused();
+  tabOrder.push(stop);
+  if (tabOrder.some((entry) => entry.includes('marker--touchdown')) && !stop.includes('marker ')) break;
 }
-if (consoleLines.length) console.log(`\nconsole errors:\n  ${consoleLines.join('\n  ')}`);
-console.log(`\n${results.length - failures.length} of ${results.length} checks passed`);
+const markerStops = tabOrder.filter((entry) => entry.includes('marker '));
+check('the tab key reaches every chart landmark, in the order they sit on the trace',
+  markerStops.length === 3
+    && markerStops[0].includes('marker--onset')
+    && markerStops[1].includes('marker--takeoff')
+    && markerStops[2].includes('marker--touchdown'),
+  `${markerStops.length} landmarks reached in ${tabOrder.length} stops: ${tabOrder.join(' > ')}`);
+
+/*
+ * What the focus indicator measures against the thing it is drawn on top of.
+ *
+ * A landmark's focus ring sits on the landmark's own hue, so a ring taking the accent read
+ * 1.20 against the takeoff track. Read as rendered and scored against the 3:1 floor for a
+ * control, in both themes, because the two palettes are two different questions.
+ */
+const focusRingContrast = async () => evaluate(`(() => {
+  const marker = document.activeElement;
+  if (!marker || !marker.classList.contains('marker')) return null;
+  const line = getComputedStyle(marker, '::before');
+  const channel = (text) => text.match(/[\\d.]+/g).slice(0, 3).map(Number);
+  const relative = (rgb) => {
+    const linear = rgb.map((value) => {
+      const scaled = value / 255;
+      return scaled <= 0.04045 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const ratio = (left, right) => {
+    const [high, low] = [relative(left), relative(right)].sort((a, b) => b - a);
+    return (high + 0.05) / (low + 0.05);
+  };
+  const hue = channel(line.backgroundColor);
+  const inner = channel(line.borderTopColor);
+  const outer = channel(line.outlineColor);
+  // The palette actually painted, not the setting. The automatic setting is two different
+  // answers depending on the machine, and the two readings below have to be the two palettes.
+  const chosen = document.documentElement.dataset.theme;
+  return {
+    theme: chosen === 'auto'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : chosen,
+    innerWidth: parseFloat(line.borderTopWidth),
+    outerWidth: parseFloat(line.outlineWidth),
+    innerAgainstHue: ratio(inner, hue),
+    outerAgainstInner: ratio(outer, inner),
+    innerIsTheHue: line.borderTopColor === line.backgroundColor,
+  };
+})()`);
+
+/* The keyboard is walked onto a landmark rather than put there, because a ring is only drawn
+ * for focus the browser judges visible and a programmatic call is not that. */
+await evaluate("document.getElementById('change-file').focus()");
+for (let step = 0; step < 14; step += 1) {
+  await tabKey();
+  if ((await focused()).includes('marker--takeoff')) break;
+}
+const litRing = await focusRingContrast();
+// The same focused landmark under the other palette. Nothing moves but the colours, so the
+// two readings are the same control and the comparison is the palette alone.
+await evaluate("document.getElementById('theme-toggle').click()");
+await pause(120);
+const flippedRing = await focusRingContrast();
+await evaluate("document.getElementById('theme-toggle').click()");
+await pause(120);
+
+const rings = [litRing, flippedRing].filter(Boolean);
+check('a focused landmark carries a two-colour ring that clears 3:1 on its own hue, in both themes',
+  rings.length === 2
+    && rings[0].theme !== rings[1].theme
+    && rings.every((ring) => ring.innerWidth >= 2 && ring.outerWidth >= 2)
+    && rings.every((ring) => !ring.innerIsTheHue)
+    && rings.every((ring) => ring.innerAgainstHue >= 3 && ring.outerAgainstInner >= 3),
+  rings.map((ring) => `${ring.theme}: ring on hue ${ring.innerAgainstHue.toFixed(2)}, ` +
+    `ring on ring ${ring.outerAgainstInner.toFixed(2)}, ${ring.innerWidth} and ${ring.outerWidth} px`).join('; ')
+    || 'no landmark held focus');
+
+const beforeNudge = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    holding: document.activeElement.className,
+    index: state.analysis.takeoff_index,
+    // The landmark beside the one being held, read at the same moment, so the instant on the
+    // held label is the difference between them rather than a claim about a different moment.
+    restingLabel: document.querySelector('.marker--onset .marker__label').textContent,
+  };
+})()`);
+await arrowKey('ArrowRight');
+const oneSample = await evaluate("(async () => (await import('./state.js')).state.analysis.takeoff_index)()");
+await arrowKey('ArrowRight', true);
+const tenMore = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    index: state.analysis.takeoff_index,
+    said: document.getElementById('chart-announcement').textContent,
+    label: document.querySelector('.marker--takeoff .marker__label').textContent,
+    undoDisabled: document.getElementById('undo-edit').disabled,
+    undoNames: document.getElementById('undo-edit').getAttribute('aria-label'),
+  };
+})()`);
+
+check('an arrow key moves a focused landmark one sample and a modifier moves it ten',
+  beforeNudge.holding.includes('marker--takeoff')
+    && oneSample === beforeNudge.index + 1
+    && tenMore.index === beforeNudge.index + 11,
+  `${beforeNudge.index} then ${oneSample} then ${tenMore.index}, holding ${beforeNudge.holding}`);
+
+check('a nudge says which landmark moved, where it now sits, and what changed with it',
+  /Takeoff/i.test(tenMore.said)
+    && tenMore.said.includes((tenMore.index / plot.sampleRateHz).toFixed(4))
+    && /was \d/.test(tenMore.said),
+  tenMore.said || 'nothing announced');
+
+check('a landmark states its own instant while the reader is holding it, and its neighbours do not',
+  !/\d+\.\d{4} s$/.test(beforeNudge.restingLabel.trim())
+    && /\d+\.\d{4} s$/.test(tenMore.label.trim())
+    && tenMore.label.includes((tenMore.index / plot.sampleRateHz).toFixed(4)),
+  `the landmark beside it reads "${beforeNudge.restingLabel}", the held one reads "${tenMore.label}"`);
+
+check('each nudge is one undoable edit, and Undo names the edit it would reverse',
+  tenMore.undoDisabled === false && /^Undo moving /.test(tenMore.undoNames || ''),
+  `${tenMore.undoNames ?? 'no name'}, undo ${tenMore.undoDisabled ? 'unavailable' : 'available'}`);
+
+/*
+ * Two nudges, two steps back, read after each of them.
+ *
+ * Reading only where the landmark ends up cannot tell one edit at a time from a burst
+ * collapsed into one: a history holding a single entry reaches the original index on the first
+ * press and ignores the second, and the final reading is the same either way. The state between
+ * the two presses is the only place the difference shows.
+ */
+const undoneStepByStep = [];
+for (const _ of [1, 2]) {
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90 });
+  await pause(140);
+  undoneStepByStep.push(await evaluate("(async () => (await import('./state.js')).state.analysis.takeoff_index)()"));
+}
+check('two nudges undo as two edits, one step at a time, and return the landmark exactly',
+  undoneStepByStep[0] === beforeNudge.index + 1
+    && undoneStepByStep[1] === beforeNudge.index,
+  `${tenMore.index} back through ${undoneStepByStep.join(' then ')}, ` +
+    `against ${beforeNudge.index + 1} then ${beforeNudge.index} for two separate edits`);
+
+/* A press on a landmark, with real pointer events. The press is the gesture that stopped
+ * granting focus, so the arrow key that follows it is the half that could not work. */
+const markerAt = await evaluate(`(() => {
+  const box = document.querySelector('.marker--onset').getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+})()`);
+await evaluate("document.getElementById('change-file').focus()");
+await mouse('mousePressed', markerAt.x, markerAt.y);
+await mouse('mouseReleased', markerAt.x, markerAt.y);
+await pause(80);
+const afterPress = await focused();
+check('pressing a landmark leaves the keyboard on it',
+  afterPress.includes('marker--onset'),
+  `focus after the press: ${afterPress}`);
+
+// ---------------------------------------------------------------- the keyboard on a selection
+await evaluate("document.getElementById('reset-markers')?.click()");
+await pause(140);
+const spanPlot = await geometry();
+await dragAcross(
+  spanPlot.left + (spanPlot.right - spanPlot.left) * 0.3,
+  spanPlot.left + (spanPlot.right - spanPlot.left) * 0.42,
+  spanPlot.middle,
+);
+await settle("(async () => (await import('./state.js')).state.chart.regions.length === 1)()", 'the span to nudge');
+const spanBefore = await evaluate(`(async () => {
+  const region = (await import('./state.js')).state.chart.regions[0];
+  return { startIndex: region.startIndex, endIndex: region.endIndex };
+})()`);
+await evaluate("document.querySelector('.selection-region')?.focus()");
+await arrowKey('ArrowRight');
+const spanMoved = await evaluate(`(async () => {
+  const region = (await import('./state.js')).state.chart.regions[0];
+  return {
+    startIndex: region.startIndex, endIndex: region.endIndex,
+    said: document.getElementById('chart-announcement').textContent,
+  };
+})()`);
+await arrowKey('ArrowRight', true);
+const spanExtended = await evaluate(`(async () => {
+  const region = (await import('./state.js')).state.chart.regions[0];
+  return {
+    startIndex: region.startIndex, endIndex: region.endIndex,
+    said: document.getElementById('chart-announcement').textContent,
+  };
+})()`);
+
+check('an arrow key slides a selected span and a modifier moves its far end',
+  spanMoved.startIndex === spanBefore.startIndex + 1
+    && spanMoved.endIndex === spanBefore.endIndex + 1
+    && spanExtended.startIndex === spanMoved.startIndex
+    && spanExtended.endIndex === spanMoved.endIndex + 1,
+  `${spanBefore.startIndex}-${spanBefore.endIndex} slid to ${spanMoved.startIndex}-${spanMoved.endIndex} ` +
+    `then extended to ${spanExtended.startIndex}-${spanExtended.endIndex}`);
+
+check('moving a span says what it now covers',
+  /Selection moved/.test(spanMoved.said) && /Selection end moved/.test(spanExtended.said)
+    && spanExtended.said.includes((spanExtended.endIndex / plot.sampleRateHz).toFixed(4)),
+  `"${spanMoved.said}" then "${spanExtended.said}"`);
+
+// A control that cannot be pressed says what would let it be, rather than sitting grey.
+await evaluate("document.getElementById('selection-clear')?.click()");
+await pause(140);
+const disabledReasons = await evaluate(`(() => {
+  const ids = ['selection-zoom', 'selection-clear', 'selection-use-baseline'];
+  return ids.map((id) => {
+    const control = document.getElementById(id);
+    return { id, disabled: control.disabled, title: control.getAttribute('title') };
+  });
+})()`);
+check('a selection control that cannot be pressed says what would let it be',
+  disabledReasons.every((entry) => entry.disabled && (entry.title || '').length > 10),
+  disabledReasons.map((entry) => `${entry.id}: ${entry.disabled ? 'off' : 'ON'} "${entry.title ?? 'no reason'}"`).join('; '));
+
+// ------------------------------------------- the route back from a rule a gesture bound
+/*
+ * The reader puts the standing-still window somewhere no rule would have chosen it, closes
+ * every open choice, and asks for the recommended rules back. Before this the control that
+ * offers them had left the page by then.
+ */
+await dragAcross(
+  spanPlot.left + (spanPlot.right - spanPlot.left) * 0.55,
+  spanPlot.left + (spanPlot.right - spanPlot.left) * 0.68,
+  spanPlot.middle,
+);
+await settle("(async () => (await import('./state.js')).state.chart.regions.length === 1)()", 'the ramp span');
+await evaluate("document.getElementById('accept-recommended')?.click()");
+await pause(200);
+const ruleChosenWindow = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+    method: state.selection.weighing?.methodId,
+    height: state.analysis.metrics.find((m) => m.key === 'jump_height_from_takeoff_meters')?.value,
+    offered: Boolean(document.getElementById('accept-recommended')),
+  };
+})()`);
+await evaluate("document.getElementById('selection-use-baseline')?.click()");
+await pause(220);
+const handPlaced = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const control = document.getElementById('accept-recommended');
+  return {
+    start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+    method: state.selection.weighing?.methodId,
+    height: state.analysis.metrics.find((m) => m.key === 'jump_height_from_takeoff_meters')?.value,
+    openChoices: (await import('./decisions.js')).unresolvedDecisions().length,
+    offered: Boolean(control),
+    says: control ? control.getAttribute('title') : null,
+  };
+})()`);
+check('a hand-placed standing-still window keeps the recommended rules within reach, and says so',
+  handPlaced.method === 'bwepoch.manual_placement'
+    && handPlaced.openChoices === 0
+    && handPlaced.offered
+    && /placed by hand/.test(handPlaced.says || ''),
+  `${handPlaced.method} over ${handPlaced.start}-${handPlaced.end}, ${handPlaced.openChoices} choices open, ` +
+    `control ${handPlaced.offered ? `offered: "${handPlaced.says}"` : 'gone'}`);
+
+await evaluate("document.getElementById('accept-recommended')?.click()");
+await pause(240);
+const takenBack = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  const bound = state.analysis.bound_methods.find((row) => row.method_id === state.selection.weighing?.methodId);
+  return {
+    start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+    method: state.selection.weighing?.methodId,
+    source: bound ? bound.method_source : null,
+    statedStart: state.weighing.startIndex,
+    height: state.analysis.metrics.find((m) => m.key === 'jump_height_from_takeoff_meters')?.value,
+    undoDisabled: document.getElementById('undo-edit').disabled,
+    undoNames: document.getElementById('undo-edit').getAttribute('aria-label'),
+  };
+})()`);
+check('the recommended rules take back a hand-placed window, and the record says the recommendation chose it',
+  takenBack.method !== 'bwepoch.manual_placement'
+    && takenBack.method === ruleChosenWindow.method
+    && takenBack.start === ruleChosenWindow.start && takenBack.end === ruleChosenWindow.end
+    && takenBack.statedStart === null
+    && takenBack.source === 'recommended',
+  `${handPlaced.method} over ${handPlaced.start}-${handPlaced.end} became ${takenBack.method} over ` +
+    `${takenBack.start}-${takenBack.end} under ${takenBack.source}, against ${ruleChosenWindow.method} over ` +
+    `${ruleChosenWindow.start}-${ruleChosenWindow.end} before the hand placed one`);
+
+check('taking the rules back is one undoable edit that names itself',
+  takenBack.undoDisabled === false && /recommended rules/.test(takenBack.undoNames || ''),
+  `${takenBack.undoNames ?? 'no name'}`);
+
+await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90 });
+await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'z', code: 'KeyZ', modifiers: 4, windowsVirtualKeyCode: 90 });
+await pause(240);
+const handPlacementBack = await evaluate(`(async () => {
+  const state = (await import('./state.js')).state;
+  return {
+    method: state.selection.weighing?.methodId,
+    start: state.analysis.weighing_start_index,
+    end: state.analysis.weighing_end_index,
+  };
+})()`);
+check('Undo restores the hand-placed window the recommendation took back',
+  handPlacementBack.method === 'bwepoch.manual_placement'
+    && handPlacementBack.start === handPlaced.start && handPlacementBack.end === handPlaced.end,
+  `${handPlacementBack.method} over ${handPlacementBack.start}-${handPlacementBack.end}`);
+
+// ---------------------------------------------------------------- reaching a quantity
+const pickerClosed = await evaluate(`(() => {
+  const list = document.getElementById('add-quantity-list');
+  return { hidden: list.hidden, offers: list.querySelectorAll('.add-quantity__option').length };
+})()`);
+await evaluate("document.getElementById('add-quantity-search').focus()");
+await pause(80);
+const pickerOpen = await evaluate(`(() => {
+  const list = document.getElementById('add-quantity-list');
+  return {
+    hidden: list.hidden,
+    offers: list.querySelectorAll('.add-quantity__option').length,
+    typed: document.getElementById('add-quantity-search').value,
+  };
+})()`);
+check('the quantity picker says what it can offer before the reader has to guess a word',
+  pickerClosed.hidden && !pickerOpen.hidden && pickerOpen.typed === '' && pickerOpen.offers > 1,
+  `closed with ${pickerClosed.offers}, focused with ${pickerOpen.offers} offers and "${pickerOpen.typed}" typed`);
+
+// ---------------------------------------------------------------- a choice that outlives the tab
+const themeChosen = await evaluate(`(() => {
+  const before = document.documentElement.dataset.theme;
+  document.getElementById('theme-toggle').click();
+  return {
+    before,
+    after: document.documentElement.dataset.theme,
+    stored: window.localStorage.getItem('plateforce.theme'),
+    says: document.getElementById('theme-toggle').getAttribute('aria-label'),
+  };
+})()`);
+await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
+await settle("!document.getElementById('stage-empty').hidden", 'the reloaded empty stage');
+const themeKept = await evaluate("document.documentElement.dataset.theme");
+check('the colour a reader chose outlives the tab, and the control says which it would switch to',
+  themeChosen.after !== themeChosen.before
+    && themeChosen.stored === themeChosen.after
+    && themeKept === themeChosen.after
+    && /Switch to (light|dark) colours/.test(themeChosen.says || ''),
+  `${themeChosen.before} to ${themeChosen.after}, stored ${themeChosen.stored}, ` +
+    `reopened on ${themeKept}, control says "${themeChosen.says}"`);
+
+const failures = results.filter((result) => !result.passed);
+report();
 
 socket.close();
 server.close();

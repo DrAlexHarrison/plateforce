@@ -172,6 +172,20 @@ svg { stroke: currentColor; }
 }
 .skip-link:focus { top: var(--space-4); }
 
+/* Spoken and not drawn. Clipped rather than hidden, because a hidden element is read by
+   nothing, and one line high rather than none, because a zero-height box is dropped too. */
+.offscreen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------------------------------------------------------------- header */
 
 .app-header {
@@ -449,10 +463,30 @@ input:invalid { border-color: var(--danger); }
 .marker--takeoff { --marker-colour: var(--track-takeoff); }
 .marker--touchdown { --marker-colour: var(--track-touchdown); }
 .marker--dragged .marker__label::after { content: " drag"; opacity: 0.75; font-weight: 400; }
-.marker:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+
+/*
+ * Focus on the trace, ringed in two colours rather than one.
+ *
+ * A single accent ring is drawn on top of whatever the mark is standing on, and what a
+ * landmark stands on is its own hue: the accent reads 1.20 to 1.30 against the three tracks
+ * in light and 1.28 to 1.39 in dark, against a floor of 3. The pair below is measured on
+ * every colour the plot can put behind it. The surface ring touches the mark and reads 4.90
+ * to 5.28 against the tracks in light, 5.17 to 5.59 in dark, 12.60 and 15.16 against the
+ * trace. The text ring touches the panel and reads 17.88 and 15.30 against it.
+ */
+.marker:focus-visible,
+.window-handle:focus-visible,
+.selection-region:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.marker:focus-visible::before,
+.window-handle:focus-visible::before,
+.selection-region:focus-visible::before {
+  box-sizing: content-box;
+  border: 2px solid var(--surface);
+  outline: 2px solid var(--text);
+  outline-offset: 0;
 }
 
 .window-handle {
@@ -476,6 +510,12 @@ input:invalid { border-color: var(--danger); }
 }
 .window-body { position: absolute; top: 0; background: transparent; border: 0; cursor: grab; }
 .window-body:active { cursor: grabbing; }
+/* The band has no mark of its own to ring, so the two colours are its own edges. */
+.window-body:focus-visible {
+  border: 2px solid var(--surface);
+  outline: 2px solid var(--text);
+  outline-offset: -4px;
+}
 
 /* The band itself is drawn on the canvas. This layer is what a reader tabs to and what a
  * screen reader reads out, so it takes no ink of its own beyond the mark on the active span. */
@@ -497,7 +537,6 @@ input:invalid { border-color: var(--danger); }
   background: var(--text-tertiary);
 }
 .selection-region--active::before { height: 4px; background: var(--text); }
-.selection-region:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
 
 .chart-selection {
   display: grid;
@@ -623,7 +662,18 @@ input:invalid { border-color: var(--danger); }
 }
 .chart-legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
 .chart-legend i { width: 14px; height: 0; border-top-width: 2px; border-top-style: solid; display: inline-block; }
-.chart-help { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text-tertiary); }
+/* Three gestures, each under the thing it acts on, rather than one paragraph a reader has to
+   read whole to find the one sentence about the marker they are holding. */
+.chart-help {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+.chart-help dt { color: var(--text-secondary); font-weight: 600; }
+.chart-help dd { margin: 0; }
 
 /* ---------------------------------------------------------------- metrics */
 
@@ -680,6 +730,21 @@ input:invalid { border-color: var(--danger); }
 }
 .metric__provisional strong { color: var(--text); font-weight: 600; }
 .metric__provisional code { font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+/* The open choices, named under the count and reaching the first of their rows on the rail. */
+.metric__provisional-reach {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.metric__provisional-reach:hover { color: var(--accent); }
 
 /* The signal sits beside the number it is about rather than in a panel of its own, which
    is the whole of the pattern: the reader meets it where they read the value. */
@@ -741,6 +806,64 @@ input:invalid { border-color: var(--danger); }
 .metric-record:hover { color: var(--text); border-top-color: var(--accent); }
 .metric-record__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .metric-record__count { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* The instants this number rests on, in the words the trace draws beside them. The rule under
+   each one is monospaced because it is an identifier a reader retypes, not prose. */
+.kv--landmarks dd { display: grid; gap: var(--space-1); }
+.landmark-time { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.landmark-rule {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* The rules that would have produced this number instead, one row each, with the number
+   beside the name so the comparison is a column a reader reads down rather than two panels
+   they hold in their head. */
+.competing__construct {
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+.competing { display: grid; gap: var(--space-1); min-width: 0; }
+.competing__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+.competing__row--running { background: var(--accent-quiet); }
+.competing__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.competing__name:hover { text-decoration: underline; }
+.competing__mark { font-size: var(--text-xs); color: var(--text-secondary); }
+.competing__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
 
 .method-list { display: grid; gap: var(--space-2); min-width: 0; }
 .method-list .provenance {

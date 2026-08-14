@@ -11,6 +11,36 @@ import {
   resetLandmarks, undoEdit, redoEdit, wireHistoryControls,
 } from './workspace.js';
 
+const THEME_KEY = 'plateforce.theme';
+
+/*
+ * The colour the reader last chose, which they chose once and had to choose again on every
+ * visit. Kept on this machine beside the plates, and never sent anywhere.
+ *
+ * Only a colour the reader picked is kept. Storing the resolved colour of the automatic
+ * setting would freeze a reader whose system moves between light and dark at dusk into
+ * whichever it was the first time they pressed anything.
+ */
+function restoreTheme() {
+  let held = null;
+  try {
+    held = window.localStorage.getItem(THEME_KEY);
+  } catch {
+    held = null;
+  }
+  if (held === 'light' || held === 'dark') document.documentElement.dataset.theme = held;
+  describeTheme();
+}
+
+/* The control says which colour it would switch to, because an icon alone says only that
+ * something about colour will happen. */
+function describeTheme() {
+  const root = document.documentElement;
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const showing = root.dataset.theme === 'auto' ? (dark ? 'dark' : 'light') : root.dataset.theme;
+  $('theme-toggle').setAttribute('aria-label', showing === 'dark' ? 'Switch to light colours' : 'Switch to dark colours');
+}
+
 export function wireGlobalControls() {
   const dropzone = $('dropzone');
   const input = $('file-input');
@@ -46,11 +76,18 @@ export function wireGlobalControls() {
   $('reset-markers').addEventListener('click', resetLandmarks);
   wireHistoryControls();
 
+  restoreTheme();
   $('theme-toggle').addEventListener('click', () => {
     const root = document.documentElement;
     const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const current = root.dataset.theme === 'auto' ? (dark ? 'dark' : 'light') : root.dataset.theme;
     root.dataset.theme = current === 'dark' ? 'light' : 'dark';
+    describeTheme();
+    try {
+      window.localStorage.setItem(THEME_KEY, root.dataset.theme);
+    } catch {
+      /* held for this tab */
+    }
     state.chart?.render();
   });
 

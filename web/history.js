@@ -36,9 +36,17 @@ function same(left, right) {
   return serial(left) === serial(right);
 }
 
-export function remember(before) {
+/*
+ * One completed action, with the reader's own words for what it was.
+ *
+ * `label` names the act that moved away from the state being kept, so the control offering to
+ * reverse it can say which edit that is. Undo on a page holding five edits is otherwise a
+ * button whose effect a reader learns by pressing it. `same` compares four named fields, so
+ * the label rides alongside without entering the comparison.
+ */
+export function remember(before, label = null) {
   if (state.history.restoring || same(before, snapshot())) return;
-  state.history.past.push(before);
+  state.history.past.push({ ...before, label });
   state.history.future.length = 0;
   updateHistoryControls();
 }
@@ -56,16 +64,29 @@ export function canRedo() {
   return state.history.future.length > 0;
 }
 
+/* The act each control would carry out, so the two can name it before the reader presses. */
+export function undoLabel() {
+  return state.history.past.at(-1)?.label ?? null;
+}
+
+export function redoLabel() {
+  return state.history.future.at(-1)?.label ?? null;
+}
+
 export function undo() {
   if (!canUndo()) return null;
-  state.history.future.push(snapshot());
-  return state.history.past.pop();
+  const held = state.history.past.pop();
+  // The state being left carries the same act's name, because the act that produced it is the
+  // one a Redo would carry out again.
+  state.history.future.push({ ...snapshot(), label: held.label });
+  return held;
 }
 
 export function redo() {
   if (!canRedo()) return null;
-  state.history.past.push(snapshot());
-  return state.history.future.pop();
+  const held = state.history.future.pop();
+  state.history.past.push({ ...snapshot(), label: held.label });
+  return held;
 }
 
 export function restore(held) {
@@ -78,9 +99,23 @@ export function restore(held) {
   updateHistoryControls();
 }
 
+/*
+ * The two controls, each naming the act it would carry out.
+ *
+ * The word on the button stays put, because a control whose width follows the length of the
+ * last edit moves the two beside it every time a marker is dragged. The act is named where a
+ * reader asks what a control does: its accessible name and its tooltip.
+ */
 export function updateHistoryControls() {
-  const undoButton = $('undo-edit');
-  const redoButton = $('redo-edit');
-  if (undoButton) undoButton.disabled = !canUndo();
-  if (redoButton) redoButton.disabled = !canRedo();
+  const naming = [
+    [$('undo-edit'), 'Undo', canUndo(), undoLabel()],
+    [$('redo-edit'), 'Redo', canRedo(), redoLabel()],
+  ];
+  for (const [button, verb, available, label] of naming) {
+    if (!button) continue;
+    button.disabled = !available;
+    const sentence = available && label ? `${verb} ${label}` : `${verb} the last edit on the trace`;
+    button.title = sentence;
+    button.setAttribute('aria-label', sentence);
+  }
 }

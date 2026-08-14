@@ -112,10 +112,19 @@ export function renderPicker() {
   const typed = search.value.trim().toLowerCase();
   const list = $('add-quantity-list');
   list.replaceChildren();
-  list.hidden = typed.length === 0;
-  if (!typed) return;
 
-  const matching = offers.filter((offer) => offer.label.toLowerCase().includes(typed));
+  // Everything on offer while the box has the reader's attention, narrowed as they type. A
+  // box that answered nothing until a word was typed asked a first-time reader for the
+  // field's vocabulary before it would tell them what the field's vocabulary is, and nobody
+  // guesses `epoch impulse`. It closes when they leave, because the list is longer than the
+  // rail and the rail carries the choices behind the numbers.
+  const looking = typed.length > 0 || document.activeElement === search;
+  list.hidden = !looking;
+  if (!looking) return;
+
+  const matching = typed
+    ? offers.filter((offer) => offer.label.toLowerCase().includes(typed))
+    : offers;
   if (matching.length === 0) {
     list.append(element('li', 'add-quantity__none', 'No matches.'));
     return;
@@ -133,5 +142,11 @@ export function renderPicker() {
 }
 
 export function wirePicker() {
-  $('add-quantity-search').addEventListener('input', renderPicker);
+  const search = $('add-quantity-search');
+  search.addEventListener('input', renderPicker);
+  search.addEventListener('focus', renderPicker);
+  // Closed on the way out rather than on blur alone, so a reader tabbing from the box into
+  // the list it opened does not have it shut under their hands.
+  search.addEventListener('blur', () => window.setTimeout(renderPicker, 120));
+  $('add-quantity-list').addEventListener('focusout', () => window.setTimeout(renderPicker, 120));
 }

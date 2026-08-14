@@ -1,5 +1,5 @@
 # Exact declaration<TAB>count<TAB>reason. New or duplicated pixel geometry must be explained.
-height: 1px	1	Crosshair hairline.
+height: 1px	2	Crosshair hairline, and the clipped box the trace announcements are read from.
 height: 2px	2	Spread-axis hairline and the selection-region top edge.
 height: 4px	2	Loading progress track and the active selection-region top edge.
 height: 7px	1	Method-status dot.
@@ -29,7 +29,7 @@ min-height: 24px	1	Batch trial-name row.
 min-height: 26px	1	Compact method row.
 min-height: 32px	2	Compact desktop button and plate chip.
 min-height: 36px	2	Desktop method record and parameter control.
-min-height: 44px	25	Minimum touch target across responsive controls.
+min-height: 44px	27	Minimum touch target across responsive controls.
 min-width: 16px	2	Desktop checkbox hit geometry.
 min-width: 20px	1	Tablet checkbox hit geometry.
 min-width: 22px	2	Phone checkbox hit geometry.
@@ -38,7 +38,7 @@ top: 4px	1	Places alternative ticks on the spread axis.
 top: 14px	1	Places the spread range band.
 top: 18px	1	Places the spread-axis hairline.
 top: 36px	1	Places spread endpoint labels below the line.
-width: 1px	1	Crosshair hairline.
+width: 1px	2	Crosshair hairline, and the clipped box the trace announcements are read from.
 width: 2px	3	Marker, window and spread tick strokes.
 width: 3px	1	Current-setting emphasis on the spread axis.
 width: 7px	1	Method-status dot.

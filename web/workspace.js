@@ -6,7 +6,7 @@ import { counted, element, formatNumber, setWindowTitle, showStage, typesetUnit 
 import { windowLengthParameter, buildDecisionModel } from './registry.js';
 import { resetSelections, candidateFor } from './startup.js';
 import { renderDecisions } from './decisions.js';
-import { boundMethodId, runAnalysis, recordStated, withSources } from './analysis.js';
+import { boundMethodId, runAnalysis, recordStated, withSources, HEADLINE } from './analysis.js';
 import { endingOf } from './batch-run.js';
 import { renderPicker, putOnThePath, removeFromPath } from './add-quantity.js';
 import { findMethod } from './registry.js';
@@ -57,8 +57,15 @@ export function enterWorkspace() {
         state.overrides[key] = Math.max(0, Math.min(state.info.sample_count - 1, index));
         runAnalysis();
       },
-      onMarkerEditStart: () => snapshot(),
-      onMarkerEditEnd: (_key, before) => remember(before),
+      onMarkerEditStart: () => {
+        rememberTheNumbers();
+        return snapshot();
+      },
+      onMarkerEditEnd: (key, before) => {
+        const landmark = state.chart.markers.find((marker) => marker.key === key);
+        remember(before, `moving ${landmark?.label ?? key}`);
+        announceLandmark(key);
+      },
       onWindowChange: (startIndex, durationSeconds) => {
         // Placing the window by hand is a registry entry in its own right, so the drag
         // rebinds the method rather than overriding whichever rule was selected.
@@ -71,6 +78,10 @@ export function enterWorkspace() {
             methodId: placed.id, values: {}, options: {}, unresolved: [],
             fromDefault: new Set(), recommended: new Set(), methodFromRecommendation: false,
             methodStated: true,
+            // A rule that arrived by a gesture rather than by a pick from the list, which is
+            // the population the recommendation offers to take back. A rule the reader chose
+            // from the list is a published rule and is not among them.
+            placedByHand: true,
           };
         }
         const selection = withSources(state.selection.weighing);
@@ -83,8 +94,14 @@ export function enterWorkspace() {
         renderDecisions();
         runAnalysis();
       },
-      onWindowEditStart: () => snapshot(),
-      onWindowEditEnd: (before) => remember(before),
+      onWindowEditStart: () => {
+        rememberTheNumbers();
+        return snapshot();
+      },
+      onWindowEditEnd: (before) => {
+        remember(before, 'moving the standing-still window');
+        announceWindow();
+      },
       onViewChange: () => {
         refreshEnvelope();
         updateChartNavigation();
@@ -106,37 +123,120 @@ export function enterWorkspace() {
   runAnalysis();
 }
 
-function restoreEdit(held) {
+/* ---------------------------------------------------- saying what an edit did */
+
+/*
+ * What an edit on the trace did, for a reader who cannot see the trace change.
+ *
+ * A landmark under the keyboard moves by one sample, which is a change of well under a pixel
+ * on a fitted 5-second trace and nothing at all to look at. The record already carries the
+ * new instant and the numbers that followed it, so what is spoken is read from the analysis
+ * rather than composed: the landmark and where it now sits, then the two headline quantities
+ * that moved, then how many others did.
+ */
+function announce(sentence) {
+  const host = $('chart-announcement');
+  if (!host) return;
+  // Replaced rather than appended, and cleared first, so two nudges to the same place are two
+  // announcements rather than one unchanged string a reader is never told about again.
+  host.textContent = '';
+  window.setTimeout(() => { host.textContent = sentence; }, 0);
+}
+
+/* The reported numbers as they stood before the edit began, so the sentence after it can say
+ * which of them the edit moved. */
+let numbersBeforeTheEdit = new Map();
+
+function rememberTheNumbers() {
+  numbersBeforeTheEdit = new Map(
+    (state.analysis?.metrics || []).map((metric) => [metric.key, metric.value]),
+  );
+}
+
+function shown(metric) {
+  const formatted = formatNumber(metric.value, metric.unit);
+  return formatted == null ? 'no value' : `${formatted} ${metric.unit_symbol}`;
+}
+
+/* The quantities this edit moved, the headline ones by name and the rest by count. Reading
+ * every changed number aloud is eleven sentences on a trial that reports eleven. */
+function whatFollowed() {
+  const moved = (state.analysis?.metrics || []).filter(
+    (metric) => numbersBeforeTheEdit.has(metric.key)
+      && numbersBeforeTheEdit.get(metric.key) !== metric.value,
+  );
+  if (!moved.length) return 'No reported number changed.';
+  const named = moved.filter((metric) => HEADLINE.has(metric.key));
+  const rest = moved.length - named.length;
+  const sentences = named.map((metric) => {
+    const was = formatNumber(numbersBeforeTheEdit.get(metric.key), metric.unit);
+    return `${metric.label} ${shown(metric)}, was ${was == null ? 'no value' : `${was} ${metric.unit_symbol}`}.`;
+  });
+  if (rest) sentences.push(`${counted(rest, 'other reported number')} changed.`);
+  return sentences.join(' ');
+}
+
+function announceLandmark(key) {
+  const landmark = state.chart?.markers.find((marker) => marker.key === key);
+  const index = state.analysis?.[`${key}_index`];
+  if (!landmark || index == null || !state.info) return;
+  announce(
+    `${landmark.label} at ${(index / state.info.sample_rate_hz).toFixed(4)} seconds, ` +
+    `sample ${index}. ${whatFollowed()}`,
+  );
+}
+
+function announceWindow() {
+  const start = state.analysis?.weighing_start_index;
+  const end = state.analysis?.weighing_end_index;
+  if (start == null || end == null || !state.info) return;
+  const rate = state.info.sample_rate_hz;
+  announce(
+    `Standing-still window ${(start / rate).toFixed(4)} to ${(end / rate).toFixed(4)} seconds. ` +
+    whatFollowed(),
+  );
+}
+
+/* ---------------------------------------------------------------- history */
+
+function restoreEdit(held, verb) {
   if (!held) return;
   restore(held);
   state.slots = buildDecisionModel(state.registry, state.build, state.path);
   renderPicker();
   renderDecisions();
   runAnalysis();
+  announce(held.label ? `${verb} ${held.label}.` : `${verb} the last edit on the trace.`);
 }
 
 export function undoEdit() {
-  restoreEdit(undo());
+  rememberTheNumbers();
+  restoreEdit(undo(), 'Undid');
 }
 
 export function redoEdit() {
-  restoreEdit(redo());
+  rememberTheNumbers();
+  restoreEdit(redo(), 'Redid');
 }
 
 export function resetLandmarks() {
   const before = snapshot();
+  rememberTheNumbers();
   state.overrides = { onset: null, takeoff: null, touchdown: null };
-  remember(before);
+  remember(before, 'resetting the landmarks');
   runAnalysis();
+  announce(`Landmarks back where their rules place them. ${whatFollowed()}`);
 }
 
 export function applySelectionAsStandingStill() {
   const selected = state.chart?.selection().active;
   if (!selected || !state.info) return;
   const before = snapshot();
+  rememberTheNumbers();
   const durationSeconds = (selected.endIndex - selected.startIndex) / state.info.sample_rate_hz;
   state.chart.onWindowChange(selected.startIndex, durationSeconds);
-  remember(before);
+  remember(before, 'using the selection as the standing-still window');
+  announceWindow();
 }
 
 export function wireHistoryControls() {
@@ -261,10 +361,10 @@ function chartImageNotes() {
     `Visible range: ${(view.start / rate).toFixed(4)} to ${(view.end / rate).toFixed(4)} s. Display range chosen in chart.`,
     `Registry revision: ${state.build.registry_declared_version ?? 'none declared'}. Registry digest: ${state.build.registry_digest}.`,
   ];
+  // The rules behind the levels and bands the trace draws, which are the rules for the three
+  // constructs the request names by its own fields. Read off the build rather than listed.
   const traceRules = uniqueRules(
-    methodForConstruct('system_weight'),
-    methodForConstruct('movement_onset'),
-    methodForConstruct('takeoff'),
+    state.slots.filter((slot) => slot.spine).map((slot) => boundMethodId(slot.key)),
   );
   if (traceRules.length) notes.push(`Trace levels and bands. ${ruleText(traceRules)}.`);
   for (const landmark of majorLandmarks()) {
@@ -407,11 +507,25 @@ function selectionChanged(selection, event) {
   }
 
   window.clearTimeout(trailingEdge);
+  if (event.nudged) rememberTheNumbers();
   if (selection.active) bindTheWindow(selection.active);
   else releaseTheWindow();
   renderSelectionReadout(selection, event);
   renderDecisions();
   runAnalysis();
+  if (event.nudged && selection.active) announceSelection(selection.active, event.nudged);
+}
+
+/* A span moved by the keyboard, said out loud: what it now covers, and which of the numbers
+ * taken over it followed. The two gestures are named apart because a span that grew and a
+ * span that slid cover different samples for the same key press. */
+function announceSelection(selected, how) {
+  const rate = state.info.sample_rate_hz;
+  const verb = how === 'end' ? 'Selection end moved' : 'Selection moved';
+  announce(
+    `${verb}. ${(selected.startIndex / rate).toFixed(4)} to ${(selected.endIndex / rate).toFixed(4)} seconds, ` +
+    `${counted(selected.endIndex - selected.startIndex + 1, 'sample')}. ${whatFollowed()}`,
+  );
 }
 
 let trailingEdge = null;
@@ -501,25 +615,28 @@ function ruleText(rules) {
   return `${rules.length === 1 ? 'Rule' : 'Rules'}: ${rules.join(', ')}`;
 }
 
-function majorLandmarks() {
-  if (!state.analysis || !state.info) return [];
-  const takeoffRule = methodForConstruct('takeoff');
+/* The instants the trace draws, each with the rules that placed it. One home: the chart image
+ * footer, the landmarks inside a selection, and the drawer that explains a number all read
+ * this, so no two of them can name the same instant differently. */
+export function majorLandmarks() {
+  if (!state.analysis || !state.info || !state.chart) return [];
   const flightTimeRule = state.analysis.metrics
     .find((metric) => metric.key === 'flight_time_seconds')?.computed_by;
-  return [
-    {
-      key: 'onset', label: 'Start of jump', index: state.analysis.onset_index,
-      rules: uniqueRules(methodForConstruct('movement_onset')),
-    },
-    {
-      key: 'takeoff', label: 'Takeoff', index: state.analysis.takeoff_index,
-      rules: uniqueRules(takeoffRule),
-    },
-    {
-      key: 'touchdown', label: 'Landing', index: state.analysis.touchdown_index,
-      rules: uniqueRules(methodForConstruct('landing') || takeoffRule, flightTimeRule),
-    },
-  ].filter((event) => event.index != null && event.rules.length);
+  // Each track carries the construct it stands for, so the pairing is read from the one table
+  // that declares it rather than spelt out again here.
+  return state.chart.markers
+    .map((marker) => ({
+      key: marker.key,
+      label: marker.label,
+      index: state.analysis[`${marker.key}_index`],
+      // A landing the flight-time rule timed is that rule's answer as much as the boundary
+      // rule's, and on a recording that ends in the air neither of them places one.
+      rules: uniqueRules(
+        methodForConstruct(marker.construct),
+        marker.key === 'touchdown' ? flightTimeRule : null,
+      ),
+    }))
+    .filter((event) => event.index != null && event.rules.length);
 }
 
 function landmarksInside(selected) {
@@ -528,16 +645,23 @@ function landmarksInside(selected) {
   );
 }
 
+/* Flight runs from the last landmark before the athlete comes back down to the one that says
+ * they have. Named by where they sit on the trace rather than by the constructs behind them,
+ * so a recording that ends in the air, which is five of six fixtures, has no such interval
+ * rather than a wrong one. */
 function phaseContext(selected) {
   const landmarks = majorLandmarks();
-  const takeoff = landmarks.find((event) => event.key === 'takeoff');
   const landing = landmarks.find((event) => event.key === 'touchdown');
-  if (!takeoff || !landing) return null;
+  if (!landing) return null;
+  const takeoff = landmarks
+    .filter((event) => event.index < landing.index)
+    .sort((left, right) => right.index - left.index)[0];
+  if (!takeoff) return null;
   if (selected.startIndex <= takeoff.index || selected.endIndex >= landing.index) return null;
   const rate = state.info.sample_rate_hz;
   return 'Inside flight. ' +
-    `Takeoff: ${(takeoff.index / rate).toFixed(4)} s under ${takeoff.rules.join(', ')}. ` +
-    `Landing: ${(landing.index / rate).toFixed(4)} s under ${landing.rules.join(', ')}.`;
+    `${takeoff.label}: ${(takeoff.index / rate).toFixed(4)} s under ${takeoff.rules.join(', ')}. ` +
+    `${landing.label}: ${(landing.index / rate).toFixed(4)} s under ${landing.rules.join(', ')}.`;
 }
 
 function appendFigures(host, entries, className = '') {
@@ -645,11 +769,21 @@ function updateSelectionControls(selection, event = {}) {
   const selected = selection.regions.length > 0;
   const undoable = state.chart.canUndoZoom();
   $('chart-selection').hidden = !(selected || undoable || event.dragging || event.placedNothingHere);
-  $('selection-zoom').disabled = !selected;
-  $('selection-clear').disabled = !selected;
-  $('selection-use-baseline').disabled = !selected;
-  $('selection-undo-zoom').disabled = !undoable;
-  $('selection-reset-zoom').disabled = state.chart.isFit() && !undoable;
+  const states = [
+    ['selection-zoom', !selected, 'Drag across the trace to select a window to zoom to'],
+    ['selection-clear', !selected, 'Drag across the trace to select a window'],
+    ['selection-use-baseline', !selected, 'Drag across a quiet stretch to select it'],
+    ['selection-undo-zoom', !undoable, 'Zoom to a selected window to have a view to step back out of'],
+    ['selection-reset-zoom', state.chart.isFit() && !undoable, 'The whole recording is already fitted'],
+  ];
+  // A control that cannot be pressed says what would let it be, because a row of grey
+  // controls with no reason beside them is a reader guessing which gesture they are missing.
+  for (const [id, off, reason] of states) {
+    const control = $(id);
+    control.disabled = off;
+    if (off) control.title = reason;
+    else control.removeAttribute('title');
+  }
 }
 
 function wireSelectionControls() {
