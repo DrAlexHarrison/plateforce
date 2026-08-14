@@ -431,7 +431,7 @@ Your file is read on your own machine, and plateforce makes no network requests.
 def elsewhere(here):
     """Three routes, one interface, so a reader who changes machine is not starting over."""
     routes = {
-        "browser": "in a browser tab at dralexharrison.github.io/plateforce",
+        "browser": "in a browser tab at dralexharrison.github.io/plateforce/app/",
         "desktop": "as an application on macOS, Windows and Linux",
         "terminal": "at a terminal, where <code>plateforce analyse</code> takes the same "
         "choices as flags and writes the same record",

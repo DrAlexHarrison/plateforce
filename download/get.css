@@ -1,0 +1,136 @@
+/*
+ * Layout for the download page, and nothing else. Every colour, type size, spacing step and
+ * radius is taken from web/styles.css, which this page loads first, so the page and the
+ * application it offers cannot drift apart into two palettes.
+ */
+
+/* The one width here is the measure rather than a pixel count: 62 characters sits inside the
+ * 45 to 75 a line of prose is read comfortably at, whatever the reader's base type size. */
+.get__page {
+  max-width: 62ch;
+  margin: 0 auto;
+  padding: var(--space-16) var(--space-6) var(--space-12);
+  display: grid;
+  gap: var(--space-12);
+  justify-items: center;
+  text-align: center;
+}
+
+.get__identity {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+}
+
+.get__mark { width: 40px; height: 40px; }
+.get__mark rect { fill: var(--accent); }
+.get__mark path { stroke: var(--accent-contrast); }
+
+.get__identity h1 { font-size: var(--text-2xl); }
+.get__tagline { color: var(--text-secondary); font-size: var(--text-md); }
+
+/* The offer is one button, what it will fetch, and what to do with it. The gap between those
+ * three is one step wider than the gap inside any of them, so they read as three things. */
+.get__offer {
+  display: grid;
+  gap: var(--space-8);
+  justify-items: center;
+  width: 100%;
+}
+
+/* Every control here fetches a file or leaves for another page, so each one is an anchor
+ * wearing the application's button. Underlined, the one thing on the page to press reads as a
+ * line of prose. */
+a.button { text-decoration: none; }
+
+.get__download { display: grid; gap: var(--space-2); justify-items: center; width: 100%; }
+.get__download .button { width: 100%; font-size: var(--text-md); min-height: 52px; }
+.get__meta { color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* Steps are read, not scanned across, so they are the one block on the page set left. */
+.steps { text-align: left; width: 100%; display: grid; gap: var(--space-3); }
+.steps__label { color: var(--text-secondary); font-size: var(--text-sm); }
+.steps__list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+
+.steps__item {
+  display: grid;
+  grid-template-columns: var(--space-6) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.steps__number { color: var(--text-tertiary); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+
+/* A command is copied character for character, so it wraps rather than scrolling sideways
+ * and it breaks on its own boundaries rather than mid-word. */
+.steps__item code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--surface-inset);
+  border-radius: var(--radius);
+  padding: 0 var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.get__aside { color: var(--text-secondary); font-size: var(--text-sm); text-align: left; width: 100%; }
+.get__aside a { color: inherit; }
+
+/* The prompt control, set left against the steps above it so the column keeps one edge. */
+.assistant { display: grid; gap: var(--space-2); width: 100%; text-align: left; }
+.assistant__label { color: var(--text-secondary); font-size: var(--text-sm); }
+.assistant__said { font-size: var(--text-sm); color: var(--ok); }
+.assistant__said--by-hand { color: var(--text-secondary); }
+
+/* The reader is told the copy landed and the message stays put. A confirmation that clears
+ * itself is one somebody is still reading when it goes. */
+.assistant__said:empty { display: none; }
+
+/* Revealed only when the browser refuses the clipboard, and then it is the thing being read
+ * from, so it wraps inside its own box rather than widening the page. */
+.assistant__text {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+
+/* Every other route, quiet, and reachable by a thumb: the links sit at the height of a
+ * control even though they are set as links. */
+.elsewhere {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0 var(--space-2);
+}
+
+.elsewhere a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.elsewhere a:hover { color: var(--text); }
+.elsewhere__divider { color: var(--text-tertiary); font-size: var(--text-sm); }
+
+/* The resting state of the file, and the answer for a machine this page cannot name. */
+.routes { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-6); width: 100%; }
+.route { display: grid; gap: var(--space-2); justify-items: center; }
+.route__go { width: 100%; }
+.route__note { color: var(--text-secondary); font-size: var(--text-sm); }
+
+.skip-link:focus { top: var(--space-2); left: var(--space-2); }
+
+@media (max-width: 480px) {
+  .get__page { padding: var(--space-8) var(--space-4) var(--space-8); gap: var(--space-8); }
+  .get__identity h1 { font-size: var(--text-xl); }
+}

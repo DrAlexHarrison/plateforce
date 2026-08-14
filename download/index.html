@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>plateforce</title>
+<meta name="description" content="Force-plate analysis, on your computer.">
+<link rel="stylesheet" href="./app/styles.css">
+<link rel="stylesheet" href="./get.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a6a6f'/%3E%3Cpath d='M4 22 L11 22 L14 9 L18 26 L21 17 L28 17' fill='none' stroke='white' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body class="get">
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<main id="main" class="get__page">
+
+  <div class="get__identity">
+    <svg class="get__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect width="32" height="32" rx="6"/>
+      <path d="M4 22 L11 22 L14 9 L18 26 L21 17 L28 17" fill="none" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>
+    <h1>plateforce</h1>
+    <p class="get__tagline">Force-plate analysis, on your computer</p>
+  </div>
+
+  <!--
+    Every route, which is what a reader sees when the machine is one this page cannot name,
+    when the releases API is unreachable, and when no script runs at all. The focused offer
+    below is written over this, so the complete list is the resting state of the file rather
+    than a branch that has to be reached to be correct.
+  -->
+  <div class="get__offer" id="offer">
+    <ul class="routes" id="routes">
+      <li class="route">
+        <a class="button button--primary route__go" href="https://github.com/DrAlexHarrison/plateforce/releases/latest">Download for Mac</a>
+        <p class="route__note">Disk image, Apple Silicon and Intel</p>
+      </li>
+      <li class="route">
+        <a class="button button--primary route__go" href="https://github.com/DrAlexHarrison/plateforce/releases/latest">Download for Windows</a>
+        <p class="route__note">Installer, Windows 10 and newer</p>
+      </li>
+      <li class="route">
+        <a class="button button--primary route__go" href="https://github.com/DrAlexHarrison/plateforce/releases/latest">Download for Linux</a>
+        <p class="route__note">AppImage, Debian and Fedora packages</p>
+      </li>
+      <li class="route">
+        <a class="button route__go" href="./app/">Use in browser</a>
+        <p class="route__note">Nothing to install, your file stays on your computer</p>
+      </li>
+    </ul>
+  </div>
+
+  <!--
+    The prompt is held here rather than built by script, so the text the button copies and the
+    text a reader copies by hand when the clipboard refuses are the same characters. Hidden
+    until a script runs, because a copy button with no script behind it is a button that does
+    nothing when pressed.
+  -->
+  <div class="assistant" id="assistant" hidden>
+    <p class="assistant__label" id="assistant-label">Using an AI assistant?</p>
+    <button type="button" class="button" id="assistant-copy" aria-describedby="assistant-label">
+      Copy a prompt to paste into it
+    </button>
+    <p class="assistant__said" id="assistant-said" role="status" aria-live="polite"></p>
+    <textarea class="assistant__text" id="assistant-text" readonly rows="12" aria-label="The prompt, ready to copy" hidden>
+I want to use plateforce, which is force-plate analysis where every
+result carries the method that produced it.
+
+Install it for Python:  pip install plateforce
+Docs: https://github.com/DrAlexHarrison/plateforce
+
+Then read my force-plate file, compute jump height, and show me
+which published rule produced each number.</textarea>
+  </div>
+
+</main>
+
+<script type="module" src="./get.js"></script>
+</body>
+</html>

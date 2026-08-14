@@ -3,10 +3,12 @@
 Every route below needs no compiler, no Python and no package manager, and every one of
 them analyses your trace on your own machine.
 
-Downloads are on the [releases page](https://github.com/DrAlexHarrison/plateforce/releases).
-There is also a browser build at
-[dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce), which
-loads the file from your disk into the tab and sends nothing anywhere.
+[dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce) offers the
+download for the machine you are reading it on, and every file is on the
+[releases page](https://github.com/DrAlexHarrison/plateforce/releases). There is also a
+browser build at
+[dralexharrison.github.io/plateforce/app/](https://dralexharrison.github.io/plateforce/app/),
+which loads the file from your disk into the tab and sends nothing anywhere.
 
 ## Linux
 

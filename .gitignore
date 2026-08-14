@@ -12,6 +12,9 @@ build/
 # The browser bundle is a build artifact.
 web/pkg/
 
+# The published site is assembled from download/ and web/ by scripts/build-site.sh.
+site/
+
 # R CMD build writes the source package beside the repository root.
 plateforce_*.tar.gz
 

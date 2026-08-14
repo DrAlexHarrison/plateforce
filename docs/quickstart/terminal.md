@@ -231,6 +231,6 @@ depends on flight time can be computed from it.
 ## Where else it runs
 
 The same analysis, the same registry and the same record are available in a browser tab at
-[dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce), and as an
+[dralexharrison.github.io/plateforce/app/](https://dralexharrison.github.io/plateforce/app/), and as an
 application on macOS, Windows and Linux. A result computed on one carries the record that
 lets another reproduce it.

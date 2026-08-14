@@ -28,7 +28,7 @@ MARK = (
     'stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>'
 )
 
-BROWSER_URL = "https://dralexharrison.github.io/plateforce"
+BROWSER_URL = "https://dralexharrison.github.io/plateforce/app/"
 
 
 def facts():

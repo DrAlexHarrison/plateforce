@@ -12,8 +12,11 @@ same way, and the record of how it was computed is the thing that makes the comp
 
 ## Running it
 
+[dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce) offers the
+download for the machine you are reading it on.
+
 The browser build reads the file in the tab and sends nothing anywhere:
-[dralexharrison.github.io/plateforce](https://dralexharrison.github.io/plateforce)
+[dralexharrison.github.io/plateforce/app/](https://dralexharrison.github.io/plateforce/app/)
 
 `docs/install.md` covers the desktop application and the command line, on Linux, macOS,
 Windows, and machines that will not let you install anything. `docs/terminal.md` covers

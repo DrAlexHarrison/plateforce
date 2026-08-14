@@ -37,7 +37,7 @@ Homepage = "https://github.com/DrAlexHarrison/plateforce"
 Repository = "https://github.com/DrAlexHarrison/plateforce"
 Issues = "https://github.com/DrAlexHarrison/plateforce/issues"
 Documentation = "https://github.com/DrAlexHarrison/plateforce/blob/main/docs/schema.md"
-"Browser build" = "https://dralexharrison.github.io/plateforce"
+"Browser build" = "https://dralexharrison.github.io/plateforce/app/"
 
 [tool.maturin]
 # One wheel per platform rather than one per interpreter. The extension links the

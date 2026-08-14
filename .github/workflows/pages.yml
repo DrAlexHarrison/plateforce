@@ -90,11 +90,22 @@ jobs:
       - name: Report registry validation
         run: cargo run --quiet --package plateforce-cli -- registry validate || true
 
+      # The download page is the root of the published site and the application sits one level
+      # in, so a reader arriving with no context is offered the program rather than dropped
+      # inside it. The checks above serve web/ as its own root and are unaffected.
+      - name: Assemble the site
+        run: ./scripts/build-site.sh site
+
+      # The page names a version and a size it reads from the releases API, and a link that
+      # 404s is worse than the release page it replaces, so the offer is followed to the file.
+      - name: Every download the page offers resolves
+        run: node scripts/check-download-page.mjs site 8751
+
       # A pull request runs every check above and publishes nothing.
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
-          path: web
+          path: site
 
   # Nothing above compiles at the version the workspace tells the world it supports, so a
   # first-party construct or a dependency feature newer than the declared floor reaches a
