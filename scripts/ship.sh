@@ -159,11 +159,23 @@ description.write_text(written)
 print(f"    {description}")
 PYTHON
 
-  # The lockfiles are derived, so they are regenerated rather than edited. Each build
-  # rewrites its own lock; a hand-edited lock is a fourth place the version can be wrong.
-  cargo update --workspace --quiet 2>/dev/null || cargo metadata --format-version 1 --no-deps >/dev/null
-  ( cd bindings/r/src/rust && cargo update --workspace --quiet 2>/dev/null || true )
-  note "lockfiles regenerated"
+  # The lockfiles are derived, so they are regenerated rather than edited. A hand-edited
+  # lock is one more place the version can be wrong.
+  cargo metadata --format-version 1 --no-deps >/dev/null
+
+  # The R package carries its own copy of the engine, because the three crates are not on
+  # crates.io and cargo will not vendor a path dependency. That copy is an untracked build
+  # artefact regenerated in CI, but ITS LOCKFILE IS TRACKED, so a bump that does not
+  # re-sync and relock leaves the lock naming the old version. CI vendors with --locked,
+  # which then refuses to update it, and both the R workflow and the parity workflow go red
+  # on a message about lockfiles that says nothing about versions. No `|| true` here: this
+  # step failing silently is what produced that red.
+  sh bindings/r/tools/sync-engine.sh >/dev/null
+  ( cd bindings/r/src/rust && cargo generate-lockfile --offline --quiet )
+  locked_engine="$(grep -a -A1 'name = "plateforce-core"' bindings/r/src/rust/Cargo.lock | sed -n 's/^version = "\(.*\)"/\1/p')"
+  [ "$locked_engine" = "$version" ] \
+    || { echo "the R lockfile pins the engine at ${locked_engine}, not ${version}" >&2; exit 1; }
+  note "lockfiles regenerated, R engine locked at ${locked_engine}"
 
   python3 scripts/verify-version-homes.py
   finished "bump"
