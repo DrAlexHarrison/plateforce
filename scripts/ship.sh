@@ -170,12 +170,33 @@ PYTHON
   # which then refuses to update it, and both the R workflow and the parity workflow go red
   # on a message about lockfiles that says nothing about versions. No `|| true` here: this
   # step failing silently is what produced that red.
+  #
+  # Only the four plateforce entries are rewritten. Re-resolving the whole lock instead
+  # picks third-party crates published since, and the package declares a cargo floor that
+  # a newer crate's manifest cannot even be parsed by: `feature edition2024 is required`
+  # against cargo 1.82. The floor job then fails on a crate nobody here chose. So the
+  # third-party pins are left exactly as they were.
   sh bindings/r/tools/sync-engine.sh >/dev/null
-  ( cd bindings/r/src/rust && cargo generate-lockfile --offline --quiet )
+  python3 - "$version" <<'PYTHON'
+import re, sys, pathlib
+version = sys.argv[1]
+path = pathlib.Path("bindings/r/src/rust/Cargo.lock")
+text = path.read_text()
+for name in ("plateforce-analysis", "plateforce-core", "plateforce-registry", "plateforce-r"):
+    text, count = re.subn(
+        rf'(name = "{re.escape(name)}"\n)version = "[^"]+"',
+        lambda m: m.group(1) + f'version = "{version}"',
+        text,
+    )
+    if count != 1:
+        raise SystemExit(f"the R lockfile holds {count} entries for {name}, expected 1")
+path.write_text(text)
+print(f"    R lockfile, 4 engine entries at {version}")
+PYTHON
   locked_engine="$(grep -a -A1 'name = "plateforce-core"' bindings/r/src/rust/Cargo.lock | sed -n 's/^version = "\(.*\)"/\1/p')"
   [ "$locked_engine" = "$version" ] \
     || { echo "the R lockfile pins the engine at ${locked_engine}, not ${version}" >&2; exit 1; }
-  note "lockfiles regenerated, R engine locked at ${locked_engine}"
+  note "lockfiles current, R engine locked at ${locked_engine}"
 
   python3 scripts/verify-version-homes.py
   finished "bump"
