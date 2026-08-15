@@ -570,13 +570,30 @@ if ! done_already "handover"; then
     mv "$scratch"/quick-start-* "$folder/Guides/"
     rm -rf "$scratch"
 
-    ( cd "$folder" && {
-        printf 'plateforce %s\n' "$version"
-        printf 'sha256 of every file in this folder.\n\n'
-        find Install Guides -type f | sort | while read -r file; do
-          printf '%s  %s\n' "$(shasum -a 256 "$file" | cut -d' ' -f1)" "$file"
-        done
-      } > CHECKSUMS.txt )
+    # Checksum lines and nothing else. A title above them is read as a malformed entry by
+    # the very command the folder tells a reader to run, so the check answers with a
+    # warning about improper formatting beside its own passes. What the file is belongs in
+    # the note that explains the folder.
+    ( cd "$folder" && find Install Guides -type f | sort | while read -r file; do
+        printf '%s  %s\n' "$(shasum -a 256 "$file" | cut -d' ' -f1)" "$file"
+      done > CHECKSUMS.txt )
+
+    # The note that says what the folder is and which file to open first. Carried forward
+    # from the last release and restamped, because a folder handed to somebody in person
+    # arrives without the release page around it.
+    previous="$(ls -d "$HOME"/plateforce-v* 2>/dev/null | grep -av "$version" | tail -1)"
+    if [ -n "$previous" ] && [ -f "$previous/CONTENTS.txt" ]; then
+      sed -e "s/[0-9]\{1,\}\.[0-9]\{1,\}\.[0-9]\{1,\}/${version}/g" \
+        "$previous/CONTENTS.txt" > "$folder/CONTENTS.txt"
+      note "CONTENTS.txt carried forward from $(basename "$previous") and restamped"
+    else
+      echo "no CONTENTS.txt to carry forward; write one into ${folder}" >&2
+    fi
+
+    checked="$( cd "$folder" && shasum -a 256 -c CHECKSUMS.txt 2>/dev/null | grep -ac 'OK$' )"
+    [ "$checked" -eq 21 ] \
+      || { echo "${checked} of 21 files in ${folder} match their checksum" >&2; exit 1; }
+    note "${checked} of 21 files verify against their own checksums"
 
     note "$folder, $(find "$folder" -type f | wc -l | tr -d ' ') files"
   fi
