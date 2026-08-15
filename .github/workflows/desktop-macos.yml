@@ -166,6 +166,11 @@ jobs:
           else
             echo "APPLE_CERTIFICATE reaches the build: no"
           fi
+          # The cache restores the target directory and its fallback key reaches any earlier
+          # run, so the previous release's bundles arrive with it. Their names carry the
+          # version they were built for, so they are not overwritten, and every step below
+          # that finds "the image" would be choosing between two releases.
+          rm -rf src-tauri/target/universal-apple-darwin/release/bundle
           cargo tauri build --target universal-apple-darwin --bundles app,dmg
 
       - name: Both architectures are in the one binary

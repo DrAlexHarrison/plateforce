@@ -81,7 +81,22 @@ check_bundle_payload() {
   case "$(uname -s)" in
     Linux)
       local package
-      package="$(ls src-tauri/target/release/bundle/deb/*.deb 2>/dev/null | head -1 || true)"
+      # Exactly one, never the first of several. `src-tauri/target` is a cached directory
+      # and its restore key falls back to any earlier run, so the previous release's deb
+      # survives into this one. Taking the first by name then reads `0.1.1` before `0.1.2`
+      # and compares last release's bundle against this release's module, which is a
+      # mismatch reported against artefacts that are both fine.
+      local packages
+      packages="$(ls src-tauri/target/release/bundle/deb/*.deb 2>/dev/null || true)"
+      local count
+      count="$(printf '%s' "$packages" | grep -ac . || true)"
+      if [ "${count:-0}" -gt 1 ]; then
+        echo "$count debs are present, so which one this release built is a guess:" >&2
+        printf '%s\n' "$packages" >&2
+        echo "the bundle directory carries an earlier build; remove it before bundling" >&2
+        exit 1
+      fi
+      package="$(printf '%s' "$packages" | head -1)"
       if [ -z "$package" ]; then
         echo "no deb was built, so there is no bundle payload to read" >&2
         exit 1

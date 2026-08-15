@@ -289,7 +289,13 @@ if ! done_already "green"; then
   # main reads green while they are red. A tag evaluates no path filter, so it would run
   # them for the first time against a commit nobody tested. Both are dispatched here.
   if [ "$dry_run" = "no" ]; then
-    for workflow in python-wheels.yml r-package.yml registry-ids.yml parity.yml; do
+    # Every path-filtered workflow is dispatched onto this exact commit. A tag evaluates no
+    # path filter, so any of these that a commit did not touch would otherwise run for the
+    # first time against the tag, which is the one moment nobody can fix it before it
+    # publishes. The three desktop ones are here because they were NOT, and the v0.1.2 tag
+    # failed inside one of their gates rather than in anything main had ever run.
+    for workflow in python-wheels.yml r-package.yml registry-ids.yml parity.yml \
+                    desktop-linux.yml desktop-macos.yml desktop-windows.yml; do
       gh_ workflow run "$workflow" --repo DrAlexHarrison/plateforce --ref main >/dev/null 2>&1 || true
     done
     note "dispatched the filtered workflows onto this commit"

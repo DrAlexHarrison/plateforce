@@ -106,6 +106,13 @@ jobs:
       - name: The shell ships what it declares
         run: cargo test --manifest-path src-tauri/Cargo.toml --test the_shell_ships_what_it_declares
 
+      # The cache restores `src-tauri/target`, and its fallback key reaches any earlier run,
+      # so the previous release's bundles arrive with it. They are not overwritten, because
+      # their names carry the version they were built for, and every step below that reads
+      # "the bundle" would then be choosing between two releases.
+      - name: Nothing but this release's bundles
+        run: rm -rf src-tauri/target/release/bundle
+
       - name: Build the bundles
         run: cargo tauri build --bundles deb,rpm,appimage
 

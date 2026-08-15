@@ -53,6 +53,13 @@ jobs:
       # installMode currentUser puts it in %LOCALAPPDATA% and needs no administrator, which
       # is what a researcher on a managed university laptop can actually do. MSI is not
       # built at all: it has no per-user install mode.
+      # The cache restores the target directory, and its fallback key reaches any earlier
+      # run, so the previous release's bundles arrive with it. Their names carry the version
+      # they were built for, so they are not overwritten, and every step below that reads
+      # "the bundle" would be choosing between two releases.
+      - name: Nothing but this release's bundles
+        run: rm -rf src-tauri/target/release/bundle
+
       - name: Build the installer
         run: cargo tauri build --bundles nsis
 
