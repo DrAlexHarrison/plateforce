@@ -102,8 +102,13 @@ if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
   exit 1
 fi
 
-if git rev-parse "$tag" >/dev/null 2>&1; then
+# An existing tag stops a fresh cut, because a published version is never re-cut. It must
+# NOT stop a resume that has already tagged: everything after tagging is verifying and
+# publishing what the tag built, and refusing there strands a release between its tag and
+# its assets, which is the worst place to leave one.
+if git rev-parse "$tag" >/dev/null 2>&1 && ! done_already "tag"; then
   echo "$tag already exists locally. A published version is never re-cut." >&2
+  echo "To carry on with a release that already tagged, pass --resume." >&2
   exit 1
 fi
 
