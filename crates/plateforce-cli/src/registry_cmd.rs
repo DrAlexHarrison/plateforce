@@ -53,6 +53,9 @@ pub fn run(
 }
 
 fn census(registry: &Registry, format: Format) -> Outcome {
+    if format == Format::Markdown {
+        return crate::out::markdown_wants_a_result("registry census");
+    }
     // Destructured without `..`, so a population added to the registry is a compile error
     // here rather than a row this command quietly stops printing.
     let Census {
@@ -97,6 +100,9 @@ fn census(registry: &Registry, format: Format) -> Outcome {
 }
 
 fn validate(registry: &Registry, directory: Option<&Path>, format: Format) -> Outcome {
+    if format == Format::Markdown {
+        return crate::out::markdown_wants_a_result("registry validate");
+    }
     let census = registry.census();
     if format == Format::Json {
         return Outcome::complete(canonical(&json!({

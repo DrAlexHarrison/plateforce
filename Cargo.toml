@@ -21,7 +21,7 @@ exclude = ["src-tauri"]
 # The floor the dependency tree imposes: `toml` reaches `toml_parser`, `indexmap` and
 # `hashbrown`, which declare 1.85. `scripts/check-msrv.sh` holds this honest.
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.85"
 license = "Apache-2.0"
@@ -29,15 +29,15 @@ repository = "https://github.com/DrAlexHarrison/plateforce"
 authors = ["Alex Harrison"]
 
 [workspace.dependencies]
-plateforce-analysis = { path = "crates/plateforce-analysis", version = "0.1.1" }
+plateforce-analysis = { path = "crates/plateforce-analysis", version = "0.1.2" }
 # `default-features = false` belongs here rather than on the crates that want it off. A
 # member declaring it against a workspace entry that omits the key has it discarded, so the
 # browser was taking Parquet with `default-features = false` already written beside it.
 # A dependent that wants Parquet names the feature.
-plateforce-batch = { path = "crates/plateforce-batch", version = "0.1.1", default-features = false }
-plateforce-core = { path = "crates/plateforce-core", version = "0.1.1" }
-plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.1" }
-plateforce-serve = { path = "crates/plateforce-serve", version = "0.1.1" }
+plateforce-batch = { path = "crates/plateforce-batch", version = "0.1.2", default-features = false }
+plateforce-core = { path = "crates/plateforce-core", version = "0.1.2" }
+plateforce-registry = { path = "crates/plateforce-registry", version = "0.1.2" }
+plateforce-serve = { path = "crates/plateforce-serve", version = "0.1.2" }
 serde = { version = "1", features = ["derive"] }
 # `float_roundtrip` declared here rather than per crate, because cargo unifies features across
 # the build: set in one crate, whether a double survives being written and read back becomes a

@@ -156,9 +156,7 @@ def substitute(argument, scratch, run_index):
 def read_the_guides(published):
     """The lines to run, and every complaint about the blocks they came from."""
     to_run, complaints = [], []
-    longest_physical = 0
     for language, lines, raw, following in blocks():
-        longest_physical = max([longest_physical] + [len(line.rstrip(" \\")) for line in raw])
         text = "\n".join(lines)
         if language != "text":
             for placeholder in PLACEHOLDER.findall(text):
@@ -181,7 +179,7 @@ def read_the_guides(published):
                 complaints.append(f"unaccounted for, so nothing checked it: {line}")
             elif kind == "program":
                 to_run.append((line, expected))
-    return to_run, complaints, longest_physical
+    return to_run, complaints
 
 
 def shell_blocks_parse():
@@ -243,7 +241,7 @@ def main():
         )
         return 1
 
-    to_run, complaints, longest_physical = read_the_guides(published)
+    to_run, complaints = read_the_guides(published)
     complaints += shell_blocks_parse()
 
     # The file a desktop reader is sent to download, which appears in no fenced block.
@@ -266,12 +264,19 @@ def main():
     for shape in ("analyse", "batch", "serve"):
         if not any(f" {shape} " in f"{line} " for line in lines):
             complaints.append(f"no {shape} line among the {len(lines)} extracted")
-    # A joined command is longer than the longest line it was written across, so a run whose
-    # longest command fits inside one printed line is one that dropped a continuation.
-    if lines and max(len(line) for line in lines) <= longest_physical:
-        complaints.append(
-            "no extracted command outruns a single printed line, so continuations were dropped"
-        )
+    # A trailing backslash is bash's line continuation and not PowerShell's, and one of these
+    # guides sends its reader to PowerShell, where the backslash arrives as an argument and the
+    # next line is run as its own command. A command on one line is pasteable in every shell
+    # the guides name, and the print stylesheet wraps it.
+    for language, _, raw, _ in blocks():
+        if language == "text":
+            continue
+        for line in raw:
+            if line.rstrip().endswith("\\"):
+                complaints.append(
+                    "a line a reader pastes ends in a backslash continuation, which PowerShell "
+                    f"does not read as one: {line.strip()}"
+                )
 
     if complaints:
         for complaint in complaints:

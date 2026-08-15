@@ -98,7 +98,10 @@ displacement, which go with the square of the rate, out by nearly half.</li>
 <li><strong>How the file writes a sample it does not have.</strong> Some export software
 writes <code>0</code> or <code>-1</code> where no measurement was taken. Three such rows in
 one 244-trial study moved a published correlation by 0.16. If your file does this, say
-which value it uses.</li>
+which value it uses. A jump trace holds real zeros of its own, because the plate reads zero
+for as long as the athlete is off it, so name a value here only when your export writes one:
+a value named is a value dropped, and naming <code>0</code> on a jump throws the flight
+away.</li>
 </ol>
 """ + note(
         "<p>No file yet? <strong>Open a demo trial</strong> on the first screen loads a "
@@ -145,11 +148,11 @@ the number came from.</p>
 """
             + figure(
                 "trace",
-                "Standing still, the countermovement, takeoff, and the landing.",
+                "The standing-still window, the start of the jump, takeoff, and the landing.",
             )
             + """
-<p>Two numbers sit above the rest because they are the ones most papers lead with. Under
-each one is the rule that produced it.</p>
+<p>Two numbers sit above the rest because they are the ones most papers lead with. Under each
+one is the count of rules standing behind it, and opening that count names them.</p>
 """
             + figure(
                 "results-provisional",
@@ -171,21 +174,33 @@ not quietly decide for you.</p>
 """
             + figure(
                 "decisions",
-                "Each choice names its rules, and each rule names where it comes from.",
+                "One open choice: what it decides, the rule running until you choose, and the "
+                "menu of rules that could run instead.",
             )
             + """
 <p>Open a choice and pick a rule, or press <strong>Use recommended rules</strong> to take
-the recommended one for every open choice at once. Either way it is recorded as a choice you
-made, and the numbers recompute.</p>
+the recommended one for every open choice at once. Either way the rule is written into the
+record as a choice you made, and every number standing on it is computed again.</p>
 """
-            + figure("results-settled", "The same two numbers, now under rules you chose."),
+            + figure(
+                "results-settled",
+                "The same two numbers, reading the same. The choice under them is now yours.",
+            )
+            + """
+<p>Whether a number moves depends on which rule was running and which one you pick. Here the
+recommended rules are the ones the provisional numbers had already been computed under, so
+both numbers read the same and what changed is the record. Another rule moves them, and step
+5 says by how much.</p>
+""",
         )
         + step(
             5,
             "See how much the choice mattered",
             """
 <p><strong>How much does the method choice move this number?</strong> runs every defensible
-alternative over your own trial and reports the range.</p>
+alternative over your own trial and reports the range. A number that sat still when you
+settled the rules in step 4 can still have a wide range here, because this is the spread over
+every rule you could have chosen rather than the distance between two of them.</p>
 """
             + figure(
                 "spread",
@@ -205,7 +220,17 @@ report rather than one borrowed from a paper.</p>
 chose. plateforce names the file ending it is treating as a trial and counts what it read,
 so a stray file in the folder cannot join your results without saying so.</p>
 """
-            + figure("batch", "One row per trial, and the table scrolls sideways for the rest.")
+            + figure(
+                "folder",
+                "The ending that decides what counts as a trial, declared rather than guessed.",
+            )
+            + """
+<p>Every trial then arrives in one table, under the rules you chose in step 4.</p>
+"""
+            + figure(
+                "batch",
+                "One row per trial, with the record id that says which rules produced it.",
+            )
             + """
 <p>A trial that cannot be analysed is listed by name, with the rule and the value that
 declined it. Nothing is dropped quietly.</p>
@@ -213,8 +238,9 @@ declined it. Nothing is dropped quietly.</p>
 <p>A trial can be analysed and still have a quantity its rule would not give a number for,
 and the <code>refusal_code</code> column is where that is said. In the trials above, five
 recordings stop while the athlete is still in the air, so the landing never arrives and the
-two quantities measured from it are left empty on those rows with the reason beside them. The
-count at the top is of trials, and none of these was declined.</p>
+two quantities measured from it are left empty on those rows. The two counts at the top are
+over different things, trials and then quantities, each with the denominator it was taken
+over, and the rule that declined each quantity is named under the table.</p>
 """,
         )
     )
@@ -446,8 +472,7 @@ reproduce it.</p>
 
 
 def getting_numbers_out():
-    """The section a thesis depends on, and the one the interface had no answer for until
-    the export landed."""
+    """The section a thesis depends on: what the download holds, and which file to open."""
     return """
 <h2>Getting your numbers out</h2>
 
@@ -470,12 +495,13 @@ spreadsheet.</p>
 </table>
 
 <p>The whole set travels together on purpose. A file of numbers with nothing beside it saying
-how they were computed is the thing this tool exists to prevent, so the record comes with the
-results rather than being somewhere else you have to remember to fetch.</p>
+how they were computed cannot be compared with anyone else's, including your own from last
+season, so the record comes with the results rather than being somewhere else you have to
+remember to fetch.</p>
 
 <p>One trial gives you the same set with one row in it, from the same control beside the
-results. These are the same files the terminal writes, byte for byte, so a result computed
-here and one computed there are the same result.</p>
+results. These are the same files the terminal writes, so a result computed here and one
+computed there are the same result.</p>
 """
 
 
@@ -544,7 +570,8 @@ reported separately for that reason. The record says which is which, and the spr
 says how far apart they are on your data.</dd>
 
 <dt>The numbers changed when I changed a rule</dt>
-<dd>That is the thing this tool exists to show you. The spread panel puts a size on it.</dd>
+<dd>That is the size of the method choice on your own trial, and the spread panel puts a
+number on it.</dd>
 </dl>
 """
         + extra

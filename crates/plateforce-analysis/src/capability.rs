@@ -68,6 +68,7 @@ pub enum Operation {
 pub enum OutputFormat {
     Csv,
     Json,
+    Markdown,
     Parquet,
     Text,
 }

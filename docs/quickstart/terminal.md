@@ -1,6 +1,6 @@
 # Quick Start
 
-## plateforce at a terminal
+<!--SUBTITLE-->
 
 Read a force trace, get the jump numbers, and keep the record of how they were computed.
 
@@ -71,10 +71,7 @@ plateforce: 2 of 3 choices on the path to a jump height have no default.
 Answer them and it runs:
 
 ```
-plateforce analyse trial.txt --column 0 --sample-rate-hz 1200 --sentinel none \
-  --weighing bwepoch.adaptive_lowest_variance --set weighing.window_seconds=1.0 \
-  --onset onset.threshold.noise_relative --set onset.k=5 \
-  --takeoff takeoff.threshold.flight_noise_k_sd
+plateforce analyse trial.txt --column 0 --sample-rate-hz 1200 --sentinel none --weighing bwepoch.adaptive_lowest_variance --set weighing.window_seconds=1.0 --onset onset.threshold.noise_relative --set onset.k=5 --takeoff takeoff.threshold.flight_noise_k_sd
 ```
 
 Or take a published pipeline whole, which binds every rule and every value its source states:
@@ -113,8 +110,7 @@ to paste into a document. `--out <path>` writes it to a file.
 ## A folder of trials
 
 ```
-plateforce batch trials/ --out-dir results \
-  --trial-suffix .txt --column 0 --sample-rate-hz 1200 --sentinel none --preset sams
+plateforce batch trials/ --out-dir results --trial-suffix .txt --column 0 --sample-rate-hz 1200 --sentinel none --preset sams
 ```
 
 `--trial-suffix` is not optional and is never guessed: it is how the run says which files in
@@ -141,13 +137,7 @@ one you want and `--aggregate-n` says how many trials it was asked for. Best of 
 of three are two requests of one rule, and the count travels with the value:
 
 ```
-plateforce batch trials/ --out-dir results \
-  --trial-suffix .txt --column 0 --sample-rate-hz 1200 --sentinel none --preset sams \
-  --pattern 'AT{subject}_{trial}' \
-  --derive analysis_window=window_end.takeoff.detected \
-  --derive net_peak_force=force.peak.net \
-  --aggregate best_of_n_by_peak_force --aggregate-n 5 \
-  --aggregate-quantity net_peak_force_newtons
+plateforce batch trials/ --out-dir results --trial-suffix .txt --column 0 --sample-rate-hz 1200 --sentinel none --preset sams --pattern 'AT{subject}_{trial}' --derive analysis_window=window_end.takeoff.detected --derive net_peak_force=force.peak.net --aggregate best_of_n_by_peak_force --aggregate-n 5 --aggregate-quantity net_peak_force_newtons
 ```
 
 `best_of_n_by_peak_force` orders an athlete's trials on net peak force, so the run has to
@@ -176,7 +166,7 @@ that reports a result: `analyse`, `batch`, `spread`, `capability`, `methods`, `r
 `man` to read, and print the paths they wrote. `serve` prints the address it is listening on.
 
 `plateforce capability` reports every operation, method, output format and refusal code this
-build reaches, as JSON. That is the one call to make before writing anything against this
+surface computes, as JSON. That is the one call to make before writing anything against this
 program, because it describes the program in front of you rather than the one somebody wrote
 about.
 

@@ -94,11 +94,14 @@ pub fn every_operation() -> Vec<Operation> {
 /// the surface produces, which is the direction a comparison against a committed file cannot
 /// see. `tests/capability.rs` holds this against the writer calls themselves.
 pub fn every_output_format() -> Vec<OutputFormat> {
+    // Exhaustive and one to one, so a value `--format` gains reaches the manifest under its
+    // own name rather than under a neighbour's.
     let mut written: Vec<OutputFormat> = Format::value_variants()
         .iter()
         .map(|format| match format {
-            Format::Text | Format::Markdown => OutputFormat::Text,
+            Format::Text => OutputFormat::Text,
             Format::Json => OutputFormat::Json,
+            Format::Markdown => OutputFormat::Markdown,
         })
         .collect();
     written.push(OutputFormat::Csv);
@@ -142,7 +145,10 @@ pub fn manifest(registry: &Registry) -> Capability {
 /// whatever registry was named. It is not any more: a caller pointed at their own registry and
 /// handed this build's published values would be told a rule accepts numbers their entries never
 /// mention, which is the wrong-registry answer wearing a correct shape.
-pub fn run(_args: &Args, _format: Format, registry_directory: Option<&Path>) -> Outcome {
+pub fn run(_args: &Args, format: Format, registry_directory: Option<&Path>) -> Outcome {
+    if format == Format::Markdown {
+        return crate::out::markdown_wants_a_result("capability");
+    }
     let registry = match crate::registry_source::load(registry_directory) {
         Ok(registry) => registry,
         Err(error) => {

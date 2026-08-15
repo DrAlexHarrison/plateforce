@@ -18,6 +18,10 @@ download for the machine you are reading it on.
 The browser build reads the file in the tab and sends nothing anywhere:
 [dralexharrison.github.io/plateforce/app/](https://dralexharrison.github.io/plateforce/app/)
 
+A quick start guide for each of those routes is attached to
+[the latest release](https://github.com/DrAlexHarrison/plateforce/releases/latest), one per
+platform, plus four for working at a terminal in the form a terminal and an assistant can read.
+
 `docs/install.md` covers the desktop application and the command line, on Linux, macOS,
 Windows, and machines that will not let you install anything. `docs/terminal.md` covers
 working at a terminal, and `docs/for-an-agent.md` is the contract for a program driving one.
@@ -51,7 +55,7 @@ plateforce: 2 of 3 choices on the path to a jump height have no default.
 
 ```
 plateforce capability        the operations, methods, output formats and refusal codes this
-                             surface reaches, as JSON
+                             surface computes, as JSON
 plateforce registry census   the registry's populations, each counted and reported on its own
 ```
 
@@ -63,8 +67,9 @@ crates/     the Rust workspace: registry, core maths, CLI, conformance, wasm, Py
 bindings/   the R package
 web/        the browser interface that the wasm build drives
 docs/       method rulings, schema, and the reasoning behind both
-audit/      headline_audit.py recomputes the spread above from the trial matrix, with its
-            denominator
+audit/      headline_audit.py, the method behind the spread above, with its denominator.
+            The trial matrix it reads stays out of this repository because the corpus it
+            derives from is re-identifiable and its consent position is unresolved
 ```
 
 ## Contributing

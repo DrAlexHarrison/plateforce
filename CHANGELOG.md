@@ -2,6 +2,44 @@
 
 What changed for somebody using plateforce, one section per release.
 
+## 0.1.2, 2026-08-14
+
+```
+plateforce version                0.1.2
+method registry revision          2026-07-25
+method registry digest            content-e613e95011150591
+```
+
+The registry is unchanged from 0.1.0, so the digest is the same and every number this release
+returns is the number 0.1.1 returned. Nothing below changes a computed value.
+
+### Fixed
+
+- The desktop application offered to install itself. The window loads the same page the browser
+  does, so its header carried the link that takes a reader in a tab to the download page, where
+  it reaches nothing at all. It is gone in the application and unchanged in a browser.
+- A folder run reported two true counts as though one contradicted the other. The summary counted
+  trials and the table showed a refusal code per quantity, so a run reading "6 of 6 trials
+  analysed, 0 of 6 trials declined" sat above five rows marked `dependency_unresolved` in the
+  colour of a failure. The counts over trials and over quantities now sit together, each with its
+  own denominator, and the failure colour marks a trial that produced nothing rather than one that
+  answered nine quantities and declined two. A column no trial in the run carries is no longer
+  drawn.
+- `capability` did not report `markdown` among the containers a surface writes, though every
+  command writes it and the guides recommend it for pasting a record where somebody is talking.
+  An agent reading that array to decide what it could offer was told the format did not exist.
+- Four commands answered a request for markdown with something else: `registry census` and
+  `registry validate` printed text, `capability` printed JSON, and `batch` printed a text table
+  and made its output folder first. Each now declines by name, as the other ten already did.
+
+### The guides
+
+Every quick start was rebuilt. The commands in the Windows guide were written with the line
+continuation of a Unix shell and could not run in the PowerShell the same guide opens in; they
+are single lines now, which run in every shell the guides name. The four guides written for a
+terminal carry the version, the registry revision, the licence and the source, as the printed
+guides always have, and each says on its first line which platform it is for.
+
 ## 0.1.1, 2026-08-14
 
 ```
@@ -71,7 +109,7 @@ reports. Among them: system weight, movement onset, takeoff, time to takeoff, fl
 takeoff velocity, net impulse, jump height in the standing and takeoff frames, power, work,
 rate of force development, reactive strength, and the braking, propulsion and landing phase
 boundaries. `plateforce reach` prints the whole set, and says what stands in the way of the
-quantities it does not reach on the recording you gave it.
+quantities it does not reach.
 
 Every value comes back with the rule that produced it, the parameters that rule was given,
 and where each of those values came from: stated by you, measured off the recording, or

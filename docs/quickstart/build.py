@@ -10,6 +10,7 @@ Usage: python3 docs/quickstart/build.py [--html-only]
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -67,8 +68,22 @@ def digest(binary):
     return reported["ok"]["registry_digest"]
 
 
-def page(title, subtitle, lead, contents, body):
-    items = "".join(f"<li>{item}</li>" for item in contents)
+HEADING = re.compile(r"<h2[^>]*>(.*?)</h2>", re.DOTALL)
+CODE = re.compile(r"<pre\b.*?</pre>", re.DOTALL)
+
+
+def sections(body):
+    """The guide's own headings, in the order the reader meets them.
+
+    Read out of the body rather than listed beside it, because a list typed beside the body
+    drifts from it: four guides named a first section the body ran second, and four more
+    stopped a section short of the end.
+    """
+    return HEADING.findall(CODE.sub("", body))
+
+
+def page(title, subtitle, lead, body):
+    items = "".join(f"<li>{item}</li>" for item in sections(body))
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -102,7 +117,7 @@ BROWSER_ENTRY = content.step(
 <p>Drag your file onto the page, or press <strong>Choose a file</strong>. A whole folder of
 trials goes in the same way with <strong>Choose a folder</strong>.</p>
 """
-    + content.figure("open", "The first screen, and everything it offers."),
+    + content.figure("open", "The first screen: a file, a folder, or the demo trial."),
 )
 
 
@@ -113,7 +128,9 @@ DESKTOP_ENTRY = content.step(
 <p>Drag your file onto the window, or press <strong>Choose a file</strong>. A whole folder of
 trials goes in the same way with <strong>Choose a folder</strong>.</p>
 """
-    + content.figure("open", "The first screen, and everything it offers."),
+    # The installed application's own first screen, which is the browser's without the link
+    # that offers to install it: a reader who has just installed plateforce is not invited to.
+    + content.figure("open-desktop", "The first screen: a file, a folder, or the demo trial."),
 )
 
 
@@ -126,18 +143,6 @@ def browser_open():
 <p>There is nothing to install and no account to make. Your file is read inside the browser
 tab, on your own machine, and is never uploaded. The header says so while you work.</p>
 """
-
-
-def contents_list():
-    return [
-        "What it does",
-        "Before you start",
-        "The first five minutes",
-        "Getting your numbers out",
-        "What to write in your methods section",
-        "When something does not work",
-        "Words you will meet",
-    ]
 
 
 def browser_guide(f):
@@ -158,7 +163,6 @@ def browser_guide(f):
         "plateforce in your web browser",
         "Read a force trace, get the jump numbers, and keep the record of how they were "
         "computed.",
-        ["Open it"] + contents_list() + ["Where else it runs"],
         body,
     )
 
@@ -192,18 +196,22 @@ def desktop_guide(platform):
             DESKTOP[platform][0],
             "Read a force trace, get the jump numbers, and keep the record of how they were "
             "computed.",
-            ["Install it"] + contents_list() + ["Where else it runs"],
             body,
         )
 
     return make
 
 
+def footer_text(f):
+    """What identifies the build a guide describes, in one place for the page and the Markdown."""
+    return (
+        f"plateforce {f['version']}, method registry {f['registry_revision']}. Apache-2.0. "
+        "Source and registry at github.com/DrAlexHarrison/plateforce."
+    )
+
+
 def footer(f):
-    return f"""
-<p class="footer-note">plateforce {f['version']}, method registry {f['registry_revision']}.
-Apache-2.0. Source and registry at github.com/DrAlexHarrison/plateforce.</p>
-"""
+    return f'\n<p class="footer-note">{footer_text(f)}</p>\n'
 
 
 TERMINAL = {
@@ -214,15 +222,22 @@ TERMINAL = {
 }
 
 
-def terminal_guide(shell="any", subtitle="plateforce at a terminal"):
+def terminal_guide(name, shell, subtitle):
     """The terminal guides are authored as Markdown, because the readers who need them most
     are a terminal and an assistant, and a PDF is unreadable to both. One source per shell,
-    two outputs each, and only the section about getting the program differs."""
+    two outputs each, and only the subtitle and the section about getting the program differ."""
 
     def make(f, markdown_into=None):
-        source = (HERE / "terminal.md").read_text().replace(
-            "<!--GET-THE-PROGRAM-->", content.TERMINAL_INSTALL[shell]
-        )
+        source = (HERE / "terminal.md").read_text()
+        # Raised rather than skipped: a marker that stops matching leaves every shell holding
+        # the generic guide, which is exactly the defect a silent replace would hide.
+        for marker, replacement in (
+            ("<!--SUBTITLE-->", f"## {subtitle}"),
+            ("<!--GET-THE-PROGRAM-->", content.TERMINAL_INSTALL[shell]),
+        ):
+            if marker not in source:
+                raise RuntimeError(f"terminal.md carries no {marker}")
+            source = source.replace(marker, replacement)
         # Written outside the tree: it is derived from terminal.md, and a generated copy
         # beside its source is a second place for the same words to be corrected. A caller
         # naming a directory gets the Markdown itself, which is what a terminal and an
@@ -231,13 +246,20 @@ def terminal_guide(shell="any", subtitle="plateforce at a terminal"):
             tempfile.mkdtemp(prefix="plateforce-quickstart-")
         )
         into.mkdir(parents=True, exist_ok=True)
-        written = into / f"quick-start-terminal-{shell}.md"
-        written.write_text(source)
+        # Named for the guide rather than the shell, so a reader holding the Markdown and a
+        # reader holding the PDF can tell they have the same guide.
+        written = into / f"quick-start-{name}.md"
+        # The Markdown is published on its own and read detached from any release page, so it
+        # carries the version and the registry the page prints. A number whose registry is
+        # somewhere else is the thing these guides exist to stop.
+        written.write_text(f"{source}\n{footer_text(f)}\n")
+        # Rendered from the source rather than the written file, because the page adds that
+        # same footer itself and a document carrying it twice states its version twice.
         # A block carries its language so the command checker knows a shell line from printed
         # output; highlighting it would make those blocks the only coloured ones on the page.
         rendered = subprocess.run(
-            ["pandoc", "--from", "gfm", "--to", "html", "--no-highlight", str(written)],
-            capture_output=True, text=True, check=True,
+            ["pandoc", "--from", "gfm", "--to", "html", "--no-highlight"],
+            input=source, capture_output=True, text=True, check=True,
         ).stdout
         # The Markdown carries its own title block for a reader who opens the file
         # directly, and the page template carries one too, so the fragment gives up its two
@@ -249,13 +271,6 @@ def terminal_guide(shell="any", subtitle="plateforce at a terminal"):
             subtitle,
             "Read a force trace, get the jump numbers, and keep the record of how they were "
             "computed.",
-            [
-                "What it does", "Get the program",
-                "What plateforce needs to know about your file",
-                "One trial", "Reading what comes back", "A folder of trials",
-                "If you would rather click", "For an assistant, or a script",
-                "When something does not work",
-            ],
             body + footer(f),
         )
 
@@ -267,7 +282,7 @@ GUIDES = {
     "macos": desktop_guide("macos"),
     "windows": desktop_guide("windows"),
     "linux": desktop_guide("linux"),
-    **{name: terminal_guide(shell, subtitle)
+    **{name: terminal_guide(name, shell, subtitle)
        for name, (shell, subtitle) in TERMINAL.items()},
 }
 

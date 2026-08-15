@@ -551,7 +551,9 @@ const populations = await evaluate(`(async () => {
   return {
     trials: rows,
     trialsDeclined: ok.run.refusal_count,
-    quantitiesDeclined: (ok.refusals ?? []).length,
+    // Only the refusals naming a column. A trial that produced nothing declines under a rule
+    // that names none, and it is counted by the trial figure beside this one.
+    quantitiesDeclined: (ok.refusals ?? []).filter((refusal) => refusal.quantity).length,
     asked: (ok.quantities ?? []).length * rows,
     summary: document.querySelector('#batch-result .batch-summary')?.textContent ?? '',
     headings: [...document.querySelectorAll('#batch-result h3')].map((node) => node.textContent),
@@ -568,6 +570,121 @@ check('a declined trial and a declined quantity are two counts, each carrying it
   `${populations.trialsDeclined} of ${populations.trials} trials declined and ` +
     `${populations.quantitiesDeclined} of ${populations.asked} quantities declined, ` +
     `under ${populations.headings.join(' / ') || 'no heading'}`);
+
+/*
+ * Where the second count is met.
+ *
+ * The `refusal_code` column is where a declined quantity reaches a reader, so a count of
+ * quantities printed only under the table leaves those codes to be read against a count of
+ * trials and nothing else.
+ */
+const placement = await evaluate(`(() => {
+  const parts = [...document.querySelector('#batch-result .panel').children];
+  return {
+    trials: parts.findIndex((node) => node.textContent.includes('trials declined')),
+    quantities: parts.findIndex((node) => node.textContent.includes('quantities declined')),
+    table: parts.findIndex((node) => node.querySelector('table.data')),
+  };
+})()`);
+check('the count over quantities is stated with the count over trials, above the table the codes are in',
+  placement.trials >= 0 && placement.quantities === placement.trials + 1
+    && placement.quantities < placement.table,
+  `trials at ${placement.trials}, quantities at ${placement.quantities}, table at ${placement.table}`);
+
+/*
+ * The columns the table draws, against the columns its rows have anything in.
+ *
+ * A run read here walks no filesystem, so every `source_path` is empty and a heading over that
+ * column describes the software rather than the reader's data. The count the table states of
+ * itself is read in the same pass, because a column list and a column count that disagree send
+ * a reader looking sideways for a column that was never drawn.
+ */
+const shape = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const ok = JSON.parse(state.run.envelope).ok;
+  const keys = ['trial_id', 'source_path', 'provenance_id', 'refusal_code'];
+  // The trials table, not the one under it: the declines are their own relation and carry a
+  // trial_id of their own, so a query across both reads one header list as two.
+  const trials = document.querySelector('#batch-result table.data');
+  const head = [...trials.querySelectorAll('thead th')].map((c) => c.textContent.trim());
+  return {
+    columns: head.length,
+    shown: head.filter((name) => keys.includes(name)),
+    carried: keys.filter((name) => (ok.results ?? []).some((row) => row[name])),
+    stated: [...document.querySelectorAll('#batch-result .panel__sub')]
+      .map((node) => node.textContent)
+      .find((said) => said.includes('columns')) ?? '',
+  };
+})()`);
+check('the table heads the columns its rows carry, and says how many it drew',
+  shape.shown.length > 0 && shape.shown.join(' ') === shape.carried.join(' ')
+    && shape.stated.startsWith(`${shape.columns} columns`),
+  `${shape.shown.join(' / ')} drawn against ${shape.carried.join(' / ')} carried, ` +
+    `and the table says "${shape.stated}"`);
+
+/*
+ * The failure colour, on the trial that failed and on no other.
+ *
+ * Read from a run of two: a trial that answers nine quantities and declines two, and the same
+ * trace cut off before any landmark, which produces nothing at all. Both are needed in one
+ * run, because on a folder where every trial produced numbers a rule that colours nothing
+ * reads exactly like a rule that colours the right row.
+ */
+await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
+await settle("!document.getElementById('stage-empty').hidden", 'the empty stage a second time');
+const cutShort = await evaluate(`(async () => {
+  const whole = await (await fetch('/fixtures/subject01_trial2${TRIAL_SUFFIX}')).text();
+  const samples = whole.split('\\n').slice(0, 60).join('\\n');
+  const transfer = new DataTransfer();
+  transfer.items.add(new File([whole], 'subject01_trial2${TRIAL_SUFFIX}', { type: 'text/plain' }));
+  transfer.items.add(new File([samples], 'zz_cut_short${TRIAL_SUFFIX}', { type: 'text/plain' }));
+  document.getElementById('dropzone').dispatchEvent(
+    new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }),
+  );
+  return samples.split('\\n').length;
+})()`);
+await settle("!document.getElementById('stage-columns').hidden", 'the columns stage a second time');
+await evaluate(`(() => {
+  document.getElementById('sample-rate').value = '${SAMPLE_RATE_HZ}';
+  document.getElementById('sample-rate').dispatchEvent(new Event('input'));
+  document.getElementById('columns-confirm').click();
+})()`);
+await settle("!document.getElementById('stage-workspace').hidden", 'the workspace a second time');
+await settle(
+  "document.querySelectorAll('#headline-metric-grid .metric, #metric-grid .metric').length > 0"
+    + " || document.querySelector('#analysis-warnings button')",
+  'the first paint a second time',
+);
+await evaluate("document.getElementById('accept-recommended')?.click()");
+await settle("!document.getElementById('run-folder').hidden", 'the folder offered a second time');
+await evaluate("document.getElementById('run-folder').click()");
+await settle("document.querySelector('#batch-result table.data tbody tr')", 'the table of the run of two');
+
+const coloured = await evaluate(`(async () => {
+  const { state } = await import('./state.js');
+  const ok = JSON.parse(state.run.envelope).ok;
+  const trials = document.querySelector('#batch-result table.data');
+  const head = [...trials.querySelectorAll('thead th')].map((c) => c.textContent.trim());
+  const at = head.indexOf('refusal_code');
+  return {
+    produced: Object.fromEntries((ok.results ?? []).map((row) => [row.trial_id, Boolean(row.provenance_id)])),
+    rows: [...trials.querySelectorAll('tbody tr')].map((row) => ({
+      trial: row.children[0].textContent.trim(),
+      code: at < 0 ? '' : row.children[at].textContent.trim(),
+      marked: at >= 0 && row.children[at].classList.contains('failed'),
+    })),
+    summary: [...document.querySelectorAll('#batch-result .batch-summary')].map((node) => node.textContent),
+  };
+})()`);
+const carrying = coloured.rows.filter((row) => row.code);
+const withNumbers = carrying.filter((row) => coloured.produced[row.trial]);
+const withNone = carrying.filter((row) => !coloured.produced[row.trial]);
+check('the failure colour marks the trial that produced nothing, not the trial that declined a quantity',
+  cutShort > 0 && withNumbers.length > 0 && withNone.length > 0
+    && withNumbers.every((row) => !row.marked) && withNone.every((row) => row.marked),
+  `${withNumbers.filter((row) => row.marked).length} of ${withNumbers.length} rows coloured ` +
+    `where numbers were produced, ${withNone.filter((row) => row.marked).length} of ${withNone.length} ` +
+    `where none were; the run says ${coloured.summary.join(' / ') || 'nothing'}`);
 
 const failures = results.filter((result) => !result.passed);
 for (const result of results) {

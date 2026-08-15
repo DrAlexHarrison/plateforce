@@ -228,6 +228,27 @@ const EXPORTS: &[&str] = &[
     "windowEnvelopeJson",
 ];
 
+/// What a caller receives a result in, and the export that hands each one back.
+///
+/// Read against `EXPORTS` rather than listed beside it, so a container this crate stops
+/// exporting stops being claimed. JSON is absent here because it is the boundary's own shape
+/// and every export crosses it.
+const CONTAINERS_AN_EXPORT_HANDS_BACK: [(&str, OutputFormat); 2] = [
+    ("batchArchive", OutputFormat::Csv),
+    ("markdown", OutputFormat::Markdown),
+];
+
+fn every_output_format() -> Vec<OutputFormat> {
+    let mut written = vec![OutputFormat::Json];
+    written.extend(
+        CONTAINERS_AN_EXPORT_HANDS_BACK
+            .iter()
+            .filter(|(export, _)| EXPORTS.contains(export))
+            .map(|(_, container)| *container),
+    );
+    written
+}
+
 /// What this surface can be asked to do, reported by this surface.
 ///
 /// The browser answers the same question the terminal and the wheel answer, in the same
@@ -254,7 +275,7 @@ pub fn capability_json() -> Result<String, JsError> {
     let loaded = registry_embed::load().map_err(|e| JsError::new(&e.to_string()))?;
     replied(&capability(
         &operations,
-        &[OutputFormat::Csv, OutputFormat::Json],
+        &every_output_format(),
         ACQUISITION_INTAKE,
         &loaded.registry,
     ))
@@ -828,14 +849,29 @@ mod tests {
     }
 
     /// Each container the manifest claims has a writer behind it: JSON is the boundary's
-    /// own shape, and CSV is `batchArchive`, which hands back the disk writer's tables. A
+    /// own shape, CSV is `batchArchive`, which hands back the disk writer's tables, and
+    /// Markdown is `markdown`, which is the document the copy buttons put on the clipboard. A
     /// format here without a writer would be a claim about nobody's code.
     #[test]
     fn the_containers_the_tab_claims_are_the_containers_it_writes() {
         let manifest = capability_json().expect("the manifest serialises");
         assert!(
-            manifest.contains("\"output_formats\":[\"csv\",\"json\"]"),
+            manifest.contains("\"output_formats\":[\"csv\",\"json\",\"markdown\"]"),
             "{manifest}"
+        );
+
+        // The export behind each container is named rather than assumed, so a table entry
+        // that outlived its call is a failure here rather than a claim on the wire.
+        let unexported: Vec<&&str> = CONTAINERS_AN_EXPORT_HANDS_BACK
+            .iter()
+            .map(|(export, _)| export)
+            .filter(|export| !EXPORTS.contains(export))
+            .collect();
+        assert!(
+            unexported.is_empty(),
+            "{} of {} containers name an export this crate does not expose: {unexported:?}",
+            unexported.len(),
+            CONTAINERS_AN_EXPORT_HANDS_BACK.len(),
         );
     }
 

@@ -43,6 +43,13 @@ def claimed_time_to_takeoff_correlation():
     return float(matched.group(1))
 
 
+if not CSV.exists():
+    raise SystemExit(
+        f"{CSV.name} is not in this repository. It is derived from a re-identifiable 2011 "
+        "corpus whose consent position is unresolved, so this file publishes the method "
+        "rather than a run anyone can repeat."
+    )
+
 df = pd.read_csv(CSV)
 time_to_takeoff_columns = sorted(c for c in df.columns if c.startswith("ttt_"))
 jump_height_columns = sorted(

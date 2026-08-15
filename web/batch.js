@@ -16,11 +16,15 @@ const JOINED_COLUMN = 'provenance_id';
 
 const KEY_COLUMNS = ['trial_id', 'source_path', 'provenance_id', 'refusal_code'];
 
-/* Which columns a rendering shows, in the order the analysis reported the quantities. */
+/* Which columns a rendering shows, in the order the analysis reported the quantities. A key
+ * column no row carries is left out: a run read here walked no filesystem, so `source_path` is
+ * a heading over blank cells. The relations keep the field, so a saved run carries it still. */
 function columnsFor(result, rendering) {
   const quantities = result.quantities ?? [];
+  const rows = result.results ?? [];
+  const carried = (name) => rows.length === 0 || rows.some((row) => row[name]);
   const keys = KEY_COLUMNS.filter(
-    (name) => rendering === WITH_PROVENANCE || name !== JOINED_COLUMN,
+    (name) => (rendering === WITH_PROVENANCE || name !== JOINED_COLUMN) && carried(name),
   );
   return [...keys, ...quantities];
 }
@@ -46,7 +50,7 @@ function coverageLine(run) {
 }
 
 /* Both counts carry the denominator they were taken over, because the run counts two
- * populations and the reader meets them eight lines apart. */
+ * populations and the line beneath this one counts the other. */
 function resultSummary(result) {
   const run = result.run;
   if (!run) return '';
@@ -57,21 +61,23 @@ function resultSummary(result) {
 }
 
 /*
- * The other population the run counts, and the denominator that keeps it from reading as the
+ * The other population the run counts, with the denominator that keeps it from reading as the
  * first one.
  *
  * A rule that declines one quantity inside a trial that produced numbers is not a trial that
- * declined. Both were called declined, at the same size, eight lines apart, so a run reading
- * "0 declined" over a list of six declines read as a broken count, on a product whose whole
- * proposition is that the record can be trusted.
+ * declined, so the two counts carry different nouns and different denominators. Printed on a
+ * run that declined nothing as well, because a reader who meets this line only when something
+ * declined cannot tell a clean run from a line that moved.
  */
 function declinedQuantities(result) {
   const rows = result.results ?? [];
   const quantities = result.quantities ?? [];
-  const declined = result.refusals ?? [];
+  // A refusal naming no quantity is the trial's own, and the line above has already counted it.
+  const declined = (result.refusals ?? []).filter((refusal) => refusal.quantity);
   const trials = new Set(declined.map((refusal) => refusal.trial_id)).size;
-  return `${declined.length} of ${counted(quantities.length * rows.length, 'quantity', 'quantities')} ` +
-    `declined, on ${trials} of ${counted(rows.length, 'trial')}`;
+  const asked = counted(quantities.length * rows.length, 'quantity', 'quantities');
+  if (declined.length === 0) return `${declined.length} of ${asked} declined`;
+  return `${declined.length} of ${asked} declined, on ${trials} of ${counted(rows.length, 'trial')}`;
 }
 
 /* What the table holds, because most of it is past the right edge on any screen the run is read
@@ -135,7 +141,10 @@ function table(result, rendering) {
       const raw = cellFor(row, column, units);
       const numeric = !KEY_COLUMNS.includes(column);
       const cell = element('td', numeric ? 'numeric' : null, raw === '' ? '' : String(raw));
-      if (column === 'refusal_code' && raw) cell.className = 'failed';
+      // The failure colour is the trial that produced nothing, which is the row whose
+      // `provenance_id` is empty. A row that answered nine quantities and declined two carries
+      // the codes for the two, and colouring it as a failure says the trial declined.
+      if (column === 'refusal_code' && raw && !row.provenance_id) cell.className = 'failed';
       // The trial's own name opens the trial's own record, so the accounts stay reachable
       // under both renderings rather than travelling with a column one of them hides.
       const held = column === 'trial_id' ? accounts.get(row.trial_id) : null;
@@ -283,6 +292,10 @@ export function renderBatch(
   head.append(element('h2', null, 'Batch results'));
   panel.append(head);
   panel.append(element('p', 'batch-summary', resultSummary(result)));
+  // Beside the trial counts and above the table, because the table's `refusal_code` column is
+  // where a declined quantity is met, and a reader who meets it under a trial count alone has
+  // been shown a refusal and a nought over the same six rows.
+  panel.append(element('p', 'batch-summary', declinedQuantities(result)));
   panel.append(element('p', 'panel__sub', coverageLine(result.run)));
   const plate = plateLine(result.run, revisionNow);
   if (plate) panel.append(element('p', 'panel__sub', plate));
@@ -296,9 +309,8 @@ export function renderBatch(
   if (declined && showDeclined) {
     // Quantities rather than trials, said in the heading rather than left to the columns: a
     // trial that produced numbers and declined one landmark is in this list and is not a
-    // declined trial, and the count above is over trials.
+    // declined trial. Its count is stated once, with the counts at the top.
     panel.append(element('h3', 'panel__lead', 'Quantities that declined'));
-    panel.append(element('p', 'panel__sub', declinedQuantities(result)));
     panel.append(declined);
   }
   container.append(panel);

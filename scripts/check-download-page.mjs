@@ -420,6 +420,36 @@ record(
   'following it back reaches the download page',
 );
 
+// The same page is what the desktop application loads, where that offer is addressed to a
+// reader who has already installed it and its relative href does not reach this site at all.
+// The check above is the control and this is the treatment: a rule that removes the link
+// everywhere and a rule that removes it nowhere each satisfy one of them and fail the other.
+// The application is stood in for by defining the handle it defines, before any page script
+// runs, which is the handle `web/format.js` already asks for the window title.
+// The Page domain has to be enabled before a script can be registered against the next
+// document, and a registration that silently does nothing would leave the link on screen and
+// read as the guard failing rather than as the probe never running.
+await send('Page.enable');
+await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: 'window.__TAURI_INTERNALS__ = { invoke: () => Promise.resolve() };',
+});
+await send('Page.navigate', { url: `http://127.0.0.1:${port}/app/index.html` });
+for (let attempt = 0; attempt < 80; attempt += 1) {
+  if (await evaluate("document.readyState === 'complete' && !!document.querySelector('.app-header')")) break;
+  await new Promise((resolve) => setTimeout(resolve, 125));
+}
+await new Promise((resolve) => setTimeout(resolve, 1200));
+const asApplication = await evaluate(`(() => ({
+  offers: document.querySelectorAll('.app-header__install').length,
+  header: Boolean(document.querySelector('.app-header')),
+  dropzone: Boolean(document.getElementById('dropzone')),
+}))()`);
+record(asApplication.offers === 0, `the application does not offer to install itself, ${asApplication.offers} of 0 drawn`);
+record(
+  asApplication.header && asApplication.dropzone,
+  'and the page it draws instead is whole, header and drop zone both present',
+);
+
 server.close();
 
 for (const line of held) console.log(`  ${line}`);

@@ -21,7 +21,8 @@ plateforce capability --format json
 ```
 
 One call, and it is the whole picture. It returns the schema name and version, the operations this
-build dispatches, every rule it can run with the slot and construct each fills, the operator
+surface computes, which is a vocabulary of computations rather than a list of subcommands, every
+rule it can run with the slot and construct each fills, the operator
 entries those rules compose and the names you state to reach them, the acquisition block's
 members, the container formats this surface writes, and every refusal code with its exit code.
 
@@ -120,6 +121,7 @@ The containers a surface writes are its own, and the manifest publishes them:
 ```
 csv
 json
+markdown
 text
 ```
 
@@ -264,8 +266,10 @@ refusal codes and their exit codes are generated from the software's own vocabul
 safest thing to branch on. Method ids come from the registry, which is data, so treat the set as
 open and look up what you meet rather than pattern-matching on names.
 
-No version of this software has been tagged yet, so nothing here has shipped to anyone and the
-shapes above may still move. When a `v*` tag exists, this paragraph is the one to rewrite.
+The shapes above are those of a released version, and `plateforce.capability/1` is the schema
+name to branch on: a change that would break a caller reading that name arrives under a new
+one. Ask `plateforce capability --format json` for the version in front of you rather than
+assuming this page describes it.
 
 ## The private path is the only path
 

@@ -61,7 +61,8 @@ Report every operation, rule, value and refusal code, as one JSON document.
 
 This is the call to make before writing anything against this software, because it describes
 the copy in front of you rather than one somebody wrote about. It carries every operation
-this surface dispatches, every rule it runs with the slot each fills, every value each rule
+this surface computes, which is a vocabulary of computations rather than the list of
+subcommands, every rule it runs with the slot each fills, every value each rule
 takes with the exact text that states it, the acquisition block's members, the containers
 this surface writes, and every refusal code with its exit code.
 

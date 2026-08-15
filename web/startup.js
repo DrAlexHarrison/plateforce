@@ -9,7 +9,17 @@ import { wireBatchControls } from './batch-run.js';
 import { wirePicker } from './add-quantity.js';
 import { startPlate, plateRows } from './plate.js';
 
+/* The desktop application loads this same page, so the offer to install it is addressed to a
+ * reader who has already done so, and its relative href does not reach the download page from
+ * the application's own scheme. Removed rather than hidden, so nothing reaches it by keyboard
+ * either. `__TAURI_INTERNALS__` is the same handle format.js asks for the window title. */
+function removeInstallOfferInTheApplication() {
+  if (!window.__TAURI_INTERNALS__) return;
+  document.querySelector('.app-header__install')?.remove();
+}
+
 export async function start() {
+  removeInstallOfferInTheApplication();
   try {
     await init();
     state.build = JSON.parse(buildInfoJson());

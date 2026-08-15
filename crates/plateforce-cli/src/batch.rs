@@ -178,6 +178,11 @@ pub fn run(
     document_destination: Option<&std::path::Path>,
     renderer: &crate::render::Renderer,
 ) -> Outcome {
+    // Before the folder is made, so a run that cannot answer in the shape it was asked for
+    // leaves nothing behind.
+    if format == Format::Markdown {
+        return crate::out::markdown_wants_a_result("batch");
+    }
     // The global flag names one file, and a run has no single document to put in one.
     if document_destination.is_some() {
         return Outcome::declined_line(

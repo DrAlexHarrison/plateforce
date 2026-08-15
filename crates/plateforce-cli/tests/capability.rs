@@ -368,6 +368,7 @@ fn every_container_this_binary_writes_is_one_it_declares() {
             "json",
             source.contains("write_json(") || source.contains("Format::Json"),
         ),
+        ("markdown", source.contains("markdown::result(")),
     ];
     let declared: Vec<String> = committed()["output_formats"]
         .as_array()

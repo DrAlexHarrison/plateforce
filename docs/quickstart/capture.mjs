@@ -109,7 +109,7 @@ const setFiles = async (selector, files) => {
  * the size of what it shows: a page holds one tall rail and several wide panels, and a whole
  * viewport of either wastes most of a printed page on background.
  */
-const shot = async (name, selectors, { pad = 16 } = {}) => {
+const shot = async (name, selectors, { pad = 16, bottom = pad } = {}) => {
   await new Promise((wait) => setTimeout(wait, 400));
   const box = await evaluate(`(() => {
     const nodes = ${JSON.stringify(selectors)}.map((s) => document.querySelector(s)).filter(Boolean);
@@ -127,7 +127,10 @@ const shot = async (name, selectors, { pad = 16 } = {}) => {
     x: Math.max(0, box.left - pad),
     y: Math.max(0, box.top - pad),
     width: box.right - box.left + pad * 2,
-    height: box.bottom - box.top + pad * 2,
+    // The foot is its own measurement, because an even margin below the last element named
+    // reaches into whatever follows it, and a heading caught by its top half reads as a
+    // cropped screenshot exactly as a sliced line does.
+    height: box.bottom - box.top + pad + bottom,
     scale: 2,
   };
   const reply = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip });
@@ -185,6 +188,31 @@ await settle("!document.getElementById('stage-empty').hidden", 'the empty stage'
 
 await shot('open', ['.app-header', '#dropzone']);
 
+/*
+ * The same screen as the desktop guides show it.
+ *
+ * The handle the application runs behind is injected and the page is loaded again, so the
+ * install offer is removed by `web/startup.js` on the branch the application itself takes.
+ * Editing the page for the photograph would produce a picture of a page nobody ever loads,
+ * and it would keep printing the tidy version after that branch broke.
+ */
+const asApplication = await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: 'window.__TAURI_INTERNALS__ = { invoke: () => Promise.resolve() };',
+});
+await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/index.html` });
+await settle("!document.getElementById('stage-empty').hidden", 'the empty stage as an application');
+await settle("!document.querySelector('.app-header__install')", 'the install offer to be withdrawn');
+await shot('open-desktop', ['.app-header', '#dropzone']);
+
+// Back to a browser for everything below, which both guides print: only the header differs
+// between the two, and a figure shared by five guides should be taken the way five of them
+// are read rather than the way one is.
+await send('Page.removeScriptToEvaluateOnNewDocument', {
+  identifier: asApplication.result.identifier,
+});
+await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/index.html` });
+await settle("!document.getElementById('stage-empty').hidden", 'the empty stage again');
+
 await openTrials([TRIAL(1)], 1200);
 await shot('columns', ['.panel--standalone']);
 
@@ -203,7 +231,9 @@ await settle(
   'the spread panel',
 );
 await new Promise((wait) => setTimeout(wait, 900));
-await shot('spread', ['.spread-controls', '.spread-headline'], { pad: 20 });
+// The panel's own head as well as its controls: the guide tells the reader to look for that
+// question by name, so a figure that starts below it hides the thing it was sent to find.
+await shot('spread', ['.panel--spread .panel__head', '.spread-controls', '.spread-headline'], { pad: 20 });
 await shot('record', ['.panel--build']);
 
 const single = await evaluate(`(() => ({
@@ -223,16 +253,26 @@ const single = await evaluate(`(() => ({
 await send('Page.reload', { ignoreCache: true });
 await settle("!document.getElementById('stage-empty').hidden", 'the empty stage again');
 await openTrials([1, 2, 3, 4, 5, 6].map(TRIAL), 1200);
-await shot('folder', ['.panel--standalone']);
+// The declaration alone, not the whole stage: the column and rate questions are the same ones
+// step 2 already shows at full size, and repeating them shrinks the one thing this figure is
+// here for, which is the ending that decides what counts as a trial.
+await shot('folder', ['#run-declaration']);
 await enterWorkspace();
 await chooseRecommended();
 await evaluate("document.getElementById('run-folder').click()");
 await settle("!document.getElementById('stage-batch').hidden", 'the batch stage');
 await settle("document.querySelectorAll('#batch-result table').length > 0", 'the batch table');
 await new Promise((wait) => setTimeout(wait, 900));
-// The scroll container rather than the table: a fifteen-column table is three times the
-// width of what a reader can see, and clipping to the table captures mostly background.
-await shot('batch', ['#batch-result .panel__head', '.batch-summary', '#batch-result .table-scroll']);
+// The scroll container rather than the table: a wide table is several times the width of what
+// a reader can see, and clipping to the table captures mostly background. The line under it
+// says how many columns are out there, which is the line that stops a reader taking the
+// visible columns for all of them, so it is inside the picture rather than under its edge.
+await shot('batch', [
+  '#batch-result .panel__head',
+  '.batch-summary',
+  '#batch-result .table-scroll',
+  '#batch-result .table-scroll + .panel__sub',
+], { bottom: 0 });
 
 const folder = await evaluate(`(() => ({
   declaration: document.getElementById('batch-declaration')?.textContent?.replace(/\\s+/g, ' ').trim(),
